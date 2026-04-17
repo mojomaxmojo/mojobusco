@@ -92,7 +92,7 @@ SO KLINGT DAS:
 ---
 "Schotterplatz hinter einer Tankstelle. Klingt schlimmer als es ist. Zehn Meter weiter fängt der Strand an. Kein Wasser, kein Strom, kein Mensch nach acht. Nachts nur Wellen und der Generator vom Nachbarn der um zehn ausgeht."
 ---
-"Feldweg, dann nochmal Feldweg, dann ein Platz der keiner ist. Gras durch den Asphalt. Ein Bus wie unserer passt rein wenn der Boden fest ist. Heute ist er fest. Morgens kommt ein Bauer mit Traktor. Er nickt. Wir nicken. Das wars an sozialer Interaktion."
+"Feldweg, dann nochmal Feldweg, dann ein Platz der keiner ist. Gras durch den Asphalt. Der Mojobus passt rein wenn der Boden fest ist. Heute ist er fest. Morgens kommt ein Bauer mit Traktor. Er nickt. Wir nicken. Das wars an sozialer Interaktion."
 ---
 
 FOSTER'S STIMME:
@@ -114,7 +114,7 @@ NICHT SO:
 "Einrichtungen: kein Wasser, kein Strom. Zufahrt: Schotter, 2km. Eignung: Van, Bulli."
 
 SONDERN SO:
-"Kein Wasser. Nächster Ort fünf Kilometer, kleiner Laden, hat aber nicht immer auf. Die Zufahrt ist Schotter, die letzten hundert Meter holprig. Mit einem großen Bus wird das eng – oder auch nicht, kommt auf den Fahrer an."
+"Kein Wasser. Nächster Ort fünf Kilometer, kleiner Laden, hat aber nicht immer auf. Die Zufahrt ist Schotter, die letzten hundert Meter holprig. Mit dem Mojobus wird das eng – oder auch nicht, kommt auf den Fahrer an."
 
 → Die Info ist da. Aber sie klingt wie ein Mensch der erzählt, nicht wie ein Formular.
 

@@ -229,9 +229,9 @@ export const generateTripPrompt = (params) => {
         ---
         Losgefahren um sechs. Kein Grund. Die Straße war da und wir waren wach und manchmal reicht das.
 
-        Die ersten Stunden: Autobahn. Leitplanken. Tankstellen die alle gleich aussehen. Susanne schläft. Der Hund schläft. Ich fahre. Der Bus braucht bergauf länger als früher – oder die Berge werden steiler. Beides möglich.
+        Die ersten Stunden: Autobahn. Leitplanken. Tankstellen die alle gleich aussehen. Susanne schläft. Der Hund schläft. Ich fahre. Der Mojobus braucht bergauf länger als früher – oder die Berge werden steiler. Beides möglich.
 
-        Dann die Küste. Ich merk es bevor ich es seh. Die Luft ändert sich. Salz. Wind der anders drückt. Der Bus fährt seitlich, nur ein bisschen, aber ich merk es am Lenkrad. Kenn ich.
+        Dann die Küste. Ich merk es bevor ich es seh. Die Luft ändert sich. Salz. Wind der anders drückt. Der Mojobus fährt seitlich, nur ein bisschen, aber ich merk es am Lenkrad. Kenn ich.
 
         Erster Stopp: ein Platz über dem Meer. Keine Ahnung wie der heißt. War kein Schild da als wir das letzte Mal hier waren, ist auch jetzt keins. Asphalt, dann Klippe, dann Wasser. Susanne ist schon draußen bevor der Motor aus ist.
 
@@ -242,7 +242,7 @@ export const generateTripPrompt = (params) => {
         Kaffee am nächsten Morgen mit Blick auf nichts. Nebel. Alles weg. Die Kirche noch da, der Rest verschwunden. Als hätte jemand die Welt ausgeschaltet und vergessen das Meer leiser zu drehen.
         ---
 
-        → Beachte: Stationen sind da (Autobahn → Küste → Platz → Kirchenparkplatz). Aber keine Liste. Eine fließende Bewegung. Das Fahren ist Teil der Erzählung. "Wir" erzählt – kein Kitsch, nur zwei Menschen in einem Bus.`
+        → Beachte: Stationen sind da (Autobahn → Küste → Platz → Kirchenparkplatz). Aber keine Liste. Eine fließende Bewegung. Das Fahren ist Teil der Erzählung. "Wir" erzählt – kein Kitsch, nur zwei Menschen im Mojobus.`
     }
 
     // Input-Stärke einschätzen
@@ -377,8 +377,18 @@ ${genderAddition}
     - Kurze Absätze. 1-4 Sätze. Auch bei Langform.
     - Weißraum zwischen Absätzen. Atempausen.
     - Keine Zwischenüberschriften. Keine "Station 1"-Labels. Kein Fettdruck.
-    - Fließtext. Die Route gibt Struktur – der Text braucht keine künstliche.
     - Ortswechsel: einfach neuer Absatz. Die Bewegung spricht für sich.
+
+    BEI MEDIUM UND LANGEN TRIPS – NICHT NUR FLIESSTEXT:
+    - Gestapelte Sequenzen erlaubt: kurze Zeilen die allein stehen. Wie Kilometer die vergehen.
+      Beispiel:
+      Tankstelle. Kaffee to go.
+      Leon schläft im Fußraum.
+      Autobahn. Leitplanken.
+      Dann endlich Kurven.
+    - Ein einzelner Satz als Atempause zwischen zwei Stationen – allein in einer Zeile.
+    - Wechsel zwischen schnellen Fahrt-Sequenzen (gestapelt) und langsamen Ankunfts-Momenten (Fließtext).
+    - Nie: Überschriften, Listen, Fettdruck. Die Route gibt Struktur. Der Rhythmus auch.
 
     LÄNGE: ${length.words} Wörter.
     ${tripLength === 'short' ? 'Kurz. Eine Fahrt. Ein Ankommen. Jedes Wort muss sitzen.' : ''}${tripLength === 'medium' ? 'Genug Raum für die Route und ihre Momente. Nicht genug für Füller.' : ''}${tripLength === 'long' ? `Das ist viel Strecke. Füll sie nicht mit Leerlauf.
@@ -441,8 +451,8 @@ export const getTripImageAnalysisPrompt = (lifestyleConfig, tripLength = 'medium
             ? `"Person mit Rucksack auf Bergpfad, Schotter, steil. Kiefernwald links, Felsen rechts. Bewölkt, diffuses Licht. Wanderstöcke sichtbar. Keine anderen Personen. Aufstieg erkennbar an Körperhaltung."`
             : `"Person auf Wanderweg. Berglandschaft, Felsen. Rucksack sichtbar. Bewölkt."`)
         : (isLong
-            ? `"Großer Oldtimer-Bus auf Küstenstraße, Asphalt, einspurig. Klippen rechts, Meer links. Bewölkt, Wind erkennbar an Gras am Straßenrand. Tür offen, Gaskocher sichtbar. Keine anderen Fahrzeuge. Nachmittag, diffuses Licht. Zwei Personen außerhalb des Fahrzeugs."`
-            : `"Bus am Straßenrand. Schotterweg, Küste im Hintergrund. Bewölkt. Tür offen."`)
+            ? `"Großer Mojobus (Oldtimer) auf Küstenstraße, Asphalt, einspurig. Klippen rechts, Meer links. Bewölkt, Wind erkennbar an Gras am Straßenrand. Tür offen, Gaskocher sichtbar. Keine anderen Fahrzeuge. Nachmittag, diffuses Licht. Zwei Personen außerhalb des Fahrzeugs."`
+            : `"Mojobus am Straßenrand. Schotterweg, Küste im Hintergrund. Bewölkt. Tür offen."`)
 
     return `${basePrompt}${longAdditions}
 

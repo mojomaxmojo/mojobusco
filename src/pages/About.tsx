@@ -38,9 +38,9 @@ export function About() {
         {/* Content */}
         <div className="relative z-10 container mx-auto px-4">
           <div className="text-center space-y-4">
-            <h1 className="text-4xl md:text-6xl font-bold"><span className="gradient-text">Über Uns</span></h1>
+            <h1 className="text-4xl md:text-6xl font-bold"><span className="gradient-text">Zuhause. Überall zuhause.</span></h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Perpetual Travelers – Leben zwischen Sand und Horizont
+              Seit Jahren kein fester Wohnsitz. Dafür unzählige Sonnenuntergänge, echte Begegnungen und eine Freiheit, die man nicht kaufen kann – nur leben.
             </p>
           </div>
         </div>
@@ -56,18 +56,44 @@ export function About() {
             </CardHeader>
             <CardContent className="prose prose-slate dark:prose-invert max-w-none space-y-4">
               <p className="text-muted-foreground leading-relaxed">
-                Kein fester Wohnsitz, kein Alltag im Hamsterrad – nur wir und Leon (Lionhunter),
-                unser RV und das Meer. Wir leben als Perpetual Travelers, meist direkt am Strand,
-                autark mit Solarstrom und minimalistisch unterwegs.
+                Es war an einem ganz normalen Morgen – der Wecker klingelte um 6:30. Zum letzten Mal.
+                Wenig später rollten wir los: Max, Susanne und Leon unser Rhodesian Ridgeback mit unserem 10 Meter langem Mojobus –
+                unser Zuhause auf Rädern. Kein festes Ziel, kein Endpunkt. Nur die Straße, das Meer
+                und das Gefühl: Das ist es.
               </p>
               <p className="text-muted-foreground leading-relaxed">
-                Das Rauschen der Wellen ist unser Wecker, Sonnenuntergänge sind unser Alltag.
-                Jeder Tag bringt neue Orte, neue Begegnungen und das Gefühl, wirklich frei zu sein.
+                Seitdem leben wir als Perpetual Travelers – meist direkt am Strand, autark mit Solarstrom,
+                minimalistisch und frei. Das Rauschen der Wellen ist unser Wecker,
+                Sonnenuntergänge sind unser Alltag. Jeder Tag bringt neue Orte,
+                neue Begegnungen und immer wieder dieses Gefühl: Wir wollen nirgendwo anders sein.
               </p>
               <p className="text-muted-foreground leading-relaxed">
-                Auf Nostr teilen wir Geschichten, Tipps und Einblicke in dieses Leben zwischen
-                Sand und Horizont. Vielleicht ruft es auch dich – nach Abenteuer, Einfachheit
-                und Freiheit. 🌊🚐✨
+                Auf Nostr teilen wir Geschichten, Tipps und ehrliche Einblicke in dieses Leben
+                zwischen Sand und Horizont. Vielleicht ruft es auch dich – nach Abenteuer,
+                Einfachheit und echter Freiheit. 🌊🚐✨
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Warum Nostr Section */}
+          <Card className="border-2">
+            <CardHeader>
+              <CardTitle className="text-2xl">Warum Nostr?</CardTitle>
+            </CardHeader>
+            <CardContent className="prose prose-slate dark:prose-invert max-w-none space-y-4">
+              <p className="text-muted-foreground leading-relaxed">
+                Wir teilen unser Leben nicht auf Plattformen, die unsere Inhalte kontrollieren,
+                zensieren oder einfach verschwinden lassen können. Nostr ist dezentral, zensurresistent
+                und gehört niemandem – genau wie unser Lebensstil.
+              </p>
+              <p className="text-muted-foreground leading-relaxed">
+                Keine Algorithmen, die entscheiden, was du siehst. Kein Konzern, der unsere
+                Reichweite drosselt. Nur echte Menschen, echte Geschichten – direkt, unverändert
+                und für immer abrufbar. Das passt zu uns.
+              </p>
+              <p className="text-muted-foreground leading-relaxed">
+                Wer uns folgen will, braucht keinen Account bei einem Tech-Giganten.
+                Nur einen Nostr-Client und die Neugier auf ein Leben jenseits des Mainstreams. ⚡🔑
               </p>
             </CardContent>
           </Card>
@@ -83,7 +109,7 @@ export function About() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">
-                  Leben ohne feste Verpflichtungen, jeden Tag neu entdecken
+                  Kein Chef, kein Kalender, kein Pendeln. Nur der Wind, der dir sagt, wohin als nächstes.
                 </p>
               </CardContent>
             </Card>
@@ -97,7 +123,7 @@ export function About() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">
-                  Neue Orte, neue Menschen, neue Erfahrungen
+                  Jede Panne ist eine Geschichte. Jeder falsche Abzweig führt zu den besten Plätzen.
                 </p>
               </CardContent>
             </Card>
@@ -111,7 +137,7 @@ export function About() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">
-                  Unabhängig mit Solarstrom und minimalistischem Lebensstil
+                  Die Sonne bezahlt unseren Strom. Wir brauchen weniger – und leben mehr.
                 </p>
               </CardContent>
             </Card>

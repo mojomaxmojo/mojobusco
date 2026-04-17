@@ -101,7 +101,14 @@ WAS SIE SIND:
 WAS SICH NICHT ÄNDERT:
 - Der Foster-Rhythmus. Kurz. Kurz. Lang. Kurz.
 - Keine Ausrufezeichen. Nie.
-- Keine Leseransprache, keine Tipps, keine Motivation.`
+- Keine Leseransprache, keine Tipps, keine Motivation.
+
+SCHREIBSTIL BEI LÄNGEREN TEXTEN:
+- Nicht nur Fließtext. Langer Fließtext ermüdet.
+- Erlaubt und erwünscht: einzelne Zeilen die allein stehen. Ein Satz. Eine Beobachtung.
+- Erlaubt: kurze Sequenzen aus 3-5 einzelnen Zeilen die wie eine Szene gestapelt sind. Kein Absatz-Block. Stapel.
+- Erlaubt: ein Gedanke der in einer eigenen Zeile steht. Zwischen zwei Absätzen. Atempause.
+- Nicht erlaubt: Überschriften, Listen, Fettdruck. Immer noch Foster. Aber Foster der atmet.`
   }
 };
 
@@ -130,24 +137,24 @@ export const lifestyleExamples = {
   // ============================================================
   mojobus: {
     neutral: {
-      example1: 'Der Bus riecht nach gestern. Diesel, Kaffee, Hund soul Leon. Die Tür geht auf und draußen ist es kalt und grau und genau richtig.',
+      example1: 'Der Mojobus riecht nach gestern. Diesel, Kaffee, Hund soul Leon. Die Tür geht auf und draußen ist es kalt und grau und genau richtig.',
       example2: 'Kein Empfang. Kein Mensch. Nur Schotter und Wind und ein Platz der auf keiner Karte steht. Stuhl raus, sitzen. Das reicht.',
       example3: 'Wir fahren seit... wie lange eigentlich. Ich muss rechnen. Das ist ein gutes Zeichen.'
     },
     male: {
-      example1: 'Der Bus riecht nach gestern. Diesel, Kaffee, Hund. Ich mach die Tür auf und draußen ist es kalt und grau und genau richtig.',
+      example1: 'Der Mojobus riecht nach gestern. Diesel, Kaffee, Hund. Ich mach die Tür auf und draußen ist es kalt und grau und genau richtig.',
       example2: 'Kein Empfang. Kein Mensch. Nur Schotter und Wind und ein Platz der auf keiner Karte steht. Ich stell den Stuhl raus und sitze. Das reicht.',
       example3: 'Zwei Stunden nach Wasser gesucht heute. Kanister leer, nächster Ort fünfzehn Kilometer. Bin hingefahren, hab gefüllt, bin zurück. Nicht glamourös. Aber der Kaffee danach war es wert.'
     },
     female: {
-      example1: 'Der Bus riecht nach gestern. Diesel, Kaffee,Hund soul Leon. Ich mach die Tür auf und draußen ist es kalt und grau und genau richtig.',
+      example1: 'Der Mojobus riecht nach gestern. Diesel, Kaffee, Hund soul Leon. Ich mach die Tür auf und draußen ist es kalt und grau und genau richtig.',
       example2: 'Kein Empfang. Kein Mensch. Ein Platz der auf keiner Karte steht. Der Typ an der letzten Tankstelle hat gefragt ob ich wirklich allein fahre. Ja. Ich stell den Stuhl raus und sitze. Das reicht.',
       example3: 'Zwei Stunden nach Wasser gesucht heute. Kanister leer, nächster Ort fünfzehn Kilometer. Bin hingefahren, hab gefüllt, bin zurück. An der Zapfstelle ein alter Mann der mir helfen wollte. Konnte ich selber. Aber nett gemeint.'
     },
     couple: {
-      example1: 'Der Bus riecht nach gestern. Diesel, Kaffee, Hund soul Leon. Susanne macht die Tür auf und draußen ist es kalt und grau. Sie sagt nichts. Ich auch nicht. Passt.',
+      example1: 'Der Mojobus riecht nach gestern. Diesel, Kaffee, Hund soul Leon. Susanne macht die Tür auf und draußen ist es kalt und grau. Sie sagt nichts. Ich auch nicht. Passt.',
       example2: 'Wir kennen diese Küste. War letztes Jahr anders – oder das Jahr davor. Susanne sagt, die Bäckerei war früher links. Sie war rechts. Wir haben beide recht.',
-      example3: 'Wir fahren seit... wie lange eigentlich. Ich muss rechnen. Das ist ein gutes Zeichen. Susanne schläft noch. Der Bus kennt die Straße.'
+      example3: 'Wir fahren seit... wie lange eigentlich. Ich muss rechnen. Das ist ein gutes Zeichen. Susanne schläft noch. Der Mojobus kennt die Straße.'
     }
   },
 

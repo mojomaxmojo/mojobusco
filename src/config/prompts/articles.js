@@ -119,7 +119,7 @@ export const generateArticlePrompt = (params) => {
         ---
         Wir kennen diesen Ort. Oder wir glauben es. Susanne sagt, letztes Mal war die Bäckerei noch offen. Das war vor zwei Jahren. Vielleicht drei. Die Bäckerei ist zu. Die Tür hat eine neue Farbe.
 
-        Der Bus steht auf demselben Platz. Gras durch den Asphalt. Mehr als damals. Der Bus passt noch rein. Passt immer noch.
+        Der Mojobus steht auf demselben Platz. Gras durch den Asphalt. Mehr als damals. Der Mojobus passt noch rein. Passt immer noch.
 
         Ich mach Kaffee. Nicht weil ich Kaffee will. Weil es das Ritual ist. Motor aus, Kaffee machen, sitzen. Dann sind wir da. Susanne sitzt schon.
 
@@ -226,7 +226,7 @@ ${tripTypeBlock}
     Nicht mitten in einen Satz. Nicht am Anfang. Nicht am Ende nach den Hashtags.
 
     BEISPIEL wie Platzhalter im Text stehen:
-    "Der Bus stand wo die Straße aufhört. Nichts dahinter außer Wasser.
+    "Der Mojobus stand wo die Straße aufhört. Nichts dahinter außer Wasser.
 
     [BILD_1]
 
@@ -252,8 +252,20 @@ ${tripTypeBlock}
     - Kurze Absätze. 1-4 Sätze. Auch bei Langform.
     - Weißraum zwischen Absätzen. Atempausen.
     - Keine Zwischenüberschriften. Kein Fettdruck. Keine Listen.
-    - Fließtext der atmet. Struktur entsteht durch Rhythmus, nicht durch Überschriften.
     - Szenenwechsel: einfach neuer Absatz. Kein "Am nächsten Tag..." nötig.
+
+    BEI MEDIUM UND LANGEN TEXTEN – NICHT NUR FLIESSTEXT:
+    Langer Fließtext ermüdet. Foster variiert. Du auch.
+    - Einzelne Zeilen die allein stehen dürfen: eine Beobachtung. Ein Satz. Keine Umgebung.
+    - Gestapelte Sequenzen: 3-5 kurze Zeilen ohne Absatz-Block. Wie ein Stapel Momente.
+      Beispiel:
+      Morgens.
+      Leon schläft noch.
+      Kaffee. Kalt. Gut.
+      Draußen Nebel.
+    - Ein Gedanke der zwischen zwei Absätzen allein steht – als Atempause, nicht als Überschrift.
+    - Wechsel zwischen Kompakt-Blöcken und atmendem Fließtext. Kein Gleichmaß.
+    - Nie: Überschriften, Fettdruck, nummerierte Listen. Immer noch Foster. Aber Foster der Raum gibt.
 
     LÄNGE: ${length.words} Wörter.
     ${articleLength === 'short' ? 'Kurz. Jedes Wort muss sitzen.' : ''}${articleLength === 'medium' ? 'Nicht zu kurz, nicht zu lang. Genug Raum für die Geschichte, nicht genug für Füller.' : ''}${articleLength === 'long' ? `Das ist viel. Füll es nicht. Erzähl es.

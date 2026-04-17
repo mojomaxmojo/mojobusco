@@ -46,11 +46,23 @@ import {
   getPlaceImageAnalysisPrompt
 } from '../src/config/prompts/index.js'
 
+// ── Bot Meta-Tag Middleware ────────────────────────────────
+import { botMiddleware, getBotCacheStats, clearBotCache } from './bot-middleware.js'
+
 const app = express()
 const PORT = process.env.PORT || 3002
 
 app.use(cors())
 app.use(express.json())
+
+// ============================================================
+// BOT META-TAG MIDDLEWARE
+// Muss VOR allen anderen Routen stehen!
+// Erkennt Crawler (Pinterest, Google, Facebook, WhatsApp etc.)
+// und liefert statisches HTML mit OG/Twitter/Pinterest Meta-Tags.
+// Normale Nutzer werden NICHT betroffen — sie bekommen next()
+// ============================================================
+app.use(botMiddleware)
 
 const storage = multer.memoryStorage()
 const upload = multer({
@@ -2098,8 +2110,19 @@ app.get('/api/health', (req, res) => {
     anthropicApiKey: process.env.ANTHROPIC_API_KEY ? 'configured' : 'missing',
     openrouterApiKey: process.env.OPENROUTER_API_KEY ? 'configured' : 'missing',
     xaiApiKey: process.env.XAI_API_KEY ? 'configured' : 'missing',
+    botMiddleware: {
+      status: 'active',
+      cache: getBotCacheStats(),
+    },
     timestamp: new Date().toISOString()
   })
+})
+
+// Bot-Cache leeren (nach Deployment aufrufen)
+// POST /api/bot-cache/clear
+app.post('/api/bot-cache/clear', (req, res) => {
+  const cleared = clearBotCache()
+  res.json({ ok: true, cleared, message: `${cleared} Cache-Einträge geleert` })
 })
 
 app.listen(PORT, () => {

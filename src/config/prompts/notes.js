@@ -136,5 +136,5 @@ VERBOTEN:
 - Interpretationen: "genießt", "fühlt sich frei"
 
 BEISPIEL:
-"Strand, Dämmerung. Großer Bus am Wasser, Tür offen. Zwei Personen davor. Bewölkt, windig."}`
+"Strand, Dämmerung. Mojobus am Wasser, Tür offen. Zwei Personen davor. Bewölkt, windig."}`
 }
