@@ -38,7 +38,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import {
   FileText, Image as ImageIcon, Download, ExternalLink, Loader2,
   Sparkles, Trash2, ChevronRight, Wand2, Eye, Copy, Check, ArrowLeft,
-  Search, FileText as FileTextIcon, MessageSquare, Upload, CloudUpload
+  Search, FileText as FileTextIcon, MessageSquare, Upload, CloudUpload,
+  LayoutList, ChevronDown, ChevronUp, Star, TrendingUp
 } from 'lucide-react'
 
 // Pin Components
@@ -90,22 +91,6 @@ function extractSummary(content: string): string {
 }
 
 // ═══════════════════════════════════════════════════════════
-// TYPES
-// ═══════════════════════════════════════════════════════════
-
-interface SavedPin {
-  id: string
-  articleTitle: string
-  pinData: any
-  imageUrl?: string
-  pinterestUrl?: string
-  status: 'draft' | 'ready' | 'posted'
-  createdAt: string
-  updatedAt: string
-  template?: string
-}
-
-// ═══════════════════════════════════════════════════════════
 // MAIN PAGE
 // ═══════════════════════════════════════════════════════════
 
@@ -122,14 +107,6 @@ export function PromotionDashboard() {
       navigate('/')
     }
   }, [user, navigate, toast])
-
-  if (!user || !user.pubkey) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    )
-  }
 
   // ── STATE ══════════════════════════════════════════════
   const [step, setStep] = useState(1)
@@ -184,6 +161,16 @@ export function PromotionDashboard() {
 
   // Copy feedback
   const [copied, setCopied] = useState(false)
+
+  // ── PINWAND STATE ═════════════════════════════════════
+  const [showPinboards, setShowPinboards] = useState(false)
+  const [copiedField, setCopiedField] = useState<string>('')
+
+  const copyField = (text: string, key: string) => {
+    navigator.clipboard.writeText(text)
+    setCopiedField(key)
+    setTimeout(() => setCopiedField(''), 1500)
+  }
 
   // Canvas ref
   const previewRef = useRef<HTMLImageElement>(null)
@@ -649,6 +636,14 @@ export function PromotionDashboard() {
             </div>
           ))}
         </div>
+
+        {/* ══════ PINWAND-EMPFEHLUNGEN ══════ */}
+        <PinboardSuggestions
+          showPinboards={showPinboards}
+          setShowPinboards={setShowPinboards}
+          copiedField={copiedField}
+          copyField={copyField}
+        />
 
         {/* ══════ STEP 1: ARTIKEL / POST AUSWÄHLEN ══════ */}
         {step === 1 && (
@@ -1244,6 +1239,259 @@ export function PromotionDashboard() {
           </Card>
         )}
       </div>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════
+// PINWAND-EMPFEHLUNGEN KOMPONENTE
+// ═══════════════════════════════════════════════════════════
+
+const PINBOARD_SUGGESTIONS = [
+  {
+    tier: 1,
+    emoji: '🚐',
+    name: 'Vanlife Deutschland & Europa',
+    description: 'Vanlife Tipps, Stellplätze und Geschichten aus Deutschland und Europa. Wildcamping, Offgrid-Leben und echte Einblicke in das Leben auf Rädern – von Portugal bis zur Nordsee.',
+    keywords: ['#Vanlife', '#Wohnmobil', '#Wildcamping', '#VanlifeDeutschland', '#Offgrid'],
+    bestFor: 'Berichte, Notes, Medien',
+    volume: 'Sehr hoch',
+  },
+  {
+    tier: 1,
+    emoji: '🔋',
+    name: 'Wohnmobil DIY – Solar & LiFePo4',
+    description: 'Schritt-für-Schritt Anleitungen für Solar, LiFePo4-Batterien, Elektrik und Ausbau im Wohnmobil oder Van. Spare Geld mit unseren DIY-Projekten und technischen Tipps.',
+    keywords: ['#WohnmobilDIY', '#LiFePo4', '#SolarWohnmobil', '#VanAusbau', '#OffgridStrom'],
+    bestFor: 'DIY-Artikel, Anleitungen',
+    volume: 'Hoch',
+  },
+  {
+    tier: 1,
+    emoji: '🇵🇹',
+    name: 'Portugal Vanlife – Wildcamping & Spots',
+    description: 'Die schönsten Wildcamping-Spots und Stellplätze in Portugal. Algarve, Costa Vicentina und Atlantikküste – unsere persönlichen Geheimtipps für Vanlifers und Wohnmobilreisende.',
+    keywords: ['#PortugalVanlife', '#WildcampingPortugal', '#Algarve', '#Stellplatz', '#PortugalReise'],
+    bestFor: 'Plätze, Berichte, Trips',
+    volume: 'Sehr hoch (Sep–Apr)',
+  },
+  {
+    tier: 2,
+    emoji: '🏕️',
+    name: 'Wildcamping Europa – Tipps & Spots',
+    description: 'Freistehen und Wildcamping in ganz Europa – legal und sicher. Spanien, Frankreich, Portugal, Belgien: Unsere besten Spots, Regeln und Erfahrungen für Camper und Vanlifers.',
+    keywords: ['#Wildcamping', '#FreistehenEuropa', '#CampingTipps', '#WohnmobilEuropa', '#Vanlife'],
+    bestFor: 'Plätze (alle Länder), Trips',
+    volume: 'Hoch',
+  },
+  {
+    tier: 2,
+    emoji: '🌊',
+    name: 'Perpetual Travelers – Freileben',
+    description: 'Leben ohne festen Wohnsitz – als Perpetual Traveler durch Europa. Digitales Nomadentum, Freiheit auf Rädern und echte Geschichten vom Unterwegs-Sein als Lebensmodell.',
+    keywords: ['#PerpetualTraveler', '#DigitalNomad', '#Freileben', '#WohnmobilLeben', '#Aussteiger'],
+    bestFor: 'Lifestyle-Notes, Berichte',
+    volume: 'Mittel (wachsend)',
+  },
+  {
+    tier: 2,
+    emoji: '🦁',
+    name: 'Reisen mit Hund – Leon on Tour',
+    description: 'Abenteuer mit Hund Leon: Camping, Strand und Wandern in Europa. Tipps für Hundebesitzer auf Reisen – hundfreundliche Stellplätze, Strände und was ihr wirklich braucht.',
+    keywords: ['#ReisenMitHund', '#HundReise', '#CampingMitHund', '#VanlifeMitHund', '#Hundeabenteuer'],
+    bestFor: 'Leon-Stories, Medien, Notes',
+    volume: 'Hoch (emotionaler Content)',
+  },
+  {
+    tier: 3,
+    emoji: '🇪🇸',
+    name: 'Spanien Vanlife – Routen & Stellplätze',
+    description: 'Vanlife in Spanien – von Andalusien bis zur Nordküste. Die besten Wildcamping-Spots, Routen und Insider-Tipps für den Winter in Spanien. Warm, günstig, freiheitlich.',
+    keywords: ['#SpanienVanlife', '#Andalousia', '#WildcampingSpanien', '#WinterImVan', '#SpanienReise'],
+    bestFor: 'Plätze ES, Trips',
+    volume: 'Hoch (Okt–März)',
+  },
+  {
+    tier: 3,
+    emoji: '📷',
+    name: 'Vanlife Fotografie – Natur & Meer',
+    description: 'Atemberaubende Natur- und Reisefotos aus dem Vanlife-Alltag. Sonnenuntergänge, Meeresküsten, Tiere und Landschaften aus Portugal, Spanien und Frankreich.',
+    keywords: ['#VanlifeFotografie', '#NaturFotos', '#SonnenuntergangMeer', '#ReiseFotografie', '#Küstenfotografie'],
+    bestFor: 'Medien (Meer, Strand, Berge)',
+    volume: 'Sehr hoch (Repins)',
+  },
+  {
+    tier: 3,
+    emoji: '🍳',
+    name: 'Kochen im Wohnmobil – Einfache Rezepte',
+    description: 'Leckere und einfache Rezepte für die kleine Wohnmobil-Küche. Kochen auf 2 Herdplatten, lokale Zutaten aus Portugal und Spanien, Frühstücksideen und schnelle Gerichte für Unterwegs.',
+    keywords: ['#WohnmobilKochen', '#VanlifeKüche', '#KochenUnterwegs', '#RezepteReise', '#WohnmobilRezepte'],
+    bestFor: 'RVLife-Artikel',
+    volume: 'Mittel (Nische)',
+  },
+  {
+    tier: 3,
+    emoji: '⚡',
+    name: 'Offgrid Leben – Strom Wasser Technik',
+    description: 'Autark leben im Van oder Wohnmobil: Solar, Batterie, Wasserversorgung und Technik-Lösungen. Alles was du für ein selbstversorgtes, offgrid Leben brauchst – erklärt von Praktikern.',
+    keywords: ['#OffgridLeben', '#Autark', '#SolarWohnmobil', '#VanTechnik', '#WohnmobilStrom'],
+    bestFor: 'DIY Technik, LiFePo4',
+    volume: 'Mittel (hohe Kaufabsicht)',
+  },
+]
+
+const TIER_COLORS: Record<number, string> = {
+  1: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800',
+  2: 'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400 border-sky-200 dark:border-sky-800',
+  3: 'bg-muted text-muted-foreground border-border',
+}
+const TIER_LABELS: Record<number, string> = {
+  1: '🏆 Tier 1 – Sofort starten',
+  2: '🥈 Tier 2 – Mittelfristig',
+  3: '🥉 Tier 3 – Nische',
+}
+
+function PinboardSuggestions({
+  showPinboards,
+  setShowPinboards,
+  copiedField,
+  copyField,
+}: {
+  showPinboards: boolean
+  setShowPinboards: (v: boolean) => void
+  copiedField: string
+  copyField: (text: string, key: string) => void
+}) {
+  return (
+    <div className="mb-6">
+      <button
+        onClick={() => setShowPinboards(!showPinboards)}
+        className="w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50 transition-all group"
+      >
+        <div className="flex items-center gap-3">
+          <LayoutList className="w-5 h-5 text-primary" />
+          <div className="text-left">
+            <p className="font-semibold text-sm">📌 10 Pinwand-Empfehlungen für maximalen Traffic</p>
+            <p className="text-xs text-muted-foreground">Name · Beschreibung · Keywords – alles kopierbar</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <TrendingUp className="w-4 h-4 text-primary/60" />
+          {showPinboards
+            ? <ChevronUp className="w-5 h-5 group-hover:text-primary transition-colors" />
+            : <ChevronDown className="w-5 h-5 group-hover:text-primary transition-colors" />}
+        </div>
+      </button>
+
+      {showPinboards && (
+        <div className="mt-3 space-y-3">
+          {/* Legende */}
+          <div className="flex flex-wrap gap-2 px-1">
+            {[1, 2, 3].map(tier => (
+              <span key={tier} className={`text-xs px-2 py-0.5 rounded-full border font-medium ${TIER_COLORS[tier]}`}>
+                {TIER_LABELS[tier]}
+              </span>
+            ))}
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-3">
+            {PINBOARD_SUGGESTIONS.map((board, idx) => {
+              const keyName = `name-${idx}`
+              const keyDesc = `desc-${idx}`
+              const keyKw   = `kw-${idx}`
+              return (
+                <div
+                  key={idx}
+                  className="rounded-xl border bg-card p-4 space-y-3 hover:shadow-md transition-shadow"
+                >
+                  {/* Header */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <span className="text-2xl shrink-0">{board.emoji}</span>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-sm leading-tight">{board.name}</p>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full border font-medium mt-0.5 inline-block ${TIER_COLORS[board.tier]}`}>
+                          {TIER_LABELS[board.tier].split('–')[0].trim()}
+                        </span>
+                      </div>
+                    </div>
+                    {/* Copy Name */}
+                    <button
+                      onClick={() => copyField(board.name, keyName)}
+                      title="Pinwand-Name kopieren"
+                      className="shrink-0 p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                    >
+                      {copiedField === keyName
+                        ? <Check className="w-3.5 h-3.5 text-green-500" />
+                        : <Copy className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+
+                  {/* Beschreibung */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Beschreibung</p>
+                      <button
+                        onClick={() => copyField(board.description, keyDesc)}
+                        className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                      >
+                        {copiedField === keyDesc
+                          ? <Check className="w-3 h-3 text-green-500" />
+                          : <Copy className="w-3 h-3" />}
+                      </button>
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{board.description}</p>
+                  </div>
+
+                  {/* Keywords */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Keywords (3–5)</p>
+                      <button
+                        onClick={() => copyField(board.keywords.join(' '), keyKw)}
+                        className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                      >
+                        {copiedField === keyKw
+                          ? <Check className="w-3 h-3 text-green-500" />
+                          : <Copy className="w-3 h-3" />}
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {board.keywords.map((kw, ki) => (
+                        <span key={ki} className="text-[11px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
+                          {kw}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Meta */}
+                  <div className="flex items-center justify-between pt-1 border-t border-dashed">
+                    <p className="text-[10px] text-muted-foreground">
+                      <span className="font-medium">Inhalte:</span> {board.bestFor}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                      <TrendingUp className="w-3 h-3" /> {board.volume}
+                    </p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Hinweis */}
+          <div className="text-xs text-muted-foreground bg-muted/40 rounded-lg px-4 py-3 space-y-1">
+            <p className="font-semibold">💡 Pinterest SEO – Goldene Regeln</p>
+            <ul className="list-disc list-inside space-y-0.5 mt-1">
+              <li>Pinwand-Name = exakte Suchphrase (wie oben angegeben)</li>
+              <li>Min. 20 Pins pro Pinwand vor dem Promoten</li>
+              <li>Täglich 3–5 neue Pins für maximale Reichweite</li>
+              <li>60% eigene Pins / 40% fremde Pins mischen</li>
+              <li>Keywords auch in Pinwand-Beschreibung eintragen</li>
+            </ul>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
