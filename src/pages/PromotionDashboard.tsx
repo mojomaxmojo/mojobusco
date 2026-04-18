@@ -190,14 +190,44 @@ export function PromotionDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // ── LOKALE PIN-VERWALTUNG (localStorage-Fallback) ═══════
+  const LOCAL_PINS_KEY = 'promotion_saved_pins'
+
+  const loadPinsFromLocal = (): SavedPin[] => {
+    try {
+      const raw = localStorage.getItem(LOCAL_PINS_KEY)
+      if (!raw) return []
+      return JSON.parse(raw) as SavedPin[]
+    } catch { return [] }
+  }
+
+  const savePinsToLocal = (pins: SavedPin[]) => {
+    try {
+      localStorage.setItem(LOCAL_PINS_KEY, JSON.stringify(pins))
+    } catch { /* storage full? */ }
+  }
+
+  // Sicherer JSON-Parse: gibt null zurück wenn Antwort kein JSON ist
+  const safeResJson = async (res: Response): Promise<any | null> => {
+    const text = await res.text()
+    try {
+      return JSON.parse(text)
+    } catch {
+      return null
+    }
+  }
+
   const loadSavedPins = async () => {
     try {
       const res = await fetch('/api/promotion/pins')
-      const data = await res.json()
-      if (data.success) setSavedPins(data.pins)
-    } catch (e) {
-      console.log('[Promotion] Saved Pins laden fehlgeschlagen (okay wenn noch keine)')
-    }
+      const data = await safeResJson(res)
+      if (data?.success && Array.isArray(data.pins)) {
+        setSavedPins(data.pins)
+        return
+      }
+    } catch { /* Server nicht erreichbar */ }
+    // Fallback: aus localStorage laden
+    setSavedPins(loadPinsFromLocal())
   }
 
   // ── CONTENT AUSWÄHLEN UND AUSFÜLLEN ═══════════════════
@@ -260,7 +290,11 @@ export function PromotionDashboard() {
         })
       })
 
-      const data = await res.json()
+      const data = await safeResJson(res)
+      if (!data) {
+        toast({ title: 'Server nicht erreichbar', description: 'Der KI-Generierungs-Server ist nicht verfügbar. Bitte starte den Backend-Server.', variant: 'destructive' })
+        return
+      }
       if (!data.success) {
         toast({ title: 'Generierung fehlgeschlagen', description: data.error || 'Unbekannter Fehler', variant: 'destructive' })
         return
@@ -377,19 +411,34 @@ export function PromotionDashboard() {
         template: selectedTemplate
       }
 
-      const res = await fetch('/api/promotion/pins', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(pinPayload)
-      })
+      let savedViaApi = false
+      try {
+        const res = await fetch('/api/promotion/pins', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(pinPayload)
+        })
+        const data = await safeResJson(res)
+        if (data?.success) savedViaApi = true
+      } catch { /* Server nicht erreichbar */ }
 
-      const data = await res.json()
-      if (data.success) {
-        toast({ title: 'Pin gespeichert!', description: 'Pin wurde in deiner Liste gespeichert.' })
-        await loadSavedPins()
-        // Reset für nächsten Pin
-        resetForm()
+      if (!savedViaApi) {
+        // Fallback: lokal speichern
+        const newPin: SavedPin = {
+          id: `pin_${Date.now()}`,
+          ...pinPayload,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+        const pins = loadPinsFromLocal()
+        pins.push(newPin)
+        savePinsToLocal(pins)
       }
+
+      toast({ title: 'Pin gespeichert!', description: 'Pin wurde in deiner Liste gespeichert.' })
+      await loadSavedPins()
+      // Reset für nächsten Pin
+      resetForm()
     } catch (e) {
       toast({ title: 'Fehler', description: 'Pin konnte nicht gespeichert werden.', variant: 'destructive' })
     }
@@ -397,7 +446,12 @@ export function PromotionDashboard() {
 
   const deletePin = async (pinId: string) => {
     try {
-      await fetch(`/api/promotion/pins/${pinId}`, { method: 'DELETE' })
+      try {
+        await fetch(`/api/promotion/pins/${pinId}`, { method: 'DELETE' })
+      } catch { /* Server nicht erreichbar */ }
+      // Immer lokal entfernen
+      const updated = loadPinsFromLocal().filter(p => p.id !== pinId)
+      savePinsToLocal(updated)
       setSavedPins(prev => prev.filter(p => p.id !== pinId))
       toast({ title: 'Pin gelöscht' })
     } catch {
