@@ -14,9 +14,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { nip19 } from 'nostr-tools'
 import { useNostr } from '@/hooks/useNostr'
-import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { NOSTR_CONFIG } from '@/config/nostr'
-import { DEFAULT_CACHE_CONFIG } from '@/config/cache'
 import { DEFAULT_PERFORMANCE_CONFIG } from '@/config/performance'
 
 // UI Components
@@ -173,7 +171,6 @@ interface ContentSelectorProps {
 
 export function ContentSelector({ onSelect, selected }: ContentSelectorProps) {
   const { nostr } = useNostr()
-  const { user } = useCurrentUser()
 
   const [loading, setLoading] = useState(true)
 
@@ -192,8 +189,11 @@ export function ContentSelector({ onSelect, selected }: ContentSelectorProps) {
   const [articleSubTab, setArticleSubTab] = useState<'reports' | 'places' | 'trips'>('reports')
 
   // ── Lade alle Inhalte ═════════════════════════════════
+  // Beide Site-Autoren (identisch zu NOSTR_CONFIG.authorPubkeys auf der Site)
+  const siteAuthors = NOSTR_CONFIG.authorPubkeys
+
   useEffect(() => {
-    if (!nostr || !user?.pubkey) return
+    if (!nostr) return
 
     const loadContent = async () => {
       setLoading(true)
@@ -205,8 +205,8 @@ export function ContentSelector({ onSelect, selected }: ContentSelectorProps) {
           [{
             kinds: [1],
             '#t': ['note', 'notiz'],
-            authors: [user.pubkey],
-            limit: 100,
+            authors: siteAuthors,
+            limit: 200,
           }],
           { signal }
         )
@@ -243,8 +243,8 @@ export function ContentSelector({ onSelect, selected }: ContentSelectorProps) {
           [{
             kinds: [1, NOSTR_CONFIG.kinds.longform],
             '#t': ['medien', 'media', 'bilder', 'images'],
-            authors: [user.pubkey],
-            limit: 100,
+            authors: siteAuthors,
+            limit: 200,
           }],
           { signal }
         )
@@ -285,8 +285,8 @@ export function ContentSelector({ onSelect, selected }: ContentSelectorProps) {
         const articleEvents = await nostr.query(
           [{
             kinds: [NOSTR_CONFIG.kinds.longform],
-            authors: [user.pubkey],
-            limit: 150,
+            authors: siteAuthors,
+            limit: 300,
           }],
           { signal }
         )
@@ -338,7 +338,7 @@ export function ContentSelector({ onSelect, selected }: ContentSelectorProps) {
         const tripEvents = await nostr.query(
           [{
             kinds: [30025],
-            authors: [user.pubkey],
+            authors: siteAuthors,
             limit: 100,
           }],
           { signal }
@@ -401,7 +401,7 @@ export function ContentSelector({ onSelect, selected }: ContentSelectorProps) {
     }
 
     loadContent()
-  }, [nostr, user?.pubkey])
+  }, [nostr])
 
   // ── Filter ════════════════════════════════════════════
   const filterItems = (items: ContentItem[]) => {
