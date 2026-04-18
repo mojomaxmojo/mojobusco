@@ -18,6 +18,7 @@ import { useNavigate } from 'react-router-dom'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useToast } from '@/hooks/useToast'
 import { useNostr } from '@/hooks/useNostr'
+import { useUploadFile } from '@/hooks/useUploadFile'
 import { NOSTR_CONFIG } from '@/config/nostr'
 import { DEFAULT_PERFORMANCE_CONFIG } from '@/config/performance'
 
@@ -37,7 +38,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import {
   FileText, Image as ImageIcon, Download, ExternalLink, Loader2,
   Sparkles, Trash2, ChevronRight, Wand2, Eye, Copy, Check, ArrowLeft,
-  Search, FileText as FileTextIcon, MessageSquare
+  Search, FileText as FileTextIcon, MessageSquare, Upload, CloudUpload
 } from 'lucide-react'
 
 // Pin Components
@@ -112,6 +113,7 @@ export function PromotionDashboard() {
   const { user } = useCurrentUser()
   const navigate = useNavigate()
   const { toast } = useToast()
+  const uploadFile = useUploadFile()
 
   // ── LOGIN SCHUTZ ═══════════════════════════════════════
   useEffect(() => {
@@ -133,6 +135,8 @@ export function PromotionDashboard() {
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [generating, setGenerating] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [uploadedPinUrl, setUploadedPinUrl] = useState<string>('')
 
   // Article
   const [articleTitle, setArticleTitle] = useState('')
@@ -392,11 +396,57 @@ export function PromotionDashboard() {
       )
 
       setPinImageUrl(dataUrl)
-      toast({ title: 'Pin gerendert!', description: 'Vorschau ist bereit.' })
+      setUploadedPinUrl('') // Reset: neuer Render, noch nicht hochgeladen
+      toast({ title: 'Pin gerendert!', description: 'Lade jetzt auf Blossom hoch...' })
+
+      // ── AUTOMATISCH AUF BLOSSOM HOCHLADEN ─────────────────
+      await uploadPinToBlossom(dataUrl)
+
     } catch (e: any) {
       toast({ title: 'Render-Fehler', description: e.message || 'Bild konnte nicht geladen werden. CORS? Teste mit einem Bild von Blossom/Nostr.', variant: 'destructive' })
     } finally {
       setIsRendering(false)
+    }
+  }
+
+  // ── BLOSSOM UPLOAD ════════════════════════════════════
+
+  const uploadPinToBlossom = async (dataUrl: string) => {
+    if (!user?.pubkey) return
+
+    setUploading(true)
+    try {
+      // base64 Data URL → Blob → File
+      const res = await fetch(dataUrl)
+      const blob = await res.blob()
+      const filename = `${(editTitle || 'pin').replace(/[^a-zA-Z0-9äüöÄÜÖß]/g, '-').substring(0, 40)}-pin.jpg`
+      const file = new File([blob], filename, { type: 'image/jpeg' })
+
+      const tags = await uploadFile.mutateAsync(file)
+      const url = tags.find((t: string[]) => t[0] === 'url')?.[1]
+
+      if (url) {
+        setUploadedPinUrl(url)
+        // Pin-URL auch in die imageUrls eintragen (ersetzt das aktuelle Bild)
+        setImageUrls(prev => {
+          const updated = [...prev]
+          updated[selectedImageIdx] = url
+          return updated
+        })
+        toast({
+          title: '✅ Auf Blossom hochgeladen!',
+          description: 'Pinterest-Link nutzt jetzt das hochgeladene Pin-Bild.'
+        })
+      }
+    } catch (e: any) {
+      console.warn('[Promotion] Blossom Upload fehlgeschlagen:', e)
+      toast({
+        title: '⚠️ Upload fehlgeschlagen',
+        description: 'Pin-Bild konnte nicht auf Blossom hochgeladen werden. Pinterest-Link nutzt das Original-Bild.',
+        variant: 'destructive'
+      })
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -477,9 +527,11 @@ export function PromotionDashboard() {
     const params = new URLSearchParams()
     // Artikel-URL (wird beim Klick auf Pinterest als Link gesetzt)
     if (articleLink) params.set('url', articleLink)
-    // Bild: gerenderter Pin bevorzugt, sonst Original-Bild
-    if (pinImageUrl || imageUrls[selectedImageIdx]) {
-      params.set('media', pinImageUrl || imageUrls[selectedImageIdx])
+    // Bild: Pinterest braucht eine öffentliche URL, KEINE base64 Data URL
+    // Priorität: 1) hochgeladener Pin auf Blossom  2) Original-Bild
+    const mediaUrl = uploadedPinUrl || imageUrls[selectedImageIdx]
+    if (mediaUrl) {
+      params.set('media', mediaUrl)
     }
     // Beschreibung: Titel + KI-Text + Hashtags
     const brandName = lifestyle === 'mojobus' ? 'MojoBus'
@@ -532,6 +584,7 @@ export function PromotionDashboard() {
     setSelectedImageIdx(0)
     setPinData(null)
     setPinImageUrl('')
+    setUploadedPinUrl('')
     setEditTitle('')
     setEditDesc('')
     setEditHashtags('')
@@ -988,12 +1041,37 @@ export function PromotionDashboard() {
                 <div className="flex flex-col">
                   {pinImageUrl
                     ? (
-                      <div className="flex flex-col items-center gap-4">
+                      <div className="flex flex-col items-center gap-3">
                         <div className="w-64 rounded-lg overflow-hidden shadow-lg border">
                           <img src={pinImageUrl} alt="Pin Vorschau" className="w-full" />
                         </div>
-                        <div className="flex gap-2 w-full mt-4">
-                          <Button onClick={renderPin} variant="outline" className="flex-1">🔄 Neu rendern</Button>
+
+                        {/* Upload-Status */}
+                        {uploading && (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/30 px-3 py-2 rounded-lg w-full">
+                            <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                            <span>Wird auf Blossom hochgeladen...</span>
+                          </div>
+                        )}
+                        {!uploading && uploadedPinUrl && (
+                          <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 dark:bg-green-950/30 px-3 py-2 rounded-lg w-full">
+                            <Check className="w-4 h-4" />
+                            <span className="truncate flex-1">✅ Hochgeladen: <span className="font-mono text-xs">{uploadedPinUrl.substring(0, 40)}…</span></span>
+                          </div>
+                        )}
+                        {!uploading && !uploadedPinUrl && pinImageUrl && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => uploadPinToBlossom(pinImageUrl)}
+                            className="w-full"
+                          >
+                            <CloudUpload className="w-4 h-4 mr-2" /> Auf Blossom hochladen
+                          </Button>
+                        )}
+
+                        <div className="flex gap-2 w-full">
+                          <Button onClick={renderPin} variant="outline" className="flex-1" disabled={uploading}>🔄 Neu rendern</Button>
                           <Button onClick={downloadPin} className="flex-1"><Download className="w-4 h-4 mr-1" /> Download</Button>
                         </div>
                       </div>
@@ -1062,9 +1140,44 @@ export function PromotionDashboard() {
                 </div>
               </div>
 
+              {/* Blossom Upload Status in Step 5 */}
+              {pinImageUrl && (
+                <div className="space-y-2">
+                  {uploading && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/30 px-3 py-2 rounded-lg">
+                      <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                      <span>Pin-Bild wird auf Blossom hochgeladen...</span>
+                    </div>
+                  )}
+                  {!uploading && uploadedPinUrl && (
+                    <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 dark:bg-green-950/30 px-3 py-2 rounded-lg">
+                      <Check className="w-4 h-4 shrink-0" />
+                      <span className="text-xs font-medium">Pin-Bild auf Blossom hochgeladen – Pinterest-Link nutzt dieses Bild</span>
+                    </div>
+                  )}
+                  {!uploading && !uploadedPinUrl && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => uploadPinToBlossom(pinImageUrl)}
+                      className="w-full border-dashed"
+                    >
+                      <CloudUpload className="w-4 h-4 mr-2" />
+                      Pin-Bild auf Blossom hochladen (für Pinterest-Link)
+                    </Button>
+                  )}
+                </div>
+              )}
+
               {/* Pinterest URL */}
               <div className="space-y-2">
-                <Label>Pinterest-Link</Label>
+                <Label className="flex items-center gap-2">
+                  Pinterest-Link
+                  {uploadedPinUrl
+                    ? <span className="text-xs text-green-600 font-normal">✓ Pin-Bild wird verwendet</span>
+                    : <span className="text-xs text-amber-500 font-normal">⚠ nutzt Original-Bild</span>
+                  }
+                </Label>
                 <div className="flex gap-2">
                   <Input value={buildPinterestUrl()} readOnly className="font-mono text-xs" />
                   <Button size="sm" onClick={copyPinterestUrl}>
@@ -1075,8 +1188,9 @@ export function PromotionDashboard() {
 
               {/* Actions */}
               <div className="flex gap-2 flex-wrap">
-                <Button onClick={openPinterest} className="flex-1 bg-[#E60023] hover:bg-[#cc0020] text-white">
-                  <ExternalLink className="w-4 h-4 mr-2" /> Zu Pinterest öffnen
+                <Button onClick={openPinterest} className="flex-1 bg-[#E60023] hover:bg-[#cc0020] text-white" disabled={uploading}>
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  {uploading ? 'Warte auf Upload...' : 'Zu Pinterest öffnen'}
                 </Button>
                 <Button onClick={downloadPin} variant="outline">
                   <Download className="w-4 h-4 mr-2" /> Pin downloaden
