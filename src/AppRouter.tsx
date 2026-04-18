@@ -24,6 +24,7 @@ const TripDetail = lazy(() => import("./pages/TripDetail").then(m => ({ default:
 const ImageDetail = lazy(() => import("./pages/ImageDetail").then(m => ({ default: m.ImageDetail })));
 const Publish = lazy(() => import("./pages/Publish").then(m => ({ default: m.Publish })));
 const PerpetualTravelers = lazy(() => import("./pages/PerpetualTravelers").then(m => ({ default: m.PerpetualTravelers })));
+const PromotionDashboard = lazy(() => import("./pages/PromotionDashboard").then(m => ({ default: m.PromotionDashboard })));
 const ContentEditorMinimal = lazy(() => import("./components/ContentEditorMinimal").then(m => ({ default: m.ContentEditorMinimal })));
 const Profile = lazy(() => import("./pages/Profile").then(m => ({ default: m.Profile })));
 const Settings = lazy(() => import("./pages/Settings").then(m => ({ default: m.Settings })));
@@ -69,8 +70,9 @@ function App() {
               <Route path="/budget" element={<BudgetPage />} />
                <Route path="/veroeffentlichen" element={<Publish />} />
                <Route path="/veroeffentlichen/modern" element={<ContentEditorMinimal />} />
-               <Route path="/perpetual-travelers" element={<PerpetualTravelers />} />
-              <Route path="/:nip19" element={<NIP19Page />} />
+                <Route path="/perpetual-travelers" element={<PerpetualTravelers />} />
+                <Route path="/promotion" element={<PromotionDashboard />} />
+               <Route path="/:nip19" element={<NIP19Page />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>

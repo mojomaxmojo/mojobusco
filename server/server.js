@@ -49,6 +49,9 @@ import {
 // ── Bot Meta-Tag Middleware ────────────────────────────────
 import { botMiddleware, getBotCacheStats, clearBotCache } from './bot-middleware.js'
 
+// ── Pinterest Promotion API ────────────────────────────────
+import promotionRouter from './promotion-api.js'
+
 const app = express()
 const PORT = process.env.PORT || 3002
 
@@ -2124,6 +2127,10 @@ app.post('/api/bot-cache/clear', (req, res) => {
   const cleared = clearBotCache()
   res.json({ ok: true, cleared, message: `${cleared} Cache-Einträge geleert` })
 })
+
+// ── Pinterest Promotion API ────────────────────────────────
+// Alle Routen: /api/promotion/*
+app.use(promotionRouter)
 
 app.listen(PORT, () => {
   console.log(`[Server] Backend läuft auf Port ${PORT}`)
