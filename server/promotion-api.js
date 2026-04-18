@@ -166,35 +166,35 @@ const TEMPLATES = {
   infographic: {
     name: '📊 Infografik',
     desc: 'Kosten, Budget, Statistiken',
-    prompt: (data) => `Erstelle eine Pinterest-optimierte Infografik für einen Blog-Artikel mit Zahlen und Daten.
+    prompt: (data) => `Erstelle eine Pinterest-optimierte Infografik für "${data.lifestyle?.brand || 'MojoBus'}".
 
 ARTIKEL-TITEL: "${data.title || ''}"
-ARTIKEL-ZUSAMMENFASSUNG: "${data.summary || ''}"
-ARTIKEL-TEXT: "${(data.text || '').substring(0, 600)}"
+ZUSAMMENFASSUNG: "${data.summary || ''}"
+TEXT-AUSZUG: "${(data.text || '').substring(0, 800)}"
 
-Erstelle DARAUS:
-1. PIN-TITEL (50-80 Zeichen) – Hauptkeyword zuerst, aufmerksamkeitsstark
-2. PIN-BESCHREIBUNG (150-300 Zeichen) – 3-5 Keywords natürlich einbauen
-3. HASHTAGS (3-5) – relevant, Mischung breit+nische
-4. BILD-ALT-TEXT (50-100 Zeichen) – beschreibend mit Keywords
-5. TEXT-OVERLAY FÜR BILD (max 40 Zeichen) – großer fetter Text der auf das Bild kommt
-6. SUB-OVERLAY (max 60 Zeichen) – kleinerer Zusatztext
+AUFGABE – erstelle aus dem Artikel-Inhalt:
+1. PIN-TITEL (50-80 Zeichen) – Hauptkeyword zuerst, konkrete Zahl wenn möglich (z.B. "Mojobus: 3 Monate Portugal – was es kostet")
+2. PIN-BESCHREIBUNG (200-350 Zeichen) – konkret, neugierig machend, mit echten Details aus dem Artikel
+3. HASHTAGS (5-7) – 2-3 Brand-Tags + 2-3 Themen-Tags + 1-2 Orts-Tags
+4. BILD-ALT-TEXT (60-100 Zeichen)
+5. TEXT-OVERLAY (max 35 Zeichen) – GROSSBUCHSTABEN, knalliger Eyecatcher
+6. SUB-OVERLAY (max 55 Zeichen) – konkretisiert den Overlay
+7. INFOGRAFIK-DATEN: 3-4 Fakten/Zahlen aus dem Artikel (Icon + kurzes Label + konkreter Wert)
 
-ZUSÄTZLICH:
-- 3 Zahlen/Fakten die in die Infografik-Boxen kommen (z.B. Kosten, Tage, Orte)
+WICHTIG: Extrahiere echte Zahlen und Fakten aus dem Artikel-Text. Erfinde keine Zahlen.
 
-ANTWORTE NUR ALS JSON:
+JSON:
 {
   "pinTitle": "...",
   "pinDescription": "...",
-  "hashtags": ["#tag1", "#tag2", "#tag3"],
+  "hashtags": ["#mojobus", "#buslife", "..."],
   "altText": "...",
   "textOverlay": "...",
   "subOverlay": "...",
   "infographicData": [
-    {"icon": "⛽", "label": "...", "value": "..."},
-    {"icon": "🏕️", "label": "...", "value": "..."},
-    {"icon": "💰", "label": "...", "value": "..."}
+    {"icon": "⛽", "label": "Sprit", "value": "320€"},
+    {"icon": "🏕️", "label": "Camping", "value": "0€ wild"},
+    {"icon": "💰", "label": "Gesamt", "value": "950€/Mo"}
   ]
 }`
   },
@@ -202,89 +202,86 @@ ANTWORTE NUR ALS JSON:
   listicle: {
     name: '📝 Top-Liste',
     desc: '"5 beste...", Rankings, Tipps',
-    prompt: (data) => `Erstelle Pinterest-optimierte Top-X-Liste für einen Reise-Blog-Artikel.
+    prompt: (data) => `Erstelle Pinterest-optimierte Top-Liste für "${data.lifestyle?.brand || 'MojoBus'}".
 
 ARTIKEL-TITEL: "${data.title || ''}"
-ARTIKEL-ZUSAMMENFASSUNG: "${data.summary || ''}"
-ARTIKEL-TEXT: "${(data.text || '').substring(0, 600)}"
+ZUSAMMENFASSUNG: "${data.summary || ''}"
+TEXT-AUSZUG: "${(data.text || '').substring(0, 800)}"
 
-Erstelle:
-1. PIN-TITEL (50-80 Zeichen) – mit Zahl undKeyword, z.B. "5 geheime Strände Portugal"
-2. PIN-BESCHREIBUNG (150-300 Zeichen) – spannend, Keywords enthalten
-3. HASHTAGS (3-5)
-4. BILD-ALT-TEXT
-5. TEXT-OVERLAY (max 50 Zeichen) – z.B. "TOP 5 STRÄNDE"
-6. SUB-OVERLAY (60 Zeichen) – z.B. "Geheime Spots in Portugal"
+AUFGABE:
+1. PIN-TITEL (50-80 Zeichen) – mit konkreter Zahl, z.B. "5 geheime Stellplätze Portugal die kaum jemand kennt"
+2. PIN-BESCHREIBUNG (200-350 Zeichen) – was bekommt der Leser? Konkret benennen.
+3. HASHTAGS (5-7)
+4. BILD-ALT-TEXT (60-100 Zeichen)
+5. TEXT-OVERLAY (max 45 Zeichen) – z.B. "TOP 7 STELLPLÄTZE"
+6. SUB-OVERLAY (max 55 Zeichen) – z.B. "Portugal – Algarve bis Porto"
+7. LISTE: 5-7 konkrete Einträge direkt aus dem Artikel (max 30 Zeichen je Eintrag)
 
-ZUSÄTZLICH: 5-7 Einträge für die Liste (jeweils max 25 Zeichen)
-
-ANTWORTE NUR ALS JSON:
+JSON:
 {
   "pinTitle": "...",
   "pinDescription": "...",
-  "hashtags": ["#tag1", "#tag2", "#tag3"],
+  "hashtags": ["#mojobus", "#buslife", "..."],
   "altText": "...",
   "textOverlay": "...",
   "subOverlay": "...",
-  "listItems": ["Eintrag 1", "Eintrag 2", "Eintrag 3", ...]
+  "listItems": ["Praia da Bordeira", "Sagres Fischerstrand", "..."]
 }`
   },
 
   howto: {
     name: '🔧 Anleitung',
     desc: 'Step-by-Step, How-To, DIY',
-    prompt: (data) => `Erstelle Pinterest-optimierte How-To/Anleitung für einen DIY-Artikel.
+    prompt: (data) => `Erstelle Pinterest-optimierte Schritt-für-Schritt-Anleitung für "${data.lifestyle?.brand || 'MojoBus'}".
 
 ARTIKEL-TITEL: "${data.title || ''}"
-ARTIKEL-ZUSAMMENFASSUNG: "${data.summary || ''}"
-ARTIKEL-TEXT: "${(data.text || '').substring(0, 600)}"
+ZUSAMMENFASSUNG: "${data.summary || ''}"
+TEXT-AUSZUG: "${(data.text || '').substring(0, 800)}"
 
-Erstelle:
-1. PIN-TITEL (50-80 Zeichen) – z.B. "Solar im Wohnmobil: Schritt-für-Schritt"
-2. PIN-BESCHREIBUNG (150-300 Zeichen)
-3. HASHTAGS (3-5)
-4. BILD-ALT-TEXT
-5. TEXT-OVERLAY (40 Zeichen) – z.B. "ANLEITUNG"
-6. SUB-OVERLAY (60 Zeichen)
+AUFGABE:
+1. PIN-TITEL (50-80 Zeichen) – z.B. "Mojobus Solar: In 5 Schritten zur Autarkie"
+2. PIN-BESCHREIBUNG (200-350 Zeichen) – Was lernt man? Für wen ist es?
+3. HASHTAGS (5-7)
+4. BILD-ALT-TEXT (60-100 Zeichen)
+5. TEXT-OVERLAY (max 35 Zeichen) – z.B. "SO GEHT ES"
+6. SUB-OVERLAY (max 55 Zeichen) – z.B. "Schritt-für-Schritt Anleitung"
+7. SCHRITTE: 4-5 knappe Schritte aus dem Artikel (max 35 Zeichen je Schritt)
 
-ZUSÄTZLICH: 4-6 Schritte (jeweits max 30 Zeichen)
-
-ANTWORTE NUR ALS JSON:
+JSON:
 {
   "pinTitle": "...",
   "pinDescription": "...",
-  "hashtags": ["#tag1", "#tag2", "#tag3"],
+  "hashtags": ["#mojobus", "#busausbau", "..."],
   "altText": "...",
   "textOverlay": "...",
   "subOverlay": "...",
-  "steps": ["Schritt 1", "Schritt 2", ...]
+  "steps": ["1. Verbrauch berechnen", "2. Panels montieren", "..."]
 }`
   },
 
   testimonial: {
     name: '⭐ Erfahrungsbericht',
-    desc: 'Reviews, Erfahrungen',
-    prompt: (data) => `Erstelle Pinterest-optimierten Erfahrungsbericht-Pin.
+    desc: 'Echte Erlebnisse, Zitate',
+    prompt: (data) => `Erstelle Pinterest-optimierten Erfahrungsbericht-Pin für "${data.lifestyle?.brand || 'MojoBus'}".
 
 ARTIKEL-TITEL: "${data.title || ''}"
-ARTIKEL-ZUSAMMENFASSUNG: "${data.summary || ''}"
-ARTIKEL-TEXT: "${(data.text || '').substring(0, 600)}"
+ZUSAMMENFASSUNG: "${data.summary || ''}"
+TEXT-AUSZUG: "${(data.text || '').substring(0, 800)}"
 
-Erstelle:
-1. PIN-TITEL (50-80 Zeichen)
-2. PIN-BESCHREIBUNG (150-300 Zeichen)
-3. HASHTAGS (3-5)
-4. BILD-ALT-TEXT
-5. TEXT-OVERLAY (40 Zeichen) – z.B. "UNSER ERFAHRUNG"
-6. SUB-OVERLAY (60 Zeichen)
+AUFGABE:
+1. PIN-TITEL (50-80 Zeichen) – persönlich, ehrlich, neugierig machend
+2. PIN-BESCHREIBUNG (200-350 Zeichen) – als wäre es eine persönliche Empfehlung, nicht Werbung
+3. HASHTAGS (5-7)
+4. BILD-ALT-TEXT (60-100 Zeichen)
+5. TEXT-OVERLAY (max 35 Zeichen) – z.B. "UNSER FAZIT" oder "NACH 3 MONATEN"
+6. SUB-OVERLAY (max 55 Zeichen)
+7. ZITAT: Ein prägnanter Satz aus dem Artikel-Inhalt (max 130 Zeichen) – ehrlich, keine Werbefloskel
 
-ZUSÄTZLICH: 1 Zitat oder Aussage aus dem Artikel (max 120 Zeichen)
-
-ANTWORTE NUR ALS JSON:
+JSON:
 {
   "pinTitle": "...",
   "pinDescription": "...",
-  "hashtags": ["#tag1", "#tag2", "#tag3"],
+  "hashtags": ["#mojobus", "#buslife", "..."],
   "altText": "...",
   "textOverlay": "...",
   "subOverlay": "...",
@@ -295,25 +292,25 @@ ANTWORTE NUR ALS JSON:
   quicktip: {
     name: '⚡ Quick-Tipp',
     desc: 'Schnelle Tipps, Hacks',
-    prompt: (data) => `Erstelle Pinterest-optimierten Quick-Tipp-Pin.
+    prompt: (data) => `Erstelle Pinterest-optimierten Quick-Tipp für "${data.lifestyle?.brand || 'MojoBus'}".
 
 ARTIKEL-TITEL: "${data.title || ''}"
-ARTIKEL-ZUSAMMENFASSUNG: "${data.summary || ''}"
-ARTIKEL-TEXT: "${(data.text || '').substring(0, 600)}"
+ZUSAMMENFASSUNG: "${data.summary || ''}"
+TEXT-AUSZUG: "${(data.text || '').substring(0, 800)}"
 
-Erstelle:
-1. PIN-TITEL (50-80 Zeichen) – z.B. "Vanlife Tipp: So sparst du Sprit"
-2. PIN-BESCHREIBUNG (150-300 Zeichen)
-3. HASHTAGS (3-5)
-4. BILD-ALT-TEXT
-5. TEXT-OVERLAY (30 Zeichen) – z.B. "QUICK TIP"
-6. SUB-OVERLAY (max 100 Zeichen) – der eigentliche Tipp in 1-2 Sätzen
+AUFGABE:
+1. PIN-TITEL (50-80 Zeichen) – z.B. "Mojobus Tipp: Wildcamp-Spots finden ohne App"
+2. PIN-BESCHREIBUNG (200-350 Zeichen) – der Tipp selbst ausformuliert + warum er wichtig ist
+3. HASHTAGS (5-7)
+4. BILD-ALT-TEXT (60-100 Zeichen)
+5. TEXT-OVERLAY (max 25 Zeichen) – z.B. "TIPP" oder "HACK"
+6. SUB-OVERLAY (max 120 Zeichen) – DER eigentliche Tipp in 1-2 kurzen Sätzen, direkt umsetzbar
 
-ANTWORTE NUR ALS JSON:
+JSON:
 {
   "pinTitle": "...",
   "pinDescription": "...",
-  "hashtags": ["#tag1", "#tag2", "#tag3"],
+  "hashtags": ["#mojobus", "#buslifetipp", "..."],
   "altText": "...",
   "textOverlay": "...",
   "subOverlay": "..."
@@ -322,30 +319,28 @@ ANTWORTE NUR ALS JSON:
 
   beforeafter: {
     name: '✨ Vorher/Nachher',
-    desc: 'Transformationen',
-    prompt: (data) => `Erstelle Pinterest-optimierten Vorher/Nachher Pin.
+    desc: 'Transformationen, Umbauten',
+    prompt: (data) => `Erstelle Pinterest-optimierten Vorher/Nachher-Pin für "${data.lifestyle?.brand || 'MojoBus'}".
 
 ARTIKEL-TITEL: "${data.title || ''}"
-ARTIKEL-ZUSAMMENFASSUNG: "${data.summary || ''}"
-ARTIKEL-TEXT: "${(data.text || '').substring(0, 600)}"
+ZUSAMMENFASSUNG: "${data.summary || ''}"
+TEXT-AUSZUG: "${(data.text || '').substring(0, 800)}"
 
-Erstelle:
-1. PIN-TITEL (50-80 Zeichen)
-2. PIN-BESCHREIBUNG (150-300 Zeichen)
-3. HASHTAGS (3-5)
-4. BILD-ALT-TEXT
-5. TEXT-OVERLAY (40 Zeichen) – z.B. "VORHER → NACHHER"
-6. SUB-OVERLAY (60 Zeichen)
+AUFGABE:
+1. PIN-TITEL (50-80 Zeichen) – die Transformation benennen, z.B. "Mojobus Ausbau: Von leer zu fertig in 3 Monaten"
+2. PIN-BESCHREIBUNG (200-350 Zeichen) – was hat sich verändert? Was hat es gebracht?
+3. HASHTAGS (5-7)
+4. BILD-ALT-TEXT (60-100 Zeichen)
+5. TEXT-OVERLAY (max 35 Zeichen) – z.B. "VORHER → NACHHER"
+6. SUB-OVERLAY (max 55 Zeichen)
+7. VORHER-TEXT (max 110 Zeichen) – konkreter Ausgangszustand
+8. NACHHER-TEXT (max 110 Zeichen) – konkretes Ergebnis, möglichst mit Zahl/Fakt
 
-ZUSÄTZLICH:
-- Vorher-Text (max 100 Zeichen) – Zustand vor der Veränderung
-- Nachher-Text (max 100 Zeichen) – Zustand nach der Veränderung
-
-ANTWORTE NUR ALS JSON:
+JSON:
 {
   "pinTitle": "...",
   "pinDescription": "...",
-  "hashtags": ["#tag1", "#tag2", "#tag3"],
+  "hashtags": ["#mojobus", "#busausbau", "..."],
   "altText": "...",
   "textOverlay": "...",
   "subOverlay": "...",
@@ -356,33 +351,144 @@ ANTWORTE NUR ALS JSON:
 
   route: {
     name: '🗺️ Reiseroute',
-    desc: 'Roadmaps, Strecken',
-    prompt: (data) => `Erstelle Pinterest-optimierten Reiseroute-Pin.
+    desc: 'Roadmaps, Touren, Strecken',
+    prompt: (data) => `Erstelle Pinterest-optimierten Reiserouten-Pin für "${data.lifestyle?.brand || 'MojoBus'}".
 
 ARTIKEL-TITEL: "${data.title || ''}"
-ARTIKEL-ZUSAMMENFASSUNG: "${data.summary || ''}"
-ARTIKEL-TEXT: "${(data.text || '').substring(0, 600)}"
+ZUSAMMENFASSUNG: "${data.summary || ''}"
+TEXT-AUSZUG: "${(data.text || '').substring(0, 800)}"
 
-Erstelle:
-1. PIN-TITEL (50-80 Zeichen) – z.B. "Unsere Route: Lissabon → Sagres"
-2. PIN-BESCHREIBUNG (150-300 Zeichen)
-3. HASHTAGS (3-5)
-4. BILD-ALT-TEXT
-5. TEXT-OVERLAY (30 Zeichen) – z.B. "OUR ROUTE"
-6. SUB-OVERLAY (60 Zeichen)
+AUFGABE:
+1. PIN-TITEL (50-80 Zeichen) – z.B. "Mojobus Route: Lissabon bis Sagres in 10 Tagen"
+2. PIN-BESCHREIBUNG (200-350 Zeichen) – Route beschreiben, Highlights nennen, Länge/Dauer
+3. HASHTAGS (5-7) – Orts-Tags nicht vergessen
+4. BILD-ALT-TEXT (60-100 Zeichen)
+5. TEXT-OVERLAY (max 30 Zeichen) – z.B. "UNSERE ROUTE"
+6. SUB-OVERLAY (max 55 Zeichen) – z.B. "10 Tage · 650 km · Algarve"
+7. WEGPUNKTE: 5-8 konkrete Orte aus dem Artikel (max 28 Zeichen je Wegpunkt)
 
-ZUSÄTZLICH: 5-8 Wegpunkte der Route (jeweils max 25 Zeichen)
-
-ANTWORTE NUR ALS JSON:
+JSON:
 {
   "pinTitle": "...",
   "pinDescription": "...",
-  "hashtags": ["#tag1", "#tag2", "#tag3"],
+  "hashtags": ["#mojobus", "#portugal", "..."],
   "altText": "...",
   "textOverlay": "...",
   "subOverlay": "...",
-  "waypoints": ["Start: ...", "Stop 1: ...", ...]
+  "waypoints": ["Start: Lissabon", "Stop 1: Setúbal", "..."]
 }`
+  },
+
+  'mojobus-story': {
+    name: '🚌 MojoBus Story',
+    desc: 'Authentischer Story-Pin, minimaler Text',
+    prompt: (data) => `Erstelle Pinterest-optimierten Story-Pin für den MojoBus – authentisch, kein Marketing-Speak.
+
+ARTIKEL-TITEL: "${data.title || ''}"
+ZUSAMMENFASSUNG: "${data.summary || ''}"
+TEXT-AUSZUG: "${(data.text || '').substring(0, 1000)}"
+
+BRAND: MojoBus – 10m US-Oldtimer-Bus, Mojo & Susanne, dauerhaft unterwegs, kein Urlaub – das ist das Leben.
+TON: Ehrlich. Knapp. Keine Ausrufezeichen. Keine Klischees. Keine Motivation-Poster-Sprüche.
+
+AUFGABE:
+1. PIN-TITEL (40-70 Zeichen) – eine echte Beobachtung oder Situation, keine Headline
+2. PIN-BESCHREIBUNG (150-280 Zeichen) – im MojoBus-Stil: kurz, konkret, ehrlich. Keine Fragen ans Publikum. Kein "Stell dir vor..."
+3. HASHTAGS (5-8) – immer #mojobus #buslife, dazu thematisch passende
+4. BILD-ALT-TEXT (50-80 Zeichen)
+5. STORY-ZEILE (max 45 Zeichen) – ein kurzer, echter Satz der das Bild beschreibt. Keine GROSSBUCHSTABEN nötig.
+6. STORY-SUB (max 80 Zeichen) – zweiter Satz der die Geschichte weiterführt. Kann mit "." enden.
+7. STORY-TAG (max 20 Zeichen) – z.B. "mojobus.co" oder "Tag 847" oder der Ort
+
+JSON:
+{
+  "pinTitle": "...",
+  "pinDescription": "...",
+  "hashtags": ["#mojobus", "#buslife", "..."],
+  "altText": "...",
+  "textOverlay": "...",
+  "subOverlay": "...",
+  "storyTag": "..."
+}`
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// LIFESTYLE → PINTEREST KONTEXT
+// ═══════════════════════════════════════════════════════════
+
+const LIFESTYLE_PINTEREST_CONFIG = {
+  mojobus: {
+    brand: 'MojoBus',
+    brandUrl: 'mojobus.co',
+    icon: '🚌',
+    tagline: 'Leben auf Rädern im 10m US-Oldtimer-Bus',
+    audience: 'Buslife, Oldtimer-Fans, Dauernomaden, DIY-Enthusiasten',
+    tone: 'authentisch, ehrlich, keine Instagram-Klischees, kurz und präzise',
+    keywords: ['#mojobus', '#buslife', '#oldtimerbus', '#dauerhaftunterwegs', '#busausbau', '#mojobusleben'],
+    vehicle: 'Mojobus (10m US-Oldtimer-Bus)',
+    avoid: 'Van, Camper, traumhaft, atemberaubend, Ausrufezeichen, "lebe deinen Traum"',
+    pinStyle: 'Prägnant. Keine Floskeln. Echte Zahlen, echte Orte, echte Situationen.'
+  },
+  'perpetual-travelers': {
+    brand: 'Perpetual Travelers',
+    brandUrl: 'mojobus.co',
+    icon: '🌊',
+    tagline: 'Dauerhaft unterwegs – kein Urlaub, das ist das Leben',
+    audience: 'Digitale Nomaden, Langzeit-Reisende, Freiheits-Suchende',
+    tone: 'minimalistisch, ehrlich, tiefgründig, kein Urlaubsfeeling',
+    keywords: ['#perpetualtravelers', '#dauernomade', '#ortlos', '#nomadenleben', '#unterwegssein'],
+    vehicle: 'Bus / Fahrzeug / Unterkunft je nach Kontext',
+    avoid: 'Urlaub, Ferien, Auszeit, Sabbatical, "endlich mal raus"',
+    pinStyle: 'Ruhig. Kein Hype. Der Pin wirkt durch Ehrlichkeit, nicht durch Lärm.'
+  },
+  vanlife: {
+    brand: 'Vanlife',
+    brandUrl: 'mojobus.co',
+    icon: '🚐',
+    tagline: 'Leben im Van – Freiheit auf vier Rädern',
+    audience: 'Vanlife-Community, Weekend-Warriors, Road-Tripper',
+    tone: 'abenteuerlich, inspirierend, praktisch',
+    keywords: ['#vanlife', '#vanlifegermany', '#vanlifeeurope', '#mobilesleben', '#aufreise'],
+    vehicle: 'Van / Kastenwagen',
+    avoid: 'Bus, Wohnmobil (außer direkt gemeint)',
+    pinStyle: 'Inspirierend aber bodenständig. Echte Tipps statt Traumbilder.'
+  },
+  wohnmobil: {
+    brand: 'Wohnmobil-Leben',
+    brandUrl: 'mojobus.co',
+    icon: '🏕️',
+    tagline: 'Wohnmobil-Reisen – komfortabel und frei',
+    audience: 'Wohnmobil-Fahrer, Camping-Fans, 50+ Reisende',
+    tone: 'praktisch, erfahren, hilfreich, bodenständig',
+    keywords: ['#wohnmobil', '#wohnmobilreise', '#camper', '#stellplatz', '#wohnmobileuropa'],
+    vehicle: 'Wohnmobil / Reisemobil',
+    avoid: 'Van (außer direkt gemeint), jugendliche Slang-Begriffe',
+    pinStyle: 'Hilfreiche Tipps. Konkrete Infos. Erfahrungswissen statt Hype.'
+  },
+  rvlife: {
+    brand: 'RV Life',
+    brandUrl: 'mojobus.co',
+    icon: '🚗',
+    tagline: 'RV Life – Full-Time on the Road',
+    audience: 'RV-Community, Full-Timer, US-Style Road-Tripper',
+    tone: 'abenteuerlich, praktisch, englisch-deutsch gemischt ok',
+    keywords: ['#rvlife', '#fulltimerv', '#rvliving', '#roadtrip', '#rveurope'],
+    vehicle: 'RV / Reisemobil',
+    avoid: 'Zu viel Deutsch-Slang wenn Zielgruppe international',
+    pinStyle: 'Energetisch aber informativ. Zahlen und Fakten kommen gut an.'
+  },
+  beachlife: {
+    brand: 'Beach Life',
+    brandUrl: 'mojobus.co',
+    icon: '🏖️',
+    tagline: 'Leben am Meer – Sand, Salz und Freiheit',
+    audience: 'Strand-Liebhaber, Surfer, Küsten-Nomaden, Portugal/Algarve-Fans',
+    tone: 'entspannt, sensorisch, ehrlich-schön',
+    keywords: ['#beachlife', '#küstenleben', '#strandleben', '#algarve', '#meerliebe'],
+    vehicle: 'Strand / Küste / Meer',
+    avoid: 'Kitsch, "Traumstrand", "Paradies"',
+    pinStyle: 'Atmosphärisch. Bilder die man riechen kann. Salz, Wind, Licht.'
   }
 }
 
@@ -420,11 +526,33 @@ router.post('/api/promotion/generate-pin-text', async (req, res) => {
     return res.status(400).json({ error: `Unbekanntes Template: ${template}` })
   }
 
-  console.log(`[Promotion] Generiere Pin-Text: Template=${template}, Modell=${model}, Titel="${title}"`)
+  console.log(`[Promotion] Generiere Pin-Text: Template=${template}, Modell=${model}, Lifestyle=${lifestyle}, Titel="${title}"`)
 
-  const systemPrompt = `Du bist ein Pinterest-SEO-Experte für Reise- und Vanlife-Blogs. Du erstellst optimierte Pins die viral gehen und Klicks generieren. Antworte IMMER NUR mit validem JSON. Keinerlei Erklärungen außerhalb des JSON. Keine Markdown-Code-Blöcke. Keine zusätzlichen Kommentare.`
+  // Lifestyle-Kontext für den System-Prompt
+  const lc = LIFESTYLE_PINTEREST_CONFIG[lifestyle] || LIFESTYLE_PINTEREST_CONFIG.mojobus
 
-  const prompt = templateConfig.prompt({ title, summary, text })
+  const systemPrompt = `Du bist ein Pinterest-SEO-Experte für den Blog "${lc.brand}" (${lc.brandUrl}).
+
+BRAND & LIFESTYLE:
+- Brand: ${lc.brand} – ${lc.tagline}
+- Zielgruppe: ${lc.audience}
+- Ton: ${lc.tone}
+- Fahrzeug/Kontext: ${lc.vehicle}
+- Standard-Hashtags für diesen Brand: ${lc.keywords.join(', ')}
+- Pin-Stil: ${lc.pinStyle}
+
+WICHTIGE REGELN:
+- VERMEIDE: ${lc.avoid}
+- Verwende immer mindestens 2 Brand-spezifische Hashtags aus: ${lc.keywords.join(', ')}
+- Der PIN-TITEL muss sofort klar machen worum es geht – Keyword zuerst
+- Die PIN-BESCHREIBUNG soll neugierig machen und zum Klicken animieren
+- Keine generischen Floskeln wie "Schau rein", "Lies mehr", "Entdecke jetzt"
+- Echter Mehrwert: Was bekommt der Leser wenn er klickt?
+- Zahlen und konkrete Fakten performen besser als vage Aussagen
+
+AUSGABE: Antworte IMMER NUR mit validem JSON. Keine Markdown-Code-Blöcke. Keine Erklärungen außerhalb des JSON.`
+
+  const prompt = templateConfig.prompt({ title, summary, text, lifestyle: lc })
 
   try {
     const result = await generateWithKi(prompt, systemPrompt, model, 600, 0.8)

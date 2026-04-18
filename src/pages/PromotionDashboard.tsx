@@ -152,7 +152,7 @@ export function PromotionDashboard() {
   // Template
   const [selectedTemplate, setSelectedTemplate] = useState<PinTemplateType>('infographic')
   const [kiModel, setKiModel] = useState<'llama4' | 'claude'>('llama4')
-  const [lifestyle, setLifestyle] = useState('perpetual-travelers')
+  const [lifestyle, setLifestyle] = useState('mojobus')
 
   // Pin Data (from KI)
   const [pinData, setPinData] = useState<any>(null)
@@ -238,6 +238,9 @@ export function PromotionDashboard() {
     setArticleSummary(item.summary)
     setArticleText(item.content.substring(0, 2000))
 
+    // URL automatisch setzen
+    if (item.url) setArticleLink(item.url)
+
     // Bilder übernehmen
     if (item.images.length > 0) {
       setImageUrls(item.images.slice(0, 20))
@@ -311,7 +314,12 @@ export function PromotionDashboard() {
       setEditTextInput(data.pinData.textOverlay || '')
       setEditSubInput(data.pinData.subOverlay || '')
       setEditListItems(data.pinData.listItems || [])
-      setEditSteps(data.pinData.steps || [])
+      // mojobus-story: storyTag in editSteps[0] speichern; sonst normale steps
+      if (selectedTemplate === 'mojobus-story') {
+        setEditSteps([data.pinData.storyTag || 'mojobus.co'])
+      } else {
+        setEditSteps(data.pinData.steps || [])
+      }
       setEditQuote(data.pinData.quote || '')
       setEditTip(data.pinData.tip || '')
       setEditBefore(data.pinData.beforeText || '')
@@ -371,12 +379,16 @@ export function PromotionDashboard() {
         case 'route':
           renderData.waypoints = editWaypoints.length > 0 ? editWaypoints : undefined
           break
+        case 'mojobus-story':
+          renderData.storyTag = editSteps[0] || 'mojobus.co'
+          break
       }
 
       const dataUrl = await renderPinTemplate(
         imageUrls[selectedImageIdx],
         selectedTemplate,
-        renderData
+        renderData,
+        lifestyle
       )
 
       setPinImageUrl(dataUrl)
@@ -463,12 +475,22 @@ export function PromotionDashboard() {
 
   const buildPinterestUrl = (): string => {
     const params = new URLSearchParams()
+    // Artikel-URL (wird beim Klick auf Pinterest als Link gesetzt)
     if (articleLink) params.set('url', articleLink)
+    // Bild: gerenderter Pin bevorzugt, sonst Original-Bild
     if (pinImageUrl || imageUrls[selectedImageIdx]) {
       params.set('media', pinImageUrl || imageUrls[selectedImageIdx])
     }
-    const desc = editDesc || `${editTitle} – Perpetual Travelers`
-    params.set('description', `${editTitle} – ${desc} ${editHashtags}`)
+    // Beschreibung: Titel + KI-Text + Hashtags
+    const brandName = lifestyle === 'mojobus' ? 'MojoBus'
+      : lifestyle === 'perpetual-travelers' ? 'Perpetual Travelers'
+      : lifestyle === 'vanlife' ? 'Vanlife'
+      : lifestyle === 'wohnmobil' ? 'Wohnmobil-Leben'
+      : lifestyle === 'rvlife' ? 'RV Life'
+      : lifestyle === 'beachlife' ? 'Beach Life'
+      : 'MojoBus'
+    const desc = editDesc || `${editTitle} – ${brandName}`
+    params.set('description', `${editTitle} – ${desc} ${editHashtags}`.trim())
     return `https://www.pinterest.com/pin/create/button/?${params.toString()}`
   }
 
@@ -768,8 +790,8 @@ export function PromotionDashboard() {
                   <Select value={lifestyle} onValueChange={setLifestyle}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="perpetual-travelers">🌊 Perpetual Travelers</SelectItem>
                       <SelectItem value="mojobus">🚌 MojoBus</SelectItem>
+                       <SelectItem value="perpetual-travelers">🌊 Perpetual Travelers</SelectItem>
                       <SelectItem value="vanlife">🚐 Vanlife</SelectItem>
                       <SelectItem value="wohnmobil">🏕️ Wohnmobil</SelectItem>
                       <SelectItem value="rvlife">🚗 RV Life</SelectItem>
@@ -818,17 +840,33 @@ export function PromotionDashboard() {
                   <Input value={editAltText} onChange={e => setEditAltText(e.target.value)} placeholder="Beschreibung für Suchmaschinen" />
                 </div>
 
-                {/* Template-spezifische Felder */}
-                {(selectedTemplate === 'infographic' || selectedTemplate === 'listicle' || selectedTemplate === 'howto' || selectedTemplate === 'route' || selectedTemplate === 'beforeafter') && (
+                {/* Template-spezifische Overlay-Felder */}
+                {selectedTemplate !== 'testimonial' && selectedTemplate !== 'quicktip' && (
                   <div>
-                    <Label>Overlay-Text (auf dem Bild)</Label>
-                    <Input value={editTextInput} onChange={e => setEditTextInput(e.target.value)} placeholder="Großer Text auf dem Pin" />
+                    <Label>
+                      {selectedTemplate === 'mojobus-story' ? 'Story-Zeile (große Zeile auf dem Bild)' : 'Overlay-Text (auf dem Bild)'}
+                    </Label>
+                    <Input
+                      value={editTextInput}
+                      onChange={e => setEditTextInput(e.target.value)}
+                      placeholder={selectedTemplate === 'mojobus-story'
+                        ? 'Kurzer, echter Satz – z.B. "Regen. Kaffee. Kein Plan."'
+                        : 'Großer Text auf dem Pin (GROSSBUCHSTABEN)'}
+                    />
                   </div>
                 )}
                 {selectedTemplate !== 'quicktip' && (
                   <div>
-                    <Label>Sub-Overlay (unter dem Overlay-Text)</Label>
-                    <Input value={editSubInput} onChange={e => setEditSubInput(e.target.value)} placeholder="Zusatztext" />
+                    <Label>
+                      {selectedTemplate === 'mojobus-story' ? 'Story-Sub (zweiter Satz)' : 'Sub-Overlay (unter dem Overlay-Text)'}
+                    </Label>
+                    <Input
+                      value={editSubInput}
+                      onChange={e => setEditSubInput(e.target.value)}
+                      placeholder={selectedTemplate === 'mojobus-story'
+                        ? 'z.B. "Drei Wochen am selben Küstenstreifen."'
+                        : 'Zusatztext unter dem Haupt-Overlay'}
+                    />
                   </div>
                 )}
 
@@ -910,6 +948,26 @@ export function PromotionDashboard() {
                   </div>
                 )}
 
+                {/* MojoBus Story: Story-Tag */}
+                {selectedTemplate === 'mojobus-story' && (
+                  <div className="space-y-3 p-3 bg-primary/5 rounded-lg border border-primary/20">
+                    <p className="text-xs text-muted-foreground font-medium">🚌 MojoBus Story – das Bild dominiert, Text minimal</p>
+                    <div>
+                      <Label>Story-Tag (oben links, z.B. "Tag 847" oder Ort)</Label>
+                      <Input
+                        value={editSteps[0] || ''}
+                        onChange={e => setEditSteps([e.target.value])}
+                        placeholder="mojobus.co  oder  Tag 847  oder  Sagres"
+                        maxLength={22}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Overlay-Text → große Story-Zeile unten<br />
+                      Sub-Overlay → zweiter Satz, weiterführend
+                    </p>
+                  </div>
+                )}
+
                 <div className="flex gap-2 pt-2">
                   <Button variant="outline" onClick={() => setStep(3)}>← Zurück</Button>
                   <Button onClick={() => { setStep(5); renderPin() }} className="flex-1" disabled={isRendering}>
@@ -983,6 +1041,24 @@ export function PromotionDashboard() {
                 <div>
                   <p className="text-sm font-medium">Hashtags</p>
                   <p className="text-sm text-muted-foreground">{editHashtags}</p>
+                </div>
+                {/* Artikel-URL Anzeige + Bearbeitung */}
+                <div>
+                  <p className="text-sm font-medium flex items-center gap-1">
+                    🔗 Artikel-URL
+                    {articleLink
+                      ? <span className="text-xs text-green-600 font-normal">✓ gesetzt</span>
+                      : <span className="text-xs text-amber-500 font-normal">⚠ nicht gesetzt – Pin verlinkt auf nichts</span>
+                    }
+                  </p>
+                  <div className="flex gap-2 mt-1">
+                    <input
+                      className="flex-1 text-xs px-2 py-1 rounded border bg-background text-muted-foreground font-mono"
+                      value={articleLink}
+                      onChange={e => setArticleLink(e.target.value)}
+                      placeholder="https://mojobus.co/naddr1..."
+                    />
+                  </div>
                 </div>
               </div>
 

@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react'
+import { nip19 } from 'nostr-tools'
 import { useNostr } from '@/hooks/useNostr'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { NOSTR_CONFIG } from '@/config/nostr'
@@ -35,6 +36,7 @@ export interface ContentItem {
   tags: string[]
   createdAt: number
   nip19?: string
+  url: string
   event: any
 }
 
@@ -186,6 +188,18 @@ export function ContentSelector({ onSelect, selected }: ContentSelectorProps) {
             const title = e.tags?.find((t: any[]) => t[0] === 'title')?.[1] || extractTitle(e.content) || 'Ohne Titel'
             const summary = e.tags?.find((t: any[]) => t[0] === 'summary')?.[1] || extractSummary(e.content)
             const tags = e.tags?.filter((t: any[]) => t[0] === 't').map((t: any[]) => t[1]) || []
+            const dTag = e.tags?.find((t: any[]) => t[0] === 'd')?.[1] || ''
+
+            // naddr für Artikel (Kind 30023)
+            let naddrStr = ''
+            try {
+              naddrStr = nip19.naddrEncode({
+                kind: e.kind,
+                pubkey: e.pubkey,
+                identifier: dTag,
+              })
+            } catch {}
+            const url = naddrStr ? `https://mojobus.co/${naddrStr}` : ''
 
             return {
               id: e.id,
@@ -197,6 +211,8 @@ export function ContentSelector({ onSelect, selected }: ContentSelectorProps) {
               mainImage: images[0] || '',
               tags,
               createdAt: e.created_at,
+              nip19: naddrStr,
+              url,
               event: e
             }
           })
@@ -219,6 +235,13 @@ export function ContentSelector({ onSelect, selected }: ContentSelectorProps) {
             const summary = e.content?.substring(0, 200) || ''
             const tags = e.tags?.filter((t: any[]) => t[0] === 't').map((t: any[]) => t[1]) || []
 
+            // note1... für Kind 1 Posts
+            let noteStr = ''
+            try {
+              noteStr = nip19.noteEncode(e.id)
+            } catch {}
+            const url = noteStr ? `https://mojobus.co/${noteStr}` : ''
+
             return {
               id: e.id,
               type: 'note' as const,
@@ -229,6 +252,8 @@ export function ContentSelector({ onSelect, selected }: ContentSelectorProps) {
               mainImage: images[0] || '',
               tags,
               createdAt: e.created_at,
+              nip19: noteStr,
+              url,
               event: e
             }
           })
