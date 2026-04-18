@@ -178,10 +178,22 @@ export function ContentSelector({ onSelect, selected }: ContentSelectorProps) {
           { signal }
         )
 
+        // Dieselben Filter wie auf der Site (useLongformArticles):
+        // - d-Tag vorhanden (addressable event)
+        // - Content nicht leer
+        // - Kein Platz-Event (type=place, #t place/places, identifier beginnt mit "place-")
+        function isPlaceEvent(e: any): boolean {
+          const typeTag = e.tags?.find((t: any[]) => t[0] === 'type')?.[1]
+          const placeTag = e.tags?.some((t: any[]) => t[0] === 't' && ['place', 'places'].includes(t[1]))
+          const identifier = e.tags?.find((t: any[]) => t[0] === 'd')?.[1] || ''
+          return typeTag === 'place' || placeTag || identifier.startsWith('place-')
+        }
+
         const parsedArticles: ContentItem[] = articleEvents
           .filter((e: any) => {
             const d = e.tags?.find((t: any[]) => t[0] === 'd')?.[1]
-            return d && !e.tags?.some((t: any[]) => t[0] === 'type' && t[1] === 'place')
+            const hasContent = (e.content || '').trim().length > 0
+            return d && hasContent && !isPlaceEvent(e)
           })
           .map((e: any) => {
             const images = extractImagesFromEvent(e)
@@ -219,9 +231,11 @@ export function ContentSelector({ onSelect, selected }: ContentSelectorProps) {
           .sort((a, b) => b.createdAt - a.createdAt)
 
         // ── Lade Notes (Kind 1) ────────────────────────
+        // Dieselben Filter wie auf der Site (useNotes): nur #t note oder #t notiz
         const noteEvents = await nostr.query(
           [{
             kinds: [1],
+            '#t': ['note', 'notiz'],
             authors: [user.pubkey],
             limit: 100,
           }],
@@ -262,7 +276,7 @@ export function ContentSelector({ onSelect, selected }: ContentSelectorProps) {
 
         setArticles(parsedArticles)
         setNotes(parsedNotes)
-        console.log(`[ContentSelector] Geladen: ${parsedArticles.length} Artikel, ${parsedNotes.length} Notes`)
+        console.log(`[ContentSelector] Geladen (nur Site-sichtbare): ${parsedArticles.length} Artikel, ${parsedNotes.length} Notes (#t note/notiz)`)
       } catch (e) {
         console.error('[ContentSelector] Fehler beim Laden:', e)
       } finally {
