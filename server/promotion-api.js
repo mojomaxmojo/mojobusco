@@ -49,6 +49,58 @@ const safelyParseJSON = (str) => {
 import { getLifestyleConfig } from '../src/config/prompts/index.js'
 
 // ═══════════════════════════════════════════════════════════
+// BILDANALYSE MIT GROQ LLAMA 4 VISION (optional)
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Analysiert ein Bild via Groq Llama 4 Scout Vision
+ * Gibt eine kurze, präzise Bildbeschreibung zurück (1-2 Sätze)
+ * Kosten: ~$0.0002 pro Bild
+ * 
+ * @param {string} imageUrl - Öffentliche Bild-URL
+ * @returns {string|null} Bildbeschreibung oder null bei Fehler
+ */
+const analyzeImageWithVision = async (imageUrl) => {
+  if (!imageUrl || !process.env.GROQ_API_KEY) return null
+
+  const startTime = Date.now()
+  try {
+    const response = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
+      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image_url',
+              image_url: { url: imageUrl }
+            },
+            {
+              type: 'text',
+              text: 'Beschreibe dieses Bild in 1-2 präzisen Sätzen auf Deutsch. Nenne: Was ist zu sehen? Ort/Landschaft/Fahrzeug/Person? Stimmung/Licht? Keine Marketing-Sprache, nur sachliche Beschreibung.'
+            }
+          ]
+        }
+      ],
+      max_tokens: 150,
+      temperature: 0.3
+    }, {
+      headers: { 'Authorization': `Bearer ${process.env.GROQ_API_KEY}` },
+      timeout: 20000
+    })
+
+    const duration = Date.now() - startTime
+    const description = response.data.choices[0].message.content?.trim()
+    console.log(`[Promotion] Bildanalyse in ${duration}ms: "${description?.substring(0, 80)}..."`)
+    return description || null
+
+  } catch (error) {
+    console.warn('[Promotion] Bildanalyse fehlgeschlagen (nicht kritisch):', error.response?.data?.error?.message || error.message)
+    return null // Fehler ist nicht kritisch – Pin-Text wird ohne Bildanalyse generiert
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
 // KI-MODELL FUNKTION (kopiert aus server.js)
 // ═══════════════════════════════════════════════════════════
 
@@ -508,6 +560,7 @@ const LIFESTYLE_PINTEREST_CONFIG = {
  * - template: string (Template-ID aus TEMPLATES)
  * - model: string ('llama4' | 'claude')
  * - lifestyle: string (Lifestyle-Key, z.B. 'perpetual-travelers')
+ * - imageUrl: string (optional – aktuelle Bild-URL für Vision-Analyse)
  */
 router.post('/api/promotion/generate-pin-text', async (req, res) => {
   if (!validateApiKey()) {
@@ -520,13 +573,21 @@ router.post('/api/promotion/generate-pin-text', async (req, res) => {
   const template = sanitizeInput(req.body.template) || 'infographic'
   const model = sanitizeInput(req.body.model) || 'llama4'
   const lifestyle = sanitizeInput(req.body.lifestyle) || 'perpetual-travelers'
+  const imageUrl = (req.body.imageUrl || '').trim()
 
   const templateConfig = TEMPLATES[template]
   if (!templateConfig) {
     return res.status(400).json({ error: `Unbekanntes Template: ${template}` })
   }
 
-  console.log(`[Promotion] Generiere Pin-Text: Template=${template}, Modell=${model}, Lifestyle=${lifestyle}, Titel="${title}"`)
+  console.log(`[Promotion] Generiere Pin-Text: Template=${template}, Modell=${model}, Lifestyle=${lifestyle}, Titel="${title}", Bild=${imageUrl ? '✓' : '–'}`)
+
+  // ── BILDANALYSE (optional, nicht blockierend) ─────────────────────────────
+  let imageDescription = null
+  if (imageUrl && imageUrl.startsWith('http')) {
+    console.log(`[Promotion] Starte Bildanalyse für: ${imageUrl.substring(0, 80)}...`)
+    imageDescription = await analyzeImageWithVision(imageUrl)
+  }
 
   // Lifestyle-Kontext für den System-Prompt
   const lc = LIFESTYLE_PINTEREST_CONFIG[lifestyle] || LIFESTYLE_PINTEREST_CONFIG.mojobus
@@ -549,6 +610,11 @@ WICHTIGE REGELN:
 - Keine generischen Floskeln wie "Schau rein", "Lies mehr", "Entdecke jetzt"
 - Echter Mehrwert: Was bekommt der Leser wenn er klickt?
 - Zahlen und konkrete Fakten performen besser als vage Aussagen
+${imageDescription ? `
+BILD-KONTEXT (für altText und textOverlay bevorzugt nutzen):
+Das Pin-Bild zeigt: "${imageDescription}"
+→ altText: Beschreibe was auf dem Bild zu sehen ist (nicht den Artikel)
+→ textOverlay: Passe den Eyecatcher an das Bildmotiv an, wenn es passt` : ''}
 
 AUSGABE: Antworte IMMER NUR mit validem JSON. Keine Markdown-Code-Blöcke. Keine Erklärungen außerhalb des JSON.`
 
@@ -570,6 +636,8 @@ AUSGABE: Antworte IMMER NUR mit validem JSON. Keine Markdown-Code-Blöcke. Keine
 
     res.json({
       success: true,
+      imageAnalyzed: !!imageDescription,
+      imageDescription: imageDescription || null,
       pinData: {
         template,
         model: model === 'claude' ? 'claude-sonnet-4-20250514' : 'llama-4-scout',

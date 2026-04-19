@@ -271,6 +271,9 @@ export function PromotionDashboard() {
 
     setGenerating(true)
     try {
+      // Aktuell gewähltes Bild mitschicken für Vision-Analyse
+      const currentImageUrl = imageUrls[selectedImageIdx] || ''
+
       const res = await fetch('/api/promotion/generate-pin-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -280,7 +283,8 @@ export function PromotionDashboard() {
           text: articleText,
           template: selectedTemplate,
           model: kiModel,
-          lifestyle
+          lifestyle,
+          imageUrl: currentImageUrl
         })
       })
 
@@ -318,7 +322,12 @@ export function PromotionDashboard() {
       setEditWaypoints(data.pinData.waypoints || [])
       setEditInfographicData(data.pinData.infographicData || [])
 
-      toast({ title: 'Pin-Text generiert!', description: `${kiModel === 'claude' ? 'Claude Sonnet' : 'Llama 4 Scout'} hat den Pin-Text erstellt.` })
+      toast({
+        title: 'Pin-Text generiert!',
+        description: data.imageAnalyzed
+          ? `${kiModel === 'claude' ? 'Claude Sonnet' : 'Llama 4 Scout'} + Bildanalyse ✓ – altText & textOverlay bildbasiert`
+          : `${kiModel === 'claude' ? 'Claude Sonnet' : 'Llama 4 Scout'} hat den Pin-Text erstellt.`
+      })
 
       // Automatisch nächster Schritt
       setStep(4)
