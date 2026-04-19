@@ -373,7 +373,8 @@ export function ContentSelector({ onSelect, selected }: ContentSelectorProps) {
               tags,
               createdAt: e.created_at,
               nip19: naddrStr,
-              url: naddrStr ? `https://mojobus.co/${naddrStr}` : '',
+              // Trips haben eigene Route: /trip/<naddr>
+              url: naddrStr ? `https://mojobus.co/trip/${naddrStr}` : '',
               event: e,
             }
           })
