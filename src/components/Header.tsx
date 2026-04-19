@@ -29,6 +29,7 @@ import {
   Lightbulb,
   Sun,
   Wallet,
+  Pin,
 } from '@/lib/icons';
 import {
   DropdownMenu,
@@ -400,6 +401,12 @@ export function Header() {
                       Haushaltsbuch
                     </Link>
                   </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/promotion" className="flex items-center gap-2">
+                      <Pin className="h-4 w-4" />
+                      Pinterest Promotion
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={logout} className="flex items-center gap-2 text-red-600">
                     <LogOut className="h-4 w-4" />
@@ -614,6 +621,14 @@ export function Header() {
                   >
                     <Wallet className="h-5 w-5 text-gray-600" />
                     <span className="text-gray-900 dark:text-gray-100">Haushaltsbuch</span>
+                  </Link>
+                  <Link
+                    to="/promotion"
+                    className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg"
+                    onClick={handleMobileMenuClick}
+                  >
+                    <Pin className="h-5 w-5 text-gray-600" />
+                    <span className="text-gray-900 dark:text-gray-100">Pinterest Promotion</span>
                   </Link>
                   <button
                     onClick={() => {

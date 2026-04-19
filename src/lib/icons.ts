@@ -71,3 +71,9 @@ export { Download, Database, Palette, Server, Users, Moon, Copy, Zap, Gauge, Bar
 // ============================================================================
 
 export { Wallet } from 'lucide-react';
+
+// ============================================================================
+// PROMOTION ICONS
+// ============================================================================
+
+export { Pin } from 'lucide-react';
