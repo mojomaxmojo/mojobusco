@@ -21,6 +21,46 @@ const router = express.Router()
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const PINS_FILE = path.join(__dirname, 'promoted-pins.json')
 
+// ═══════════════════════════════════════════════════════════
+// ZEITWOHNMOBIL – Anfangsdatum 11.06.2015
+// ═══════════════════════════════════════════════════════════
+
+const STARTDATUM = new Date('2015-06-11T00:00:00.000Z')
+
+/**
+ * Berechnet "Tag XXXX" seit dem 11.06.2015
+ * @param {Date|number} datum - Datum des Artikels (Date-Objekt oder Unix-Timestamp in Sekunden)
+ * @returns {number} Tagesnummer
+ */
+function getTagnummer(datum) {
+  const d = typeof datum === 'number' ? new Date(datum * 1000) : (datum || new Date())
+  const ms = d.getTime() - STARTDATUM.getTime()
+  return Math.max(1, Math.floor(ms / (1000 * 60 * 60 * 24)))
+}
+
+/**
+ * Baut den storyTag zusammen: "Ort · Tag XXXX"
+ * Falls kein Ort vorhanden: nur "Tag XXXX"
+ * @param {string|null} ort - Ortsname (aus country-Tag oder Extraktion)
+ * @param {Date|number} datum - Datum des Artikels
+ * @returns {string} max. 20 Zeichen
+ */
+function buildStoryTag(ort, datum) {
+  const tagNr = getTagnummer(datum)
+  const tagStr = `Tag ${tagNr}`
+
+  if (!ort || !ort.trim()) return tagStr
+
+  // Ort kürzen damit max 20 Zeichen passen: "Ort · Tag XXXX"
+  const separator = ' · '
+  const maxOrtLen = 20 - separator.length - tagStr.length
+  const ortGekuerzt = ort.trim().substring(0, Math.max(3, maxOrtLen))
+  const combined = `${ortGekuerzt}${separator}${tagStr}`
+
+  // Wenn zu lang → nur tagStr
+  return combined.length <= 20 ? combined : tagStr
+}
+
 // ── Hilfsfunktionen aus server.js duplizieren ────────────────────────────────
 
 const sanitizeInput = (input) => {
@@ -450,7 +490,8 @@ AUFGABE:
 4. BILD-ALT-TEXT (50-80 Zeichen)
 5. STORY-ZEILE (max 45 Zeichen) – ein kurzer, echter Satz der das Bild beschreibt. Keine GROSSBUCHSTABEN nötig.
 6. STORY-SUB (max 80 Zeichen) – zweiter Satz der die Geschichte weiterführt. Kann mit "." enden.
-7. STORY-TAG (max 20 Zeichen) – z.B. "mojobus.co" oder "Tag 847" oder der Ort
+
+HINWEIS: Das Feld "storyTag" wird automatisch berechnet (Ort + Tagesnummer seit Start) – NICHT von dir generieren.
 
 JSON:
 {
@@ -459,8 +500,7 @@ JSON:
   "hashtags": ["#mojobus", "#buslife", "..."],
   "altText": "...",
   "textOverlay": "...",
-  "subOverlay": "...",
-  "storyTag": "..."
+  "subOverlay": "..."
 }`
   }
 }
@@ -574,13 +614,22 @@ router.post('/api/promotion/generate-pin-text', async (req, res) => {
   const model = sanitizeInput(req.body.model) || 'llama4'
   const lifestyle = sanitizeInput(req.body.lifestyle) || 'perpetual-travelers'
   const imageUrl = (req.body.imageUrl || '').trim()
+  // Für storyTag-Berechnung: Unix-Timestamp (Sekunden) des Artikels + Ort
+  const articleCreatedAt = req.body.createdAt ? Number(req.body.createdAt) : null
+  const articleCountry = sanitizeInput(req.body.country) || ''
 
   const templateConfig = TEMPLATES[template]
   if (!templateConfig) {
     return res.status(400).json({ error: `Unbekanntes Template: ${template}` })
   }
 
-  console.log(`[Promotion] Generiere Pin-Text: Template=${template}, Modell=${model}, Lifestyle=${lifestyle}, Titel="${title}", Bild=${imageUrl ? '✓' : '–'}`)
+  // storyTag serverseitig berechnen (nur für mojobus-story relevant)
+  const storyTagBerechnet = buildStoryTag(
+    articleCountry || null,
+    articleCreatedAt ? articleCreatedAt : new Date()
+  )
+
+  console.log(`[Promotion] Generiere Pin-Text: Template=${template}, Modell=${model}, Lifestyle=${lifestyle}, Titel="${title}", Bild=${imageUrl ? '✓' : '–'}, storyTag="${storyTagBerechnet}"`)
 
   // ── BILDANALYSE (optional, nicht blockierend) ─────────────────────────────
   let imageDescription = null
@@ -634,10 +683,17 @@ AUSGABE: Antworte IMMER NUR mit validem JSON. Keine Markdown-Code-Blöcke. Keine
 
     console.log('[Promotion] Pin-Text erfolgreich generiert:', JSON.stringify(pinData).substring(0, 100))
 
+    // storyTag immer serverseitig setzen (überschreibt KI-Wert falls vorhanden)
+    if (template === 'mojobus-story') {
+      pinData.storyTag = storyTagBerechnet
+      console.log(`[Promotion] storyTag gesetzt: "${storyTagBerechnet}"`)
+    }
+
     res.json({
       success: true,
       imageAnalyzed: !!imageDescription,
       imageDescription: imageDescription || null,
+      storyTag: storyTagBerechnet,
       pinData: {
         template,
         model: model === 'claude' ? 'claude-sonnet-4-20250514' : 'llama-4-scout',

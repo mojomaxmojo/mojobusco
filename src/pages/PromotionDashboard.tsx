@@ -274,6 +274,15 @@ export function PromotionDashboard() {
       // Aktuell gewähltes Bild mitschicken für Vision-Analyse
       const currentImageUrl = imageUrls[selectedImageIdx] || ''
 
+      // createdAt + country aus dem Nostr-Event für storyTag-Berechnung
+      const eventCreatedAt = selectedContent?.event?.created_at ?? null
+      const eventCountry = selectedContent?.event?.tags
+        ?.find((t: any[]) => t[0] === 'country' || t[0] === 'location' || t[0] === 'l')?.[1]
+        || selectedContent?.tags?.find((t: string) =>
+            ['portugal', 'spanien', 'frankreich', 'marokko', 'deutschland', 'österreich', 'schweiz', 'italien', 'kroatien', 'slowenien', 'ungarn', 'rumänien', 'bulgarien', 'griechenland', 'türkei', 'england', 'niederlande', 'belgien', 'dänemark', 'norwegen', 'schweden', 'finnland', 'estland', 'lettland', 'litauen', 'albanien', 'serbien', 'bosnien', 'nordmazedonien', 'montenegro', 'kosovo'].includes(t.toLowerCase())
+          )
+        || ''
+
       const res = await fetch('/api/promotion/generate-pin-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -284,7 +293,9 @@ export function PromotionDashboard() {
           template: selectedTemplate,
           model: kiModel,
           lifestyle,
-          imageUrl: currentImageUrl
+          imageUrl: currentImageUrl,
+          createdAt: eventCreatedAt,
+          country: eventCountry
         })
       })
 
@@ -309,9 +320,11 @@ export function PromotionDashboard() {
       setEditTextInput(data.pinData.textOverlay || '')
       setEditSubInput(data.pinData.subOverlay || '')
       setEditListItems(data.pinData.listItems || [])
-      // mojobus-story: storyTag in editSteps[0] speichern; sonst normale steps
+      // mojobus-story: berechneter storyTag (Ort · Tag XXXX) in editSteps[0]
       if (selectedTemplate === 'mojobus-story') {
-        setEditSteps([data.pinData.storyTag || 'mojobus.co'])
+        // data.storyTag kommt vom Server (serverseitig berechnet: "Ort · Tag XXXX")
+        // data.pinData.storyTag ist identisch (wird im Server gesetzt)
+        setEditSteps([data.storyTag || data.pinData.storyTag || 'mojobus.co'])
       } else {
         setEditSteps(data.pinData.steps || [])
       }
