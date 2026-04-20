@@ -214,6 +214,8 @@ export function PromotionDashboard() {
       const data = await safeResJson(res)
       if (data?.success && Array.isArray(data.pins)) {
         setSavedPins(data.pins)
+        // Server-Daten immer in localStorage spiegeln
+        savePinsToLocal(data.pins)
         return
       }
     } catch { /* Server nicht erreichbar */ }
@@ -482,7 +484,20 @@ export function PromotionDashboard() {
         template: selectedTemplate
       }
 
-      let savedViaApi = false
+      // Lokales Pin-Objekt vorbereiten (immer)
+      const newPin: SavedPin = {
+        id: `pin_${Date.now()}`,
+        ...pinPayload,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+
+      // 1) Immer sofort lokal speichern
+      const localPins = loadPinsFromLocal()
+      localPins.push(newPin)
+      savePinsToLocal(localPins)
+
+      // 2) Zusätzlich auf Server speichern (best-effort)
       try {
         const res = await fetch('/api/promotion/pins', {
           method: 'POST',
@@ -490,26 +505,22 @@ export function PromotionDashboard() {
           body: JSON.stringify(pinPayload)
         })
         const data = await safeResJson(res)
-        if (data?.success) savedViaApi = true
-      } catch { /* Server nicht erreichbar */ }
-
-      if (!savedViaApi) {
-        // Fallback: lokal speichern
-        const newPin: SavedPin = {
-          id: `pin_${Date.now()}`,
-          ...pinPayload,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+        if (data?.success && data.pin?.id) {
+          // Server hat gespeichert → lokale ID mit Server-ID synchronisieren
+          const synced = loadPinsFromLocal().map(p =>
+            p.id === newPin.id ? { ...p, id: data.pin.id } : p
+          )
+          savePinsToLocal(synced)
         }
-        const pins = loadPinsFromLocal()
-        pins.push(newPin)
-        savePinsToLocal(pins)
-      }
+      } catch { /* Server nicht erreichbar – lokaler Speicher genügt */ }
 
       toast({ title: 'Pin gespeichert!', description: 'Pin wurde in deiner Liste gespeichert.' })
       await loadSavedPins()
-      // Reset für nächsten Pin
+      // Reset für nächsten Pin + scroll zu gespeicherten Pins
       resetForm()
+      setTimeout(() => {
+        document.getElementById('saved-pins')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 100)
     } catch (e) {
       toast({ title: 'Fehler', description: 'Pin konnte nicht gespeichert werden.', variant: 'destructive' })
     }
@@ -1226,40 +1237,117 @@ export function PromotionDashboard() {
         )}
 
         {/* ══════ GESPEICHERTE PINS ══════ */}
-        {savedPins.length > 0 && (
-          <Card className="mt-8">
-            <CardHeader>
-              <CardTitle>Gespeicherte Pins ({savedPins.length})</CardTitle>
-              <CardDescription>Deine bisher erstellten Pinterest Pins</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3 max-h-[500px] overflow-y-auto">
-                {savedPins.map(pin => (
-                  <div key={pin.id} className="flex items-center gap-4 p-3 rounded-lg border bg-card hover:bg-muted/20 transition-colors">
-                    <div className="text-2xl">
-                      {pin.template && PIN_TEMPLATES.find(t => t.id === pin.template)?.emoji || '📌'}
+        <Card className="mt-8" id="saved-pins">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  💾 Gespeicherte Pins
+                  {savedPins.length > 0 && (
+                    <Badge variant="secondary">{savedPins.length}</Badge>
+                  )}
+                </CardTitle>
+                <CardDescription>Alle bisher erstellten Pinterest Pins – vollständige Liste</CardDescription>
+              </div>
+              {savedPins.length > 0 && (
+                <Button variant="outline" size="sm" onClick={() => setStep(1)}>
+                  + Neuer Pin
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            {savedPins.length === 0 ? (
+              <div className="text-center py-10 text-muted-foreground">
+                <div className="text-4xl mb-3">📌</div>
+                <p className="text-sm font-medium">Noch keine Pins gespeichert</p>
+                <p className="text-xs mt-1">Erstelle deinen ersten Pin mit den Schritten oben.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {savedPins.map((pin, idx) => (
+                  <div key={pin.id} className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-muted/20 transition-colors group">
+                    {/* Nummer */}
+                    <span className="text-xs text-muted-foreground w-5 text-right shrink-0 font-mono">
+                      {savedPins.length - idx}
+                    </span>
+
+                    {/* Thumbnail */}
+                    <div className="w-10 h-14 rounded overflow-hidden bg-muted shrink-0 border">
+                      {pin.imageUrl ? (
+                        <img
+                          src={pin.imageUrl}
+                          alt=""
+                          className="w-full h-full object-cover"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-lg">
+                          {PIN_TEMPLATES.find(t => t.id === pin.template)?.emoji || '📌'}
+                        </div>
+                      )}
                     </div>
+
+                    {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{pin.articleTitle}</p>
-                      <p className="text-xs text-muted-foreground">{new Date(pin.createdAt).toLocaleDateString('de-DE')}</p>
+                      <p className="font-medium text-sm truncate">
+                        {pin.pinData?.title || pin.articleTitle}
+                      </p>
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(pin.createdAt).toLocaleDateString('de-DE')}
+                        </span>
+                        {pin.template && (
+                          <span className="text-xs text-muted-foreground">
+                            {PIN_TEMPLATES.find(t => t.id === pin.template)?.emoji} {PIN_TEMPLATES.find(t => t.id === pin.template)?.name}
+                          </span>
+                        )}
+                        {pin.articleTitle && pin.pinData?.title && pin.articleTitle !== pin.pinData?.title && (
+                          <span className="text-xs text-muted-foreground/60 truncate max-w-[180px]">
+                            aus: {pin.articleTitle}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <Badge variant={pin.status === 'posted' ? 'default' : pin.status === 'ready' ? 'secondary' : 'outline'}>
-                      {pin.status === 'posted' ? 'Gepostet' : pin.status === 'ready' ? 'Bereit' : 'Entwurf'}
+
+                    {/* Status Badge */}
+                    <Badge
+                      variant={pin.status === 'posted' ? 'default' : pin.status === 'ready' ? 'secondary' : 'outline'}
+                      className="shrink-0"
+                    >
+                      {pin.status === 'posted' ? '✓ Gepostet' : pin.status === 'ready' ? 'Bereit' : 'Entwurf'}
                     </Badge>
-                    {pin.pinterestUrl && (
-                      <Button size="sm" variant="ghost" onClick={() => window.open(pin.pinterestUrl, '_blank')}>
-                        <ExternalLink className="w-4 h-4" />
+
+                    {/* Aktionen */}
+                    <div className="flex items-center gap-1 shrink-0">
+                      {pin.pinterestUrl && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => window.open(pin.pinterestUrl, '_blank')}
+                          title="Zu Pinterest"
+                          className="opacity-60 group-hover:opacity-100"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => deletePin(pin.id)}
+                        title="Pin löschen"
+                        className="opacity-40 group-hover:opacity-100 hover:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </Button>
-                    )}
-                    <Button size="sm" variant="ghost" onClick={() => deletePin(pin.id)}>
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    </Button>
+                    </div>
                   </div>
                 ))}
               </div>
-            </CardContent>
-          </Card>
-        )}
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
