@@ -23,6 +23,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { nip19 } from 'nostr-tools';
 import { useToast } from '@/hooks/useToast';
 import { useUploadFile } from '@/hooks/useUploadFile';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
@@ -385,7 +386,7 @@ export function TripPublishForm() {
   const { toast } = useToast();
   const { mutateAsync: uploadFile } = useUploadFile();
   const { mutate: publishEvent } = useNostrPublish();
-  const { gender } = useCurrentUser(); // Gender für KI-Generierung (Mojo=male, Susanne=female)
+  const { gender, user } = useCurrentUser(); // Gender für KI-Generierung (Mojo=male, Susanne=female)
 
   // KI-Artikelgenerierung für Trips
   const generateArticleWithAI = async () => {
@@ -1231,36 +1232,70 @@ export function TripPublishForm() {
                    : 'Dein Trip wurde erfolgreich veröffentlicht.',
                });
                
-                // Teaser-Note vorbereiten
-                const teaserSummary = tripData.summary.trim().slice(0, 150) + (tripData.summary.trim().length > 150 ? '…' : '');
-                const teaserParts: string[] = [];
-                teaserParts.push(`🗺️ ${tripData.title || 'Trip'}`);
-                if (teaserSummary) teaserParts.push(teaserSummary);
-                if (slideshowVideoUrl) teaserParts.push(slideshowVideoUrl);
-                teaserParts.push(`https://mojobus.co/trip/${dTag}`);
-                teaserParts.push(`${gpsStations.length} Stationen · ${Math.round(totalDistance)}km`);
-                const teaserContent = teaserParts.join('\n\n');
+                 // Teaser-Note vorbereiten
+                 // naddr berechnen (für korrekten Trip-Link)
+                 let tripNaddr = dTag; // Fallback: dTag
+                 try {
+                   if (user?.pubkey) {
+                     tripNaddr = nip19.naddrEncode({
+                       kind: 30025,
+                       pubkey: user.pubkey,
+                       identifier: dTag,
+                     });
+                   }
+                 } catch (e) {
+                   console.warn('[Trip Teaser] naddr encode failed, using dTag as fallback:', e);
+                 }
+                 
+                 const teaserSummary = tripData.summary.trim().slice(0, 150) + (tripData.summary.trim().length > 150 ? '…' : '');
+                 const firstStation = uploadedStations.find(s => s.uploadedUrl);
+                 const firstImageUrl = firstStation?.uploadedUrl;
+                 
+                 const teaserParts: string[] = [];
+                 teaserParts.push(`🗺️ ${tripData.title || 'Trip'}`);
+                 if (teaserSummary) teaserParts.push(teaserSummary);
+                 // Bild-URL direkt in den Content (Primal/Amethyst rendert das)
+                 if (firstImageUrl) teaserParts.push(firstImageUrl);
+                 // Video-URL direkt in den Content (Primal/Amethyst rendert Video)
+                 if (slideshowVideoUrl) teaserParts.push(slideshowVideoUrl);
+                 teaserParts.push(`https://mojobus.co/trip/${tripNaddr}`);
+                 teaserParts.push(`${gpsStations.length} Stationen · ${Math.round(totalDistance)}km`);
+                 const teaserContent = teaserParts.join('\n\n');
 
-               const teaserTags: string[][] = [
-                 ['t', 'trip'],
-                 ['t', 'reisen'],
-               ];
-               if (tripData.tripType) teaserTags.push(['t', tripData.tripType]);
-               if (tripData.country) {
-                 const countryTags = getCountryTag(tripData.country);
-                 countryTags.forEach(tag => teaserTags.push(['t', tag]));
-               }
-               const firstStation = gpsStations.find(s => s.uploadedUrl);
-               if (firstStation?.uploadedUrl) {
-                 teaserTags.push(['imeta', `url ${firstStation.uploadedUrl}`, 'alt', tripData.title || 'Trip']);
-               }
+                const teaserTags: string[][] = [
+                  ['t', 'trip'],
+                  ['t', 'reisen'],
+                ];
+                if (tripData.tripType) teaserTags.push(['t', tripData.tripType]);
+                if (tripData.country) {
+                  const countryTags = getCountryTag(tripData.country);
+                  countryTags.forEach(tag => teaserTags.push(['t', tag]));
+                }
+                // imeta für Bild (Pflicht wenn vorhanden)
+                if (firstImageUrl) {
+                  teaserTags.push([
+                    'imeta',
+                    `url ${firstImageUrl}`,
+                    `m image/jpeg`,
+                    `alt ${tripData.title || 'Trip'}`,
+                  ]);
+                }
+                // imeta für Video (Pflicht wenn vorhanden)
+                if (slideshowVideoUrl) {
+                  teaserTags.push([
+                    'imeta',
+                    `url ${slideshowVideoUrl}`,
+                    `m video/mp4`,
+                    `alt ${tripData.title || 'Trip'} – Slideshow`,
+                  ]);
+                }
 
-               setTripTeaserPreview({
-                 content: teaserContent,
-                 tags: teaserTags,
-                 hasImage: !!firstStation?.uploadedUrl,
-                 hasVideo: !!slideshowVideoUrl,
-               });
+                setTripTeaserPreview({
+                  content: teaserContent,
+                  tags: teaserTags,
+                  hasImage: !!firstImageUrl,
+                  hasVideo: !!slideshowVideoUrl,
+                });
                setShowTeaserBox(true);
                setIsTripTeaserPublished(false);
                
