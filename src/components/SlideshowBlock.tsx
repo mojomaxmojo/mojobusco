@@ -215,17 +215,10 @@ export function SlideshowBlock({
             type: 'video/mp4',
           });
           const blossomTags = await uploadFile(videoFile);
-          const rawBlossomUrl = blossomTags.find(
+          const blossomUrl = blossomTags.find(
             (t: string[]) => t[0] === 'url'
           )?.[1];
-          if (!rawBlossomUrl) throw new Error('Keine Blossom-URL erhalten.');
-
-          // Blossom gibt SHA256-Hash ohne Extension zurück.
-          // Primal / Amethyst erkennen Videos NUR wenn URL auf .mp4 endet!
-          // relay.mojobus.co unterstützt .mp4-Suffix → anhängen falls fehlend
-          const blossomUrl = rawBlossomUrl.endsWith('.mp4')
-            ? rawBlossomUrl
-            : rawBlossomUrl + '.mp4';
+          if (!blossomUrl) throw new Error('Keine Blossom-URL erhalten.');
 
           setVideoUrl(blossomUrl);
           setVideoInfo({

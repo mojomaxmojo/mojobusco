@@ -1247,33 +1247,20 @@ export function TripPublishForm() {
                    console.warn('[Trip Teaser] naddr encode failed, using dTag as fallback:', e);
                  }
                  
-                 // Erstes Bild: aus allen uploadedStations (nicht nur gpsStations)
+                 const teaserSummary = tripData.summary.trim().slice(0, 150) + (tripData.summary.trim().length > 150 ? '…' : '');
                  const firstStation = uploadedStations.find(s => s.uploadedUrl);
                  const firstImageUrl = firstStation?.uploadedUrl;
                  
-                 // Kurze Zusammenfassung: max 120 Zeichen damit Bild NICHT hinter "more" verschwindet
-                 const teaserSummary = tripData.summary.trim().slice(0, 120) + (tripData.summary.trim().length > 120 ? '…' : '');
-                 
-                 // Content-Struktur für Primal/Amethyst:
-                 // - Titel zuerst (kurz, kein langer Text davor)
-                 // - SOFORT danach Bild-URL allein auf einer Zeile → erscheint direkt unter Titel
-                 // - Kurzer Text
-                 // - Video-URL allein auf einer Zeile → wird als Video-Player gerendert
-                 // - Trip-Link ganz am Ende
-                 // Wichtig: URLs müssen ALLEIN auf einer Zeile stehen (kein Text daneben)
-                 const contentLines: string[] = [];
-                 contentLines.push(`🗺️ ${tripData.title || 'Trip'}`);
-                 // Bild SOFORT nach Titel (vor allem Text) – so bleibt es im sichtbaren Bereich
-                 if (firstImageUrl) contentLines.push(firstImageUrl);
-                 // Kurzer Teaser-Text danach
-                 if (teaserSummary) contentLines.push(teaserSummary);
-                 // Stats-Zeile
-                 contentLines.push(`📍 ${gpsStations.length} Stationen · 🛣️ ${Math.round(totalDistance)} km`);
-                 // Video-URL allein auf einer Zeile (Primal/Amethyst braucht isolierte URL)
-                 if (slideshowVideoUrl) contentLines.push(slideshowVideoUrl);
-                 // Trip-Link am Ende
-                 contentLines.push(`https://mojobus.co/trip/${tripNaddr}`);
-                 const teaserContent = contentLines.join('\n\n');
+                 const teaserParts: string[] = [];
+                 teaserParts.push(`🗺️ ${tripData.title || 'Trip'}`);
+                 if (teaserSummary) teaserParts.push(teaserSummary);
+                 // Bild-URL direkt in den Content (Primal/Amethyst rendert das)
+                 if (firstImageUrl) teaserParts.push(firstImageUrl);
+                 // Video-URL direkt in den Content (Primal/Amethyst rendert Video)
+                 if (slideshowVideoUrl) teaserParts.push(slideshowVideoUrl);
+                 teaserParts.push(`https://mojobus.co/trip/${tripNaddr}`);
+                 teaserParts.push(`${gpsStations.length} Stationen · ${Math.round(totalDistance)}km`);
+                 const teaserContent = teaserParts.join('\n\n');
 
                 const teaserTags: string[][] = [
                   ['t', 'trip'],
@@ -1284,7 +1271,7 @@ export function TripPublishForm() {
                   const countryTags = getCountryTag(tripData.country);
                   countryTags.forEach(tag => teaserTags.push(['t', tag]));
                 }
-                // imeta für Bild – URL muss exakt mit Content übereinstimmen
+                // imeta für Bild (Pflicht wenn vorhanden)
                 if (firstImageUrl) {
                   teaserTags.push([
                     'imeta',
@@ -1293,7 +1280,7 @@ export function TripPublishForm() {
                     `alt ${tripData.title || 'Trip'}`,
                   ]);
                 }
-                // imeta für Video – m video/mp4 damit Primal/Amethyst es als Video rendert
+                // imeta für Video (Pflicht wenn vorhanden)
                 if (slideshowVideoUrl) {
                   teaserTags.push([
                     'imeta',
