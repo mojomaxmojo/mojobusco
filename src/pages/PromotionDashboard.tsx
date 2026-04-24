@@ -629,43 +629,43 @@ export function PromotionDashboard() {
     <div className="min-h-screen bg-background">
       {/* HEADER */}
       <div className="border-b bg-card/50 backdrop-blur sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
-              <ArrowLeft className="w-5 h-5" />
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8 sm:h-10 sm:w-10" onClick={() => navigate('/')}>
+              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
             </Button>
-            <div>
-              <h1 className="text-xl font-bold">📌 Pinterest Promotion</h1>
-              <p className="text-sm text-muted-foreground">Pins erstellen, Texte generieren, Traffic generieren</p>
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-xl font-bold truncate">📌 Pinterest Promotion</h1>
+              <p className="text-xs text-muted-foreground hidden sm:block">Pins erstellen, Texte generieren, Traffic generieren</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Badge variant="outline">{savedPins.length} gespeicherte Pins</Badge>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground shrink-0">
+            <Badge variant="outline" className="text-xs">{savedPins.length} Pins</Badge>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
 
         {/* STEP INDICATOR */}
-        <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2">
-          {['Artikel', 'Bilder', 'Template', 'KI-Text', 'Pin-Vorschau'].map((lbl, i) => (
-            <div key={i} className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          {['Artikel', 'Bilder', 'Template', 'KI-Text', 'Vorschau'].map((lbl, i) => (
+            <div key={i} className="flex items-center flex-1 last:flex-none">
               <button
                 onClick={() => { if (i + 1 < step) setStep(i + 1) }}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors
+                className={`flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-1 sm:px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-colors w-full justify-center sm:justify-start
                   ${step === i + 1 ? 'bg-primary text-primary-foreground' :
                     step > i + 1 ? 'bg-primary/20 text-primary cursor-pointer' :
                     'bg-muted text-muted-foreground'}`}
               >
-                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold
+                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0
                   ${step > i + 1 ? 'bg-primary text-primary-foreground' :
                     step === i + 1 ? 'bg-primary-foreground/20' : 'bg-muted-foreground/20'}`}>
                   {step > i + 1 ? <Check className="w-3 h-3" /> : i + 1}
                 </span>
-                <span className="hidden sm:inline">{lbl}</span>
+                <span className="text-[10px] sm:text-sm leading-tight text-center">{lbl}</span>
               </button>
-              {i < 4 && <ChevronRight className="w-4 h-4 text-muted-foreground/40 shrink-0" />}
+              {i < 4 && <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground/40 shrink-0 mx-0.5" />}
             </div>
           ))}
         </div>
@@ -680,12 +680,12 @@ export function PromotionDashboard() {
 
         {/* ══════ STEP 1: ARTIKEL / POST AUSWÄHLEN ══════ */}
         {step === 1 && (
-          <div className="grid lg:grid-cols-[1fr_340px] gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4 sm:gap-6">
             {/* LEFT: Content Selector */}
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2"><FileText className="w-5 h-5" /> Schritt 1: Inhalt auswählen</CardTitle>
-                <CardDescription>Wähle einen deiner Artikel oder Posts aus Nostr – alles wird automatisch vorausgefüllt</CardDescription>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg"><FileText className="w-4 h-4 sm:w-5 sm:h-5" /> Schritt 1: Inhalt auswählen</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">Wähle einen deiner Artikel oder Posts – alles wird automatisch vorausgefüllt</CardDescription>
               </CardHeader>
               <CardContent>
                 <ContentSelector
@@ -697,16 +697,16 @@ export function PromotionDashboard() {
 
             {/* RIGHT: Ausgewählter Inhalt + Bearbeiten */}
             <Card>
-              <CardHeader>
+              <CardHeader className="pb-3">
                 <CardTitle className="text-base">Ausgewählter Inhalt</CardTitle>
-                <CardDescription>Alle Daten wurden vorausgefüllt</CardDescription>
+                <CardDescription className="text-xs">Alle Daten wurden vorausgefüllt</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {selectedContent ? (
                   <>
                     {/* Content Preview */}
                     <div className="flex items-start gap-3 p-3 bg-primary/5 rounded-lg">
-                      <div className="w-14 h-14 rounded-md overflow-hidden bg-muted shrink-0">
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-md overflow-hidden bg-muted shrink-0">
                         {selectedContent.mainImage ? (
                           <img src={selectedContent.mainImage} alt="" className="w-full h-full object-cover" loading="lazy" />
                         ) : (
@@ -718,7 +718,7 @@ export function PromotionDashboard() {
                       <div className="min-w-0">
                         <p className="font-medium text-sm truncate">{selectedContent.title}</p>
                         <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{selectedContent.summary}</p>
-                        <div className="flex gap-1 mt-1">
+                        <div className="flex gap-1 mt-1 flex-wrap">
                           <Badge variant="outline" className="text-[10px]">
                             {selectedContent.type === 'article' ? 'Artikel' : 'Post'}
                           </Badge>
@@ -733,26 +733,26 @@ export function PromotionDashboard() {
 
                     {/* Editable fields (override if needed) */}
                     <div>
-                      <Label>Titel</Label>
-                      <Input value={articleTitle} onChange={e => setArticleTitle(e.target.value)} />
+                      <Label className="text-xs sm:text-sm">Titel</Label>
+                      <Input value={articleTitle} onChange={e => setArticleTitle(e.target.value)} className="text-sm" />
                     </div>
                     <div>
-                      <Label>Zusammenfassung</Label>
-                      <Textarea value={articleSummary} onChange={e => setArticleSummary(e.target.value)} maxLength={300} className="text-xs" />
+                      <Label className="text-xs sm:text-sm">Zusammenfassung</Label>
+                      <Textarea value={articleSummary} onChange={e => setArticleSummary(e.target.value)} maxLength={300} className="text-xs" rows={3} />
                     </div>
                     <div>
-                      <Label>Artikel-URL (optional)</Label>
+                      <Label className="text-xs sm:text-sm">Artikel-URL (optional)</Label>
                       <Input value={articleLink} onChange={e => setArticleLink(e.target.value)} placeholder="https://mojobus.co/artikel/..." className="text-xs" />
                     </div>
 
-                    <Button onClick={() => { if (articleTitle.trim()) setStep(2) }} className="w-full mt-2">
+                    <Button onClick={() => { if (articleTitle.trim()) setStep(2) }} className="w-full mt-2" size="lg">
                       Weiter zu Bildern <ChevronRight className="w-4 h-4 ml-1" />
                     </Button>
                   </>
                 ) : (
-                  <div className="text-center py-8">
+                  <div className="text-center py-6 sm:py-8">
                     <FileTextIcon className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-                    <p className="text-sm text-muted-foreground">Wähle links einen Artikel oder Post aus.<br />Titel, Text und Bilder werden automatisch geladen.</p>
+                    <p className="text-sm text-muted-foreground">Wähle oben einen Artikel oder Post aus.<br />Titel, Text und Bilder werden automatisch geladen.</p>
                   </div>
                 )}
               </CardContent>
@@ -763,9 +763,9 @@ export function PromotionDashboard() {
         {/* ══════ STEP 2: BILDER AUSWÄHLEN ══════ */}
         {step === 2 && (
           <Card className="max-w-2xl">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2"><ImageIcon className="w-5 h-5" /> Schritt 2: Bilder ({imageUrls.length}/20)</CardTitle>
-              <CardDescription>Füge 1-20 Bilder hinzu die für den Pin verwendet werden sollen</CardDescription>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg"><ImageIcon className="w-4 h-4 sm:w-5 sm:h-5" /> Schritt 2: Bilder ({imageUrls.length}/20)</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Füge 1-20 Bilder hinzu die für den Pin verwendet werden sollen</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Bild-URL eingabe */}
@@ -773,10 +773,11 @@ export function PromotionDashboard() {
                 <Input
                   value={manualImageUrl}
                   onChange={e => setManualImageUrl(e.target.value)}
-                  placeholder="Bild-URL eingeben (Blossom, Nostr, etc.)"
+                  placeholder="Bild-URL (Blossom, Nostr…)"
+                  className="text-sm"
                   onKeyDown={e => { if (e.key === 'Enter' && manualImageUrl) addImageByPath(manualImageUrl) }}
                 />
-                <Button onClick={() => addImageByPath(manualImageUrl)} size="sm">+</Button>
+                <Button onClick={() => addImageByPath(manualImageUrl)} size="sm" className="shrink-0 px-4">+</Button>
               </div>
 
               {/* Quick-Tipps für Bild-URLs */}
@@ -792,9 +793,9 @@ export function PromotionDashboard() {
               {/* Bild-Grid */}
               {imageUrls.length > 0 && (
                 <>
-                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 max-h-[400px] overflow-y-auto p-1">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-[50vh] sm:max-h-[400px] overflow-y-auto p-1">
                     {imageUrls.map((url, i) => (
-                      <div key={i} className={`relative group rounded-lg overflow-hidden border-2 transition-all cursor-pointer
+                      <div key={i} className={`relative rounded-lg overflow-hidden border-2 transition-all cursor-pointer active:scale-95
                         ${i === selectedImageIdx ? 'border-primary ring-2 ring-primary/20' : 'border-transparent hover:border-primary/40'}`}
                         onClick={() => setSelectedImageIdx(i)}>
                         <div className="aspect-[2/3] bg-muted">
@@ -805,19 +806,19 @@ export function PromotionDashboard() {
                         )}
                         <button
                           onClick={(e) => { e.stopPropagation(); removeImage(i) }}
-                          className="absolute top-1 left-1 bg-destructive/80 text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs">
+                          className="absolute top-1 left-1 bg-destructive/90 text-destructive-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">
                           ×
                         </button>
                       </div>
                     ))}
                   </div>
-                  <p className="text-xs text-muted-foreground">Klicke auf ein Bild um es für die Pin-Vorschau auszuwählen →</p>
+                  <p className="text-xs text-muted-foreground">Tippe auf ein Bild um es für die Pin-Vorschau auszuwählen</p>
                 </>
               )}
 
               <div className="flex gap-2 pt-2">
-                <Button variant="outline" onClick={() => setStep(1)}>← Zurück</Button>
-                <Button onClick={() => { if (imageUrls.length > 0) setStep(3) }} className="flex-1">
+                <Button variant="outline" onClick={() => setStep(1)} className="shrink-0">← Zurück</Button>
+                <Button onClick={() => { if (imageUrls.length > 0) setStep(3) }} className="flex-1" size="lg">
                   Weiter zu Template <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
               </div>
@@ -828,38 +829,38 @@ export function PromotionDashboard() {
         {/* ══════ STEP 3: TEMPLATE AUSWÄHLEN ══════ */}
         {step === 3 && (
           <Card className="max-w-3xl">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2"><Wand2 className="w-5 h-5" /> Schritt 3: Template & KI</CardTitle>
-              <CardDescription>Wähle das Pin-Template und die KI-Modell</CardDescription>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg"><Wand2 className="w-4 h-4 sm:w-5 sm:h-5" /> Schritt 3: Template & KI</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Wähle das Pin-Template und das KI-Modell</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-5">
               {/* Template Grid */}
               <div>
-                <Label className="mb-3 block">Pin-Template</Label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                <Label className="mb-2 block text-sm">Pin-Template</Label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
                   {PIN_TEMPLATES.map(tpl => (
                     <button
                       key={tpl.id}
                       onClick={() => setSelectedTemplate(tpl.id)}
-                      className={`p-4 rounded-xl border-2 transition-all text-left
+                      className={`p-3 sm:p-4 rounded-xl border-2 transition-all text-left active:scale-95
                         ${selectedTemplate === tpl.id
                           ? 'border-primary bg-primary/5 shadow-md ring-2 ring-primary/10'
                           : 'border-border hover:border-primary/30 hover:bg-muted/30'}`}
                     >
-                      <div className="text-3xl mb-2">{tpl.emoji}</div>
-                      <div className="font-semibold text-sm">{tpl.name}</div>
-                      <div className="text-xs text-muted-foreground mt-1">{tpl.desc}</div>
+                      <div className="text-2xl sm:text-3xl mb-1 sm:mb-2">{tpl.emoji}</div>
+                      <div className="font-semibold text-xs sm:text-sm leading-tight">{tpl.name}</div>
+                      <div className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 leading-tight">{tpl.desc}</div>
                     </button>
                   ))}
                 </div>
               </div>
 
               {/* KI Modell & Lifestyle */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <Label>KI-Modell</Label>
+                  <Label className="text-xs sm:text-sm">KI-Modell</Label>
                   <Select value={kiModel} onValueChange={(v) => setKiModel(v as 'llama4' | 'claude')}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="llama4">🦙 Llama 4 Scout (Groq)</SelectItem>
                       <SelectItem value="claude">🔷 Claude Sonnet 4 (Anthropic)</SelectItem>
@@ -867,12 +868,12 @@ export function PromotionDashboard() {
                   </Select>
                 </div>
                 <div>
-                  <Label>Lifestyle</Label>
+                  <Label className="text-xs sm:text-sm">Lifestyle</Label>
                   <Select value={lifestyle} onValueChange={setLifestyle}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="mojobus">🚌 MojoBus</SelectItem>
-                       <SelectItem value="perpetual-travelers">🌊 Perpetual Travelers</SelectItem>
+                      <SelectItem value="perpetual-travelers">🌊 Perpetual Travelers</SelectItem>
                       <SelectItem value="vanlife">🚐 Vanlife</SelectItem>
                       <SelectItem value="wohnmobil">🏕️ Wohnmobil</SelectItem>
                       <SelectItem value="rvlife">🚗 RV Life</SelectItem>
@@ -882,11 +883,12 @@ export function PromotionDashboard() {
                 </div>
               </div>
 
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setStep(2)}>← Zurück</Button>
-                <Button onClick={() => { setStep(4); generatePinText() }} className="flex-1" disabled={generating}>
+              <div className="flex gap-2 pt-1">
+                <Button variant="outline" onClick={() => setStep(2)} className="shrink-0">← Zurück</Button>
+                <Button onClick={() => { setStep(4); generatePinText() }} className="flex-1" size="lg" disabled={generating}>
                   {generating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
-                  Pin-Text generieren & Weiter
+                  <span className="hidden xs:inline">Pin-Text generieren &amp; Weiter</span>
+                  <span className="xs:hidden">Generieren</span>
                 </Button>
               </div>
             </CardContent>
@@ -895,41 +897,42 @@ export function PromotionDashboard() {
 
         {/* ══════ STEP 4: KI-TEXTE BEARBEITEN ══════ */}
         {step === 4 && (
-          <div className="grid lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {/* EDITOR */}
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Sparkles className="w-5 h-5" /> Pin-Text bearbeiten</CardTitle>
-                <CardDescription>KI-generierte Texte – bearbeite sie nach Bedarf</CardDescription>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg"><Sparkles className="w-4 h-4 sm:w-5 sm:h-5" /> Pin-Text bearbeiten</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">KI-generierte Texte – bearbeite sie nach Bedarf</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3 sm:space-y-4">
                 <div>
-                  <Label>Pin-Titel</Label>
-                  <Input value={editTitle} onChange={e => setEditTitle(e.target.value)} placeholder="Pinterest Pin Titel" />
+                  <Label className="text-xs sm:text-sm">Pin-Titel</Label>
+                  <Input value={editTitle} onChange={e => setEditTitle(e.target.value)} placeholder="Pinterest Pin Titel" className="text-sm mt-1" />
                 </div>
                 <div>
-                  <Label>Pin-Beschreibung</Label>
-                  <Textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} placeholder="Pinterest Beschreibung (150-300 Zeichen)" maxLength={500} />
+                  <Label className="text-xs sm:text-sm">Pin-Beschreibung</Label>
+                  <Textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} placeholder="Pinterest Beschreibung (150-300 Zeichen)" maxLength={500} className="text-sm mt-1" rows={3} />
                   <p className="text-xs text-muted-foreground mt-1">{editDesc.length}/500</p>
                 </div>
                 <div>
-                  <Label>Hashtags</Label>
-                  <Input value={editHashtags} onChange={e => setEditHashtags(e.target.value)} placeholder="#vanlife #perpetualtraveler #portugal" />
+                  <Label className="text-xs sm:text-sm">Hashtags</Label>
+                  <Input value={editHashtags} onChange={e => setEditHashtags(e.target.value)} placeholder="#vanlife #perpetualtraveler #portugal" className="text-sm mt-1" />
                 </div>
                 <div>
-                  <Label>Alt-Text (SEO)</Label>
-                  <Input value={editAltText} onChange={e => setEditAltText(e.target.value)} placeholder="Beschreibung für Suchmaschinen" />
+                  <Label className="text-xs sm:text-sm">Alt-Text (SEO)</Label>
+                  <Input value={editAltText} onChange={e => setEditAltText(e.target.value)} placeholder="Beschreibung für Suchmaschinen" className="text-sm mt-1" />
                 </div>
 
                 {/* Template-spezifische Overlay-Felder */}
                 {selectedTemplate !== 'testimonial' && selectedTemplate !== 'quicktip' && (
                   <div>
-                    <Label>
+                    <Label className="text-xs sm:text-sm">
                       {selectedTemplate === 'mojobus-story' ? 'Story-Zeile (große Zeile auf dem Bild)' : 'Overlay-Text (auf dem Bild)'}
                     </Label>
                     <Input
                       value={editTextInput}
                       onChange={e => setEditTextInput(e.target.value)}
+                      className="text-sm mt-1"
                       placeholder={selectedTemplate === 'mojobus-story'
                         ? 'Kurzer, echter Satz – z.B. "Regen. Kaffee. Kein Plan."'
                         : 'Großer Text auf dem Pin (GROSSBUCHSTABEN)'}
@@ -938,12 +941,13 @@ export function PromotionDashboard() {
                 )}
                 {selectedTemplate !== 'quicktip' && (
                   <div>
-                    <Label>
+                    <Label className="text-xs sm:text-sm">
                       {selectedTemplate === 'mojobus-story' ? 'Story-Sub (zweiter Satz)' : 'Sub-Overlay (unter dem Overlay-Text)'}
                     </Label>
                     <Input
                       value={editSubInput}
                       onChange={e => setEditSubInput(e.target.value)}
+                      className="text-sm mt-1"
                       placeholder={selectedTemplate === 'mojobus-story'
                         ? 'z.B. "Drei Wochen am selben Küstenstreifen."'
                         : 'Zusatztext unter dem Haupt-Overlay'}
@@ -954,12 +958,12 @@ export function PromotionDashboard() {
                 {/* Infografik Data */}
                 {selectedTemplate === 'infographic' && (
                   <div className="space-y-2">
-                    <Label>Infografik-Daten (Icon | Label | Wert)</Label>
+                    <Label className="text-xs sm:text-sm">Infografik-Daten (Icon | Label | Wert)</Label>
                     {editInfographicData.map((d, i) => (
-                      <div key={i} className="grid grid-cols-3 gap-2">
-                        <Input value={d.icon} onChange={e => { const n = [...editInfographicData]; n[i].icon = e.target.value; setEditInfographicData(n) }} />
-                        <Input value={d.label} onChange={e => { const n = [...editInfographicData]; n[i].label = e.target.value; setEditInfographicData(n) }} />
-                        <Input value={d.value} onChange={e => { const n = [...editInfographicData]; n[i].value = e.target.value; setEditInfographicData(n) }} />
+                      <div key={i} className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2 p-2 bg-muted/30 rounded-lg sm:p-0 sm:bg-transparent sm:rounded-none">
+                        <Input value={d.icon} onChange={e => { const n = [...editInfographicData]; n[i].icon = e.target.value; setEditInfographicData(n) }} placeholder="Icon" className="text-sm" />
+                        <Input value={d.label} onChange={e => { const n = [...editInfographicData]; n[i].label = e.target.value; setEditInfographicData(n) }} placeholder="Label" className="text-sm" />
+                        <Input value={d.value} onChange={e => { const n = [...editInfographicData]; n[i].value = e.target.value; setEditInfographicData(n) }} placeholder="Wert" className="text-sm" />
                       </div>
                     ))}
                     <Button size="sm" variant="outline" onClick={() => setEditInfographicData(prev => [...prev, { icon: '📌', label: '', value: '' }])}>+ Eintrag</Button>
@@ -969,9 +973,9 @@ export function PromotionDashboard() {
                 {/* List Items */}
                 {selectedTemplate === 'listicle' && (
                   <div className="space-y-2">
-                    <Label>Liste Einträge</Label>
+                    <Label className="text-xs sm:text-sm">Liste Einträge</Label>
                     {editListItems.map((item, i) => (
-                      <Input key={i} value={item} onChange={e => { const n = [...editListItems]; n[i] = e.target.value; setEditListItems(n) }} placeholder={`Eintrag ${i + 1}`} />
+                      <Input key={i} value={item} onChange={e => { const n = [...editListItems]; n[i] = e.target.value; setEditListItems(n) }} placeholder={`Eintrag ${i + 1}`} className="text-sm" />
                     ))}
                     <Button size="sm" variant="outline" onClick={() => setEditListItems(prev => [...prev, ''])}>+ Eintrag</Button>
                   </div>
@@ -980,9 +984,9 @@ export function PromotionDashboard() {
                 {/* Steps */}
                 {selectedTemplate === 'howto' && (
                   <div className="space-y-2">
-                    <Label>Schritte</Label>
+                    <Label className="text-xs sm:text-sm">Schritte</Label>
                     {editSteps.map((s, i) => (
-                      <Input key={i} value={s} onChange={e => { const n = [...editSteps]; n[i] = e.target.value; setEditSteps(n) }} placeholder={`Schritt ${i + 1}`} />
+                      <Input key={i} value={s} onChange={e => { const n = [...editSteps]; n[i] = e.target.value; setEditSteps(n) }} placeholder={`Schritt ${i + 1}`} className="text-sm" />
                     ))}
                     <Button size="sm" variant="outline" onClick={() => setEditSteps(prev => [...prev, ''])}>+ Schritt</Button>
                   </div>
@@ -991,16 +995,16 @@ export function PromotionDashboard() {
                 {/* Quote */}
                 {selectedTemplate === 'testimonial' && (
                   <div>
-                    <Label>Zitat</Label>
-                    <Textarea value={editQuote} onChange={e => setEditQuote(e.target.value)} placeholder="Zitat aus dem Artikel" />
+                    <Label className="text-xs sm:text-sm">Zitat</Label>
+                    <Textarea value={editQuote} onChange={e => setEditQuote(e.target.value)} placeholder="Zitat aus dem Artikel" className="text-sm mt-1" rows={3} />
                   </div>
                 )}
 
                 {/* Tip */}
                 {selectedTemplate === 'quicktip' && (
                   <div>
-                    <Label>Tipp</Label>
-                    <Textarea value={editTip} onChange={e => setEditTip(e.target.value)} placeholder="Dein Tipp in 1-2 Sätzen" />
+                    <Label className="text-xs sm:text-sm">Tipp</Label>
+                    <Textarea value={editTip} onChange={e => setEditTip(e.target.value)} placeholder="Dein Tipp in 1-2 Sätzen" className="text-sm mt-1" rows={3} />
                   </div>
                 )}
 
@@ -1008,12 +1012,12 @@ export function PromotionDashboard() {
                 {selectedTemplate === 'beforeafter' && (
                   <div className="space-y-2">
                     <div>
-                      <Label>Vorher</Label>
-                      <Textarea value={editBefore} onChange={e => setEditBefore(e.target.value)} placeholder="Zustand vorher" />
+                      <Label className="text-xs sm:text-sm">Vorher</Label>
+                      <Textarea value={editBefore} onChange={e => setEditBefore(e.target.value)} placeholder="Zustand vorher" className="text-sm mt-1" rows={2} />
                     </div>
                     <div>
-                      <Label>Nachher</Label>
-                      <Textarea value={editAfter} onChange={e => setEditAfter(e.target.value)} placeholder="Zustand nachher" />
+                      <Label className="text-xs sm:text-sm">Nachher</Label>
+                      <Textarea value={editAfter} onChange={e => setEditAfter(e.target.value)} placeholder="Zustand nachher" className="text-sm mt-1" rows={2} />
                     </div>
                   </div>
                 )}
@@ -1021,9 +1025,9 @@ export function PromotionDashboard() {
                 {/* Waypoints */}
                 {selectedTemplate === 'route' && (
                   <div className="space-y-2">
-                    <Label>Wegpunkte</Label>
+                    <Label className="text-xs sm:text-sm">Wegpunkte</Label>
                     {editWaypoints.map((wp, i) => (
-                      <Input key={i} value={wp} onChange={e => { const n = [...editWaypoints]; n[i] = e.target.value; setEditWaypoints(n) }} placeholder={`Wegpunkt ${i + 1}`} />
+                      <Input key={i} value={wp} onChange={e => { const n = [...editWaypoints]; n[i] = e.target.value; setEditWaypoints(n) }} placeholder={`Wegpunkt ${i + 1}`} className="text-sm" />
                     ))}
                     <Button size="sm" variant="outline" onClick={() => setEditWaypoints(prev => [...prev, ''])}>+ Wegpunkt</Button>
                   </div>
@@ -1034,12 +1038,13 @@ export function PromotionDashboard() {
                   <div className="space-y-3 p-3 bg-primary/5 rounded-lg border border-primary/20">
                     <p className="text-xs text-muted-foreground font-medium">🚌 MojoBus Story – das Bild dominiert, Text minimal</p>
                     <div>
-                      <Label>Story-Tag (oben links, z.B. "Tag 847" oder Ort)</Label>
+                      <Label className="text-xs sm:text-sm">Story-Tag (oben links, z.B. "Tag 847" oder Ort)</Label>
                       <Input
                         value={editSteps[0] || ''}
                         onChange={e => setEditSteps([e.target.value])}
                         placeholder="mojobus.co  oder  Tag 847  oder  Sagres"
                         maxLength={22}
+                        className="text-sm mt-1"
                       />
                     </div>
                     <p className="text-xs text-muted-foreground">
@@ -1050,10 +1055,11 @@ export function PromotionDashboard() {
                 )}
 
                 <div className="flex gap-2 pt-2">
-                  <Button variant="outline" onClick={() => setStep(3)}>← Zurück</Button>
-                  <Button onClick={() => { setStep(5); renderPin() }} className="flex-1" disabled={isRendering}>
+                  <Button variant="outline" onClick={() => setStep(3)} className="shrink-0">← Zurück</Button>
+                  <Button onClick={() => { setStep(5); renderPin() }} className="flex-1" size="lg" disabled={isRendering}>
                     {isRendering ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Eye className="w-4 h-4 mr-2" />}
-                    Pin rendern & Vorschau
+                    <span className="hidden xs:inline">Pin rendern &amp; Vorschau</span>
+                    <span className="xs:hidden">Rendern</span>
                   </Button>
                 </div>
               </CardContent>
@@ -1061,16 +1067,16 @@ export function PromotionDashboard() {
 
             {/* PREVIEW */}
             <Card>
-              <CardHeader>
-                <CardTitle>Pin-Vorschau</CardTitle>
-                <CardDescription>1000×1500px (2:3 Format)</CardDescription>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base sm:text-lg">Pin-Vorschau</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">1000×1500px (2:3 Format)</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col">
                   {pinImageUrl
                     ? (
                       <div className="flex flex-col items-center gap-3">
-                        <div className="w-64 rounded-lg overflow-hidden shadow-lg border">
+                        <div className="w-48 sm:w-64 rounded-lg overflow-hidden shadow-lg border">
                           <img src={pinImageUrl} alt="Pin Vorschau" className="w-full" />
                         </div>
 
@@ -1078,13 +1084,13 @@ export function PromotionDashboard() {
                         {uploading && (
                           <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/30 px-3 py-2 rounded-lg w-full">
                             <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                            <span>Wird auf Blossom hochgeladen...</span>
+                            <span className="text-xs sm:text-sm">Wird auf Blossom hochgeladen...</span>
                           </div>
                         )}
                         {!uploading && uploadedPinUrl && (
                           <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 dark:bg-green-950/30 px-3 py-2 rounded-lg w-full">
-                            <Check className="w-4 h-4" />
-                            <span className="truncate flex-1">✅ Hochgeladen: <span className="font-mono text-xs">{uploadedPinUrl.substring(0, 40)}…</span></span>
+                            <Check className="w-4 h-4 shrink-0" />
+                            <span className="truncate flex-1 text-xs">✅ Hochgeladen: <span className="font-mono">{uploadedPinUrl.substring(0, 30)}…</span></span>
                           </div>
                         )}
                         {!uploading && !uploadedPinUrl && pinImageUrl && (
@@ -1099,15 +1105,15 @@ export function PromotionDashboard() {
                         )}
 
                         <div className="flex gap-2 w-full">
-                          <Button onClick={renderPin} variant="outline" className="flex-1" disabled={uploading}>🔄 Neu rendern</Button>
-                          <Button onClick={downloadPin} className="flex-1"><Download className="w-4 h-4 mr-1" /> Download</Button>
+                          <Button onClick={renderPin} variant="outline" className="flex-1 text-xs sm:text-sm" disabled={uploading}>🔄 Neu rendern</Button>
+                          <Button onClick={downloadPin} className="flex-1 text-xs sm:text-sm"><Download className="w-4 h-4 mr-1" /> Download</Button>
                         </div>
                       </div>
                     )
                     : (
-                      <div className="flex flex-col items-center justify-center h-64 bg-muted/20 rounded-lg">
-                        <ImageIcon className="w-12 h-12 text-muted-foreground/40 mb-2" />
-                        <p className="text-muted-foreground text-sm text-center">Klicke "Pin rendern & Vorschau"<br />um die Vorschau zu generieren</p>
+                      <div className="flex flex-col items-center justify-center h-48 sm:h-64 bg-muted/20 rounded-lg">
+                        <ImageIcon className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground/40 mb-2" />
+                        <p className="text-muted-foreground text-xs sm:text-sm text-center px-4">Klicke "Pin rendern & Vorschau"<br />um die Vorschau zu generieren</p>
                       </div>
                     )
                   }
@@ -1120,46 +1126,46 @@ export function PromotionDashboard() {
         {/* ══════ STEP 5: SPEICHERN & PINTEREST ══════ */}
         {step === 5 && (
           <Card className="max-w-2xl mx-auto">
-            <CardHeader>
-              <CardTitle>Pin fertig! 🎉</CardTitle>
-              <CardDescription>Speichern und zu Pinterest senden</CardDescription>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base sm:text-xl">Pin fertig! 🎉</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Speichern und zu Pinterest senden</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-4 sm:space-y-6">
               {/* Pin Preview */}
               {pinImageUrl && (
                 <div className="flex justify-center">
-                  <div className="w-64 rounded-lg overflow-hidden shadow-lg border">
+                  <div className="w-40 sm:w-64 rounded-lg overflow-hidden shadow-lg border">
                     <img src={pinImageUrl} alt="Pin Vorschau" className="w-full" />
                   </div>
                 </div>
               )}
 
               {/* Pin Info */}
-              <div className="space-y-3 bg-muted/30 p-4 rounded-lg">
+              <div className="space-y-2 sm:space-y-3 bg-muted/30 p-3 sm:p-4 rounded-lg">
                 <div>
-                  <p className="text-sm font-medium">Titel</p>
-                  <p className="text-sm text-muted-foreground">{editTitle}</p>
+                  <p className="text-xs sm:text-sm font-medium">Titel</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">{editTitle}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium">Beschreibung</p>
-                  <p className="text-sm text-muted-foreground">{editDesc}</p>
+                  <p className="text-xs sm:text-sm font-medium">Beschreibung</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground line-clamp-3">{editDesc}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium">Hashtags</p>
-                  <p className="text-sm text-muted-foreground">{editHashtags}</p>
+                  <p className="text-xs sm:text-sm font-medium">Hashtags</p>
+                  <p className="text-xs text-muted-foreground break-all">{editHashtags}</p>
                 </div>
                 {/* Artikel-URL Anzeige + Bearbeitung */}
                 <div>
-                  <p className="text-sm font-medium flex items-center gap-1">
+                  <p className="text-xs sm:text-sm font-medium flex items-center gap-1 flex-wrap">
                     🔗 Artikel-URL
                     {articleLink
                       ? <span className="text-xs text-green-600 font-normal">✓ gesetzt</span>
-                      : <span className="text-xs text-amber-500 font-normal">⚠ nicht gesetzt – Pin verlinkt auf nichts</span>
+                      : <span className="text-xs text-amber-500 font-normal">⚠ nicht gesetzt</span>
                     }
                   </p>
                   <div className="flex gap-2 mt-1">
                     <input
-                      className="flex-1 text-xs px-2 py-1 rounded border bg-background text-muted-foreground font-mono"
+                      className="flex-1 text-xs px-2 py-1.5 rounded border bg-background text-muted-foreground font-mono min-w-0"
                       value={articleLink}
                       onChange={e => setArticleLink(e.target.value)}
                       placeholder="https://mojobus.co/naddr1..."
@@ -1172,13 +1178,13 @@ export function PromotionDashboard() {
               {pinImageUrl && (
                 <div className="space-y-2">
                   {uploading && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/30 px-3 py-2 rounded-lg">
-                      <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                      <span>Pin-Bild wird auf Blossom hochgeladen...</span>
+                    <div className="flex items-center gap-2 text-muted-foreground bg-muted/30 px-3 py-2 rounded-lg">
+                      <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0" />
+                      <span className="text-xs">Pin-Bild wird auf Blossom hochgeladen...</span>
                     </div>
                   )}
                   {!uploading && uploadedPinUrl && (
-                    <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 dark:bg-green-950/30 px-3 py-2 rounded-lg">
+                    <div className="flex items-center gap-2 text-green-600 bg-green-50 dark:bg-green-950/30 px-3 py-2 rounded-lg">
                       <Check className="w-4 h-4 shrink-0" />
                       <span className="text-xs font-medium">Pin-Bild auf Blossom hochgeladen – Pinterest-Link nutzt dieses Bild</span>
                     </div>
@@ -1191,7 +1197,7 @@ export function PromotionDashboard() {
                       className="w-full border-dashed"
                     >
                       <CloudUpload className="w-4 h-4 mr-2" />
-                      Pin-Bild auf Blossom hochladen (für Pinterest-Link)
+                      <span className="text-xs sm:text-sm">Pin-Bild auf Blossom hochladen</span>
                     </Button>
                   )}
                 </div>
@@ -1199,7 +1205,7 @@ export function PromotionDashboard() {
 
               {/* Pinterest URL */}
               <div className="space-y-2">
-                <Label className="flex items-center gap-2">
+                <Label className="flex items-center gap-2 text-xs sm:text-sm flex-wrap">
                   Pinterest-Link
                   {uploadedPinUrl
                     ? <span className="text-xs text-green-600 font-normal">✓ Pin-Bild wird verwendet</span>
@@ -1207,20 +1213,20 @@ export function PromotionDashboard() {
                   }
                 </Label>
                 <div className="flex gap-2">
-                  <Input value={buildPinterestUrl()} readOnly className="font-mono text-xs" />
-                  <Button size="sm" onClick={copyPinterestUrl}>
+                  <Input value={buildPinterestUrl()} readOnly className="font-mono text-[10px] sm:text-xs min-w-0" />
+                  <Button size="sm" onClick={copyPinterestUrl} className="shrink-0">
                     {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                   </Button>
                 </div>
               </div>
 
               {/* Actions */}
-              <div className="flex gap-2 flex-wrap">
-                <Button onClick={openPinterest} className="flex-1 bg-[#E60023] hover:bg-[#cc0020] text-white" disabled={uploading}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <Button onClick={openPinterest} className="bg-[#E60023] hover:bg-[#cc0020] text-white" size="lg" disabled={uploading}>
                   <ExternalLink className="w-4 h-4 mr-2" />
                   {uploading ? 'Warte auf Upload...' : 'Zu Pinterest öffnen'}
                 </Button>
-                <Button onClick={downloadPin} variant="outline">
+                <Button onClick={downloadPin} variant="outline" size="lg">
                   <Download className="w-4 h-4 mr-2" /> Pin downloaden
                 </Button>
               </div>
@@ -1229,7 +1235,7 @@ export function PromotionDashboard() {
                 💾 Pin speichern
               </Button>
 
-              <Button onClick={resetForm} variant="link" className="w-full">
+              <Button onClick={resetForm} variant="link" className="w-full text-sm">
                 + Neuen Pin erstellen
               </Button>
             </CardContent>
@@ -1237,28 +1243,28 @@ export function PromotionDashboard() {
         )}
 
         {/* ══════ GESPEICHERTE PINS ══════ */}
-        <Card className="mt-8" id="saved-pins">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
+        <Card className="mt-6 sm:mt-8" id="saved-pins">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-xl">
                   💾 Gespeicherte Pins
                   {savedPins.length > 0 && (
                     <Badge variant="secondary">{savedPins.length}</Badge>
                   )}
                 </CardTitle>
-                <CardDescription>Alle bisher erstellten Pinterest Pins – vollständige Liste</CardDescription>
+                <CardDescription className="text-xs sm:text-sm">Alle bisher erstellten Pinterest Pins</CardDescription>
               </div>
               {savedPins.length > 0 && (
-                <Button variant="outline" size="sm" onClick={() => setStep(1)}>
-                  + Neuer Pin
+                <Button variant="outline" size="sm" onClick={() => setStep(1)} className="shrink-0">
+                  + Neu
                 </Button>
               )}
             </div>
           </CardHeader>
           <CardContent>
             {savedPins.length === 0 ? (
-              <div className="text-center py-10 text-muted-foreground">
+              <div className="text-center py-8 sm:py-10 text-muted-foreground">
                 <div className="text-4xl mb-3">📌</div>
                 <p className="text-sm font-medium">Noch keine Pins gespeichert</p>
                 <p className="text-xs mt-1">Erstelle deinen ersten Pin mit den Schritten oben.</p>
@@ -1266,14 +1272,14 @@ export function PromotionDashboard() {
             ) : (
               <div className="space-y-2">
                 {savedPins.map((pin, idx) => (
-                  <div key={pin.id} className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-muted/20 transition-colors group">
+                  <div key={pin.id} className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-lg border bg-card hover:bg-muted/20 transition-colors">
                     {/* Nummer */}
-                    <span className="text-xs text-muted-foreground w-5 text-right shrink-0 font-mono">
+                    <span className="text-xs text-muted-foreground w-4 text-right shrink-0 font-mono hidden sm:block">
                       {savedPins.length - idx}
                     </span>
 
                     {/* Thumbnail */}
-                    <div className="w-10 h-14 rounded overflow-hidden bg-muted shrink-0 border">
+                    <div className="w-8 h-12 sm:w-10 sm:h-14 rounded overflow-hidden bg-muted shrink-0 border">
                       {pin.imageUrl ? (
                         <img
                           src={pin.imageUrl}
@@ -1283,7 +1289,7 @@ export function PromotionDashboard() {
                           loading="lazy"
                         />
                       ) : (
-                        <div className="flex items-center justify-center h-full text-lg">
+                        <div className="flex items-center justify-center h-full text-base sm:text-lg">
                           {PIN_TEMPLATES.find(t => t.id === pin.template)?.emoji || '📌'}
                         </div>
                       )}
@@ -1291,21 +1297,16 @@ export function PromotionDashboard() {
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">
+                      <p className="font-medium text-xs sm:text-sm truncate">
                         {pin.pinData?.title || pin.articleTitle}
                       </p>
-                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                        <span className="text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                        <span className="text-[10px] sm:text-xs text-muted-foreground">
                           {new Date(pin.createdAt).toLocaleDateString('de-DE')}
                         </span>
                         {pin.template && (
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-[10px] sm:text-xs text-muted-foreground hidden sm:inline">
                             {PIN_TEMPLATES.find(t => t.id === pin.template)?.emoji} {PIN_TEMPLATES.find(t => t.id === pin.template)?.name}
-                          </span>
-                        )}
-                        {pin.articleTitle && pin.pinData?.title && pin.articleTitle !== pin.pinData?.title && (
-                          <span className="text-xs text-muted-foreground/60 truncate max-w-[180px]">
-                            aus: {pin.articleTitle}
                           </span>
                         )}
                       </div>
@@ -1314,22 +1315,22 @@ export function PromotionDashboard() {
                     {/* Status Badge */}
                     <Badge
                       variant={pin.status === 'posted' ? 'default' : pin.status === 'ready' ? 'secondary' : 'outline'}
-                      className="shrink-0"
+                      className="shrink-0 text-[10px] sm:text-xs px-1.5 sm:px-2"
                     >
-                      {pin.status === 'posted' ? '✓ Gepostet' : pin.status === 'ready' ? 'Bereit' : 'Entwurf'}
+                      {pin.status === 'posted' ? '✓' : pin.status === 'ready' ? 'Bereit' : 'Entwurf'}
                     </Badge>
 
                     {/* Aktionen */}
-                    <div className="flex items-center gap-1 shrink-0">
+                    <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
                       {pin.pinterestUrl && (
                         <Button
                           size="sm"
                           variant="ghost"
                           onClick={() => window.open(pin.pinterestUrl, '_blank')}
                           title="Zu Pinterest"
-                          className="opacity-60 group-hover:opacity-100"
+                          className="h-8 w-8 p-0"
                         >
-                          <ExternalLink className="w-4 h-4" />
+                          <ExternalLink className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </Button>
                       )}
                       <Button
@@ -1337,9 +1338,9 @@ export function PromotionDashboard() {
                         variant="ghost"
                         onClick={() => deletePin(pin.id)}
                         title="Pin löschen"
-                        className="opacity-40 group-hover:opacity-100 hover:text-destructive"
+                        className="h-8 w-8 p-0 hover:text-destructive"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       </Button>
                     </div>
                   </div>
@@ -1473,23 +1474,23 @@ function PinboardSuggestions({
   copyField: (text: string, key: string) => void
 }) {
   return (
-    <div className="mb-6">
+    <div className="mb-4 sm:mb-6">
       <button
         onClick={() => setShowPinboards(!showPinboards)}
-        className="w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50 transition-all group"
+        className="w-full flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50 transition-all group"
       >
-        <div className="flex items-center gap-3">
-          <LayoutList className="w-5 h-5 text-primary" />
-          <div className="text-left">
-            <p className="font-semibold text-sm">📌 10 Pinwand-Empfehlungen für maximalen Traffic</p>
-            <p className="text-xs text-muted-foreground">Name · Beschreibung · Keywords – alles kopierbar</p>
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <LayoutList className="w-4 h-4 sm:w-5 sm:h-5 text-primary shrink-0" />
+          <div className="text-left min-w-0">
+            <p className="font-semibold text-xs sm:text-sm leading-tight">📌 10 Pinwand-Empfehlungen</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Name · Beschreibung · Keywords – alles kopierbar</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <TrendingUp className="w-4 h-4 text-primary/60" />
+        <div className="flex items-center gap-1 sm:gap-2 text-muted-foreground shrink-0">
+          <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary/60" />
           {showPinboards
-            ? <ChevronUp className="w-5 h-5 group-hover:text-primary transition-colors" />
-            : <ChevronDown className="w-5 h-5 group-hover:text-primary transition-colors" />}
+            ? <ChevronUp className="w-4 h-4 sm:w-5 sm:h-5 group-hover:text-primary transition-colors" />
+            : <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5 group-hover:text-primary transition-colors" />}
         </div>
       </button>
 

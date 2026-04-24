@@ -1060,10 +1060,14 @@ async function runSlideshowJob(jobId, params) {
       '-c:v', 'libx264',
       '-preset', 'fast',
       '-crf', '23',
+      '-pix_fmt', 'yuv420p',       // Pflicht für iOS/Android/Primal/Amethyst Kompatibilität
+      '-profile:v', 'baseline',    // Maximale Kompatibilität (kein High-Profile)
+      '-level', '3.1',             // Breite Geräte-Kompatibilität
       '-r', String(fps),
       '-c:a', 'aac',
       '-b:a', musicPath ? '192k' : '64k',
-      '-movflags', '+faststart',
+      '-ar', '44100',              // Explizite Sample-Rate für alle Player
+      '-movflags', '+faststart',   // MOOV-Atom vorne → sofortiges Streaming
       '-t', String(totalDuration),
       outputPath
     ]
