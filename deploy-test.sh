@@ -190,6 +190,14 @@ build_project() {
 deploy_files() {
     info_msg "Deploye Files nach $DEPLOY_DIR..."
 
+    # ── server/node_modules sichern (Remotion = ~1GB, nicht jedes Mal neu!) ──
+    NODE_MODULES_BACKUP=""
+    if [ -d "$DEPLOY_DIR/server/node_modules" ]; then
+        NODE_MODULES_BACKUP="$(mktemp -d)"
+        mv "$DEPLOY_DIR/server/node_modules" "$NODE_MODULES_BACKUP/node_modules"
+        info_msg "✓ server/node_modules gesichert"
+    fi
+
     # Zielverzeichnis leeren
     rm -rf "$DEPLOY_DIR"/*
 
@@ -205,11 +213,34 @@ deploy_files() {
         cp -r "$PROJECT_DIR/server" "$DEPLOY_DIR/" || error_exit "Kopieren des server/ Verzeichnisses fehlgeschlagen"
         info_msg "✓ server/ Verzeichnis deployed"
 
-        # Server Dependencies installieren
+        # ── node_modules wiederherstellen ─────────────────────────────────────
+        if [ -n "$NODE_MODULES_BACKUP" ] && [ -d "$NODE_MODULES_BACKUP/node_modules" ]; then
+            mv "$NODE_MODULES_BACKUP/node_modules" "$DEPLOY_DIR/server/node_modules"
+            rm -rf "$NODE_MODULES_BACKUP"
+            info_msg "✓ server/node_modules wiederhergestellt"
+        fi
+
+        # Server Dependencies installieren (nur neue/geänderte Packages)
         if [ -f "$DEPLOY_DIR/server/package.json" ]; then
-            info_msg "Installiere Server Dependencies..."
+            info_msg "Installiere/Aktualisiere Server Dependencies..."
             npm install --prefix "$DEPLOY_DIR/server" --silent || warn_msg "npm install für Server fehlgeschlagen"
-            success_msg "Server Dependencies installiert"
+            success_msg "Server Dependencies aktualisiert"
+
+            # ── Remotion prüfen und automatisch installieren ──────────────────
+            REMOTION_CHECK="$DEPLOY_DIR/server/node_modules/@remotion/renderer/package.json"
+            if [ ! -f "$REMOTION_CHECK" ]; then
+                info_msg "Remotion nicht gefunden — führe einmaligen Setup aus (dauert 2-3 Min)..."
+                if [ -f "$DEPLOY_DIR/server/remotion-install.sh" ]; then
+                    bash "$DEPLOY_DIR/server/remotion-install.sh" >> "$LOG_FILE" 2>&1 \
+                        && success_msg "✓ Remotion automatisch installiert" \
+                        || warn_msg "⚠ Remotion-Setup fehlgeschlagen — manuell: bash $DEPLOY_DIR/server/remotion-install.sh"
+                else
+                    warn_msg "remotion-install.sh nicht gefunden — Remotion manuell installieren!"
+                fi
+            else
+                REMOTION_VER=$(node -e "try{console.log(require('$REMOTION_CHECK').version)}catch(e){console.log('?')}" 2>/dev/null)
+                success_msg "✓ Remotion v$REMOTION_VER — keine Neuinstallation nötig"
+            fi
         fi
     fi
 

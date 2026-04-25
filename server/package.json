@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "start:dev": "node --watch server.js",
-    "install:remotion": "npm install @remotion/renderer @remotion/bundler remotion react react-dom @types/react @types/react-dom"
+    "setup": "node setup-remotion.js"
   },
   "engines": {
     "node": ">=18.0.0"
