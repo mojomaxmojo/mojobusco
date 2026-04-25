@@ -55,7 +55,7 @@ async function getBundledEntry() {
   const start = Date.now();
 
   try {
-    const entryPoint = path.join(__dirname, 'index.ts');
+    const entryPoint = path.join(__dirname, 'index.tsx');
     const bundled = await bundle({
       entryPoint,
       // Webpack Override: keine Änderungen nötig
