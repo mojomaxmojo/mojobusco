@@ -2417,6 +2417,22 @@ app.get('/api/render-remotion/check', async (req, res) => {
   }
 })
 
+// ── Bundle-Cache invalidieren (nach Code-Änderungen) ───────────────────
+// POST /api/render-remotion/invalidate-bundle
+app.post('/api/render-remotion/invalidate-bundle', async (req, res) => {
+  try {
+    const renderer = await getRemotionRenderer()
+    if (renderer && renderer.invalidateBundleCache) {
+      renderer.invalidateBundleCache()
+      res.json({ ok: true, message: 'Bundle-Cache geleert — nächster Render bundelt neu' })
+    } else {
+      res.json({ ok: true, message: 'Bundle-Cache Funktion nicht verfügbar, starte Server neu' })
+    }
+  } catch (err) {
+    res.json({ ok: false, error: err.message })
+  }
+})
+
 app.listen(PORT, () => {
   console.log(`[Server] Backend läuft auf Port ${PORT}`)
   console.log(`[Server] GROQ_API_KEY: ${process.env.GROQ_API_KEY ? '✓ Konfiguriert' : '✗ Fehlt!'}`)

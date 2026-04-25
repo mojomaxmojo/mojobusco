@@ -1,9 +1,10 @@
 /**
- * Remotion Root — Registriert alle Compositions
- * Dieser File wird von Remotion Studio + renderMedia() verwendet
+ * Remotion Root — Entry Point
+ * Muss registerRoot() aufrufen — das ist Pflicht für @remotion/bundler.
  */
 
-import { Composition } from 'remotion';
+import React from 'react';
+import { Composition, registerRoot } from 'remotion';
 import { MojoBusVideo, calculateDuration, type MojoBusVideoProps } from './MojoBusVideo';
 
 // Standard-Props für Studio-Preview
@@ -23,11 +24,13 @@ const DEFAULT_PROPS: MojoBusVideoProps = {
   secondsPerImage: 5,
   aspectRatio: '16:9',
   accentColor: '#F59E0B',
+  captionStyle: 'tiktok',
+  motionBlurStrength: 1,
 };
 
 const FPS = 30;
 
-export const RemotionRoot: React.FC = () => {
+const RemotionRoot: React.FC = () => {
   return (
     <>
       {/* 16:9 — YouTube / Standard */}
@@ -101,3 +104,6 @@ export const RemotionRoot: React.FC = () => {
     </>
   );
 };
+
+// ✅ Pflicht: registerRoot() muss im Entry-Point aufgerufen werden
+registerRoot(RemotionRoot);

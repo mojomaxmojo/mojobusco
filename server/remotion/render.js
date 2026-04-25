@@ -58,8 +58,10 @@ async function getBundledEntry() {
     const entryPoint = path.join(__dirname, 'index.ts');
     const bundled = await bundle({
       entryPoint,
-      // Webpack Override für esbuild-Optimierung
+      // Webpack Override: keine Änderungen nötig
       webpackOverride: (config) => config,
+      // Wichtig: ignoriere registerRoot-Warning NICHT — wir haben es jetzt korrekt
+      // ignoreRegisterRootWarning: false  ← default, nicht setzen
     });
 
     bundleCache = bundled;
@@ -210,6 +212,17 @@ export async function renderMojoBusVideo(params) {
     fps: composition.fps,
     videoDurationSec: (composition.durationInFrames / composition.fps).toFixed(1),
   };
+}
+
+/**
+ * Bundle-Cache invalidieren — erzwingt Neu-Bundling beim nächsten Render.
+ * Nötig nach Code-Änderungen an Remotion-Komponenten.
+ */
+export function invalidateBundleCache() {
+  bundleCache = null;
+  isBundling = false;
+  bundleQueue = [];
+  console.log('[Remotion] Bundle-Cache invalidiert — nächster Render bundelt neu');
 }
 
 /**
