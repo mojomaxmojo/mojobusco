@@ -8,6 +8,7 @@ import { AUTHORS } from '@/config/nostr';
 import { Mail, Globe, Zap, Key, Sun, Compass } from 'lucide-react';
 import { getValidAuthors } from '@/lib/authors';
 import { useHead } from '@unhead/react';
+import { getZeitUnterwegsFormatiert } from '@/config/zeitwohnmobil';
 
 export function About() {
   // SEO Meta Tags
@@ -40,7 +41,7 @@ export function About() {
           <div className="text-center space-y-4">
             <h1 className="text-4xl md:text-6xl font-bold"><span className="gradient-text">Zuhause. Überall zuhause.</span></h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Seit Jahren kein fester Wohnsitz. Dafür unzählige Sonnenuntergänge, echte Begegnungen und eine Freiheit, die man nicht kaufen kann – nur leben.
+              Seit <span className="font-semibold text-foreground">{getZeitUnterwegsFormatiert()}</span> kein fester Wohnsitz. Dafür unzählige Sonnenuntergänge, echte Begegnungen und eine Freiheit, die man nicht kaufen kann – nur leben.
             </p>
           </div>
         </div>
