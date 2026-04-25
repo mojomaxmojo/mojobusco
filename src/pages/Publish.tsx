@@ -3965,11 +3965,13 @@ Beschreibe hier den Ort, was macht ihn besonders...
           )}
         </div>
 
-        {/* Slideshow */}
-        <SlideshowBlock
+        {/* Video Generator — Remotion */}
+        <RemotionVideoBlock
           imageUrls={[...(image ? [image] : []), ...additionalImages]}
-          lifestyle="vanlife"
+          lifestyle={lifestyle}
           title={name || 'ort'}
+          location={location}
+          country={selectedCountry}
         />
 
         <Button onClick={handleSubmit} className="w-full" disabled={!name.trim()}>
