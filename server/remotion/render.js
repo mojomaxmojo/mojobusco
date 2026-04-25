@@ -188,7 +188,10 @@ async function getBundledEntry() {
  * Lädt eine einzelne URL herunter und speichert sie als Datei.
  * Retry-Logik: 3 Versuche mit exponentiellem Backoff.
  */
-function downloadFile(url, destPath, attempt = 1) {
+/**
+ * Lädt eine Datei herunter und gibt Pfad + Content-Type zurück.
+ */
+function downloadFileWithType(url, destPath, attempt = 1) {
   return new Promise((resolve, reject) => {
     const protocol = url.startsWith('https') ? https : http;
 
@@ -196,21 +199,27 @@ function downloadFile(url, destPath, attempt = 1) {
       timeout: 30000,
       headers: {
         'User-Agent': 'MojoBus-Remotion-Renderer/1.0',
-        'Accept': 'image/*,*/*',
+        'Accept': 'image/webp,image/jpeg,image/png,image/*,*/*',
       },
     }, (response) => {
-      // Redirect folgen
-      if (response.statusCode === 301 || response.statusCode === 302) {
+      // Redirects folgen (bis zu 5)
+      if ([301, 302, 303, 307, 308].includes(response.statusCode)) {
         const redirectUrl = response.headers.location;
-        if (!redirectUrl) return reject(new Error(`Redirect ohne Location-Header: ${url}`));
-        console.log(`[Remotion] Redirect: ${url} → ${redirectUrl}`);
-        return downloadFile(redirectUrl, destPath, attempt).then(resolve).catch(reject);
+        if (!redirectUrl) return reject(new Error(`Redirect ohne Location: ${url}`));
+        // Relative Redirects auflösen
+        const absoluteRedirect = redirectUrl.startsWith('http')
+          ? redirectUrl
+          : new URL(redirectUrl, url).toString();
+        return downloadFileWithType(absoluteRedirect, destPath, attempt)
+          .then(resolve).catch(reject);
       }
 
       if (response.statusCode !== 200) {
-        return reject(new Error(`HTTP ${response.statusCode} für: ${url}`));
+        response.resume(); // Response-Body verwerfen
+        return reject(new Error(`HTTP ${response.statusCode}: ${url}`));
       }
 
+      const contentType = response.headers['content-type'] || '';
       const file = fs.createWriteStream(destPath);
       response.pipe(file);
 
@@ -218,15 +227,15 @@ function downloadFile(url, destPath, attempt = 1) {
         file.close(() => {
           const size = fs.statSync(destPath).size;
           if (size < 100) {
-            fs.unlinkSync(destPath);
-            return reject(new Error(`Datei zu klein (${size} bytes): ${url}`));
+            try { fs.unlinkSync(destPath); } catch (e) {}
+            return reject(new Error(`Datei zu klein (${size}B): ${url}`));
           }
-          resolve(destPath);
+          resolve({ filePath: destPath, contentType });
         });
       });
 
       file.on('error', (err) => {
-        fs.unlink(destPath, () => {});
+        try { fs.unlinkSync(destPath); } catch (e) {}
         reject(err);
       });
     });
@@ -234,17 +243,49 @@ function downloadFile(url, destPath, attempt = 1) {
     request.on('error', reject);
     request.on('timeout', () => {
       request.destroy();
-      reject(new Error(`Timeout beim Download: ${url}`));
+      reject(new Error(`Timeout: ${url}`));
     });
   }).catch(async (err) => {
     if (attempt < 3) {
-      const delay = attempt * 2000; // 2s, 4s
-      console.warn(`[Remotion] Download-Versuch ${attempt} fehlgeschlagen, retry in ${delay}ms: ${url}`);
+      const delay = attempt * 2000;
+      console.warn(`[Remotion] Retry ${attempt}/3: ${url.slice(-50)} — ${err.message}`);
       await new Promise(r => setTimeout(r, delay));
-      return downloadFile(url, destPath, attempt + 1);
+      return downloadFileWithType(url, destPath, attempt + 1);
     }
-    throw new Error(`Download fehlgeschlagen nach 3 Versuchen: ${url} — ${err.message}`);
+    throw new Error(`Download fehlgeschlagen (3 Versuche): ${err.message} — ${url}`);
   });
+}
+
+/**
+ * Ermittelt die korrekte Dateiendung aus einer URL oder einem Content-Type Header.
+ * Blossom-URLs haben oft keinen Punkt vor der Extension oder Hash-basierte Namen.
+ */
+function getImageExtension(url, contentType) {
+  // 1. Aus Content-Type Header (zuverlässigste Methode)
+  if (contentType) {
+    const ct = contentType.toLowerCase().split(';')[0].trim();
+    const ctMap = {
+      'image/jpeg': '.jpg',
+      'image/jpg': '.jpg',
+      'image/png': '.png',
+      'image/webp': '.webp',
+      'image/gif': '.gif',
+      'image/avif': '.avif',
+      'image/heic': '.jpg', // HEIC als JPEG speichern
+      'image/tiff': '.jpg', // TIFF als JPEG speichern
+    };
+    if (ctMap[ct]) return ctMap[ct];
+  }
+
+  // 2. Aus URL-Pfad — mit korrektem Regex der den Punkt einschließt
+  const urlPath = url.split('?')[0].split('#')[0];
+  const extMatch = urlPath.match(/\.(jpe?g|jpg|png|webp|gif|avif)$/i);
+  if (extMatch) {
+    return '.' + extMatch[1].toLowerCase().replace('jpeg', 'jpg');
+  }
+
+  // 3. Fallback: immer .jpg (JPEG ist universell kompatibel)
+  return '.jpg';
 }
 
 /**
@@ -260,17 +301,28 @@ async function downloadAllImages(imageUrls, sessionId) {
 
   const results = await Promise.allSettled(
     imageUrls.map(async (url, i) => {
-      // Dateiendung aus URL extrahieren
-      const ext = (url.split('?')[0].match(/\.(jpe?g|png|webp|gif)$/i) || ['', '.jpg'])[1];
-      const filename = `img-${String(i).padStart(3, '0')}${ext || '.jpg'}`;
-      const destPath = path.join(sessionDir, filename);
+      // Vorläufiger Pfad ohne Extension — wird nach Download mit Content-Type korrigiert
+      const tempPath = path.join(sessionDir, `img-${String(i).padStart(3, '0')}.tmp`);
+      let destPath = path.join(sessionDir, `img-${String(i).padStart(3, '0')}.jpg`); // Fallback
 
-      // Bereits gecacht?
-      if (fs.existsSync(destPath) && fs.statSync(destPath).size > 100) {
-        return destPath;
+      // Bereits gecacht? (prüfe alle möglichen Extensions)
+      for (const ext of ['.jpg', '.jpeg', '.png', '.webp', '.gif']) {
+        const cached = path.join(sessionDir, `img-${String(i).padStart(3, '0')}${ext}`);
+        if (fs.existsSync(cached) && fs.statSync(cached).size > 100) {
+          return cached;
+        }
       }
 
-      await downloadFile(url, destPath);
+      // Download mit Content-Type Erkennung
+      const { filePath: downloaded, contentType } = await downloadFileWithType(url, tempPath);
+
+      // Korrekte Extension bestimmen
+      const ext = getImageExtension(url, contentType);
+      destPath = path.join(sessionDir, `img-${String(i).padStart(3, '0')}${ext}`);
+
+      // temp → finale Datei umbenennen
+      fs.renameSync(downloaded, destPath);
+      console.log(`[Remotion] Bild ${i + 1}: ${ext} (${(fs.statSync(destPath).size / 1024).toFixed(0)}KB) — ${url.slice(-40)}`);
       return destPath;
     })
   );
