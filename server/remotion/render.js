@@ -28,6 +28,12 @@ for (const dir of [OUTPUT_DIR, IMAGES_DIR]) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
 
+const COMPOSITION_IDS = {
+  '16:9': 'MojoBusVideo-16-9',
+  '9:16': 'MojoBusVideo-9-16',
+  '1:1':  'MojoBusVideo-1-1',
+};
+
 // ── Chrome finden + Rechte setzen ────────────────────────────────────────
 
 function findAndFixChrome() {
