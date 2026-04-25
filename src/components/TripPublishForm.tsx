@@ -12,7 +12,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import exifr from 'exifr';
-import { SlideshowBlock } from '@/components/SlideshowBlock';
+import { RemotionVideoBlock } from '@/components/RemotionVideoBlock';
 import { TeaserPreviewBox, type TeaserPreviewData } from '@/components/TeaserPreviewBox';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -2129,28 +2129,33 @@ export function TripPublishForm() {
         </CardContent>
       </Card>
 
-      {/* Slideshow – nur mit echten Blossom-URLs (keine base64/blob previews!) */}
+      {/* Video Generator — Remotion (nur mit echten Blossom-URLs) */}
       {(() => {
         const blossomUrls = stations.map(s => s.uploadedUrl).filter((u): u is string => !!u && u.startsWith('http'));
         const notUploaded = stations.filter(s => s.file && !s.uploadedUrl).length;
+        const firstLocation = stations.find(s => s.location)?.location;
+        const firstCountry = stations.find(s => s.gps)?.location?.split(',')?.pop()?.trim();
         if (notUploaded > 0) {
           return (
             <div className="p-4 border rounded-lg bg-muted/30 text-sm text-muted-foreground text-center space-y-1">
-              <p className="font-medium">🎞️ Slideshow</p>
-              <p>⚠️ Erst Bilder zu Blossom hochladen, dann Slideshow generieren.</p>
+              <p className="font-medium">🎬 Remotion Video</p>
+              <p>⚠️ Erst Bilder zu Blossom hochladen, dann Video generieren.</p>
               <p className="text-xs">({notUploaded} Bild{notUploaded !== 1 ? 'er' : ''} noch nicht hochgeladen – klicke "Trip veröffentlichen")</p>
             </div>
           );
         }
         return (
-          <SlideshowBlock
+          <RemotionVideoBlock
             imageUrls={blossomUrls}
             lifestyle={lifestyle}
             title={tripData.title || 'trip'}
+            summary={tripData.summary}
+            location={firstLocation}
+            country={firstCountry || tripData.country}
             onVideoReady={(url) => {
               setSlideshowVideoUrl(url);
               toast({
-                title: '🎞️ Slideshow gespeichert',
+                title: '🎬 Remotion Video gespeichert',
                 description: 'Video wird beim Veröffentlichen automatisch eingebunden.',
               });
             }}

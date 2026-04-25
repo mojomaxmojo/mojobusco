@@ -20,9 +20,41 @@ const TMP_DIR   = path.join(os.tmpdir(), 'slideshow')
 // Temp-Ordner beim Start anlegen
 if (!fs.existsSync(TMP_DIR)) fs.mkdirSync(TMP_DIR, { recursive: true })
 
-// In-Memory Job-Store für Slideshow-Jobs
+// In-Memory Job-Store für Slideshow-Jobs (FFmpeg Legacy)
 const slideshowJobs = new Map()
 // { jobId: { status, progress, videoUrl, error, created } }
+
+// ── Remotion Render-Engine (lazy import) ──────────────────────────────────
+// Wird erst beim ersten /api/render-remotion Request geladen
+let remotionRenderer = null
+async function getRemotionRenderer() {
+  if (!remotionRenderer) {
+    try {
+      remotionRenderer = await import('./remotion/render.js')
+      console.log('[Remotion] Render-Engine geladen ✓')
+    } catch (err) {
+      console.error('[Remotion] Render-Engine konnte nicht geladen werden:', err.message)
+      console.error('[Remotion] Bitte npm install im server/ Ordner ausführen')
+      throw new Error('Remotion nicht installiert. Bitte VPS-Setup Guide befolgen.')
+    }
+  }
+  return remotionRenderer
+}
+
+// In-Memory Job-Store für Remotion-Jobs
+const remotionJobs = new Map()
+// { jobId: { status, progress, outputPath, fileSizeMB, videoDurationSec, error, created } }
+
+// Cleanup alter Jobs alle 30 Minuten
+setInterval(() => {
+  const now = Date.now()
+  const maxAge = 60 * 60 * 1000 // 1 Stunde
+  for (const [jobId, job] of remotionJobs) {
+    if (now - job.created > maxAge) {
+      remotionJobs.delete(jobId)
+    }
+  }
+}, 30 * 60 * 1000)
 
 // ===== PROMPTS AUS src/config/prompts/ IMPORTIEREN =====
 // Alle Prompts sind zentral in src/config/prompts/ definiert
@@ -2135,6 +2167,255 @@ app.post('/api/bot-cache/clear', (req, res) => {
 // ── Pinterest Promotion API ────────────────────────────────
 // Alle Routen: /api/promotion/*
 app.use(promotionRouter)
+
+// ============================================================
+// REMOTION VIDEO GENERATOR — Ersetzt FFmpeg Slideshow
+// POST /api/render-remotion
+// Body: {
+//   imageUrls: string[],       // Blossom URLs
+//   title: string,
+//   summary?: string,
+//   location?: string,
+//   country?: string,
+//   lifestyle?: string,
+//   musicUrl?: string,         // URL zu einer Musik-Datei
+//   secondsPerImage?: number,  // 3-8, default: 5
+//   aspectRatio?: '16:9'|'9:16'|'1:1',
+//   colorGrade?: string,       // 'golden'|'warm'|'moody'|'blue'|'teal-orange'|'vintage'
+//   filmGrain?: string,        // 'none'|'fine'|'medium'|'coarse'
+//   captions?: string[],       // Captions pro Bild
+//   accentColor?: string,      // Hex-Farbe z.B. '#F59E0B'
+// }
+// Returns: { jobId: string }
+// ============================================================
+app.post('/api/render-remotion', async (req, res) => {
+  const {
+    imageUrls,
+    title = 'MojoBus Video',
+    summary,
+    location,
+    country,
+    lifestyle = 'mojobus',
+    musicUrl,
+    secondsPerImage = 5,
+    aspectRatio = '16:9',
+    colorGrade,
+    filmGrain = 'fine',
+    captions = [],
+    captionStyle = 'tiktok',
+    websiteUrl = 'mojobus.co',
+    handle = '@mojobus',
+    accentColor = '#F59E0B',
+    motionBlurStrength = 1,
+  } = req.body
+
+  // Validierung
+  if (!imageUrls || !Array.isArray(imageUrls) || imageUrls.length === 0) {
+    return res.status(400).json({ error: 'imageUrls ist erforderlich (Array von Blossom-URLs)' })
+  }
+  if (imageUrls.length > 25) {
+    return res.status(400).json({ error: 'Maximal 25 Bilder pro Video erlaubt' })
+  }
+
+  // Sekunden validieren
+  const spi = Math.min(10, Math.max(3, parseFloat(String(secondsPerImage)) || 5))
+
+  // Job erstellen
+  const jobId = crypto.randomBytes(10).toString('hex')
+  remotionJobs.set(jobId, {
+    status: 'queued',
+    progress: 0,
+    outputPath: null,
+    fileSizeMB: null,
+    videoDurationSec: null,
+    error: null,
+    created: Date.now(),
+  })
+
+  console.log(`[Remotion] Job ${jobId} erstellt: ${imageUrls.length} Bilder, ${aspectRatio}, ${lifestyle}`)
+  res.json({ jobId, imageCount: imageUrls.length, aspectRatio })
+
+  // Async rendern (non-blocking)
+  ;(async () => {
+    const job = remotionJobs.get(jobId)
+    if (!job) return
+
+    job.status = 'rendering'
+    job.progress = 1
+
+    try {
+      const renderer = await getRemotionRenderer()
+
+      // Musik-URL: entweder übergeben oder aus lokalem music/-Ordner
+      let resolvedMusicUrl = musicUrl
+      if (!resolvedMusicUrl) {
+        // Zufälligen lokalen Track suchen
+        try {
+          const musicFiles = fs.readdirSync(MUSIC_DIR).filter(f =>
+            ['.mp3', '.m4a', '.ogg', '.wav'].includes(path.extname(f).toLowerCase())
+          )
+          if (musicFiles.length > 0) {
+            const randomTrack = musicFiles[Math.floor(Math.random() * musicFiles.length)]
+            // File-URL für Remotion (muss HTTP-URL sein, nicht Dateipfad)
+            // → wird als statisches Asset über /api/music/ bereitgestellt
+            resolvedMusicUrl = `http://localhost:${PORT}/api/music/${encodeURIComponent(randomTrack)}`
+          }
+        } catch (e) {
+          // Kein Musik-Ordner → kein Musik
+        }
+      }
+
+      const result = await renderer.renderMojoBusVideo({
+        imageUrls,
+        title,
+        summary,
+        location,
+        country,
+        lifestyle,
+        musicUrl: resolvedMusicUrl,
+        secondsPerImage: spi,
+        aspectRatio,
+        colorGrade,
+        filmGrain,
+        captions,
+        captionStyle,
+        websiteUrl,
+        handle,
+        accentColor,
+        motionBlurStrength: parseFloat(String(motionBlurStrength)) || 1,
+        onProgress: (percent) => {
+          const j = remotionJobs.get(jobId)
+          if (j) j.progress = Math.max(j.progress, percent)
+        },
+      })
+
+      job.status = 'completed'
+      job.progress = 100
+      job.outputPath = result.outputPath
+      job.fileSizeMB = result.fileSizeMB
+      job.videoDurationSec = result.videoDurationSec
+      job.frames = result.frames
+
+      console.log(`[Remotion] Job ${jobId} ✓ fertig: ${result.fileSizeMB}MB, ${result.videoDurationSec}s`)
+
+    } catch (err) {
+      const j = remotionJobs.get(jobId)
+      if (j) {
+        j.status = 'failed'
+        j.error = err.message || 'Unbekannter Fehler'
+      }
+      console.error(`[Remotion] Job ${jobId} ✗ Fehler:`, err.message)
+    }
+  })()
+})
+
+// GET /api/render-remotion/status/:jobId — Polling-Endpunkt
+app.get('/api/render-remotion/status/:jobId', (req, res) => {
+  const { jobId } = req.params
+  const job = remotionJobs.get(jobId)
+
+  if (!job) {
+    return res.status(404).json({ error: 'Job nicht gefunden' })
+  }
+
+  res.json({
+    status: job.status,
+    progress: job.progress,
+    fileSizeMB: job.fileSizeMB,
+    videoDurationSec: job.videoDurationSec,
+    error: job.error,
+  })
+})
+
+// GET /api/render-remotion/download/:jobId — Video als Stream ausliefern
+// (Frontend lädt Video, uploaded zu Blossom, dann löschen)
+app.get('/api/render-remotion/download/:jobId', (req, res) => {
+  const { jobId } = req.params
+  const job = remotionJobs.get(jobId)
+
+  if (!job) return res.status(404).json({ error: 'Job nicht gefunden' })
+  if (job.status !== 'completed') return res.status(400).json({ error: `Job nicht fertig: ${job.status}` })
+  if (!job.outputPath || !fs.existsSync(job.outputPath)) {
+    return res.status(404).json({ error: 'Video-Datei nicht gefunden' })
+  }
+
+  const stat = fs.statSync(job.outputPath)
+  res.setHeader('Content-Type', 'video/mp4')
+  res.setHeader('Content-Length', stat.size)
+  res.setHeader('Content-Disposition', `attachment; filename="mojobus-video-${jobId}.mp4"`)
+
+  const stream = fs.createReadStream(job.outputPath)
+  stream.pipe(res)
+
+  stream.on('end', () => {
+    // Nach Download aufräumen (async, nach 30 Sek damit Re-Downloads möglich)
+    setTimeout(() => {
+      try {
+        if (fs.existsSync(job.outputPath)) {
+          fs.unlinkSync(job.outputPath)
+          console.log(`[Remotion] Cleanup: ${job.outputPath}`)
+        }
+      } catch (e) { /* ignorieren */ }
+    }, 30000)
+  })
+})
+
+// ── Musik-Dateien für Remotion als HTTP-Assets bereitstellen ────────────
+// Remotion braucht HTTP-URLs für Audio (keine Dateipfade)
+app.get('/api/music/:filename', (req, res) => {
+  const filename = decodeURIComponent(req.params.filename)
+  // Sicherheit: nur Dateinamen ohne Pfad-Traversal erlauben
+  const safeName = path.basename(filename)
+  const filePath = path.join(MUSIC_DIR, safeName)
+
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: 'Musik-Datei nicht gefunden' })
+  }
+
+  const ext = path.extname(safeName).toLowerCase()
+  const mimeTypes = { '.mp3': 'audio/mpeg', '.m4a': 'audio/mp4', '.ogg': 'audio/ogg', '.wav': 'audio/wav' }
+  res.setHeader('Content-Type', mimeTypes[ext] || 'audio/mpeg')
+  res.setHeader('Cache-Control', 'public, max-age=3600')
+  fs.createReadStream(filePath).pipe(res)
+})
+
+// ── Remotion Status-Check (ist Remotion installiert?) ───────────────────
+app.get('/api/render-remotion/check', async (req, res) => {
+  try {
+    await getRemotionRenderer()
+    
+    // FFmpeg prüfen
+    let ffmpegVersion = 'unbekannt'
+    try {
+      const result = await execFileAsync(FFMPEG, ['-version'])
+      const match = (result.stdout || result.stderr || '').match(/ffmpeg version ([^\s]+)/)
+      if (match) ffmpegVersion = match[1]
+    } catch (e) { ffmpegVersion = 'Fehler: ' + e.message }
+
+    // Musik prüfen
+    let musicFiles = []
+    try {
+      musicFiles = fs.readdirSync(MUSIC_DIR).filter(f =>
+        ['.mp3', '.m4a', '.ogg', '.wav'].includes(path.extname(f).toLowerCase())
+      )
+    } catch (e) { /* kein Musik-Ordner */ }
+
+    res.json({
+      remotion: 'installed',
+      ffmpeg: ffmpegVersion,
+      ffmpegPath: FFMPEG,
+      musicFiles: musicFiles.length,
+      musicDir: MUSIC_DIR,
+      activeJobs: [...remotionJobs.values()].filter(j => j.status === 'rendering').length,
+    })
+  } catch (err) {
+    res.json({
+      remotion: 'not-installed',
+      error: err.message,
+      installCommand: 'cd server && npm install @remotion/renderer @remotion/bundler remotion',
+    })
+  }
+})
 
 app.listen(PORT, () => {
   console.log(`[Server] Backend läuft auf Port ${PORT}`)

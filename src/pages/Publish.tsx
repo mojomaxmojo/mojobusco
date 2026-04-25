@@ -31,7 +31,7 @@ import { RV_LIFE_CONFIG } from '@/config/rvlife';
 import { nip19 } from 'nostr-tools';
 import { MilkdownEditor } from '@/components/MilkdownEditor';
 import { TripPublishForm } from '@/components/TripPublishForm';
-import { SlideshowBlock } from '@/components/SlideshowBlock';
+import { RemotionVideoBlock } from '@/components/RemotionVideoBlock';
 import { Progress } from '@/components/ui/progress';
 import { extractGpsFromImage, formatCoordinatesSimple, reverseGeocode, mapCountryCode, type GpsData, type GpsStatus, type LocationData } from '@/lib/gpsExtraction';
 import exifr from 'exifr';
@@ -1704,12 +1704,15 @@ function MediaUploadForm({ editEvent }: { editEvent?: any }) {
             </Card>
           )}
 
-          {/* Slideshow */}
-          <SlideshowBlock
+          {/* Video Generator — Remotion */}
+          <RemotionVideoBlock
             imageUrls={imageUrls}
             localFiles={files.filter(f => f.type === 'image').map(f => f.file)}
             lifestyle={lifestyle}
             title={title || 'medien'}
+            summary={description?.slice(0, 120)}
+            location={location}
+            country={selectedCountry}
             onVideoReady={handleSlideshowVideoReady}
           />
 
@@ -2730,11 +2733,14 @@ function NoteForm({ editEvent }: { editEvent?: any }) {
           placeholder="Land auswaehlen"
         />
 
-        {/* Slideshow */}
-        <SlideshowBlock
+        {/* Video Generator — Remotion */}
+        <RemotionVideoBlock
           imageUrls={imageUrls}
           lifestyle={lifestyle}
-          title={content.slice(0, 40) || 'note'}
+          title={content.slice(0, 60) || 'note'}
+          summary={content.slice(0, 120)}
+          location={location}
+          country={selectedCountry}
         />
 
         <div className="flex items-center justify-between">
