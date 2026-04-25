@@ -1,8 +1,10 @@
 /**
  * render.js — Remotion Render-Engine
  *
- * Bilder werden VOR dem Render auf den VPS heruntergeladen (file:// URLs).
- * Cleanup erst NACH vollständigem Render + Datei-Existenz-Check.
+ * Bilder werden VOR dem Render heruntergeladen und über einen
+ * lokalen HTTP-Server bereitgestellt (http://127.0.0.1:PORT/img-NNN.ext).
+ * Chrome kann file:// URLs nicht laden (Sicherheitsrestriktionen),
+ * aber localhost HTTP funktioniert immer.
  */
 
 import { bundle } from '@remotion/bundler';
@@ -15,6 +17,7 @@ import { execSync } from 'child_process';
 import crypto from 'crypto';
 import https from 'https';
 import http from 'http';
+import { createServer } from 'http';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -34,6 +37,60 @@ const COMPOSITION_IDS = {
   '1:1':  'MojoBusVideo-1-1',
 };
 
+// ── Lokaler Bild-HTTP-Server ──────────────────────────────────────────────
+// Chrome kann file:// nicht laden → wir servieren die Bilder lokal über HTTP
+
+const MIME_TYPES = {
+  '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+  '.png': 'image/png',  '.webp': 'image/webp',
+  '.gif': 'image/gif',  '.avif': 'image/avif',
+};
+
+/**
+ * Startet einen temporären HTTP-Server der ein Verzeichnis ausliefert.
+ * Gibt { port, close } zurück.
+ */
+function startImageServer(serveDir) {
+  return new Promise((resolve, reject) => {
+    const server = createServer((req, res) => {
+      // Nur GET, kein Path-Traversal
+      const filename = path.basename(req.url.split('?')[0]);
+      const filePath = path.join(serveDir, filename);
+
+      if (!fs.existsSync(filePath)) {
+        res.writeHead(404);
+        res.end('Not found');
+        return;
+      }
+
+      const ext = path.extname(filename).toLowerCase();
+      const mime = MIME_TYPES[ext] || 'application/octet-stream';
+      const stat = fs.statSync(filePath);
+
+      res.writeHead(200, {
+        'Content-Type': mime,
+        'Content-Length': stat.size,
+        'Cache-Control': 'public, max-age=3600',
+        'Access-Control-Allow-Origin': '*',
+      });
+
+      fs.createReadStream(filePath).pipe(res);
+    });
+
+    // Freien Port automatisch finden (0 = OS wählt)
+    server.listen(0, '127.0.0.1', () => {
+      const { port } = server.address();
+      console.log(`[Remotion] Bild-Server läuft auf http://127.0.0.1:${port}`);
+      resolve({
+        port,
+        close: () => new Promise(r => server.close(r)),
+      });
+    });
+
+    server.on('error', reject);
+  });
+}
+
 // ── Chrome finden + Rechte setzen ────────────────────────────────────────
 
 function findAndFixChrome() {
@@ -52,7 +109,6 @@ function findAndFixChrome() {
     }
   }
 
-  // Wildcard-Suche
   try {
     const remotionDir = path.join(serverDir, 'node_modules/.remotion');
     if (fs.existsSync(remotionDir)) {
@@ -84,15 +140,15 @@ const CHROMIUM_OPTIONS = {
     '--disable-gpu-sandbox',
     '--single-process',
     '--no-zygote',
+    '--allow-file-access-from-files',  // Fallback falls doch file:// genutzt
+    '--disable-web-security',           // Erlaubt cross-origin bei localhost
   ],
 };
 
-// Chrome beim Modul-Start vorbereiten (non-blocking)
 async function ensureChromeBinary() {
   try {
     await ensureBrowser({ browserExecutable: CHROME_PATH || undefined });
     if (!CHROME_PATH) CHROME_PATH = findAndFixChrome();
-    // chmod -R 755 auf gesamten .remotion Ordner
     const remotionDir = path.join(__dirname, '../node_modules/.remotion');
     if (fs.existsSync(remotionDir)) {
       try { execSync(`chmod -R 755 "${remotionDir}"`, { timeout: 10000 }); } catch (e) {}
@@ -141,21 +197,18 @@ async function getBundledEntry() {
 // ── Bild-Download ─────────────────────────────────────────────────────────
 
 function getImageExtension(url, contentType) {
-  // 1. Content-Type Header
   if (contentType) {
     const ct = contentType.toLowerCase().split(';')[0].trim();
     const map = {
       'image/jpeg': '.jpg', 'image/jpg': '.jpg',
-      'image/png': '.png', 'image/webp': '.webp',
-      'image/gif': '.gif', 'image/avif': '.avif',
+      'image/png': '.png',  'image/webp': '.webp',
+      'image/gif': '.gif',  'image/avif': '.avif',
       'image/heic': '.jpg', 'image/tiff': '.jpg',
     };
     if (map[ct]) return map[ct];
   }
-  // 2. URL-Pfad
   const m = url.split('?')[0].split('#')[0].match(/\.(jpe?g|jpg|png|webp|gif|avif)$/i);
   if (m) return '.' + m[1].toLowerCase().replace('jpeg', 'jpg');
-  // 3. Fallback
   return '.jpg';
 }
 
@@ -169,10 +222,9 @@ function downloadFileWithType(url, destPath, attempt = 1) {
         'Accept': 'image/webp,image/jpeg,image/png,image/*,*/*',
       },
     }, (res) => {
-      // Redirects
       if ([301, 302, 303, 307, 308].includes(res.statusCode)) {
         const loc = res.headers.location;
-        if (!loc) return reject(new Error(`Redirect ohne Location: ${url}`));
+        if (!loc) { res.resume(); return reject(new Error(`Redirect ohne Location: ${url}`)); }
         const next = loc.startsWith('http') ? loc : new URL(loc, url).toString();
         res.resume();
         return downloadFileWithType(next, destPath, attempt).then(resolve).catch(reject);
@@ -182,7 +234,6 @@ function downloadFileWithType(url, destPath, attempt = 1) {
         return reject(new Error(`HTTP ${res.statusCode}: ${url.slice(-60)}`));
       }
       const contentType = res.headers['content-type'] || '';
-      // Sicherstellen dass Zielordner existiert
       const dir = path.dirname(destPath);
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
@@ -213,20 +264,14 @@ function downloadFileWithType(url, destPath, attempt = 1) {
   });
 }
 
-/**
- * Lädt alle Bilder herunter — gibt lokale Pfade zurück.
- * Bilder bleiben bis nach dem Render bestehen (kein vorzeitiger Cleanup!).
- */
 async function downloadAllImages(imageUrls, sessionDir) {
-  // Ordner anlegen mit expliziten Rechten
   fs.mkdirSync(sessionDir, { recursive: true });
-  fs.chmodSync(sessionDir, 0o755);
+  try { fs.chmodSync(sessionDir, 0o755); } catch (e) {}
 
-  console.log(`[Remotion] Download: ${imageUrls.length} Bilder nach ${sessionDir}`);
+  console.log(`[Remotion] Download: ${imageUrls.length} Bilder`);
   const t = Date.now();
+  const localFilenames = []; // nur Dateinamen, Port kommt später
 
-  // Sequenziell herunterladen (stabiler als parallel auf VPS)
-  const localPaths = [];
   for (let i = 0; i < imageUrls.length; i++) {
     const url = imageUrls[i];
     const tempPath = path.join(sessionDir, `img-${String(i).padStart(3, '0')}.tmp`);
@@ -234,43 +279,43 @@ async function downloadAllImages(imageUrls, sessionDir) {
     try {
       const { filePath, contentType } = await downloadFileWithType(url, tempPath);
       const ext = getImageExtension(url, contentType);
-      const finalPath = path.join(sessionDir, `img-${String(i).padStart(3, '0')}${ext}`);
+      const filename = `img-${String(i).padStart(3, '0')}${ext}`;
+      const finalPath = path.join(sessionDir, filename);
 
       fs.renameSync(filePath, finalPath);
-      fs.chmodSync(finalPath, 0o644); // lesbar für Chrome
+      try { fs.chmodSync(finalPath, 0o644); } catch (e) {}
 
       const sizeKB = (fs.statSync(finalPath).size / 1024).toFixed(0);
-      console.log(`[Remotion] ✓ Bild ${i + 1}/${imageUrls.length}: ${ext} ${sizeKB}KB`);
-      localPaths.push(`file://${finalPath}`);
+      console.log(`[Remotion] ✓ Bild ${i + 1}/${imageUrls.length}: ${filename} ${sizeKB}KB`);
+      localFilenames.push(filename);
     } catch (err) {
       console.error(`[Remotion] ✗ Bild ${i + 1} fehlgeschlagen: ${err.message}`);
-      // Fallback: erstes erfolgreiches Bild wiederverwenden
-      if (localPaths.length > 0) {
-        console.log(`[Remotion]   → Fallback auf Bild 1`);
-        localPaths.push(localPaths[0]);
+      // Fallback: ersten erfolgreichen Namen nochmal nutzen
+      if (localFilenames.length > 0) {
+        localFilenames.push(localFilenames[0]);
+        console.log(`[Remotion]   → Fallback auf ${localFilenames[0]}`);
       } else {
-        localPaths.push(null);
+        localFilenames.push(null);
       }
     }
   }
 
-  const valid = localPaths.filter(Boolean);
+  const valid = localFilenames.filter(Boolean);
   if (valid.length === 0) {
-    throw new Error('Kein Bild heruntergeladen. Prüfe die Blossom-URLs und VPS-Netzwerk.');
+    throw new Error('Kein Bild heruntergeladen.');
   }
 
-  // null-Einträge ersetzen
-  const result = localPaths.map(p => p ?? valid[0]);
+  // null ersetzen
+  const result = localFilenames.map(f => f ?? valid[0]);
+  console.log(`[Remotion] ${valid.length}/${imageUrls.length} Bilder in ${((Date.now() - t) / 1000).toFixed(1)}s`);
 
-  console.log(`[Remotion] ${valid.length}/${imageUrls.length} Bilder bereit in ${((Date.now() - t) / 1000).toFixed(1)}s`);
-
-  // Verzeichnis-Inhalt loggen zur Diagnose
+  // Verzeichnis-Inhalt zur Diagnose
   try {
     const files = fs.readdirSync(sessionDir);
-    console.log(`[Remotion] Dateien in ${sessionDir}: ${files.join(', ')}`);
+    console.log(`[Remotion] Dateien: ${files.join(', ')}`);
   } catch (e) {}
 
-  return result;
+  return result; // Array von Dateinamen (relativ zum sessionDir)
 }
 
 // ── Haupt-Render-Funktion ─────────────────────────────────────────────────
@@ -279,17 +324,13 @@ export async function renderMojoBusVideo(params) {
   const {
     imageUrls,
     title = 'MojoBus Video',
-    summary,
-    location,
-    country,
+    summary, location, country,
     lifestyle = 'mojobus',
     musicUrl,
     secondsPerImage = 5,
     aspectRatio = '16:9',
-    colorGrade,
-    filmGrain = 'fine',
-    captions = [],
-    captionStyle = 'tiktok',
+    colorGrade, filmGrain = 'fine',
+    captions = [], captionStyle = 'tiktok',
     websiteUrl = 'mojobus.co',
     handle = '@mojobus',
     accentColor = '#F59E0B',
@@ -306,22 +347,31 @@ export async function renderMojoBusVideo(params) {
   const sessionDir    = path.join(IMAGES_DIR, sessionId);
   const outputPath    = path.join(OUTPUT_DIR, `mojobus-${sessionId}.mp4`);
 
-  console.log(`[Remotion] ── Start ──────────────────────────────────`);
-  console.log(`[Remotion] Composition: ${compositionId}`);
-  console.log(`[Remotion] Bilder: ${imageUrls.length} | ${aspectRatio} | ${lifestyle}`);
+  console.log(`[Remotion] ── Start: ${compositionId} | ${imageUrls.length} Bilder | ${aspectRatio}`);
 
-  // SCHRITT 1: Bilder herunterladen
-  let localImageUrls;
+  // SCHRITT 1: Bilder herunterladen (gibt Dateinamen zurück)
+  let imageFilenames;
   try {
-    localImageUrls = await downloadAllImages(imageUrls, sessionDir);
+    imageFilenames = await downloadAllImages(imageUrls, sessionDir);
   } catch (err) {
-    // Cleanup bei Download-Fehler
     try { fs.rmSync(sessionDir, { recursive: true, force: true }); } catch (e) {}
     throw new Error(`Bild-Download fehlgeschlagen: ${err.message}`);
   }
 
-  // SCHRITT 2: Bundle + Render
-  // WICHTIG: Cleanup erst NACH erfolgreichem Render (nicht in finally!)
+  // SCHRITT 2: Lokalen HTTP-Server für die Bilder starten
+  let imageServer = null;
+  let httpImageUrls;
+  try {
+    imageServer = await startImageServer(sessionDir);
+    // http://127.0.0.1:PORT/img-000.webp etc.
+    httpImageUrls = imageFilenames.map(f => `http://127.0.0.1:${imageServer.port}/${f}`);
+    console.log(`[Remotion] Bild-URLs: ${httpImageUrls[0]} ... (${httpImageUrls.length} total)`);
+  } catch (err) {
+    try { fs.rmSync(sessionDir, { recursive: true, force: true }); } catch (e) {}
+    throw new Error(`Bild-Server konnte nicht gestartet werden: ${err.message}`);
+  }
+
+  // SCHRITT 3: Bundle + Render
   let renderError = null;
   let renderResult = null;
 
@@ -329,7 +379,7 @@ export async function renderMojoBusVideo(params) {
     const bundleLocation = await getBundledEntry();
 
     const inputProps = {
-      imageUrls: localImageUrls,
+      imageUrls: httpImageUrls, // ← HTTP statt file://
       title, summary, location, country, lifestyle, musicUrl,
       secondsPerImage, aspectRatio, colorGrade, filmGrain,
       captions, captionStyle, websiteUrl, handle, accentColor, motionBlurStrength,
@@ -372,16 +422,13 @@ export async function renderMojoBusVideo(params) {
       verbose: false,
     });
 
-    const renderDuration = ((Date.now() - startTime) / 1000).toFixed(1);
-    const fileSizeMB = (fs.statSync(outputPath).size / 1024 / 1024).toFixed(2);
-    console.log(`[Remotion] ✅ Fertig: ${fileSizeMB}MB in ${renderDuration}s`);
+    const dur = ((Date.now() - startTime) / 1000).toFixed(1);
+    const sizeMB = (fs.statSync(outputPath).size / 1024 / 1024).toFixed(2);
+    console.log(`[Remotion] ✅ Fertig: ${sizeMB}MB in ${dur}s`);
 
     renderResult = {
-      outputPath,
-      fileSizeMB,
-      renderDurationSec: renderDuration,
-      frames: composition.durationInFrames,
-      fps: composition.fps,
+      outputPath, fileSizeMB: sizeMB, renderDurationSec: dur,
+      frames: composition.durationInFrames, fps: composition.fps,
       videoDurationSec: (composition.durationInFrames / composition.fps).toFixed(1),
     };
 
@@ -389,11 +436,15 @@ export async function renderMojoBusVideo(params) {
     renderError = err;
   }
 
-  // CLEANUP: Immer nach Render — aber erst wenn Render abgeschlossen ist
-  // (nicht in finally, damit Chrome Zeit hat alle Frames zu lesen)
+  // SCHRITT 4: Server stoppen + Cleanup (nach Render)
+  try {
+    if (imageServer) await imageServer.close();
+  } catch (e) {}
+
+  // Bilder-Verzeichnis nach kurzer Pause löschen
   setTimeout(() => {
     try { fs.rmSync(sessionDir, { recursive: true, force: true }); } catch (e) {}
-  }, 5000); // 5 Sekunden Puffer nach Render
+  }, 3000);
 
   if (renderError) throw renderError;
   return renderResult;
@@ -402,18 +453,13 @@ export async function renderMojoBusVideo(params) {
 // ── Exports ───────────────────────────────────────────────────────────────
 
 export function invalidateBundleCache() {
-  bundleCache = null;
-  isBundling  = false;
-  bundleQueue = [];
+  bundleCache = null; isBundling = false; bundleQueue = [];
   console.log('[Remotion] Bundle-Cache invalidiert');
 }
 
 export function cleanupRender(outputPath) {
   try {
-    if (fs.existsSync(outputPath)) {
-      fs.unlinkSync(outputPath);
-      console.log(`[Remotion] Cleanup: ${outputPath}`);
-    }
+    if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
   } catch (err) {
     console.warn('[Remotion] Cleanup:', err.message);
   }
