@@ -8,11 +8,12 @@
  */
 
 import { bundle } from '@remotion/bundler';
-import { renderMedia, selectComposition } from '@remotion/renderer';
+import { renderMedia, selectComposition, ensureBrowser } from '@remotion/renderer';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import os from 'os';
 import fs from 'fs';
+import { execSync } from 'child_process';
 import crypto from 'crypto';
 import https from 'https';
 import http from 'http';
@@ -28,6 +29,112 @@ const IMAGES_DIR = path.join(os.tmpdir(), 'remotion-images');
 for (const dir of [OUTPUT_DIR, IMAGES_DIR]) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
+
+// ── Chrome Executable finden und Rechte setzen ───────────────────────────
+// Remotion lädt Chrome selbst herunter nach node_modules/.remotion/
+// Das Binary braucht Execute-Rechte (EACCES wenn nginx-User sie nicht hat)
+
+function findAndFixChrome() {
+  // Mögliche Chrome-Pfade die Remotion nutzt
+  const candidates = [
+    path.join(__dirname, '../node_modules/.remotion/chrome-headless-shell/linux64/chrome-headless-shell-linux64/chrome-headless-shell'),
+    path.join(__dirname, '../node_modules/.remotion/chrome-headless-shell/linux64/chrome-headless-shell'),
+    path.join(__dirname, '../../node_modules/.remotion/chrome-headless-shell/linux64/chrome-headless-shell-linux64/chrome-headless-shell'),
+  ];
+
+  for (const chromePath of candidates) {
+    if (fs.existsSync(chromePath)) {
+      try {
+        // Execute-Rechte setzen (chmod +x)
+        fs.chmodSync(chromePath, 0o755);
+        console.log(`[Remotion] Chrome gefunden + chmod 755: ${chromePath}`);
+        return chromePath;
+      } catch (e) {
+        console.warn(`[Remotion] chmod fehlgeschlagen für ${chromePath}: ${e.message}`);
+        // Trotzdem versuchen zu nutzen
+        return chromePath;
+      }
+    }
+  }
+
+  // Wildcard-Suche im node_modules
+  try {
+    const result = execSync(
+      'find /home/nginx/domains/mojobus.co/public/server/node_modules/.remotion -name "chrome-headless-shell" -type f 2>/dev/null | head -1',
+      { encoding: 'utf8', timeout: 5000 }
+    ).trim();
+    if (result) {
+      try { fs.chmodSync(result, 0o755); } catch (e) { /* ignorieren */ }
+      console.log(`[Remotion] Chrome via find: ${result}`);
+      return result;
+    }
+  } catch (e) { /* ignorieren */ }
+
+  console.warn('[Remotion] Chrome-Binary nicht gefunden — Remotion sucht selbst');
+  return null;
+}
+
+// Beim Modulstart Chrome finden
+let CHROME_PATH = null;
+try {
+  CHROME_PATH = findAndFixChrome();
+} catch (e) {
+  console.warn('[Remotion] Chrome-Suche fehlgeschlagen:', e.message);
+}
+
+// ── Chrome beim Start herunterladen + Rechte setzen ──────────────────────
+// ensureBrowser() lädt Chrome falls noch nicht vorhanden
+// Danach nochmal chmod damit nginx-User es ausführen kann
+async function ensureChromeBinary() {
+  try {
+    console.log('[Remotion] Stelle sicher dass Chrome-Binary vorhanden...');
+    await ensureBrowser({ browserExecutable: CHROME_PATH || undefined });
+
+    // Nach Download nochmal suchen + chmod
+    if (!CHROME_PATH) {
+      CHROME_PATH = findAndFixChrome();
+    } else {
+      // Nochmal chmod sicherheitshalber
+      try { fs.chmodSync(CHROME_PATH, 0o755); } catch (e) { /* ignorieren */ }
+    }
+
+    // Auch den ganzen .remotion Ordner recursive chmod
+    const remotionDir = path.join(__dirname, '../node_modules/.remotion');
+    if (fs.existsSync(remotionDir)) {
+      try {
+        execSync(`chmod -R 755 "${remotionDir}"`, { timeout: 10000 });
+        console.log('[Remotion] chmod -R 755 auf .remotion/ gesetzt');
+      } catch (e) {
+        console.warn('[Remotion] chmod -R fehlgeschlagen:', e.message);
+      }
+    }
+
+    console.log(`[Remotion] Chrome bereit: ${CHROME_PATH || 'auto-detect'}`);
+  } catch (e) {
+    console.warn('[Remotion] ensureBrowser fehlgeschlagen:', e.message);
+  }
+}
+
+// Einmalig beim Modul-Import ausführen (async, blockiert nicht)
+ensureChromeBinary().catch(() => {});
+
+// ── Chromium Optionen für nginx/root-User auf CentminMod ─────────────────
+const CHROMIUM_OPTIONS = {
+  // --no-sandbox ist nötig wenn als root oder nginx ohne sandbox-Rechte
+  disableWebSecurity: false,
+  // Wichtig für VPS ohne GPU
+  gl: 'swiftshader',
+  // Weitere Flags für stabilen Betrieb auf AlmaLinux
+  chromiumFlags: [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',   // /dev/shm oft zu klein auf VPS
+    '--disable-gpu',
+    '--disable-gpu-sandbox',
+    '--single-process',          // weniger RAM, stabiler auf VPS
+    '--no-zygote',
+  ],
+};
 
 const COMPOSITION_IDS = {
   '16:9': 'MojoBusVideo-16-9',
@@ -310,11 +417,14 @@ export async function renderMojoBusVideo(params) {
       inputProps,
       ffmpegExecutable:  FFMPEG_PATH,
       ffprobeExecutable: FFPROBE_PATH,
-      // Qualität: 18 = hochwertig, 23 = default
+      // Qualität
       crf: 20,
-      // Concurrency: max 2 parallel um RAM zu schonen (8GB VPS)
-      concurrency: Math.min(2, Math.max(1, Math.floor(os.cpus().length / 2))),
-      // Bild-Download durch Remotion deaktivieren — wir haben bereits lokale Dateien
+      // Concurrency: 1 auf VPS (stabiler, weniger RAM)
+      concurrency: 1,
+      // Chrome explizit angeben wenn gefunden (vermeidet Pfad-Probleme)
+      ...(CHROME_PATH ? { browserExecutable: CHROME_PATH } : {}),
+      // Chromium Flags für nginx-User auf AlmaLinux (kein sandbox, kein GPU)
+      chromiumOptions: CHROMIUM_OPTIONS,
       onBrowserLog: (log) => {
         if (log.type === 'error') {
           console.warn(`[Remotion Browser] ${log.text}`);
@@ -323,7 +433,6 @@ export async function renderMojoBusVideo(params) {
       onProgress: ({ progress }) => {
         const percent = Math.round(progress * 100);
         if (onProgress) onProgress(percent);
-        // Nur alle 5% loggen
         if (Math.floor(percent / 5) > Math.floor(lastLoggedPercent / 5)) {
           console.log(`[Remotion] ${percent}% | ${((Date.now() - startTime) / 1000).toFixed(0)}s`);
           lastLoggedPercent = percent;

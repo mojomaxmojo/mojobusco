@@ -73,6 +73,27 @@ echo ""
 echo "📦 npm install läuft (2-3 Minuten)..."
 cd "$SCRIPT_DIR" && npm install
 
+# ── Chrome herunterladen + Rechte setzen ─────────────────────────────────
+echo ""
+echo "🌐 Lade Remotion Chrome-Binary herunter (einmalig, ~100MB)..."
+node -e "
+import('@remotion/renderer').then(({ ensureBrowser }) => {
+  return ensureBrowser();
+}).then(() => {
+  console.log('  ✅ Chrome heruntergeladen');
+}).catch(e => {
+  console.warn('  ⚠ ensureBrowser fehlgeschlagen:', e.message);
+});
+" 2>/dev/null || echo "  ⚠ Chrome-Download übersprungen (wird beim ersten Render nachgeholt)"
+
+# Rechte auf .remotion Ordner setzen (nginx braucht Execute-Rechte!)
+REMOTION_DIR="$SCRIPT_DIR/node_modules/.remotion"
+if [ -d "$REMOTION_DIR" ]; then
+  echo "🔐 Setze Execute-Rechte auf Chrome-Binary..."
+  chmod -R 755 "$REMOTION_DIR" && echo "  ✅ chmod -R 755 auf $REMOTION_DIR" \
+    || echo "  ⚠ chmod fehlgeschlagen — manuell ausführen: chmod -R 755 $REMOTION_DIR"
+fi
+
 echo ""
 echo "🔍 Verifizierung..."
 for pkg in remotion @remotion/renderer @remotion/bundler @remotion/google-fonts @remotion/motion-blur @remotion/captions react react-dom; do
@@ -89,6 +110,9 @@ echo ""
 echo "✅ Remotion installiert! Server neu starten:"
 echo "   pm2 restart mojobus-server"
 echo "   # oder: systemctl restart mojobus-server"
+echo ""
+echo "Falls Chrome EACCES Fehler auftreten:"
+echo "   chmod -R 755 $SCRIPT_DIR/node_modules/.remotion"
 echo ""
 echo "Ab jetzt reicht bei jedem Git-Pull nur noch:"
 echo "   cd server && npm install"
