@@ -37,14 +37,14 @@ export const BLOSSOM_SERVERS: AuthorBlossomConfig = {
     servers: ['https://relay.mojobus.co'],
     preferred: 'https://relay.mojobus.co',
     backupServer: 'https://blossom.primal.net',
-    maxFileSize: 50, // 50 MB
+    maxFileSize: 500, // 500 MB — für Remotion-Videos (crf 28 → ~20-30MB/110s)
   },
   susanne: {
     authorId: 'susanne',
     servers: ['https://relay.mojobus.co'],
     preferred: 'https://relay.mojobus.co',
     backupServer: 'https://blossom.primal.net',
-    maxFileSize: 50, // 50 MB
+    maxFileSize: 500, // 500 MB — für Remotion-Videos
   },
 } as const;
 

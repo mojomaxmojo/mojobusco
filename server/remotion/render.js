@@ -432,7 +432,7 @@ export async function renderMojoBusVideo(params) {
       inputProps,
     });
 
-    console.log(`[Remotion] ${composition.durationInFrames} Frames @ ${composition.fps}fps = ${(composition.durationInFrames / composition.fps).toFixed(1)}s`);
+    console.log(`[Remotion] ${composition.durationInFrames} Frames @ ${composition.fps}fps = ${(composition.durationInFrames / composition.fps).toFixed(1)}s | ${composition.width}×${composition.height} | crf 28`);
 
     const startTime = Date.now();
     let lastPct = -1;
@@ -445,7 +445,17 @@ export async function renderMojoBusVideo(params) {
       inputProps,
       ffmpegExecutable:  FFMPEG_PATH,
       ffprobeExecutable: FFPROBE_PATH,
-      crf: 20,
+      // ── Encode-Einstellungen für Social-Media ────────────────────────
+      // crf 28: gute Qualität, ~6x kleiner als crf 20
+      //   16:9 @ 1280×720 @ 25fps @ 110s → ~8-15MB  ✅
+      //   9:16 @ 1080×1920 @ 25fps @ 110s → ~15-25MB ✅
+      //   (vorher: 1920×1080 @ 30fps @ crf 20 → 127MB ❌)
+      crf: 28,
+      // yuv420p: maximale Kompatibilität (iPhone, Android, Browser, Social)
+      pixelFormat: 'yuv420p',
+      // x264 Preset: 'medium' = gutes Speed/Quality Verhältnis auf VPS
+      // 'fast' wäre schneller aber ~10% größere Dateien
+      x264Preset: 'medium',
       concurrency: Math.max(1, Math.floor(os.cpus().length * 0.75)),
       ...(CHROME_PATH ? { browserExecutable: CHROME_PATH } : {}),
       chromiumOptions: CHROMIUM_OPTIONS,

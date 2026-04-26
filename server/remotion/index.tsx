@@ -28,18 +28,25 @@ const DEFAULT_PROPS: MojoBusVideoProps = {
   motionBlurStrength: 1,
 };
 
-const FPS = 30;
+// Social-Media optimierte FPS:
+// 25fps: PAL-Standard, -17% Frames vs 30fps, reicht für Slideshows
+// 30fps: NTSC/USA, nur nötig wenn Musik-BPM-Sync wichtig ist
+const FPS = 25;
 
 const RemotionRoot: React.FC = () => {
   return (
     <>
-      {/* 16:9 — YouTube / Standard */}
+      {/* 16:9 — YouTube / Standard
+          1280×720 statt 1920×1080:
+          - YouTube komprimiert sowieso auf 720p für die meisten Geräte
+          - ~45% weniger Pixel → ~45% kleinere Datei
+          - Render-Zeit: ~40% schneller */}
       <Composition
         id="MojoBusVideo-16-9"
         component={MojoBusVideo}
         fps={FPS}
-        width={1920}
-        height={1080}
+        width={1280}
+        height={720}
         durationInFrames={calculateDuration(
           DEFAULT_PROPS.imageUrls.length,
           FPS,
@@ -56,7 +63,9 @@ const RemotionRoot: React.FC = () => {
         }}
       />
 
-      {/* 9:16 — Instagram Reels / TikTok */}
+      {/* 9:16 — Instagram Reels / TikTok
+          1080×1920 bleibt — das ist der native Standard für Reels/TikTok.
+          Kleinere Auflösung würde sichtbar schlechter aussehen. */}
       <Composition
         id="MojoBusVideo-9-16"
         component={MojoBusVideo}
@@ -79,7 +88,9 @@ const RemotionRoot: React.FC = () => {
         }}
       />
 
-      {/* 1:1 — Instagram Feed */}
+      {/* 1:1 — Instagram Feed
+          1080×1080 bleibt — Instagram Feed Standard.
+          Könnte auf 720×720 reduziert werden aber 1080 ist der offizielle Standard. */}
       <Composition
         id="MojoBusVideo-1-1"
         component={MojoBusVideo}

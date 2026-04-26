@@ -279,6 +279,7 @@ deploy_files() {
                         @remotion/transitions@"$REMOTION_VER" \
                         @remotion/shapes@"$REMOTION_VER" \
                         @remotion/lottie@"$REMOTION_VER" \
+                        @remotion/noise@"$REMOTION_VER" \
                         lottie-web \
                         --silent >> "$LOG_FILE" 2>&1 \
                         && success_msg "✓ v2.0-Skill-Packages installiert" \
@@ -287,6 +288,20 @@ deploy_files() {
                     success_msg "✓ Alle Remotion v2.0 Skill-Packages vorhanden"
                 fi
             fi
+
+            # ── esbuild Execute-Rechte setzen (KRITISCH!) ─────────────────────
+            # Nach chown -R nginx:nginx verlieren esbuild-Binaries ihre +x Rechte.
+            # Ohne +x: EACCES → alle Dateien crashen mit EPIPE.
+            info_msg "Setze Execute-Rechte auf esbuild-Binaries..."
+            find "$DEPLOY_DIR/server/node_modules" \
+                \( -name "esbuild" -o -name "esbuild.exe" \) \
+                -type f \
+                -exec chmod +x {} \; 2>/dev/null
+            # Auch @esbuild/* Platform-Packages
+            find "$DEPLOY_DIR/server/node_modules/@esbuild" \
+                -name "esbuild" -o -name "esbuild.exe" 2>/dev/null | \
+                xargs -r chmod +x
+            success_msg "✓ esbuild Execute-Rechte gesetzt"
         fi
     fi
 

@@ -32,13 +32,29 @@ type ColorGrade = 'golden' | 'warm' | 'moody' | 'blue' | 'teal-orange' | 'vintag
 type FilmGrain = 'none' | 'fine' | 'medium' | 'coarse';
 type CaptionStyle = 'off' | 'tiktok' | 'minimal' | 'full-line';
 type MotionBlur = 0 | 1 | 2;
+type TransitionType = 'auto' | 'fade' | 'wipe' | 'clockWipe' | 'slide';
 type RenderStatus = 'idle' | 'uploading-local' | 'queued' | 'rendering' | 'downloading' | 'uploading-blossom' | 'completed' | 'failed';
+
+interface MusicTrack {
+  filename: string;
+  label: string;
+  lifestyle: string | null;
+  url: string;
+}
 
 const CAPTION_STYLE_LABELS: Record<CaptionStyle, string> = {
   off: '🚫 Aus',
   tiktok: '🎵 TikTok',
   minimal: '💬 Minimal',
   'full-line': '📝 Zeile',
+};
+
+const TRANSITION_LABELS: Record<TransitionType, string> = {
+  auto: '🔀 Auto',
+  fade: '🌫️ Fade',
+  wipe: '➡️ Wipe',
+  clockWipe: '🕐 Clock',
+  slide: '📱 Slide',
 };
 
 export interface RemotionVideoBlockProps {
@@ -152,6 +168,10 @@ export function RemotionVideoBlock({
   const [filmGrain, setFilmGrain] = useState<FilmGrain>('fine');
   const [captionStyle, setCaptionStyle] = useState<CaptionStyle>('tiktok');
   const [motionBlur, setMotionBlur] = useState<MotionBlur>(1);
+  const [transitionType, setTransitionType] = useState<TransitionType>('auto');
+  const [showRouteMap, setShowRouteMap] = useState(false);
+  const [selectedMusic, setSelectedMusic] = useState<string>('random');
+  const [musicTracks, setMusicTracks] = useState<MusicTrack[]>([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   // ── Render State ────────────────────────────────────────────────────────
@@ -185,6 +205,16 @@ export function RemotionVideoBlock({
         .catch(() => setRemotionStatus({ installed: false, checked: true, error: 'Server nicht erreichbar' }));
     }
   }, [enabled, remotionStatus.checked]);
+
+  // Musik-Tracks laden
+  useEffect(() => {
+    if (enabled && musicTracks.length === 0) {
+      fetch('/api/music/list')
+        .then(r => r.json())
+        .then(data => setMusicTracks(data.tracks || []))
+        .catch(() => {});
+    }
+  }, [enabled, musicTracks.length]);
 
   // ── Effektive URLs ──────────────────────────────────────────────────────
   const effectiveUrls = uploadedLocalUrls.length > 0 ? uploadedLocalUrls : imageUrls;
@@ -280,8 +310,11 @@ export function RemotionVideoBlock({
           captionStyle,
           accentColor,
           motionBlurStrength: motionBlur,
+          transitionType,
+          showRouteMap,
           websiteUrl: 'mojobus.co',
           handle: '@mojobus',
+          ...(selectedMusic !== 'random' && { musicUrl: selectedMusic }),
         }),
       });
 
@@ -325,8 +358,25 @@ export function RemotionVideoBlock({
             .slice(0, 40);
 
           const videoFile = new File([blob], `${safeName}-remotion.mp4`, { type: 'video/mp4' });
-          const blossomTags = await uploadFile(videoFile);
-          const rawBlossomUrl = (blossomTags as string[][]).find(t => t[0] === 'url')?.[1];
+
+          // BlossomUploader via useUploadFile — wirft AggregateError wenn alle Server fehlschlagen
+          // Wir entpacken den AggregateError für eine lesbare Fehlermeldung
+          let blossomTags: string[][];
+          try {
+            blossomTags = await uploadFile(videoFile) as string[][];
+          } catch (uploadErr: any) {
+            // AggregateError: "No Promise in Promise.any was resolved"
+            // → enthält .errors[] mit den echten Fehlern pro Server
+            if (uploadErr?.errors?.length) {
+              const details = uploadErr.errors
+                .map((e: Error) => e.message || String(e))
+                .join(' | ');
+              throw new Error(`Blossom-Upload fehlgeschlagen (${(blob.size / 1024 / 1024).toFixed(1)}MB): ${details}`);
+            }
+            throw new Error(`Blossom-Upload fehlgeschlagen: ${uploadErr.message || uploadErr}`);
+          }
+
+          const rawBlossomUrl = blossomTags.find(t => t[0] === 'url')?.[1];
           if (!rawBlossomUrl) throw new Error('Keine Blossom-URL erhalten.');
 
           // .mp4 Suffix sicherstellen
@@ -522,6 +572,86 @@ export function RemotionVideoBlock({
           {showAdvanced && (
             <div className="space-y-4 p-3 bg-muted/40 rounded-lg border">
 
+              {/* Transition-Auswahl */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">
+                  🔀 Transition
+                  <span className="ml-1.5 text-[10px] font-normal opacity-60">(Übergang zwischen Bildern)</span>
+                </Label>
+                <div className="grid grid-cols-5 gap-1">
+                  {(Object.entries(TRANSITION_LABELS) as [TransitionType, string][]).map(([val, label]) => (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => setTransitionType(val)}
+                      className={`py-1.5 px-1 text-[11px] rounded border transition-all text-center ${
+                        transitionType === val
+                          ? 'text-white border-transparent'
+                          : 'bg-white dark:bg-gray-900 text-gray-500 border-gray-300 dark:border-gray-600'
+                      }`}
+                      style={transitionType === val ? { background: accentColor } : {}}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Musik-Auswahl */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">
+                  🎵 Musik
+                  {musicTracks.length > 0 && (
+                    <span className="ml-1.5 text-[10px] font-normal opacity-60">({musicTracks.length} Tracks)</span>
+                  )}
+                </Label>
+                <select
+                  value={selectedMusic}
+                  onChange={e => setSelectedMusic(e.target.value)}
+                  className="w-full text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-2 py-1.5 text-gray-700 dark:text-gray-300"
+                >
+                  <option value="random">🎲 Zufällig</option>
+                  {musicTracks.length > 0 && (
+                    <optgroup label="── Tracks ──">
+                      {musicTracks.map(track => (
+                        <option key={track.filename} value={track.url}>
+                          {track.lifestyle ? `[${track.lifestyle}] ` : ''}{track.label}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                </select>
+              </div>
+
+              {/* Routen-Karte */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">🗺️ Routen-Karte</Label>
+                <button
+                  type="button"
+                  onClick={() => setShowRouteMap(v => !v)}
+                  className={`w-full py-2 px-3 text-xs rounded border transition-all text-left flex items-center gap-2 ${
+                    showRouteMap
+                      ? 'text-white border-transparent'
+                      : 'bg-white dark:bg-gray-900 text-gray-500 border-gray-300 dark:border-gray-600'
+                  }`}
+                  style={showRouteMap ? { background: accentColor } : {}}
+                >
+                  <span>{showRouteMap ? '✓' : '○'}</span>
+                  <span>
+                    {showRouteMap
+                      ? `Routen-Slide aktiv (Bild ${Math.floor(Math.min(imageCount, 20) / 2) + 1} von ${imageCount})`
+                      : 'Animierte Reiseroute einblenden'}
+                  </span>
+                </button>
+                {showRouteMap && (
+                  <p className="text-[10px] text-muted-foreground">
+                    Route wird aus <strong>{country || 'Land'}</strong> automatisch gewählt
+                    {country ? ` (${country})` : ' — setze Country im Formular'}.
+                    SVG-Linie zeichnet sich animiert auf.
+                  </p>
+                )}
+              </div>
+
               {/* Untertitel-Style — 85% ohne Ton! */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium">
@@ -631,14 +761,15 @@ export function RemotionVideoBlock({
             {[
               `${LIFESTYLE_EMOJI[lifestyle] || '🎬'} ${lifestyle}`,
               `🎨 ${GRADE_LABELS[colorGrade === 'auto' ? defaultGrade : colorGrade]}`,
-              '✨ Ken Burns',
+              '🌊 Noise Ken Burns',
               motionBlur > 0 ? `🎬 Motion Blur` : null,
-              '🔀 Transitions',
+              `${TRANSITION_LABELS[transitionType]}`,
               filmGrain !== 'none' ? `🎞️ Film Grain` : null,
               captionStyle !== 'off' ? `💬 ${CAPTION_STYLE_LABELS[captionStyle]}` : null,
+              showRouteMap ? '🗺️ Routen-Karte' : null,
+              selectedMusic !== 'random' ? '🎵 Eigene Musik' : '🎵 Musik',
               '🔤 Montserrat',
               '📊 Progress Bar',
-              '🎵 Musik',
               '📢 CTA',
             ].filter(Boolean).map(f => (
               <Badge key={f as string} variant="outline" className="text-[10px] py-0.5">

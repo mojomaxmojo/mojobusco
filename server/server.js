@@ -2360,6 +2360,45 @@ app.get('/api/render-remotion/download/:jobId', (req, res) => {
   })
 })
 
+// ── GET /api/music/list — Alle verfügbaren Musik-Tracks ─────────────────
+app.get('/api/music/list', (req, res) => {
+  try {
+    if (!fs.existsSync(MUSIC_DIR)) {
+      return res.json({ tracks: [] })
+    }
+    const AUDIO_EXTS = ['.mp3', '.m4a', '.ogg', '.wav']
+    const files = fs.readdirSync(MUSIC_DIR)
+      .filter(f => AUDIO_EXTS.includes(path.extname(f).toLowerCase()))
+      .sort()
+
+    const tracks = files.map(filename => {
+      // Lesbaren Namen aus Dateiname ableiten:
+      // "mojobus-sunny-road.mp3" → "Mojobus Sunny Road"
+      const nameWithoutExt = path.basename(filename, path.extname(filename))
+      const label = nameWithoutExt
+        .replace(/[-_]/g, ' ')
+        .replace(/\b\w/g, c => c.toUpperCase())
+
+      // Lifestyle aus Dateiname erkennen
+      const lower = filename.toLowerCase()
+      const lifestyle = ['mojobus', 'vanlife', 'rvlife', 'beachlife', 'wohnmobil'].find(l =>
+        lower.includes(l)
+      ) || null
+
+      return {
+        filename,
+        label,
+        lifestyle,
+        url: `/api/music/${encodeURIComponent(filename)}`,
+      }
+    })
+
+    res.json({ tracks, total: tracks.length })
+  } catch (err) {
+    res.status(500).json({ error: err.message, tracks: [] })
+  }
+})
+
 // ── Musik-Dateien für Remotion als HTTP-Assets bereitstellen ────────────
 // Remotion braucht HTTP-URLs für Audio (keine Dateipfade)
 app.get('/api/music/:filename', (req, res) => {
