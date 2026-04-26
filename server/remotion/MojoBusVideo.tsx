@@ -100,6 +100,10 @@ export interface MojoBusVideoProps {
    * Default: true
    */
   showLottieBus?: boolean;
+
+  // ── Musik-Dauer für Loop-freies Audio ────────────────────────────────
+  /** Von ffprobe ausgelesen — verhindert Loop-Ruckler */
+  musicDurationSec?: number | null;
 }
 
 // ── calculateDuration ─────────────────────────────────────────────────────
@@ -152,6 +156,9 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
 
   // Lottie Bus
   showLottieBus = true,
+
+  // Musik-Dauer
+  musicDurationSec,
 }) => {
   const { fps, durationInFrames } = useVideoConfig();
 
@@ -450,13 +457,14 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
         </Sequence>
       )}
 
-      {/* ══ SCHICHT 11: Audio — volume als Funktion ═══════════════════════════ */}
+      {/* ══ SCHICHT 11: Audio — loop=false wenn Dauer bekannt ════════════════ */}
       {musicUrl && (
         <AudioLayer
           src={musicUrl}
           volume={0.72}
           fadeInSec={2}
           fadeOutSec={3}
+          musicDurationSec={musicDurationSec ?? undefined}
         />
       )}
 

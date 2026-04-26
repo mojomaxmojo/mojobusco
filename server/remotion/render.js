@@ -394,6 +394,31 @@ export async function renderMojoBusVideo(params) {
     throw new Error(`Bild-Download fehlgeschlagen: ${err.message}`);
   }
 
+  // SCHRITT 1b: Musik-Dauer auslesen (für Loop-freies Audio)
+  let musicDurationSec = null;
+  if (musicUrl) {
+    // Musik-URL ist eine localhost-URL wie http://localhost:3002/api/music/track.mp3
+    // ffprobe kann HTTP-URLs direkt lesen
+    try {
+      const { execFile } = await import('child_process');
+      const { promisify } = await import('util');
+      const execFileAsync = promisify(execFile);
+      const result = await execFileAsync(FFPROBE_PATH, [
+        '-v', 'quiet',
+        '-print_format', 'json',
+        '-show_format',
+        musicUrl,
+      ], { timeout: 10000 });
+      const info = JSON.parse(result.stdout);
+      musicDurationSec = parseFloat(info?.format?.duration || '0') || null;
+      if (musicDurationSec) {
+        console.log(`[Remotion] Musik-Dauer: ${musicDurationSec.toFixed(1)}s`);
+      }
+    } catch (e) {
+      console.warn(`[Remotion] Musik-Dauer konnte nicht ausgelesen werden: ${e.message}`);
+    }
+  }
+
   // SCHRITT 2: Lokalen HTTP-Server für die Bilder starten
   let imageServer = null;
   let httpImageUrls;
@@ -424,6 +449,8 @@ export async function renderMojoBusVideo(params) {
       transitionType,
       showRouteMap, routeCoords, mapImageUrl,
       showLottieBus,
+      // ── Musik-Dauer für Loop-freies Audio ─────────────────────────
+      musicDurationSec,
     };
 
     const composition = await selectComposition({
