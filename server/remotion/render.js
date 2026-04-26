@@ -162,32 +162,56 @@ ensureChromeBinary().catch(() => {});
 
 // ── Bundle Cache ──────────────────────────────────────────────────────────
 
-let bundleCache = null;
-let isBundling  = false;
-let bundleQueue = [];
+let bundleCache    = null;
+let isBundling     = false;
+let bundleQueue    = [];
+let bundleAttempts = 0;
 
 async function getBundledEntry() {
   if (bundleCache) return bundleCache;
+
   if (isBundling) {
     return new Promise((resolve, reject) => bundleQueue.push({ resolve, reject }));
   }
+
   isBundling = true;
-  console.log('[Remotion] Bundling...');
+  bundleAttempts++;
+  console.log(`[Remotion] Bundling... (Versuch ${bundleAttempts})`);
   const t = Date.now();
+
   try {
     const bundled = await bundle({
       entryPoint: path.join(__dirname, 'index.tsx'),
       webpackOverride: (c) => c,
     });
-    bundleCache = bundled;
+
+    bundleCache    = bundled;
+    bundleAttempts = 0;
     console.log(`[Remotion] Bundle fertig in ${((Date.now() - t) / 1000).toFixed(1)}s`);
     bundleQueue.forEach(({ resolve }) => resolve(bundled));
     bundleQueue = [];
     return bundled;
+
   } catch (err) {
-    isBundling = false;
+    // EPIPE / esbuild-Absturz → Cache leeren und Warteschlange informieren
+    bundleCache = null;
+    isBundling  = false;
     bundleQueue.forEach(({ reject }) => reject(err));
     bundleQueue = [];
+
+    const isEsbuildCrash = err.message?.includes('EPIPE') ||
+                           err.message?.includes('service is no longer running') ||
+                           err.message?.includes('The service was stopped');
+
+    if (isEsbuildCrash && bundleAttempts < 3) {
+      // esbuild-Prozess neu starten: kurz warten + nochmal versuchen
+      const delay = bundleAttempts * 3000; // 3s, 6s
+      console.warn(`[Remotion] esbuild abgestürzt (EPIPE), retry in ${delay}ms...`);
+      await new Promise(r => setTimeout(r, delay));
+      isBundling = false;
+      return getBundledEntry(); // rekursiv nochmal
+    }
+
     throw err;
   } finally {
     isBundling = false;
@@ -335,6 +359,18 @@ export async function renderMojoBusVideo(params) {
     handle = '@mojobus',
     accentColor = '#F59E0B',
     motionBlurStrength = 1,
+    // ── NEU: Beat-Sync ────────────────────────────────────────────────
+    beatSyncStrength = 0.6,
+    beatThreshold = 0.60,
+    showWaveformBar = false,
+    // ── NEU: Transitions ─────────────────────────────────────────────
+    transitionType = 'auto',
+    // ── NEU: Routen-Karte ────────────────────────────────────────────
+    showRouteMap = false,
+    routeCoords,
+    mapImageUrl,
+    // ── NEU: Lottie Bus ───────────────────────────────────────────────
+    showLottieBus = true,
     onProgress,
   } = params;
 
@@ -383,6 +419,11 @@ export async function renderMojoBusVideo(params) {
       title, summary, location, country, lifestyle, musicUrl,
       secondsPerImage, aspectRatio, colorGrade, filmGrain,
       captions, captionStyle, websiteUrl, handle, accentColor, motionBlurStrength,
+      // ── NEU: Beat-Sync, Transitions, Route, Lottie ────────────────
+      beatSyncStrength, beatThreshold, showWaveformBar,
+      transitionType,
+      showRouteMap, routeCoords, mapImageUrl,
+      showLottieBus,
     };
 
     const composition = await selectComposition({

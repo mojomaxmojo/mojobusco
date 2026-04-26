@@ -246,6 +246,12 @@ deploy_files() {
 
             # ── Remotion prüfen und automatisch installieren ──────────────────
             REMOTION_CHECK="$DEPLOY_DIR/server/node_modules/@remotion/renderer/package.json"
+            # v2.0: Prüfe auch neue Skill-Packages
+            REMOTION_MEDIA_CHECK="$DEPLOY_DIR/server/node_modules/@remotion/media-utils/package.json"
+            REMOTION_TRANSITIONS_CHECK="$DEPLOY_DIR/server/node_modules/@remotion/transitions/package.json"
+            REMOTION_SHAPES_CHECK="$DEPLOY_DIR/server/node_modules/@remotion/shapes/package.json"
+            REMOTION_LOTTIE_CHECK="$DEPLOY_DIR/server/node_modules/@remotion/lottie/package.json"
+
             if [ ! -f "$REMOTION_CHECK" ]; then
                 info_msg "Remotion nicht gefunden — führe einmaligen Setup aus (dauert 2-3 Min)..."
                 if [ -f "$DEPLOY_DIR/server/remotion-install.sh" ]; then
@@ -257,7 +263,29 @@ deploy_files() {
                 fi
             else
                 REMOTION_VER=$(node -e "try{console.log(require('$REMOTION_CHECK').version)}catch(e){console.log('?')}" 2>/dev/null)
-                success_msg "✓ Remotion v$REMOTION_VER — keine Neuinstallation nötig"
+                success_msg "✓ Remotion v$REMOTION_VER"
+
+                # v2.0: Skill-Packages nachinstallieren wenn noch nicht vorhanden
+                MISSING_SKILLS=0
+                [ ! -f "$REMOTION_MEDIA_CHECK" ]      && MISSING_SKILLS=$((MISSING_SKILLS+1)) && warn_msg "⚠ @remotion/media-utils fehlt"
+                [ ! -f "$REMOTION_TRANSITIONS_CHECK" ] && MISSING_SKILLS=$((MISSING_SKILLS+1)) && warn_msg "⚠ @remotion/transitions fehlt"
+                [ ! -f "$REMOTION_SHAPES_CHECK" ]      && MISSING_SKILLS=$((MISSING_SKILLS+1)) && warn_msg "⚠ @remotion/shapes fehlt"
+                [ ! -f "$REMOTION_LOTTIE_CHECK" ]      && MISSING_SKILLS=$((MISSING_SKILLS+1)) && warn_msg "⚠ @remotion/lottie fehlt"
+
+                if [ $MISSING_SKILLS -gt 0 ]; then
+                    info_msg "$MISSING_SKILLS v2.0-Skill-Package(s) fehlen — installiere nach..."
+                    cd "$DEPLOY_DIR/server" && npm install \
+                        @remotion/media-utils@"$REMOTION_VER" \
+                        @remotion/transitions@"$REMOTION_VER" \
+                        @remotion/shapes@"$REMOTION_VER" \
+                        @remotion/lottie@"$REMOTION_VER" \
+                        lottie-web \
+                        --silent >> "$LOG_FILE" 2>&1 \
+                        && success_msg "✓ v2.0-Skill-Packages installiert" \
+                        || warn_msg "⚠ Skill-Package Installation fehlgeschlagen"
+                else
+                    success_msg "✓ Alle Remotion v2.0 Skill-Packages vorhanden"
+                fi
             fi
         fi
     fi

@@ -2435,6 +2435,7 @@ app.post('/api/render-remotion/invalidate-bundle', async (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`[Server] Backend läuft auf Port ${PORT}`)
+  console.log(`[Server] Node.js Heap: ${Math.round(process.memoryUsage().heapTotal / 1024 / 1024)}MB benutzt`)
   console.log(`[Server] GROQ_API_KEY: ${process.env.GROQ_API_KEY ? '✓ Konfiguriert' : '✗ Fehlt!'}`)
   console.log(`[Server] ANTHROPIC_API_KEY: ${process.env.ANTHROPIC_API_KEY ? '✓ Konfiguriert' : '✗ Fehlt!'}`)
   console.log(`[Server] OPENROUTER_API_KEY: ${process.env.OPENROUTER_API_KEY ? '✓ Konfiguriert (für Video-Analyse)' : '✗ Fehlt (Video-Analyse nicht verfügbar)'}`)

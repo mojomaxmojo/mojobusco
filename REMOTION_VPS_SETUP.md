@@ -51,9 +51,37 @@ npm install @remotion/renderer @remotion/bundler remotion react react-dom \
   @remotion/google-fonts @remotion/motion-blur @remotion/captions
 ```
 
-### Erwartete Installation (~3-4 Minuten):
+### NEU: Skill-Packages (v2.0) — alle 4 Skills:
+```bash
+# Beat-Sync (useAudioData)
+npm install @remotion/media-utils
+
+# Transitions (wipe, clockWipe, fade)
+npm install @remotion/transitions
+
+# Shapes (RouteMapLine)
+npm install @remotion/shapes
+
+# Lottie Bus-Icon
+npm install @remotion/lottie lottie-web
+
+# Alle 4 auf einmal:
+npm install @remotion/media-utils @remotion/transitions @remotion/shapes \
+  @remotion/lottie lottie-web
 ```
-added 950 packages in 3m
+
+### Alle Packages gesamt (vollständig):
+```bash
+npm install @remotion/renderer @remotion/bundler remotion react react-dom \
+  @types/react @types/react-dom \
+  @remotion/google-fonts @remotion/motion-blur @remotion/captions \
+  @remotion/media-utils @remotion/transitions @remotion/shapes \
+  @remotion/lottie lottie-web
+```
+
+### Erwartete Installation (~4-5 Minuten):
+```
+added 980 packages in 4m
 ```
 
 ---
@@ -290,7 +318,7 @@ pm2 logs mojobus-server --lines 100 | grep -i remotion
 
 ---
 
-## Remotion Skills — Was ist eingebaut
+## Remotion Skills — Was ist eingebaut (v2.0)
 
 | Komponente | Beschreibung |
 |---|---|
@@ -304,17 +332,41 @@ pm2 logs mojobus-server --lines 100 | grep -i remotion
 | `FilmGrain` | Frame-by-frame Film-Grain via SVG-Filter |
 | `StoryCaption` | Story-Texte / Captions pro Bild |
 | `CrossFade / ZoomBlur / FadeIn` | Professionelle Übergänge zwischen Fotos |
+| ✅ `BeatSyncLayer` | **NEU:** Beat-Flash synchron zur Musik (viral!) — `useAudioData` + Fallback |
+| ✅ `TransitionWrapper` | **NEU:** wipe, clockWipe, fade, slide — `@remotion/transitions` + CSS-Fallback |
+| ✅ `RouteMapLine` | **NEU:** Animierte Routen-Linie auf Karte — `@remotion/shapes` + SVG |
+| ✅ `LottieBusIcon` | **NEU:** Animierter CSS/Lottie Bus in Endkarte — `@remotion/lottie` + CSS |
+| ✅ `AudioWaveformBar` | **NEU:** Bonus — Equalizer-Balken-Visualizer |
+| ✅ `WipeEdgeGlow` | **NEU:** Bonus — Glühende Wipe-Kante |
+| ✅ `BusRideOverlay` | **NEU:** Bonus — Bus fährt durchs Bild |
 
-### Geplante Erweiterungen (TODO):
+### Neue API-Parameter (v2.0):
 
-| Skill | Package | Nutzen |
-|---|---|---|
-| Beat-Cuts | `useAudioData` | Schnitte synchron zur Musik |
-| Untertitel | `@remotion/captions` | 85% schauen ohne Ton |
-| Custom Wellen | `@remotion/shapes` | Dekorative Routen-Animation |
-| Lottie-Icons | `@remotion/lottie` | Fertige Animationen (Wellen, Karte) |
-| Motion Blur | `@remotion/motion-blur` | Film-Feeling beim Ken Burns Zoom |
-| Google Fonts | `@remotion/google-fonts` | Brand-Schrift Montserrat offline |
+| Parameter | Typ | Default | Beschreibung |
+|---|---|---|---|
+| `beatSyncStrength` | `0–1` | `0.6` | Beat-Flash Stärke (0 = aus) |
+| `beatThreshold` | `0–1` | `0.60` | Mindest-Energie für Beat-Erkennung |
+| `showWaveformBar` | `boolean` | `false` | Equalizer-Balken unten anzeigen |
+| `transitionType` | `wipe\|clockWipe\|fade\|slide\|auto` | `auto` | Transitions-Typ zwischen Bildern |
+| `showRouteMap` | `boolean` | `false` | Routen-Karte in mittlerem Slide |
+| `routeCoords` | `RouteCoord[]` | auto | Punkte der Route (Prozent-Koordinaten) |
+| `mapImageUrl` | `string` | — | Karten-Hintergrundbild URL |
+| `showLottieBus` | `boolean` | `true` | Animierten Bus in Endkarte zeigen |
+
+### Lottie Bus-Icon einrichten (optional):
+```bash
+# 1. Package installieren
+npm install @remotion/lottie lottie-web
+
+# 2. Bus-Animation herunterladen (von LottieFiles.com)
+#    Suche: "bus" oder "oldtimer bus"
+#    https://lottiefiles.com/search?q=bus&contentType=free
+
+# 3. JSON-Datei speichern als:
+mkdir -p /var/www/mojobus.co/server/remotion/lottie
+cp ~/Downloads/bus-animation.json /var/www/mojobus.co/server/remotion/lottie/bus.json
+```
+Ohne bus.json: automatischer Fallback auf CSS-animierten Bus (sieht ebenfalls gut aus).
 
 ---
 
@@ -333,25 +385,23 @@ pm2 logs mojobus-server --lines 100 | grep -i remotion
 
 ---
 
-## Empfohlene Remotion Skills für MojoBus
+## Remotion Skills — Implementierungsstand
 
-Sortiert nach Priorität für eure Inhalte:
+### ✅ Abgeschlossen (v1.0)
+1. **`@remotion/google-fonts`** — Montserrat als Brand-Schrift ✓
+2. **`@remotion/captions`** — Auto-Untertitel (85% schauen ohne Ton!) ✓
+3. **`@remotion/motion-blur`** — Film-Feeling beim Ken Burns Zoom ✓
 
-### 🔴 Hoch (sofort umsetzen)
-1. **`@remotion/google-fonts`** — Montserrat als Brand-Schrift, offline auf VPS
-2. **`@remotion/captions`** — Auto-Untertitel (85% schauen ohne Ton!)
-3. **`@remotion/motion-blur`** — Film-Feeling beim Ken Burns Zoom
+### ✅ NEU: Abgeschlossen (v2.0)
+4. **`useAudioData` + Beat-Sync** (`BeatSyncLayer`) — Flash synchron zur Musik ✓
+5. **`@remotion/transitions`** (`TransitionWrapper`) — wipe, clockWipe, fade, slide ✓
+6. **`@remotion/shapes`** (`RouteMapLine`) — Routen-Linie animieren auf Karte ✓
+7. **`@remotion/lottie`** (`LottieBusIcon`) — Animierter CSS/Lottie Bus ✓
 
-### 🟡 Mittel (nächste Iteration)
-4. **`useAudioData` + Beat-Sync** — Schnitte synchron zur Musik → viral
-5. **`@remotion/transitions`** — `wipe`, `slide`, `clockWipe` (professionell)
-6. **`@remotion/shapes`** — Routen-Linie animieren (Karte → Route → Ziel)
-7. **Lottie** — Fertige Animations-Icons (Kompass, Bus-Icon, Wellen)
-
-### 🟢 Later (nach Launch)
+### 🟢 Zukünftig (nach Launch)
 8. **Remotion Lambda** (falls VPS überlastet) → Cloud-Rendering
-9. **Beat-Sync** mit Suno/ElevenLabs Musik
-10. **AR-Overlays** via Remotion Compositions
+9. **Whisper API** + `@remotion/captions` — Echte Wort-für-Wort Transkription
+10. **Beat-Sync** mit Suno/ElevenLabs generierten Tracks
 
 ---
 

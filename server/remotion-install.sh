@@ -44,6 +44,12 @@ const packages = {
   '@remotion/google-fonts': v,
   '@remotion/motion-blur': v,
   '@remotion/captions': v,
+  // v2.0: Beat-Sync, Transitions, Shapes, Lottie
+  '@remotion/media-utils': v,
+  '@remotion/transitions': v,
+  '@remotion/shapes': v,
+  '@remotion/lottie': v,
+  'lottie-web': '^5.12.2',
   'react': '18.3.1',
   'react-dom': '18.3.1',
   '@types/react': '18.3.0',
@@ -96,7 +102,7 @@ fi
 
 echo ""
 echo "🔍 Verifizierung..."
-for pkg in remotion @remotion/renderer @remotion/bundler @remotion/google-fonts @remotion/motion-blur @remotion/captions react react-dom; do
+for pkg in remotion @remotion/renderer @remotion/bundler @remotion/google-fonts @remotion/motion-blur @remotion/captions @remotion/media-utils @remotion/transitions @remotion/shapes @remotion/lottie lottie-web react react-dom; do
   PKG_JSON="$SCRIPT_DIR/node_modules/$pkg/package.json"
   if [ -f "$PKG_JSON" ]; then
     VER=$(node -e "console.log(require('$PKG_JSON').version)" 2>/dev/null)
