@@ -246,11 +246,15 @@ deploy_files() {
 
             # ── Remotion prüfen und automatisch installieren ──────────────────
             REMOTION_CHECK="$DEPLOY_DIR/server/node_modules/@remotion/renderer/package.json"
-            # v2.0: Prüfe auch neue Skill-Packages
+            # Kern-Packages (müssen immer da sein)
+            REMOTION_BUNDLER_CHECK="$DEPLOY_DIR/server/node_modules/@remotion/bundler/package.json"
+            REMOTION_STUDIO_CHECK="$DEPLOY_DIR/server/node_modules/@remotion/studio/package.json"
+            # v2.0: Skill-Packages
             REMOTION_MEDIA_CHECK="$DEPLOY_DIR/server/node_modules/@remotion/media-utils/package.json"
             REMOTION_TRANSITIONS_CHECK="$DEPLOY_DIR/server/node_modules/@remotion/transitions/package.json"
             REMOTION_SHAPES_CHECK="$DEPLOY_DIR/server/node_modules/@remotion/shapes/package.json"
             REMOTION_LOTTIE_CHECK="$DEPLOY_DIR/server/node_modules/@remotion/lottie/package.json"
+            REMOTION_NOISE_CHECK="$DEPLOY_DIR/server/node_modules/@remotion/noise/package.json"
 
             if [ ! -f "$REMOTION_CHECK" ]; then
                 info_msg "Remotion nicht gefunden — führe einmaligen Setup aus (dauert 2-3 Min)..."
@@ -265,16 +269,21 @@ deploy_files() {
                 REMOTION_VER=$(node -e "try{console.log(require('$REMOTION_CHECK').version)}catch(e){console.log('?')}" 2>/dev/null)
                 success_msg "✓ Remotion v$REMOTION_VER"
 
-                # v2.0: Skill-Packages nachinstallieren wenn noch nicht vorhanden
+                # Kern + Skill-Packages prüfen und nachinstallieren
                 MISSING_SKILLS=0
-                [ ! -f "$REMOTION_MEDIA_CHECK" ]      && MISSING_SKILLS=$((MISSING_SKILLS+1)) && warn_msg "⚠ @remotion/media-utils fehlt"
+                [ ! -f "$REMOTION_BUNDLER_CHECK" ]     && MISSING_SKILLS=$((MISSING_SKILLS+1)) && warn_msg "⚠ @remotion/bundler fehlt"
+                [ ! -f "$REMOTION_STUDIO_CHECK" ]      && MISSING_SKILLS=$((MISSING_SKILLS+1)) && warn_msg "⚠ @remotion/studio fehlt"
+                [ ! -f "$REMOTION_MEDIA_CHECK" ]       && MISSING_SKILLS=$((MISSING_SKILLS+1)) && warn_msg "⚠ @remotion/media-utils fehlt"
                 [ ! -f "$REMOTION_TRANSITIONS_CHECK" ] && MISSING_SKILLS=$((MISSING_SKILLS+1)) && warn_msg "⚠ @remotion/transitions fehlt"
                 [ ! -f "$REMOTION_SHAPES_CHECK" ]      && MISSING_SKILLS=$((MISSING_SKILLS+1)) && warn_msg "⚠ @remotion/shapes fehlt"
                 [ ! -f "$REMOTION_LOTTIE_CHECK" ]      && MISSING_SKILLS=$((MISSING_SKILLS+1)) && warn_msg "⚠ @remotion/lottie fehlt"
+                [ ! -f "$REMOTION_NOISE_CHECK" ]       && MISSING_SKILLS=$((MISSING_SKILLS+1)) && warn_msg "⚠ @remotion/noise fehlt"
 
                 if [ $MISSING_SKILLS -gt 0 ]; then
-                    info_msg "$MISSING_SKILLS v2.0-Skill-Package(s) fehlen — installiere nach..."
+                    info_msg "$MISSING_SKILLS Remotion-Package(s) fehlen — installiere nach..."
                     cd "$DEPLOY_DIR/server" && npm install \
+                        @remotion/bundler@"$REMOTION_VER" \
+                        @remotion/studio@"$REMOTION_VER" \
                         @remotion/media-utils@"$REMOTION_VER" \
                         @remotion/transitions@"$REMOTION_VER" \
                         @remotion/shapes@"$REMOTION_VER" \
@@ -282,26 +291,14 @@ deploy_files() {
                         @remotion/noise@"$REMOTION_VER" \
                         lottie-web \
                         --silent >> "$LOG_FILE" 2>&1 \
-                        && success_msg "✓ v2.0-Skill-Packages installiert" \
-                        || warn_msg "⚠ Skill-Package Installation fehlgeschlagen"
+                        && success_msg "✓ Alle Remotion-Packages installiert" \
+                        || warn_msg "⚠ Package-Installation fehlgeschlagen"
                 else
-                    success_msg "✓ Alle Remotion v2.0 Skill-Packages vorhanden"
+                    success_msg "✓ Alle Remotion-Packages vorhanden"
                 fi
             fi
 
-            # ── esbuild Execute-Rechte setzen (KRITISCH!) ─────────────────────
-            # Nach chown -R nginx:nginx verlieren esbuild-Binaries ihre +x Rechte.
-            # Ohne +x: EACCES → alle Dateien crashen mit EPIPE.
-            info_msg "Setze Execute-Rechte auf esbuild-Binaries..."
-            find "$DEPLOY_DIR/server/node_modules" \
-                \( -name "esbuild" -o -name "esbuild.exe" \) \
-                -type f \
-                -exec chmod +x {} \; 2>/dev/null
-            # Auch @esbuild/* Platform-Packages
-            find "$DEPLOY_DIR/server/node_modules/@esbuild" \
-                -name "esbuild" -o -name "esbuild.exe" 2>/dev/null | \
-                xargs -r chmod +x
-            success_msg "✓ esbuild Execute-Rechte gesetzt"
+            # esbuild chmod wird NACH dem globalen chmod 644 gesetzt (weiter unten)
         fi
     fi
 
@@ -342,6 +339,21 @@ deploy_files() {
     chown -R nginx:nginx "$DEPLOY_DIR"
     find "$DEPLOY_DIR" -type d -exec chmod 755 {} \;
     find "$DEPLOY_DIR" -type f -exec chmod 644 {} \;
+
+    # ── esbuild +x NACH chmod 644 wiederherstellen ────────────────────────
+    # chmod 644 entfernt +x von allen Binaries → esbuild EACCES → EPIPE
+    # Muss NACH dem generellen chmod laufen, nicht davor!
+    find "$DEPLOY_DIR/server/node_modules" \
+        \( -name "esbuild" -o -name "chrome-headless-shell" \) \
+        -type f \
+        -exec chmod 755 {} \; 2>/dev/null
+    find "$DEPLOY_DIR/server/node_modules/@esbuild" \
+        -type f -name "esbuild" \
+        -exec chmod 755 {} \; 2>/dev/null
+    find "$DEPLOY_DIR/server/node_modules/.remotion" \
+        -type f \
+        -exec chmod 755 {} \; 2>/dev/null
+    info_msg "✓ Binary Execute-Rechte wiederhergestellt (esbuild, chrome)"
 
     success_msg "Files deployed und Permissions gesetzt"
 }

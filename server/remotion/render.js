@@ -454,9 +454,14 @@ export async function renderMojoBusVideo(params) {
       // yuv420p: maximale Kompatibilität (iPhone, Android, Browser, Social)
       pixelFormat: 'yuv420p',
       // x264 Preset: 'medium' = gutes Speed/Quality Verhältnis auf VPS
-      // 'fast' wäre schneller aber ~10% größere Dateien
       x264Preset: 'medium',
-      concurrency: Math.max(1, Math.floor(os.cpus().length * 0.75)),
+      // ── Audio-Glitch Fix ──────────────────────────────────────────────
+      // Hohe Concurrency (z.B. 6 Tabs) → Chrome rendert Chunks parallel
+      // → Audio-Position wird pro Chunk neu berechnet → Ruckler an Chunk-Grenzen
+      // Lösung: concurrency=1 eliminiert Chunk-Grenzen komplett.
+      // Nachteil: ~3x langsamer. Für Slideshows mit Musik ist das der einzige
+      // zuverlässige Weg für glatte Tonspur.
+      concurrency: 1,
       ...(CHROME_PATH ? { browserExecutable: CHROME_PATH } : {}),
       chromiumOptions: CHROMIUM_OPTIONS,
       onBrowserLog: ({ type, text }) => {
