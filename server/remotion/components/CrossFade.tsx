@@ -1,99 +1,91 @@
 /**
- * CrossFade + Slide Transitions zwischen Fotos
- * Unterstützt: crossfade | slide-left | slide-up | zoom-out | wipe
+ * CrossFade — Saubere Transitions ohne Jitter/Hackeln
+ *
+ * Regeln für hackle-freie Transitions in Remotion:
+ * 1. Keine CSS blur() während Bewegung (GPU-Jitter)
+ * 2. Opacity-Interpolation muss clamp haben
+ * 3. Sequence-Überlappung muss exakt stimmen
+ * 4. Easing: cubic ease-out für natürliche Bewegung
  */
 
+import React from 'react';
 import { AbsoluteFill, interpolate, useCurrentFrame } from 'remotion';
 
-export type TransitionType = 'crossfade' | 'slide-left' | 'slide-up' | 'zoom-out' | 'wipe';
+// ── Easing Hilfsfunktionen ────────────────────────────────────────────────
 
-interface TransitionSlideProps {
-  /** Total Frames für die Transition */
-  durationFrames?: number;
-  type?: TransitionType;
-  children: React.ReactNode;
-}
+/** Cubic ease-out: schnell rein, sanft aus */
+const easeOutCubic = (t: number): number => 1 - Math.pow(1 - t, 3);
 
-/**
- * Wrapper für Bild-Slide: blendet von 0→1 ein (outgoing: 1→0)
- * Wird INNERHALB einer Sequence verwendet
- */
+/** Cubic ease-in-out: sanft rein und raus */
+const easeInOutCubic = (t: number): number =>
+  t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+// ── Basis-Komponenten ─────────────────────────────────────────────────────
+
+/** Blendet von opacity 0 → 1 ein */
 export const FadeIn: React.FC<{
   durationFrames: number;
   children: React.ReactNode;
 }> = ({ durationFrames, children }) => {
   const frame = useCurrentFrame();
-  const opacity = interpolate(frame, [0, durationFrames], [0, 1], {
+  const t = interpolate(frame, [0, Math.max(1, durationFrames)], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  return <AbsoluteFill style={{ opacity }}>{children}</AbsoluteFill>;
+  const opacity = easeOutCubic(t);
+  return (
+    <AbsoluteFill style={{ opacity }}>
+      {children}
+    </AbsoluteFill>
+  );
 };
 
+/** Blendet von opacity 1 → 0 aus (am Ende der Sequence) */
 export const FadeOut: React.FC<{
   durationFrames: number;
   totalFrames: number;
   children: React.ReactNode;
 }> = ({ durationFrames, totalFrames, children }) => {
   const frame = useCurrentFrame();
-  const opacity = interpolate(
-    frame,
-    [totalFrames - durationFrames, totalFrames],
-    [1, 0],
-    { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
-  );
-  return <AbsoluteFill style={{ opacity }}>{children}</AbsoluteFill>;
-};
-
-/**
- * SlideIn — Bild schiebt von einer Seite rein
- */
-export const SlideIn: React.FC<{
-  durationFrames: number;
-  direction?: 'left' | 'right' | 'up' | 'down';
-  children: React.ReactNode;
-}> = ({ durationFrames, direction = 'left', children }) => {
-  const frame = useCurrentFrame();
-
-  const progress = interpolate(frame, [0, durationFrames], [0, 1], {
+  const fadeStart = Math.max(0, totalFrames - durationFrames);
+  const t = interpolate(frame, [fadeStart, totalFrames], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-
-  // Eased progress
-  const eased = 1 - Math.pow(1 - progress, 3); // cubic ease-out
-
-  let translateX = 0;
-  let translateY = 0;
-
-  switch (direction) {
-    case 'left':
-      translateX = interpolate(eased, [0, 1], [100, 0]);
-      break;
-    case 'right':
-      translateX = interpolate(eased, [0, 1], [-100, 0]);
-      break;
-    case 'up':
-      translateY = interpolate(eased, [0, 1], [100, 0]);
-      break;
-    case 'down':
-      translateY = interpolate(eased, [0, 1], [-100, 0]);
-      break;
-  }
-
+  const opacity = 1 - easeInOutCubic(t);
   return (
-    <AbsoluteFill
-      style={{
-        transform: `translate(${translateX}%, ${translateY}%)`,
-      }}
-    >
+    <AbsoluteFill style={{ opacity }}>
       {children}
     </AbsoluteFill>
   );
 };
 
 /**
- * ZoomBlur — Zoom + Blur Transition
+ * CrossDissolve — Sauberes Cross-Fade zwischen zwei Bildern.
+ * Kein blur, kein scale → kein GPU-Jitter.
+ * Das neue Bild blendet über das alte.
+ */
+export const CrossDissolve: React.FC<{
+  durationFrames: number;
+  children: React.ReactNode;
+}> = ({ durationFrames, children }) => {
+  const frame = useCurrentFrame();
+  const t = interpolate(frame, [0, Math.max(1, durationFrames)], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const opacity = easeInOutCubic(t);
+  return (
+    <AbsoluteFill style={{ opacity }}>
+      {children}
+    </AbsoluteFill>
+  );
+};
+
+/**
+ * ZoomBlur — Sanfter Zoom-Einblend-Effekt OHNE CSS blur().
+ * blur() verursacht GPU-Ruckeln beim Render auf VPS.
+ * Stattdessen: nur scale + opacity für glatte Transition.
  */
 export const ZoomBlur: React.FC<{
   durationFrames: number;
@@ -101,15 +93,15 @@ export const ZoomBlur: React.FC<{
 }> = ({ durationFrames, children }) => {
   const frame = useCurrentFrame();
 
-  const progress = interpolate(frame, [0, durationFrames], [0, 1], {
+  const t = interpolate(frame, [0, Math.max(1, durationFrames)], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
 
-  const eased = 1 - Math.pow(1 - progress, 2);
-  const scale = interpolate(eased, [0, 1], [1.15, 1]);
-  const blur = interpolate(eased, [0, 1], [8, 0]);
-  const opacity = interpolate(eased, [0, 0.3], [0, 1], {
+  const eased   = easeOutCubic(t);
+  const scale   = interpolate(eased, [0, 1], [1.06, 1.0]); // subtiler Zoom-In
+  const opacity = interpolate(t,     [0, 0.4], [0, 1], {   // schnelles Einblenden
+    extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
 
@@ -118,9 +110,43 @@ export const ZoomBlur: React.FC<{
       style={{
         opacity,
         transform: `scale(${scale})`,
-        filter: blur > 0.5 ? `blur(${blur}px)` : undefined,
+        transformOrigin: 'center center',
+        // KEIN filter: blur() — verursacht Jitter!
       }}
     >
+      {children}
+    </AbsoluteFill>
+  );
+};
+
+/**
+ * SlideIn — Bild schiebt von einer Seite rein (ohne blur)
+ */
+export const SlideIn: React.FC<{
+  durationFrames: number;
+  direction?: 'left' | 'right' | 'up' | 'down';
+  children: React.ReactNode;
+}> = ({ durationFrames, direction = 'left', children }) => {
+  const frame = useCurrentFrame();
+
+  const t = interpolate(frame, [0, Math.max(1, durationFrames)], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const eased = easeOutCubic(t);
+
+  let translateX = 0;
+  let translateY = 0;
+
+  switch (direction) {
+    case 'left':  translateX = interpolate(eased, [0, 1], [100, 0]); break;
+    case 'right': translateX = interpolate(eased, [0, 1], [-100, 0]); break;
+    case 'up':    translateY = interpolate(eased, [0, 1], [100, 0]); break;
+    case 'down':  translateY = interpolate(eased, [0, 1], [-100, 0]); break;
+  }
+
+  return (
+    <AbsoluteFill style={{ transform: `translate(${translateX}%, ${translateY}%)` }}>
       {children}
     </AbsoluteFill>
   );

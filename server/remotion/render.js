@@ -405,7 +405,7 @@ export async function renderMojoBusVideo(params) {
       ffmpegExecutable:  FFMPEG_PATH,
       ffprobeExecutable: FFPROBE_PATH,
       crf: 20,
-      concurrency: 1,
+      concurrency: Math.max(1, Math.floor(os.cpus().length * 0.75)),
       ...(CHROME_PATH ? { browserExecutable: CHROME_PATH } : {}),
       chromiumOptions: CHROMIUM_OPTIONS,
       onBrowserLog: ({ type, text }) => {
