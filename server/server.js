@@ -2419,7 +2419,8 @@ app.get('/api/render-remotion/check', async (req, res) => {
 
 // ── Bundle-Cache invalidieren (nach Code-Änderungen) ───────────────────
 // POST /api/render-remotion/invalidate-bundle
-app.post('/api/render-remotion/invalidate-bundle', async (req, res) => {
+// Alias-Handler für beide URL-Varianten
+async function handleInvalidateBundle(req, res) {
   try {
     const renderer = await getRemotionRenderer()
     if (renderer && renderer.invalidateBundleCache) {
@@ -2431,7 +2432,13 @@ app.post('/api/render-remotion/invalidate-bundle', async (req, res) => {
   } catch (err) {
     res.json({ ok: false, error: err.message })
   }
-})
+}
+
+// POST /api/render-remotion/invalidate-bundle  (original)
+app.post('/api/render-remotion/invalidate-bundle', handleInvalidateBundle)
+
+// POST /api/render-remotion/invalidate-cache   (Alias — gleiche Funktion)
+app.post('/api/render-remotion/invalidate-cache', handleInvalidateBundle)
 
 app.listen(PORT, () => {
   console.log(`[Server] Backend läuft auf Port ${PORT}`)
