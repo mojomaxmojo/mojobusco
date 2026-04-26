@@ -1,19 +1,15 @@
 /**
- * LottieBusIcon — MojoBus US-Oldtimer Hippie-Style (v3)
+ * LottieBusIcon — MojoBus US-Oldtimer Hippie-Style (v4)
  *
- * VW-Bus / US-Oldtimer Proporionen (hoch + quadratisch):
- *  - Zweifarbige Karosserie (oben Creme, unten Körperfarbe)
- *  - Große geteilte Windschutzscheibe (VW-typisch, 2-teilig)
- *  - 3 einzelne quadratische Seitenfenster
- *  - Prillblumen (5-Blatt) auf der Seite
- *  - Peace-Zeichen UMGEKEHRT (Strich zeigt nach oben = Anti-Peace/Hippie-Ironie)
+ * US-Bus Proportionen 10m × 3.3m → SVG Ratio W:H = 3.03:1 (lang + flach)
+ *  - Karosserie komplett Cremeweiß (oben + unten)
+ *  - Peace-Zeichen UMGEKEHRT: Strich nach UNTEN, Diagonalen nach OBEN-AUSSEN
+ *  - 8-Speichen Chromfelgen mit Weißwand-Reifen
+ *  - Viele Prillblumen (10+) auf der Seite
  *  - Regenbogenstreifen horizontal
- *  - Rost-Flecken für authentischen Oldtimer-Look
- *  - Chromstoßstange vorne + hinten
- *  - Rundes VW-artiges Emblem vorne
- *  - Klassische Speichenfelgen (Holzlook)
+ *  - Rost-Flecken
+ *  - Surf-Brett aufs Dach
  *  - Animiertes Abgas-Wölkchen
- *  - Surf-Brett aufs Dach geschnallt
  */
 
 import React from 'react';
@@ -67,8 +63,9 @@ const PrillFlower: React.FC<{
 };
 
 // ── Peace-Zeichen UMGEKEHRT ───────────────────────────────────────────────
-// Umgekehrt = Kreis + senkrechter Strich zeigt nach OBEN + Diagonalen nach UNTEN-AUSSEN
-// (normales Peace gespiegelt an X-Achse)
+// UMGEKEHRT = Strich zeigt nach UNTEN, Diagonalen nach OBEN-AUSSEN
+// (normales Peace: Strich nach oben + Diagonalen nach unten-außen)
+// → hier: Strich von Mitte nach UNTEN, Diagonalen von Mitte nach OBEN-LINKS + OBEN-RECHTS
 
 const InvertedPeace: React.FC<{
   cx: number; cy: number; r: number; color: string; strokeW: number;
@@ -76,47 +73,53 @@ const InvertedPeace: React.FC<{
   <g transform={`translate(${cx},${cy})`}>
     {/* Äußerer Kreis */}
     <circle r={r} fill="none" stroke={color} strokeWidth={strokeW} />
-    {/* Senkrechter Strich: zeigt nach OBEN (von Mitte nach oben) */}
-    <line x1={0} y1={0} x2={0} y2={-r} stroke={color} strokeWidth={strokeW} strokeLinecap="round" />
-    {/* Linke Diagonale: zeigt nach UNTEN-LINKS (umgekehrt zu normal) */}
-    <line x1={0} y1={0} x2={-r * 0.71} y2={r * 0.71} stroke={color} strokeWidth={strokeW} strokeLinecap="round" />
-    {/* Rechte Diagonale: zeigt nach UNTEN-RECHTS */}
-    <line x1={0} y1={0} x2={r * 0.71} y2={r * 0.71} stroke={color} strokeWidth={strokeW} strokeLinecap="round" />
+    {/* Senkrechter Strich: Mitte → UNTEN */}
+    <line x1={0} y1={0} x2={0} y2={r} stroke={color} strokeWidth={strokeW} strokeLinecap="round" />
+    {/* Linke Diagonale: Mitte → OBEN-LINKS */}
+    <line x1={0} y1={0} x2={-r * 0.71} y2={-r * 0.71} stroke={color} strokeWidth={strokeW} strokeLinecap="round" />
+    {/* Rechte Diagonale: Mitte → OBEN-RECHTS */}
+    <line x1={0} y1={0} x2={r * 0.71} y2={-r * 0.71} stroke={color} strokeWidth={strokeW} strokeLinecap="round" />
   </g>
 );
 
-// ── Klassische Speichen-Holzfelge (VW-Oldtimer) ───────────────────────────
+// ── 8-Speichen Chromfelge (US-Oldtimer) ──────────────────────────────────
 
-const VintageWheel: React.FC<{
+const ChromeWheel: React.FC<{
   cx: number; cy: number; r: number; wheelRot: number;
 }> = ({ cx, cy, r, wheelRot }) => (
   <g transform={`translate(${cx},${cy})`}>
-    {/* Weißwand-Reifen */}
-    <circle r={r}           fill="#111" />
-    <circle r={r * 0.85}    fill="#e8e0d0" />   {/* Weißwand */}
-    <circle r={r * 0.72}    fill="#111" />
-    {/* Holzfelge — dreht sich */}
+    {/* Schwarzer Reifen */}
+    <circle r={r}          fill="#111" />
+    {/* Weißwand */}
+    <circle r={r * 0.84}   fill="#e8e4d8" />
+    <circle r={r * 0.72}   fill="#111" />
+    {/* Chrom-Felge dreht sich */}
     <g transform={`rotate(${wheelRot})`}>
+      {/* 8 Speichen */}
       {[0, 45, 90, 135, 180, 225, 270, 315].map((a) => {
         const rad = (a * Math.PI) / 180;
         return (
           <line
             key={a}
-            x1={Math.cos(rad) * r * 0.14} y1={Math.sin(rad) * r * 0.14}
-            x2={Math.cos(rad) * r * 0.62} y2={Math.sin(rad) * r * 0.62}
-            stroke="#8B6914"
-            strokeWidth={r * 0.1}
+            x1={Math.cos(rad) * r * 0.16} y1={Math.sin(rad) * r * 0.16}
+            x2={Math.cos(rad) * r * 0.65} y2={Math.sin(rad) * r * 0.65}
+            stroke="url(#chrome-spoke)"
+            strokeWidth={r * 0.11}
             strokeLinecap="round"
           />
         );
       })}
-      {/* Felgenring */}
-      <circle r={r * 0.62} fill="none" stroke="#a07820" strokeWidth={r * 0.07} />
+      {/* Felgenring außen */}
+      <circle r={r * 0.65} fill="none" stroke="#e0e0e0" strokeWidth={r * 0.06} />
+      {/* Felgenring innen */}
+      <circle r={r * 0.28} fill="#d0d0d0" />
+      <circle r={r * 0.18} fill="#f0f0f0" />
     </g>
-    {/* Nabenkappe (chrom) */}
-    <circle r={r * 0.2}  fill="#d4af37" />
-    <circle r={r * 0.13} fill="#f5e642" />
-    <circle r={r * 0.06} fill="#fff" opacity={0.5} cx={-r * 0.04} cy={-r * 0.04} />
+    {/* Nabenkappe (Chrom, statisch) */}
+    <circle r={r * 0.16}  fill="#e8e8e8" stroke="#bbb" strokeWidth={r * 0.04} />
+    <circle r={r * 0.09}  fill="#f5f5f5" />
+    {/* Chrom-Glanzpunkt */}
+    <circle r={r * 0.04}  fill="#fff" opacity={0.8} cx={-r * 0.04} cy={-r * 0.05} />
   </g>
 );
 
@@ -128,7 +131,8 @@ const RustSpot: React.FC<{ cx: number; cy: number; rx: number; ry: number; opaci
   <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill="#8B4513" opacity={opacity} />
 );
 
-// ── Hauptbus: US-Oldtimer Hippie-Van ─────────────────────────────────────
+// ── Hauptbus: US-Oldtimer Hippie-Bus (10m × 3.3m) ────────────────────────
+// Proportionen: W:H = 10:3.3 ≈ 3.03:1  →  H = W * 0.33
 
 const HippieVan: React.FC<{
   size?: number;
@@ -138,46 +142,55 @@ const HippieVan: React.FC<{
   driveIn?: boolean;
   label?: string;
 }> = ({
-  size    = 240,
+  size        = 340,           // Breite in px — Bus ist lang
   accentColor = '#F59E0B',
   bodyColor,
-  color   = '#FFFFFF',
-  driveIn = true,
-  label   = 'MOJOBUS',
+  color       = '#FFFFFF',
+  driveIn     = true,
+  label       = 'MOJOBUS',
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  // ── Animationen ──────────────────────────────────────────────────────────
-  const enter    = spring({ frame, fps, config: { damping: 20, stiffness: 50, mass: 1.3 } });
-  const driveInX = driveIn ? interpolate(enter, [0, 1], [-(size * 3.5), 0]) : 0;
-  const rockAngle = Math.sin((frame / fps) * Math.PI * 2 * 1.4) * 1.1;
-  const bounceY   = Math.abs(Math.sin((frame / fps) * Math.PI * 2.8)) * 3;
-  const wheelRot  = (frame / fps) * 360 * 1.6;
-  const lightPulse = 0.65 + Math.sin((frame / fps) * Math.PI * 2 * 0.7) * 0.2;
+  // Animationen
+  const enter     = spring({ frame, fps, config: { damping: 18, stiffness: 45, mass: 1.4 } });
+  const driveInX  = driveIn ? interpolate(enter, [0, 1], [-(size * 3.5), 0]) : 0;
+  const rockAngle = Math.sin((frame / fps) * Math.PI * 2 * 1.3) * 0.7;
+  const bounceY   = Math.abs(Math.sin((frame / fps) * Math.PI * 2.6)) * 2.5;
+  const wheelRot  = (frame / fps) * 360 * 1.5;
+  const lightPulse = 0.7 + Math.sin((frame / fps) * Math.PI * 2 * 0.8) * 0.18;
 
-  // ── Maße: VW-Bus-artige Proportionen (hoch + kompakt) ───────────────────
-  const W  = size;            // Breite
-  const H  = size * 0.72;    // Höhe Karosserie (VW-Bus: höher als lang)
-  const WR = size * 0.135;   // Rad-Radius (groß, Oldtimer)
-  const RY = H + WR * 0.55;  // Rad-Mitte Y
+  // ── Maße: 10m × 3.3m → H = W * 0.33 ────────────────────────────────────
+  const W  = size;
+  const H  = size * 0.33;     // reale US-Bus-Proportionen
+  const WR = H * 0.38;        // Rad-Radius (relativ zur Höhe)
+  const RY = H + WR * 0.5;   // Rad-Mitte Y
 
-  // Farben
-  const upperBody = '#f5f0e8';       // Cremeweiß oben (VW-typisch)
-  const lowerBody = bodyColor || '#2d6a4f';  // Dunkelgrün unten (Hippie-typisch)
-  const dividerColor = '#d4af37';    // Goldener Trennstreifen
-  const glassC    = 'rgba(160,210,240,0.78)';
-  const glassHL   = 'rgba(255,255,255,0.4)';
+  // Cremeweiß komplett (oben + unten)
+  const cream     = '#faf6ee';
+  const creamDark = '#ede8db';
+  const glassHL   = 'rgba(255,255,255,0.45)';
+  const divCol    = '#d4af37';   // Goldstreifen
 
-  // Hippie-Blumenfarben
+  // ── Viele Prillblumen (10 Stück) ────────────────────────────────────────
+  // Entlang der unteren Karosserie-Hälfte verteilt
   const flowers = [
-    { cx: W * 0.38, cy: H * 0.72, r: H * 0.09, petal: '#ff6b6b', center: '#ffd93d', rot: 0   },
-    { cx: W * 0.55, cy: H * 0.68, r: H * 0.07, petal: '#a8edea', center: '#ff6b6b', rot: 36  },
-    { cx: W * 0.27, cy: H * 0.65, r: H * 0.065,petal: '#ffd93d', center: '#6bcb77', rot: 18  },
-    { cx: W * 0.64, cy: H * 0.75, r: H * 0.055,petal: '#c77dff', center: '#ffd93d', rot: 54  },
+    // Große Blumen
+    { cx: W*0.12, cy: H*0.72, r: H*0.14, petal: '#ff6b6b', center: '#ffd93d', rot: 0   },
+    { cx: W*0.24, cy: H*0.65, r: H*0.12, petal: '#ffd93d', center: '#ff6b6b', rot: 20  },
+    { cx: W*0.36, cy: H*0.74, r: H*0.13, petal: '#a8edea', center: '#c77dff', rot: 8   },
+    { cx: W*0.48, cy: H*0.63, r: H*0.11, petal: '#c77dff', center: '#ffd93d', rot: 36  },
+    { cx: W*0.59, cy: H*0.72, r: H*0.13, petal: '#6bcb77', center: '#ff6b6b', rot: 15  },
+    { cx: W*0.70, cy: H*0.65, r: H*0.10, petal: '#ff9f1c', center: '#a8edea', rot: 45  },
+    // Kleinere Füll-Blumen
+    { cx: W*0.18, cy: H*0.88, r: H*0.075,petal: '#c77dff', center: '#ffd93d', rot: 55  },
+    { cx: W*0.31, cy: H*0.86, r: H*0.07, petal: '#ff6b6b', center: '#6bcb77', rot: 28  },
+    { cx: W*0.44, cy: H*0.90, r: H*0.065,petal: '#ffd93d', center: '#ff6b6b', rot: 12  },
+    { cx: W*0.56, cy: H*0.88, r: H*0.07, petal: '#a8edea', center: '#c77dff', rot: 40  },
+    { cx: W*0.67, cy: H*0.87, r: H*0.065,petal: '#ff9f1c', center: '#6bcb77', rot: 70  },
   ];
 
-  // Regenbogenstreifen Farben
+  // Regenbogenstreifen
   const rainbowColors = ['#e63946','#f4a261','#e9c46a','#2a9d8f','#457b9d','#7b2d8b'];
 
   return (
@@ -185,135 +198,146 @@ const HippieVan: React.FC<{
       transform:       `translateX(${driveInX}px) rotate(${rockAngle}deg) translateY(${bounceY}px)`,
       transformOrigin: 'bottom center',
       display:         'inline-block',
-      filter:          'drop-shadow(0 10px 24px rgba(0,0,0,0.6))',
+      filter:          'drop-shadow(0 12px 28px rgba(0,0,0,0.65))',
     }}>
       <svg
         width={W}
-        height={RY + WR * 1.2}
-        viewBox={`0 0 ${W} ${RY + WR * 1.2}`}
+        height={RY + WR * 1.25}
+        viewBox={`0 0 ${W} ${RY + WR * 1.25}`}
         overflow="visible"
       >
         <defs>
-          <linearGradient id="hv-upper" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stopColor="#fdfaf5" />
-            <stop offset="100%" stopColor={upperBody} />
+          {/* Karosserie Gradient — Cremeweiß oben + unten */}
+          <linearGradient id="hv-body" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor="#fefcf7" />
+            <stop offset="30%"  stopColor={cream} />
+            <stop offset="70%"  stopColor={creamDark} />
+            <stop offset="100%" stopColor="#ddd5c0" />
           </linearGradient>
-          <linearGradient id="hv-lower" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stopColor={lowerBody} />
-            <stop offset="100%" stopColor="#1a3d2b" />
+          <linearGradient id="hv-glass" x1="0" y1="0" x2="0.2" y2="1">
+            <stop offset="0%"   stopColor="#d0eeff" stopOpacity="0.92" />
+            <stop offset="100%" stopColor="#7ab8e0" stopOpacity="0.68" />
           </linearGradient>
-          <linearGradient id="hv-glass" x1="0" y1="0" x2="0.3" y2="1">
-            <stop offset="0%"   stopColor="#d0eeff" stopOpacity="0.9" />
-            <stop offset="100%" stopColor="#7ab8e0" stopOpacity="0.65" />
+          <linearGradient id="hv-chrome" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor="#ffffff" />
+            <stop offset="35%"  stopColor="#e0e0e0" />
+            <stop offset="65%"  stopColor="#b0b0b0" />
+            <stop offset="100%" stopColor="#888888" />
           </linearGradient>
-          <radialGradient id="hv-headlight" cx="40%" cy="40%" r="60%">
+          {/* Chromspeichen-Gradient */}
+          <linearGradient id="chrome-spoke" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%"   stopColor="#e8e8e8" />
+            <stop offset="50%"  stopColor="#ffffff" />
+            <stop offset="100%" stopColor="#c0c0c0" />
+          </linearGradient>
+          <radialGradient id="hv-headlight" cx="35%" cy="35%" r="65%">
             <stop offset="0%"   stopColor="#fffde7" stopOpacity="1" />
+            <stop offset="60%"  stopColor="#fef08a" stopOpacity="0.6" />
             <stop offset="100%" stopColor="#fbbf24" stopOpacity="0" />
           </radialGradient>
-          <linearGradient id="hv-chrome" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stopColor="#f0f0f0" />
-            <stop offset="50%"  stopColor="#bdbdbd" />
-            <stop offset="100%" stopColor="#9e9e9e" />
-          </linearGradient>
         </defs>
 
         {/* ══ Bodenschatten ══════════════════════════════════════════════ */}
-        <ellipse cx={W*0.5} cy={RY + WR*1.1} rx={W*0.42} ry={WR*0.2} fill="rgba(0,0,0,0.4)" />
+        <ellipse cx={W*0.5} cy={RY+WR*1.15} rx={W*0.44} ry={WR*0.18} fill="rgba(0,0,0,0.42)" />
 
-        {/* ══ Karosserie UNTEN (Grundkörper) ════════════════════════════ */}
-        <rect x={W*0.03} y={H*0.38} width={W*0.94} height={H*0.65} rx={8} fill="url(#hv-lower)" />
+        {/* ══ Hauptkarosserie (komplett Cremeweiß) ══════════════════════ */}
+        <rect x={W*0.02} y={H*0.04} width={W*0.96} height={H*0.97} rx={H*0.07}
+          fill="url(#hv-body)" />
 
-        {/* ══ Karosserie OBEN (Creme) ════════════════════════════════════ */}
-        {/* VW-Bus: obere Hälfte hellere Farbe */}
-        <rect x={W*0.03} y={H*0.05} width={W*0.94} height={H*0.38} rx={8} fill="url(#hv-upper)" />
+        {/* ══ Goldener Zierstreifen (Mitte horizontal) ══════════════════ */}
+        <rect x={W*0.02} y={H*0.47} width={W*0.96} height={H*0.04} fill={divCol} />
+        <rect x={W*0.02} y={H*0.50} width={W*0.96} height={H*0.015} fill={divCol} opacity={0.45} />
 
-        {/* ══ Goldener Trennstreifen ═════════════════════════════════════ */}
-        <rect x={W*0.03} y={H*0.385} width={W*0.94} height={H*0.035} fill={dividerColor} />
-        <rect x={W*0.03} y={H*0.415} width={W*0.94} height={H*0.012} fill={dividerColor} opacity={0.5} />
-
-        {/* ══ Regenbogenstreifen (auf unterer Hälfte) ═══════════════════ */}
+        {/* ══ Regenbogenstreifen (obere Hälfte, diskret) ════════════════ */}
         {rainbowColors.map((c, i) => (
           <rect
             key={i}
-            x={W * 0.03}
-            y={H * (0.43 + i * 0.028)}
-            width={W * 0.94}
-            height={H * 0.026}
+            x={W*0.02}
+            y={H*(0.06 + i * 0.062)}
+            width={W*0.96}
+            height={H*0.058}
             fill={c}
-            opacity={0.55}
+            opacity={0.18}
+            rx={i === 0 ? H*0.07 : 0}
           />
         ))}
 
-        {/* ══ FRONT RECHTS: VW-Bus Flat-Nose ════════════════════════════ */}
-        {/* Frontsäule */}
-        <rect x={W*0.86} y={H*0.05} width={W*0.11} height={H*0.95} rx={7} fill={upperBody} />
-        {/* Untere Front */}
-        <rect x={W*0.86} y={H*0.45} width={W*0.11} height={H*0.55} rx={7} fill={lowerBody} />
-
-        {/* Geteilte Windschutzscheibe (VW-Bus typisch: 2-teilig mit Mittelsteg) */}
-        {/* Obere Hälfte */}
-        <rect x={W*0.865} y={H*0.07} width={W*0.085} height={H*0.22} rx={4} fill="url(#hv-glass)" />
-        {/* Mittelsteg */}
-        <rect x={W*0.865} y={H*0.285} width={W*0.085} height={H*0.018} fill={upperBody} />
-        {/* Untere Hälfte */}
-        <rect x={W*0.865} y={H*0.30} width={W*0.085} height={H*0.13} rx={3} fill="url(#hv-glass)" />
-        {/* Windschutzscheibe-Rahmen */}
-        <rect x={W*0.865} y={H*0.07} width={W*0.085} height={H*0.36} rx={4} fill="none" stroke="#333" strokeWidth={2} />
-        {/* Glanzlicht */}
-        <rect x={W*0.872} y={H*0.082} width={W*0.018} height={H*0.18} rx={2} fill={glassHL} />
-
-        {/* Rundes VW-artiges Emblem */}
-        <circle cx={W*0.922} cy={H*0.52} r={H*0.055} fill={dividerColor} />
-        <circle cx={W*0.922} cy={H*0.52} r={H*0.038} fill={upperBody} />
-        <text x={W*0.922} y={H*0.535} textAnchor="middle" fontSize={H*0.038}
-          fontFamily="Arial Black, sans-serif" fontWeight="900" fill={lowerBody}>M</text>
-
-        {/* Runde Scheinwerfer (VW-Bus typisch) */}
-        <circle cx={W*0.91}  cy={H*0.65} r={H*0.052} fill="#e8e8e8" stroke="#999" strokeWidth={1.5} />
-        <circle cx={W*0.91}  cy={H*0.65} r={H*0.036} fill="#fffde7" opacity={lightPulse} />
-        <circle cx={W*0.91}  cy={H*0.65} r={H*0.022} fill="#fef08a" opacity={lightPulse} />
-        {/* Scheinwerfer-Glow */}
-        <ellipse cx={W*0.96} cy={H*0.67} rx={W*0.07} ry={H*0.07}
-          fill="url(#hv-headlight)" opacity={lightPulse * 0.7} />
-
-        {/* Front-Stoßstange (Chromoptik) */}
-        <rect x={W*0.86}  y={H*0.84} width={W*0.12} height={H*0.07} rx={4} fill="url(#hv-chrome)" />
-        <rect x={W*0.865} y={H*0.855} width={W*0.11} height={H*0.02} rx={2} fill="#fff" opacity={0.6} />
-
-        {/* Rückspiegel (außen, VW-typisch rund) */}
-        <rect  x={W*0.855} y={H*0.12} width={W*0.022} height={H*0.08} rx={2} fill="#888" />
-        <ellipse cx={W*0.845} cy={H*0.11} rx={W*0.025} ry={H*0.04} fill="#aaa" stroke="#666" strokeWidth={1} />
-        <ellipse cx={W*0.843} cy={H*0.108} rx={W*0.012} ry={H*0.022} fill={glassHL} />
-
-        {/* ══ SEITE: 3 quadratische Fenster (VW-Bus typisch) ════════════ */}
-        {[0.12, 0.36, 0.60].map((x, i) => (
+        {/* ══ Fenstergürtel (oben, durchgehend) ════════════════════════ */}
+        {/* 5 Fenster nebeneinander entlang der oberen Hälfte */}
+        {[0.05, 0.21, 0.37, 0.53, 0.68].map((x, i) => (
           <g key={i}>
-            <rect x={W*x} y={H*0.1} width={W*0.2} height={H*0.26} rx={5}
-              fill="url(#hv-glass)" stroke="#555" strokeWidth={1.5} />
-            {/* Glasspiegelung */}
-            <rect x={W*(x+0.015)} y={H*0.11} width={W*0.04} height={H*0.2}
+            <rect x={W*(x+0.01)} y={H*0.08} width={W*0.135} height={H*0.34}
+              rx={H*0.04} fill="url(#hv-glass)" stroke="#666" strokeWidth={1.5} />
+            <rect x={W*(x+0.018)} y={H*0.095} width={W*0.03} height={H*0.26}
               rx={2} fill={glassHL} />
-            {/* Untere Fensterverdunkelung */}
-            <rect x={W*x} y={H*0.31} width={W*0.2} height={H*0.05}
-              rx={0} fill="rgba(0,0,0,0.2)" />
           </g>
         ))}
-        {/* Fensterschienen oben */}
-        <rect x={W*0.03} y={H*0.09} width={W*0.83} height={H*0.02} rx={2} fill="#888" opacity={0.6} />
+        {/* Fensterschiene oben + unten */}
+        <rect x={W*0.02} y={H*0.07}  width={W*0.96} height={H*0.02} rx={2} fill="#aaa" opacity={0.55} />
+        <rect x={W*0.02} y={H*0.415} width={W*0.96} height={H*0.018} rx={2} fill="#aaa" opacity={0.45} />
 
-        {/* ══ HECK LINKS: Heckpartie ═════════════════════════════════════ */}
-        <rect x={W*0.01} y={H*0.05} width={W*0.05} height={H*0.95} rx={7} fill={upperBody} />
-        <rect x={W*0.01} y={H*0.45} width={W*0.05} height={H*0.55} rx={7} fill={lowerBody} />
+        {/* ══ FRONT RECHTS: Schräge Frontpartie ════════════════════════ */}
+        {/* Frontmaske */}
+        <rect x={W*0.87} y={H*0.04} width={W*0.11} height={H*0.97} rx={H*0.07}
+          fill="url(#hv-body)" />
+        {/* Windschutzscheibe (geneigt, 2-teilig) */}
+        <rect x={W*0.876} y={H*0.06} width={W*0.082} height={H*0.18} rx={3}
+          fill="url(#hv-glass)" stroke="#555" strokeWidth={1.5} />
+        <rect x={W*0.876} y={H*0.245} width={W*0.082} height={H*0.015} fill={cream} />
+        <rect x={W*0.876} y={H*0.26} width={W*0.082} height={H*0.13} rx={3}
+          fill="url(#hv-glass)" stroke="#555" strokeWidth={1.5} />
+        {/* Glanzlicht */}
+        <rect x={W*0.882} y={H*0.072} width={W*0.016} height={H*0.15} rx={2} fill={glassHL} />
+
+        {/* Rundes Emblem (gold) */}
+        <circle cx={W*0.93} cy={H*0.54} r={H*0.07}  fill={divCol} />
+        <circle cx={W*0.93} cy={H*0.54} r={H*0.05}  fill={cream} />
+        <text x={W*0.93} y={H*0.558} textAnchor="middle"
+          fontSize={H*0.048} fontFamily="Arial Black, sans-serif"
+          fontWeight="900" fill="#8B6914">M</text>
+
+        {/* Runde Scheinwerfer (2 Stück übereinander, US-Stil) */}
+        {[H*0.60, H*0.72].map((cy, i) => (
+          <g key={i}>
+            <circle cx={W*0.92} cy={cy} r={H*0.07} fill="#ddd" stroke="#aaa" strokeWidth={1.5} />
+            <circle cx={W*0.92} cy={cy} r={H*0.05} fill="#fffde7" opacity={lightPulse} />
+            <circle cx={W*0.92} cy={cy} r={H*0.03} fill="#fef08a" opacity={lightPulse} />
+          </g>
+        ))}
+        {/* Scheinwerfer-Glow */}
+        <ellipse cx={W*0.975} cy={H*0.66} rx={W*0.06} ry={H*0.14}
+          fill="url(#hv-headlight)" opacity={lightPulse*0.65} />
+
+        {/* Chromstoßstange vorne */}
+        <rect x={W*0.872} y={H*0.86} width={W*0.118} height={H*0.09} rx={4}
+          fill="url(#hv-chrome)" />
+        <rect x={W*0.878} y={H*0.872} width={W*0.106} height={H*0.022} rx={2}
+          fill="#fff" opacity={0.55} />
+
+        {/* Rückspiegel */}
+        <rect  x={W*0.858} y={H*0.09} width={W*0.02} height={H*0.1} rx={2} fill="#999" />
+        <ellipse cx={W*0.848} cy={H*0.085} rx={W*0.022} ry={H*0.045}
+          fill="#bbb" stroke="#777" strokeWidth={1} />
+        <ellipse cx={W*0.846} cy={H*0.083} rx={W*0.01} ry={H*0.025} fill={glassHL} />
+
+        {/* ══ HECK LINKS ════════════════════════════════════════════════ */}
+        <rect x={W*0.01} y={H*0.04} width={W*0.04} height={H*0.97} rx={H*0.07}
+          fill="url(#hv-body)" />
         {/* Heckscheibe */}
-        <rect x={W*0.015} y={H*0.1} width={W*0.035} height={H*0.25} rx={3}
+        <rect x={W*0.014} y={H*0.08} width={W*0.03} height={H*0.32} rx={3}
           fill="url(#hv-glass)" stroke="#555" strokeWidth={1} />
-        {/* Rücklichter (rund, VW-typisch) */}
-        <circle cx={W*0.03} cy={H*0.62} r={H*0.045} fill="#dc2626" opacity={0.9} />
-        <circle cx={W*0.03} cy={H*0.62} r={H*0.025} fill="#fca5a5" opacity={0.7} />
+        {/* Rücklichter (rund, US-Stil, 2 Stück) */}
+        {[H*0.56, H*0.7].map((cy, i) => (
+          <g key={i}>
+            <circle cx={W*0.025} cy={cy} r={H*0.058} fill="#dc2626" opacity={0.9} />
+            <circle cx={W*0.025} cy={cy} r={H*0.032} fill="#fca5a5" opacity={0.7} />
+          </g>
+        ))}
         {/* Heck-Stoßstange */}
-        <rect x={W*0.01} y={H*0.84} width={W*0.055} height={H*0.07} rx={3} fill="url(#hv-chrome)" />
+        <rect x={W*0.008} y={H*0.86} width={W*0.045} height={H*0.09} rx={3}
+          fill="url(#hv-chrome)" />
 
-        {/* ══ Prillblumen auf der Seite ══════════════════════════════════ */}
+        {/* ══ Prillblumen (11 Stück) ════════════════════════════════════ */}
         {flowers.map((f, i) => (
           <PrillFlower
             key={i}
@@ -324,63 +348,74 @@ const HippieVan: React.FC<{
         ))}
 
         {/* ══ Peace-Zeichen UMGEKEHRT ════════════════════════════════════ */}
-        {/* Strich zeigt nach oben, Diagonalen nach unten — das ist das umgekehrte Peace */}
+        {/* Strich → UNTEN, Diagonalen → OBEN-LINKS + OBEN-RECHTS */}
         <InvertedPeace
-          cx={W * 0.78} cy={H * 0.70}
-          r={H * 0.1}
-          color="#ffffffcc"
-          strokeW={H * 0.025}
+          cx={W*0.80} cy={H*0.72}
+          r={H*0.14}
+          color="rgba(255,255,255,0.9)"
+          strokeW={H*0.028}
+        />
+        {/* Zweites kleineres Peace oben rechts */}
+        <InvertedPeace
+          cx={W*0.76} cy={H*0.22}
+          r={H*0.09}
+          color={divCol}
+          strokeW={H*0.022}
         />
 
-        {/* ══ MOJOBUS Schriftzug ══════════════════════════════════════════ */}
-        {/* Hintergrund-Pill */}
-        <rect x={W*0.14} y={H*0.86} width={W*0.58} height={H*0.12} rx={6}
-          fill="rgba(0,0,0,0.35)" />
+        {/* ══ MOJOBUS Schriftzug (unten Mitte) ══════════════════════════ */}
+        <rect x={W*0.25} y={H*0.53} width={W*0.45} height={H*0.135} rx={5}
+          fill="rgba(0,0,0,0.22)" />
         <text
-          x={W * 0.43} y={H * 0.945}
+          x={W*0.475} y={H*0.636}
           textAnchor="middle"
           fill={color}
-          fontSize={H * 0.095}
+          fontSize={H*0.115}
           fontFamily="Arial Black, Impact, sans-serif"
           fontWeight="900"
-          letterSpacing="4"
+          letterSpacing="5"
           opacity={0.95}
         >{label}</text>
 
-        {/* ══ Rost-Flecken (Oldtimer-Authentizität) ══════════════════════ */}
-        <RustSpot cx={W*0.08} cy={H*0.75} rx={W*0.022} ry={H*0.018} />
-        <RustSpot cx={W*0.15} cy={H*0.90} rx={W*0.015} ry={H*0.013} opacity={0.28} />
-        <RustSpot cx={W*0.72} cy={H*0.88} rx={W*0.018} ry={H*0.014} opacity={0.3} />
-        <RustSpot cx={W*0.05} cy={H*0.55} rx={W*0.01}  ry={H*0.018} opacity={0.25} />
+        {/* ══ Rost-Flecken ══════════════════════════════════════════════ */}
+        <RustSpot cx={W*0.07} cy={H*0.82} rx={W*0.016} ry={H*0.022} opacity={0.3} />
+        <RustSpot cx={W*0.16} cy={H*0.96} rx={W*0.012} ry={H*0.016} opacity={0.25} />
+        <RustSpot cx={W*0.63} cy={H*0.94} rx={W*0.014} ry={H*0.018} opacity={0.28} />
+        <RustSpot cx={W*0.04} cy={H*0.62} rx={W*0.008} ry={H*0.015} opacity={0.22} />
+        <RustSpot cx={W*0.85} cy={H*0.92} rx={W*0.009} ry={H*0.012} opacity={0.2}  />
 
-        {/* ══ Abgas-Wölkchen (links hinten) ═════════════════════════════ */}
-        <ExhaustPuff cx={W*0.02} cy={H*0.88} frame={frame} fps={fps} delay={0}  />
-        <ExhaustPuff cx={W*0.02} cy={H*0.86} frame={frame} fps={fps} delay={12} />
-        <ExhaustPuff cx={W*0.02} cy={H*0.90} frame={frame} fps={fps} delay={6}  />
+        {/* ══ Abgas-Wölkchen ════════════════════════════════════════════ */}
+        <ExhaustPuff cx={W*0.015} cy={H*0.85} frame={frame} fps={fps} delay={0}  />
+        <ExhaustPuff cx={W*0.015} cy={H*0.82} frame={frame} fps={fps} delay={10} />
+        <ExhaustPuff cx={W*0.015} cy={H*0.88} frame={frame} fps={fps} delay={5}  />
 
         {/* ══ Räder ══════════════════════════════════════════════════════ */}
-        {/* Radkästen */}
-        <ellipse cx={W*0.2}  cy={RY} rx={WR*1.3} ry={WR*0.5} fill="#1a1a1a" />
-        <ellipse cx={W*0.76} cy={RY} rx={WR*1.3} ry={WR*0.5} fill="#1a1a1a" />
-        {/* Räder */}
-        <VintageWheel cx={W*0.76} cy={RY} r={WR} wheelRot={wheelRot} />
-        <VintageWheel cx={W*0.2}  cy={RY} r={WR} wheelRot={wheelRot} />
+        {/* Radkästen (abgerundet) */}
+        <ellipse cx={W*0.18}  cy={RY} rx={WR*1.28} ry={WR*0.45} fill="#222" />
+        <ellipse cx={W*0.78}  cy={RY} rx={WR*1.28} ry={WR*0.45} fill="#222" />
+        {/* Chromfelgen */}
+        <ChromeWheel cx={W*0.78} cy={RY} r={WR} wheelRot={wheelRot} />
+        <ChromeWheel cx={W*0.18} cy={RY} r={WR} wheelRot={wheelRot} />
 
-        {/* ══ Dach: Surfbrett ════════════════════════════════════════════ */}
-        {/* Träger */}
-        <rect x={W*0.2} y={-H*0.04} width={W*0.025} height={H*0.08} rx={2} fill="#888" />
-        <rect x={W*0.7} y={-H*0.04} width={W*0.025} height={H*0.08} rx={2} fill="#888" />
-        {/* Surfbrett (lang, oval) */}
-        <ellipse cx={W*0.46} cy={-H*0.07} rx={W*0.33} ry={H*0.045}
+        {/* ══ Dach: Surfbrett + Dachgepäck ══════════════════════════════ */}
+        {/* Dachträger-Schienen */}
+        <rect x={W*0.15} y={-H*0.02} width={W*0.66} height={H*0.03} rx={2} fill="#888" />
+        {/* Träger-Bügel */}
+        {[W*0.18, W*0.42, W*0.68].map((x, i) => (
+          <rect key={i} x={x} y={-H*0.05} width={W*0.018} height={H*0.07} rx={1} fill="#777" />
+        ))}
+        {/* Surfbrett */}
+        <ellipse cx={W*0.44} cy={-H*0.085} rx={W*0.27} ry={H*0.04}
           fill="#e63946" stroke="#b5000a" strokeWidth={1.5} />
-        {/* Surfbrett-Streifen */}
-        <ellipse cx={W*0.46} cy={-H*0.07} rx={W*0.15} ry={H*0.02}
-          fill="#ffd93d" opacity={0.7} />
-        <ellipse cx={W*0.46} cy={-H*0.07} rx={W*0.05} ry={H*0.012}
+        <ellipse cx={W*0.44} cy={-H*0.085} rx={W*0.12} ry={H*0.017}
+          fill="#ffd93d" opacity={0.75} />
+        <ellipse cx={W*0.44} cy={-H*0.085} rx={W*0.04} ry={H*0.01}
           fill="#fff" opacity={0.5} />
         {/* Halteseile */}
-        <line x1={W*0.213} y1={-H*0.025} x2={W*0.28} y2={-H*0.05} stroke="#888" strokeWidth={1.5} />
-        <line x1={W*0.713} y1={-H*0.025} x2={W*0.65} y2={-H*0.05} stroke="#888" strokeWidth={1.5} />
+        {[W*0.22, W*0.65].map((x, i) => (
+          <line key={i} x1={x} y1={-H*0.02} x2={x + (i===0?0.05:-0.05)*W} y2={-H*0.065}
+            stroke="#777" strokeWidth={1.5} />
+        ))}
 
       </svg>
     </div>
@@ -401,7 +436,7 @@ export interface LottieBusIconProps {
 }
 
 export const LottieBusIcon: React.FC<LottieBusIconProps> = ({
-  size = 240,
+  size = 340,
   accentColor = '#F59E0B',
   bodyColor,
   color = '#FFFFFF',
@@ -444,7 +479,7 @@ export const BusRideOverlay: React.FC<{
   size?: number;
   verticalPosition?: number;
   label?: string;
-}> = ({ accentColor = '#F59E0B', size = 180, verticalPosition = 75, label = 'MOJOBUS' }) => {
+}> = ({ accentColor = '#F59E0B', size = 280, verticalPosition = 75, label = 'MOJOBUS' }) => {
   const frame = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
 
