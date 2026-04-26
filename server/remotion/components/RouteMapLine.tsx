@@ -60,27 +60,20 @@ export interface RouteMapLineProps {
 }
 
 // ── @remotion/shapes Bridge ────────────────────────────────────────────────
+// FIX: Kein Top-Level await import() — crasht esbuild (EPIPE)!
+// Synchrones require() mit try/catch stattdessen.
 
-/**
- * Versuche @remotion/shapes zu laden.
- * Fallback: eigene SVG-Shapes.
- */
-let ShapesCircle: React.FC<{ radius: number; fill: string }> | null = null;
-let ShapesTriangle: React.FC<{
-  length: number;
-  direction?: 'up' | 'down' | 'left' | 'right';
-  fill: string;
-}> | null = null;
-
+// @remotion/shapes ist optional — eigene SVG-Shapes als Fallback
+// (Die Shapes werden in RouteMapLine aktuell nicht direkt verwendet,
+//  da wir SVG inline rendern. Hier nur als Erweiterungspunkt.)
+let _shapesLoaded = false;
 try {
-  // @ts-ignore
-  const shapes = await import('@remotion/shapes').catch(() => null);
-  if (shapes) {
-    ShapesCircle = shapes.Circle;
-    ShapesTriangle = shapes.Triangle;
-    console.log('[RouteMapLine] @remotion/shapes geladen ✓');
-  }
-} catch (_) {}
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  require('@remotion/shapes');
+  _shapesLoaded = true;
+} catch (_) {
+  // @remotion/shapes nicht installiert → eigene SVG-Shapes (immer verfügbar)
+}
 
 // ── Fallback Shapes (reine SVG, kein Package) ─────────────────────────────
 

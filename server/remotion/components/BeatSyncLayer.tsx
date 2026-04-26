@@ -1,20 +1,13 @@
 /**
  * BeatSyncLayer — Schnitte synchron zur Musik (viral!)
  *
+ * FIX: Kein Top-Level await import() — das crasht esbuild (EPIPE).
+ * Stattdessen: synchrones require() mit try/catch für optionale Packages.
+ *
  * Strategie:
  *  - useAudioData() liest Amplitude pro Frame aus der Musik-Datei
- *  - Wir analysieren die Waveform und erkennen Beats (lokale Maxima)
  *  - Bei jedem Beat: Flash-Effekt + Bloom-Glühring → visueller Punch
- *  - Optional: beatCutFrames Array für harte Schnitte an Beat-Positionen
- *    (die eigentliche Bild-Sequenz kann darauf reagieren)
- *
- * WICHTIG für VPS:
- *  - useAudioData() braucht @remotion/media-utils (bereits in remotion enthalten)
- *  - Die Audiodatei muss über HTTP erreichbar sein (nicht file://)
- *  - Falls kein musicUrl → keine Analyse, kein Effekt (graceful fallback)
- *
- * Package: useAudioData ist in 'remotion' enthalten (seit v3.x)
- * Kein extra npm install nötig!
+ *  - Fallback: synthetische Beats auf Bild-Wechseln (kein Package nötig)
  */
 
 import React from 'react';
@@ -25,25 +18,34 @@ import {
   useVideoConfig,
 } from 'remotion';
 
-// useAudioData ist in @remotion/media-utils
-// Lazy import damit kein Build-Fehler wenn Package fehlt
-let useAudioDataFn: ((src: string) => AudioData | null) | null = null;
-let visualizeAudioFn: ((params: {
+// ── Optionale Packages: synchrones require() statt await import() ──────────
+// await import() auf Top-Level crasht den Remotion/esbuild-Bundler (EPIPE)!
+
+type AudioData = any;
+
+type UseAudioDataFn = (src: string) => AudioData | null;
+type VisualizeAudioFn = (params: {
   fps: number;
   frame: number;
   audioData: AudioData;
   numberOfSamples: number;
   optimizeFor?: 'speed' | 'accuracy';
-}) => number[]) | null = null;
+}) => number[];
 
+let useAudioDataFn: UseAudioDataFn | null = null;
+let visualizeAudioFn: VisualizeAudioFn | null = null;
+
+// Synchrones require() — funktioniert im Node/webpack-Kontext des Bundlers
 try {
-  // @ts-ignore — dynamisch geladen
-  const mediaUtils = await import('@remotion/media-utils').catch(() => null);
-  if (mediaUtils) {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const mediaUtils = require('@remotion/media-utils');
+  if (mediaUtils?.useAudioData) {
     useAudioDataFn = mediaUtils.useAudioData;
-    visualizeAudioFn = mediaUtils.visualizeAudio;
+    visualizeAudioFn = mediaUtils.visualizeAudio ?? null;
   }
-} catch (_) {}
+} catch (_) {
+  // @remotion/media-utils nicht installiert → Fallback-Modus
+}
 
 // ── Typen ─────────────────────────────────────────────────────────────────
 
@@ -55,30 +57,17 @@ export interface BeatInfo {
 }
 
 interface BeatSyncLayerProps {
-  /** Musik-URL (muss HTTP sein, kein file://) */
   musicUrl?: string;
-  /** Anzahl der Frequenz-Samples für Beat-Erkennung */
   numberOfSamples?: number;
-  /** Mindest-Energie um als Beat zu zählen (0–1, default 0.6) */
   beatThreshold?: number;
-  /** Flash-Farbe bei Beat (default: weiß) */
   flashColor?: string;
-  /** Max. Flash-Opacity (0–1, default 0.18) */
   flashOpacity?: number;
-  /** Bloom-Ring Farbe (default: accentColor) */
   accentColor?: string;
-  /** Beat-Sync Stärke 0–1 (0 = aus) */
   strength?: number;
-  /** Wenn true: Gibt beatCutFrames nach außen (für Bild-Wechsel) */
-  onBeatFrames?: (frames: number[]) => void;
 }
 
-// ── Beat-Analyse ohne AudioData (statischer Fallback) ─────────────────────
+// ── Fallback-Beats vorberechnen ───────────────────────────────────────────
 
-/**
- * Erzeuge synthetische Beat-Frames wenn keine Audiodaten verfügbar.
- * Basiert auf secondsPerImage → Beats auf Bild-Wechseln.
- */
 export function generateFallbackBeats(
   totalFrames: number,
   fps: number,
@@ -93,92 +82,60 @@ export function generateFallbackBeats(
     const beatFrame = hookFrames + i * perSlide;
     if (beatFrame < totalFrames) {
       beats.push({ frame: beatFrame, intensity: 0.75 });
-      // Extra-Beat in der Mitte jedes Slides (halber Takt)
       const midFrame = beatFrame + Math.round(perSlide / 2);
       if (midFrame < totalFrames) {
         beats.push({ frame: midFrame, intensity: 0.45 });
       }
     }
   }
-
   return beats;
 }
 
-// ── Beat Flash Effekt ──────────────────────────────────────────────────────
+// ── Beat-Flash Darstellung ────────────────────────────────────────────────
 
-interface BeatFlashProps {
+const BeatFlash: React.FC<{
   beats: BeatInfo[];
   currentFrame: number;
   flashColor: string;
   flashOpacity: number;
   accentColor: string;
   strength: number;
-}
+}> = ({ beats, currentFrame, flashColor, flashOpacity, accentColor, strength }) => {
+  if (strength <= 0 || beats.length === 0) return null;
 
-const BeatFlash: React.FC<BeatFlashProps> = ({
-  beats,
-  currentFrame,
-  flashColor,
-  flashOpacity,
-  accentColor,
-  strength,
-}) => {
-  if (strength <= 0) return null;
-
-  // Nächster Beat in einem Fenster von ±8 Frames
   const FLASH_WINDOW = 8;
-  const nearestBeat = beats.reduce<{ beat: BeatInfo | null; dist: number }>(
-    (acc, b) => {
-      const dist = Math.abs(currentFrame - b.frame);
-      if (dist < acc.dist && dist <= FLASH_WINDOW) {
-        return { beat: b, dist };
-      }
-      return acc;
-    },
-    { beat: null, dist: Infinity }
-  );
+  let nearestBeat: BeatInfo | null = null;
+  let nearestDist = Infinity;
 
-  if (!nearestBeat.beat) return null;
+  for (const b of beats) {
+    const dist = Math.abs(currentFrame - b.frame);
+    if (dist <= FLASH_WINDOW && dist < nearestDist) {
+      nearestBeat = b;
+      nearestDist = dist;
+    }
+  }
 
-  const { beat, dist } = nearestBeat;
+  if (!nearestBeat) return null;
 
-  // Flash: Schnell rein, langsam raus
-  // Frame 0 = Beat, dann Decay über FLASH_WINDOW Frames
-  const frameSinceBeat = currentFrame - beat.frame;
-  const flashT = interpolate(
-    frameSinceBeat,
-    [0, FLASH_WINDOW],
-    [1, 0],
-    { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
-  );
+  const frameSinceBeat = currentFrame - nearestBeat.frame;
+  const flashT = interpolate(frameSinceBeat, [0, FLASH_WINDOW], [1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
 
-  // Quadratischer Decay: schnell raus
-  const flashDecay = flashT * flashT;
-  const opacity = flashOpacity * flashDecay * beat.intensity * strength;
-
+  const opacity = flashOpacity * flashT * flashT * nearestBeat.intensity * strength;
   if (opacity < 0.01) return null;
 
-  // Bloom-Ring: leicht größer als der Flash
   const ringOpacity = opacity * 0.4;
   const ringScale = interpolate(flashT, [0, 1], [1, 1.06]);
 
   return (
     <AbsoluteFill style={{ pointerEvents: 'none' }}>
-      {/* Weißer Flash */}
       <AbsoluteFill
-        style={{
-          background: flashColor,
-          opacity,
-          mixBlendMode: 'screen',
-        }}
+        style={{ background: flashColor, opacity, mixBlendMode: 'screen' }}
       />
-      {/* Bloom-Ring (Glühring) */}
       <AbsoluteFill
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       >
         <div
           style={{
@@ -195,69 +152,32 @@ const BeatFlash: React.FC<BeatFlashProps> = ({
   );
 };
 
-// ── Haupt-Komponente mit AudioData ─────────────────────────────────────────
+// ── Inner-Komponente für echte useAudioData-Analyse ───────────────────────
+// Nur rendern wenn useAudioDataFn vorhanden → Hook-Regeln sicher einhalten
 
-/**
- * BeatSyncLayerInner — nutzt useAudioData wenn verfügbar
- * Wird nur gerendert wenn useAudioDataFn geladen ist.
- */
-const BeatSyncLayerInner: React.FC<BeatSyncLayerProps & {
-  useAudioDataHook: (src: string) => any;
-  visualizeAudioHook: (params: any) => number[];
-  beats: BeatInfo[];
+const BeatSyncWithAudio: React.FC<{
+  musicUrl: string;
+  numberOfSamples: number;
+  beatThreshold: number;
+  flashColor: string;
+  flashOpacity: number;
+  accentColor: string;
+  strength: number;
+  fallbackBeats: BeatInfo[];
 }> = ({
-  musicUrl,
-  numberOfSamples = 256,
-  beatThreshold = 0.60,
-  flashColor = 'rgba(255,255,255,1)',
-  flashOpacity = 0.18,
-  accentColor = '#F59E0B',
-  strength = 1,
-  useAudioDataHook,
-  visualizeAudioHook,
-  beats: fallbackBeats,
+  musicUrl, numberOfSamples, beatThreshold,
+  flashColor, flashOpacity, accentColor, strength, fallbackBeats,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  // Versuche echte Audio-Daten zu laden
-  const audioData = musicUrl ? useAudioDataHook(musicUrl) : null;
+  // useAudioData als normaler Hook-Aufruf (kein bedingter Aufruf)
+  const audioData = (useAudioDataFn as UseAudioDataFn)(musicUrl);
 
-  let activeBeat: BeatInfo | null = null;
-  let activeBeatFrame = -1;
-
-  if (audioData && visualizeAudioHook) {
-    // Echte Frequenz-Analyse
-    const frequencies = visualizeAudioHook({
-      fps,
-      frame,
-      audioData,
-      numberOfSamples,
-      optimizeFor: 'speed',
-    });
-
-    // Bass-Bereich (erste 25% der Samples = Bässe)
-    const bassEnd = Math.floor(numberOfSamples * 0.25);
-    const bassFreqs = frequencies.slice(0, bassEnd);
-    const bassAvg = bassFreqs.reduce((a, b) => a + b, 0) / bassEnd;
-
-    // Beat erkannt wenn Bass über Schwellwert
-    if (bassAvg > beatThreshold) {
-      activeBeat = { frame, intensity: Math.min(1, bassAvg) };
-    }
-  }
-
-  // Finale Beats: echte AudioData wenn verfügbar, sonst Fallback
-  const effectiveBeat = activeBeat;
-  const usedBeats = audioData ? [] : fallbackBeats;
-
-  if (!effectiveBeat && usedBeats.length === 0) return null;
-
-  // Wenn echte AudioData: direkt rendern (kein Pre-analysis nötig)
-  if (effectiveBeat) {
+  if (!audioData || !visualizeAudioFn) {
     return (
       <BeatFlash
-        beats={[effectiveBeat]}
+        beats={fallbackBeats}
         currentFrame={frame}
         flashColor={flashColor}
         flashOpacity={flashOpacity}
@@ -267,10 +187,21 @@ const BeatSyncLayerInner: React.FC<BeatSyncLayerProps & {
     );
   }
 
-  // Fallback: vorberechnete Beat-Frames
+  const frequencies = visualizeAudioFn({
+    fps, frame, audioData, numberOfSamples, optimizeFor: 'speed',
+  });
+
+  const bassEnd = Math.floor(numberOfSamples * 0.25);
+  const bassFreqs = frequencies.slice(0, bassEnd);
+  const bassAvg = bassFreqs.reduce((a: number, b: number) => a + b, 0) / bassEnd;
+
+  if (bassAvg <= beatThreshold) return null;
+
+  const activeBeat: BeatInfo = { frame, intensity: Math.min(1, bassAvg) };
+
   return (
     <BeatFlash
-      beats={usedBeats}
+      beats={[activeBeat]}
       currentFrame={frame}
       flashColor={flashColor}
       flashOpacity={flashOpacity}
@@ -280,24 +211,8 @@ const BeatSyncLayerInner: React.FC<BeatSyncLayerProps & {
   );
 };
 
-// ── Export: BeatSyncLayer ──────────────────────────────────────────────────
+// ── Haupt-Export ──────────────────────────────────────────────────────────
 
-/**
- * BeatSyncLayer — Drop-in Komponente für viral Beat-Cuts.
- *
- * Nutzt @remotion/media-utils (useAudioData) wenn installiert.
- * Fallback: synthetische Beats auf Bild-Wechseln.
- *
- * Einbinden in MojoBusVideo:
- * ```tsx
- * <BeatSyncLayer
- *   musicUrl={musicUrl}
- *   accentColor={accentColor}
- *   strength={beatSyncStrength}
- *   fallbackBeats={generateFallbackBeats(...)}
- * />
- * ```
- */
 export const BeatSyncLayer: React.FC<
   BeatSyncLayerProps & { fallbackBeats?: BeatInfo[] }
 > = ({
@@ -314,10 +229,10 @@ export const BeatSyncLayer: React.FC<
 
   if (strength <= 0) return null;
 
-  // Wenn @remotion/media-utils verfügbar: nutze echte AudioData
-  if (useAudioDataFn && visualizeAudioFn && musicUrl) {
+  // Echte Audio-Analyse nur wenn Package verfügbar UND musicUrl vorhanden
+  if (useAudioDataFn && musicUrl) {
     return (
-      <BeatSyncLayerInner
+      <BeatSyncWithAudio
         musicUrl={musicUrl}
         numberOfSamples={numberOfSamples}
         beatThreshold={beatThreshold}
@@ -325,14 +240,12 @@ export const BeatSyncLayer: React.FC<
         flashOpacity={flashOpacity}
         accentColor={accentColor}
         strength={strength}
-        useAudioDataHook={useAudioDataFn}
-        visualizeAudioHook={visualizeAudioFn}
-        beats={fallbackBeats}
+        fallbackBeats={fallbackBeats}
       />
     );
   }
 
-  // Kein @remotion/media-utils oder kein musicUrl → Fallback-Beats
+  // Fallback: vorberechnete Beats (kein Package nötig)
   if (fallbackBeats.length === 0) return null;
 
   return (
@@ -347,13 +260,8 @@ export const BeatSyncLayer: React.FC<
   );
 };
 
-// ── Audio-Waveform Visualizer (Bonus-Komponente) ───────────────────────────
+// ── Waveform-Visualizer ────────────────────────────────────────────────────
 
-/**
- * AudioWaveformBar — Zeigt animierte Equalizer-Balken.
- * Viral-Effekt: sieht aus als würde die Musik visualisiert.
- * Fallback wenn kein AudioData: animierte Pseudo-Balken.
- */
 export const AudioWaveformBar: React.FC<{
   musicUrl?: string;
   accentColor?: string;
@@ -362,7 +270,6 @@ export const AudioWaveformBar: React.FC<{
   height?: number;
   opacity?: number;
 }> = ({
-  musicUrl,
   accentColor = '#F59E0B',
   numberOfBars = 32,
   position = 'bottom',
@@ -372,10 +279,10 @@ export const AudioWaveformBar: React.FC<{
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  // Pseudo-Waveform ohne AudioData (sinusförmig animiert)
+  // Pseudo-Waveform: sinusförmig animiert (kein Package nötig)
   const bars = Array.from({ length: numberOfBars }, (_, i) => {
     const phase = (i / numberOfBars) * Math.PI * 2;
-    const timePhase = (frame / fps) * Math.PI * 2 * 1.5; // 1.5 Hz
+    const timePhase = (frame / fps) * Math.PI * 2 * 1.5;
     const wave = Math.sin(phase + timePhase) * 0.5 + 0.5;
     const wave2 = Math.sin(phase * 2 + timePhase * 0.7) * 0.3;
     return Math.max(0.05, Math.min(1, wave + wave2));

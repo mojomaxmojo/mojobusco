@@ -28,6 +28,8 @@ import {
 } from 'remotion';
 
 // ── @remotion/lottie Bridge ────────────────────────────────────────────────
+// FIX: Kein Top-Level await import() — crasht esbuild (EPIPE)!
+// Synchrones require() mit try/catch stattdessen.
 
 let LottiePlayer: React.FC<{
   animationData: object;
@@ -35,21 +37,23 @@ let LottiePlayer: React.FC<{
 }> | null = null;
 
 try {
-  // @ts-ignore
-  const lottieModule = await import('@remotion/lottie').catch(() => null);
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const lottieModule = require('@remotion/lottie');
   if (lottieModule?.Lottie) {
     LottiePlayer = lottieModule.Lottie;
-    console.log('[LottieBusIcon] @remotion/lottie geladen ✓');
   }
-} catch (_) {}
+} catch (_) {
+  // @remotion/lottie nicht installiert → CSS-Bus Fallback
+}
 
 // Versuche Bus-Lottie JSON zu laden (falls vorhanden)
 let busLottieData: object | null = null;
 try {
-  // @ts-ignore
-  const json = await import('../lottie/bus.json').catch(() => null);
-  if (json) busLottieData = json;
-} catch (_) {}
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  busLottieData = require('../lottie/bus.json');
+} catch (_) {
+  // bus.json nicht vorhanden → CSS-Bus Fallback
+}
 
 // ── CSS-Animierter Bus (kein Lottie Package nötig) ────────────────────────
 
