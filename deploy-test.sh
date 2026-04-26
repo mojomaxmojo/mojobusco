@@ -356,6 +356,34 @@ verify_deployment() {
     success_msg "Deployment verifiziert"
 }
 
+# Server neu starten
+restart_server() {
+    info_msg "Starte Server neu..."
+
+    if systemctl is-active --quiet ai-api 2>/dev/null; then
+        systemctl restart ai-api
+        sleep 2
+        if systemctl is-active --quiet ai-api; then
+            success_msg "✓ ai-api neu gestartet"
+        else
+            warn_msg "⚠ ai-api Neustart fehlgeschlagen — manuell: systemctl restart ai-api"
+        fi
+    elif command -v pm2 &>/dev/null && pm2 list 2>/dev/null | grep -q "mojobus"; then
+        pm2 restart mojobus-server 2>/dev/null && success_msg "✓ PM2 mojobus-server neu gestartet" \
+            || warn_msg "⚠ PM2 Neustart fehlgeschlagen"
+    else
+        warn_msg "⚠ Kein bekannter Service-Manager — Server manuell neu starten!"
+    fi
+
+    sleep 3
+    if curl -s -X POST http://localhost:3002/api/render-remotion/invalidate-cache \
+        -o /dev/null -w "%{http_code}" 2>/dev/null | grep -q "200"; then
+        success_msg "✓ Remotion Bundle-Cache geleert"
+    else
+        info_msg "Bundle-Cache konnte nicht geleert werden (Server läuft ggf. noch nicht)"
+    fi
+}
+
 # Summary
 summary() {
     echo ""
@@ -401,6 +429,7 @@ main() {
     deploy_files "$1" "$2"
     restore_dev_config
     verify_deployment
+    restart_server
     summary
 }
 
