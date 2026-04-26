@@ -1,16 +1,14 @@
 /**
- * AudioLayer — Musik ohne Loop-Glitch
+ * AudioLayer — Musik mit smoothem Fade-In/Out
  *
- * Das Problem mit loop=true in Remotion:
- * Chrome berechnet den Audio-Loop intern frame-by-frame.
- * An der Loop-Stelle entsteht ein Sample-Sprung → hörbarer Ruckler.
+ * volume als Callback-Funktion — kein direkter Wert.
+ * Remotion rendert Audio stabil wenn volume(frame) eine Funktion ist.
  *
- * Lösung: KEIN loop. Stattdessen:
- * - playbackRate so anpassen dass die Musik genau bis zum Ende reicht
- * - Falls Musik länger als Video: einfach abschneiden (kein Loop nötig)
- * - Falls Musik kürzer als Video: playbackRate leicht reduzieren (max -20%)
- *   damit sie ohne Loop durchläuft. Darunter: doch loop aber mit
- *   Cross-Fade an der Loop-Stelle um den Ruckler zu kaschieren.
+ * loop=true: Tracks sind typischerweise 2-4 Min, Videos ~110s.
+ * Tracks sind länger als das Video → Loop wird nie getriggert.
+ *
+ * Audio-Ruckler Fix: numberOfSharedAudioTags=1 in render.js —
+ * Remotion alloziert Audio-Tags vorab statt bei Sequence-Wechseln neu.
  */
 
 import React from 'react';
@@ -21,8 +19,6 @@ interface AudioLayerProps {
   volume?: number;
   fadeInSec?: number;
   fadeOutSec?: number;
-  /** Geschätzte Musik-Dauer in Sekunden (für Stretch-Berechnung) */
-  musicDurationSec?: number;
 }
 
 export const AudioLayer: React.FC<AudioLayerProps> = ({
@@ -30,26 +26,11 @@ export const AudioLayer: React.FC<AudioLayerProps> = ({
   volume = 0.75,
   fadeInSec = 2,
   fadeOutSec = 3,
-  musicDurationSec,
 }) => {
   const { durationInFrames, fps } = useVideoConfig();
 
-  const videoDurationSec = durationInFrames / fps;
   const fadeInFrames  = Math.round(fadeInSec  * fps);
   const fadeOutFrames = Math.round(fadeOutSec * fps);
-
-  // Playback-Rate berechnen:
-  // Wenn Musik bekannt und kürzer als Video → leicht verlangsamen (max -20%)
-  // Lieber etwas langsamer als loop-Ruckler
-  let playbackRate = 1.0;
-  if (musicDurationSec && musicDurationSec < videoDurationSec) {
-    const ratio = musicDurationSec / videoDurationSec;
-    if (ratio >= 0.8) {
-      // Musik ist 80-100% der Videolänge → verlangsamen, kein Loop
-      playbackRate = ratio;
-    }
-    // Unter 80%: playbackRate bleibt 1.0, loop kommt unten
-  }
 
   const volumeFn = (frame: number): number => {
     if (frame < fadeInFrames) {
@@ -62,18 +43,11 @@ export const AudioLayer: React.FC<AudioLayerProps> = ({
     return volume;
   };
 
-  // Musik länger als Video → kein Loop, einfach stoppen
-  // Musik kürzer (und playbackRate-Stretch nicht ausreicht) → loop leider nötig
-  const needsLoop = musicDurationSec
-    ? (musicDurationSec * playbackRate) < videoDurationSec
-    : true; // unbekannte Dauer → loop als Fallback
-
   return (
     <Audio
       src={src}
       volume={volumeFn}
-      playbackRate={playbackRate}
-      loop={needsLoop}
+      loop
     />
   );
 };

@@ -29,7 +29,6 @@ import { Badge } from '@/components/ui/badge';
 
 type AspectRatio = '16:9' | '9:16' | '1:1';
 type ColorGrade = 'golden' | 'warm' | 'moody' | 'blue' | 'teal-orange' | 'vintage' | 'auto';
-type FilmGrain = 'none' | 'fine' | 'medium' | 'coarse';
 type CaptionStyle = 'off' | 'tiktok' | 'minimal' | 'full-line';
 type MotionBlur = 0 | 1 | 2;
 type TransitionType = 'auto' | 'fade' | 'wipe' | 'clockWipe' | 'slide';
@@ -165,7 +164,6 @@ export function RemotionVideoBlock({
   const [aspect, setAspect] = useState<AspectRatio>('16:9');
   const [imgDuration, setImgDuration] = useState<number>(5);
   const [colorGrade, setColorGrade] = useState<ColorGrade>('auto');
-  const [filmGrain, setFilmGrain] = useState<FilmGrain>('fine');
   const [captionStyle, setCaptionStyle] = useState<CaptionStyle>('tiktok');
   const [motionBlur, setMotionBlur] = useState<MotionBlur>(1);
   const [transitionType, setTransitionType] = useState<TransitionType>('auto');
@@ -306,7 +304,6 @@ export function RemotionVideoBlock({
           secondsPerImage: imgDuration,
           aspectRatio: aspect,
           colorGrade: resolvedGrade,
-          filmGrain,
           captionStyle,
           accentColor,
           motionBlurStrength: motionBlur,
@@ -711,27 +708,7 @@ export function RemotionVideoBlock({
                 </div>
               </div>
 
-              {/* Film Grain */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium">🎞️ Film Grain</Label>
-                <div className="flex gap-1">
-                  {(['none', 'fine', 'medium', 'coarse'] as FilmGrain[]).map(g => (
-                    <button
-                      key={g}
-                      type="button"
-                      onClick={() => setFilmGrain(g)}
-                      className={`flex-1 py-1.5 text-xs rounded border capitalize transition-all ${
-                        filmGrain === g
-                          ? 'text-white border-transparent'
-                          : 'bg-white dark:bg-gray-900 text-gray-500 border-gray-300 dark:border-gray-600'
-                      }`}
-                      style={filmGrain === g ? { background: accentColor } : {}}
-                    >
-                      {g === 'none' ? 'Kein' : g === 'fine' ? 'Fein' : g === 'medium' ? 'Mittel' : 'Grob'}
-                    </button>
-                  ))}
-                </div>
-              </div>
+
 
             </div>
           )}
@@ -764,7 +741,6 @@ export function RemotionVideoBlock({
               '🌊 Noise Ken Burns',
               motionBlur > 0 ? `🎬 Motion Blur` : null,
               `${TRANSITION_LABELS[transitionType]}`,
-              filmGrain !== 'none' ? `🎞️ Film Grain` : null,
               captionStyle !== 'off' ? `💬 ${CAPTION_STYLE_LABELS[captionStyle]}` : null,
               showRouteMap ? '🗺️ Routen-Karte' : null,
               selectedMusic !== 'random' ? '🎵 Eigene Musik' : '🎵 Musik',

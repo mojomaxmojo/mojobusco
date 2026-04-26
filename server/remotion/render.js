@@ -353,7 +353,7 @@ export async function renderMojoBusVideo(params) {
     musicUrl,
     secondsPerImage = 5,
     aspectRatio = '16:9',
-    colorGrade, filmGrain = 'fine',
+    colorGrade,
     captions = [], captionStyle = 'tiktok',
     websiteUrl = 'mojobus.co',
     handle = '@mojobus',
@@ -394,31 +394,6 @@ export async function renderMojoBusVideo(params) {
     throw new Error(`Bild-Download fehlgeschlagen: ${err.message}`);
   }
 
-  // SCHRITT 1b: Musik-Dauer auslesen (für Loop-freies Audio)
-  let musicDurationSec = null;
-  if (musicUrl) {
-    // Musik-URL ist eine localhost-URL wie http://localhost:3002/api/music/track.mp3
-    // ffprobe kann HTTP-URLs direkt lesen
-    try {
-      const { execFile } = await import('child_process');
-      const { promisify } = await import('util');
-      const execFileAsync = promisify(execFile);
-      const result = await execFileAsync(FFPROBE_PATH, [
-        '-v', 'quiet',
-        '-print_format', 'json',
-        '-show_format',
-        musicUrl,
-      ], { timeout: 10000 });
-      const info = JSON.parse(result.stdout);
-      musicDurationSec = parseFloat(info?.format?.duration || '0') || null;
-      if (musicDurationSec) {
-        console.log(`[Remotion] Musik-Dauer: ${musicDurationSec.toFixed(1)}s`);
-      }
-    } catch (e) {
-      console.warn(`[Remotion] Musik-Dauer konnte nicht ausgelesen werden: ${e.message}`);
-    }
-  }
-
   // SCHRITT 2: Lokalen HTTP-Server für die Bilder starten
   let imageServer = null;
   let httpImageUrls;
@@ -442,15 +417,13 @@ export async function renderMojoBusVideo(params) {
     const inputProps = {
       imageUrls: httpImageUrls, // ← HTTP statt file://
       title, summary, location, country, lifestyle, musicUrl,
-      secondsPerImage, aspectRatio, colorGrade, filmGrain,
+      secondsPerImage, aspectRatio, colorGrade,
       captions, captionStyle, websiteUrl, handle, accentColor, motionBlurStrength,
       // ── NEU: Beat-Sync, Transitions, Route, Lottie ────────────────
       beatSyncStrength, beatThreshold, showWaveformBar,
       transitionType,
       showRouteMap, routeCoords, mapImageUrl,
       showLottieBus,
-      // ── Musik-Dauer für Loop-freies Audio ─────────────────────────
-      musicDurationSec,
     };
 
     const composition = await selectComposition({
@@ -478,17 +451,14 @@ export async function renderMojoBusVideo(params) {
       //   9:16 @ 1080×1920 @ 25fps @ 110s → ~15-25MB ✅
       //   (vorher: 1920×1080 @ 30fps @ crf 20 → 127MB ❌)
       crf: 28,
-      // yuv420p: maximale Kompatibilität (iPhone, Android, Browser, Social)
       pixelFormat: 'yuv420p',
-      // x264 Preset: 'medium' = gutes Speed/Quality Verhältnis auf VPS
       x264Preset: 'medium',
-      // ── Audio-Glitch Fix ──────────────────────────────────────────────
-      // Hohe Concurrency (z.B. 6 Tabs) → Chrome rendert Chunks parallel
-      // → Audio-Position wird pro Chunk neu berechnet → Ruckler an Chunk-Grenzen
-      // Lösung: concurrency=1 eliminiert Chunk-Grenzen komplett.
-      // Nachteil: ~3x langsamer. Für Slideshows mit Musik ist das der einzige
-      // zuverlässige Weg für glatte Tonspur.
-      concurrency: 1,
+      // 4-Core VPS: 3 parallele Tabs = gutes Verhältnis Speed/RAM
+      concurrency: 3,
+      // numberOfSharedAudioTags: verhindert Audio-Glitches bei Sequence-Wechseln.
+      // Remotion alloziert Audio-Tags vorab statt sie bei jedem Wechsel neu zu erstellen.
+      // Default ist 5 — auf 1 setzen da wir nur einen Audio-Track haben.
+      numberOfSharedAudioTags: 1,
       ...(CHROME_PATH ? { browserExecutable: CHROME_PATH } : {}),
       chromiumOptions: CHROMIUM_OPTIONS,
       onBrowserLog: ({ type, text }) => {
