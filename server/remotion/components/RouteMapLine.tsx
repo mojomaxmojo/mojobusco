@@ -59,21 +59,9 @@ export interface RouteMapLineProps {
   overlayOpacity?: number;
 }
 
-// ── @remotion/shapes Bridge ────────────────────────────────────────────────
-// FIX: Kein Top-Level await import() — crasht esbuild (EPIPE)!
-// Synchrones require() mit try/catch stattdessen.
-
-// @remotion/shapes ist optional — eigene SVG-Shapes als Fallback
-// (Die Shapes werden in RouteMapLine aktuell nicht direkt verwendet,
-//  da wir SVG inline rendern. Hier nur als Erweiterungspunkt.)
-let _shapesLoaded = false;
-try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  require('@remotion/shapes');
-  _shapesLoaded = true;
-} catch (_) {
-  // @remotion/shapes nicht installiert → eigene SVG-Shapes (immer verfügbar)
-}
+// Hinweis: @remotion/shapes wird hier NICHT importiert.
+// RouteMapLine verwendet eigene SVG-Inline-Implementierungen —
+// das ist robuster und braucht kein extra Package.
 
 // ── Fallback Shapes (reine SVG, kein Package) ─────────────────────────────
 

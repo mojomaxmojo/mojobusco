@@ -1,12 +1,9 @@
 /**
  * BeatSyncLayer — Schnitte synchron zur Musik (viral!)
  *
- * FIX: Kein Top-Level await import() — das crasht esbuild (EPIPE).
- * Stattdessen: synchrones require() mit try/catch für optionale Packages.
- *
- * Strategie:
- *  - useAudioData() liest Amplitude pro Frame aus der Musik-Datei
- *  - Bei jedem Beat: Flash-Effekt + Bloom-Glühring → visueller Punch
+ * @remotion/media-utils laden:
+ *  - require() mit NullPlugin-Kompatibilität (render.js gibt {} wenn fehlt)
+ *  - Prüfung ob useAudioData eine Funktion ist bevor Nutzung
  *  - Fallback: synthetische Beats auf Bild-Wechseln (kein Package nötig)
  */
 
@@ -18,55 +15,27 @@ import {
   useVideoConfig,
 } from 'remotion';
 
-// ── Optionale Packages: synchrones require() statt await import() ──────────
-// await import() auf Top-Level crasht den Remotion/esbuild-Bundler (EPIPE)!
+// @remotion/media-utils laden — NullPlugin gibt {} zurück wenn fehlt
+/* eslint-disable @typescript-eslint/no-var-requires */
+const _mediaUtils = require('@remotion/media-utils');
+/* eslint-enable @typescript-eslint/no-var-requires */
 
-type AudioData = any;
+// Prüfe ob echte Funktionen vorhanden (nicht leeres {})
+const _useAudioData: ((src: string) => any) | null =
+  typeof _mediaUtils?.useAudioData === 'function' ? _mediaUtils.useAudioData : null;
+const _visualizeAudio: ((params: any) => number[]) | null =
+  typeof _mediaUtils?.visualizeAudio === 'function' ? _mediaUtils.visualizeAudio : null;
 
-type UseAudioDataFn = (src: string) => AudioData | null;
-type VisualizeAudioFn = (params: {
-  fps: number;
-  frame: number;
-  audioData: AudioData;
-  numberOfSamples: number;
-  optimizeFor?: 'speed' | 'accuracy';
-}) => number[];
-
-let useAudioDataFn: UseAudioDataFn | null = null;
-let visualizeAudioFn: VisualizeAudioFn | null = null;
-
-// Synchrones require() — funktioniert im Node/webpack-Kontext des Bundlers
-try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const mediaUtils = require('@remotion/media-utils');
-  if (mediaUtils?.useAudioData) {
-    useAudioDataFn = mediaUtils.useAudioData;
-    visualizeAudioFn = mediaUtils.visualizeAudio ?? null;
-  }
-} catch (_) {
-  // @remotion/media-utils nicht installiert → Fallback-Modus
-}
+const HAS_AUDIO_UTILS = Boolean(_useAudioData && _visualizeAudio);
 
 // ── Typen ─────────────────────────────────────────────────────────────────
 
 export interface BeatInfo {
-  /** Frame-Nummer wo ein Beat erkannt wurde */
   frame: number;
-  /** Intensität 0–1 */
   intensity: number;
 }
 
-interface BeatSyncLayerProps {
-  musicUrl?: string;
-  numberOfSamples?: number;
-  beatThreshold?: number;
-  flashColor?: string;
-  flashOpacity?: number;
-  accentColor?: string;
-  strength?: number;
-}
-
-// ── Fallback-Beats vorberechnen ───────────────────────────────────────────
+// ── Fallback-Beats (kein Audio nötig) ─────────────────────────────────────
 
 export function generateFallbackBeats(
   totalFrames: number,
@@ -77,7 +46,6 @@ export function generateFallbackBeats(
 ): BeatInfo[] {
   const perSlide = Math.round(secondsPerImage * fps);
   const beats: BeatInfo[] = [];
-
   for (let i = 0; i < imageCount; i++) {
     const beatFrame = hookFrames + i * perSlide;
     if (beatFrame < totalFrames) {
@@ -91,7 +59,7 @@ export function generateFallbackBeats(
   return beats;
 }
 
-// ── Beat-Flash Darstellung ────────────────────────────────────────────────
+// ── Beat-Flash Effekt ─────────────────────────────────────────────────────
 
 const BeatFlash: React.FC<{
   beats: BeatInfo[];
@@ -106,7 +74,6 @@ const BeatFlash: React.FC<{
   const FLASH_WINDOW = 8;
   let nearestBeat: BeatInfo | null = null;
   let nearestDist = Infinity;
-
   for (const b of beats) {
     const dist = Math.abs(currentFrame - b.frame);
     if (dist <= FLASH_WINDOW && dist < nearestDist) {
@@ -114,46 +81,33 @@ const BeatFlash: React.FC<{
       nearestDist = dist;
     }
   }
-
   if (!nearestBeat) return null;
 
-  const frameSinceBeat = currentFrame - nearestBeat.frame;
-  const flashT = interpolate(frameSinceBeat, [0, FLASH_WINDOW], [1, 0], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
+  const flashT = interpolate(currentFrame - nearestBeat.frame, [0, FLASH_WINDOW], [1, 0], {
+    extrapolateLeft: 'clamp', extrapolateRight: 'clamp',
   });
-
   const opacity = flashOpacity * flashT * flashT * nearestBeat.intensity * strength;
   if (opacity < 0.01) return null;
 
-  const ringOpacity = opacity * 0.4;
   const ringScale = interpolate(flashT, [0, 1], [1, 1.06]);
 
   return (
     <AbsoluteFill style={{ pointerEvents: 'none' }}>
-      <AbsoluteFill
-        style={{ background: flashColor, opacity, mixBlendMode: 'screen' }}
-      />
-      <AbsoluteFill
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-      >
-        <div
-          style={{
-            width: `${ringScale * 100}%`,
-            height: `${ringScale * 100}%`,
-            borderRadius: '50%',
-            border: `3px solid ${accentColor}`,
-            opacity: ringOpacity,
-            boxShadow: `0 0 40px ${accentColor}88, inset 0 0 40px ${accentColor}44`,
-          }}
-        />
+      <AbsoluteFill style={{ background: flashColor, opacity, mixBlendMode: 'screen' }} />
+      <AbsoluteFill style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{
+          width: `${ringScale * 100}%`, height: `${ringScale * 100}%`,
+          borderRadius: '50%', border: `3px solid ${accentColor}`,
+          opacity: opacity * 0.4,
+          boxShadow: `0 0 40px ${accentColor}88, inset 0 0 40px ${accentColor}44`,
+        }} />
       </AbsoluteFill>
     </AbsoluteFill>
   );
 };
 
-// ── Inner-Komponente für echte useAudioData-Analyse ───────────────────────
-// Nur rendern wenn useAudioDataFn vorhanden → Hook-Regeln sicher einhalten
+// ── Inner mit echter Audio-Analyse ────────────────────────────────────────
+// Eigene Komponente damit useAudioData als normaler Hook aufgerufen wird
 
 const BeatSyncWithAudio: React.FC<{
   musicUrl: string;
@@ -164,58 +118,46 @@ const BeatSyncWithAudio: React.FC<{
   accentColor: string;
   strength: number;
   fallbackBeats: BeatInfo[];
-}> = ({
-  musicUrl, numberOfSamples, beatThreshold,
-  flashColor, flashOpacity, accentColor, strength, fallbackBeats,
-}) => {
+}> = ({ musicUrl, numberOfSamples, beatThreshold, flashColor, flashOpacity, accentColor, strength, fallbackBeats }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  // useAudioData als normaler Hook-Aufruf (kein bedingter Aufruf)
-  const audioData = (useAudioDataFn as UseAudioDataFn)(musicUrl);
+  // Hook-Aufruf — _useAudioData ist garantiert eine Funktion wenn wir hier sind
+  const audioData = (_useAudioData as (src: string) => any)(musicUrl);
 
-  if (!audioData || !visualizeAudioFn) {
-    return (
-      <BeatFlash
-        beats={fallbackBeats}
-        currentFrame={frame}
-        flashColor={flashColor}
-        flashOpacity={flashOpacity}
-        accentColor={accentColor}
-        strength={strength}
-      />
-    );
+  if (!audioData) {
+    return <BeatFlash beats={fallbackBeats} currentFrame={frame}
+      flashColor={flashColor} flashOpacity={flashOpacity} accentColor={accentColor} strength={strength} />;
   }
 
-  const frequencies = visualizeAudioFn({
+  const frequencies = (_visualizeAudio as (p: any) => number[])({
     fps, frame, audioData, numberOfSamples, optimizeFor: 'speed',
   });
 
   const bassEnd = Math.floor(numberOfSamples * 0.25);
-  const bassFreqs = frequencies.slice(0, bassEnd);
-  const bassAvg = bassFreqs.reduce((a: number, b: number) => a + b, 0) / bassEnd;
+  const bassAvg = frequencies.slice(0, bassEnd).reduce((a: number, b: number) => a + b, 0) / bassEnd;
 
   if (bassAvg <= beatThreshold) return null;
 
-  const activeBeat: BeatInfo = { frame, intensity: Math.min(1, bassAvg) };
-
-  return (
-    <BeatFlash
-      beats={[activeBeat]}
-      currentFrame={frame}
-      flashColor={flashColor}
-      flashOpacity={flashOpacity}
-      accentColor={accentColor}
-      strength={strength}
-    />
-  );
+  return <BeatFlash
+    beats={[{ frame, intensity: Math.min(1, bassAvg) }]}
+    currentFrame={frame}
+    flashColor={flashColor} flashOpacity={flashOpacity} accentColor={accentColor} strength={strength}
+  />;
 };
 
 // ── Haupt-Export ──────────────────────────────────────────────────────────
 
-export const BeatSyncLayer: React.FC<
-  BeatSyncLayerProps & { fallbackBeats?: BeatInfo[] }
-> = ({
+export const BeatSyncLayer: React.FC<{
+  musicUrl?: string;
+  numberOfSamples?: number;
+  beatThreshold?: number;
+  flashColor?: string;
+  flashOpacity?: number;
+  accentColor?: string;
+  strength?: number;
+  fallbackBeats?: BeatInfo[];
+}> = ({
   musicUrl,
   numberOfSamples = 256,
   beatThreshold = 0.60,
@@ -229,38 +171,20 @@ export const BeatSyncLayer: React.FC<
 
   if (strength <= 0) return null;
 
-  // Echte Audio-Analyse nur wenn Package verfügbar UND musicUrl vorhanden
-  if (useAudioDataFn && musicUrl) {
-    return (
-      <BeatSyncWithAudio
-        musicUrl={musicUrl}
-        numberOfSamples={numberOfSamples}
-        beatThreshold={beatThreshold}
-        flashColor={flashColor}
-        flashOpacity={flashOpacity}
-        accentColor={accentColor}
-        strength={strength}
-        fallbackBeats={fallbackBeats}
-      />
-    );
+  if (HAS_AUDIO_UTILS && musicUrl) {
+    return <BeatSyncWithAudio
+      musicUrl={musicUrl} numberOfSamples={numberOfSamples} beatThreshold={beatThreshold}
+      flashColor={flashColor} flashOpacity={flashOpacity} accentColor={accentColor}
+      strength={strength} fallbackBeats={fallbackBeats}
+    />;
   }
 
-  // Fallback: vorberechnete Beats (kein Package nötig)
   if (fallbackBeats.length === 0) return null;
-
-  return (
-    <BeatFlash
-      beats={fallbackBeats}
-      currentFrame={frame}
-      flashColor={flashColor}
-      flashOpacity={flashOpacity}
-      accentColor={accentColor}
-      strength={strength}
-    />
-  );
+  return <BeatFlash beats={fallbackBeats} currentFrame={frame}
+    flashColor={flashColor} flashOpacity={flashOpacity} accentColor={accentColor} strength={strength} />;
 };
 
-// ── Waveform-Visualizer ────────────────────────────────────────────────────
+// ── Waveform-Bar ──────────────────────────────────────────────────────────
 
 export const AudioWaveformBar: React.FC<{
   musicUrl?: string;
@@ -269,56 +193,31 @@ export const AudioWaveformBar: React.FC<{
   position?: 'bottom' | 'top';
   height?: number;
   opacity?: number;
-}> = ({
-  accentColor = '#F59E0B',
-  numberOfBars = 32,
-  position = 'bottom',
-  height = 48,
-  opacity = 0.55,
-}) => {
+}> = ({ accentColor = '#F59E0B', numberOfBars = 32, position = 'bottom', height = 48, opacity = 0.55 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  // Pseudo-Waveform: sinusförmig animiert (kein Package nötig)
   const bars = Array.from({ length: numberOfBars }, (_, i) => {
     const phase = (i / numberOfBars) * Math.PI * 2;
-    const timePhase = (frame / fps) * Math.PI * 2 * 1.5;
-    const wave = Math.sin(phase + timePhase) * 0.5 + 0.5;
-    const wave2 = Math.sin(phase * 2 + timePhase * 0.7) * 0.3;
-    return Math.max(0.05, Math.min(1, wave + wave2));
+    const t = (frame / fps) * Math.PI * 2;
+    return Math.max(0.05, Math.min(1, Math.sin(phase + t * 1.5) * 0.5 + 0.5 + Math.sin(phase * 2 + t * 0.7) * 0.3));
   });
-
-  const posStyle: React.CSSProperties =
-    position === 'bottom'
-      ? { bottom: 0, left: 0, right: 0 }
-      : { top: 0, left: 0, right: 0 };
 
   return (
     <AbsoluteFill style={{ pointerEvents: 'none' }}>
-      <div
-        style={{
-          position: 'absolute',
-          ...posStyle,
-          display: 'flex',
-          alignItems: 'flex-end',
-          justifyContent: 'center',
-          gap: '2px',
-          padding: '0 8px',
-          height: `${height}px`,
-          opacity,
-        }}
-      >
-        {bars.map((barHeight, i) => (
-          <div
-            key={i}
-            style={{
-              flex: 1,
-              height: `${barHeight * 100}%`,
-              background: `linear-gradient(to top, ${accentColor}, ${accentColor}55)`,
-              borderRadius: '2px 2px 0 0',
-              minWidth: '2px',
-            }}
-          />
+      <div style={{
+        position: 'absolute',
+        ...(position === 'bottom' ? { bottom: 0 } : { top: 0 }),
+        left: 0, right: 0,
+        display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+        gap: '2px', padding: '0 8px', height: `${height}px`, opacity,
+      }}>
+        {bars.map((h, i) => (
+          <div key={i} style={{
+            flex: 1, height: `${h * 100}%`,
+            background: `linear-gradient(to top, ${accentColor}, ${accentColor}55)`,
+            borderRadius: '2px 2px 0 0', minWidth: '2px',
+          }} />
         ))}
       </div>
     </AbsoluteFill>

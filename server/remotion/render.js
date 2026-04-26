@@ -182,7 +182,50 @@ async function getBundledEntry() {
   try {
     const bundled = await bundle({
       entryPoint: path.join(__dirname, 'index.tsx'),
-      webpackOverride: (c) => c,
+      webpackOverride: (config) => {
+        // Optionale Packages: wenn nicht installiert → leeres Modul zurückgeben.
+        // Das verhindert EPIPE-Crashes wenn z.B. @remotion/lottie fehlt.
+        const OPTIONAL_PACKAGES = [
+          '@remotion/lottie',
+          '@remotion/media-utils',
+          '@remotion/shapes',
+          '@remotion/transitions',
+          'lottie-web',
+        ];
+
+        // NullPlugin: gibt ein leeres Objekt zurück für nicht-installierte Packages
+        const NullPlugin = {
+          apply(compiler) {
+            compiler.hooks.normalModuleFactory.tap('NullPlugin', (factory) => {
+              factory.hooks.beforeResolve.tap('NullPlugin', (resolveData) => {
+                if (!resolveData) return;
+                const req = resolveData.request;
+                // Prüfe ob Package installiert ist
+                for (const pkg of OPTIONAL_PACKAGES) {
+                  if (req === pkg || req.startsWith(pkg + '/')) {
+                    try {
+                      // Wenn require() klappt → normal laden
+                      require.resolve(req, {
+                        paths: [path.join(__dirname, '..', 'node_modules')],
+                      });
+                      return; // vorhanden → normal weitermachen
+                    } catch (_) {
+                      // Nicht installiert → leeres Modul
+                      resolveData.request = path.join(__dirname, '__null_module__.js');
+                      return;
+                    }
+                  }
+                }
+              });
+            });
+          },
+        };
+
+        return {
+          ...config,
+          plugins: [...(config.plugins || []), NullPlugin],
+        };
+      },
     });
 
     bundleCache    = bundled;
