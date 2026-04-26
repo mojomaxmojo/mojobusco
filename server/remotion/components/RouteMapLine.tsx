@@ -295,8 +295,8 @@ export const RouteMapLine: React.FC<RouteMapLineProps> = ({
   return (
     <AbsoluteFill style={{ opacity: globalOpacity, pointerEvents: 'none' }}>
 
-      {/* Karten-Hintergrund wenn vorhanden */}
-      {mapImageUrl && (
+      {/* Hintergrund: Karten-Bild ODER animierter Gradient-Hintergrund */}
+      {mapImageUrl ? (
         <AbsoluteFill>
           <img
             src={mapImageUrl}
@@ -311,6 +311,38 @@ export const RouteMapLine: React.FC<RouteMapLineProps> = ({
           <AbsoluteFill
             style={{ background: `rgba(0,0,0,${overlayOpacity})` }}
           />
+        </AbsoluteFill>
+      ) : (
+        /* Schöner Gradient-Hintergrund wenn kein Kartenbild vorhanden */
+        <AbsoluteFill
+          style={{
+            background: `
+              radial-gradient(ellipse at 30% 40%, rgba(15,23,42,1) 0%, transparent 70%),
+              radial-gradient(ellipse at 70% 60%, rgba(30,41,59,1) 0%, transparent 70%),
+              linear-gradient(135deg, #0f172a 0%, #1e293b 40%, #0f172a 100%)
+            `,
+          }}
+        >
+          {/* Gitter-Muster wie ein Kartenpapier */}
+          <AbsoluteFill>
+            <svg
+              width="100%"
+              height="100%"
+              viewBox={`0 0 ${width} ${height}`}
+              style={{ position: 'absolute', top: 0, left: 0, opacity: 0.08 }}
+            >
+              <defs>
+                <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
+                  <path d="M 60 0 L 0 0 0 60" fill="none" stroke="#94a3b8" strokeWidth="0.5" />
+                </pattern>
+                <pattern id="grid-lg" width="180" height="180" patternUnits="userSpaceOnUse">
+                  <path d="M 180 0 L 0 0 0 180" fill="none" stroke="#94a3b8" strokeWidth="1" />
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#grid)" />
+              <rect width="100%" height="100%" fill="url(#grid-lg)" />
+            </svg>
+          </AbsoluteFill>
         </AbsoluteFill>
       )}
 

@@ -2207,6 +2207,18 @@ app.post('/api/render-remotion', async (req, res) => {
     handle = '@mojobus',
     accentColor = '#F59E0B',
     motionBlurStrength = 1,
+    // ── Beat-Sync ────────────────────────────────────────────────────
+    beatSyncStrength = 0.6,
+    beatThreshold = 0.60,
+    showWaveformBar = false,
+    // ── Transitions ──────────────────────────────────────────────────
+    transitionType = 'auto',
+    // ── Routen-Karte ─────────────────────────────────────────────────
+    showRouteMap = false,
+    routeCoords,
+    mapImageUrl,
+    // ── Lottie Bus ───────────────────────────────────────────────────
+    showLottieBus = true,
   } = req.body
 
   // Validierung
@@ -2283,6 +2295,20 @@ app.post('/api/render-remotion', async (req, res) => {
         handle,
         accentColor,
         motionBlurStrength: parseFloat(String(motionBlurStrength)) || 1,
+        // ── Beat-Sync ──────────────────────────────────────────────
+        beatSyncStrength: parseFloat(String(beatSyncStrength)) || 0.6,
+        beatThreshold: parseFloat(String(beatThreshold)) || 0.60,
+        showWaveformBar: !!showWaveformBar,
+        // ── Transitions ────────────────────────────────────────────
+        transitionType: transitionType || 'auto',
+        // ── Routen-Karte ───────────────────────────────────────────
+        showRouteMap: !!showRouteMap,
+        routeCoords: Array.isArray(routeCoords) ? routeCoords : undefined,
+        mapImageUrl: mapImageUrl || undefined,
+        // ── Lottie Bus ─────────────────────────────────────────────
+        showLottieBus: showLottieBus !== false,
+        // ── Interner Parameter: Musik-Ordner für localhost-URL-Auflösung
+        localMusicDir: MUSIC_DIR,
         onProgress: (percent) => {
           const j = remotionJobs.get(jobId)
           if (j) j.progress = Math.max(j.progress, percent)

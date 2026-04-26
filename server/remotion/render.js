@@ -342,6 +342,105 @@ async function downloadAllImages(imageUrls, sessionDir) {
   return result; // Array von Dateinamen (relativ zum sessionDir)
 }
 
+// ── Audio-Datei herunterladen ─────────────────────────────────────────────
+
+/**
+ * Bereitet die Audio-Datei für den Render vor.
+ * 
+ * Drei Fälle:
+ *  1. Lokaler Dateipfad (z.B. /home/nginx/.../music/track.mp3) → direkt kopieren
+ *  2. HTTP-URL (z.B. https://blossom.../music.mp3) → herunterladen
+ *  3. localhost-URL (z.B. http://localhost:PORT/api/music/...) → Dateipfad extrahieren
+ *
+ * Gibt den Dateinamen im sessionDir zurück (z.B. "audio.mp3").
+ */
+async function downloadAudioFile(url, sessionDir, localMusicDir) {
+  if (!url) return null;
+
+  const AUDIO_MIME_MAP = {
+    'audio/mpeg': '.mp3', 'audio/mp3': '.mp3',
+    'audio/ogg': '.ogg',  'audio/wav': '.wav',
+    'audio/wave': '.wav', 'audio/x-wav': '.wav',
+    'audio/mp4': '.m4a',  'audio/m4a': '.m4a',
+    'audio/aac': '.aac',  'audio/opus': '.opus',
+    'audio/webm': '.webm',
+  };
+
+  const extMatch = url.split('?')[0].match(/\.(mp3|ogg|wav|m4a|aac|opus|webm)$/i);
+  const guessExt = extMatch ? `.${extMatch[1].toLowerCase()}` : '.mp3';
+
+  // Fall 1: Lokaler Dateipfad (kein Protokoll oder file:// )
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    const localPath = url.replace(/^file:\/\//, '');
+    if (fs.existsSync(localPath)) {
+      const ext = path.extname(localPath) || guessExt;
+      const destPath = path.join(sessionDir, `audio${ext}`);
+      fs.copyFileSync(localPath, destPath);
+      try { fs.chmodSync(destPath, 0o644); } catch (e) {}
+      const sizeKB = (fs.statSync(destPath).size / 1024).toFixed(0);
+      console.log(`[Remotion] ✓ Audio (lokal kopiert): audio${ext} ${sizeKB}KB`);
+      return `audio${ext}`;
+    }
+    console.warn(`[Remotion] ✗ Lokale Audio-Datei nicht gefunden: ${localPath}`);
+    return null;
+  }
+
+  // Fall 2: localhost-URL → Dateiname extrahieren + aus localMusicDir kopieren
+  const localhostMatch = url.match(/localhost:[0-9]+\/api\/music\/([^?#]+)/);
+  if (localhostMatch && localMusicDir) {
+    const filename = decodeURIComponent(localhostMatch[1]);
+    const localPath = path.join(localMusicDir, filename);
+    if (fs.existsSync(localPath)) {
+      const ext = path.extname(filename) || guessExt;
+      const destPath = path.join(sessionDir, `audio${ext}`);
+      fs.copyFileSync(localPath, destPath);
+      try { fs.chmodSync(destPath, 0o644); } catch (e) {}
+      const sizeKB = (fs.statSync(destPath).size / 1024).toFixed(0);
+      console.log(`[Remotion] ✓ Audio (localhost→lokal): audio${ext} ${sizeKB}KB`);
+      return `audio${ext}`;
+    }
+    console.warn(`[Remotion] ✗ Musik-Datei im music/-Ordner nicht gefunden: ${filename}`);
+  }
+
+  // Fall 3: Externe HTTP(S)-URL → herunterladen
+  const tempPath = path.join(sessionDir, 'audio.tmp');
+  try {
+    const { contentType } = await downloadFileWithType(url, tempPath);
+    const ext = (contentType && AUDIO_MIME_MAP[contentType.toLowerCase().split(';')[0].trim()]) || guessExt;
+    const finalPath = path.join(sessionDir, `audio${ext}`);
+    fs.renameSync(tempPath, finalPath);
+    try { fs.chmodSync(finalPath, 0o644); } catch (e) {}
+    const sizeKB = (fs.statSync(finalPath).size / 1024).toFixed(0);
+    console.log(`[Remotion] ✓ Audio (HTTP): audio${ext} ${sizeKB}KB`);
+    return `audio${ext}`;
+  } catch (err) {
+    console.warn(`[Remotion] ✗ Audio-Download fehlgeschlagen (${err.message}) → kein Audio`);
+    try { if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath); } catch (e) {}
+    return null;
+  }
+}
+
+// ── Karten-Bild herunterladen ─────────────────────────────────────────────
+
+async function downloadMapImage(url, sessionDir) {
+  if (!url) return null;
+  const tempPath = path.join(sessionDir, 'map.tmp');
+  try {
+    const { filePath, contentType } = await downloadFileWithType(url, tempPath);
+    const ext = getImageExtension(url, contentType);
+    const finalPath = path.join(sessionDir, `map${ext}`);
+    fs.renameSync(tempPath, finalPath);
+    try { fs.chmodSync(finalPath, 0o644); } catch (e) {}
+    const sizeKB = (fs.statSync(finalPath).size / 1024).toFixed(0);
+    console.log(`[Remotion] ✓ Karte: map${ext} ${sizeKB}KB`);
+    return `map${ext}`;
+  } catch (err) {
+    console.warn(`[Remotion] ✗ Karten-Download fehlgeschlagen: ${err.message}`);
+    try { if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath); } catch (e) {}
+    return null;
+  }
+}
+
 // ── Haupt-Render-Funktion ─────────────────────────────────────────────────
 
 export async function renderMojoBusVideo(params) {
@@ -372,6 +471,8 @@ export async function renderMojoBusVideo(params) {
     // ── NEU: Lottie Bus ───────────────────────────────────────────────
     showLottieBus = true,
     onProgress,
+    // ── Interner Parameter: lokaler Musik-Ordner (übergeben von server.js) ──
+    localMusicDir,
   } = params;
 
   if (!imageUrls || imageUrls.length === 0) {
@@ -383,28 +484,54 @@ export async function renderMojoBusVideo(params) {
   const sessionDir    = path.join(IMAGES_DIR, sessionId);
   const outputPath    = path.join(OUTPUT_DIR, `mojobus-${sessionId}.mp4`);
 
+  fs.mkdirSync(sessionDir, { recursive: true });
   console.log(`[Remotion] ── Start: ${compositionId} | ${imageUrls.length} Bilder | ${aspectRatio}`);
 
-  // SCHRITT 1: Bilder herunterladen (gibt Dateinamen zurück)
+  // SCHRITT 1: Bilder + Audio + Karte parallel herunterladen
   let imageFilenames;
+  let audioFilename = null;
+  let mapFilename   = null;
+
   try {
-    imageFilenames = await downloadAllImages(imageUrls, sessionDir);
+    [imageFilenames, audioFilename, mapFilename] = await Promise.all([
+      downloadAllImages(imageUrls, sessionDir),
+      musicUrl  ? downloadAudioFile(musicUrl, sessionDir, localMusicDir) : Promise.resolve(null),
+      mapImageUrl ? downloadMapImage(mapImageUrl, sessionDir) : Promise.resolve(null),
+    ]);
   } catch (err) {
     try { fs.rmSync(sessionDir, { recursive: true, force: true }); } catch (e) {}
-    throw new Error(`Bild-Download fehlgeschlagen: ${err.message}`);
+    throw new Error(`Download fehlgeschlagen: ${err.message}`);
   }
 
-  // SCHRITT 2: Lokalen HTTP-Server für die Bilder starten
+  // SCHRITT 2: Lokalen HTTP-Server für alle lokalen Dateien starten
   let imageServer = null;
   let httpImageUrls;
+  let httpMusicUrl;
+  let httpMapImageUrl;
+
   try {
     imageServer = await startImageServer(sessionDir);
-    // http://127.0.0.1:PORT/img-000.webp etc.
-    httpImageUrls = imageFilenames.map(f => `http://127.0.0.1:${imageServer.port}/${f}`);
+    const base = `http://127.0.0.1:${imageServer.port}`;
+
+    // Bilder-URLs
+    httpImageUrls = imageFilenames.map(f => `${base}/${f}`);
     console.log(`[Remotion] Bild-URLs: ${httpImageUrls[0]} ... (${httpImageUrls.length} total)`);
+
+    // Audio-URL: lokal wenn Download OK, sonst Original-URL
+    httpMusicUrl = audioFilename
+      ? `${base}/${audioFilename}`
+      : musicUrl || null;
+    if (httpMusicUrl) console.log(`[Remotion] Audio-URL: ${httpMusicUrl}`);
+
+    // Karten-URL: lokal wenn Download OK, sonst Original-URL
+    httpMapImageUrl = mapFilename
+      ? `${base}/${mapFilename}`
+      : mapImageUrl || null;
+    if (httpMapImageUrl) console.log(`[Remotion] Karten-URL: ${httpMapImageUrl}`);
+
   } catch (err) {
     try { fs.rmSync(sessionDir, { recursive: true, force: true }); } catch (e) {}
-    throw new Error(`Bild-Server konnte nicht gestartet werden: ${err.message}`);
+    throw new Error(`HTTP-Server konnte nicht gestartet werden: ${err.message}`);
   }
 
   // SCHRITT 3: Bundle + Render
@@ -415,14 +542,16 @@ export async function renderMojoBusVideo(params) {
     const bundleLocation = await getBundledEntry();
 
     const inputProps = {
-      imageUrls: httpImageUrls, // ← HTTP statt file://
-      title, summary, location, country, lifestyle, musicUrl,
+      imageUrls: httpImageUrls,             // ← HTTP statt file://
+      title, summary, location, country, lifestyle,
+      musicUrl: httpMusicUrl,               // ← Lokal gecacht!
       secondsPerImage, aspectRatio, colorGrade,
       captions, captionStyle, websiteUrl, handle, accentColor, motionBlurStrength,
-      // ── NEU: Beat-Sync, Transitions, Route, Lottie ────────────────
+      // ── Beat-Sync, Transitions, Route, Lottie ────────────────────
       beatSyncStrength, beatThreshold, showWaveformBar,
       transitionType,
-      showRouteMap, routeCoords, mapImageUrl,
+      showRouteMap, routeCoords,
+      mapImageUrl: httpMapImageUrl,         // ← Lokal gecacht!
       showLottieBus,
     };
 
@@ -457,8 +586,9 @@ export async function renderMojoBusVideo(params) {
       concurrency: 3,
       // numberOfSharedAudioTags: verhindert Audio-Glitches bei Sequence-Wechseln.
       // Remotion alloziert Audio-Tags vorab statt sie bei jedem Wechsel neu zu erstellen.
-      // Default ist 5 — auf 1 setzen da wir nur einen Audio-Track haben.
-      numberOfSharedAudioTags: 1,
+      // Wir haben 1 Musik-Track + ggf. BeatSync-Analyse → 3 reicht.
+      // WICHTIG: muss >= Anzahl gleichzeitiger Audio-Elemente sein, sonst Ruckler!
+      numberOfSharedAudioTags: 3,
       ...(CHROME_PATH ? { browserExecutable: CHROME_PATH } : {}),
       chromiumOptions: CHROMIUM_OPTIONS,
       onBrowserLog: ({ type, text }) => {

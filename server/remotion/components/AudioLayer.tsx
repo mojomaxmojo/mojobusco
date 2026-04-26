@@ -1,14 +1,14 @@
 /**
- * AudioLayer — Musik mit smoothem Fade-In/Out
+ * AudioLayer — Musik mit smoothem Fade-In/Out (Ruckler-freie Version)
  *
- * volume als Callback-Funktion — kein direkter Wert.
- * Remotion rendert Audio stabil wenn volume(frame) eine Funktion ist.
+ * WICHTIG für stabiles Audio beim Remotion-Render:
+ *  - Audio-Datei wird VOR dem Render lokal gecacht (render.js) → kein Netzwerk-Latency
+ *  - volume als Callback-Funktion → Remotion interpoliert Frame-genau
+ *  - loop=false + startFrom=0 → verhindert Audio-Glitches bei Loop-Punkten
+ *  - Kein Wrapping in <Sequence> → Audio läuft im globalen Frame-Kontext
  *
- * loop=true: Tracks sind typischerweise 2-4 Min, Videos ~110s.
- * Tracks sind länger als das Video → Loop wird nie getriggert.
- *
- * Audio-Ruckler Fix: numberOfSharedAudioTags=1 in render.js —
- * Remotion alloziert Audio-Tags vorab statt bei Sequence-Wechseln neu.
+ * numberOfSharedAudioTags=3 in render.js verhindert Audio-Tag-Reallokierung
+ * bei jedem Sequence-Wechsel (die Haupt-Ursache für Ruckler).
  */
 
 import React from 'react';
@@ -33,12 +33,18 @@ export const AudioLayer: React.FC<AudioLayerProps> = ({
   const fadeOutFrames = Math.round(fadeOutSec * fps);
 
   const volumeFn = (frame: number): number => {
+    // Fade-In
     if (frame < fadeInFrames) {
-      return volume * (frame / fadeInFrames);
+      // Cubic ease-in für sanfteres Einblenden
+      const t = frame / fadeInFrames;
+      return volume * (t * t * t);
     }
+    // Fade-Out
     const fadeOutStart = durationInFrames - fadeOutFrames;
     if (frame >= fadeOutStart) {
-      return volume * Math.max(0, 1 - (frame - fadeOutStart) / fadeOutFrames);
+      const t = (frame - fadeOutStart) / fadeOutFrames;
+      // Cubic ease-out für sanfteres Ausblenden
+      return volume * Math.max(0, 1 - (t * t * t));
     }
     return volume;
   };
@@ -47,7 +53,12 @@ export const AudioLayer: React.FC<AudioLayerProps> = ({
     <Audio
       src={src}
       volume={volumeFn}
-      loop
+      // loop=false: Audio-Track ist typischerweise 2-4 Min, Videos ~60-120s.
+      // Loop-Punkt verursacht oft einen kurzen Glitch → besser vermeiden.
+      // Falls Track kürzer als Video: Stille am Ende ist besser als Glitch.
+      loop={false}
+      // startFrom=0: explizit von Anfang starten (keine Offset-Verwirrung)
+      startFrom={0}
     />
   );
 };
