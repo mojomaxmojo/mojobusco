@@ -360,146 +360,45 @@ const MojoBusCoach: React.FC<{
             Kastenform mit abgerundeten OBEREN Ecken, scharfe untere Kanten
         ══════════════════════════════════════════════════════════════════ */}
 
-        {/* Basis-Rechteck (Unterkante scharf) */}
-        <rect x={W*0.01} y={H*0.12} width={W*0.985} height={H*0.9} fill="url(#mb-body)" />
-        {/* Obere abgerundete Kappe */}
-        <rect x={W*0.01} y={H*0.04} width={W*0.985} height={H*0.12} rx={H*0.06} fill="url(#mb-body)" />
-        {/* Dach-Leiste */}
-        <rect x={W*0.01} y={H*0.04} width={W*0.985} height={H*0.05} rx={H*0.06} fill={creamDrk} opacity={0.35} />
+{/* Seitenansicht Karosserie */}
+         <rect x={W*0.01} y={H*0.12} width={W*0.98} height={H*0.9} fill="url(#mb-body)" />
+         {/* Obere abgerundete Kappe */}
+         <rect x={W*0.01} y={H*0.04} width={W*0.98} height={H*0.12} rx={H*0.06} fill="url(#mb-body)" />
+         {/* Dach-Leiste */}
+         <rect x={W*0.01} y={H*0.04} width={W*0.98} height={H*0.05} rx={H*0.06} fill={creamDrk} opacity={0.35} />
 
-        {/* ══════════════════════════════════════════════════════════════════
-            FRONTPARTIE (rechts im SVG — Bus fährt nach rechts)
-        ══════════════════════════════════════════════════════════════════ */}
+{/* ══════════════════════════════════════════════════════════════════
+             SEITENANSICHT (Fahrerseite links)
+         ══════════════════════════════════════════════════════════════════ */}
 
-        {/* Front-Fläche (leicht dunkler für Tiefe) */}
-        <g transform="skewY(8) scaleX(1.05)">
-  <polygon points={`${W*0.81},${H*0.04} ${W*0.995},${H*0.04} ${W*1.03},${H*1.04} ${W*0.70},${H*1.04}`} fill={creamMid} />
-</g>
+         {/* Fahrertür-Fenster */}
+         <rect x={W*0.05} y={H*0.095} width={W*0.18} height={H*0.35} rx={H*0.05} fill="url(#mb-glass)" stroke="#444" strokeWidth={1.5} />
+         {/* Glasspiegelung im Fahrerfenster */}
+         <rect x={W*0.065} y={H*0.108} width={W*0.025} height={H*0.26} rx={2} fill={glassHL} transform="skewY(5)" />
 
-        {/* ── Große 2-teilige Windschutzscheibe ── */}
-        {/* Linke Hälfte (Fahrer) */}
-         <g transform="rotate(2)">
-  <polygon points={`${W*0.895},${H*0.07} ${W*0.940},${H*0.07} ${W*0.925},${H*0.59} ${W*0.880},${H*0.59}`} fill="url(#mb-glass)" stroke="#444" strokeWidth={2} />
-</g>
-        {/* Mittelsteg */}
-        <rect x={W*0.940} y={H*0.07} width={W*0.012} height={H*0.52} fill={cream} />
-        {/* Rechte Hälfte */}
-        <rect x={W*0.951} y={H*0.07} width={W*0.043} height={H*0.52}
-          rx={H*0.025} fill="url(#mb-glass)" stroke="#444" strokeWidth={2} />
-        {/* Glasspiegelungen */}
-        <rect x={W*0.902} y={H*0.085} width={W*0.01} height={H*0.38} rx={2} fill={glassHL} />
-        <rect x={W*0.955} y={H*0.085} width={W*0.01} height={H*0.38} rx={2} fill={glassHL} />
+         {/* Wohnraum-Fenster (3 breite Querformat-Fenster) */}
+         {[0.25, 0.45, 0.65].map((x, i) => (
+           <g key={i}>
+             <rect x={W*x} y={H*0.095} width={W*0.18} height={H*0.35} rx={H*0.05} fill="url(#mb-glass)" stroke="#444" strokeWidth={1.5} />
+             {/* Glasspiegelung */}
+             <rect x={W*(x+0.015)} y={H*0.108} width={W*0.03} height={H*0.26} rx={2} fill={glassHL} transform="skewY(5)" />
+             {/* Fenster-Unterteilung (kleines Lüftungsklappchen oben) */}
+             <rect x={W*x} y={H*0.095} width={W*0.18} height={H*0.07} rx={0} fill="rgba(0,0,0,0.12)" />
+             <line x1={W*x} y1={H*0.165} x2={W*(x+0.18)} y2={H*0.165} stroke="#555" strokeWidth={1} opacity={0.6} />
+           </g>
+         ))}
 
-        {/* Scheibenwischer (2 Stück) */}
-        <line x1={W*0.920} y1={H*0.575} x2={W*0.900} y2={H*0.50}
-          stroke="#222" strokeWidth={H*0.018} strokeLinecap="round" />
-        <line x1={W*0.966} y1={H*0.575} x2={W*0.950} y2={H*0.50}
-          stroke="#222" strokeWidth={H*0.018} strokeLinecap="round" />
+{/* ══════════════════════════════════════════════════════════════════
+             FENSTERGÜRTEL (Seitenansicht)
+         ══════════════════════════════════════════════════════════════════ */}
 
-        {/* "Live Love Travel" Text auf Scheibe */}
-         <text x={W*0.903} y={H*0.185} fontSize={H*0.055} transform="skewX(-12)"
-           fontFamily="Arial, sans-serif" fontStyle="italic"
-           fill="#1a3a5c" opacity={0.75} fontWeight="bold">Live Love</text>
-        <text x={W*0.903} y={H*0.245} fontSize={H*0.05}
-          fontFamily="Arial, sans-serif" fontStyle="italic"
-          fill="#1a3a5c" opacity={0.75} fontWeight="bold">Travel ☮</text>
+         {/* Fensterschiene oben */}
+         <rect x={W*0.02} y={H*0.075} width={W*0.85} height={H*0.022}
+           rx={2} fill="#888" opacity={0.5} />
 
-        {/* Sonnenblume auf Armaturenbrett (innen sichtbar) */}
-        <circle cx={W*0.955} cy={H*0.45} r={H*0.038} fill="#f59e0b" opacity={0.5} />
-        <circle cx={W*0.955} cy={H*0.45} r={H*0.018} fill="#78350f" opacity={0.5} />
-
-        {/* ── Rechteckige Doppelscheinwerfer (US-Stil) ── */}
-        {/* Oberes Paar */}
-        <rect x={W*0.900} y={H*0.62} width={W*0.038} height={H*0.07}
-          rx={H*0.01} fill="#e8e8d0" stroke="#999" strokeWidth={1} />
-        <rect x={W*0.900} y={H*0.62} width={W*0.038} height={H*0.07}
-          rx={H*0.01} fill="#fffde7" opacity={lightPulse * 0.7} />
-        <rect x={W*0.942} y={H*0.62} width={W*0.038} height={H*0.07}
-          rx={H*0.01} fill="#e8e8d0" stroke="#999" strokeWidth={1} />
-        <rect x={W*0.942} y={H*0.62} width={W*0.038} height={H*0.07}
-          rx={H*0.01} fill="#fffde7" opacity={lightPulse * 0.65} />
-        {/* Scheinwerfer-Glow */}
-        <ellipse cx={W*0.995} cy={H*0.67} rx={W*0.06} ry={H*0.1}
-          fill="url(#mb-light)" opacity={lightPulse * 0.6} />
-
-        {/* Unteres Paar (Nebelscheinwerfer) */}
-        <rect x={W*0.905} y={H*0.70} width={W*0.033} height={H*0.055}
-          rx={H*0.008} fill="#fffacd" stroke="#aaa" strokeWidth={1} opacity={lightPulse*0.8} />
-        <rect x={W*0.944} y={H*0.70} width={W*0.033} height={H*0.055}
-          rx={H*0.008} fill="#fffacd" stroke="#aaa" strokeWidth={1} opacity={lightPulse*0.75} />
-
-        {/* ── Blinker (groß, bernsteinfarben) ── */}
-        <rect x={W*0.898} y={H*0.775} width={W*0.082} height={H*0.045}
-          rx={H*0.01} fill="#d97706" stroke="#92400e" strokeWidth={1} />
-        <rect x={W*0.900} y={H*0.782} width={W*0.078} height={H*0.03}
-          rx={H*0.006} fill="#fbbf24" opacity={0.85} />
-
-        {/* ── Kühlergrill (horizontale Streben) ── */}
-        <rect x={W*0.896} y={H*0.765} width={W*0.085} height={H*0.145}
-          rx={3} fill="#222" />
-        {[0, 1, 2, 3, 4].map((i) => (
-          <rect key={i}
-            x={W*0.898} y={H*(0.775 + i * 0.025)}
-            width={W*0.081} height={H*0.015}
-            fill="#555" />
-        ))}
-
-        {/* ── Chromstoßstange (breit, massiv) ── */}
-        <rect x={W*0.894} y={H*0.875} width={W*0.10} height={H*0.09}
-          rx={H*0.02} fill="url(#mb-chrome)" />
-        {/* Glanzstreifen oben */}
-        <rect x={W*0.896} y={H*0.878} width={W*0.096} height={H*0.018}
-          rx={H*0.008} fill="#fff" opacity={0.55} />
-        {/* Unterer Chrom-Wulst */}
-        <rect x={W*0.896} y={H*0.942} width={W*0.096} height={H*0.015}
-          rx={H*0.006} fill="#ccc" />
-
-        {/* ── LKW-Außenspiegel (Arm + großes Rechteck) ── */}
-        {/* Spiegelarm */}
-        <rect x={W*0.881} y={H*0.10} width={W*0.018} height={H*0.14}
-          rx={3} fill="#aaa" />
-        {/* Spiegel-Gehäuse */}
-        <rect x={W*0.856} y={H*0.08} width={W*0.035} height={H*0.1}
-          rx={H*0.015} fill="#ccc" stroke="#999" strokeWidth={1} />
-        {/* Spiegel-Glas */}
-        <rect x={W*0.859} y={H*0.085} width={W*0.028} height={H*0.085}
-          rx={H*0.012} fill="url(#mb-glass)" opacity={0.8} />
-        <rect x={W*0.861} y={H*0.088} width={W*0.008} height={H*0.065}
-          rx={2} fill={glassHL} />
-
-        {/* ══════════════════════════════════════════════════════════════════
-            SEITE: FENSTERGÜRTEL
-            5 Fenster nebeneinander (Wohnbereich)
-        ══════════════════════════════════════════════════════════════════ */}
-
-        {/* Fensterschiene oben */}
-        <rect x={W*0.02} y={H*0.075} width={W*0.875} height={H*0.022}
-          rx={2} fill="#888" opacity={0.5} />
-
-        {/* Fahrertür-Fenster (direkt hinter Frontscheibe) */}
-        <rect x={W*0.835} y={H*0.095} width={W*0.058} height={H*0.38}
-          rx={H*0.025} fill="url(#mb-glass)" stroke="#555" strokeWidth={1.5} />
-        <rect x={W*0.839} y={H*0.108} width={W*0.016} height={H*0.28} rx={2} fill={glassHL} />
-
-        {/* Wohnraum-Fenster (4 breite Querformat-Fenster) */}
-        {[0.61, 0.465, 0.32, 0.175].map((x, i) => (
-          <g key={i}>
-            <rect x={W*x} y={H*0.095} width={W*0.135} height={H*0.35}
-              rx={H*0.02} fill="url(#mb-glass)" stroke="#555" strokeWidth={1.5} />
-            {/* Glasspiegelung */}
-            <rect x={W*(x+0.012)} y={H*0.108} width={W*0.025} height={H*0.26}
-              rx={2} fill={glassHL} />
-            {/* Fenster-Unterteilung (kleines Lüftungsklappchen oben) */}
-            <rect x={W*x} y={H*0.095} width={W*0.135} height={H*0.07}
-              rx={0} fill="rgba(0,0,0,0.12)" />
-            <line x1={W*x} y1={H*0.165} x2={W*(x+0.135)} y2={H*0.165}
-              stroke="#555" strokeWidth={1} opacity={0.6} />
-          </g>
-        ))}
-
-        {/* Fensterschiene unten */}
-        <rect x={W*0.02} y={H*0.44} width={W*0.875} height={H*0.02}
-          rx={2} fill="#888" opacity={0.45} />
+         {/* Fensterschiene unten */}
+         <rect x={W*0.02} y={H*0.44} width={W*0.85} height={H*0.02}
+           rx={2} fill="#888" opacity={0.45} />
 
         {/* ══════════════════════════════════════════════════════════════════
             HECKPARTIE (links im SVG)
@@ -623,18 +522,28 @@ const MojoBusCoach: React.FC<{
         {/* Vorderrad */}
          <ChromeWheel cx={W*0.77}  cy={RY} r={WR} wheelRot={wheelRot - 8} />
 
-        {/* ══════════════════════════════════════════════════════════════════
-            DACH: AC-UNIT
-        ══════════════════════════════════════════════════════════════════ */}
-        <rect x={W*0.38} y={-H*0.035} width={W*0.22} height={H*0.07}
-          rx={H*0.02} fill="#c8c0b0" />
-        <rect x={W*0.40} y={-H*0.025} width={W*0.18} height={H*0.05}
-          rx={H*0.015} fill="#b0a898" />
-        {/* AC-Lamellen */}
-        {[0.41, 0.44, 0.47, 0.50, 0.53, 0.56].map((x, i) => (
-          <rect key={i} x={W*x} y={-H*0.022} width={W*0.018} height={H*0.044}
-            rx={1} fill="#888" opacity={0.6} />
-        ))}
+{/* ══════════════════════════════════════════════════════════════════
+             DACH: AC-UNITS (je über der Achse)
+         ══════════════════════════════════════════════════════════════════ */}
+         {/* Hintere AC-Unit */}
+         <g transform={`translate(${W*0.175}, ${-H*0.035})`}>
+           <rect x={-W*0.11} y={0} width={W*0.22} height={H*0.07} rx={H*0.02} fill="#c8c0b0" />
+           <rect x={-W*0.09} y={H*0.01} width={W*0.18} height={H*0.05} rx={H*0.015} fill="#b0a898" />
+           {/* AC-Lamellen */}
+           {[-0.085, -0.055, -0.025, 0.005, 0.035, 0.065].map((x, i) => (
+             <rect key={i} x={W*x} y={H*0.013} width={W*0.018} height={H*0.044} rx={1} fill="#888" opacity={0.6} />
+           ))}
+         </g>
+         
+         {/* Vordere AC-Unit */}
+         <g transform={`translate(${W*0.77}, ${-H*0.035})`}>
+           <rect x={-W*0.11} y={0} width={W*0.22} height={H*0.07} rx={H*0.02} fill="#c8c0b0" />
+           <rect x={-W*0.09} y={H*0.01} width={W*0.18} height={H*0.05} rx={H*0.015} fill="#b0a898" />
+           {/* AC-Lamellen */}
+           {[-0.085, -0.055, -0.025, 0.005, 0.035, 0.065].map((x, i) => (
+             <rect key={i} x={W*x} y={H*0.013} width={W*0.018} height={H*0.044} rx={1} fill="#888" opacity={0.6} />
+           ))}
+         </g>
 
       </svg>
     </div>
