@@ -3,7 +3,7 @@
  *
  * NEU in v2.0:
  *  ✅ BeatSyncLayer    — Schnitte synchron zur Musik (viral!) via useAudioData
- *  ✅ TransitionWrapper — wipe, clockWipe, fade, slide (@remotion/transitions)
+ *  ✅ TransitionWrapper — wipe, clockWipe, fade, slide, morph, zoomRelay, glitch, pagePeel (@remotion/transitions)
  *  ✅ RouteMapLine      — Animierte Routen-Linie auf Karte (@remotion/shapes)
  *  ✅ LottieBusIcon     — Animierter MojoBus in der Endkarte (@remotion/lottie)
  *

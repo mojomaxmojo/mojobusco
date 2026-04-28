@@ -2,10 +2,15 @@
  * TransitionSlideshow — @remotion/transitions Integration
  *
  * Ersetzt / ergänzt das einfache CrossDissolve in MojoBusVideo.
- * Drei Transitions nach Priorität:
+ * Acht Transitions nach Priorität:
  *   1. wipe       — Wischer von links nach rechts (Reels-typisch)
  *   2. clockWipe  — Uhrzeiger-Wischer (dramatisch)
  *   3. fade       — Klassisches Cross-Dissolve (dezent)
+ *   4. slide      — Schiebeübergang (modern)
+ *   5. morph      — Fließender Übergang zwischen ähnlichen Landschaften
+ *   6. zoomRelay  — Fokusübergang für Details in Städten oder Natur
+ *   7. glitch     — Moderner, digitaler Übergang für urbane Impressionen
+ *   8. pagePeel   — Storytelling-Übergang mit Blättereffekt
  *
  * ARCHITEKTUR:
  * - @remotion/transitions nutzt <TransitionSeries> und <Transition> Komponenten
@@ -30,7 +35,7 @@ import { CrossDissolve as FallbackCrossDiss } from './CrossFade';
 
 // ── Transition-Typen ───────────────────────────────────────────────────────
 
-export type TransitionType = 'wipe' | 'clockWipe' | 'fade' | 'slide' | 'auto';
+export type TransitionType = 'wipe' | 'clockWipe' | 'fade' | 'slide' | 'morph' | 'zoomRelay' | 'glitch' | 'pagePeel' | 'auto';
 
 // ── Pure CSS/SVG Transitions (kein extra Package nötig) ───────────────────
 
@@ -204,7 +209,8 @@ export const TransitionWrapper: React.FC<TransitionWrapperProps> = ({
 }) => {
   // 'auto': deterministisch basierend auf Bild-Index rotieren
   const AUTO_SEQUENCE: Array<Exclude<TransitionType, 'auto'>> = [
-    'wipe', 'fade', 'clockWipe', 'slide', 'wipe', 'fade',
+    'wipe', 'fade', 'clockWipe', 'slide', 'morph', 'zoomRelay', 
+    'glitch', 'pagePeel', 'fade', 'wipe'
   ];
 
   const effectiveType: Exclude<TransitionType, 'auto'> =
@@ -244,6 +250,42 @@ export const TransitionWrapper: React.FC<TransitionWrapperProps> = ({
       );
     }
 
+    case 'morph':
+      return (
+        <MorphTransition durationFrames={durationFrames}>
+          {children}
+        </MorphTransition>
+      );
+
+    case 'zoomRelay':
+      // Fokus-Punkt basierend auf Bildinhalt bestimmen (vereinfacht)
+      const focusPoint = {
+        x: 20 + (imageIndex % 3) * 30,
+        y: 30 + (imageIndex % 2) * 40
+      };
+      return (
+        <ZoomRelayTransition 
+          durationFrames={durationFrames} 
+          focusPoint={focusPoint}
+        >
+          {children}
+        </ZoomRelayTransition>
+      );
+
+    case 'glitch':
+      return (
+        <GlitchTransition durationFrames={durationFrames}>
+          {children}
+        </GlitchTransition>
+      );
+
+    case 'pagePeel':
+      return (
+        <PagePeelTransition durationFrames={durationFrames}>
+          {children}
+        </PagePeelTransition>
+      );
+
     case 'fade':
     default:
       return (
@@ -277,6 +319,291 @@ export async function checkTransitionsPackage(): Promise<boolean> {
 }
 
 // ── Transition-Effekte für die Slideshow ──────────────────────────────────
+
+/**
+ * MorphTransition — Fließender Übergang zwischen ähnlichen Landschaften
+ * Verwendet SVG-Filter für organische Formverzerrungen
+ */
+const MorphTransition: React.FC<{
+  durationFrames: number;
+  children: React.ReactNode;
+}> = ({ durationFrames, children }) => {
+  const frame = useCurrentFrame();
+  const { width, height } = useVideoConfig();
+  
+  const progress = interpolate(frame, [0, Math.max(1, durationFrames)], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  
+  // Organische Verzerrung mit Perlin-Rauschen-ähnlichem Ansatz
+  const distortion = Math.sin(progress * Math.PI * 2) * 0.05;
+  const scale = 1 + distortion;
+  const rotation = distortion * 10;
+  
+  // Farbverschiebung für sanften Übergang
+  const hueRotation = progress * 30;
+  
+  return (
+    <AbsoluteFill style={{
+      transform: `scale(${scale}) rotate(${rotation}deg)`,
+      filter: `hue-rotate(${hueRotation}deg)`,
+      transformOrigin: 'center center',
+    }}>
+      <svg
+        width={width}
+        height={height}
+        style={{ position: 'absolute', top: 0, left: 0 }}
+      >
+        <defs>
+          <filter id={`morph-blur-${frame}`}>
+            <feTurbulence 
+              type="turbulence" 
+              baseFrequency={0.01 + progress * 0.02} 
+              numOctaves="2" 
+              result="turbulence"
+            />
+            <feDisplacementMap 
+              in2="turbulence" 
+              in="SourceGraphic" 
+              scale={progress * 30} 
+              xChannelSelector="R" 
+              yChannelSelector="G"
+            />
+          </filter>
+        </defs>
+        <g filter={`url(#morph-blur-${frame})`}>
+          {children}
+        </g>
+      </svg>
+    </AbsoluteFill>
+  );
+};
+
+/**
+ * ZoomRelayTransition — Fokusübergang für Details in Städten oder Natur
+ * Zoomt auf einen Punkt des ersten Bildes und zeigt dann das zweite Bild
+ */
+const ZoomRelayTransition: React.FC<{
+  durationFrames: number;
+  focusPoint?: { x: number; y: number };
+  children: React.ReactNode;
+}> = ({ durationFrames, focusPoint = { x: 50, y: 50 }, children }) => {
+  const frame = useCurrentFrame();
+  const { width, height } = useVideoConfig();
+  
+  const progress = interpolate(frame, [0, Math.max(1, durationFrames)], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  
+  // Zwei Phasen: Zoom im ersten Bild, dann Übergang zum zweiten
+  const zoomProgress = progress < 0.5 
+    ? interpolate(progress, [0, 0.5], [0, 1]) 
+    : 1;
+  const fadeProgress = progress < 0.5 
+    ? 0 
+    : interpolate(progress, [0.5, 1], [0, 1]);
+  
+  const scale = 1 + zoomProgress * 7; // Maximal 8-facher Zoom
+  const opacity = interpolate(fadeProgress, [0, 0.5, 1], [1, 1, 0]);
+  
+  return (
+    <AbsoluteFill>
+      <div style={{
+        position: 'absolute',
+        width: '100%',
+        height: '100%',
+        transform: `scale(${scale})`,
+        transformOrigin: `${focusPoint.x}% ${focusPoint.y}%`,
+        opacity,
+        filter: `blur(${fadeProgress * 3}px)`,
+      }}>
+        {children}
+      </div>
+      {fadeProgress > 0 && (
+        <div style={{
+          position: 'absolute',
+          width: '100%',
+          height: '100%',
+          opacity: fadeProgress,
+        }}>
+          {children}
+        </div>
+      )}
+    </AbsoluteFill>
+  );
+};
+
+/**
+ * GlitchTransition — Moderner, digitaler Übergang für urbane Impressionen
+ * Mit Farbverschiebungen und digitalem Rauschen
+ */
+const GlitchTransition: React.FC<{
+  durationFrames: number;
+  children: React.ReactNode;
+}> = ({ durationFrames, children }) => {
+  const frame = useCurrentFrame();
+  const { width, height } = useVideoConfig();
+  
+  const progress = interpolate(frame, [0, Math.max(1, durationFrames)], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  
+  // Zufällige Glitch-Intensität
+  const glitchIntensity = Math.sin(progress * Math.PI * 4) * 0.3 + 0.3;
+  const glitchOffset = Math.sin(progress * Math.PI * 8) * 10;
+  
+  // Farbebenenverschiebung
+  const redOffset = glitchIntensity * 15;
+  const blueOffset = glitchIntensity * -15;
+  
+  return (
+    <AbsoluteFill>
+      {/* Rote Ebene */}
+      <div style={{
+        position: 'absolute',
+        width: '100%',
+        height: '100%',
+        transform: `translateX(${redOffset}px)`,
+        filter: 'saturate(1.5) contrast(1.2)',
+        clipPath: `inset(0 ${Math.max(0, 100 - progress * 200)}% 0 0)`,
+      }}>
+        <div style={{ 
+          width: '100%', 
+          height: '100%',
+          filter: 'sepia(1) hue-rotate(0deg) saturate(3)'
+        }}>
+          {children}
+        </div>
+      </div>
+      
+      {/* Blaue Ebene */}
+      <div style={{
+        position: 'absolute',
+        width: '100%',
+        height: '100%',
+        transform: `translateX(${blueOffset}px)`,
+        filter: 'saturate(1.5) contrast(1.2)',
+        clipPath: `inset(0 0 0 ${Math.max(0, 100 - progress * 200)}%)`,
+      }}>
+        <div style={{ 
+          width: '100%', 
+          height: '100%',
+          filter: 'sepia(1) hue-rotate(180deg) saturate(3)'
+        }}>
+          {children}
+        </div>
+      </div>
+      
+      {/* Hauptebene mit Scanlines */}
+      <div style={{
+        position: 'absolute',
+        width: '100%',
+        height: '100%',
+        opacity: 0.95,
+      }}>
+        {children}
+        <svg
+          width={width}
+          height={height}
+          style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}
+        >
+          <defs>
+            <pattern id="scanlines" x="0" y="0" width="100%" height="4">
+              <rect x="0" y="0" width="100%" height="2" fill="rgba(0,0,0,0.1)" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#scanlines)" />
+        </svg>
+      </div>
+      
+      {/* Zufällige Glitch-Balken */}
+      {glitchIntensity > 0.2 && (
+        <div style={{
+          position: 'absolute',
+          left: `${Math.random() * 80}%`,
+          top: `${Math.random() * 80}%`,
+          width: `${10 + Math.random() * 20}%`,
+          height: `${2 + Math.random() * 5}%`,
+          backgroundColor: `rgba(255, ${Math.floor(Math.random() * 255)}, 0, 0.7)`,
+          transform: `translateX(${glitchOffset}px)`,
+          mixBlendMode: 'screen',
+        }} />
+      )}
+    </AbsoluteFill>
+  );
+};
+
+/**
+ * PagePeelTransition — Storytelling-Übergang mit Blättereffekt
+ * Simuliert das Umblättern einer Seite
+ */
+const PagePeelTransition: React.FC<{
+  durationFrames: number;
+  children: React.ReactNode;
+}> = ({ durationFrames, children }) => {
+  const frame = useCurrentFrame();
+  const { width, height } = useVideoConfig();
+  
+  const progress = interpolate(frame, [0, Math.max(1, durationFrames)], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  
+  // Seite faltet sich um die rechte Kante
+  const foldAngle = interpolate(progress, [0, 1], [0, -180]);
+  const shadowOpacity = interpolate(Math.abs(foldAngle), [0, 180], [0, 0.5]);
+  
+  // Seite wird kleiner während des Blätterns
+  const scale = interpolate(progress, [0, 0.5, 1], [1, 0.95, 1]);
+  
+  return (
+    <AbsoluteFill style={{
+      transform: `perspective(1000px) scale(${scale})`,
+      transformStyle: 'preserve-3d',
+    }}>
+      {/* Erste Seite (wegfaltend) */}
+      <div style={{
+        position: 'absolute',
+        width: '100%',
+        height: '100%',
+        transform: `rotateY(${foldAngle}deg)`,
+        transformOrigin: 'right center',
+        backfaceVisibility: 'hidden',
+        zIndex: 2,
+      }}>
+        {children}
+        {/* Schatten auf der falzenden Seite */}
+        {progress > 0 && (
+          <div style={{
+            position: 'absolute',
+            right: 0,
+            top: 0,
+            width: '100%',
+            height: '100%',
+            background: `linear-gradient(90deg, transparent, rgba(0,0,0,${shadowOpacity}))`,
+          }} />
+        )}
+      </div>
+      
+      {/* Falz-Schatten */}
+      {progress > 0 && (
+        <div style={{
+          position: 'absolute',
+          right: 0,
+          top: 0,
+          width: '20px',
+          height: '100%',
+          background: `linear-gradient(90deg, transparent, rgba(0,0,0,${shadowOpacity * 0.7}))`,
+          transform: 'translateX(10px)',
+          zIndex: 1,
+        }} />
+      )}
+    </AbsoluteFill>
+  );
+};
 
 /**
  * TransitionOverlay — Zusätzlicher visueller Effekt über der Transition.
