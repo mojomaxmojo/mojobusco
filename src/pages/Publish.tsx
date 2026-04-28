@@ -32,6 +32,7 @@ import { nip19 } from 'nostr-tools';
 import { MilkdownEditor } from '@/components/MilkdownEditor';
 import { TripPublishForm } from '@/components/TripPublishForm';
 import { RemotionVideoBlock } from '@/components/RemotionVideoBlock';
+import { SlideshowBlock } from '@/components/SlideshowBlock';
 import { Progress } from '@/components/ui/progress';
 import { extractGpsFromImage, formatCoordinatesSimple, reverseGeocode, mapCountryCode, type GpsData, type GpsStatus, type LocationData } from '@/lib/gpsExtraction';
 import exifr from 'exifr';
