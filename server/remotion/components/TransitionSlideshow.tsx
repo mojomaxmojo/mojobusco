@@ -519,68 +519,82 @@ const GlitchTransition: React.FC<{
 };
 
 /**
- * PagePeelTransition — Storytelling-Übergang mit Blättereffekt
- * Simuliert das Umblättern einer Seite
+ * PagePeelTransition — Storytelling-Übergang mit Blättereffekt (2D-Simulation)
+ *
+ * FIX: Die alte Implementierung nutzte CSS rotateY() + backfaceVisibility +
+ * preserve-3d. Sobald die Seite auf -90° dreht, ist backfaceVisibility:hidden
+ * aktiv → children verschwinden, schwarzer Hintergrund bleibt sichtbar.
+ * Das nächste Bild wurde nie gerendert — nur children (aktuelles Bild) war da.
+ *
+ * Neue Implementierung — rein 2D, kein 3D-CSS:
+ *  - Das aktuelle Bild (children) liegt OBEN und wird via clip-path
+ *    von rechts nach links "weggezogen" (Seite blättert weg).
+ *  - Das nächste Bild ist der normale Hintergrund der Sequence DARUNTER —
+ *    PagePeelTransition rendert children nur einmal.
+ *  - Ein diagonaler Knick-Schatten (clip-path Dreieck) simuliert den Falz.
+ *  - Kein preserve-3d, kein backfaceVisibility, kein rotateY.
+ *    → 100% kompatibel mit SwiftShader / headless Chrome auf VPS.
  */
 const PagePeelTransition: React.FC<{
   durationFrames: number;
   children: React.ReactNode;
 }> = ({ durationFrames, children }) => {
   const frame = useCurrentFrame();
-  const { width, height } = useVideoConfig();
-  
+
   const progress = interpolate(frame, [0, Math.max(1, durationFrames)], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  
-  // Seite faltet sich um die rechte Kante
-  const foldAngle = interpolate(progress, [0, 1], [0, -180]);
-  const shadowOpacity = interpolate(Math.abs(foldAngle), [0, 180], [0, 0.5]);
-  
-  // Seite wird kleiner während des Blätterns
-  const scale = interpolate(progress, [0, 0.5, 1], [1, 0.95, 1]);
-  
+
+  // Cubic ease-in-out: langsam starten, beschleunigen, bremsen
+  const eased = progress < 0.5
+    ? 4 * progress * progress * progress
+    : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+  // Sichtbarer Anteil des aktuellen Bildes: 100% → 0%
+  // Das Bild wird von rechts weggeschoben (clip-path von rechts schrumpft)
+  const visiblePct = (1 - eased) * 100;
+
+  // Falz-Kante: leicht diagonal für organischen Look
+  // Oben etwas früher abgeschnitten als unten → diagonaler Falz
+  const diagOffset = eased * 8; // max 8% Diagonale
+  const topPct    = Math.max(0, visiblePct - diagOffset);
+  const bottomPct = Math.min(100, visiblePct + diagOffset);
+
+  // polygon: oben-links, oben-rechts-Falz, unten-rechts-Falz, unten-links
+  const clipPath = `polygon(0% 0%, ${topPct}% 0%, ${bottomPct}% 100%, 0% 100%)`;
+
+  // Schatten-Streifen an der Falz-Kante (Breite ~4%)
+  const shadowLeft  = Math.max(0, topPct    - 4);
+  const shadowRight = Math.max(0, bottomPct - 4);
+  const shadowPath  = `polygon(${shadowLeft}% 0%, ${topPct}% 0%, ${bottomPct}% 100%, ${shadowRight}% 100%)`;
+  const shadowOpacity = interpolate(eased, [0, 0.1, 0.85, 1], [0, 0.55, 0.55, 0]);
+
+  if (visiblePct <= 0) return null;
+
   return (
-    <AbsoluteFill style={{
-      transform: `perspective(1000px) scale(${scale})`,
-      transformStyle: 'preserve-3d',
-    }}>
-      {/* Erste Seite (wegfaltend) */}
+    <AbsoluteFill>
+      {/* Aktuelles Bild — wird von rechts weggeclippt */}
       <div style={{
         position: 'absolute',
         width: '100%',
         height: '100%',
-        transform: `rotateY(${foldAngle}deg)`,
-        transformOrigin: 'right center',
-        backfaceVisibility: 'hidden',
-        zIndex: 2,
+        clipPath,
+        willChange: 'clip-path',
       }}>
         {children}
-        {/* Schatten auf der falzenden Seite */}
-        {progress > 0 && (
-          <div style={{
-            position: 'absolute',
-            right: 0,
-            top: 0,
-            width: '100%',
-            height: '100%',
-            background: `linear-gradient(90deg, transparent, rgba(0,0,0,${shadowOpacity}))`,
-          }} />
-        )}
       </div>
-      
-      {/* Falz-Schatten */}
-      {progress > 0 && (
+
+      {/* Falz-Schatten — diagonaler dunkler Streifen an der Kante */}
+      {shadowOpacity > 0.01 && (
         <div style={{
           position: 'absolute',
-          right: 0,
-          top: 0,
-          width: '20px',
+          width: '100%',
           height: '100%',
-          background: `linear-gradient(90deg, transparent, rgba(0,0,0,${shadowOpacity * 0.7}))`,
-          transform: 'translateX(10px)',
-          zIndex: 1,
+          clipPath: shadowPath,
+          background: 'linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.45) 40%, rgba(0,0,0,0.65) 100%)',
+          opacity: shadowOpacity,
+          pointerEvents: 'none',
         }} />
       )}
     </AbsoluteFill>
