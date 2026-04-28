@@ -233,7 +233,7 @@ const MojoBusCoach: React.FC<{
   const lightPulse = 0.72 + Math.sin((frame / fps) * Math.PI * 2 * 0.9) * 0.16;
 
   // ── Proportionen: 10m × 3.3m → H = W × 0.33 ────────────────────────────
-  const W  = size * 1.1; // Increased width for perspective
+  const W  = size; // Original width
   const H  = size * 0.33;
   const WR = H * 0.40;          // Rad-Radius
   const RY = H + WR * 0.52;     // Rad-Mitte Y
