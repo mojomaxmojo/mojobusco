@@ -395,11 +395,11 @@ const MojoBusCoach: React.FC<{
          {/* Front-Fläche (leicht dunkler für Tiefe) */}
          <rect x={W*0.82} y={H*0.12} width={W*0.17} height={H*0.9} fill={creamMid} />
 
-         {/* Große Windschutzscheibe (schräg) */}
-         <polygon points={`${W*0.82},${H*0.12} ${W*0.88},${H*0.12} ${W*0.95},${H*0.52} ${W*0.89},${H*0.52}`} fill="url(#mb-glass)" stroke="#444" strokeWidth={2} />
+         {/* Große Windschutzscheibe (gerade) */}
+         <rect x={W*0.82} y={H*0.12} width={W*0.16} height={H*0.4} fill="url(#mb-glass)" stroke="#444" strokeWidth={2} />
 
          {/* Mittelsteg der Windschutzscheibe */}
-         <rect x={W*0.88} y={H*0.12} width={W*0.015} height={H*0.4} fill={cream} />
+         <rect x={W*0.9} y={H*0.12} width={W*0.015} height={H*0.4} fill={cream} />
 
          {/* Glasspiegelungen in der Frontscheibe */}
          <rect x={W*0.83} y={H*0.135} width={W*0.015} height={H*0.32} rx={2} fill={glassHL} />
@@ -681,7 +681,7 @@ export const BusRideOverlay: React.FC<{
   size?: number;
   verticalPosition?: number;
   label?: string;
-}> = ({ accentColor = '#F59E0B', size = 280, verticalPosition = 75, label = 'MOJOBUS' }) => {
+}> = ({ accentColor = '#F59E0B', size = 320, verticalPosition = 75, label = 'MOJOBUS' }) => {
   const frame = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
 
