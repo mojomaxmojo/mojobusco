@@ -227,7 +227,55 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
             : perSlide;
 
           // Routen-Slide: zeige RouteMapLine statt Bild (wenn showRouteMap)
-          const isRouteSlide = showRouteMap && i === routeSlideIndex;
+          const isRouteSlide     = showRouteMap && i === routeSlideIndex;
+          const isNextRouteSlide = showRouteMap && (i + 1) === routeSlideIndex;
+
+          // Aktuelles Bild (children)
+          const currentSlide = isRouteSlide ? (
+            <RouteMapLine
+              coords={effectiveRouteCoords}
+              mapImageUrl={mapImageUrl}
+              color="#FFFFFF"
+              accentColor={accentColor}
+              strokeWidth={4}
+              animType="both"
+              showLabels={true}
+              showBusMarker={true}
+              overlayOpacity={mapImageUrl ? 0.4 : 0}
+            />
+          ) : (
+            <KenBurnsImage
+              src={src}
+              direction={pickDirection(i + 1)}
+              intensity={0.10}
+              motionBlurStrength={0}
+            />
+          );
+
+          // Nächstes Bild — nur für pagePeel benötigt
+          const nextSrc = images[i + 1];
+          const nextSlide = i < imageCount - 1 ? (
+            isNextRouteSlide ? (
+              <RouteMapLine
+                coords={effectiveRouteCoords}
+                mapImageUrl={mapImageUrl}
+                color="#FFFFFF"
+                accentColor={accentColor}
+                strokeWidth={4}
+                animType="both"
+                showLabels={true}
+                showBusMarker={true}
+                overlayOpacity={mapImageUrl ? 0.4 : 0}
+              />
+            ) : (
+              <KenBurnsImage
+                src={nextSrc}
+                direction={pickDirection(i + 2)}
+                intensity={0.10}
+                motionBlurStrength={0}
+              />
+            )
+          ) : undefined;
 
           return (
             <Sequence
@@ -235,65 +283,26 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
               from={absoluteStart}
               durationInFrames={seqDuration}
             >
-              {/* NEU: TransitionWrapper ersetzt CrossDissolve */}
               <TransitionWrapper
                 type={transitionType}
                 durationFrames={TRANSITION_FRAMES}
                 imageIndex={i}
+                nextChildren={nextSlide}
               >
-                {/* FadeOut am Ende (außer letztem Bild) */}
-                {i < imageCount - 1 ? (
+                {/* FadeOut am Ende — nicht bei pagePeel (macht es selbst) */}
+                {i < imageCount - 1 && transitionType !== 'pagePeel' ? (
                   <FadeOut
                     durationFrames={TRANSITION_FRAMES}
                     totalFrames={seqDuration}
                   >
-                    {isRouteSlide ? (
-                      /* ── Routen-Karte ── */
-                      <RouteMapLine
-                        coords={effectiveRouteCoords}
-                        mapImageUrl={mapImageUrl}
-                        color="#FFFFFF"
-                        accentColor={accentColor}
-                        strokeWidth={4}
-                        animType="both"
-                        showLabels={true}
-                        showBusMarker={true}
-                        overlayOpacity={mapImageUrl ? 0.4 : 0}
-                      />
-                    ) : (
-                      <KenBurnsImage
-                        src={src}
-                        direction={pickDirection(i + 1)}
-                        intensity={0.10}
-                        motionBlurStrength={0}
-                      />
-                    )}
+                    {currentSlide}
                   </FadeOut>
                 ) : (
-                  isRouteSlide ? (
-                    <RouteMapLine
-                      coords={effectiveRouteCoords}
-                      mapImageUrl={mapImageUrl}
-                      color="#FFFFFF"
-                      accentColor={accentColor}
-                      strokeWidth={4}
-                      animType="both"
-                      showLabels={true}
-                      showBusMarker={true}
-                      overlayOpacity={mapImageUrl ? 0.4 : 0}
-                    />
-                  ) : (
-                    <KenBurnsImage
-                      src={src}
-                      direction={pickDirection(i + 1)}
-                      intensity={0.10}
-                      motionBlurStrength={0}
-                    />
-                  )
+                  currentSlide
                 )}
               </TransitionWrapper>
 
-              {/* NEU: Wipe-Edge-Glow bei wipe-Transitions */}
+              {/* Wipe-Edge-Glow nur bei wipe/auto */}
               {(transitionType === 'wipe' || transitionType === 'auto') && (
                 <WipeEdgeGlow
                   durationFrames={TRANSITION_FRAMES}

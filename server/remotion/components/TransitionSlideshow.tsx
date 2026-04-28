@@ -196,7 +196,17 @@ interface TransitionWrapperProps {
   durationFrames: number;
   /** Index des aktuellen Bildes (für deterministische Richtungswahl) */
   imageIndex: number;
+  /**
+   * Aktuelles Bild (wird weggeclipt / ausgeblendet)
+   */
   children: React.ReactNode;
+  /**
+   * Nächstes Bild — NUR für pagePeel benötigt.
+   * Alle anderen Transitions nutzen die überlappende Remotion-Sequence darunter.
+   * pagePeel hingegen muss das nächste Bild explizit als Hintergrund-Layer
+   * rendern, weil die darüber liegende Sequence es verdecken würde.
+   */
+  nextChildren?: React.ReactNode;
 }
 
 /**
@@ -208,11 +218,13 @@ export const TransitionWrapper: React.FC<TransitionWrapperProps> = ({
   durationFrames,
   imageIndex,
   children,
+  nextChildren,
 }) => {
   // 'auto': deterministisch basierend auf Bild-Index rotieren
+  // pagePeel aus auto-Rotation entfernt — braucht nextChildren aus MojoBusVideo
   const AUTO_SEQUENCE: Array<Exclude<TransitionType, 'auto'>> = [
-    'wipe', 'fade', 'clockWipe', 'slide', 'morph', 'zoomRelay', 
-    'glitch', 'pagePeel', 'fade', 'wipe'
+    'wipe', 'fade', 'clockWipe', 'slide', 'morph', 'zoomRelay',
+    'glitch', 'wipe', 'fade', 'clockWipe'
   ];
 
   const effectiveType: Exclude<TransitionType, 'auto'> =
@@ -222,7 +234,6 @@ export const TransitionWrapper: React.FC<TransitionWrapperProps> = ({
 
   switch (effectiveType) {
     case 'wipe': {
-      // Alterniere Wipe-Richtung
       const directions: Array<'left' | 'right' | 'top' | 'bottom'> = [
         'left', 'right', 'left', 'top',
       ];
@@ -259,20 +270,20 @@ export const TransitionWrapper: React.FC<TransitionWrapperProps> = ({
         </MorphTransition>
       );
 
-    case 'zoomRelay':
-      // Fokus-Punkt basierend auf Bildinhalt bestimmen (vereinfacht)
+    case 'zoomRelay': {
       const focusPoint = {
         x: 20 + (imageIndex % 3) * 30,
-        y: 30 + (imageIndex % 2) * 40
+        y: 30 + (imageIndex % 2) * 40,
       };
       return (
-        <ZoomRelayTransition 
-          durationFrames={durationFrames} 
+        <ZoomRelayTransition
+          durationFrames={durationFrames}
           focusPoint={focusPoint}
         >
           {children}
         </ZoomRelayTransition>
       );
+    }
 
     case 'glitch':
       return (
@@ -282,8 +293,20 @@ export const TransitionWrapper: React.FC<TransitionWrapperProps> = ({
       );
 
     case 'pagePeel':
+      // pagePeel braucht beide Bilder innerhalb einer Komponente.
+      // Falls nextChildren fehlt (letztes Bild), auf fade fallback.
+      if (!nextChildren) {
+        return (
+          <FallbackCrossDiss durationFrames={durationFrames}>
+            {children}
+          </FallbackCrossDiss>
+        );
+      }
       return (
-        <PagePeelTransition durationFrames={durationFrames}>
+        <PagePeelTransition
+          durationFrames={durationFrames}
+          nextChildren={nextChildren}
+        >
           {children}
         </PagePeelTransition>
       );
@@ -519,26 +542,27 @@ const GlitchTransition: React.FC<{
 };
 
 /**
- * PagePeelTransition — Storytelling-Übergang mit Blättereffekt (2D-Simulation)
+ * PagePeelTransition — Seitenblätter-Übergang (2D clip-path)
  *
- * FIX: Die alte Implementierung nutzte CSS rotateY() + backfaceVisibility +
- * preserve-3d. Sobald die Seite auf -90° dreht, ist backfaceVisibility:hidden
- * aktiv → children verschwinden, schwarzer Hintergrund bleibt sichtbar.
- * Das nächste Bild wurde nie gerendert — nur children (aktuelles Bild) war da.
+ * WARUM nextChildren nötig ist:
+ * Remotion stapelt Sequences als AbsoluteFill-Layer. Sequence[i+1] liegt
+ * DOM-technisch ÜBER Sequence[i]. Wenn Sequence[i] via clip-path wegclipt,
+ * sieht man nicht Sequence[i+1] darunter, sondern den Hintergrund — schwarz.
+ * Lösung: nextChildren wird INNERHALB dieser Komponente als Hintergrund-Layer
+ * gerendert, direkt hinter dem wegblätternden aktuellen Bild.
  *
- * Neue Implementierung — rein 2D, kein 3D-CSS:
- *  - Das aktuelle Bild (children) liegt OBEN und wird via clip-path
- *    von rechts nach links "weggezogen" (Seite blättert weg).
- *  - Das nächste Bild ist der normale Hintergrund der Sequence DARUNTER —
- *    PagePeelTransition rendert children nur einmal.
- *  - Ein diagonaler Knick-Schatten (clip-path Dreieck) simuliert den Falz.
- *  - Kein preserve-3d, kein backfaceVisibility, kein rotateY.
- *    → 100% kompatibel mit SwiftShader / headless Chrome auf VPS.
+ * Aufbau:
+ *  Layer 1 (unten): nextChildren — immer vollständig sichtbar
+ *  Layer 2 (oben):  children (aktuelles Bild) — via polygon clip-path wegziehen
+ *  Layer 3:         Falz-Schatten-Streifen
+ *
+ * Kein rotateY, kein preserve-3d, kein backfaceVisibility → VPS-sicher.
  */
 const PagePeelTransition: React.FC<{
   durationFrames: number;
   children: React.ReactNode;
-}> = ({ durationFrames, children }) => {
+  nextChildren: React.ReactNode;
+}> = ({ durationFrames, children, nextChildren }) => {
   const frame = useCurrentFrame();
 
   const progress = interpolate(frame, [0, Math.max(1, durationFrames)], [0, 1], {
@@ -546,53 +570,55 @@ const PagePeelTransition: React.FC<{
     extrapolateRight: 'clamp',
   });
 
-  // Cubic ease-in-out: langsam starten, beschleunigen, bremsen
+  // Cubic ease-in-out
   const eased = progress < 0.5
     ? 4 * progress * progress * progress
     : 1 - Math.pow(-2 * progress + 2, 3) / 2;
 
   // Sichtbarer Anteil des aktuellen Bildes: 100% → 0%
-  // Das Bild wird von rechts weggeschoben (clip-path von rechts schrumpft)
   const visiblePct = (1 - eased) * 100;
 
-  // Falz-Kante: leicht diagonal für organischen Look
-  // Oben etwas früher abgeschnitten als unten → diagonaler Falz
-  const diagOffset = eased * 8; // max 8% Diagonale
-  const topPct    = Math.max(0, visiblePct - diagOffset);
-  const bottomPct = Math.min(100, visiblePct + diagOffset);
+  // Leichte Diagonale für organischen Falz-Look (oben etwas früher weg)
+  const diagOffset = eased * 8;
+  const topPct     = Math.max(0, visiblePct - diagOffset);
+  const bottomPct  = Math.min(100, visiblePct + diagOffset);
 
-  // polygon: oben-links, oben-rechts-Falz, unten-rechts-Falz, unten-links
   const clipPath = `polygon(0% 0%, ${topPct}% 0%, ${bottomPct}% 100%, 0% 100%)`;
 
-  // Schatten-Streifen an der Falz-Kante (Breite ~4%)
+  // Falz-Schatten (~4% breit links der Kante)
   const shadowLeft  = Math.max(0, topPct    - 4);
   const shadowRight = Math.max(0, bottomPct - 4);
   const shadowPath  = `polygon(${shadowLeft}% 0%, ${topPct}% 0%, ${bottomPct}% 100%, ${shadowRight}% 100%)`;
-  const shadowOpacity = interpolate(eased, [0, 0.1, 0.85, 1], [0, 0.55, 0.55, 0]);
-
-  if (visiblePct <= 0) return null;
+  const shadowOpacity = interpolate(eased, [0, 0.05, 0.85, 1], [0, 0.6, 0.6, 0]);
 
   return (
     <AbsoluteFill>
-      {/* Aktuelles Bild — wird von rechts weggeclippt */}
-      <div style={{
-        position: 'absolute',
-        width: '100%',
-        height: '100%',
-        clipPath,
-        willChange: 'clip-path',
-      }}>
-        {children}
-      </div>
+      {/* Layer 1: Nächstes Bild — immer vollständig sichtbar im Hintergrund */}
+      <AbsoluteFill>
+        {nextChildren}
+      </AbsoluteFill>
 
-      {/* Falz-Schatten — diagonaler dunkler Streifen an der Kante */}
-      {shadowOpacity > 0.01 && (
+      {/* Layer 2: Aktuelles Bild — wird von rechts weggeclippt */}
+      {visiblePct > 0 && (
+        <div style={{
+          position: 'absolute',
+          width: '100%',
+          height: '100%',
+          clipPath,
+          willChange: 'clip-path',
+        }}>
+          {children}
+        </div>
+      )}
+
+      {/* Layer 3: Falz-Schatten */}
+      {shadowOpacity > 0.01 && visiblePct > 0 && (
         <div style={{
           position: 'absolute',
           width: '100%',
           height: '100%',
           clipPath: shadowPath,
-          background: 'linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.45) 40%, rgba(0,0,0,0.65) 100%)',
+          background: 'linear-gradient(90deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.5) 50%, rgba(0,0,0,0.7) 100%)',
           opacity: shadowOpacity,
           pointerEvents: 'none',
         }} />
