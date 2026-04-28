@@ -694,23 +694,26 @@ export const BusRideOverlay: React.FC<{
   size?: number;
   verticalPosition?: number;
   label?: string;
-}> = ({ accentColor = '#F59E0B', size = 320, verticalPosition = 75, label = 'MOJOBUS' }) => {
+}> = ({ accentColor = '#F59E0B', size = 280, verticalPosition = 75, label = 'MOJOBUS' }) => {
   const frame = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
 
-  const xPercent = interpolate(frame, [0, durationInFrames], [-25, 120], {
+  const xPercent = interpolate(frame, [0, durationInFrames], [-30, 130], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
+
+  // Add subtle vertical movement for dynamic effect
+  const yPercent = verticalPosition + Math.sin((frame / durationInFrames) * Math.PI * 2) * 2;
 
   return (
     <AbsoluteFill style={{ pointerEvents: 'none' }}>
       <div style={{
         position:  'absolute',
         left:      `${xPercent}%`,
-        top:       `${verticalPosition}%`,
+        top:       `${yPercent}%`,
         transform: 'translate(-50%, -50%)',
-      }}>
+       }}>
         <MojoBusCoach size={size} accentColor={accentColor} driveIn={false} label={label} />
       </div>
     </AbsoluteFill>
