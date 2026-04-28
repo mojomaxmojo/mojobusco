@@ -18,7 +18,9 @@
  * - Fallback: wenn Package fehlt → CrossDissolve aus CrossFade.tsx
  *
  * WICHTIG für Remotion-Bundler:
- * - Alle Transitions sind rein CSS/SVG — kein WebGL, kein Canvas
+ * - Alle Transitions sind rein CSS-Transform/Clip-Path — kein WebGL, kein Canvas
+ * - Kein Math.random() im Render (non-deterministisch → Flimmern)
+ * - Kein SVG-Filter mit feTurbulence/feDisplacementMap (löst img.decode-Fehler aus)
  * - Funktioniert mit SwiftShader (headless Chrome auf VPS)
  *
  * Package: npm install @remotion/transitions
@@ -322,67 +324,60 @@ export async function checkTransitionsPackage(): Promise<boolean> {
 
 /**
  * MorphTransition — Fließender Übergang zwischen ähnlichen Landschaften
- * Verwendet SVG-Filter für organische Formverzerrungen
+ *
+ * FIX: SVG-Filter mit feTurbulence/feDisplacementMap wurden entfernt.
+ * Diese Filter riefen intern img.decode() auf (Chromium-Bug in headless-Modus),
+ * was zu "current.decode is not a function" führte.
+ *
+ * Ersatz: reine CSS-Transform + Opacity-Komposition — kein SVG, kein WebGL,
+ * kein Canvas → 100% kompatibel mit SwiftShader (VPS headless Chrome).
  */
 const MorphTransition: React.FC<{
   durationFrames: number;
   children: React.ReactNode;
 }> = ({ durationFrames, children }) => {
   const frame = useCurrentFrame();
-  const { width, height } = useVideoConfig();
-  
+
   const progress = interpolate(frame, [0, Math.max(1, durationFrames)], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  
-  // Organische Verzerrung mit Perlin-Rauschen-ähnlichem Ansatz
-  const distortion = Math.sin(progress * Math.PI * 2) * 0.05;
-  const scale = 1 + distortion;
-  const rotation = distortion * 10;
-  
-  // Farbverschiebung für sanften Übergang
-  const hueRotation = progress * 30;
-  
+
+  // Sanftes Bell-Curve-Pulsieren in der Mitte der Transition
+  const pulse = Math.sin(progress * Math.PI); // 0→1→0
+
+  // Sanfter Zoom-Pulse (max +3%)
+  const scale = 1 + pulse * 0.03;
+
+  // Leichte Blur-Spitze in der Mitte (max 2px) — rein CSS, kein SVG
+  const blurPx = pulse * 2;
+
+  // Brightness-Dip für organisches „Überblenden"-Gefühl
+  const brightness = 1 - pulse * 0.08;
+
   return (
-    <AbsoluteFill style={{
-      transform: `scale(${scale}) rotate(${rotation}deg)`,
-      filter: `hue-rotate(${hueRotation}deg)`,
-      transformOrigin: 'center center',
-    }}>
-      <svg
-        width={width}
-        height={height}
-        style={{ position: 'absolute', top: 0, left: 0 }}
-      >
-        <defs>
-          <filter id={`morph-blur-${frame}`}>
-            <feTurbulence 
-              type="turbulence" 
-              baseFrequency={0.01 + progress * 0.02} 
-              numOctaves="2" 
-              result="turbulence"
-            />
-            <feDisplacementMap 
-              in2="turbulence" 
-              in="SourceGraphic" 
-              scale={progress * 30} 
-              xChannelSelector="R" 
-              yChannelSelector="G"
-            />
-          </filter>
-        </defs>
-        <g filter={`url(#morph-blur-${frame})`}>
-          {children}
-        </g>
-      </svg>
+    <AbsoluteFill
+      style={{
+        transform: `scale(${scale})`,
+        transformOrigin: 'center center',
+        filter: `blur(${blurPx.toFixed(2)}px) brightness(${brightness.toFixed(3)})`,
+        willChange: 'transform, filter',
+      }}
+    >
+      {children}
     </AbsoluteFill>
   );
 };
 
 /**
  * ZoomRelayTransition — Fokusübergang für Details in Städten oder Natur
- * Zoomt auf einen Punkt des ersten Bildes und zeigt dann das zweite Bild
+ *
+ * FIX: children wurden doppelt gerendert (Zoom-Ebene + Fade-In-Ebene).
+ * Remotions <Img> ruft pro Mount img.decode() auf — zwei gemountete Instanzen
+ * desselben Bildes können auf headless Chrome "decode is not a function" auslösen.
+ *
+ * Ersatz: NUR eine children-Instanz; Zoom + Fade werden über dieselbe Ebene
+ * kombiniert (Scale-out + Opacity-Fade am Ende der Transition).
  */
 const ZoomRelayTransition: React.FC<{
   durationFrames: number;
@@ -390,24 +385,30 @@ const ZoomRelayTransition: React.FC<{
   children: React.ReactNode;
 }> = ({ durationFrames, focusPoint = { x: 50, y: 50 }, children }) => {
   const frame = useCurrentFrame();
-  const { width, height } = useVideoConfig();
-  
+
   const progress = interpolate(frame, [0, Math.max(1, durationFrames)], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  
-  // Zwei Phasen: Zoom im ersten Bild, dann Übergang zum zweiten
-  const zoomProgress = progress < 0.5 
-    ? interpolate(progress, [0, 0.5], [0, 1]) 
-    : 1;
-  const fadeProgress = progress < 0.5 
-    ? 0 
-    : interpolate(progress, [0.5, 1], [0, 1]);
-  
-  const scale = 1 + zoomProgress * 7; // Maximal 8-facher Zoom
-  const opacity = interpolate(fadeProgress, [0, 0.5, 1], [1, 1, 0]);
-  
+
+  // Smooth Zoom: 1x → 2.5x (reduziert von 8x — war zu aggressiv)
+  const scale = interpolate(progress, [0, 1], [1, 2.5], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
+  // Fade-out in der zweiten Hälfte
+  const opacity = interpolate(progress, [0, 0.5, 1], [1, 1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
+  // Blur steigt mit Zoom
+  const blurPx = interpolate(progress, [0, 0.5, 1], [0, 0, 3], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
   return (
     <AbsoluteFill>
       <div style={{
@@ -417,51 +418,54 @@ const ZoomRelayTransition: React.FC<{
         transform: `scale(${scale})`,
         transformOrigin: `${focusPoint.x}% ${focusPoint.y}%`,
         opacity,
-        filter: `blur(${fadeProgress * 3}px)`,
+        filter: blurPx > 0.1 ? `blur(${blurPx.toFixed(2)}px)` : undefined,
+        willChange: 'transform, opacity',
       }}>
         {children}
       </div>
-      {fadeProgress > 0 && (
-        <div style={{
-          position: 'absolute',
-          width: '100%',
-          height: '100%',
-          opacity: fadeProgress,
-        }}>
-          {children}
-        </div>
-      )}
     </AbsoluteFill>
   );
 };
 
 /**
  * GlitchTransition — Moderner, digitaler Übergang für urbane Impressionen
- * Mit Farbverschiebungen und digitalem Rauschen
+ *
+ * FIX: Math.random() im Render entfernt (non-deterministisch → Flimmern).
+ * FIX: SVG-Pattern mit url(#scanlines) entfernt (verursachte decode-Fehler
+ *      in headless Chrome wegen Pattern-Image-Auflösung).
+ *
+ * Ersatz: deterministische Sinus-Funktionen + reine CSS-Transforms.
+ * Kein SVG, kein Canvas, kein WebGL → VPS-kompatibel.
  */
 const GlitchTransition: React.FC<{
   durationFrames: number;
   children: React.ReactNode;
 }> = ({ durationFrames, children }) => {
   const frame = useCurrentFrame();
-  const { width, height } = useVideoConfig();
-  
+
   const progress = interpolate(frame, [0, Math.max(1, durationFrames)], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  
-  // Zufällige Glitch-Intensität
+
+  // Deterministische Glitch-Werte (kein Math.random!)
   const glitchIntensity = Math.sin(progress * Math.PI * 4) * 0.3 + 0.3;
-  const glitchOffset = Math.sin(progress * Math.PI * 8) * 10;
-  
-  // Farbebenenverschiebung
-  const redOffset = glitchIntensity * 15;
-  const blueOffset = glitchIntensity * -15;
-  
+  const glitchOffset   = Math.sin(progress * Math.PI * 8) * 10;
+
+  // Chromatic-Aberration-ähnliche Verschiebungen
+  const redOffset  =  glitchIntensity * 12;
+  const blueOffset = -glitchIntensity * 12;
+
+  // Glitch-Balken: Position deterministisch per Sinus (kein Random)
+  const barLeft   = (Math.sin(frame * 1.7) * 0.5 + 0.5) * 80;
+  const barTop    = (Math.sin(frame * 2.3) * 0.5 + 0.5) * 80;
+  const barWidth  = 10 + (Math.sin(frame * 3.1) * 0.5 + 0.5) * 20;
+  const barHeight = 2  + (Math.sin(frame * 4.7) * 0.5 + 0.5) * 5;
+  const barG      = Math.floor((Math.sin(frame * 1.1) * 0.5 + 0.5) * 255);
+
   return (
     <AbsoluteFill>
-      {/* Rote Ebene */}
+      {/* Rote Chromatic-Aberration-Ebene */}
       <div style={{
         position: 'absolute',
         width: '100%',
@@ -469,17 +473,14 @@ const GlitchTransition: React.FC<{
         transform: `translateX(${redOffset}px)`,
         filter: 'saturate(1.5) contrast(1.2)',
         clipPath: `inset(0 ${Math.max(0, 100 - progress * 200)}% 0 0)`,
+        opacity: 0.6,
       }}>
-        <div style={{ 
-          width: '100%', 
-          height: '100%',
-          filter: 'sepia(1) hue-rotate(0deg) saturate(3)'
-        }}>
+        <div style={{ width: '100%', height: '100%', filter: 'sepia(1) hue-rotate(0deg) saturate(3)' }}>
           {children}
         </div>
       </div>
-      
-      {/* Blaue Ebene */}
+
+      {/* Blaue Chromatic-Aberration-Ebene */}
       <div style={{
         position: 'absolute',
         width: '100%',
@@ -487,49 +488,30 @@ const GlitchTransition: React.FC<{
         transform: `translateX(${blueOffset}px)`,
         filter: 'saturate(1.5) contrast(1.2)',
         clipPath: `inset(0 0 0 ${Math.max(0, 100 - progress * 200)}%)`,
+        opacity: 0.6,
       }}>
-        <div style={{ 
-          width: '100%', 
-          height: '100%',
-          filter: 'sepia(1) hue-rotate(180deg) saturate(3)'
-        }}>
+        <div style={{ width: '100%', height: '100%', filter: 'sepia(1) hue-rotate(180deg) saturate(3)' }}>
           {children}
         </div>
       </div>
-      
-      {/* Hauptebene mit Scanlines */}
-      <div style={{
-        position: 'absolute',
-        width: '100%',
-        height: '100%',
-        opacity: 0.95,
-      }}>
+
+      {/* Hauptebene */}
+      <div style={{ position: 'absolute', width: '100%', height: '100%' }}>
         {children}
-        <svg
-          width={width}
-          height={height}
-          style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}
-        >
-          <defs>
-            <pattern id="scanlines" x="0" y="0" width="100%" height="4">
-              <rect x="0" y="0" width="100%" height="2" fill="rgba(0,0,0,0.1)" />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#scanlines)" />
-        </svg>
       </div>
-      
-      {/* Zufällige Glitch-Balken */}
+
+      {/* Deterministische Glitch-Balken (kein SVG, kein Math.random) */}
       {glitchIntensity > 0.2 && (
         <div style={{
           position: 'absolute',
-          left: `${Math.random() * 80}%`,
-          top: `${Math.random() * 80}%`,
-          width: `${10 + Math.random() * 20}%`,
-          height: `${2 + Math.random() * 5}%`,
-          backgroundColor: `rgba(255, ${Math.floor(Math.random() * 255)}, 0, 0.7)`,
+          left: `${barLeft}%`,
+          top: `${barTop}%`,
+          width: `${barWidth}%`,
+          height: `${barHeight}%`,
+          backgroundColor: `rgba(255, ${barG}, 0, 0.65)`,
           transform: `translateX(${glitchOffset}px)`,
           mixBlendMode: 'screen',
+          pointerEvents: 'none',
         }} />
       )}
     </AbsoluteFill>
