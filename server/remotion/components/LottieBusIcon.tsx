@@ -233,7 +233,7 @@ const MojoBusCoach: React.FC<{
   const lightPulse = 0.72 + Math.sin((frame / fps) * Math.PI * 2 * 0.9) * 0.16;
 
   // ── Proportionen: 10m × 3.3m → H = W × 0.33 ────────────────────────────
-  const W  = size;
+  const W  = size * 1.1; // Increased width for perspective
   const H  = size * 0.33;
   const WR = H * 0.40;          // Rad-Radius
   const RY = H + WR * 0.52;     // Rad-Mitte Y
@@ -353,7 +353,7 @@ const MojoBusCoach: React.FC<{
         {/* ══════════════════════════════════════════════════════════════════
             BODENSCHATTEN
         ══════════════════════════════════════════════════════════════════ */}
-        <ellipse cx={W*0.5} cy={RY+WR*1.18} rx={W*0.46} ry={WR*0.16} fill="rgba(0,0,0,0.45)" />
+        <ellipse cx={W*0.5} cy={RY+WR*1.18} rx={W*0.5} ry={WR*0.2} fill="rgba(0,0,0,0.45)" transform="skewX(15)" />
 
         {/* ══════════════════════════════════════════════════════════════════
             HAUPTKAROSSERIE
@@ -372,12 +372,15 @@ const MojoBusCoach: React.FC<{
         ══════════════════════════════════════════════════════════════════ */}
 
         {/* Front-Fläche (leicht dunkler für Tiefe) */}
-        <rect x={W*0.895} y={H*0.04} width={W*0.10} height={H*1.0} fill={creamMid} />
+        <g transform="skewY(8) scaleX(1.05)">
+  <polygon points={`${W*0.81},${H*0.04} ${W*0.995},${H*0.04} ${W*1.03},${H*1.04} ${W*0.70},${H*1.04}`} fill={creamMid} />
+</g>
 
         {/* ── Große 2-teilige Windschutzscheibe ── */}
         {/* Linke Hälfte (Fahrer) */}
-        <rect x={W*0.898} y={H*0.07} width={W*0.043} height={H*0.52}
-          rx={H*0.025} fill="url(#mb-glass)" stroke="#444" strokeWidth={2} />
+         <g transform="rotate(2)">
+  <polygon points={`${W*0.895},${H*0.07} ${W*0.940},${H*0.07} ${W*0.925},${H*0.59} ${W*0.880},${H*0.59}`} fill="url(#mb-glass)" stroke="#444" strokeWidth={2} />
+</g>
         {/* Mittelsteg */}
         <rect x={W*0.940} y={H*0.07} width={W*0.012} height={H*0.52} fill={cream} />
         {/* Rechte Hälfte */}
@@ -394,9 +397,9 @@ const MojoBusCoach: React.FC<{
           stroke="#222" strokeWidth={H*0.018} strokeLinecap="round" />
 
         {/* "Live Love Travel" Text auf Scheibe */}
-        <text x={W*0.903} y={H*0.185} fontSize={H*0.055}
-          fontFamily="Arial, sans-serif" fontStyle="italic"
-          fill="#1a3a5c" opacity={0.75} fontWeight="bold">Live Love</text>
+         <text x={W*0.903} y={H*0.185} fontSize={H*0.055} transform="skewX(-12)"
+           fontFamily="Arial, sans-serif" fontStyle="italic"
+           fill="#1a3a5c" opacity={0.75} fontWeight="bold">Live Love</text>
         <text x={W*0.903} y={H*0.245} fontSize={H*0.05}
           fontFamily="Arial, sans-serif" fontStyle="italic"
           fill="#1a3a5c" opacity={0.75} fontWeight="bold">Travel ☮</text>
@@ -612,13 +615,13 @@ const MojoBusCoach: React.FC<{
             RÄDER
         ══════════════════════════════════════════════════════════════════ */}
         {/* Radkästen */}
-        <ellipse cx={W*0.175} cy={RY} rx={WR*1.25} ry={WR*0.42} fill="#111" />
-        <ellipse cx={W*0.77}  cy={RY} rx={WR*1.25} ry={WR*0.42} fill="#111" />
+        <ellipse cx={W*0.175} cy={RY} rx={WR*1.35} ry={WR*0.38} fill="#111" transform="skewX(5)" />
+        <ellipse cx={W*0.77}  cy={RY} rx={WR*1.35} ry={WR*0.38} fill="#111" transform="skewX(5)" />
 
         {/* Hinterrad */}
         <ChromeWheel cx={W*0.175} cy={RY} r={WR} wheelRot={wheelRot} />
         {/* Vorderrad */}
-        <ChromeWheel cx={W*0.77}  cy={RY} r={WR} wheelRot={wheelRot} />
+         <ChromeWheel cx={W*0.77}  cy={RY} r={WR} wheelRot={wheelRot - 8} />
 
         {/* ══════════════════════════════════════════════════════════════════
             DACH: AC-UNIT
