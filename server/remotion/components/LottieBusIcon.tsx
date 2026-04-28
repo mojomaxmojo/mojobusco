@@ -393,86 +393,73 @@ const MojoBusCoach: React.FC<{
          ══════════════════════════════════════════════════════════════════ */}
 
          {/* Front-Fläche (leicht dunkler für Tiefe) */}
-         <rect x={W*0.80} y={H*0.04} width={W*0.18} height={H*1.0} fill={creamMid} />
+         <rect x={W*0.82} y={H*0.12} width={W*0.17} height={H*0.9} fill={creamMid} />
 
          {/* Große Windschutzscheibe (schräg) */}
-         <polygon points={`${W*0.80},${H*0.07} ${W*0.86},${H*0.07} ${W*0.88},${H*0.59} ${W*0.82},${H*0.59}`} fill="url(#mb-glass)" stroke="#444" strokeWidth={2} />
+         <polygon points={`${W*0.82},${H*0.12} ${W*0.88},${H*0.12} ${W*0.95},${H*0.52} ${W*0.89},${H*0.52}`} fill="url(#mb-glass)" stroke="#444" strokeWidth={2} />
 
          {/* Mittelsteg der Windschutzscheibe */}
-         <rect x={W*0.86} y={H*0.07} width={W*0.015} height={H*0.52} fill={cream} />
+         <rect x={W*0.88} y={H*0.12} width={W*0.015} height={H*0.4} fill={cream} />
 
          {/* Glasspiegelungen in der Frontscheibe */}
-         <rect x={W*0.81} y={H*0.085} width={W*0.015} height={H*0.38} rx={2} fill={glassHL} />
+         <rect x={W*0.83} y={H*0.135} width={W*0.015} height={H*0.32} rx={2} fill={glassHL} />
 
          {/* Scheibenwischer (2 Stück) */}
-         <line x1={W*0.83} y1={H*0.575} x2={W*0.80} y2={H*0.50}
+         <line x1={W*0.85} y1={H*0.5} x2={W*0.82} y2={H*0.45}
            stroke="#222" strokeWidth={H*0.018} strokeLinecap="round" />
-         <line x1={W*0.87} y1={H*0.575} x2={W*0.85} y2={H*0.50}
+         <line x1={W*0.91} y1={H*0.5} x2={W*0.89} y2={H*0.45}
            stroke="#222" strokeWidth={H*0.018} strokeLinecap="round" />
 
          {/* "Live Love Travel" Text auf Scheibe */}
-         <text x={W*0.81} y={H*0.185} fontSize={H*0.055} transform="skewX(-12)"
+         <text x={W*0.83} y={H*0.22} fontSize={H*0.055} transform="skewX(-8)"
            fontFamily="Arial, sans-serif" fontStyle="italic"
            fill="#1a3a5c" opacity={0.75} fontWeight="bold">Live Love</text>
-         <text x={W*0.81} y={H*0.245} fontSize={H*0.05}
+         <text x={W*0.83} y={H*0.27} fontSize={H*0.05}
            fontFamily="Arial, sans-serif" fontStyle="italic"
            fill="#1a3a5c" opacity={0.75} fontWeight="bold">Travel ☮</text>
 
          {/* Rechteckige Doppelscheinwerfer (US-Stil) */}
          {/* Oberes Paar */}
-         <rect x={W*0.81} y={H*0.62} width={W*0.04} height={H*0.07}
+         <rect x={W*0.83} y={H*0.62} width={W*0.04} height={H*0.07}
            rx={H*0.01} fill="#e8e8d0" stroke="#999" strokeWidth={1} />
-         <rect x={W*0.81} y={H*0.62} width={W*0.04} height={H*0.07}
+         <rect x={W*0.83} y={H*0.62} width={W*0.04} height={H*0.07}
            rx={H*0.01} fill="#fffde7" opacity={lightPulse * 0.7} />
-         <rect x={W*0.86} y={H*0.62} width={W*0.04} height={H*0.07}
+         <rect x={W*0.9} y={H*0.62} width={W*0.04} height={H*0.07}
            rx={H*0.01} fill="#e8e8d0" stroke="#999" strokeWidth={1} />
-         <rect x={W*0.86} y={H*0.62} width={W*0.04} height={H*0.07}
+         <rect x={W*0.9} y={H*0.62} width={W*0.04} height={H*0.07}
            rx={H*0.01} fill="#fffde7" opacity={lightPulse * 0.65} />
 
          {/* Unteres Paar (Nebelscheinwerfer) */}
-         <rect x={W*0.815} y={H*0.70} width={W*0.035} height={H*0.055}
+         <rect x={W*0.84} y={H*0.7} width={W*0.035} height={H*0.055}
            rx={H*0.008} fill="#fffacd" stroke="#aaa" strokeWidth={1} opacity={lightPulse*0.8} />
-         <rect x={W*0.86} y={H*0.70} width={W*0.035} height={H*0.055}
+         <rect x={W*0.91} y={H*0.7} width={W*0.035} height={H*0.055}
            rx={H*0.008} fill="#fffacd" stroke="#aaa" strokeWidth={1} opacity={lightPulse*0.75} />
 
          {/* Blinker (groß, bernsteinfarben) */}
-         <rect x={W*0.80} y={H*0.775} width={W*0.09} height={H*0.045}
+         <rect x={W*0.82} y={H*0.775} width={W*0.16} height={H*0.045}
            rx={H*0.01} fill="#d97706" stroke="#92400e" strokeWidth={1} />
-         <rect x={W*0.805} y={H*0.782} width={W*0.08} height={H*0.03}
+         <rect x={W*0.83} y={H*0.782} width={W*0.14} height={H*0.03}
            rx={H*0.006} fill="#fbbf24" opacity={0.85} />
 
          {/* Kühlergrill (horizontale Streben) */}
-         <rect x={W*0.80} y={H*0.765} width={W*0.095} height={H*0.145}
+         <rect x={W*0.82} y={H*0.765} width={W*0.16} height={H*0.145}
            rx={3} fill="#222" />
          {[0, 1, 2, 3, 4].map((i) => (
            <rect key={i}
-             x={W*0.805} y={H*(0.775 + i * 0.025)}
-             width={W*0.085} height={H*0.015}
+             x={W*(0.83 + i * 0.03)} y={H*0.775}
+             width={W*0.025} height={H*0.015}
              fill="#555" />
          ))}
 
          {/* Chromstoßstange (breit, massiv) */}
-         <rect x={W*0.795} y={H*0.875} width={W*0.12} height={H*0.09}
+         <rect x={W*0.81} y={H*0.875} width={W*0.18} height={H*0.09}
            rx={H*0.02} fill="url(#mb-chrome)" />
          {/* Glanzstreifen oben */}
-         <rect x={W*0.80} y={H*0.878} width={W*0.11} height={H*0.018}
+         <rect x={W*0.82} y={H*0.878} width={W*0.16} height={H*0.018}
            rx={H*0.008} fill="#fff" opacity={0.55} />
          {/* Unterer Chrom-Wulst */}
-         <rect x={W*0.805} y={H*0.942} width={W*0.1} height={H*0.015}
+         <rect x={W*0.83} y={H*0.942} width={W*0.14} height={H*0.015}
            rx={H*0.006} fill="#ccc" />
-
-         {/* LKW-Außenspiegel (Arm + großes Rechteck) */}
-         {/* Spiegelarm */}
-         <rect x={W*0.78} y={H*0.10} width={W*0.02} height={H*0.14}
-           rx={3} fill="#aaa" />
-         {/* Spiegel-Gehäuse */}
-         <rect x={W*0.75} y={H*0.08} width={W*0.035} height={H*0.1}
-           rx={H*0.015} fill="#ccc" stroke="#999" strokeWidth={1} />
-         {/* Spiegel-Glas */}
-         <rect x={W*0.755} y={H*0.085} width={W*0.025} height={H*0.085}
-           rx={H*0.012} fill="url(#mb-glass)" opacity={0.8} />
-         <rect x={W*0.758} y={H*0.088} width={W*0.008} height={H*0.065}
-           rx={2} fill={glassHL} />
 
 {/* ══════════════════════════════════════════════════════════════════
              FENSTERGÜRTEL (Seitenansicht)
