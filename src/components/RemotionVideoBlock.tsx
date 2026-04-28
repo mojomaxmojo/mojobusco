@@ -31,7 +31,7 @@ type AspectRatio = '16:9' | '9:16' | '1:1';
 type ColorGrade = 'golden' | 'warm' | 'moody' | 'blue' | 'teal-orange' | 'vintage' | 'auto';
 type CaptionStyle = 'off' | 'tiktok' | 'minimal' | 'full-line';
 type MotionBlur = 0 | 1 | 2;
-type TransitionType = 'auto' | 'fade' | 'wipe' | 'clockWipe' | 'slide';
+type TransitionType = 'auto' | 'fade' | 'wipe' | 'clockWipe' | 'slide' | 'morph' | 'zoomRelay' | 'glitch' | 'pagePeel';
 type RenderStatus = 'idle' | 'uploading-local' | 'queued' | 'rendering' | 'downloading' | 'uploading-blossom' | 'completed' | 'failed';
 
 interface MusicTrack {
@@ -54,6 +54,10 @@ const TRANSITION_LABELS: Record<TransitionType, string> = {
   wipe: '➡️ Wipe',
   clockWipe: '🕐 Clock',
   slide: '📱 Slide',
+  morph: '🔄 Morph',
+  zoomRelay: '🔎 Zoom',
+  glitch: '⚡ Glitch',
+  pagePeel: '📖 Page',
 };
 
 export interface RemotionVideoBlockProps {
@@ -575,7 +579,7 @@ export function RemotionVideoBlock({
                   🔀 Transition
                   <span className="ml-1.5 text-[10px] font-normal opacity-60">(Übergang zwischen Bildern)</span>
                 </Label>
-                <div className="grid grid-cols-5 gap-1">
+                <div className="grid grid-cols-3 gap-1 sm:grid-cols-5 md:grid-cols-9">
                   {(Object.entries(TRANSITION_LABELS) as [TransitionType, string][]).map(([val, label]) => (
                     <button
                       key={val}
