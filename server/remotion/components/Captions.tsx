@@ -1,3 +1,4 @@
+
 /**
  * Captions.tsx — @remotion/captions Integration
  *
@@ -56,7 +57,7 @@ interface WordHighlightCaptionsProps {
 
 // ── Hilfsfunktionen ───────────────────────────────────────────────────────
 
-/** Text in Wörter aufteilen mit gleichmäßigem Timing */
+/** Text in Wörter aufteilen mit natürlicher Zeitverteilung */
 export function textToTimedWords(
   text: string,
   startSec: number,
@@ -64,13 +65,33 @@ export function textToTimedWords(
 ): CaptionWord[] {
   const words = text.trim().split(/\s+/).filter(Boolean);
   if (words.length === 0) return [];
+  
   const duration = endSec - startSec;
-  const perWord = duration / words.length;
-  return words.map((word, i) => ({
-    text: word,
-    startInSeconds: startSec + i * perWord,
-    endInSeconds: startSec + (i + 1) * perWord,
-  }));
+  
+  // Gewichtung: Längere Wörter bekommen mehr Zeit, Kommas erzeugen Pausen
+  let totalWeight = 0;
+  const weights = words.map(word => {
+    let weight = Math.max(1, word.length);
+    if (word.endsWith(',')) weight *= 1.8;
+    if (word.endsWith('.') || word.endsWith('!') || word.endsWith('?')) weight *= 2.2;
+    totalWeight += weight;
+    return weight;
+  });
+  
+  const timePerWeight = duration / totalWeight;
+  let currentTime = startSec;
+
+  return words.map((word, i) => {
+    const wordStart = currentTime;
+    const wordDuration = weights[i] * timePerWeight;
+    currentTime += wordDuration;
+    
+    return {
+      text: word,
+      startInSeconds: wordStart,
+      endInSeconds: wordStart + wordDuration,
+    };
+  });
 }
 
 /** Captions-Array in Wort-Timeline umwandeln */
