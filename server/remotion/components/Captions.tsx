@@ -27,7 +27,7 @@ export interface CaptionWord {
   endInSeconds: number;
 }
 
-export type CaptionStyle = 'word-highlight' | 'full-line' | 'tiktok' | 'minimal';
+export type CaptionStyle = 'word-highlight' | 'full-line' | 'tiktok' | 'minimal' | 'emphasis' | 'typewriter';
 
 interface AutoCaptionsProps {
   /** Array von Caption-Texten (einer pro Bild oder freier Text) */
