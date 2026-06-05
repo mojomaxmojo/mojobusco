@@ -1,3 +1,6 @@
+import { ImageIcon, Video, Music, File as FileIcon } from '@/lib/icons';
+import type { GpsData, GpsStatus } from '@/lib/gpsExtraction';
+
 /**
  * createCorrectedPreview — EXIF-orientierte Bildvorschau
  */
@@ -18,7 +21,6 @@ export async function createCorrectedPreview(
       console.log(`[Preview] ${file.name}: Actual dimensions ${actualWidth}x${actualHeight}`);
       console.log(`[Preview] ${file.name}: EXIF Orientation = ${exifOrientation || 'not set'}`);
 
-      // Rotation basierend auf EXIF Orientation (1-8)
       let rotation = 0;
       let flipH = false;
 
@@ -28,21 +30,19 @@ export async function createCorrectedPreview(
           case 3: rotation = 180; break;
           case 4: rotation = 180; flipH = true; break;
           case 5: rotation = -90; flipH = true; break;
-          case 6: rotation = 90; break;  // 90° CW korrigiert 90° CCW
+          case 6: rotation = 90; break;
           case 7: rotation = 90; flipH = true; break;
           case 8: rotation = -90; break;
         }
         console.log(`[Corrected File] ${file.name}: Orientation=${exifOrientation}, applying rotation=${rotation}°`);
       }
 
-      // Wenn keine Korrektur nötig, Original zurückgeben
       if (rotation === 0 && !flipH) {
         URL.revokeObjectURL(url);
         resolve(url);
         return;
       }
 
-      // Canvas erstellen
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
 
@@ -52,7 +52,6 @@ export async function createCorrectedPreview(
         return;
       }
 
-      // Canvas-Größe basierend auf Rotation
       if (rotation === 90 || rotation === -90) {
         canvas.width = actualHeight;
         canvas.height = actualWidth;
@@ -61,7 +60,6 @@ export async function createCorrectedPreview(
         canvas.height = actualHeight;
       }
 
-      // Transformation anwenden
       ctx.translate(canvas.width / 2, canvas.height / 2);
       if (rotation !== 0) {
         ctx.rotate((rotation * Math.PI) / 180);
@@ -70,11 +68,8 @@ export async function createCorrectedPreview(
         ctx.scale(-1, 1);
       }
       ctx.translate(-actualWidth / 2, -actualHeight / 2);
-
-      // Bild zeichnen
       ctx.drawImage(img, 0, 0, actualWidth, actualHeight);
 
-      // Neue URL erstellen
       canvas.toBlob((blob) => {
         if (blob) {
           const correctedUrl = URL.createObjectURL(blob);
@@ -100,8 +95,6 @@ export async function createCorrectedPreview(
 /**
  * mediaTypes — Konfiguration der unterstützten Medientypen
  */
-import { ImageIcon, Video, Music, File as FileIcon } from '@/lib/icons';
-
 export const mediaTypes = [
   { type: 'image', label: 'Bilder', icon: ImageIcon, extensions: ['jpg', 'jpeg', 'png', 'webp', 'gif'], accept: 'image/*' },
   { type: 'video', label: 'Videos', icon: Video, extensions: ['mp4', 'mov', 'webm'], accept: 'video/*' },
@@ -125,8 +118,6 @@ export const subCategories: Record<string, string[]> = {
   natur: ['tiere', 'blumen', 'strand', 'berge', 'wald', 'meer']
 };
 
-import type { GpsData, GpsStatus } from '@/lib/gpsExtraction';
-
 export interface MediaFile {
   id: string;
   file: File;
@@ -137,11 +128,8 @@ export interface MediaFile {
   preview?: string;
   uploaded?: boolean;
   tags?: string[];
-  /** GPS data extracted from image EXIF */
   gps?: GpsData;
-  /** GPS extraction status */
   gpsStatus?: GpsStatus;
-  /** Aufnahme-Timestamp für Sortierung (EXIF > lastModified > now) */
   sortDate?: number;
 }
 
@@ -153,50 +141,40 @@ export interface UploadProgress {
 }
 
 /**
- * resolveBildPlaceholders — Ersetzt [BILD_1], [BILD_2] etc. im KI-Text durch Markdown-Bilder
+ * resolveBildPlaceholders — Ersetzt [BILD_N] Platzhalter im KI-Text durch Markdown-Bilder
  */
 export function resolveBildPlaceholders(
   text: string,
   imageObjects: Array<{ url: string | null; description: string }>
 ): string {
-  let result = text
-
-  // Nur Bilder mit echten URLs – Titelbilder (url=null) überspringen
+  let result = text;
   const urlImages = imageObjects
     .map((img, i) => ({ ...img, num: i + 1 }))
-    .filter(img => img.url !== null)
-
-  const orphaned: string[] = [] // Bilder ohne Platzhalter im Text
+    .filter(img => img.url !== null);
+  const orphaned: string[] = [];
 
   for (const img of urlImages) {
-    const placeholder = `[BILD_${img.num}]`
-    const markdownImg = `\n\n![](${img.url})\n\n`
-
+    const placeholder = `[BILD_${img.num}]`;
+    const markdownImg = `\n\n![](${img.url})\n\n`;
     if (result.includes(placeholder)) {
-      // Platzhalter im Text gefunden → ersetzen
-      result = result.replace(placeholder, markdownImg)
+      result = result.replace(placeholder, markdownImg);
     } else {
-      // KI hat Platzhalter vergessen → Fallback: am Ende anhängen
-      orphaned.push(`![](${img.url})`)
+      orphaned.push(`![](${img.url})`);
     }
   }
 
-  // Verwaiste Bilder ans Ende (vor Hashtags)
   if (orphaned.length > 0) {
-    // Hashtag-Zeilen ans Ende stellen, Bilder davor
-    const lines = result.split('\n')
+    const lines = result.split('\n');
     const lastHashtagIdx = lines.reduce(
-      (last, line, i) => line.trim().match(/^#\w+/) ? i : last,
-      -1
-    )
+      (last, line, i) => line.trim().match(/^#\w+/) ? i : last, -1
+    );
     if (lastHashtagIdx > 0) {
-      // Hashtags gefunden → Bilder davor einfügen
-      lines.splice(lastHashtagIdx, 0, '', ...orphaned, '')
-      result = lines.join('\n')
+      lines.splice(lastHashtagIdx, 0, '', ...orphaned, '');
+      result = lines.join('\n');
     } else {
-      result = result.trimEnd() + '\n\n' + orphaned.join('\n\n')
+      result = result.trimEnd() + '\n\n' + orphaned.join('\n\n');
     }
   }
 
-  return result
+  return result;
 }

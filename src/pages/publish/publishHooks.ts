@@ -15,23 +15,18 @@ export function useEditData(editEventId: string | null) {
 
       let eventId = editEventId;
       try {
-        // Try to decode nip19 if it's encoded
         if (editEventId.startsWith('note1')) {
           const decoded = nip19.decode(editEventId);
           eventId = decoded.data;
         }
       } catch (error) {
-        // If decoding fails, try using as raw hex ID
         eventId = editEventId;
       }
 
       const abortSignal = AbortSignal.any([signal, AbortSignal.timeout(3000)]);
 
       const events = await nostr.query([
-        {
-          ids: [eventId],
-          limit: 1
-        }
+        { ids: [eventId], limit: 1 }
       ], { signal: abortSignal });
 
       return events[0] || null;
