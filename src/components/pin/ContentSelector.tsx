@@ -80,85 +80,9 @@ function isMediaEvent(e: any): boolean {
   return hasMediaTag || hasMediaType || hasImageUrls
 }
 
-// ═══════════════════════════════════════════════════════════
-// HELPER: Bild-URLs aus Event extrahieren
-// ═══════════════════════════════════════════════════════════
-
-function extractImagesFromEvent(event: any): string[] {
-  const images: string[] = []
-
-  // image-Tags
-  event.tags?.forEach((t: any[]) => {
-    if (t[0] === 'image' && t[1]) {
-      if (!images.includes(t[1])) images.push(t[1])
-    }
-  })
-
-  // Bilder aus Content
-  if (event.content) {
-    const mdMatches = event.content.match(/!\[.*?\]\((https?:\/\/[^\s)]+)\)/g)
-    if (mdMatches) {
-      mdMatches.forEach((match: string) => {
-        const urlMatch = match.match(/\((https?:\/\/[^\s)]+)\)/)
-        if (urlMatch && !images.includes(urlMatch[1])) images.push(urlMatch[1])
-      })
-    }
-
-    const htmlMatches = event.content.match(/<img[^>]+src=["'](https?:\/\/[^"']+)["']/gi)
-    if (htmlMatches) {
-      htmlMatches.forEach((match: string) => {
-        const urlMatch = match.match(/src=["'](https?:\/\/[^"']+)["']/i)
-        if (urlMatch && !images.includes(urlMatch[1])) images.push(urlMatch[1])
-      })
-    }
-
-    // Direkte Bild-URLs im Content
-    const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp))/gi
-    const directMatches = event.content.match(urlRegex)
-    if (directMatches) {
-      directMatches.forEach((url: string) => {
-        if (!images.includes(url)) images.push(url)
-      })
-    }
-  }
-
-  return images
-}
+import { extractImagesFromEvent, extractTitle, extractSummary } from '@/lib/nostrEventUtils';
 
 // ═══════════════════════════════════════════════════════════
-// HELPER: Title aus Content extrahieren
-// ═══════════════════════════════════════════════════════════
-
-function extractTitle(content: string): string {
-  if (!content) return ''
-  const h1Match = content.match(/^#\s+(.+)$/m)
-  if (h1Match) return h1Match[1].trim()
-  const h1HtmlMatch = content.match(/<h1[^>]*>(.*?)<\/h1>/i)
-  if (h1HtmlMatch) return h1HtmlMatch[1].replace(/<[^>]+>/g, '').trim()
-  const firstLine = content.split('\n')[0]?.trim()
-  if (firstLine && firstLine.length < 100 && !firstLine.startsWith('<')) {
-    return firstLine.substring(0, 80)
-  }
-  return ''
-}
-
-// ═══════════════════════════════════════════════════════════
-// HELPER: Summary aus Content extrahieren
-// ═══════════════════════════════════════════════════════════
-
-function extractSummary(content: string): string {
-  if (!content) return ''
-  let cleaned = content.replace(/<[^>]+>/g, '')
-  cleaned = cleaned.replace(/\*\*(.+?)\*\*/g, '$1')
-  cleaned = cleaned.replace(/^(#+\s+)/gm, '')
-  cleaned = cleaned.replace(/!\[.*?\]\(.*?\)/g, '')
-  cleaned = cleaned.replace(/^\*\*[^:]+:\*\*\s*.*$/gm, '')
-  cleaned = cleaned.replace(/^## .+$/gm, '')
-  cleaned = cleaned.trim()
-  const firstParagraph = cleaned.split('\n\n')[0]?.trim() || cleaned
-  if (firstParagraph.length > 200) return firstParagraph.substring(0, 197) + '...'
-  return firstParagraph
-}
 
 // ═══════════════════════════════════════════════════════════
 // MAIN COMPONENT
