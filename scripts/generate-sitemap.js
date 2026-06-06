@@ -15,6 +15,7 @@
  * Ausgabe: /home/nginx/domains/mojobus.co/public/sitemap.xml
  */
 
+import fs from 'fs';
 import path from 'path';
 
 // Nur Autoren (Mojo + Susanne)
