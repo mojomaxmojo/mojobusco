@@ -69,7 +69,7 @@ export function useReplaceableContent({ dTag, limit = 50 }: UseReplaceableConten
           '#t': ['d', dTag, 'address', address.toLowerCase()]
         },
         { limit: 1 }
-      ]);
+      ]) : [];
 
       const event = await nostr.event({
         kind: 30000 + 30 + dTag,

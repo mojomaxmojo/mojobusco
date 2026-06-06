@@ -25,7 +25,7 @@ const ImageDetail = lazy(() => import("./pages/ImageDetail").then(m => ({ defaul
 const Publish = lazy(() => import("./pages/Publish").then(m => ({ default: m.Publish })));
 const PerpetualTravelers = lazy(() => import("./pages/PerpetualTravelers").then(m => ({ default: m.PerpetualTravelers })));
 const PromotionDashboard = lazy(() => import("./pages/PromotionDashboard").then(m => ({ default: m.PromotionDashboard })));
-const ContentEditorMinimal = lazy(() => import("./components/ContentEditorMinimal").then(m => ({ default: m.ContentEditorMinimal })));
+const ContentEditorMinimal = lazy(() => import("./components/ContentEditor").then(m => ({ default: m.ContentEditorFixed })));
 const Profile = lazy(() => import("./pages/Profile").then(m => ({ default: m.Profile })));
 const Settings = lazy(() => import("./pages/Settings").then(m => ({ default: m.Settings })));
 const ServiceWorkerSettings = lazy(() => import("./pages/ServiceWorkerSettings").then(m => ({ default: m.ServiceWorkerSettings })));

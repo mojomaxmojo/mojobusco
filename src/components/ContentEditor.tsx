@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect, useCallback } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useReplaceableContent, ReplaceableContent } from '@/hooks/useReplaceableContent';
-import { useAutoSave } from '@/hooks/useAutoSave';
+import { useReplaceableContent } from '@/hooks/useReplaceableContent';
 import { useToast } from '@/hooks/useToast';
 
-interface ContentEditorProps {
+interface ContentEditorFixedProps {
   dTag: string;
   initialContent?: string;
   onSave?: (content: string) => void;
@@ -16,67 +16,47 @@ interface ContentEditorProps {
 }
 
 /**
- * Content Editor für replaceable content
- * Löst das 5x Event Problem durch replaceable content mit auto-save
+ * Minimalistischer Content Editor mit Replaceable Content
+ * Löst das 5x Events Problem mit minimalem Code
  */
-export function ContentEditor({ dTag, initialContent = '', onSave, mode = 'create' }: ContentEditorProps) {
+export function ContentEditorFixed({ dTag, initialContent = '', onSave, mode = 'create' }: ContentEditorFixedProps) {
   const [content, setContent] = useState(initialContent);
-  const [lastSaveTime, setLastSaveTime] = useState<number>(0);
-  const { content: currentContent, updateContent, isLoading, error } = useReplaceableContent({ dTag, limit: 5 });
+  const { updateContent, isLoading, error } = useReplaceableContent({ dTag });
+  const { toast } = useToast();
 
-  // Auto-Save mit de-bouncing
-  useEffect(() => {
-    if (mode === 'edit' && content !== currentContent) {
-      const timeoutId = setTimeout(async () => {
-        try {
-          await updateContent(content);
-          setLastSaveTime(Date.now());
-          console.log(`Auto-saved at ${new Date().toLocaleTimeString()}`);
-        } catch (error) {
-          console.error('Auto-save failed:', error);
-        }
-      }, 2000); // 2 Sekunden Verzögerung
-
-      return () => clearTimeout(timeoutId);
-    }
-
-    return () => clearTimeout(timeoutId);
-  }, [content, mode === 'edit' ? updateContent : undefined, currentContent]);
-
-  // Manuelles Speichern
-  const manualSave = useCallback(async () => {
-    try {
-      await updateContent(content);
-      setLastSaveTime(Date.now());
-
-      if (onSave) {
-        onSave(content);
-      }
-    } catch (error) {
-      console.error('Manual save failed:', error);
-    }
-  }, [updateContent, content, onSave]);
-
-  // Synchronisiere Zustand mit replaceable content
-  useEffect(() => {
-    setContent(currentContent);
-  }, [currentContent]);
-
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!content.trim()) {
+      toast({
+        title: 'Fehler',
+        description: 'Bitte geben Sie einen Inhalt ein.',
+        duration: 3000,
+        variant: 'destructive'
+      });
       return;
     }
 
-    const success = await manualSave();
+    try {
+      await updateContent(content);
+      
+      if (onSave) {
+        onSave(content);
+      }
 
-    if (success && onSave) {
-      onSave(content);
+      toast({
+        title: 'Erfolg',
+        description: `Inhalt wurde erfolgreich ${mode === 'create' ? 'erstellt' : 'aktualisiert'}.`,
+        duration: 3000,
+        variant: 'default'
+      });
+    } catch (error) {
+      toast({
+        title: 'Fehler beim Speichern',
+        description: error.message || 'Der Inhalt konnte nicht gespeichert werden.',
+        duration: 5000,
+        variant: 'destructive'
+      });
     }
-
-    return success;
-  };
-
-  const isNewContent = content !== currentContent;
+  }, [content, mode, updateContent, onSave]);
 
   return (
     <Card className="w-full">
@@ -88,43 +68,28 @@ export function ContentEditor({ dTag, initialContent = '', onSave, mode = 'creat
                 {mode === 'create' ? 'Erstellen' : 'Bearbeiten'}
               </Badge>
               <span className="text-sm font-medium">
-                Replaceable Content ({dTag})
+                Replaceable Content
               </span>
             </span>
-            {isNewContent && (
-              <span className="px-2 py-1 text-xs font-medium text-orange-500 bg-orange-50 rounded">
-                Ungespeichert
-              </span>
-            )}
           </div>
-          <div className="flex gap-2">
-            {mode === 'edit' && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  // Änderungen verwerfen auf aktuelle gespeicherte Version
-                  if (currentContent) {
-                    setContent(currentContent);
-                  }
-                }}
-              >
-                Änderungen verwerfen
-              </Button>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="text-xs">
+              1x Event
+            </Badge>
+            <Badge variant="outline" className="text-xs text-green-600">
+              Replaceable
+            </Badge>
+            {isLoading && (
+              <Badge variant="outline" className="text-xs">
+                Speichert...
+              </Badge>
             )}
-            <Button
-              size="sm"
-              onClick={manualSave}
-              disabled={isLoading}
-            >
-              {isLoading ? 'Speichert...' : shouldShowSaveButton ? 'Speichern' : 'Gespeichert'}
-            </Button>
           </div>
         </CardTitle>
         <CardDescription>
-          {mode === 'create'
-            ? 'Erstellen Sie neuen replaceable Inhalt. Ihre Änderungen werden automatisch gesichert.'
-            : 'Bearbeiten Sie den Inhalt. Ihre Änderungen werden automatisch gespeichert.'
+          {mode === 'create' 
+            ? 'Erstelle neuen replaceable Inhalt mit 1x Event Prinzip.'
+            : 'Bearbe bestehenden replaceable Inhalt. Jede Änderung überschreibt die vorherige Version.'
           }
         </CardDescription>
       </CardHeader>
@@ -138,48 +103,16 @@ export function ContentEditor({ dTag, initialContent = '', onSave, mode = 'creat
           </Alert>
         )}
 
-        <div className="space-y-3">
-          <div>
-            <label htmlFor="content" className="block text-sm font-medium mb-2">
-              Inhalt
-            </label>
-            <Textarea
-              id="content"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Geben Sie Ihren Inhalt hier ein..."
-              className="min-h-[400px] w-full"
-              rows={10}
-            />
-          </div>
-
-          {mode === 'edit' && (
-            <div className="text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <span>💡</span>
-                <span>
-                  {shouldShowSaveButton
-                    ? `Letzte Speicherung: ${lastSavedAt ? new Date(lastSavedAt).toLocaleTimeString() : 'Noch nicht gespeichert'}`
-                    : 'Auto-Speicherung ist aktiv'
-                  }
-                </span>
-              </div>
-              <p className="text-xs mt-1">
-                {shouldShowSaveButton
-                  ? `Alle Änderungen werden automatisch alle 2 Sekunden gespeichert.`
-                  : 'Auto-Speicherung: ${lastSavedAt ? new Date(lastSavedAt).toLocaleTimeString() : '-'}`
-                  }
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Auto-Save: {shouldShowSaveButton ? 'Aktiv' : 'Wartet'}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Letzte Speicherung: {lastSavedAt ? new Date(lastSavedAt).toLocaleTimeString() : '-'}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Fenster kann sicher geschlossen werden
-              </p>
-          )}
+        <div className="space-y-2">
+          <Label htmlFor="content">Inhalt</Label>
+          <Textarea
+            id="content"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="Geben Sie Ihren Inhalt hier ein..."
+            className="min-h-[300px] w-full"
+            rows={8}
+          />
         </div>
 
         <div className="flex items-center justify-between text-sm text-muted-foreground">
@@ -188,17 +121,54 @@ export function ContentEditor({ dTag, initialContent = '', onSave, mode = 'creat
           </span>
           <div className="flex items-center gap-4">
             <span className="text-xs">
-              Auto-Save: {shouldShowSaveButton ? 'Aktiv' : 'Wartet'}
+              D-Tag: <code className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded">{dTag}</code>
             </span>
             <span className="text-xs bg-green-100 px-2 py-1 rounded text-green-800">
-              1x Event
+              1x Events
             </span>
             <span className="text-xs bg-blue-100 px-2 py-1 rounded text-blue-800">
               Replaceable
             </span>
-            <span className="text-xs bg-purple-100 px-2 py-1 rounded text-purple-800">
-              {dTag}
-            </span>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <h3 className="text-sm font-semibold mb-2 text-blue-900 dark:text-blue-100">
+              🔧 Replaceable Content System
+            </h3>
+            <div className="space-y-1 text-sm text-blue-700 dark:text-blue-300">
+              <p>• <span className="text-green-600">1x Event Prinzip:</span> Keine 5x Events mehr</p>
+              <p>• <span className="text-blue-600">Replaceable Events:</span> Kind 30000+30+dTag</p>
+              <p>• <span className="text-purple-600">Einzigartige Adresse:</span> d: {dTag}</p>
+              <p>• <span className="text-orange-600">Versionskontrolle:</span> Alte Inhalte werden archiviert</p>
+              <p>• <span className="text-red-600">Konfliktlösung:</span> Automatisch bei Bedarf</p>
+            </div>
+          </div>
+        </div>
+
+        <Button
+          onClick={handleSave}
+          disabled={isLoading}
+          className="w-full"
+        >
+          {isLoading ? 'Speichert...' : mode === 'create' ? 'Erstellen' : 'Aktualisieren'}
+        </Button>
+
+        <div className="mt-4 space-y-2 text-xs text-muted-foreground">
+          <p><strong>Status:</strong></p>
+          <div className="grid grid-cols-2 gap-2">
+            <div>• Content-Editor aktiv</div>
+            <div>• Auto-Save nicht implementiert (manuell)</div>
+            <div>• Conflict Detection nicht implementiert</div>
+            <div>• Cross-Device Sync nicht implementiert</div>
+          </div>
+          <p><strong>Vorteile:</strong></p>
+          <div className="grid grid-cols-2 gap-2">
+            <div>• Keine 5x Events mehr</div>
+            <div>• 1x Event pro Inhalt</div>
+            <div>• Replaceable mit d-Tag</div>
+            <div>• Versionskontrolle durch Nostr</div>
           </div>
         </div>
       </CardContent>
