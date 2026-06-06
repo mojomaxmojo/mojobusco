@@ -165,14 +165,14 @@ async function main() {
     });
   }
 
-  // XML generieren (nur statische Pages + Orte)
+  // XML generieren
   const xml = generateSitemapXml(allUrls);
 
   // Schreiben
   try {
     fs.writeFileSync(SITEMAP_PATH, xml, 'utf-8');
     console.log(`[Sitemap] ✅ Geschrieben: ${SITEMAP_PATH}`);
-    console.log(`[Sitemap]   ${uniqueUrls.length} URLs + 6 statische Seiten`);
+    console.log(`[Sitemap]   ${staticPages.length} statische Seiten`);
   } catch (err) {
     console.error(`[Sitemap] ❌ Fehler beim Schreiben: ${err.message}`);
     process.exit(1);
