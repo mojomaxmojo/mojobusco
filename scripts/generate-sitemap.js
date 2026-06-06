@@ -150,7 +150,7 @@ async function main() {
     console.log(`[Sitemap] Frage Relay ab: ${relay}`);
 
     // Artikel (kind 30023 = long-form)
-    const articles = await queryRelay(relay, [{ kinds: [30023], authors: AUTHOR_PUBKEYS, limit: 100 }]);
+    const articles = await queryRelay(relay, [{ kinds: [30023], authors: AUTHOR_PUBKEYS, limit: 500 }]);
     console.log(`[Sitemap]  → ${articles.length} Artikel gefunden`);
     articles.forEach(e => {
       const url = eventToUrl(e);
@@ -162,12 +162,29 @@ async function main() {
       kinds: [1],
       authors: AUTHOR_PUBKEYS,
       '#t': ['place', 'camping', 'stellplatz'],
-      limit: 200,
+      limit: 500,
     }]);
     console.log(`[Sitemap]  → ${places.length} Orte gefunden`);
     places.forEach(e => {
       const url = eventToUrl(e);
       if (url) allUrls.push(url);
+    });
+
+    // Bilder/Media (kind 1, type=media)
+    const mediaItems = await queryRelay(relay, [{
+      kinds: [1],
+      authors: AUTHOR_PUBKEYS,
+      '#t': ['media', 'bilder', 'images'],
+      limit: 500,
+    }]);
+    console.log(`[Sitemap]  → ${mediaItems.length} Bilder gefunden`);
+    mediaItems.forEach(e => {
+      const dTag = e.tags?.find(t => t[0] === 'd')?.[1] || e.id;
+      allUrls.push({
+        loc: `${BASE_URL}/bilder/${dTag}`,
+        priority: '0.6',
+        changefreq: 'monthly',
+      });
     });
   }
 
