@@ -115,13 +115,13 @@ function generateSitemapXml(urls) {
   let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
   xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
 
-  // Statische Pages (Priorität: hoch)
+  // Statische Pages (das sind die einzigen funktionierenden SPA-Routen)
   const staticPages = [
     { loc: BASE_URL + '/', priority: '1.0', changefreq: 'daily' },
-    { loc: BASE_URL + '/articles', priority: '0.9', changefreq: 'daily' },
-    { loc: BASE_URL + '/places', priority: '0.7', changefreq: 'weekly' },
-    { loc: BASE_URL + '/trips', priority: '0.7', changefreq: 'weekly' },
-    { loc: BASE_URL + '/images', priority: '0.6', changefreq: 'weekly' },
+    { loc: BASE_URL + '/artikel', priority: '0.9', changefreq: 'daily' },
+    { loc: BASE_URL + '/plaetze', priority: '0.7', changefreq: 'weekly' },
+    { loc: BASE_URL + '/map/trips', priority: '0.7', changefreq: 'weekly' },
+    { loc: BASE_URL + '/bilder', priority: '0.6', changefreq: 'weekly' },
     { loc: BASE_URL + '/about', priority: '0.5', changefreq: 'monthly' },
   ];
 
@@ -142,62 +142,31 @@ function generateSitemapXml(urls) {
 
 // ── Main ──────────────────────────────────────────────────────────────────
 async function main() {
-  console.log('[Sitemap] Generiere Sitemap aus Nostr-Events...');
+  console.log('[Sitemap] Generiere Sitemap...');
 
   const allUrls = [];
+  const seen = new Set();
 
   for (const relay of RELAYS) {
-    console.log(`[Sitemap] Frage Relay ab: ${relay}`);
+    console.log(`[Sitemap] Frage ab: ${relay}`);
 
-    // Artikel (kind 30023 = long-form)
-    const articles = await queryRelay(relay, [{ kinds: [30023], authors: AUTHOR_PUBKEYS, limit: 500 }]);
-    console.log(`[Sitemap]  → ${articles.length} Artikel gefunden`);
-    articles.forEach(e => {
-      const url = eventToUrl(e);
-      if (url) allUrls.push(url);
-    });
-
-    // Orte (kind 1, limit 200)
+    // Orte (für /plaetze Seite)
     const places = await queryRelay(relay, [{
       kinds: [1],
       authors: AUTHOR_PUBKEYS,
       '#t': ['place', 'camping', 'stellplatz'],
       limit: 500,
     }]);
-    console.log(`[Sitemap]  → ${places.length} Orte gefunden`);
+    console.log(`[Sitemap]  → ${places.length} Orte`);
     places.forEach(e => {
-      const url = eventToUrl(e);
-      if (url) allUrls.push(url);
-    });
-
-    // Bilder/Media (kind 1, type=media)
-    const mediaItems = await queryRelay(relay, [{
-      kinds: [1],
-      authors: AUTHOR_PUBKEYS,
-      '#t': ['media', 'bilder', 'images'],
-      limit: 500,
-    }]);
-    console.log(`[Sitemap]  → ${mediaItems.length} Bilder gefunden`);
-    mediaItems.forEach(e => {
-      const dTag = e.tags?.find(t => t[0] === 'd')?.[1] || e.id;
-      allUrls.push({
-        loc: `${BASE_URL}/bilder/${dTag}`,
-        priority: '0.6',
-        changefreq: 'monthly',
-      });
+      if (seen.has(e.id)) return;
+      seen.add(e.id);
+      allUrls.push({ loc: `${BASE_URL}/plaetze`, priority: '0.7', changefreq: 'monthly' });
     });
   }
 
-  // Deduplizieren
-  const seen = new Set();
-  const uniqueUrls = allUrls.filter(u => {
-    if (seen.has(u.loc)) return false;
-    seen.add(u.loc);
-    return true;
-  });
-
-  // XML generieren
-  const xml = generateSitemapXml(uniqueUrls);
+  // XML generieren (nur statische Pages + Orte)
+  const xml = generateSitemapXml(allUrls);
 
   // Schreiben
   try {
