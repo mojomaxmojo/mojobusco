@@ -18,7 +18,7 @@ import path from 'path';
 const DEPLOY_DIR = '/home/nginx/domains/mojobus.co/public';
 const BASE_URL = 'https://mojobus.co';
 const RELAYS = ['wss://relay.mojobus.co', 'wss://relay.primal.net'];
-const MAX_PER_RELAY = 200;
+const MAX_PER_RELAY = 500;
 
 // Nur Artikel dieser Autoren (Mojo + Susanne)
 const AUTHOR_PUBKEYS = [
@@ -210,6 +210,43 @@ function renderTripHtml(event) {
 </html>`;
 }
 
+// ── HTML Template für Bilder/Media ─────────────────────────────────────
+function renderMediaHtml(event) {
+  const title = event.tags?.find(t => t[0] === 'title')?.[1] || 'Bildergalerie';
+  const desc = event.content || '';
+  const images = event.tags?.filter(t => t[0] === 'image').map(t => t[1]) || [];
+  const mainImage = images[0] || `${BASE_URL}/icon-512x512.png`;
+  const tags = event.tags?.filter(t => t[0] === 't').map(t => t[1]) || [];
+  const identifier = event.tags?.find(t => t[0] === 'd')?.[1] || event.id;
+  const cleanDesc = desc.replace(/!\[.*?\]\(.*?\)/g, '').replace(/[#*_~`>|]/g, '').trim().substring(0, 300);
+  const keywords = [...new Set(['vanlife', 'bilder', 'fotos', 'galerie', ...tags])].join(', ');
+
+  return `<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${escapeHtml(title)} — MojoBus Bilder</title>
+  <meta name="description" content="${escapeHtml(cleanDesc.substring(0, 160))}" />
+  <meta name="keywords" content="${escapeHtml(keywords)}" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="${escapeHtml(title)} — MojoBus" />
+  <meta property="og:description" content="${escapeHtml(cleanDesc.substring(0, 160))}" />
+  <meta property="og:image" content="${mainImage}" />
+  <meta property="og:url" content="${BASE_URL}/bilder/${identifier}" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="canonical" href="${BASE_URL}/bilder/${identifier}" />
+</head>
+<body>
+  <h1>${escapeHtml(title)}</h1>
+  <p>${escapeHtml(cleanDesc)}</p>
+  ${images.slice(0, 3).map(url => `<img src="${url}" alt="" style="max-width:300px;margin:5px" />`).join('')}
+  <p><a href="${BASE_URL}/bilder/${identifier}">Galerie auf MojoBus ansehen →</a></p>
+  <script>window.location.replace("${BASE_URL}/bilder/${identifier}");</script>
+</body>
+</html>`;
+}
+
 // ── Main ─────────────────────────────────────────────────────────────────
 async function main() {
   const PRERENDER_DIR = path.join(DEPLOY_DIR, 'prerender', 'articles');
@@ -279,6 +316,25 @@ async function main() {
       const html = renderTripHtml(event);
       fs.writeFileSync(path.join(PRERENDER_DIR, filename), html, 'utf-8');
       rendered.push({ type: 'Trip', identifier: title });
+    }
+
+    // ── Bilder/Media (kind 1, type=media oder image) ────────────
+    const mediaItems = await queryRelay(relay, [{
+      kinds: [1],
+      authors: AUTHOR_PUBKEYS,
+      '#t': ['media', 'medien', 'bilder', 'images'],
+      limit: MAX_PER_RELAY,
+    }]);
+    console.log(`[Prerender]  → ${mediaItems.length} Bilder`);
+
+    for (const event of mediaItems) {
+      if (seenIds.has(event.id)) continue;
+      seenIds.add(event.id);
+      const title = event.tags?.find(t => t[0] === 'title')?.[1] || 'Bild';
+      const filename = `media_${title.replace(/[^a-zA-Z0-9_-]/g, '_')}_${event.id.substring(0,8)}.html`;
+      const html = renderMediaHtml(event);
+      fs.writeFileSync(path.join(PRERENDER_DIR, filename), html, 'utf-8');
+      rendered.push({ type: 'Bild', identifier: title });
     }
   }
 
