@@ -184,7 +184,7 @@ async function main() {
   try {
     fs.writeFileSync(SITEMAP_PATH, xml, 'utf-8');
     console.log(`[Sitemap] ✅ Geschrieben: ${SITEMAP_PATH}`);
-    console.log(`[Sitemap]   ${staticPages.length} statische Seiten`);
+    console.log(`[Sitemap]   ${allUrls.length} Artikel-URLs + 6 statische Seiten`);
   } catch (err) {
     console.error(`[Sitemap] ❌ Fehler beim Schreiben: ${err.message}`);
     process.exit(1);
