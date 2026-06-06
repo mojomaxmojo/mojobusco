@@ -17,6 +17,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import { nip19 } from 'nostr-tools';
 
 // Nur Autoren (Mojo + Susanne)
 const AUTHOR_PUBKEYS = [
@@ -150,19 +151,30 @@ async function main() {
   for (const relay of RELAYS) {
     console.log(`[Sitemap] Frage ab: ${relay}`);
 
-    // Orte (für /plaetze Seite)
-    const places = await queryRelay(relay, [{
-      kinds: [1],
-      authors: AUTHOR_PUBKEYS,
-      '#t': ['place', 'camping', 'stellplatz'],
-      limit: 500,
-    }]);
-    console.log(`[Sitemap]  → ${places.length} Orte`);
-    places.forEach(e => {
-      if (seen.has(e.id)) return;
-      seen.add(e.id);
-      allUrls.push({ loc: `${BASE_URL}/plaetze`, priority: '0.7', changefreq: 'monthly' });
-    });
+    // Artikel (kind 30023) – echte naddr-URLs für SPA
+    const articles = await queryRelay(relay, [{ kinds: [30023], authors: AUTHOR_PUBKEYS, limit: 500 }]);
+    console.log(`[Sitemap]  → ${articles.length} Artikel`);
+
+    for (const event of articles) {
+      if (seen.has(event.id)) continue;
+      seen.add(event.id);
+      const dTag = event.tags?.find(t => t[0] === 'd')?.[1];
+      if (!dTag) continue;
+      try {
+        const naddr = nip19.naddrEncode({
+          kind: event.kind || 30023,
+          pubkey: event.pubkey,
+          identifier: dTag,
+        });
+        allUrls.push({
+          loc: `${BASE_URL}/${naddr}`,
+          priority: '0.8',
+          changefreq: 'monthly',
+        });
+      } catch (e) {
+        console.warn(`[Sitemap] naddr encode fehlgeschlagen für ${dTag}: ${e.message}`);
+      }
+    }
   }
 
   // XML generieren
