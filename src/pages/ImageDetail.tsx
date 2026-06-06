@@ -316,6 +316,11 @@ export function ImageDetail() {
 
   return (
     <div className="min-h-screen py-8">
+      <SEOHead
+        title="Bild"
+        description="Bildergalerie auf MojoBus – Perpetual Travelers"
+        type="article"
+      />
       <div className="container mx-auto px-4 max-w-6xl">
         {/* Back Button */}
         <Button
