@@ -14,8 +14,10 @@
  * - Deletable: Via NIP-09 delete event
  */
 
+import { SEOHead } from '@/components/SEOHead';
 import { useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { SEOHead } from '@/components/SEOHead';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -229,9 +231,18 @@ export default function TripDetail() {
   if (!trip) {
     return <NotFound />;
   }
-  
+
+  const tripTitle = trip?.tripData?.title || 'Reise';
+  const tripDesc = trip?.tripData?.summary || 'Reisebericht auf MojoBus';
+
   return (
     <div className="min-h-screen py-8">
+      <SEOHead
+        title={tripTitle}
+        description={tripDesc}
+        url={`https://mojobus.co/trips/${naddr}`}
+        type="article"
+      />
       <div className="container mx-auto px-4">
         <div className="max-w-6xl mx-auto">
           {/* Back Button and Actions */}

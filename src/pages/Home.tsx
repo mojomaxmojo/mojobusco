@@ -1,3 +1,5 @@
+import { SEOHead } from '@/components/SEOHead';
+import { websiteJsonLd } from '@/lib/jsonld';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,6 +38,13 @@ export function Home() {
   const { toast } = useToast();
 
   // SEO Meta Tags
+  <SEOHead
+    title="Startseite"
+    description="Vanlife, Reisen und Abenteuer mit dem MojoBus. Perpetual Travelers – Geschichten, Orte und Tipps von unterwegs."
+    url="https://mojobus.co/"
+    type="website"
+    jsonLd={websiteJsonLd()}
+  />
   useHead({
     title: 'MojoBus - Perpetual Travelers Blog',
     meta: [
