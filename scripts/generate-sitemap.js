@@ -15,8 +15,13 @@
  * Ausgabe: /home/nginx/domains/mojobus.co/public/sitemap.xml
  */
 
-import fs from 'fs';
 import path from 'path';
+
+// Nur Autoren (Mojo + Susanne)
+const AUTHOR_PUBKEYS = [
+  '4d584dab7c880a9809e7df0476d745bfe9a3fe91a1c062bc1fec024e0b5e1f1f',
+  '94ebd1c0940881de438b7f3c532b73e0d4d6c6b0160d3fe0b8a55fe49d477bd4',
+];
 
 // ── Config ────────────────────────────────────────────────────────────────
 const SITEMAP_PATH = '/home/nginx/domains/mojobus.co/public/sitemap.xml';
@@ -144,7 +149,7 @@ async function main() {
     console.log(`[Sitemap] Frage Relay ab: ${relay}`);
 
     // Artikel (kind 30023 = long-form)
-    const articles = await queryRelay(relay, [{ kinds: [30023], limit: 100 }]);
+    const articles = await queryRelay(relay, [{ kinds: [30023], authors: AUTHOR_PUBKEYS, limit: 100 }]);
     console.log(`[Sitemap]  → ${articles.length} Artikel gefunden`);
     articles.forEach(e => {
       const url = eventToUrl(e);
@@ -154,6 +159,7 @@ async function main() {
     // Orte (kind 1, limit 200)
     const places = await queryRelay(relay, [{
       kinds: [1],
+      authors: AUTHOR_PUBKEYS,
       '#t': ['place', 'camping', 'stellplatz'],
       limit: 200,
     }]);

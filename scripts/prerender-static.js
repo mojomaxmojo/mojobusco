@@ -20,6 +20,12 @@ const BASE_URL = 'https://mojobus.co';
 const RELAYS = ['wss://relay.mojobus.co', 'wss://relay.primal.net'];
 const MAX_PER_RELAY = 200;
 
+// Nur Artikel dieser Autoren (Mojo + Susanne)
+const AUTHOR_PUBKEYS = [
+  '4d584dab7c880a9809e7df0476d745bfe9a3fe91a1c062bc1fec024e0b5e1f1f', // Mojo
+  '94ebd1c0940881de438b7f3c532b73e0d4d6c6b0160d3fe0b8a55fe49d477bd4', // Susanne
+];
+
 // ── Simple WS-Query (gleicher Code wie generate-sitemap.js) ──────────────
 async function queryRelay(relayUrl, filters, timeoutMs = 15000) {
   return new Promise((resolve) => {
@@ -224,7 +230,7 @@ async function main() {
     console.log(`[Prerender] Frage ab: ${relay}`);
 
     // ── Artikel (kind 30023) ──────────────────────────────
-    const articles = await queryRelay(relay, [{ kinds: [30023], limit: MAX_PER_RELAY }]);
+    const articles = await queryRelay(relay, [{ kinds: [30023], authors: AUTHOR_PUBKEYS, limit: MAX_PER_RELAY }]);
     console.log(`[Prerender]  → ${articles.length} Artikel`);
 
     for (const event of articles) {
@@ -240,6 +246,7 @@ async function main() {
     // ── Orte (kind 1, type=place) ─────────────────────────
     const places = await queryRelay(relay, [{
       kinds: [1],
+      authors: AUTHOR_PUBKEYS,
       '#t': ['place', 'camping', 'stellplatz', 'places'],
       limit: MAX_PER_RELAY,
     }]);
@@ -258,6 +265,7 @@ async function main() {
     // ── Trips (kind 1, type=trip) ─────────────────────────
     const trips = await queryRelay(relay, [{
       kinds: [1],
+      authors: AUTHOR_PUBKEYS,
       '#t': ['trip', 'trips', 'travel', 'reise'],
       limit: MAX_PER_RELAY,
     }]);
