@@ -223,40 +223,31 @@ async function main() {
   metaBilder.sort(byDate);
   metaNotes.sort(byDate);
 
-  // ── Schreiben ──────────────────────────────────────────────────────────
+// ── Schreiben ──────────────────────────────────────────────────────────
+
+  const stripEvent = (e) => ({
+    id: e.id,
+    pubkey: e.pubkey,
+    kind: e.kind,
+    created_at: e.created_at,
+    tags: e.tags,
+    // Content trimmen auf 500 Zeichen – reicht für Summaries in der Liste
+    content: e.content ? e.content.substring(0, 500) : '',
+  });
 
   const writeJSON = (name, data) => {
     const p = path.join(DATA_DIR, name);
-    fs.writeFileSync(p, JSON.stringify(data, null, 2), 'utf-8');
+    fs.writeFileSync(p, JSON.stringify(data), 'utf-8');
     console.log(`[SiteData]  ✅ ${name} (${Array.isArray(data) ? data.length : 'ok'})`);
   };
 
-  // Alle Artikel
-  writeJSON('articles.json', metaArticles);
-
-  // Nach Ländern indiziert
-  for (const [code] of Object.entries(COUNTRIES)) {
-    const filtered = metaArticles.filter(a => a.countries.includes(code));
-    if (filtered.length > 0) {
-      writeJSON(`articles.${code}.json`, filtered);
-    }
-  }
-
-  // DIY-Artikel (nach tags)
-  const diyTags = ['diy', 'batterie', 'solar', 'reparatur', 'ausbau', 'technik'];
-  const diyArticles = metaArticles.filter(a => a.tags.some(t => diyTags.includes(t)));
-  if (diyArticles.length > 0) writeJSON('articles.diy.json', diyArticles);
-
-  // Leon-Artikel (nach tags)
-  const leonTags = ['leon', 'hund', 'dog', 'abenteuer'];
-  const leonArticles = metaArticles.filter(a => a.tags.some(t => leonTags.includes(t)));
-  if (leonArticles.length > 0) writeJSON('articles.leon.json', leonArticles);
-
-  // Weitere Daten
-  writeJSON('places.json', metaPlaces);
-  writeJSON('trips.json', metaTrips);
-  writeJSON('bilder.json', metaBilder);
-  writeJSON('notes.json', metaNotes);
+  // Rohe NostrEvents mit getrimmtem Content speichern
+  // Frontend erwartet: id, pubkey, kind, created_at, tags (string[][]), content
+  writeJSON('articles.json', allEvents.filter(e => e.kind === 30023 && !isPlace(e)).map(stripEvent));
+  writeJSON('places.json', allEvents.filter(e => isPlace(e)).map(stripEvent));
+  writeJSON('trips.json', allEvents.filter(e => e.kind === 1 && isTrip(e)).map(stripEvent));
+  writeJSON('bilder.json', allEvents.filter(e => e.kind === 1 && isMedia(e)).map(stripEvent));
+  writeJSON('notes.json', allEvents.filter(e => e.kind === 1 && isNote(e)).map(stripEvent));
 
   // ── naddr-Sitemap ──────────────────────────────────────────────────────
 
