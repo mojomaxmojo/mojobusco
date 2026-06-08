@@ -679,6 +679,7 @@ function BudgetPageContent() {
             <BudgetStats
               stats={stats}
               allEntries={allEntries}
+              afaEntries={afaEntries || []}
             />
           ) : (
             <Alert>
