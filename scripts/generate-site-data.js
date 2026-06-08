@@ -1,0 +1,302 @@
+#!/usr/bin/env node
+
+/**
+ * generate-site-data.js
+ *
+ * Generiert statische JSON-Daten-Dumps aller Inhaltstypen für schnellen
+ * SPA-Zugriff. Läuft als Cron-Job auf dem VPS.
+ *
+ * Ausgabe: /home/nginx/domains/mojobus.co/public/data/*.json
+ *
+ * Setup cron:
+ *   15 6 * * * node /root/deploy-git/mojobusco/scripts/generate-site-data.js
+ *
+ * Erzeugt:
+ *   data/articles.json           – Alle Longform-Artikel (kind 30023)
+ *   data/articles.{country}.json – Nach Ländern gefiltert
+ *   data/articles.diy.json       – DIY-Artikel
+ *   data/articles.leon.json      – Leon-Story-Artikel
+ *   data/places.json             – Plätze (kind 30023 mit type=place)
+ *   data/trips.json              – Trips (kind 1 mit trip-Tags)
+ *   data/bilder.json             – Bilder/Media (kind 1 mit media/image-Tags)
+ *   data/notes.json              – Kurz-Notes (kind 1)
+ *   data/sitemap.json            – naddr-Index aller Artikel
+ *   data/index.json              – Metadaten (Stand, Anzahl)
+ */
+
+import fs from 'fs';
+import path from 'path';
+import { nip19 } from 'nostr-tools';
+
+// ── Config ─────────────────────────────────────────────────────────────────
+
+const DATA_DIR = '/home/nginx/domains/mojobus.co/public/data';
+const BASE_URL = 'https://mojobus.co';
+const RELAYS = ['wss://relay.mojobus.co', 'wss://relay.primal.net'];
+const QUERY_TIMEOUT = 20000; // 20s (eigenes Relay → grosszügig)
+const MAX_EVENTS = 2000;     // Alle Events auf einmal (unser Relay schafft das)
+
+const AUTHOR_PUBKEYS = [
+  '4d584dab7c880a9809e7df0476d745bfe9a3fe91a1c062bc1fec024e0b5e1f1f', // Mojo
+  '94ebd1c0940881de438b7f3c532b73e0d4d6c6b0160d3fe0b8a55fe49d477bd4', // Susanne
+];
+
+// ── Länder-Konfiguration (für Indizierung) ──────────────────────────────────
+
+const COUNTRIES = {
+  portugal:  { code: 'portugal',  name: 'Portugal',  flag: '🇵🇹', keywords: ['portugal', 'portugiesisch', 'lisboa', 'lisbon', 'porto', 'algarve', 'faro', 'madeira'] },
+  spanien:   { code: 'spanien',   name: 'Spanien',   flag: '🇪🇸', keywords: ['spanien', 'spanisch', 'espana', 'barcelona', 'madrid', 'valencia', 'andalusien'] },
+  frankreich: { code: 'frankreich', name: 'Frankreich', flag: '🇫🇷', keywords: ['frankreich', 'französisch', 'paris', 'lyon', 'marseille', 'nice', 'bordeaux'] },
+  belgien:   { code: 'belgien',   name: 'Belgien',   flag: '🇧🇪', keywords: ['belgien', 'belgisch', 'brüssel', 'bruxelles', 'antwerpen', 'gent'] },
+  luxemburg: { code: 'luxemburg', name: 'Luxemburg', flag: '🇱🇺', keywords: ['luxemburg', 'luxembourg', 'luxemburgisch'] },
+  deutschland: { code: 'deutschland', name: 'Deutschland', flag: '🇩🇪', keywords: ['deutschland', 'deutsch', 'germany', 'berlin', 'münchen', 'hamburg', 'köln'] },
+};
+
+// ── Simple WS-Query ────────────────────────────────────────────────────────
+
+function queryRelay(relayUrl, filters, timeoutMs = QUERY_TIMEOUT) {
+  return new Promise((resolve) => {
+    let ws;
+    const timeout = setTimeout(() => { if (ws) ws.close(); resolve([]); }, timeoutMs);
+    try { ws = new WebSocket(relayUrl); } catch (e) { resolve([]); return; }
+    const events = [];
+    const reqId = 'data-req';
+    ws.onopen = () => ws.send(JSON.stringify(['REQ', reqId, ...filters]));
+    ws.onmessage = (msg) => {
+      try {
+        const data = JSON.parse(msg.data);
+        if (data[0] === 'EVENT' && data[1] === reqId) events.push(data[2]);
+        if (data[0] === 'EOSE') { clearTimeout(timeout); ws.close(); resolve(events); }
+      } catch (e) { /* ignore */ }
+    };
+    ws.onerror = () => { clearTimeout(timeout); resolve([]); };
+  });
+}
+
+// ── Metadaten-Extraktion (analog zu extractArticleMetadata) ────────────────
+
+function extractMeta(event) {
+  const tags = event.tags || [];
+  const getTag = (name) => tags.find(t => t[0] === name)?.[1] || '';
+
+  const title = getTag('title') || getTag('name') || extractTitle(event.content) || 'Ohne Titel';
+  const summary = getTag('summary') || extractSummary(event.content);
+  const image = getTag('image') || '';
+  const d = getTag('d');
+  const published_at = getTag('published_at');
+  const tTags = tags.filter(t => t[0] === 't').map(t => t[1]);
+  const typeTag = getTag('type');
+
+  // Ländererkennung
+  const matchedCountries = Object.entries(COUNTRIES)
+    .filter(([, country]) => {
+      const allText = [title, summary, event.content || '', ...tTags].join(' ').toLowerCase();
+      return country.keywords.some(kw => allText.includes(kw));
+    })
+    .map(([code]) => code);
+
+  return {
+    id: event.id,
+    pubkey: event.pubkey,
+    kind: event.kind,
+    createdAt: event.created_at,
+    d,
+    title,
+    summary,
+    image,
+    tags: tTags,
+    type: typeTag,
+    countries: [...new Set(matchedCountries)],
+    content: event.content || '',
+    identifier: d || event.id,
+  };
+}
+
+function extractTitle(content) {
+  if (!content) return '';
+  const h1 = content.match(/^#\s+(.+)$/m);
+  if (h1) return h1[1].trim();
+  const h1h = content.match(/<h1[^>]*>(.*?)<\/h1>/i);
+  if (h1h) return h1h[1].replace(/<[^>]+>/g, '').trim();
+  const first = content.split('\n')[0]?.trim();
+  if (first && first.length < 100 && !first.startsWith('<')) return first.substring(0, 80);
+  return '';
+}
+
+function extractSummary(content) {
+  if (!content) return '';
+  let cleaned = content
+    .replace(/<[^>]+>/g, '')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/^(#+\s+)/gm, '')
+    .replace(/!\[.*?\]\(.*?\)/g, '')
+    .replace(/^\*\*[^:]+:\*\*\s*.*$/gm, '')
+    .replace(/^## .+$/gm, '')
+    .trim();
+  const first = cleaned.split('\n\n')[0]?.trim() || cleaned;
+  return first.length > 200 ? first.substring(0, 197) + '...' : first;
+}
+
+function isPlace(event) {
+  const tags = event.tags || [];
+  const typeTag = tags.find(t => t[0] === 'type')?.[1];
+  const placeTag = tags.some(t => t[0] === 't' && ['place', 'places'].includes(t[1]));
+  const identifier = tags.find(t => t[0] === 'd')?.[1] || '';
+  return typeTag === 'place' || placeTag || identifier.startsWith('place-');
+}
+
+function isTrip(event) {
+  const tags = event.tags || [];
+  const tripTag = tags.some(t => t[0] === 't' && ['trip', 'trips', 'travel', 'reise'].includes(t[1]));
+  const titleTag = tags.find(t => t[0] === 'title')?.[1];
+  return tripTag && titleTag;
+}
+
+function isMedia(event) {
+  const tags = event.tags || [];
+  const mediaTag = tags.some(t => t[0] === 't' && ['media', 'medien', 'bilder', 'images', 'galerie'].includes(t[1]));
+  const imageTags = tags.filter(t => t[0] === 'image');
+  return mediaTag || imageTags.length >= 2;
+}
+
+function isNote(event) {
+  return event.kind === 1 && !isPlace(event) && !isTrip(event) && !isMedia(event);
+}
+
+// ── Main ───────────────────────────────────────────────────────────────────
+
+async function main() {
+  const startTime = Date.now();
+  console.log('[SiteData] Generiere statische Daten-Dumps...');
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+
+  const allEvents = [];
+  const seenIds = new Set();
+
+  for (const relay of RELAYS) {
+    console.log(`[SiteData] Frage ab: ${relay}`);
+
+    // Longform-Artikel (kind 30023)
+    const articles = await queryRelay(relay, [{ kinds: [30023], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS }]);
+    console.log(`[SiteData]  → ${articles.length} Longform-Events`);
+
+    // Notes (kind 1)
+    const notes = await queryRelay(relay, [{ kinds: [1], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS }]);
+    console.log(`[SiteData]  → ${notes.length} Kind-1-Events`);
+
+    for (const event of [...articles, ...notes]) {
+      if (!seenIds.has(event.id)) {
+        seenIds.add(event.id);
+        allEvents.push(event);
+      }
+    }
+  }
+
+  console.log(`[SiteData]  → ${allEvents.length} unique Events total`);
+
+  // Metadaten extrahieren
+  const metaArticles = allEvents
+    .filter(e => e.kind === 30023 && !isPlace(e))
+    .map(extractMeta);
+
+  const metaPlaces = allEvents
+    .filter(e => isPlace(e))
+    .map(extractMeta);
+
+  const metaTrips = allEvents
+    .filter(e => e.kind === 1 && isTrip(e))
+    .map(extractMeta);
+
+  const metaBilder = allEvents
+    .filter(e => e.kind === 1 && isMedia(e))
+    .map(extractMeta);
+
+  const metaNotes = allEvents
+    .filter(e => e.kind === 1 && isNote(e))
+    .map(extractMeta);
+
+  // Sortieren (neueste zuerst)
+  const byDate = (a, b) => b.createdAt - a.createdAt;
+  metaArticles.sort(byDate);
+  metaPlaces.sort(byDate);
+  metaTrips.sort(byDate);
+  metaBilder.sort(byDate);
+  metaNotes.sort(byDate);
+
+  // ── Schreiben ──────────────────────────────────────────────────────────
+
+  const writeJSON = (name, data) => {
+    const p = path.join(DATA_DIR, name);
+    fs.writeFileSync(p, JSON.stringify(data, null, 2), 'utf-8');
+    console.log(`[SiteData]  ✅ ${name} (${Array.isArray(data) ? data.length : 'ok'})`);
+  };
+
+  // Alle Artikel
+  writeJSON('articles.json', metaArticles);
+
+  // Nach Ländern indiziert
+  for (const [code] of Object.entries(COUNTRIES)) {
+    const filtered = metaArticles.filter(a => a.countries.includes(code));
+    if (filtered.length > 0) {
+      writeJSON(`articles.${code}.json`, filtered);
+    }
+  }
+
+  // DIY-Artikel (nach tags)
+  const diyTags = ['diy', 'batterie', 'solar', 'reparatur', 'ausbau', 'technik'];
+  const diyArticles = metaArticles.filter(a => a.tags.some(t => diyTags.includes(t)));
+  if (diyArticles.length > 0) writeJSON('articles.diy.json', diyArticles);
+
+  // Leon-Artikel (nach tags)
+  const leonTags = ['leon', 'hund', 'dog', 'abenteuer'];
+  const leonArticles = metaArticles.filter(a => a.tags.some(t => leonTags.includes(t)));
+  if (leonArticles.length > 0) writeJSON('articles.leon.json', leonArticles);
+
+  // Weitere Daten
+  writeJSON('places.json', metaPlaces);
+  writeJSON('trips.json', metaTrips);
+  writeJSON('bilder.json', metaBilder);
+  writeJSON('notes.json', metaNotes);
+
+  // ── naddr-Sitemap ──────────────────────────────────────────────────────
+
+  const sitemap = metaArticles.map(a => {
+    try {
+      const naddr = nip19.naddrEncode({
+        kind: 30023,
+        pubkey: a.pubkey,
+        identifier: a.identifier || a.d,
+      });
+      return { naddr, identifier: a.identifier || a.d, title: a.title, pubkey: a.pubkey, createdAt: a.createdAt };
+    } catch { return null; }
+  }).filter(Boolean);
+
+  writeJSON('sitemap.json', sitemap);
+
+  // ── Index ──────────────────────────────────────────────────────────────
+
+  const index = {
+    generatedAt: new Date().toISOString(),
+    generatedAtUnix: Math.floor(Date.now() / 1000),
+    counts: {
+      articles: metaArticles.length,
+      places: metaPlaces.length,
+      trips: metaTrips.length,
+      bilder: metaBilder.length,
+      notes: metaNotes.length,
+      sitemap: sitemap.length,
+    },
+    duration: `${((Date.now() - startTime) / 1000).toFixed(1)}s`,
+  };
+
+  writeJSON('index.json', index);
+
+  console.log(`\n[SiteData] ✅ Fertig in ${index.duration}`);
+  console.log(`[SiteData]   Artikel: ${metaArticles.length}`);
+  console.log(`[SiteData]   Plätze:  ${metaPlaces.length}`);
+  console.log(`[SiteData]   Trips:   ${metaTrips.length}`);
+  console.log(`[SiteData]   Bilder:  ${metaBilder.length}`);
+  console.log(`[SiteData]   Notes:   ${metaNotes.length}`);
+}
+
+main().catch(err => { console.error('[SiteData] ❌ Fehler:', err); process.exit(1); });

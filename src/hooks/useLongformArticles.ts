@@ -1,5 +1,7 @@
+import { useMemo } from 'react';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { useNostr } from '@/hooks/useNostr';
+import { usePreloadedData } from '@/hooks/usePreloadedData';
 import { NOSTR_CONFIG } from '@/config/nostr';
 import { DEFAULT_CACHE_CONFIG } from '@/config/cache';
 import { DEFAULT_PERFORMANCE_CONFIG } from '@/config/performance';
@@ -377,4 +379,43 @@ export function useLongformArticle(identifier: string, authorPubkey: string) {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
   });
+}
+
+// ── Preloaded Articles (Hybrid: JSON + Live-Update) ─────────────────────────
+
+/**
+ * Nutzt preloaded Data (statisches JSON vom VPS) + Live-Update im Hintergrund.
+ * Ersetzt useInfiniteLongformArticles auf Seiten mit Preloading-Verfügbarkeit.
+ *
+ * Vorteile:
+ * - Alle Artikel sofort verfügbar (keine Pagination)
+ * - Kein Relay-Timeout beim ersten Laden
+ * - Live-Updates für neue Artikel im Hintergrund
+ * - Fallback auf pure Relay-Queries wenn JSON fehlt
+ */
+export function usePreloadedArticles() {
+  const result = usePreloadedData<NostrEvent>({
+    name: 'articles',
+    liveFilter: {
+      kinds: [NOSTR_CONFIG.kinds.longform],
+      authors: NOSTR_CONFIG.authorPubkeys,
+    },
+    liveTimeout: 8000,
+    transformEvent: (event) => {
+      if (!validateLongformArticle(event)) return null;
+      if (isPlaceEvent(event)) return null;
+      return event;
+    },
+  });
+
+  // Sortieren (neueste zuerst)
+  const sortedData = useMemo(() => {
+    if (!result.data) return [];
+    return [...result.data].sort((a, b) => b.created_at - a.created_at);
+  }, [result.data]);
+
+  return {
+    ...result,
+    data: sortedData,
+  };
 }

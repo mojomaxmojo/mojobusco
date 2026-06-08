@@ -6,19 +6,18 @@ import { ImagePlaceholder } from '@/components/ImagePlaceholder';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useInfiniteLongformArticles, extractArticleMetadata } from '@/hooks/useLongformArticles';
+import { usePreloadedArticles } from '@/hooks/useLongformArticles';
 import { useAuthors } from '@/hooks/useAuthors';
 import { genUserName } from '@/lib/genUserName';
 import { RelaySelector } from '@/components/RelaySelector';
 import { filterEventsByCountry } from '@/lib/countryDetection';
 import { COUNTRIES } from '@/config';
-import { Search, Calendar, User, Loader2, Wrench, Dog, MapPin } from 'lucide-react';
-import { useState, useMemo, memo, useEffect, useRef } from 'react';
+import { Search, Calendar, User, Wrench, Dog, MapPin } from 'lucide-react';
+import { useState, useMemo, memo } from 'react';
 import { nip19 } from 'nostr-tools';
 import type { NostrEvent, NostrMetadata } from '@nostrify/nostrify';
 import { AUTHORS } from '@/config/nostr';
 import { getAuthorRelayConfigByPubkey } from '@/config/relays';
-import { useInView } from 'react-intersection-observer';
 import { getListThumbnailUrl, getImagePlaceholder, generateSrcset, generateSizes } from '@/lib/imageUtils';
 import { MAIN_MENU } from '@/config/menu';
 import { SocialBar } from '@/components/SocialBar';
@@ -28,42 +27,23 @@ import { useHead } from '@unhead/react';
 
 function Articles() {
   const { country } = useParams();
-  const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useInfiniteLongformArticles();
+  const { data: articles, isLoading } = usePreloadedArticles();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState(null);
   const [selectedAuthor, setSelectedAuthor] = useState(null);
 
-  // Infinite Scroll trigger
-  const { ref, inView } = useInView({
-    threshold: 0.1,
-    rootMargin: '100px',
-  });
-
-  // Fetch more articles when scroll trigger is visible
-  useEffect(() => {
-    if (inView && hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
-    }
-  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
-
   const currentCountry = country ? COUNTRIES[country] : null;
 
-  // Flatten all pages
-  const allArticles = useMemo(() => {
-    return data?.pages.flat() || [];
-  }, [data]);
-
-  // 🔥 OPTIMIZATION 1: Extrahiere alle unique pubkeys für Batching
-  // Reduziert 15 Queries zu 1 Query pro Seite
+  // 🔥 OPTIMIZATION: Extrahiere alle unique pubkeys für Batching
   const uniquePubkeys = useMemo(() => {
     const set = new Set<string>();
-    allArticles.forEach(article => {
+    articles.forEach(article => {
       if (article.pubkey) {
         set.add(article.pubkey);
       }
     });
     return Array.from(set);
-  }, [allArticles]);
+  }, [articles]);
 
   // 🔥 OPTIMIZATION 1: Batch-Abruf aller Autoren-Profile (statt pro Artikel)
   const authorsQuery = useAuthors(uniquePubkeys);
@@ -71,7 +51,7 @@ function Articles() {
 
   // Filter articles mit intelligenter Ländererkennung
   const filteredArticles = useMemo(() => {
-    let filtered = [...allArticles];
+    let filtered = [...articles];
 
     // Country filter mit intelligenter Erkennung
     if (currentCountry) {
@@ -117,7 +97,7 @@ function Articles() {
     return map;
   }, [filteredArticles]);
 
-  const articleCount = allArticles.length;
+  const articleCount = articles.length;
 
   // Simple SEO Meta Tags
   const pageTitle = currentCountry
@@ -355,17 +335,6 @@ function Articles() {
               </Card>
             )}
 
-            {/* Infinite Scroll Loader */}
-            {hasContent && hasNextPage && (
-              <div ref={ref} className="py-8 flex justify-center">
-                {isFetchingNextPage ? (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    <span>Lade mehr Artikel...</span>
-                  </div>
-                ) : null}
-              </div>
-            )}
           </div>
         </div>
       </div>
