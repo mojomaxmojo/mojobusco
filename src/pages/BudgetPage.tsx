@@ -485,16 +485,7 @@ function BudgetPageContent() {
 
         {/* Übersicht Tab */}
         <TabsContent value="overview" className="space-y-6">
-          {/* AFA Summary if any active */}
-          {afaSummary.total > 0 && (
-            <AFAMonthlySummary
-              total={afaSummary.total}
-              details={afaSummary.details}
-              byCategory={afaSummary.byCategory}
-            />
-          )}
-
-          {/* Statistiken */}
+          {/* Statistiken (inkl. AFA in Ausgaben) */}
           {isLoadingStats ? (
             <div className="space-y-4">
               <Skeleton className="h-64 w-full" />
@@ -504,6 +495,8 @@ function BudgetPageContent() {
               stats={stats}
               monthlyBudget={DEFAULT_BUDGET_SETTINGS.monthlyBudget}
               entryCount={entries?.length ?? 0}
+              afaTotal={afaSummary.total}
+              afaByCategory={afaSummary.byCategory}
             />
           ) : (
             <Alert>
