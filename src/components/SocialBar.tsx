@@ -39,15 +39,15 @@ export function SocialBar({ event, compact = false, className }: SocialBarProps)
     return null;
   }
 
-  // Fetch social counts
-  const { data: counts, isLoading } = useSocialCounts(event);
+  // Fetch social counts (nur im nicht-compact Modus, sonst UI-only)
+  const { data: counts, isLoading } = compact ? { data: null, isLoading: false } : useSocialCounts(event);
 
-  // Fetch comments for count (useComments returns structure with allComments)
-  const { data: commentsData } = useComments(event);
-  const commentCount = commentsData?.allComments?.length || 0;
+  // Fetch comments for count (nur im nicht-compact Modus)
+  const { data: commentsData } = compact ? { data: null } : useComments(event);
+  const commentCount = compact ? 0 : (commentsData?.allComments?.length || 0);
 
-  // Fetch zaps for count - only if event exists
-  const { zapCount } = useZaps(event, webln, activeNWC);
+  // Fetch zaps for count - only if event exists (nur im nicht-compact Modus)
+  const { zapCount } = compact ? { zapCount: 0 } : useZaps(event, webln, activeNWC);
 
   // Local state for like and repost interactions (optimistic UI)
   const [isLiking, setIsLiking] = useState(false);
