@@ -45,7 +45,7 @@ export function useBudgetRelay(): BudgetRelayState {
 
       const events = await query([
         {
-          kinds: [BUDGET_CONFIG.KINDS.ENTRY],
+          kinds: [BUDGET_CONFIG.KINDS.ENTRY, BUDGET_CONFIG.LEGACY.ENTRY],
           authors: AUTHOR_PUBKEYS,
           limit: 1000,
         }
