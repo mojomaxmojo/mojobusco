@@ -85,7 +85,7 @@ function Articles() {
     }
 
     return filtered.sort((a, b) => b.created_at - a.created_at);
-  }, [allArticles, searchQuery, selectedTag, selectedAuthor, currentCountry, country]);
+  }, [articles, searchQuery, selectedTag, selectedAuthor, currentCountry, country]);
 
   // 🔥 OPTIMIZATION 2: Cache Artikel-Metadata um Duplikate zu vermeiden
   // Wird für jedes ArticleCard wiederverwendet statt neu berechnet
