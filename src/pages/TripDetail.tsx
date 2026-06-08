@@ -15,9 +15,9 @@
  */
 
 import { SEOHead } from '@/components/SEOHead';
+import { CommentsSection } from '@/components/comments/CommentsSection';
 import { useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { SEOHead } from '@/components/SEOHead';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -465,6 +465,13 @@ export default function TripDetail() {
 
             </CardContent>
           </Card>
+
+          {/* Comments */}
+          {trip.event && (
+            <div className="mt-8">
+              <CommentsSection root={trip.event} />
+            </div>
+          )}
         </div>
       </div>
     </div>
