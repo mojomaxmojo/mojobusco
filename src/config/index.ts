@@ -14,6 +14,9 @@ export * from './blossom';
 export * from './imageService';
 export * from './cache';
 
+// Zentrale Menü-Config (ersetzt MAIN_MENU in Zukunft)
+export * from './mainMenu';
+
 // Legacy exports for backward compatibility
 export { NOSTR_CONFIG, AUTHORS, DEFAULT_RELAYS } from './nostr';
 export { APP_SETTINGS } from './app';
