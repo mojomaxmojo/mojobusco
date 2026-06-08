@@ -111,10 +111,16 @@ export const DEFAULT_TAGS = [
 export const BUDGET_CONFIG = {
   // Event-Kinds
   KINDS: {
-    ENTRY: 9041,        // Budget-Einträge
+    ENTRY: 39041,       // Budget-Einträge (addressable – Update/Delete per d-Tag)
     CATEGORY: 9042,     // Kategorie-Definitionen (replaceable)
     SETTINGS: 9043,     // Einstellungen (replaceable)
-    AFA: 9044,          // AFA-Einträge (Abgeltung für Abnutzung)
+    AFA: 39044,         // AFA-Einträge (addressable – Update/Delete per d-Tag)
+  } as const,
+
+  // Legacy-Kinds für Migration (alte reguläre Events mitlesen)
+  LEGACY: {
+    ENTRY: 9041,
+    AFA: 9044,
   } as const,
 
   // Tag-Konstanten
@@ -158,8 +164,12 @@ export const BUDGET_RELAY_CONFIG = {
   // Nur unsere Autoren können lesen/schreiben
   allowedAuthors: AUTHOR_PUBKEYS,
   
-  // Event-Kinds die wir abfragen
-  kinds: [BUDGET_CONFIG.KINDS.ENTRY, BUDGET_CONFIG.KINDS.CATEGORY, BUDGET_CONFIG.KINDS.SETTINGS, BUDGET_CONFIG.KINDS.AFA],
+  // Event-Kinds die wir abfragen (inkl. Legacy für Migration)
+  kinds: [
+    BUDGET_CONFIG.KINDS.ENTRY, BUDGET_CONFIG.KINDS.AFA,
+    BUDGET_CONFIG.LEGACY.ENTRY, BUDGET_CONFIG.LEGACY.AFA,
+    BUDGET_CONFIG.KINDS.CATEGORY, BUDGET_CONFIG.KINDS.SETTINGS,
+  ],
 };
 
 // Helper-Funktionen

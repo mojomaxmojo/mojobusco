@@ -104,10 +104,14 @@ export interface BudgetSettings {
 
 // Event-Kind Definitionen
 export const BUDGET_KINDS = {
-  ENTRY: 9041 as const,          // Budget-Einträge
+  // Addressable Events (30000-39999) – Update/Delete überschreibt zuverlässig
+  ENTRY: 39041 as const,          // Budget-Einträge (addressable)
   CATEGORY: 9042 as const,        // Kategorie-Definitionen (replaceable)
   SETTINGS: 9043 as const,       // Einstellungen (replaceable)
-  AFA: 9044 as const,            // AFA-Einträge (Abgeltung für Abnutzung)
+  AFA: 39044 as const,            // AFA-Einträge (addressable)
+  // Legacy (für Migration – alte reguläre Events mitlesen)
+  ENTRY_LEGACY: 9041 as const,
+  AFA_LEGACY: 9044 as const,
 } as const;
 
 export type BudgetKind = typeof BUDGET_KINDS[keyof typeof BUDGET_KINDS];

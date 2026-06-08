@@ -31,6 +31,18 @@ import {
   DEFAULT_CATEGORIES,
   getCategoryById,
 } from '@/config/budget';
+
+// Deduplizierung: Behält nur den neuesten Eintrag pro content.id
+function deduplicateById<T extends { id: string; createdAt: number; date: number }>(entries: T[]): T[] {
+  const seen = new Map<string, T>();
+  for (const entry of entries) {
+    const existing = seen.get(entry.id);
+    if (!existing || entry.createdAt > existing.createdAt) {
+      seen.set(entry.id, entry);
+    }
+  }
+  return Array.from(seen.values()).sort((a, b) => b.date - a.date);
+}
 import { AUTHORS } from '@/config/nostr';
 import { RELAY_PRESETS } from '@/config/relays';
 
@@ -84,9 +96,10 @@ export function useBudget() {
           // Query für Budget-Einträge mit Fallback
           let events = [];
           try {
+            // Alte + neue Kinds für Migration (addressable + legacy)
             events = await query([
               {
-                kinds: [BUDGET_CONFIG.KINDS.ENTRY],
+                kinds: [BUDGET_CONFIG.KINDS.ENTRY, BUDGET_CONFIG.LEGACY.ENTRY],
                 authors: authorPubkeys,
                 limit: 1000,
               }
@@ -114,8 +127,11 @@ export function useBudget() {
             }
           }
 
+          // Deduplizieren: Bei gleicher content.id bleibt der neueste
+          const deduped = deduplicateById(entries);
+
           // Filter anwenden
-          let filteredEntries = entries;
+          let filteredEntries = deduped;
           
           if (filter?.startDate && filter?.endDate) {
             filteredEntries = filteredEntries.filter(
@@ -159,11 +175,8 @@ export function useBudget() {
 
           console.log('Creating budget entry:', newEntry);
 
-          // d-Tag für monatliche Gruppierung
-          const dTag = createDTag(
-            new Date(entry.date * 1000).getFullYear(),
-            new Date(entry.date * 1000).getMonth() + 1
-          );
+          // Eindeutiger d-Tag pro Eintrag (addressable: gleicher d-tag → überschreibt)
+          const dTag = `budget:${newEntry.id}`;
 
           // Tags für das Event
           const tags: string[][] = [
@@ -172,7 +185,7 @@ export function useBudget() {
             ['currency', entry.currency],
           ];
 
-          // Event publizieren
+          // Event publizieren (addressable kind 39041 – überschreibt bei gleichem d-tag)
           const event = await publishMutation.mutateAsync({
             kind: BUDGET_CONFIG.KINDS.ENTRY,
             content: JSON.stringify(newEntry),
@@ -218,11 +231,8 @@ export function useBudget() {
             updatedAt: Math.floor(Date.now() / 1000),
           };
 
-          // d-Tag für monatliche Gruppierung
-          const dTag = createDTag(
-            new Date(updatedEntry.date * 1000).getFullYear(),
-            new Date(updatedEntry.date * 1000).getMonth() + 1
-          );
+          // Eindeutiger d-Tag pro Eintrag (gleicher d-tag → überschreibt alten Event)
+          const dTag = `budget:${updatedEntry.id}`;
 
           // Tags für das Event
           const tags: string[][] = [
@@ -231,7 +241,7 @@ export function useBudget() {
             ['currency', updatedEntry.currency],
           ];
 
-          // Event publizieren
+          // Event publizieren (addressable kind 39041 – überschreibt bei gleichem d-tag)
           const event = await publishMutation.mutateAsync({
             kind: BUDGET_CONFIG.KINDS.ENTRY,
             content: JSON.stringify(updatedEntry),
@@ -279,11 +289,8 @@ export function useBudget() {
 
           console.log('[useDeleteBudgetEntry] Deleted entry to publish:', deletedEntry);
 
-          // d-Tag für monatliche Gruppierung
-          const dTag = createDTag(
-            new Date(deletedEntry.date * 1000).getFullYear(),
-            new Date(deletedEntry.date * 1000).getMonth() + 1
-          );
+          // Eindeutiger d-Tag pro Eintrag (überschreibt den alten Event mit deleted-Flag)
+          const dTag = `budget:${deletedEntry.id}`;
 
           // Tags für das Event
           const tags: string[][] = [
@@ -444,9 +451,10 @@ export function useBudget() {
           
           let events = [];
           try {
+            // Alte + neue Kinds für Migration (addressable + legacy)
             events = await query([
               {
-                kinds: [BUDGET_CONFIG.KINDS.AFA],
+                kinds: [BUDGET_CONFIG.KINDS.AFA, BUDGET_CONFIG.LEGACY.AFA],
                 authors: authorPubkeys,
                 limit: 1000,
               }
@@ -469,8 +477,11 @@ export function useBudget() {
             }
           }
 
+          // Deduplizieren: Bei gleicher content.id bleibt der neueste
+          const deduped = deduplicateById(entries);
+
           // Soft-deleted Einträge filtern
-          const activeEntries = entries.filter(entry => !entry.deleted);
+          const activeEntries = deduped.filter(entry => !entry.deleted);
 
           // Sortieren nach Datum (neueste zuerst)
           return activeEntries.sort((a, b) => b.date - a.date);
@@ -503,12 +514,16 @@ export function useBudget() {
           const endDate = new Date(entry.date * 1000);
           endDate.setMonth(endDate.getMonth() + entry.months);
 
+          // Eindeutiger d-Tag pro AFA-Eintrag (addressable: gleicher d-tag → überschreibt)
+          const dTag = `afa:${newEntry.id}`;
+
           const tags: string[][] = [
-            ['d', BUDGET_TAGS.D_AFA],
+            ['d', dTag],
             ['category', entry.category],
             ['months', entry.months.toString()],
           ];
 
+          // Event publizieren (addressable kind 39044 – überschreibt bei gleichem d-tag)
           const event = await publishMutation.mutateAsync({
             kind: BUDGET_CONFIG.KINDS.AFA,
             content: JSON.stringify(newEntry),
@@ -550,12 +565,16 @@ export function useBudget() {
             updatedAt: Math.floor(Date.now() / 1000),
           };
 
+          // Eindeutiger d-Tag pro Eintrag (gleicher d-tag → überschreibt alten Event)
+          const dTag = `afa:${updatedEntry.id}`;
+
           const tags: string[][] = [
-            ['d', BUDGET_TAGS.D_AFA],
+            ['d', dTag],
             ['category', updatedEntry.category],
             ['months', updatedEntry.months.toString()],
           ];
 
+          // Event publizieren (addressable kind 39044 – überschreibt bei gleichem d-tag)
           const event = await publishMutation.mutateAsync({
             kind: BUDGET_CONFIG.KINDS.AFA,
             content: JSON.stringify(updatedEntry),
@@ -598,13 +617,17 @@ export function useBudget() {
             updatedAt: Math.floor(Date.now() / 1000),
           };
 
+          // Eindeutiger d-Tag pro Eintrag (überschreibt den alten Event mit deleted-Flag)
+          const dTag = `afa:${deletedEntry.id}`;
+
           const tags: string[][] = [
-            ['d', BUDGET_TAGS.D_AFA],
+            ['d', dTag],
             ['category', deletedEntry.category],
             ['months', deletedEntry.months.toString()],
             ['deleted', 'true'],
           ];
 
+          // Event publizieren (addressable kind 39044 – überschreibt bei gleichem d-tag)
           const event = await publishMutation.mutateAsync({
             kind: BUDGET_CONFIG.KINDS.AFA,
             content: JSON.stringify(deletedEntry),
