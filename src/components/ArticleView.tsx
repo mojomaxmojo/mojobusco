@@ -147,17 +147,28 @@ function generateStructuredDataMarkdown(article: any, metadata: any): string {
  * Wandelt alte HTML-Video-Tags in nackte URLs um, damit sie von ReactMarkdown
  * als Auto-Links erkannt und vom VideoEmbed-Handler eingebettet werden.
  * Beispiel: <video src="https://...mp4" ...></video>  →  https://...mp4
+ * Beispiel: <iframe src="https://youtube.com/embed/..." ...> → https://youtube.com/embed/...
  */
 function normalizeVideoHtml(content: string): string {
-  // <video src="URL" ...> oder <video controls src="URL" ...>
-  return content.replace(
-    /<video[^>]*\ssrc=["']([^"']+)["'][^>]*>[\s\S]*?<\/video>/gi,
-    (_match, url) => `\n\n${url.trim()}\n\n`
-  ).replace(
-    // <source src="URL" ...> standalone (innerhalb alter video-Tags die oben nicht erfasst wurden)
-    /<video[^>]*>[\s\S]*?<source\s+src=["']([^"']+)["'][^>]*>[\s\S]*?<\/video>/gi,
+  let result = content
+    // <video src="URL" ...> → URL
+    .replace(
+      /<video[^>]*\ssrc=["']([^"']+)["'][^>]*>[\s\S]*?<\/video>/gi,
+      (_match, url) => `\n\n${url.trim()}\n\n`
+    )
+    // <video>...<source src="URL"...>...</video> → URL
+    .replace(
+      /<video[^>]*>[\s\S]*?<source\s+src=["']([^"']+)["'][^>]*>[\s\S]*?<\/video>/gi,
+      (_match, url) => `\n\n${url.trim()}\n\n`
+    );
+
+  // YouTube/Vimeo Iframes → plain URL (ReactMarkdown filtert iframes)
+  result = result.replace(
+    /<iframe[^>]*\ssrc=["'](https?:\/\/(?:www\.)?(?:youtube\.com|youtube-nocookie\.com|vimeo\.com)\/embed\/[^"']+)["'][^>]*>[\s\S]*?<\/iframe>/gi,
     (_match, url) => `\n\n${url.trim()}\n\n`
   );
+
+  return result;
 }
 
 // Custom component for rendering text with links and videos while preserving markdown
@@ -182,7 +193,7 @@ function MarkdownWithLinks({ content }: { content: string }) {
             // Einzelnes Kind prüfen
             const singleUrl = extractVideoUrl(children);
             if (singleUrl) {
-              return <div className="my-4"><VideoEmbed url={singleUrl} /></div>;
+              return <div className="my-4"><VideoEmbed url={singleUrl} autoLoad /></div>;
             }
 
             // Array mit einem einzigen nicht-leeren Kind
@@ -192,7 +203,7 @@ function MarkdownWithLinks({ content }: { content: string }) {
               );
               if (nonEmpty.length === 1) {
                 const url = extractVideoUrl(nonEmpty[0]);
-                if (url) return <div className="my-4"><VideoEmbed url={url} /></div>;
+                if (url) return <div className="my-4"><VideoEmbed url={url} autoLoad /></div>;
               }
             }
 
@@ -204,7 +215,7 @@ function MarkdownWithLinks({ content }: { content: string }) {
             if (href && isVideoContent(href)) {
               return (
                 <div className="my-4">
-                  <VideoEmbed url={href} title={typeof children === 'string' ? children : undefined} />
+                  <VideoEmbed url={href} title={typeof children === 'string' ? children : undefined} autoLoad />
                 </div>
               );
             }

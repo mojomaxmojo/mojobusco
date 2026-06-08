@@ -7,24 +7,18 @@ interface VideoEmbedProps {
   url: string;
   title?: string;
   className?: string;
-  aspectRatio?: string;
+  /** Iframe sofort laden (true = für Detailseiten, false = Click-to-Load) */
+  autoLoad?: boolean;
 }
 
-/**
- * Universal Video Embed Komponente
- * Erkennt automatisch den Video-Typ und wählt den passenden Player
- */
 export function VideoEmbed({ 
   url, 
-  title,
+  title, 
   className = '',
-  aspectRatio = '16/9'
+  autoLoad = false,
 }: VideoEmbedProps) {
   // Prüfen ob es eine YouTube URL ist
   const youtubeId = extractYouTubeId(url);
-  
-  // Prüfen ob es ein direktes Video ist
-  const isDirectVideo = isVideoUrl(url);
 
   // YouTube Video
   if (youtubeId && videoConfig.autoEmbed.youtube) {
@@ -33,7 +27,7 @@ export function VideoEmbed({
         videoId={youtubeId}
         title={title}
         className={className}
-        aspectRatio={aspectRatio}
+        autoLoad={autoLoad}
       />
     );
   }

@@ -9,20 +9,25 @@ interface YouTubeEmbedProps {
   title?: string;
   className?: string;
   aspectRatio?: string;
+  /** Iframe sofort laden (true = Detailseite, false = Click-to-Load) */
+  autoLoad?: boolean;
 }
 
 /**
  * YouTube Video Embed Komponente
  * Privacy-First mit no-cookie Domain und Lazy Loading
+ * - autoLoad=false: Thumbnail + Play-Button (Standard, für Listen)
+ * - autoLoad=true: Iframe wird sofort geladen (für Detailseiten)
  */
 export function YouTubeEmbed({ 
   videoId, 
   title,
   className = '',
-  aspectRatio = '16/9'
+  aspectRatio = '16/9',
+  autoLoad = false,
 }: YouTubeEmbedProps) {
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(autoLoad);
+  const [isLoading, setIsLoading] = useState(autoLoad);
   const [error, setError] = useState<string | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
