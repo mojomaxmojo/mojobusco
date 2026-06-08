@@ -6,7 +6,7 @@ import { ImagePlaceholder } from '@/components/ImagePlaceholder';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { usePreloadedArticles } from '@/hooks/useLongformArticles';
+import { usePreloadedArticles, extractArticleMetadata } from '@/hooks/useLongformArticles';
 import { useAuthors } from '@/hooks/useAuthors';
 import { genUserName } from '@/lib/genUserName';
 import { RelaySelector } from '@/components/RelaySelector';
