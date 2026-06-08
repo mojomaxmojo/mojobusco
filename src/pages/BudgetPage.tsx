@@ -680,6 +680,8 @@ function BudgetPageContent() {
               stats={stats}
               allEntries={allEntries}
               afaEntries={afaEntries || []}
+              zeitraumYear={selectedYear}
+              zeitraumMonth={selectedMonth}
             />
           ) : (
             <Alert>

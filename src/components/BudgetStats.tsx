@@ -15,11 +15,15 @@ interface BudgetStatsProps {
   allEntries?: BudgetEntry[];
   /** AFA-Einträge für AFA-Anteil in Balken und Kategorien */
   afaEntries?: AFAEntry[];
+  /** Jahr aus dem BudgetPage-Zeitraum (für Top-Kategorien) */
+  zeitraumYear?: number;
+  /** Monat aus dem BudgetPage-Zeitraum (für Top-Kategorien) */
+  zeitraumMonth?: number;
 }
 
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
 
-export function BudgetStats({ stats, isLoading, allEntries, afaEntries }: BudgetStatsProps) {
+export function BudgetStats({ stats, isLoading, allEntries, afaEntries, zeitraumYear, zeitraumMonth }: BudgetStatsProps) {
   const { formatAmount } = useBudget();
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
@@ -83,35 +87,31 @@ export function BudgetStats({ stats, isLoading, allEntries, afaEntries }: Budget
     return monthlyData.reduce((sum, d) => sum + d.afaAmount, 0);
   }, [monthlyData]);
 
-  // Top-Kategorien (Budget + AFA) für das ausgewählte Jahr
+  // Top-Kategorien (Budget + AFA) für den im Zeitraum gewählten Monat
   const topCategories = useMemo(() => {
-    // Budget-Kategorien für das Jahr sammeln
-    const yearBudgetEntries = allEntries?.filter(e => {
+    const zYear = zeitraumYear || selectedYear;
+    const zMonth = zeitraumMonth ?? new Date().getMonth() + 1;
+    const monthKey = `${zYear}-${String(zMonth).padStart(2, '0')}`;
+
+    // Budget-Kategorien für den Zeitraum-Monat
+    const monthBudgetEntries = allEntries?.filter(e => {
       const date = new Date(e.date * 1000);
-      return date.getFullYear() === selectedYear && e.category !== 'gesundheit';
+      return date.getFullYear() === zYear && (date.getMonth() + 1) === zMonth && e.category !== 'gesundheit';
     }) || [];
 
     const budgetByCategory: Record<string, number> = {};
-    for (const entry of yearBudgetEntries) {
+    for (const entry of monthBudgetEntries) {
       const cat = entry.category;
       budgetByCategory[cat] = (budgetByCategory[cat] || 0) + Math.abs(entry.amount);
     }
 
-    // AFA-Kategorien für das Jahr sammeln
-    const afaByCategory: Record<string, number> = {};
-    if (afaEntries) {
-      for (let month = 0; month < 12; month++) {
-        const monthKey = `${selectedYear}-${String(month + 1).padStart(2, '0')}`;
-        const afaSum = getAFASumForMonth(afaEntries, monthKey);
-        for (const [catId, amount] of Object.entries(afaSum.byCategory)) {
-          afaByCategory[catId] = (afaByCategory[catId] || 0) + amount;
-        }
-      }
-    }
+    // AFA-Kategorien für den Zeitraum-Monat
+    const afaSum = getAFASumForMonth(afaEntries || [], monthKey);
+    const afaByCategory = afaSum.byCategory;
 
     // Mergen
-    const allCategories = new Set([...Object.keys(budgetByCategory), ...Object.keys(afaByCategory)]);
-    const merged = Array.from(allCategories).map(catId => ({
+    const allCatIds = new Set([...Object.keys(budgetByCategory), ...Object.keys(afaByCategory)]);
+    const merged = Array.from(allCatIds).map(catId => ({
       id: catId,
       name: getCategoryName(catId),
       amount: (budgetByCategory[catId] || 0) + (afaByCategory[catId] || 0),
@@ -119,7 +119,7 @@ export function BudgetStats({ stats, isLoading, allEntries, afaEntries }: Budget
     }));
 
     return merged.sort((a, b) => b.amount - a.amount).slice(0, 5);
-  }, [allEntries, afaEntries, selectedYear]);
+  }, [allEntries, afaEntries, zeitraumYear, zeitraumMonth, selectedYear]);
 
   const topTotal = topCategories.reduce((s, c) => s + c.amount, 0);
 
@@ -243,7 +243,10 @@ export function BudgetStats({ stats, isLoading, allEntries, afaEntries }: Budget
               Top Ausgaben-Kategorien
             </CardTitle>
             <CardDescription>
-              Die meisten Ausgaben nach Kategorie für {selectedYear}
+              Die meisten Ausgaben nach Kategorie –{' '}
+              {zeitraumMonth && zeitraumYear
+                ? `${MONTHS_SHORT[zeitraumMonth - 1]} ${zeitraumYear}`
+                : `${MONTHS_SHORT[new Date().getMonth()]} ${new Date().getFullYear()}`}
               {yearAFATotal > 0 && (
                 <span className="text-blue-500 ml-1">
                   (inkl. AFA)
