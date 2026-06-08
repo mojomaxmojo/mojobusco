@@ -7,7 +7,9 @@ import { RelaySelector } from '@/components/RelaySelector';
 import { Button } from '@/components/ui/button';
 import { SocialBar } from '@/components/SocialBar';
 import { Link, useParams, useLocation, useNavigate } from 'react-router-dom';
-import { Calendar, User, Eye, Camera, Trash2 } from 'lucide-react';
+import { useState, useMemo, memo, useEffect, useRef } from 'react';
+import { useInView } from 'react-intersection-observer';
+import { Calendar, User, Eye, Camera, Trash2, Loader2 } from 'lucide-react';
 import { NOSTR_CONFIG } from '@/config/nostr';
 import { useAuthor } from '@/hooks/useAuthor';
 import { filterEventsByCountry, countries } from '@/lib/countryDetection';
@@ -46,6 +48,16 @@ function Images() {
   const { country } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const [visibleCount, setVisibleCount] = useState(30);
+  const { ref, inView } = useInView({ threshold: 0.1, rootMargin: '200px' });
+
+  useEffect(() => {
+    if (inView) setVisibleCount(prev => prev + 30);
+  }, [inView]);
+
+  useEffect(() => {
+    setVisibleCount(30);
+  }, [country]);
 
   // Prüfe ob es ein Länderparameter ist
   const currentCountry = country ? countries[country as keyof typeof countries] : null;
@@ -326,6 +338,8 @@ function Images() {
   }
 
   const filteredEvents = events;
+  const visibleEvents = filteredEvents?.slice(0, visibleCount) || [];
+  const hasMore = visibleEvents.length < (filteredEvents?.length || 0);
 
   return (
     <>
@@ -381,8 +395,9 @@ function Images() {
           </div>
 
           {filteredEvents.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredEvents.map((event: ImageEvent) => {
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {visibleEvents.map((event: ImageEvent) => {
                 const images = extractImages(event.content);
 
                 return (
@@ -395,6 +410,12 @@ function Images() {
                 );
               })}
             </div>
+              {hasMore && (
+                <div ref={ref} className="py-8 flex justify-center">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              )}
+            </>
           ) : (
             <div className="col-span-full">
               <Card className="border-dashed">

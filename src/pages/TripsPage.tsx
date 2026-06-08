@@ -7,7 +7,8 @@
  * - Hover highlights trip on map
  */
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import { useInView } from 'react-intersection-observer';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,7 +26,7 @@ function genUserName(pubkey: string): string {
 import { VanillaMap, type MapMarker, type MapPolyline } from '@/components/VanillaMap';
 import { 
   MapPin, RefreshCw, Map as MapIcon, Route, Camera, 
-  Calendar, Globe, Navigation
+  Calendar, Globe, Navigation, Loader2
 } from '@/lib/icons';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -155,6 +156,15 @@ function TripSkeleton() {
 export default function TripsPage() {
   const { data: trips = [], isLoading, error, refetch } = useTrips();
   const [hoveredTripId, setHoveredTripId] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(30);
+  const { ref, inView } = useInView({ threshold: 0.1, rootMargin: '200px' });
+
+  useEffect(() => {
+    if (inView) setVisibleCount(prev => prev + 30);
+  }, [inView]);
+
+  const visibleTrips = trips.slice(0, visibleCount);
+  const hasMore = visibleTrips.length < trips.length;
   
   // Map markers from all trips
   const mapMarkers: MapMarker[] = useMemo(() => {
@@ -364,7 +374,7 @@ export default function TripsPage() {
         
         {/* Trip Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {trips.map(trip => (
+          {visibleTrips.map(trip => (
             <TripCard 
               key={trip.id} 
               trip={trip} 
@@ -372,6 +382,11 @@ export default function TripsPage() {
             />
           ))}
         </div>
+        {hasMore && (
+          <div ref={ref} className="py-8 flex justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        )}
       </div>
     </>
   );

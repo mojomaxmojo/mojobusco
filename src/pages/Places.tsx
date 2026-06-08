@@ -1,4 +1,4 @@
-import { useState, useMemo, memo } from 'react';
+import { useState, useMemo, memo, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -7,7 +7,8 @@ import { ImagePlaceholder } from '@/components/ImagePlaceholder';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Search, Calendar, User } from 'lucide-react';
+import { useInView } from 'react-intersection-observer';
+import { MapPin, Search, Calendar, User, Loader2 } from 'lucide-react';
 import { usePlaces, extractArticleMetadata } from '@/hooks/useLongformArticles';
 import { useAuthor } from '@/hooks/useAuthor';
 import { genUserName } from '@/lib/genUserName';
@@ -26,6 +27,17 @@ function Places() {
   const { country } = useParams();
   const { data: events, isLoading } = usePlaces();
   const [searchQuery, setSearchQuery] = useState('');
+  const [visibleCount, setVisibleCount] = useState(30);
+
+  const { ref, inView } = useInView({ threshold: 0.1, rootMargin: '200px' });
+
+  useEffect(() => {
+    if (inView) setVisibleCount(prev => prev + 30);
+  }, [inView]);
+
+  useEffect(() => {
+    setVisibleCount(30);
+  }, [searchQuery, country]);
 
   const currentCountry = country ? countries[country as keyof typeof countries] : null;
 
@@ -55,6 +67,9 @@ function Places() {
   const sortedEvents = useMemo(() => {
     return [...searchedEvents].sort((a, b) => b.created_at - a.created_at);
   }, [searchedEvents]);
+
+  const visibleEvents = sortedEvents.slice(0, visibleCount);
+  const hasMore = visibleEvents.length < sortedEvents.length;
 
   return (
     <>
@@ -154,11 +169,18 @@ function Places() {
               </CardContent>
             </Card>
           ) : sortedEvents.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {sortedEvents.map((event) => (
-                <PlaceCard key={event.id} place={event} />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {visibleEvents.map((event) => (
+                  <PlaceCard key={event.id} place={event} />
+                ))}
+              </div>
+              {hasMore && (
+                <div ref={ref} className="py-8 flex justify-center">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              )}
+            </>
           ) : (
             <Card className="border-dashed">
               <CardContent className="py-12 text-center">
