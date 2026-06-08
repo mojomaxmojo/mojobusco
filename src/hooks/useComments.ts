@@ -5,7 +5,6 @@ import { useQuery } from '@tanstack/react-query';
 // Public relays that support NIP-22 comments
 const COMMENT_RELAYS = [
   'wss://relay.mojobus.co',
-  'wss://relays.mojobus.co',
   'wss://relay.primal.net',
   'wss://relay.damus.io',
   'wss://nos.lol',

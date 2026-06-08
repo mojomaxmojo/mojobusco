@@ -421,7 +421,6 @@ export const NETWORK_CONFIG = {
     domains: [
       'https://blossom.primal.net',
       'https://relay.mojobus.co',
-      'https://relays.mojobus.co',
       'https://fonts.googleapis.com',
       'https://fonts.gstatic.com',
     ],
