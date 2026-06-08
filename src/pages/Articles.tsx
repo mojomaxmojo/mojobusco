@@ -12,8 +12,9 @@ import { genUserName } from '@/lib/genUserName';
 import { RelaySelector } from '@/components/RelaySelector';
 import { filterEventsByCountry } from '@/lib/countryDetection';
 import { COUNTRIES } from '@/config';
-import { Search, Calendar, User, Wrench, Dog, MapPin } from 'lucide-react';
-import { useState, useMemo, memo } from 'react';
+import { Search, Calendar, User, Wrench, Dog, MapPin, Loader2 } from 'lucide-react';
+import { useState, useMemo, memo, useEffect } from 'react';
+import { useInView } from 'react-intersection-observer';
 import { nip19 } from 'nostr-tools';
 import type { NostrEvent, NostrMetadata } from '@nostrify/nostrify';
 import { AUTHORS } from '@/config/nostr';
@@ -31,6 +32,21 @@ function Articles() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState(null);
   const [selectedAuthor, setSelectedAuthor] = useState(null);
+  const [visibleCount, setVisibleCount] = useState(30);
+
+  // Infinite Scroll trigger
+  const { ref, inView } = useInView({ threshold: 0.1, rootMargin: '200px' });
+
+  useEffect(() => {
+    if (inView) {
+      setVisibleCount(prev => prev + 30);
+    }
+  }, [inView]);
+
+  // Zurücksetzen der sichtbaren Anzahl bei Filter-Änderung
+  useEffect(() => {
+    setVisibleCount(30);
+  }, [searchQuery, selectedTag, selectedAuthor, country]);
 
   const currentCountry = country ? COUNTRIES[country] : null;
 
@@ -98,6 +114,10 @@ function Articles() {
   }, [filteredArticles]);
 
   const articleCount = articles.length;
+
+  // Nur sichtbare Artikel rendern (Infinite Scroll)
+  const visibleArticles = filteredArticles.slice(0, visibleCount);
+  const hasMore = visibleArticles.length < filteredArticles.length;
 
   // Simple SEO Meta Tags
   const pageTitle = currentCountry
@@ -291,11 +311,20 @@ function Articles() {
 
             {/* Articles Grid */}
             {hasContent ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredArticles.map((article) => (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {visibleArticles.map((article) => (
                   <ArticleCard key={article.id} article={article} authorsMap={authors} articlesMetadata={articlesMetadata} />
                 ))}
               </div>
+
+                {/* Infinite Scroll Trigger */}
+                {hasMore && (
+                  <div ref={ref} className="py-8 flex justify-center">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                )}
+              </>
             ) : (
               <Card className="border-dashed">
                 <CardContent className="py-16 px-8 text-center">
