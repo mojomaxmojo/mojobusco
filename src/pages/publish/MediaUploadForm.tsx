@@ -17,6 +17,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { CountrySelector, getCountryTag } from "@/components/CountrySelector";
+import { MAIN_MENU } from "@/config/menu";
 import { TRIP_TYPES, type TripType } from "@/config/tags";
 import { RemotionVideoBlock } from "@/components/RemotionVideoBlock";
 import { Progress } from "@/components/ui/progress";
