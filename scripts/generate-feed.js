@@ -1,18 +1,16 @@
 #!/usr/bin/env node
 
-/**
- * generate-feed.js
- *
- * Generiert einen RSS 2.0 Feed (feed.xml) aus Nostr-Artikeln (kind 30023).
- * Für Blog-Verzeichnisse, Feed-Reader und Newsletter-Tools.
- *
- * Ausgabe: /home/nginx/domains/mojobus.co/public/feed.xml
- *
- * Setup cron (alle 6h, da Feed-Reader cachen):
- *   0 */6 * * * node /root/deploy-git/mojobusco/scripts/generate-feed.js
- *
- * RSS-Validierung: https://validator.w3.org/feed/
- */
+// generate-feed.js
+//
+// Generiert einen RSS 2.0 Feed (feed.xml) aus Nostr-Artikeln (kind 30023).
+// Für Blog-Verzeichnisse, Feed-Reader und Newsletter-Tools.
+//
+// Ausgabe: /home/nginx/domains/mojobus.co/public/feed.xml
+//
+// Setup cron (alle 6h, da Feed-Reader cachen):
+//   0 */6 * * * node /root/deploy-git/mojobusco/scripts/generate-feed.js
+//
+// RSS-Validierung: https://validator.w3.org/feed/
 
 import fs from 'fs';
 import path from 'path';
