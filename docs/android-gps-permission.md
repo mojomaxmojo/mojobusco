@@ -6,8 +6,12 @@ Edit `android/app/src/main/AndroidManifest.xml` – die Permission **vor** dem `
 
 ```xml
 <uses-permission android:name="android.permission.INTERNET" />
-<!-- ⬇️ NEU: Für GPS aus EXIF-Daten (Android Photo Picker workaround) -->
+<!-- ⬇️ GPS aus EXIF-Daten (Android Photo Picker workaround) -->
 <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" />
+<!-- ⬇️ Dateizugriff für FilePicker (Android ≤12) -->
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+<!-- ⬇️ Dateizugriff für FilePicker (Android 13+) -->
+<uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
 ```
 
 ## 2. APK neu bauen
