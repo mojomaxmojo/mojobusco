@@ -131,6 +131,8 @@ export interface MediaFile {
   gps?: GpsData;
   gpsStatus?: GpsStatus;
   sortDate?: number;
+  /** Dateipfad von Capacitor FilePicker (nur auf nativer Plattform) */
+  nativePath?: string;
 }
 
 export interface UploadProgress {

@@ -537,3 +537,41 @@ export function mapCountryCode(location: LocationData | null): string | null {
 
   return countryMapping[location.countryCode.toUpperCase()] || null;
 }
+
+/**
+ * Extract GPS coordinates from a native file path (Capacitor/Android)
+ *
+ * Nutzt @capacitor-community/exif um GPS nativ aus der Datei zu lesen,
+ * BEVOR Android den EXIF redacted (Android Photo Picker Problem).
+ *
+ * @param pathToImage - Nativer Dateipfad (z.B. von FilePicker)
+ * @returns Promise mit GPS-Daten oder null
+ */
+export async function extractGpsFromPath(pathToImage: string): Promise<GpsData | null> {
+  try {
+    console.log('[GPS Path] Native GPS extraction for:', pathToImage);
+
+    // Dynamischer Import – nur in Capacitor-Umgebung verfügbar
+    const { Exif } = await import('@capacitor-community/exif');
+
+    const result = await Exif.getCoordinates({ pathToImage });
+
+    if (result && typeof result.lat === 'number' && typeof result.lng === 'number') {
+      if (result.lat !== 0 || result.lng !== 0) {
+        console.log('[GPS Path] ✓ GPS from native Exif plugin:', result);
+        const gpsData: GpsData = {
+          latitude: result.lat,
+          longitude: result.lng,
+          precision: 'high',
+        };
+        return gpsData;
+      }
+    }
+
+    console.log('[GPS Path] ✗ No valid GPS from native Exif plugin');
+    return null;
+  } catch (error) {
+    console.warn('[GPS Path] Native GPS extraction failed:', error);
+    return null;
+  }
+}
