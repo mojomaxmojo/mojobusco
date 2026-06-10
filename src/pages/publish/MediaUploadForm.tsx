@@ -26,6 +26,8 @@ import { extractGpsFromImage, formatCoordinatesSimple, reverseGeocode, mapCountr
 import { createCorrectedPreview, mediaTypes, mainCategories, subCategories, type MediaFile, type UploadProgress } from "./publishUtils";
 import exifr from "exifr";
 import { Capacitor } from '@capacitor/core';
+import type { FilePickerResult } from '@capawesome/capacitor-file-picker';
+import type { GetCoordinatesResult } from '@capacitor-community/exif';
 
 export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
   const [files, setFiles] = useState<MediaFile[]>([]);
@@ -364,59 +366,38 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
     setFiles(prev => [...prev, ...newFiles]);
   };
 
-  // ── Capacitor Native Camera/Galerie (GPS-fähig via EXIF) ─────────────────
+  // ── Capacitor Native FilePicker (GPS via Exif-Plugin, umgeht Photo Picker) ─
   const handleNativeFilePick = async () => {
     try {
-      const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera');
+      const { FilePicker } = await import('@capawesome/capacitor-file-picker');
+      const { Exif } = await import('@capacitor-community/exif');
 
-      // Bild aus Galerie wählen
-      const photo = await Camera.getPhoto({
-        quality: 100,
-        resultType: CameraResultType.Uri,
-        source: CameraSource.Photos,
-        correctOrientation: true,
-      });
+      // Permission anfordern
+      await FilePicker.requestPermissions();
 
-      if (!photo?.path && !photo?.webPath) return;
+      // Bild aus Galerie wählen (Intent.ACTION_PICK → GPS bleibt erhalten)
+      const result: FilePickerResult = await FilePicker.pickImages({ multiple: false });
 
-      const path = photo.path || photo.webPath || '';
-      const name = path.split('/').pop() || 'camera_image.jpg';
+      if (!result.files?.length) return;
+      const file = result.files[0];
+      const nativePath = file.path ?? '';
+      const name = file.name || nativePath.split('/').pop() || 'image.jpg';
 
-      // EXIF-GPS auslesen (Camera.getPhoto liefert direkt exif mit GPS)
+      // GPS nativ aus Datei lesen (umgeht Android Photo Picker)
       let gpsData: GpsData | null = null;
-      if (photo.exif) {
-        const exif = photo.exif as any;
-        const lat = exif.GPSLatitude || exif.latitude;
-        const lon = exif.GPSLongitude || exif.longitude;
-        if (lat && lon && (lat !== 0 || lon !== 0)) {
-          // GPS kann als Array (DMS) oder Dezimal kommen
-          if (typeof lat === 'number' && typeof lon === 'number') {
-            gpsData = { latitude: lat, longitude: lon, precision: 'medium' };
-          } else if (typeof lat === 'string') {
-            const parsed = parseGpsString(lat, lon);
-            if (parsed) gpsData = parsed;
-          }
+      try {
+        const coord: GetCoordinatesResult | undefined = await Exif.getCoordinates({ pathToImage: nativePath });
+        if (coord?.lat && coord?.lng && (coord.lat !== 0 || coord.lng !== 0)) {
+          gpsData = { latitude: coord.lat, longitude: coord.lng, precision: 'high' };
+          console.log('[Native GPS] ✓ GPS:', gpsData);
         }
-      }
-
-      // Fallback: Exif-Plugin für nativen Dateipfad
-      if (!gpsData && path) {
-        try {
-          const { Exif } = await import('@capacitor-community/exif');
-          const coord = await Exif.getCoordinates({ pathToImage: path });
-          if (coord?.lat && coord?.lng && (coord.lat !== 0 || coord.lng !== 0)) {
-            gpsData = { latitude: coord.lat, longitude: coord.lng, precision: 'high' };
-          }
-        } catch {}
+      } catch (e) {
+        console.warn('[Native GPS] Exif plugin failed:', e);
       }
 
       // Preview
       let preview: string | undefined;
-      try {
-        preview = Capacitor.convertFileSrc(path);
-      } catch {
-        preview = photo.webPath;
-      }
+      try { preview = Capacitor.convertFileSrc(nativePath); } catch { preview = undefined; }
 
       const newFile: MediaFile = {
         id: Math.random().toString(36).substr(2, 9),
@@ -430,17 +411,13 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
         sortDate: Date.now(),
       };
 
-      if (gpsData) {
-        console.log('[Camera GPS] ✓ GPS from photo:', gpsData);
-      }
-
       setFiles(prev => [...prev, newFile]);
       toast({
         title: 'Bild hinzugefügt',
         description: gpsData ? '✅ GPS automatisch erkannt' : 'ℹ️ Kein GPS im Bild gefunden',
       });
     } catch (error) {
-      console.error('[Camera] Error:', error);
+      console.error('[FilePicker] Error:', error);
       toast({
         title: 'Fehler bei Bildauswahl',
         description: String(error),
