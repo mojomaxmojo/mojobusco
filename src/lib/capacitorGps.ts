@@ -54,30 +54,45 @@ export interface CapacitorPickedFile {
 }
 
 // =============================================================================
-// ACCESS_MEDIA_LOCATION Runtime Permission
+// ACCESS_MEDIA_LOCATION Runtime Permission (via FilePicker Plugin!)
 // =============================================================================
 
 /**
- * Fordert ACCESS_MEDIA_LOCATION zur Laufzeit an (GrapheneOS!)
- * Ohne diese explizite Anfrage werden EXIF-GPS-Daten auf Systemebene gestrippt.
+ * ACCESS_MEDIA_LOCATION Permission prüfen + anfordern (via FilePicker Plugin!)
+ *
+ * Auf Android 10+ werden GPS-EXIF-Daten aus content:// URIs auf Systemebene
+ * redacted. Die Permission muss zur Laufzeit angefragt werden, sonst
+ * bekommt die App keine GPS-Daten – selbst mit Eintrag im Manifest!
+ *
+ * @param FilePicker - Die FilePicker Plugin-Instanz
  */
-async function requestMediaLocationPermission(): Promise<boolean> {
+async function ensureMediaLocationPermission(FilePicker: any): Promise<boolean> {
   try {
-    const cap = (window as any).Capacitor;
-    const Permissions = cap?.Plugins?.Permissions;
-    if (!Permissions) {
-      console.log('[CapacitorGPS] Kein Permissions Plugin – ACCESS_MEDIA_LOCATION nicht anforderbar');
-      return false;
+    // 1. Erst prüfen ob schon erteilt
+    if (FilePicker?.checkPermissions) {
+      const status = await FilePicker.checkPermissions();
+      if (status?.accessMediaLocation === 'granted') {
+        console.log('[CapacitorGPS] accessMediaLocation bereits erteilt ✅');
+        return true;
+      }
+      console.log(`[CapacitorGPS] accessMediaLocation Status: ${status?.accessMediaLocation}`);
     }
-    console.log('[CapacitorGPS] Fordere ACCESS_MEDIA_LOCATION an...');
-    const result = await Permissions.requestPermission({
-      name: 'ACCESS_MEDIA_LOCATION',
-    });
-    const granted = result?.granted === true;
-    console.log(`[CapacitorGPS] ACCESS_MEDIA_LOCATION: ${granted ? '✅ erteilt' : '❌ verweigert'}`);
-    return granted;
+
+    // 2. Anfordern falls nicht erteilt
+    if (FilePicker?.requestPermissions) {
+      console.log('[CapacitorGPS] Fordere accessMediaLocation an...');
+      const result = await FilePicker.requestPermissions({
+        permissions: ['accessMediaLocation'],
+      });
+      const granted = result?.accessMediaLocation === 'granted';
+      console.log(`[CapacitorGPS] accessMediaLocation: ${granted ? '✅' : '❌'} (${result?.accessMediaLocation})`);
+      return granted;
+    }
+
+    console.log('[CapacitorGPS] FilePicker.checkPermissions/requestPermissions nicht verfügbar');
+    return false;
   } catch (err) {
-    console.warn('[CapacitorGPS] Permission request fehlgeschlagen:', err);
+    console.warn('[CapacitorGPS] Permission Fehler:', err);
     return false;
   }
 }
@@ -109,9 +124,10 @@ export async function pickFilesNative(options: {
   }
 
   try {
-    // ACCESS_MEDIA_LOCATION Permission anfordern (wichtig für GrapheneOS!)
-    // Sonst strippt das System EXIF-GPS bevor wir die Datei sehen
-    await requestMediaLocationPermission();
+    // ACCESS_MEDIA_LOCATION Permission prüfen + anfordern
+    // Android 10+ redacted GPS-EXIF aus content:// URIs ohne Runtime-Permission!
+    const permGranted = await ensureMediaLocationPermission(FilePicker);
+    console.log(`[CapacitorGPS] MediaLocationPermission: ${permGranted ? '✅' : '❌'}`);
 
     console.log('[CapacitorGPS] pickFiles({ readData: true }) ...');
     const result = await FilePicker.pickFiles({
