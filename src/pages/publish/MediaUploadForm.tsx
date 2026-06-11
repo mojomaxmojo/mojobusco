@@ -421,30 +421,41 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
    */
   const handleNativePick = async () => {
     try {
+      toast({ title: '📷 Öffne Galerie...', description: 'Wähle ein Bild aus' });
+
       const pickedFiles = await pickFilesNative({ multiple: true });
-      if (pickedFiles.length === 0) return;
+      if (pickedFiles.length === 0) {
+        toast({ title: 'Keine Dateien', description: 'Nichts ausgewählt', variant: 'default' });
+        return;
+      }
 
       const newFiles: MediaFile[] = [];
 
       for (const picked of pickedFiles) {
-        // Preview: data:URI primär, blob:URI als Fallback
-        let preview: string | undefined = picked.dataUri || picked.blobUri;
-        if (!preview) {
-          try {
-            preview = URL.createObjectURL(picked.file);
-          } catch {
-            // fallback: kein preview
-          }
+        // File validieren
+        if (!picked.file || picked.file.size === 0) {
+          toast({
+            title: `❌ ${picked.name}`,
+            description: 'Datei ist leer oder konnte nicht geladen werden',
+            variant: 'destructive'
+          });
+          continue;
         }
 
-        console.log(`[NativePick] ${picked.name}: GPS=${picked.gpsStatus}, preview=${preview ? '✓' : '✗'}, size=${picked.size}`);
+        // Preview via URL.createObjectURL (zuverlässigste Methode)
+        let preview: string | undefined;
+        try {
+          preview = URL.createObjectURL(picked.file);
+        } catch {
+          console.warn('[NativePick] createObjectURL fehlgeschlagen für', picked.name);
+        }
 
         const newFile: MediaFile = {
           id: Math.random().toString(36).substr(2, 9),
           file: picked.file,
           name: picked.name,
           type: picked.mimeType.startsWith('image/') ? 'image' : 'document',
-          size: picked.size,
+          size: picked.file.size,
           preview,
           gps: picked.gps,
           gpsStatus: picked.gpsStatus,
@@ -452,6 +463,24 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
         };
 
         newFiles.push(newFile);
+
+        // Toast pro Datei
+        const gpsMsg = picked.gps
+          ? `📍 GPS: ${picked.gps.latitude.toFixed(4)}, ${picked.gps.longitude.toFixed(4)}`
+          : '📍 Kein GPS im Bild';
+        toast({
+          title: `✅ ${picked.name}`,
+          description: `${(picked.file.size / 1024).toFixed(0)} KB | ${preview ? '🖼️ Vorschau OK' : '⚠️ Keine Vorschau'} | ${gpsMsg}`,
+        });
+      }
+
+      if (newFiles.length === 0) {
+        toast({
+          title: 'Fehler',
+          description: 'Keine Datei konnte geladen werden',
+          variant: 'destructive'
+        });
+        return;
       }
 
       // GPS-Geocoding für erstes Bild mit GPS
@@ -471,18 +500,17 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
       setFiles(prev => [...prev, ...newFiles]);
 
       toast({
-        title: `${newFiles.length} Datei(en) ausgewählt`,
+        title: `${newFiles.length} Datei(en) hinzugefügt`,
         description: firstGps?.gps
-          ? `📍 GPS automatisch erkannt`
-          : '📍 Kein GPS in den Bildern gefunden',
+          ? `📍 Standort: ${firstGps.gps.latitude.toFixed(4)}, ${firstGps.gps.longitude.toFixed(4)}`
+          : '📍 Keine GPS-Daten – Standort manuell eingeben',
       });
-
     } catch (error) {
       console.error('[NativePick] Fehler:', error);
       toast({
-        title: 'Fehler',
-        description: 'Dateiauswahl fehlgeschlagen.',
-        variant: 'destructive',
+        title: 'Fehler bei Galerie-Auswahl',
+        description: String(error),
+        variant: 'destructive'
       });
     }
   };
