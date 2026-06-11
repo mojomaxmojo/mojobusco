@@ -50,9 +50,10 @@ function hasCapacitorPlugin(pluginName: string): boolean {
 /**
  * Extrahiert GPS aus einem Bild via Capacitor-Community EXIF Plugin (nativ).
  *
- * Im Gegensatz zu exifr.js umgeht dieses Plugin den Browser-Filter,
- * der auf mobilen Geräten EXIF-GPS aus Sicherheitsgründen entfernt.
- * Es liest die EXIF-Daten direkt aus der Datei via Java/Kotlin-Code.
+ * Schreibt die Datei temporär in den App-Cache, damit das native Android
+ * Plugin die Datei via Dateisystem-Pfad öffnen kann (Android ContentResolver
+ * kann blob:-URIs nicht auflösen). Temp-Datei wird nach dem Lesevorgang
+ * sofort gelöscht.
  *
  * @param file - Das vom Benutzer ausgewählte Bild
  * @returns GpsData oder null wenn kein GPS gefunden
@@ -67,34 +68,77 @@ export async function extractGpsNativeExif(file: File): Promise<GpsData | null> 
     return null;
   }
 
+  let tempFilePath: string | null = null;
+
   try {
     const CapacitorExif = (window as any).Capacitor.Plugins.Exif;
+    const CapacitorFilesystem = (window as any).Capacitor.Plugins.Filesystem;
     console.log('[CapacitorGPS] Native EXIF extraction für:', file.name);
 
-    // Datei in eine URI umwandeln, die das native Plugin lesen kann
-    const fileUri = URL.createObjectURL(file);
+    // Datei als Base64 lesen und in Cache-Verzeichnis schreiben
+    // Das native Android Plugin braucht einen echten Dateipfad (content:// oder file://)
+    // blob:-URIs funktionieren nicht mit Android's ContentResolver
+    const base64 = await fileToBase64(file);
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    tempFilePath = `gps-temp-${Date.now()}-${safeName}`;
 
-    const result = await CapacitorExif.getExifData({ uri: fileUri });
-    URL.revokeObjectURL(fileUri);
+    if (CapacitorFilesystem) {
+      await CapacitorFilesystem.writeFile({
+        path: tempFilePath,
+        data: base64,
+        directory: 'CACHE', // Directory.Cache
+      });
 
-    if (!result?.exifData) {
-      console.log('[CapacitorGPS] Keine EXIF-Daten vom nativen Plugin');
-      return null;
-    }
+      // Den Cache-Pfad an das EXIF Plugin übergeben
+      const result = await CapacitorExif.getExifData({
+        uri: tempFilePath, // Filesystem verwendet standardmäßig Cache-Dir
+      });
 
-    const exif = result.exifData;
-    console.log('[CapacitorGPS] Native EXIF keys:', Object.keys(exif));
+      // Temp-Datei löschen
+      try {
+        await CapacitorFilesystem.deleteFile({
+          path: tempFilePath,
+          directory: 'CACHE',
+        });
+      } catch (cleanupErr) {
+        console.warn('[CapacitorGPS] Temp-Datei konnte nicht gelöscht werden:', cleanupErr);
+      }
 
-    // GPS aus EXIF parsen
-    const gpsResult = parseNativeExifGps(exif);
-    if (gpsResult) {
-      console.log('[CapacitorGPS] ✓ GPS via nativem EXIF Plugin:', gpsResult);
-      return gpsResult;
+      if (!result?.exifData) {
+        console.log('[CapacitorGPS] Keine EXIF-Daten vom nativen Plugin');
+        return null;
+      }
+
+      const exif = result.exifData;
+      console.log('[CapacitorGPS] Native EXIF keys:', Object.keys(exif));
+
+      // GPS aus EXIF parsen
+      const gpsResult = parseNativeExifGps(exif);
+      if (gpsResult) {
+        console.log('[CapacitorGPS] ✓ GPS via nativem EXIF Plugin:', gpsResult);
+        return gpsResult;
+      }
+    } else {
+      console.warn('[CapacitorGPS] @capacitor/filesystem nicht registriert – native EXIF nicht möglich');
     }
 
     return null;
   } catch (error) {
     console.warn('[CapacitorGPS] Native EXIF extraction fehlgeschlagen:', error);
+
+    // Aufräumen falls temp-Datei noch existiert
+    if (tempFilePath) {
+      try {
+        const CapacitorFilesystem = (window as any).Capacitor?.Plugins?.Filesystem;
+        if (CapacitorFilesystem) {
+          await CapacitorFilesystem.deleteFile({
+            path: tempFilePath,
+            directory: 'CACHE',
+          });
+        }
+      } catch { /* ignore cleanup errors */ }
+    }
+
     return null;
   }
 }
@@ -406,4 +450,26 @@ export function positionToGpsData(pos: GpsPosition): GpsData {
     altitude: pos.altitude ?? undefined,
     precision: pos.accuracy < 20 ? 'high' : pos.accuracy < 100 ? 'medium' : 'low',
   };
+}
+
+// =============================================================================
+// Hilfsfunktionen
+// =============================================================================
+
+/**
+ * Konvertiert ein File-Objekt in einen Base64-String.
+ * Wird benötigt um das File an das native Capacitor Filesystem zu übergeben.
+ */
+export function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      // Entferne den data:-Prefix (z.B. "data:image/jpeg;base64,")
+      const base64 = result.split(',')[1] || result;
+      resolve(base64);
+    };
+    reader.onerror = () => reject(new Error(`FileReader Fehler für ${file.name}`));
+    reader.readAsDataURL(file);
+  });
 }
