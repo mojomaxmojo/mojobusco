@@ -1,20 +1,17 @@
 /**
- * Capacitor Native GPS & EXIF Abstraktion
+ * Capacitor Native Dateiauswahl + EXIF-GPS via exifr.js
  *
- * Erkennt zur Laufzeit ob die App im Capacitor-WebView läuft
- * und nutzt dann native Plugins für EXIF-GPS + Geräte-Standort.
- *
- * Kernlösung für GPS: @capawesome/capacitor-file-picker liefert
- * native content:// URIs → @capacitor-community/exif kann EXIF
- * direkt aus der Datei lesen (umgeht WebView-GPS-Strip).
+ * Nutzt @capawesome/capacitor-file-picker für native content:// URIs.
+ * Der Browser-Strip von EXIF-GPS wird umgangen, indem exifr.js direkt
+ * die rohen Datei-Bytes liest (via readFile) – nicht das File-Objekt.
  *
  * Plugins (auf CachyOS installiert):
- *   - @capacitor/geolocation            → GPS natives Geräte-GPS
- *   - @capacitor-community/exif          → Native EXIF inkl. GPS aus Bildern
- *   - @capawesome/capacitor-file-picker  → Native Dateiauswahl (content:// URIs)
+ *   - @capawesome/capacitor-file-picker → Native Dateiauswahl (content:// URIs)
+ *   - @capacitor/geolocation           → GPS natives Geräte-GPS
  */
 
 import type { GpsData } from './gpsExtraction';
+import exifr from 'exifr';
 
 // =============================================================================
 // Plattform-Erkennung
@@ -22,28 +19,14 @@ import type { GpsData } from './gpsExtraction';
 
 /**
  * Prüft ob die App im Capacitor Native WebView läuft
- *
- * Mehrere Erkennungsmethoden für verschiedene Capacitor-Versionen:
- * 1. window.Capacitor.isNative (Capacitor 3+)
- * 2. window.__Capacitor (Capacitor 8+)
- * 3. document.querySelector('capacitor') (Capacitor 8+)
  */
 export function isCapacitorNative(): boolean {
   try {
-    // Methode 1: Standard Capacitor API
     const cap = (window as any).Capacitor;
-    if (cap && cap.isNative) return true;
-
-    // Methode 2: Capacitor 8+
+    if (cap?.isNative) return true;
     const cap8 = (window as any).__Capacitor;
-    if (cap8 && cap8.isNative) return true;
-
-    // Methode 3: Capacitor platform
-    if (cap && cap.getPlatform) {
-      const platform = cap.getPlatform();
-      if (platform === 'android') return true;
-    }
-
+    if (cap8?.isNative) return true;
+    if (cap?.getPlatform?.() === 'android') return true;
     return false;
   } catch {
     return false;
@@ -56,47 +39,33 @@ export function isCapacitorNative(): boolean {
 export function hasCapacitorPlugin(pluginName: string): boolean {
   try {
     const cap = (window as any).Capacitor;
-    return !!(cap && cap.Plugins && cap.Plugins[pluginName]);
+    return !!(cap?.Plugins?.[pluginName]);
   } catch {
     return false;
   }
 }
 
 // =============================================================================
-// Native Dateiauswahl via @capawesome/capacitor-file-picker
+// Native Dateiauswahl via @capawesome/capacitor-file-picker + exifr GPS
 // =============================================================================
 
-/**
- * Einzelne Datei aus dem Native Picker mit voller EXIF-Unterstützung
- */
 export interface CapacitorPickedFile {
-  /** Native content:// URI (z.B. content://media/external/images/media/123) */
   uri: string;
-  /** Dateiname */
   name: string;
-  /** MIME-Typ */
   mimeType: string;
-  /** Dateigröße in Bytes */
   size: number;
-  /** GPS-Daten (falls aus EXIF extrahiert) */
   gps?: GpsData;
-  /** GPS-Status */
   gpsStatus: 'detected' | 'not_found' | 'error';
-  /** File-Objekt für Upload-Pipeline (aus base64 erstellt) */
   file: File;
 }
 
 /**
- * Öffnet den nativen Android-Dateipicker via @capawesome/capacitor-file-picker
- * und liest für jedes Bild direkt via @capacitor-community/exif die GPS-Daten.
+ * Öffnet den nativen Android-Dateipicker und extrahiert GPS aus EXIF.
  *
- * Vorteil gegenüber <input type="file">:
- * - Liefert native content:// URIs
- * - @capacitor-community/exif kann diese URIs öffnen
- * - Umgeht den WebView-GPS-Strip
+ * Schlüssel: content:// URI → readFile Base64 → ArrayBuffer → exifr.gps()
+ * exifr.js kann EXIF-GPS aus rohen Bytes lesen, ohne Browser-Strip.
  *
- * @param options - Auswahloptionen
- * @returns Array von gepickten Dateien mit GPS-Daten
+ * @param options - multiple: true/false, types: MIME-Typen
  */
 export async function pickFilesNative(options: {
   multiple?: boolean;
@@ -109,48 +78,34 @@ export async function pickFilesNative(options: {
 
   const FilePicker = (window as any).Capacitor?.Plugins?.FilePicker;
   if (!FilePicker) {
-    console.error('[CapacitorGPS] @capawesome/capacitor-file-picker nicht gefunden');
+    console.error('[CapacitorGPS] FilePicker nicht gefunden');
     return [];
   }
 
   try {
     console.log('[CapacitorGPS] Öffne nativen Dateipicker...');
-
     const result = await FilePicker.pickFiles({
       multiple: options.multiple !== false,
       types: options.types || ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'],
     });
 
-    if (!result?.files || result.files.length === 0) {
-      console.log('[CapacitorGPS] Keine Dateien ausgewählt');
-      return [];
-    }
+    if (!result?.files?.length) return [];
 
     console.log(`[CapacitorGPS] ${result.files.length} Dateien ausgewählt`);
-
     const pickedFiles: CapacitorPickedFile[] = [];
 
     for (const picked of result.files) {
+      const { uri, name, mimeType, size } = picked;
+
+      // 1. EXIF-GPS via exifr.js aus rohen Bytes lesen (umgeht File-Strip!)
+      const gpsData = await extractGpsViaRawBytes(uri, name);
+
+      // 2. Datei-Inhalt via readFile (base64) → File-Objekt
+      let file: File;
       try {
-        const { uri, name, mimeType, size } = picked;
-        console.log(`[CapacitorGPS] Verarbeite: ${name} (${uri})`);
-
-        // EXIF-GPS aus der content:// URI lesen
-        const gpsData = await extractGpsFromUri(uri, name);
-
-        // Datei-Inhalt via FilePicker lesen (base64)
-        let fileData: string | null = null;
-        try {
-          const readResult = await FilePicker.readFile({ path: uri });
-          fileData = readResult?.data || null;
-        } catch (readErr) {
-          console.warn(`[CapacitorGPS] readFile fehlgeschlagen für ${name}:`, readErr);
-        }
-
-        // File-Objekt erstellen (für Upload-Pipeline)
-        let file: File;
-        if (fileData) {
-          const byteString = atob(fileData);
+        const readResult = await FilePicker.readFile({ path: uri });
+        if (readResult?.data) {
+          const byteString = atob(readResult.data);
           const ab = new ArrayBuffer(byteString.length);
           const ia = new Uint8Array(ab);
           for (let i = 0; i < byteString.length; i++) {
@@ -158,197 +113,95 @@ export async function pickFilesNative(options: {
           }
           file = new File([ab], name, { type: mimeType || 'image/jpeg' });
         } else {
-          // Fallback: leeres File (Upload wird dann fehlschlagen)
           file = new File([], name, { type: mimeType || 'image/jpeg' });
         }
-
-        pickedFiles.push({
-          uri,
-          name,
-          mimeType: mimeType || 'image/jpeg',
-          size: size || 0,
-          gps: gpsData || undefined,
-          gpsStatus: gpsData ? 'detected' : 'not_found',
-          file,
-        });
-      } catch (fileErr) {
-        console.warn(`[CapacitorGPS] Fehler bei ${picked.name}:`, fileErr);
+      } catch {
+        file = new File([], name, { type: mimeType || 'image/jpeg' });
       }
+
+      pickedFiles.push({
+        uri,
+        name,
+        mimeType: mimeType || 'image/jpeg',
+        size: size || 0,
+        gps: gpsData || undefined,
+        gpsStatus: gpsData ? 'detected' : 'not_found',
+        file,
+      });
     }
 
-    console.log(`[CapacitorGPS] ${pickedFiles.length} Dateien verarbeitet`);
     return pickedFiles;
-
   } catch (error) {
     console.error('[CapacitorGPS] FilePicker fehlgeschlagen:', error);
     return [];
   }
 }
 
-// =============================================================================
-// Native EXIF-GPS via @capacitor-community/exif
-// =============================================================================
-
 /**
- * Extrahiert GPS aus einer nativen content:// URI via @capacitor-community/exif.
+ * Extrahiert GPS aus einer content:// URI via exifr.js + fetch.
  *
- * Android's ExifInterface + ContentResolver können content:// URIs öffnen
- * und mit setRequireOriginal(true) auch ACCESS_MEDIA_LOCATION abfragen.
+ * Statt das gestrippte File-Objekt zu nutzen, holen wir die rohen
+ * Bytes direkt aus der content:// URI und lesen EXIF-GPS daraus.
  *
- * @param uri - Native content:// URI (vom FilePicker)
- * @param fileName - Dateiname (für Logging)
- * @returns GpsData oder null
+ * @param uri - content:// URI vom FilePicker
+ * @param fileName - Dateiname für Logging
  */
-export async function extractGpsFromUri(uri: string, fileName?: string): Promise<GpsData | null> {
-  if (!isCapacitorNative()) return null;
-  if (!hasCapacitorPlugin('Exif')) {
-    console.warn('[CapacitorGPS] @capacitor-community/exif nicht registriert');
-    return null;
-  }
+async function extractGpsViaRawBytes(uri: string, fileName?: string): Promise<GpsData | null> {
+  const logTag = `[GPS ${fileName || uri}]`;
 
   try {
-    const CapacitorExif = (window as any).Capacitor.Plugins.Exif;
-    console.log(`[CapacitorGPS] Rufe Exif.getExifData auf für: ${fileName || uri}`);
+    console.log(`${logTag} Lese rohe Bytes via content:// URI...`);
 
-    const result = await CapacitorExif.getExifData({ uri });
-    console.log(`[CapacitorGPS] EXIF-Result:`, result ? 'OK' : 'null');
-
-    if (!result?.exifData) {
-      console.log(`[CapacitorGPS] Keine EXIF-Daten von ${fileName || uri}`);
-      return null;
+    // Versuch 1: fetch(uri) → ArrayBuffer → exifr.gps
+    try {
+      const response = await fetch(uri);
+      if (response.ok) {
+        const arrayBuffer = await response.arrayBuffer();
+        console.log(`${logTag} ${arrayBuffer.byteLength} Bytes via fetch geladen`);
+        const gpsData = await exifr.gps(arrayBuffer);
+        if (gpsData?.latitude && gpsData?.longitude) {
+          if (gpsData.latitude !== 0 || gpsData.longitude !== 0) {
+            console.log(`${logTag} ✓ GPS via exifr(fetch):`, gpsData);
+            return gpsData;
+          }
+        }
+      }
+    } catch (fetchErr) {
+      console.warn(`${logTag} fetch fehlgeschlagen:`, fetchErr);
     }
 
-    const exif = result.exifData;
-    console.log(`[CapacitorGPS] EXIF keys:`, Object.keys(exif));
-
-    // GPS parsen
-    const gpsResult = parseNativeExifGps(exif);
-    if (gpsResult) {
-      console.log(`[CapacitorGPS] ✓ GPS gefunden für ${fileName}:`, gpsResult);
-      return gpsResult;
+    // Versuch 2: FilePicker.readFile() → base64 → ArrayBuffer → exifr.gps
+    try {
+      const FilePicker = (window as any).Capacitor?.Plugins?.FilePicker;
+      if (FilePicker?.readFile) {
+        const readResult = await FilePicker.readFile({ path: uri });
+        if (readResult?.data) {
+          const byteString = atob(readResult.data);
+          const ab = new ArrayBuffer(byteString.length);
+          const ia = new Uint8Array(ab);
+          for (let i = 0; i < byteString.length; i++) {
+            ia[i] = byteString.charCodeAt(i);
+          }
+          console.log(`${logTag} ${ab.byteLength} Bytes via readFile geladen`);
+          const gpsData = await exifr.gps(ab);
+          if (gpsData?.latitude && gpsData?.longitude) {
+            if (gpsData.latitude !== 0 || gpsData.longitude !== 0) {
+              console.log(`${logTag} ✓ GPS via exifr(readFile):`, gpsData);
+              return gpsData;
+            }
+          }
+        }
+      }
+    } catch (readErr) {
+      console.warn(`${logTag} readFile fehlgeschlagen:`, readErr);
     }
 
-    console.log(`[CapacitorGPS] Kein GPS in EXIF von ${fileName}`);
+    console.log(`${logTag} Kein GPS gefunden`);
     return null;
   } catch (error) {
-    console.warn(`[CapacitorGPS] EXIF-Fehler für ${fileName}:`, error);
+    console.warn(`${logTag} Fehler:`, error);
     return null;
   }
-}
-
-// =============================================================================
-// GPS-Parsing (EXIF → GpsData)
-// =============================================================================
-
-interface NativeExifData {
-  GPSLatitude?: any;
-  GPSLatitudeRef?: string;
-  GPSLongitude?: any;
-  GPSLongitudeRef?: string;
-  GPSAltitude?: any;
-  [key: string]: any;
-}
-
-function parseNativeExifGps(exif: NativeExifData): GpsData | null {
-  const lat = exif.GPSLatitude;
-  const lon = exif.GPSLongitude;
-  const latRef = exif.GPSLatitudeRef || 'N';
-  const lonRef = exif.GPSLongitudeRef || 'E';
-
-  if (!lat && !lon) return null;
-
-  const latitude = parseExifCoordinate(lat, latRef);
-  const longitude = parseExifCoordinate(lon, lonRef);
-
-  if (latitude === null || longitude === null) return null;
-  if (latitude === 0 && longitude === 0) return null;
-
-  let altitude: number | undefined;
-  if (exif.GPSAltitude !== undefined && exif.GPSAltitude !== null) {
-    altitude = parseExifValue(exif.GPSAltitude);
-  }
-
-  return {
-    latitude,
-    longitude,
-    altitude: altitude && !isNaN(altitude) ? altitude : undefined,
-    precision: altitude !== undefined ? 'high' : 'medium',
-  };
-}
-
-function parseExifCoordinate(value: any, ref: string): number | null {
-  if (value === undefined || value === null) return null;
-
-  let dd: number | null = null;
-
-  if (typeof value === 'number') {
-    dd = value;
-  } else if (typeof value === 'string') {
-    if (value.includes(',')) {
-      const parts = value.split(',').map(s => s.trim());
-      dd = parseDMSFromStrings(parts);
-    } else {
-      dd = parseExifValue(value);
-    }
-  } else if (Array.isArray(value)) {
-    dd = parseDMSFromStrings(value.map(String));
-  } else if (typeof value === 'object') {
-    const num = parseFractionObject(value);
-    if (num !== null) dd = num;
-  }
-
-  if (dd === null || isNaN(dd)) return null;
-
-  if (ref?.toUpperCase() === 'S' || ref?.toUpperCase() === 'W') {
-    dd = -dd;
-  }
-
-  return dd;
-}
-
-function parseDMSFromStrings(parts: string[]): number | null {
-  if (parts.length < 3) return null;
-
-  const degrees = parseExifValue(parts[0]);
-  const minutes = parseExifValue(parts[1]);
-  const seconds = parseExifValue(parts[2]);
-
-  if (degrees === null || minutes === null || seconds === null) return null;
-  if (degrees === 0) return null;
-
-  return degrees + minutes / 60 + seconds / 3600;
-}
-
-function parseExifValue(value: any): number | null {
-  if (value === undefined || value === null) return null;
-  if (typeof value === 'number') return value;
-
-  if (typeof value === 'string') {
-    if (value.includes('/') && !value.includes(',')) {
-      const [num, den] = value.split('/').map(s => parseFloat(s.trim()));
-      if (den && den !== 0) return num / den;
-    }
-    const num = parseFloat(value);
-    return isNaN(num) ? null : num;
-  }
-
-  if (typeof value === 'object') {
-    return parseFractionObject(value);
-  }
-
-  return null;
-}
-
-function parseFractionObject(obj: any): number | null {
-  const num = obj.numerator !== undefined ? parseFloat(obj.numerator) : undefined;
-  const den = obj.denominator !== undefined ? parseFloat(obj.denominator) : undefined;
-
-  if (num !== undefined && den !== undefined && den !== 0) {
-    return num / den;
-  }
-  if (num !== undefined) return num;
-
-  return null;
 }
 
 // =============================================================================
@@ -362,25 +215,15 @@ export interface GpsPosition {
   accuracy: number;
 }
 
-/**
- * Holt den aktuellen Geräte-Standort.
- *
- * Versuche (in Reihenfolge):
- * 1. @capacitor/geolocation (nativ, nur APK)
- * 2. navigator.geolocation (Browser, Web + Capacitor WebView)
- */
 export async function getCurrentPosition(): Promise<GpsPosition | null> {
   // Versuch 1: Capacitor Native Geolocation
   if (isCapacitorNative() && hasCapacitorPlugin('Geolocation')) {
     try {
       const Geo = (window as any).Capacitor.Plugins.Geolocation;
-      console.log('[CapacitorGPS] Native Geolocation wird verwendet...');
-
       const position = await Geo.getCurrentPosition({
         enableHighAccuracy: true,
         timeout: 10000,
       });
-
       if (position?.coords) {
         const { latitude, longitude, altitude, accuracy } = position.coords;
         console.log('[CapacitorGPS] ✓ Native Position:', { latitude, longitude, accuracy });
@@ -394,7 +237,6 @@ export async function getCurrentPosition(): Promise<GpsPosition | null> {
   // Versuch 2: Browser Geolocation
   if ('geolocation' in navigator) {
     try {
-      console.log('[CapacitorGPS] Browser Geolocation...');
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
           enableHighAccuracy: true,
@@ -402,32 +244,16 @@ export async function getCurrentPosition(): Promise<GpsPosition | null> {
           maximumAge: 0,
         });
       });
-
       const { latitude, longitude, altitude, accuracy } = position.coords;
-      console.log('[CapacitorGPS] ✓ Browser Position:', { latitude, longitude, accuracy });
       return { latitude, longitude, altitude: altitude ?? null, accuracy: accuracy || 0 };
-    } catch (error) {
-      const msg = error instanceof GeolocationPositionError
-        ? geolocationErrorMessage(error) : 'Unbekannter Fehler';
-      console.warn('[CapacitorGPS] Browser Geolocation:', msg);
+    } catch {
+      // silent
     }
   }
 
   return null;
 }
 
-function geolocationErrorMessage(error: GeolocationPositionError): string {
-  switch (error.code) {
-    case error.PERMISSION_DENIED: return 'Standort-Zugriff verweigert.';
-    case error.POSITION_UNAVAILABLE: return 'Standort nicht verfügbar (GPS-Signal?).';
-    case error.TIMEOUT: return 'Zeitüberschreitung.';
-    default: return `Fehler ${error.code}`;
-  }
-}
-
-/**
- * Wandelt eine GpsPosition in GpsData um
- */
 export function positionToGpsData(pos: GpsPosition): GpsData {
   return {
     latitude: pos.latitude,
@@ -437,42 +263,13 @@ export function positionToGpsData(pos: GpsPosition): GpsData {
   };
 }
 
-// =============================================================================
-// Kompatibilitäts-Wrapper (für MediaUploadForm + PlaceForm)
-// =============================================================================
-
 /**
  * Cross-Plattform GPS-Extraktion (Kompatibilitäts-Wrapper)
- *
- * Ruft bei Bedarf die native EXIF-Extraktion via @capacitor-community/exif auf.
- * Wird von MediaUploadForm.tsx und PlaceForm.tsx verwendet.
- *
- * @param file - Vom Browser geliefertes File-Objekt (GPS wurde ggf. gestripped)
- * @param existingGps - Bereits via exifr.extrahierte GPS-Daten (kann null sein)
- * @returns GpsData oder null
  */
 export async function extractGpsCrossPlatform(
-  file: File,
+  _file: File,
   existingGps: GpsData | null
 ): Promise<GpsData | null> {
-  // 1. Bereits via exifr.extrahierte GPS-Daten → zurückgeben
-  if (existingGps) {
-    return existingGps;
-  }
-
-  // 2. Capacitor Native EXIF: file-picker ist die primäre Lösung.
-  //    Hier nur als Fallback über Filesystem (falls kein file-picker verwendet wurde).
-  //    Diese Methode ist weniger zuverlässig, daher try-catch.
-  if (isCapacitorNative() && hasCapacitorPlugin('Exif')) {
-    try {
-      // Fallback: versuche GPS direkt via content:// URI aus der Datei
-      // (funktioniert nur wenn der Datei-Pfad als content:// vorliegt)
-      console.log('[CapacitorGPS] extractGpsCrossPlatform: Bitte nutze pickFilesNative() für GPS');
-      return null; // File-Objekte haben keine content:// URI
-    } catch {
-      return null;
-    }
-  }
-
+  if (existingGps) return existingGps;
   return null;
 }
