@@ -23,7 +23,7 @@ import { RemotionVideoBlock } from "@/components/RemotionVideoBlock";
 import { Progress } from "@/components/ui/progress";
 import { Upload, UploadCloud, ImageIcon, Video, Music, File as FileIcon, Camera, MapPin, Calendar, Tag, Battery, Sun, Wrench, Hammer, Cpu, Mountain, Lightbulb, Dog, Trees, Droplets, Waves, Eye, Loader2, CheckCircle, Route, Sparkles, FileText, MessageSquare, Map } from "@/lib/icons";
 import { extractGpsFromImage, formatCoordinatesSimple, reverseGeocode, mapCountryCode, type GpsData, type GpsStatus, type LocationData } from "@/lib/gpsExtraction";
-import { extractGpsCrossPlatform, getCurrentPosition, positionToGpsData, isCapacitorNative } from "@/lib/capacitorGps";
+import { extractGpsCrossPlatform, getCurrentPosition, positionToGpsData, isCapacitorNative, pickFilesNative } from "@/lib/capacitorGps";
 import { createCorrectedPreview, mediaTypes, mainCategories, subCategories, type MediaFile, type UploadProgress } from "./publishUtils";
 import exifr from "exifr";
 
@@ -410,6 +410,76 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
     }
 
     setFiles(prev => [...prev, ...newFiles]);
+  };
+
+  /**
+   * handleNativePick – Capacitor Native Dateipicker
+   *
+   * Nutzt @capawesome/capacitor-file-picker + @capacitor-community/exif
+   * um native content:// URIs zu erhalten und GPS direkt zu lesen.
+   * Nur verfügbar wenn die App als APK läuft (Capacitor WebView).
+   */
+  const handleNativePick = async () => {
+    try {
+      const pickedFiles = await pickFilesNative({ multiple: true });
+      if (pickedFiles.length === 0) return;
+
+      const newFiles: MediaFile[] = [];
+
+      for (const picked of pickedFiles) {
+        let preview: string | undefined;
+        try {
+          preview = URL.createObjectURL(picked.file);
+        } catch {
+          // fallback: kein preview
+        }
+
+        const newFile: MediaFile = {
+          id: Math.random().toString(36).substr(2, 9),
+          file: picked.file,
+          name: picked.name,
+          type: picked.mimeType.startsWith('image/') ? 'image' : 'document',
+          size: picked.size,
+          preview,
+          gps: picked.gps,
+          gpsStatus: picked.gpsStatus,
+          sortDate: Date.now(),
+        };
+
+        newFiles.push(newFile);
+      }
+
+      // GPS-Geocoding für erstes Bild mit GPS
+      const firstGps = newFiles.find(f => f.gps && f.gpsStatus === 'detected');
+      if (firstGps && firstGps.gps && !location) {
+        try {
+          const locData = await reverseGeocode(firstGps.gps.latitude, firstGps.gps.longitude);
+          if (locData) {
+            const parts = [locData.city, locData.neighbourhood, locData.suburb].filter(Boolean);
+            setLocation(parts.join(', '));
+            const country = mapCountryCode(locData);
+            if (country) setSelectedCountry(country);
+          }
+        } catch { /* silent */ }
+      }
+
+      setFiles(prev => [...prev, ...newFiles]);
+
+      toast({
+        title: `${newFiles.length} Datei(en) ausgewählt`,
+        description: firstGps?.gps
+          ? `📍 GPS automatisch erkannt`
+          : '📍 Kein GPS in den Bildern gefunden',
+      });
+
+    } catch (error) {
+      console.error('[NativePick] Fehler:', error);
+      toast({
+        title: 'Fehler',
+        description: 'Dateiauswahl fehlgeschlagen.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -811,6 +881,23 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
                 Dateien auswaehlen
               </label>
             </Button>
+
+            {/* Capacitor Native Galerie-Button (nur im APK sichtbar) */}
+            {isCapacitorNative() && (
+              <div className="mt-3">
+                <Button
+                  onClick={handleNativePick}
+                  variant="outline"
+                  className="gap-2"
+                >
+                  <Camera className="h-4 w-4" />
+                  📱 Galerie öffnen (Android)
+                </Button>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Nutzt nativen Dateipicker mit GPS-EXIF-Unterstützung
+                </p>
+              </div>
+            )}
           </div>
         </CardContent>
        </Card>

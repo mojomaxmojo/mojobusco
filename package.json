@@ -63,7 +63,6 @@
     "@tanstack/react-query": "^5.56.2",
     "@capacitor-community/exif": "^8.0.0",
     "@capacitor/core": "^8.0.0",
-    "@capacitor/filesystem": "^8.0.0",
     "@capacitor/geolocation": "^8.0.0",
     "@capawesome/capacitor-file-picker": "^8.0.2",
     "@types/leaflet": "^1.9.20",
