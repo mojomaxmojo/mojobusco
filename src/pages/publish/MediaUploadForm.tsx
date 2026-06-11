@@ -898,20 +898,20 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
               id="file-upload"
             />
             <div className="flex flex-row gap-2 justify-center">
-              <Button asChild variant="outline" className="text-sm max-sm:text-xs max-sm:h-9 max-sm:px-2 whitespace-nowrap">
-                <label htmlFor="file-upload" className="cursor-pointer">
-                  <Camera className="h-4 w-4 max-sm:h-3 max-sm:w-3 mr-1" />
-                  <span className="max-sm:hidden">Dateien </span>auswaehlen
+              <Button asChild variant="outline" className="max-sm:flex-col max-sm:aspect-square max-sm:h-20 max-sm:w-20 max-sm:p-1 max-sm:gap-0.5 text-sm max-sm:text-[10px]">
+                <label htmlFor="file-upload" className="cursor-pointer flex items-center gap-1 max-sm:flex-col max-sm:gap-0.5">
+                  <Camera className="h-4 w-4 max-sm:h-5 max-sm:w-5 shrink-0" />
+                  <span>Auswahl</span>
                 </label>
               </Button>
 
               <Button
                 onClick={handleNativePick}
                 variant="outline"
-                className="gap-1 text-sm max-sm:text-xs max-sm:h-9 max-sm:px-2 whitespace-nowrap"
+                className="flex items-center gap-1 max-sm:flex-col max-sm:aspect-square max-sm:h-20 max-sm:w-20 max-sm:p-1 max-sm:gap-0.5 text-sm max-sm:text-[10px]"
               >
-                <Camera className="h-4 w-4 max-sm:h-3 max-sm:w-3" />
-                📱 Bilder GPS
+                <Camera className="h-4 w-4 max-sm:h-5 max-sm:w-5 shrink-0" />
+                <span>Bilder GPS</span>
               </Button>
 
               {nativePickStatus && (
