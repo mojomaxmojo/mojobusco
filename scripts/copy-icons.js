@@ -1,13 +1,14 @@
 /**
- * Kopiert PWA-Icons aus public/ in Android Resource-Ordner für die APK.
+ * Kopiert Icons aus public/ in Android Resource-Ordner für die APK.
  *
- * Mapping: public/icon-{size}x{size}.png → android/.../mipmap-{density}/ic_launcher.png
+ * Löscht ALLE alten Icons (auch adaptive XML) vorher, damit kein
+ * blaues Capacitor-Default-Icon übrig bleibt.
  *
  * Aufruf: node scripts/copy-icons.js
  * (Wird automatisch im apk-Befehl nach npx cap sync android ausgeführt)
  */
 
-import { copyFileSync, existsSync, mkdirSync } from 'fs';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, unlinkSync, rmSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -37,14 +38,38 @@ function copyIcons() {
     process.exit(1);
   }
 
+  // ================================================================
+  // 1. ALLE alten Icons in ALLEN mipmap-Ordnern löschen
+  // ================================================================
+  let deleted = 0;
+  const mipmapDirs = readdirSync(androidResDir).filter(d => d.startsWith('mipmap-'));
+  for (const mipDir of mipmapDirs) {
+    const fullPath = join(androidResDir, mipDir);
+    const files = readdirSync(fullPath);
+    for (const file of files) {
+      if (file.startsWith('ic_launcher')) {
+        unlinkSync(join(fullPath, file));
+        deleted++;
+      }
+    }
+  }
+  if (deleted > 0) console.log(`  🗑️ ${deleted} alte Icon-Dateien gelöscht`);
+
+  // ================================================================
+  // 2. Neue Icons aus public/ in Android mipmap-Ordner kopieren
+  // ================================================================
   let copied = 0;
+  let warned = false;
 
   for (const [sizeStr, density] of Object.entries(SIZE_TO_DENSITY)) {
     const size = parseInt(sizeStr);
     const srcFile = join(publicDir, `icon-${size}x${size}.png`);
 
     if (!existsSync(srcFile)) {
-      console.warn(`  ⚠️ ${srcFile} nicht gefunden, überspringe`);
+      if (!warned) {
+        console.warn(`  ⚠️ ${srcFile} nicht gefunden – überspringe`);
+        warned = true;
+      }
       continue;
     }
 
@@ -67,7 +92,7 @@ function copyIcons() {
   if (copied > 0) {
     console.log(`\n✅ ${copied} Icon(s) kopiert nach ${androidResDir}`);
   } else {
-    console.log('\n⚠️ Keine Icons kopiert. Prüfe ob public/icon-*.png existiert.');
+    console.log('\n⚠️ Keine Icons gefunden. Prüfe ob public/icon-192x192.png existiert.');
   }
 }
 
