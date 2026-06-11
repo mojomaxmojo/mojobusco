@@ -897,8 +897,8 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
               className="hidden"
               id="file-upload"
             />
-            <div className="flex flex-col gap-2">
-              <Button asChild variant="outline" className="w-full">
+            <div className="flex flex-row flex-wrap gap-2 justify-center">
+              <Button asChild variant="outline">
                 <label htmlFor="file-upload" className="cursor-pointer">
                   <Camera className="h-4 w-4 mr-2" />
                   Dateien auswaehlen
@@ -908,14 +908,14 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
               <Button
                 onClick={handleNativePick}
                 variant="outline"
-                className="gap-2 w-full"
+                className="gap-2"
               >
                 <Camera className="h-4 w-4" />
-                📱 Galerie öffnen (Android)
+                📱 Bilder GPS
               </Button>
 
               {nativePickStatus && (
-                <div className="text-xs bg-muted/50 rounded p-2 border text-center">
+                <div className="w-full text-xs bg-muted/50 rounded p-2 border text-center">
                   {nativePickStatus}
                 </div>
               )}
