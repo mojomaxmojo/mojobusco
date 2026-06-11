@@ -11,6 +11,7 @@
     "analyze": "node scripts/analyze-bundle.mjs",
     "test": "npm run build && vitest run",
     "deploy": "npm run build && npx -y nostr-deploy-cli deploy --skip-setup",
+    "cap:android": "node scripts/patch-android-manifest.js",
     "clean": "rm -rf dist .build-cache.json .assets-cache.json",
     "cache:clear": "npm run clean"
   },
