@@ -83,23 +83,43 @@ export async function extractGpsNativeExif(file: File): Promise<GpsData | null> 
     tempFilePath = `gps-temp-${Date.now()}-${safeName}`;
 
     if (CapacitorFilesystem) {
+      // 1. File in Cache schreiben
       await CapacitorFilesystem.writeFile({
         path: tempFilePath,
         data: base64,
-        directory: 'CACHE', // Directory.Cache
+        directory: 'CACHE',
       });
+      console.log('[CapacitorGPS] ✓ Temp-Datei geschrieben:', tempFilePath);
 
-      // Den Cache-Pfad an das EXIF Plugin übergeben
+      // 2. Echten Datei-URI vom Filesystem-Plugin holen (file:///data/...)
+      //    Wichtig: Android's ExifInterface + @capacitor-community/exif
+      //    brauchen einen validen content:// oder file:// URI – kein relativer Pfad!
+      let nativeUri: string;
+      try {
+        const uriResult = await CapacitorFilesystem.getUri({
+          path: tempFilePath,
+          directory: 'CACHE',
+        });
+        nativeUri = uriResult?.uri || tempFilePath;
+        console.log('[CapacitorGPS] Native URI:', nativeUri);
+      } catch (uriErr) {
+        console.warn('[CapacitorGPS] getUri fehlgeschlagen, verwende Fallback:', uriErr);
+        nativeUri = tempFilePath;
+      }
+
+      // 3. EXIF via nativem Plugin lesen (mit vollem file:// Pfad)
+      console.log('[CapacitorGPS] Rufe Exif.getExifData auf mit URI:', nativeUri);
       const result = await CapacitorExif.getExifData({
-        uri: tempFilePath, // Filesystem verwendet standardmäßig Cache-Dir
+        uri: nativeUri,
       });
 
-      // Temp-Datei löschen
+      // 4. Temp-Datei löschen
       try {
         await CapacitorFilesystem.deleteFile({
           path: tempFilePath,
           directory: 'CACHE',
         });
+        console.log('[CapacitorGPS] ✓ Temp-Datei gelöscht');
       } catch (cleanupErr) {
         console.warn('[CapacitorGPS] Temp-Datei konnte nicht gelöscht werden:', cleanupErr);
       }
