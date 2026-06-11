@@ -23,7 +23,7 @@ import { RemotionVideoBlock } from "@/components/RemotionVideoBlock";
 import { Progress } from "@/components/ui/progress";
 import { Upload, UploadCloud, ImageIcon, Video, Music, File as FileIcon, Camera, MapPin, Calendar, Tag, Battery, Sun, Wrench, Hammer, Cpu, Mountain, Lightbulb, Dog, Trees, Droplets, Waves, Eye, Loader2, CheckCircle, Route, Sparkles, FileText, MessageSquare, Map } from "@/lib/icons";
 import { extractGpsFromImage, formatCoordinatesSimple, reverseGeocode, mapCountryCode, type GpsData, type GpsStatus, type LocationData } from "@/lib/gpsExtraction";
-import { extractGpsCrossPlatform, getCurrentPosition, positionToGpsData, isCapacitorNative, pickFilesNative, pickFromCamera } from "@/lib/capacitorGps";
+import { extractGpsCrossPlatform, getCurrentPosition, positionToGpsData, isCapacitorNative, pickFilesNative } from "@/lib/capacitorGps";
 import { createCorrectedPreview, mediaTypes, mainCategories, subCategories, type MediaFile, type UploadProgress } from "./publishUtils";
 import exifr from "exifr";
 
@@ -504,64 +504,6 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
     }
   };
 
-  /** Kamera-Foto aufnehmen + GPS extrahieren */
-  const handleCameraPick = async () => {
-    try {
-      setNativePickStatus('📸 Öffne Kamera...');
-      const cameraFiles = await pickFromCamera();
-      if (cameraFiles.length === 0) {
-        setNativePickStatus('❌ Kein Foto aufgenommen');
-        return;
-      }
-
-      const cf = cameraFiles[0];
-      if (!cf.file || cf.file.size === 0) {
-        setNativePickStatus('❌ Foto konnte nicht geladen werden');
-        return;
-      }
-
-      let preview: string | undefined;
-      try {
-        preview = URL.createObjectURL(cf.file);
-      } catch { /* silent */ }
-
-      const newFile: MediaFile = {
-        id: Math.random().toString(36).substr(2, 9),
-        file: cf.file,
-        name: cf.name,
-        type: 'image',
-        size: cf.file.size,
-        preview,
-        gps: cf.gps,
-        gpsStatus: cf.gpsStatus,
-        sortDate: Date.now(),
-      };
-
-      setFiles(prev => [...prev, newFile]);
-
-      if (cf.gps && !location) {
-        try {
-          const locData = await reverseGeocode(cf.gps.latitude, cf.gps.longitude);
-          if (locData) {
-            const parts = [locData.city, locData.neighbourhood, locData.suburb].filter(Boolean);
-            setLocation(parts.join(', '));
-            const country = mapCountryCode(locData);
-            if (country) setSelectedCountry(country);
-          }
-        } catch { /* silent */ }
-      }
-
-      const sizeTxt = (cf.file.size / 1024).toFixed(0);
-      const gpsTxt = cf.gps
-        ? `📍 EXIF-GPS: ${cf.gps.latitude.toFixed(4)}, ${cf.gps.longitude.toFixed(4)}`
-        : '📍 Kein GPS';
-      setNativePickStatus(`✅ ${cf.name} (${sizeTxt} KB) | ${preview ? '🖼️ OK' : '⚠️ keine Vorschau'} | ${gpsTxt}`);
-    } catch (error) {
-      console.error('[CameraPick] Error:', error);
-      setNativePickStatus('❌ Kamera-Fehler: ' + String(error).slice(0, 100));
-    }
-  };
-
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
@@ -970,15 +912,6 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
               >
                 <Camera className="h-4 w-4 max-sm:h-5 max-sm:w-5 shrink-0" />
                 <span>Bilder GPS</span>
-              </Button>
-
-              <Button
-                onClick={handleCameraPick}
-                variant="outline"
-                className="flex items-center gap-1 max-sm:flex-col max-sm:aspect-square max-sm:h-24 max-sm:w-24 max-sm:p-1 max-sm:gap-0.5 text-sm max-sm:text-[10px]"
-              >
-                <Camera className="h-4 w-4 max-sm:h-5 max-sm:w-5 shrink-0" />
-                <span>Kamera</span>
               </Button>
 
               {nativePickStatus && (
