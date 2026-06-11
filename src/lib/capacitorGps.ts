@@ -22,11 +22,29 @@ import type { GpsData } from './gpsExtraction';
 
 /**
  * Prüft ob die App im Capacitor Native WebView läuft
+ *
+ * Mehrere Erkennungsmethoden für verschiedene Capacitor-Versionen:
+ * 1. window.Capacitor.isNative (Capacitor 3+)
+ * 2. window.__Capacitor (Capacitor 8+)
+ * 3. document.querySelector('capacitor') (Capacitor 8+)
  */
 export function isCapacitorNative(): boolean {
   try {
+    // Methode 1: Standard Capacitor API
     const cap = (window as any).Capacitor;
-    return !!(cap && cap.isNative);
+    if (cap && cap.isNative) return true;
+
+    // Methode 2: Capacitor 8+
+    const cap8 = (window as any).__Capacitor;
+    if (cap8 && cap8.isNative) return true;
+
+    // Methode 3: Capacitor platform
+    if (cap && cap.getPlatform) {
+      const platform = cap.getPlatform();
+      if (platform === 'android') return true;
+    }
+
+    return false;
   } catch {
     return false;
   }

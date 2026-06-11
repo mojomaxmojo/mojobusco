@@ -882,22 +882,22 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
               </label>
             </Button>
 
-            {/* Capacitor Native Galerie-Button (nur im APK sichtbar) */}
-            {isCapacitorNative() && (
-              <div className="mt-3">
-                <Button
-                  onClick={handleNativePick}
-                  variant="outline"
-                  className="gap-2"
-                >
-                  <Camera className="h-4 w-4" />
-                  📱 Galerie öffnen (Android)
-                </Button>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Nutzt nativen Dateipicker mit GPS-EXIF-Unterstützung
-                </p>
-              </div>
-            )}
+            {/* Capacitor Native Galerie-Button (immer sichtbar, funktioniert nur im APK) */}
+            <div className="mt-4 pt-4 border-t border-dashed border-gray-300 dark:border-gray-600">
+              <Button
+                onClick={handleNativePick}
+                variant="outline"
+                className="gap-2 w-full"
+              >
+                <Camera className="h-4 w-4" />
+                {isCapacitorNative() ? '📱 Galerie öffnen (Android)' : '📱 Galerie (nur Android APK)'}
+              </Button>
+              <p className="text-xs text-muted-foreground mt-1">
+                {isCapacitorNative()
+                  ? 'Nutzt nativen Dateipicker mit GPS-EXIF-Unterstützung'
+                  : 'Nicht verfügbar im Browser – bitte Android APK verwenden'}
+              </p>
+            </div>
           </div>
         </CardContent>
        </Card>
