@@ -50,7 +50,6 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0, stage: '', status: '' });
   // Status-Text für nativen Dateipicker (sichtbar im UI, keine Toasts)
   const [nativePickStatus, setNativePickStatus] = useState<string | null>(null);
-  const [isGettingLocation, setIsGettingLocation] = useState(false);
   // Video-URL der fertigen Slideshow (wird automatisch in Beschreibung eingefügt)
   const [slideshowVideoUrl, setSlideshowVideoUrl] = useState<string | null>(null);
   const { toast } = useToast();
@@ -505,40 +504,6 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
     }
   };
 
-  /** Extra-Button: Standort vom Gerät holen (auch ohne Bild) */
-  const handleGetLocation = async () => {
-    setIsGettingLocation(true);
-    try {
-      const pos = await getCurrentPosition();
-      if (pos) {
-        const gps: GpsData = { latitude: pos.latitude, longitude: pos.longitude, precision: 'medium' };
-        // Suche erstes Bild ohne GPS und weise GPS zu
-        setFiles(prev => {
-          const updated = [...prev];
-          const firstWithoutGps = updated.findIndex(f => !f.gps);
-          if (firstWithoutGps >= 0) {
-            updated[firstWithoutGps] = { ...updated[firstWithoutGps], gps, gpsStatus: 'geolocation' };
-          }
-          return updated;
-        });
-        const locData = await reverseGeocode(pos.latitude, pos.longitude);
-        if (locData && !location) {
-          const parts = [locData.city, locData.neighbourhood, locData.suburb].filter(Boolean);
-          setLocation(parts.join(', '));
-          const country = mapCountryCode(locData);
-          if (country) setSelectedCountry(country);
-        }
-        setNativePickStatus(`📍 Geräte-GPS: ${pos.latitude.toFixed(4)}, ${pos.longitude.toFixed(4)}`);
-      } else {
-        setNativePickStatus('📍 Kein Standort – GPS auf dem Gerät aktivieren?');
-      }
-    } catch {
-      setNativePickStatus('📍 Standortabfrage fehlgeschlagen');
-    } finally {
-      setIsGettingLocation(false);
-    }
-  };
-
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
@@ -932,15 +897,14 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
               className="hidden"
               id="file-upload"
             />
-            <Button asChild>
-              <label htmlFor="file-upload" className="cursor-pointer px-3 py-1">
-                <Camera className="h-4 w-4 mr-2" />
-                Dateien auswaehlen
-              </label>
-            </Button>
+            <div className="flex flex-col gap-2">
+              <Button asChild variant="outline" className="w-full">
+                <label htmlFor="file-upload" className="cursor-pointer">
+                  <Camera className="h-4 w-4 mr-2" />
+                  Dateien auswaehlen
+                </label>
+              </Button>
 
-            {/* Capacitor Native Galerie-Button + Standort */}
-            <div className="mt-4 pt-4 border-t border-dashed border-gray-300 dark:border-gray-600 space-y-2">
               <Button
                 onClick={handleNativePick}
                 variant="outline"
@@ -950,27 +914,11 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
                 📱 Galerie öffnen (Android)
               </Button>
 
-              {/* Status-Text (sichtbar im UI, keine Toasts) */}
               {nativePickStatus && (
                 <div className="text-xs bg-muted/50 rounded p-2 border text-center">
                   {nativePickStatus}
                 </div>
               )}
-
-              {/* Extra Geolocation-Button */}
-              <Button
-                onClick={handleGetLocation}
-                variant="ghost"
-                size="sm"
-                className="gap-1 w-full text-xs h-8"
-                disabled={isGettingLocation}
-              >
-                {isGettingLocation ? '📍 Standort wird ermittelt...' : '📍 Standort jetzt erfassen'}
-              </Button>
-
-              <p className="text-xs text-muted-foreground text-center">
-                GPS via Geräte-Standort wenn EXIF leer
-              </p>
             </div>
           </div>
         </CardContent>
