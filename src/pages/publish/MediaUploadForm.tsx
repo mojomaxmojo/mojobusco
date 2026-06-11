@@ -427,11 +427,15 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
       const newFiles: MediaFile[] = [];
 
       for (const picked of pickedFiles) {
-        let preview: string | undefined;
-        try {
-          preview = URL.createObjectURL(picked.file);
-        } catch {
-          // fallback: kein preview
+        // Preview via data: URI (base64 direkt vom FilePicker – zuverlässiger
+        // als URL.createObjectURL auf einem künstlich erzeugten File-Objekt)
+        let preview: string | undefined = picked.dataUri;
+        if (!preview) {
+          try {
+            preview = URL.createObjectURL(picked.file);
+          } catch {
+            // fallback: kein preview
+          }
         }
 
         const newFile: MediaFile = {
