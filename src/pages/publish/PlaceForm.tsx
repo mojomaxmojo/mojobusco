@@ -32,6 +32,7 @@ import { SlideshowBlock } from "@/components/SlideshowBlock";
 import { Progress } from "@/components/ui/progress";
 import { Upload, UploadCloud, ImageIcon, Video, Music, File as FileIcon, Camera, MapPin, Calendar, Tag, Battery, Sun, Wrench, Hammer, Cpu, Mountain, Lightbulb, Dog, Trees, Droplets, Waves, Eye, Loader2, CheckCircle, Route, Sparkles, FileText, MessageSquare, Map } from "@/lib/icons";
 import { extractGpsFromImage, formatCoordinatesSimple, reverseGeocode, mapCountryCode, type GpsData, type GpsStatus, type LocationData } from "@/lib/gpsExtraction";
+import { extractGpsCrossPlatform, getCurrentPosition, positionToGpsData, isCapacitorNative } from "@/lib/capacitorGps";
 import exifr from "exifr";
 
 export function PlaceForm({ editEvent }: { editEvent?: any }) {
@@ -443,8 +444,17 @@ export function PlaceForm({ editEvent }: { editEvent?: any }) {
           setImageGpsStatus('detected');
           console.log(`[Place GPS] Extracted from ${file.name}:`, gpsData);
         } else {
-          setImageGps(null);
-          setImageGpsStatus('not_found');
+          // Fallback: Capacitor Native EXIF (umgeht Browser-Strip im APK)
+          console.log(`[Place GPS] exifr keine GPS, versuche Capacitor native EXIF für ${file.name}...`);
+          const nativeGps = await extractGpsCrossPlatform(file, null);
+          if (nativeGps) {
+            setImageGps(nativeGps);
+            setImageGpsStatus('detected');
+            console.log(`[Place GPS] ✓ Native EXIF GPS für ${file.name}:`, nativeGps);
+          } else {
+            setImageGps(null);
+            setImageGpsStatus('not_found');
+          }
         }
       } catch (error) {
         console.error(`[Place GPS] Failed to extract from ${file.name}:`, error);

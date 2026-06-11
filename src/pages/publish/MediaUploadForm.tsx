@@ -23,6 +23,7 @@ import { RemotionVideoBlock } from "@/components/RemotionVideoBlock";
 import { Progress } from "@/components/ui/progress";
 import { Upload, UploadCloud, ImageIcon, Video, Music, File as FileIcon, Camera, MapPin, Calendar, Tag, Battery, Sun, Wrench, Hammer, Cpu, Mountain, Lightbulb, Dog, Trees, Droplets, Waves, Eye, Loader2, CheckCircle, Route, Sparkles, FileText, MessageSquare, Map } from "@/lib/icons";
 import { extractGpsFromImage, formatCoordinatesSimple, reverseGeocode, mapCountryCode, type GpsData, type GpsStatus, type LocationData } from "@/lib/gpsExtraction";
+import { extractGpsCrossPlatform, getCurrentPosition, positionToGpsData, isCapacitorNative } from "@/lib/capacitorGps";
 import { createCorrectedPreview, mediaTypes, mainCategories, subCategories, type MediaFile, type UploadProgress } from "./publishUtils";
 import exifr from "exifr";
 
@@ -338,11 +339,21 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
       // Extract GPS from images only
       if (mediaType === 'image') {
         try {
+          // 1. exifr.js (funktioniert auf Desktop-Browsern)
           const gpsData = await extractGpsFromImage(file);
           if (gpsData) {
             newFile.gps = gpsData;
             newFile.gpsStatus = 'detected';
             console.log(`[GPS] Extracted from ${file.name}:`, gpsData);
+          } else if (isCapacitorNative()) {
+            // 2. Capacitor Native EXIF (umgeht Browser-Strip auf Mobil)
+            console.log(`[GPS] exifr keine GPS, versuche Capacitor native EXIF für ${file.name}...`);
+            const nativeGps = await extractGpsCrossPlatform(file, null);
+            if (nativeGps) {
+              newFile.gps = nativeGps;
+              newFile.gpsStatus = 'detected';
+              console.log(`[GPS] ✓ Native EXIF GPS für ${file.name}:`, nativeGps);
+            }
           }
         } catch (error) {
           console.error(`[GPS] Failed to extract from ${file.name}:`, error);
@@ -356,6 +367,47 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
     // Sortierung: älteste zuerst (kleinster Timestamp zuerst)
     newFiles.sort((a, b) => (a.sortDate ?? 0) - (b.sortDate ?? 0));
     console.log('[Sort] Bilder sortiert nach Aufnahmedatum (älteste zuerst):', newFiles.map(f => `${f.name} (${new Date(f.sortDate ?? 0).toLocaleString()})`));
+
+    // 3. Geolocation-Fallback für Bilder ohne GPS (alle Plattformen)
+    const imagesWithoutGps = newFiles.filter(f => f.type === 'image' && (!f.gps || f.gpsStatus === 'not_found'));
+    if (imagesWithoutGps.length > 0) {
+      console.log(`[GPS] ${imagesWithoutGps.length} Bilder ohne GPS – versuche Geräte-Standort...`);
+      try {
+        const position = await getCurrentPosition();
+        if (position) {
+          const gpsData = positionToGpsData(position);
+          console.log(`[GPS] ✓ Standort bezogen, wende auf ${imagesWithoutGps.length} Bilder an:`, gpsData);
+          imagesWithoutGps.forEach(f => {
+            f.gps = { ...gpsData };
+            f.gpsStatus = 'detected';
+          });
+        } else {
+          console.log('[GPS] Kein Standort verfügbar (abgelehnt oder nicht unterstützt)');
+        }
+      } catch (geoError) {
+        console.warn('[GPS] Geolocation-Fallback fehlgeschlagen:', geoError);
+      }
+    }
+
+    // Auto-fill location from first GPS-detected image
+    const firstGpsImage = newFiles.find(f => f.type === 'image' && f.gps && f.gpsStatus === 'detected');
+    if (firstGpsImage && !location) {
+      try {
+        const locationData = await reverseGeocode(firstGpsImage.gps.latitude, firstGpsImage.gps.longitude);
+        if (locationData) {
+          const locationParts = [locationData.city, locationData.neighbourhood, locationData.suburb].filter(Boolean);
+          const loc = locationParts.join(', ');
+          setLocation(loc);
+          console.log('[GPS] Location from GPS image:', loc);
+          const country = mapCountryCode(locationData);
+          if (country && !selectedCountry) {
+            setSelectedCountry(country);
+          }
+        }
+      } catch (err) {
+        console.warn('[GPS] Reverse geocoding for auto-location failed:', err);
+      }
+    }
 
     setFiles(prev => [...prev, ...newFiles]);
   };
