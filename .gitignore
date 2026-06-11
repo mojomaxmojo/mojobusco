@@ -30,3 +30,8 @@ dist-ssr
 .env.*
 !.env.example
 id_ed25519-git.pub*
+
+# Capacitor / Android (generiert von npx cap add android)
+android/
+*.apk
+*.aab

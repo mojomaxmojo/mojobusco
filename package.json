@@ -12,6 +12,7 @@
     "test": "npm run build && vitest run",
     "deploy": "npm run build && npx -y nostr-deploy-cli deploy --skip-setup",
     "cap:android": "node scripts/patch-android-manifest.js",
+    "apk": "npm run build && npx cap sync android && npm run cap:android && cd android && ./gradlew assembleDebug",
     "clean": "rm -rf dist .build-cache.json .assets-cache.json",
     "cache:clear": "npm run clean"
   },
@@ -204,6 +205,8 @@
     "util": "^0.12.5",
     "vite": "^6.3.5",
     "vite-plugin-node-polyfills": "^0.25.0",
-    "vitest": "^3.1.4"
+    "vitest": "^3.1.4",
+    "@capacitor/cli": "^8.0.0",
+    "@capacitor/android": "^8.0.0"
   }
 }
