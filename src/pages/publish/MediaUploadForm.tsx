@@ -22,10 +22,9 @@ import { TRIP_TYPES, type TripType } from "@/config/tags";
 import { RemotionVideoBlock } from "@/components/RemotionVideoBlock";
 import { Progress } from "@/components/ui/progress";
 import { Upload, UploadCloud, ImageIcon, Video, Music, File as FileIcon, Camera, MapPin, Calendar, Tag, Battery, Sun, Wrench, Hammer, Cpu, Mountain, Lightbulb, Dog, Trees, Droplets, Waves, Eye, Loader2, CheckCircle, Route, Sparkles, FileText, MessageSquare, Map } from "@/lib/icons";
-import { extractGpsFromImage, extractGpsFromPath, formatCoordinatesSimple, reverseGeocode, mapCountryCode, type GpsData, type GpsStatus, type LocationData } from "@/lib/gpsExtraction";
+import { extractGpsFromImage, formatCoordinatesSimple, reverseGeocode, mapCountryCode, type GpsData, type GpsStatus, type LocationData } from "@/lib/gpsExtraction";
 import { createCorrectedPreview, mediaTypes, mainCategories, subCategories, type MediaFile, type UploadProgress } from "./publishUtils";
 import exifr from "exifr";
-import { Capacitor } from '@capacitor/core';
 
 export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
   const [files, setFiles] = useState<MediaFile[]>([]);
@@ -55,9 +54,6 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
   const { mutateAsync: publishEvent } = useNostrPublish();
   const { gender } = useCurrentUser(); // Gender für KI-Generierung (Mojo=male, Susanne=female)
   const navigate = useNavigate();
-
-  // Capacitor native platform detection
-  const isNative = Capacitor.isNativePlatform();
 
   // Wird von SlideshowBlock aufgerufen sobald das Video auf Blossom fertig ist
   const handleSlideshowVideoReady = (videoUrl: string) => {
@@ -362,94 +358,6 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
     console.log('[Sort] Bilder sortiert nach Aufnahmedatum (älteste zuerst):', newFiles.map(f => `${f.name} (${new Date(f.sortDate ?? 0).toLocaleString()})`));
 
     setFiles(prev => [...prev, ...newFiles]);
-  };
-
-  // ── Capacitor Native File Picker (GPS-fähig) ────────────────────────────
-  const handleNativeFilePick = async () => {
-    try {
-      // Dynamische Imports – nur in Capacitor-Umgebung
-      const { FilePicker } = await import('@capawesome/capacitor-file-picker');
-      const { Exif } = await import('@capacitor-community/exif');
-
-      // ACCESS_MEDIA_LOCATION Permission zur Laufzeit anfordern
-      const permResult = await FilePicker.requestPermissions();
-      console.log('[Native FilePicker] Permission result:', permResult);
-
-      // Bilder aus der Galerie auswählen
-      const result = await FilePicker.pickImages({
-        multiple: true,
-        readData: false,
-      });
-
-      if (!result.files?.length) return;
-
-      const newFiles: MediaFile[] = [];
-      for (const file of result.files) {
-        const nativePath = file.path ?? file.uri ?? '';
-        const name = file.name || nativePath.split('/').pop() || 'image.jpg';
-
-        // Preview via URL.createObjectURL (Fallback: thumbnails nicht verfügbar)
-        let preview: string | undefined;
-        try {
-          preview = Capacitor.convertFileSrc(nativePath);
-        } catch {
-          preview = undefined;
-        }
-
-        const newFile: MediaFile = {
-          id: Math.random().toString(36).substr(2, 9),
-          file: new File([], name), // Platzhalter – echtes File wird später via Upload-Hook geholt
-          name,
-          type: 'image',
-          size: 0,
-          preview,
-          gpsStatus: 'not_found',
-          sortDate: Date.now(),
-          nativePath, // Wichtig für späteren Upload + EXIF-GPS
-        };
-
-        // GPS via nativem Exif-Plugin lesen (funktioniert auch wenn Android Photo Picker redacted)
-        try {
-          const gpsData = await Exif.getCoordinates({ pathToImage: nativePath });
-          if (gpsData && gpsData.lat && gpsData.lng && (gpsData.lat !== 0 || gpsData.lng !== 0)) {
-            newFile.gps = {
-              latitude: gpsData.lat,
-              longitude: gpsData.lng,
-              precision: 'high',
-            };
-            newFile.gpsStatus = 'detected';
-            console.log(`[Native GPS] ✓ GPS from ${name}:`, newFile.gps);
-          } else {
-            // Fallback: exifr auf Datei versuchen
-            try {
-              const gpsFromExifr = await extractGpsFromImage(new File([], name));
-              if (gpsFromExifr) {
-                newFile.gps = gpsFromExifr;
-                newFile.gpsStatus = 'detected';
-              }
-            } catch {}
-          }
-        } catch (gpsErr) {
-          console.warn(`[Native GPS] Exif plugin failed for ${name}:`, gpsErr);
-          newFile.gpsStatus = 'error';
-        }
-
-        newFiles.push(newFile);
-      }
-
-      setFiles(prev => [...prev, ...newFiles]);
-      toast({
-        title: 'Bilder hinzugefügt',
-        description: `${newFiles.length} Bild${newFiles.length !== 1 ? 'er' : ''} mit GPS-Unterstützung`,
-      });
-    } catch (error) {
-      console.error('[Native FilePicker] Error:', error);
-      toast({
-        title: 'Fehler bei Bildauswahl',
-        description: String(error),
-        variant: 'destructive',
-      });
-    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -851,17 +759,6 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
                 Dateien auswaehlen
               </label>
             </Button>
-            {isNative && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleNativeFilePick}
-                className="ml-2 px-3 py-1"
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                📱 Galerie (mit GPS)
-              </Button>
-            )}
           </div>
         </CardContent>
        </Card>
