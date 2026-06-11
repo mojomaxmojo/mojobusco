@@ -326,18 +326,21 @@ export async function pickFromCamera(): Promise<CapacitorPickedFile[]> {
 
   const Camera = (window as any).Capacitor?.Plugins?.Camera;
   if (!Camera) {
-    console.error('[CapacitorGPS] Camera Plugin nicht gefunden. Installieren: npm install @capacitor/camera@latest');
+    console.error('[CapacitorGPS] Camera Plugin nicht gefunden.');
+    console.error('  → Auf CachyOS: npm install @capacitor/camera@latest && npx cap sync android');
     return [];
   }
 
   try {
     console.log('[CapacitorGPS] Öffne Kamera...');
+    console.log('[CapacitorGPS] Camera.getPhoto({ source: Camera, resultType: Uri })');
     const photo = await Camera.getPhoto({
       resultType: 'Uri',
       source: 'Camera',
       quality: 90,
       saveToGallery: false,
     });
+    console.log('[CapacitorGPS] Kamera-Ergebnis:', JSON.stringify({ path: !!photo?.path, webPath: !!photo?.webPath, format: photo?.format }));
 
     if (!photo?.path && !photo?.webPath) {
       console.warn('[CapacitorGPS] Kein Foto von Kamera');

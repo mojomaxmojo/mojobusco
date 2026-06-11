@@ -26,6 +26,9 @@ const REQUIRED_PERMISSIONS = [
 
   // Medienzugriff (Android 13+)
   '<uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />',
+
+  // Kamera-Zugriff (für direkten Kamerazugriff via @capacitor/camera)
+  '<uses-permission android:name="android.permission.CAMERA" />',
 ];
 
 function patchManifest() {
