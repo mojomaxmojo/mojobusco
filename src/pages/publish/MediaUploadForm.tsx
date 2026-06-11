@@ -881,10 +881,10 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div
-            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-              isDragging ? 'border-ocean-500 bg-ocean-50' : 'border-gray-300 dark:border-gray-600'
-            }`}
+<div
+ className={`border-2 border-dashed rounded-lg text-center transition-colors p-8 max-sm:p-2 ${
+   isDragging ? 'border-ocean-500 bg-ocean-50' : 'border-gray-300 dark:border-gray-600'
+ }`}
             onDrop={handleDrop}
             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
             onDragLeave={() => setIsDragging(false)}
@@ -898,7 +898,7 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
               id="file-upload"
             />
             <div className="flex flex-row gap-2 justify-center">
-              <Button asChild variant="outline" className="max-sm:flex-col max-sm:aspect-square max-sm:h-20 max-sm:w-20 max-sm:p-1 max-sm:gap-0.5 text-sm max-sm:text-[10px]">
+              <Button asChild variant="outline" className="max-sm:flex-col max-sm:aspect-square max-sm:h-24 max-sm:w-24 max-sm:p-1 max-sm:gap-0.5 text-sm max-sm:text-[10px]">
                 <label htmlFor="file-upload" className="cursor-pointer flex items-center gap-1 max-sm:flex-col max-sm:gap-0.5">
                   <Camera className="h-4 w-4 max-sm:h-5 max-sm:w-5 shrink-0" />
                   <span>Auswahl</span>
@@ -908,7 +908,7 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
               <Button
                 onClick={handleNativePick}
                 variant="outline"
-                className="flex items-center gap-1 max-sm:flex-col max-sm:aspect-square max-sm:h-20 max-sm:w-20 max-sm:p-1 max-sm:gap-0.5 text-sm max-sm:text-[10px]"
+                className="flex items-center gap-1 max-sm:flex-col max-sm:aspect-square max-sm:h-24 max-sm:w-24 max-sm:p-1 max-sm:gap-0.5 text-sm max-sm:text-[10px]"
               >
                 <Camera className="h-4 w-4 max-sm:h-5 max-sm:w-5 shrink-0" />
                 <span>Bilder GPS</span>
