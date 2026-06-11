@@ -3,29 +3,47 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- CSP deaktiviert für Debug -->
-    <title>MojoBus Test</title>
+    <title>MojoBus – Perpetual Travelers Blog</title>
+    <meta name="description" content="Vanlife, Reisen und Abenteuer mit dem MojoBus. Perpetual Travelers Blog – Unser Leben am Meer, offgrid, Solar & Geschichten vom Strand." />
+    <meta name="keywords" content="Vanlife, Wohnmobil, Reisen, Camping, Portugal, Perpetual Travelers, MojoBus, Nostr, offgrid, beachlife" />
     <link rel="manifest" href="/manifest.webmanifest">
     <link rel="stylesheet" href="/fonts.css">
-    <!-- Favicon etc. minimal -->
     <link rel="icon" href="/favicon.ico">
+    <link rel="canonical" href="https://mojobus.co/" />
+
+    <!-- Preconnect für wichtige Drittanbieter-Domains -->
+    <link rel="preconnect" href="https://relay.mojobus.co" />
+    <link rel="preconnect" href="https://blossom.primal.net" />
+    <link rel="preconnect" href="https://images.weserv.nl" />
+    <link rel="dns-prefetch" href="https://relay.mojobus.co" />
+    <link rel="dns-prefetch" href="https://blossom.primal.net" />
+    <link rel="dns-prefetch" href="https://images.weserv.nl" />
+    <link rel="dns-prefetch" href="wss://relay.mojobus.co" />
+
+    <!-- Preload kritischer Fonts (LCP-Optimierung) -->
+    <link rel="preload" href="/fonts/public-sans-400.ttf" as="font" type="font/ttf" crossorigin />
+    <link rel="preload" href="/fonts/public-sans-700.ttf" as="font" type="font/ttf" crossorigin />
+    <link rel="preload" href="/fonts/playfair-display-regular.ttf" as="font" type="font/ttf" crossorigin />
 
     <!-- ═══════════════════════════════════════════════ -->
     <!-- PINTEREST RICH PIN META TAGS -->
     <!-- ═══════════════════════════════════════════════ -->
     <meta name="pinterest-rich-pin" content="true" />
 
-    <!-- Open Graph (Pinterest benötigt OG-Tags) -->
-    <meta property="og:type" content="article" />
-    <meta property="og:site_name" content="Perpetual Travelers" />
+    <!-- Open Graph (Basis-Tags für Bots/Crawler) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="MojoBus – Perpetual Travelers" />
     <meta property="og:locale" content="de_DE" />
-    <meta name="twitter:card" content="summary" />
-
-    <!-- Artikel-spezifische OG-Tags (werden server-seitig für Bots überschrieben) -->
-    <meta property="og:title" content="Perpetual Travelers – Unser Leben am Meer" />
-    <meta property="og:description" content="Geschichten, Tipps und Einblicke in unser Leben zwischen Sand und Horizont. Vanlife, Offgrid, Solar & Abenteuer." />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
+    <meta property="og:title" content="MojoBus – Perpetual Travelers Blog" />
+    <meta property="og:description" content="Vanlife, Reisen und Abenteuer mit dem MojoBus. Unser Leben am Meer, offgrid, Solar & Geschichten vom Strand." />
+    <meta property="og:url" content="https://mojobus.co/" />
+    <meta property="og:image" content="https://mojobus.co/icon-512x512.png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="MojoBus – Perpetual Travelers Blog" />
+    <meta name="twitter:description" content="Vanlife, Reisen und Abenteuer mit dem MojoBus. Unser Leben am Meer, offgrid, Solar & Geschichten vom Strand." />
+    <meta name="twitter:image" content="https://mojobus.co/icon-512x512.png" />
   </head>
   <body>
     <div id="root"></div>

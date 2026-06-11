@@ -120,10 +120,16 @@ function generateSitemapXml(urls) {
   const staticPages = [
     { loc: BASE_URL + '/', priority: '1.0', changefreq: 'daily' },
     { loc: BASE_URL + '/artikel', priority: '0.9', changefreq: 'daily' },
-    { loc: BASE_URL + '/plaetze', priority: '0.7', changefreq: 'weekly' },
+    { loc: BASE_URL + '/artikel/diy', priority: '0.8', changefreq: 'weekly' },
+    { loc: BASE_URL + '/artikel/rvlife', priority: '0.9', changefreq: 'daily' },
+    { loc: BASE_URL + '/artikel/leon', priority: '0.8', changefreq: 'weekly' },
+    { loc: BASE_URL + '/plaetze', priority: '0.9', changefreq: 'daily' },
+    { loc: BASE_URL + '/bilder', priority: '0.8', changefreq: 'daily' },
+    { loc: BASE_URL + '/notes', priority: '0.7', changefreq: 'daily' },
+    { loc: BASE_URL + '/map', priority: '0.7', changefreq: 'weekly' },
     { loc: BASE_URL + '/map/trips', priority: '0.7', changefreq: 'weekly' },
-    { loc: BASE_URL + '/bilder', priority: '0.6', changefreq: 'weekly' },
     { loc: BASE_URL + '/about', priority: '0.5', changefreq: 'monthly' },
+    { loc: BASE_URL + '/perpetual-travelers', priority: '0.6', changefreq: 'weekly' },
   ];
 
   const allUrls = [...staticPages, ...urls];

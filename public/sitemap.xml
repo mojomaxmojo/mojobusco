@@ -3,7 +3,6 @@
   <!-- Home -->
   <url>
     <loc>https://mojobus.co/</loc>
-    <lastmod>2026-01-11</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
@@ -11,15 +10,34 @@
   <!-- Artikel -->
   <url>
     <loc>https://mojobus.co/artikel</loc>
-    <lastmod>2026-01-11</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
+  </url>
+
+  <!-- DIY Anleitungen -->
+  <url>
+    <loc>https://mojobus.co/artikel/diy</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- RV Life -->
+  <url>
+    <loc>https://mojobus.co/artikel/rvlife</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Leon Stories -->
+  <url>
+    <loc>https://mojobus.co/artikel/leon</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
   </url>
 
   <!-- Plätze -->
   <url>
     <loc>https://mojobus.co/plaetze</loc>
-    <lastmod>2026-01-11</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
@@ -27,32 +45,35 @@
   <!-- Bilder -->
   <url>
     <loc>https://mojobus.co/bilder</loc>
-    <lastmod>2026-01-11</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.9</priority>
+    <priority>0.8</priority>
   </url>
 
   <!-- Notes -->
   <url>
     <loc>https://mojobus.co/notes</loc>
-    <lastmod>2026-01-11</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.8</priority>
+    <priority>0.7</priority>
   </url>
 
-  <!-- RV Life -->
+  <!-- Karte -->
   <url>
-    <loc>https://mojobus.co/rv-life</loc>
-    <lastmod>2026-01-11</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.9</priority>
+    <loc>https://mojobus.co/map</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Trips -->
+  <url>
+    <loc>https://mojobus.co/map/trips</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
   </url>
 
   <!-- About -->
   <url>
     <loc>https://mojobus.co/about</loc>
-    <lastmod>2026-01-11</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.5</priority>
   </url>
 </urlset>
