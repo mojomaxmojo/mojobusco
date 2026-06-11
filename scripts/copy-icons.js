@@ -1,19 +1,19 @@
 /**
- * Kopiert PWA-Icons aus dist/ in Android Resource-Ordner für die APK.
+ * Kopiert PWA-Icons aus public/ in Android Resource-Ordner für die APK.
  *
- * Mapping: dist/icon-{size}x{size}.png → android/.../mipmap-{density}/ic_launcher.png
+ * Mapping: public/icon-{size}x{size}.png → android/.../mipmap-{density}/ic_launcher.png
  *
  * Aufruf: node scripts/copy-icons.js
  * (Wird automatisch im apk-Befehl nach npx cap sync android ausgeführt)
  */
 
-import { copyFileSync, existsSync, mkdirSync, readdirSync } from 'fs';
+import { copyFileSync, existsSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir = join(__dirname, '..');
-const distDir = join(rootDir, 'dist');
+const publicDir = join(rootDir, 'public');
 const androidResDir = join(rootDir, 'android', 'app', 'src', 'main', 'res');
 
 // Mapping: Icon-Größe → Android mipmap density
@@ -32,8 +32,8 @@ function copyIcons() {
     process.exit(1);
   }
 
-  if (!existsSync(distDir)) {
-    console.error('❌ dist/ nicht gefunden. Führe npm run build aus.');
+  if (!existsSync(publicDir)) {
+    console.error('❌ public/ nicht gefunden.');
     process.exit(1);
   }
 
@@ -41,7 +41,7 @@ function copyIcons() {
 
   for (const [sizeStr, density] of Object.entries(SIZE_TO_DENSITY)) {
     const size = parseInt(sizeStr);
-    const srcFile = join(distDir, `icon-${size}x${size}.png`);
+    const srcFile = join(publicDir, `icon-${size}x${size}.png`);
 
     if (!existsSync(srcFile)) {
       console.warn(`  ⚠️ ${srcFile} nicht gefunden, überspringe`);
@@ -67,7 +67,7 @@ function copyIcons() {
   if (copied > 0) {
     console.log(`\n✅ ${copied} Icon(s) kopiert nach ${androidResDir}`);
   } else {
-    console.log('\n⚠️ Keine Icons kopiert. Prüfe ob dist/icon-*.png existiert.');
+    console.log('\n⚠️ Keine Icons kopiert. Prüfe ob public/icon-*.png existiert.');
   }
 }
 
