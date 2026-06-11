@@ -3,15 +3,16 @@
  *
  * Nutzt @capawesome/capacitor-file-picker für native content:// URIs.
  * Der Browser-Strip von EXIF-GPS wird umgangen, indem exifr.js direkt
- * die rohen Datei-Bytes liest (via readFile) – nicht das File-Objekt.
+ * die rohen Datei-Bytes liest – nicht das File-Objekt vom Browser.
  *
- * WICHTIG (GrapheneOS-kompatibel):
+ * WICHTIG:
  *   - KEIN fetch(content://) – wird auf GrapheneOS blockiert
- *   - Nur FilePicker.readFile() für rohe Bytes
- *   - Daten werden nur EINMAL gelesen und für GPS + Preview geteilt
+ *   - GPS via exifr.gps(dataUri) – exifr lädt data: URIs intern,
+ *     vermeidet fehleranfällige base64→ArrayBuffer Konvertierung
+ *   - Wenn EXIF-GPS leer → sofort Geolocation-Fallback
  *
  * Plugins (auf CachyOS installiert):
- *   - @capawesome/capacitor-file-picker → Native Dateiauswahl (content:// URIs)
+ *   - @capawesome/capacitor-file-picker → Native Dateiauswahl
  *   - @capacitor/geolocation           → GPS natives Geräte-GPS
  */
 
@@ -59,8 +60,10 @@ export interface CapacitorPickedFile {
   name: string;
   mimeType: string;
   size: number;
-  /** data: URI für Preview (base64 direkt, zuverlässiger als URL.createObjectURL) */
+  /** data: URI für Preview (base64 direkt vom FilePicker) */
   dataUri?: string;
+  /** blob: URI als Fallback-Preview (wenn data:URI nicht funktioniert) */
+  blobUri?: string;
   gps?: GpsData;
   gpsStatus: 'detected' | 'not_found' | 'error';
   file: File;
@@ -70,12 +73,12 @@ export interface CapacitorPickedFile {
  * Öffnet den nativen Android-Dateipicker und extrahiert GPS aus EXIF.
  *
  * Ablauf:
- *   1. FilePicker.pickFiles() → content:// URI
- *   2. FilePicker.readFile()  → base64 (rohe Bytes, kein Browser-Strip!)
- *   3. exifr.gps(arrayBuffer) → GPS direkt aus den rohen Bytes
- *   4. data: URI aus base64   → Preview (kein URL.createObjectURL Umweg)
- *
- * KEIN fetch(content://) – wird auf modernen Android-Versionen blockiert.
+ *   1. FilePicker.pickFiles() → content:// URIs
+ *   2. Für jede Datei: FilePicker.readFile() → base64 (rohe Bytes)
+ *   3. exifr.gps(dataUri) → GPS direkt aus base64 (kein ArrayBuffer-Umweg)
+ *   4. Geolocation-Fallback wenn EXIF leer
+ *   5. data:URI + blob:URI für Preview
+ *   6. File-Objekt für Upload
  *
  * @param options - multiple: true/false, types: MIME-Typen
  */
@@ -113,28 +116,37 @@ export async function pickFilesNative(options: {
       const { uri, name, mimeType, size } = picked;
 
       // ================================================================
-      // 1. Datei EINMAL via readFile() lesen (rohe Bytes als base64)
+      // 1. Datei via readFile() lesen (rohe Bytes als base64)
       // ================================================================
       let base64Data: string | null = null;
       try {
         const readResult = await FilePicker.readFile({ path: uri });
         if (readResult?.data) {
           base64Data = readResult.data;
-          console.log(`[CapacitorGPS] ${name}: ${Math.round(readResult.data.length * 0.75)} Bytes via readFile`);
+          console.log(`[CapacitorGPS] ${name}: ${Math.round(readResult.data.length * 0.75)} Bytes geladen`);
+        } else {
+          console.warn(`[CapacitorGPS] ${name}: readFile() lieferte leere Daten`);
         }
       } catch (readErr) {
-        console.warn(`[CapacitorGPS] ${name}: readFile fehlgeschlagen:`, readErr);
+        console.error(`[CapacitorGPS] ${name}: readFile() fehlgeschlagen:`, readErr);
       }
 
       // ================================================================
-      // 2. EXIF-GPS aus rohen Bytes extrahieren
+      // 2. EXIF-GPS via exifr.gps(dataUri) – exifr lädt data: URIs intern
+      //    KEIN base64→ArrayBuffer Umweg (vermeidet Korruption!)
       // ================================================================
       let gpsData: GpsData | null = null;
+      let dataUri: string | undefined;
+      let blobUri: string | undefined;
+
       if (base64Data) {
+        const effectiveMime = mimeType || 'image/jpeg';
+        dataUri = `data:${effectiveMime};base64,${base64Data}`;
+
+        // GPS via exifr.gps(dataUri) – exifr lädt die data:URI selbst
         try {
-          const arrayBuffer = base64ToArrayBuffer(base64Data);
-          console.log(`[CapacitorGPS] ${name}: ${arrayBuffer.byteLength} Bytes für exifr.gps()`);
-          gpsData = await exifr.gps(arrayBuffer);
+          console.log(`[CapacitorGPS] ${name}: exifr.gps(dataUri) ...`);
+          gpsData = await exifr.gps(dataUri);
           if (gpsData?.latitude && gpsData?.longitude) {
             if (gpsData.latitude !== 0 || gpsData.longitude !== 0) {
               console.log(`[CapacitorGPS] ${name}: ✓ GPS via exifr:`, gpsData);
@@ -145,29 +157,52 @@ export async function pickFilesNative(options: {
             console.log(`[CapacitorGPS] ${name}: Kein GPS in EXIF gefunden`);
           }
         } catch (exifErr) {
-          console.warn(`[CapacitorGPS] ${name}: exifr.gps() fehlgeschlagen:`, exifErr);
+          console.warn(`[CapacitorGPS] ${name}: exifr.gps(dataUri) fehlgeschlagen:`, exifErr);
+          // Versuch 2: exifr.gps(base64) – exifr kann auch raw base64
+          try {
+            console.log(`[CapacitorGPS] ${name}: exifr.gps(base64) Fallback ...`);
+            gpsData = await exifr.gps(base64Data);
+            if (gpsData?.latitude && gpsData?.longitude && gpsData.latitude !== 0 && gpsData.longitude !== 0) {
+              console.log(`[CapacitorGPS] ${name}: ✓ GPS via exifr(base64):`, gpsData);
+            } else {
+              gpsData = null;
+            }
+          } catch (exifErr2) {
+            console.warn(`[CapacitorGPS] ${name}: exifr.gps(base64) auch fehlgeschlagen:`, exifErr2);
+          }
         }
       }
 
       // ================================================================
-      // 3. data: URI für Preview (zuverlässiger als new File + createObjectURL)
+      // 3. Geolocation-Fallback wenn EXIF kein GPS geliefert hat
       // ================================================================
-      let dataUri: string | undefined;
-      if (base64Data) {
-        const effectiveMime = mimeType || 'image/jpeg';
-        dataUri = `data:${effectiveMime};base64,${base64Data}`;
+      if (!gpsData) {
+        console.log(`[CapacitorGPS] ${name}: EXIF leer, versuche Geräte-Standort...`);
+        const geoPosition = await getCurrentPosition();
+        if (geoPosition) {
+          gpsData = positionToGpsData(geoPosition);
+          console.log(`[CapacitorGPS] ${name}: ✓ GPS via Geolocation:`, gpsData);
+        } else {
+          console.log(`[CapacitorGPS] ${name}: Auch Geolocation keine Position`);
+        }
       }
 
       // ================================================================
-      // 4. File-Objekt für Upload (muss sein für den Rest des Formulars)
+      // 4. File-Objekt für Upload
       // ================================================================
       let file: File;
       if (base64Data) {
         try {
           const arrayBuffer = base64ToArrayBuffer(base64Data);
           file = new File([arrayBuffer], name, { type: mimeType || 'image/jpeg' });
+          // blob:URI als Fallback-Preview (data:URI ist primär)
+          try {
+            blobUri = URL.createObjectURL(file);
+          } catch {
+            // silent – dataUri reicht
+          }
         } catch {
-          console.warn(`[CapacitorGPS] ${name}: File-Konstruktion fehlgeschlagen, leeres File`);
+          console.warn(`[CapacitorGPS] ${name}: File-Erstellung fehlgeschlagen`);
           file = new File([], name, { type: mimeType || 'image/jpeg' });
         }
       } else {
@@ -180,6 +215,7 @@ export async function pickFilesNative(options: {
         mimeType: mimeType || 'image/jpeg',
         size: size || 0,
         dataUri,
+        blobUri,
         gps: gpsData || undefined,
         gpsStatus: gpsData ? 'detected' : 'not_found',
         file,
@@ -194,49 +230,12 @@ export async function pickFilesNative(options: {
 }
 
 /**
- * Extrahiert GPS aus rohen Bytes (via exifr.gps).
- * Wird von pickFilesNative() intern genutzt.
+ * base64 → ArrayBuffer
  *
- * @deprecated Wird nicht mehr direkt verwendet. Nutze pickFilesNative().
- */
-async function extractGpsViaRawBytes(uri: string, fileName?: string): Promise<GpsData | null> {
-  const logTag = `[GPS ${fileName || uri}]`;
-  try {
-    const FilePicker = (window as any).Capacitor?.Plugins?.FilePicker;
-    if (!FilePicker?.readFile) {
-      console.warn(`${logTag} FilePicker.readFile nicht verfügbar`);
-      return null;
-    }
-    const readResult = await FilePicker.readFile({ path: uri });
-    if (!readResult?.data) {
-      console.warn(`${logTag} Keine Daten von readFile`);
-      return null;
-    }
-    const arrayBuffer = base64ToArrayBuffer(readResult.data);
-    console.log(`${logTag} ${arrayBuffer.byteLength} Bytes geladen`);
-    const gpsData = await exifr.gps(arrayBuffer);
-    if (gpsData?.latitude && gpsData?.longitude) {
-      if (gpsData.latitude !== 0 || gpsData.longitude !== 0) {
-        console.log(`${logTag} ✓ GPS via exifr:`, gpsData);
-        return gpsData;
-      }
-    }
-    console.log(`${logTag} Kein GPS gefunden`);
-    return null;
-  } catch (error) {
-    console.warn(`${logTag} Fehler:`, error);
-    return null;
-  }
-}
-
-/**
- * base64 → ArrayBuffer (robust, binary-safe)
- *
- * Achtung: atob() + charCodeAt ist NICHT binary-safe für Werte > 127!
- * Stattdessen nutzen wir einen Puffer-Zugriff für korrekte Byte-Werte.
+ * Wird NUR für die File-Erstellung verwendet (Upload).
+ * Für GPS wird exifr.gps(dataUri) genutzt (kein ArrayBuffer-Umweg).
  */
 function base64ToArrayBuffer(base64: string): ArrayBuffer {
-  // Browser-native base64 → Byte-Array (binary-safe)
   const binaryStr = atob(base64);
   const len = binaryStr.length;
   const bytes = new Uint8Array(len);
@@ -268,7 +267,7 @@ export async function getCurrentPosition(): Promise<GpsPosition | null> {
       });
       if (position?.coords) {
         const { latitude, longitude, altitude, accuracy } = position.coords;
-        console.log('[CapacitorGPS] ✓ Native Position:', { latitude, longitude, accuracy });
+        console.log('[CapacitorGPS] ✓ Native Geolocation:', { latitude, longitude, accuracy });
         return { latitude, longitude, altitude: altitude ?? null, accuracy: accuracy || 0 };
       }
     } catch (error) {
@@ -304,17 +303,3 @@ export function positionToGpsData(pos: GpsPosition): GpsData {
     precision: pos.accuracy < 20 ? 'high' : pos.accuracy < 100 ? 'medium' : 'low',
   };
 }
-
-/**
- * Cross-Plattform GPS-Extraktion (Kompatibilitäts-Wrapper)
- */
-export async function extractGpsCrossPlatform(
-  _file: File,
-  existingGps: GpsData | null
-): Promise<GpsData | null> {
-  if (existingGps) return existingGps;
-  return null;
-}
-
-// Alte exportierte Funktionen (deprecated, aber rückwärtskompatibel)
-export { extractGpsViaRawBytes };

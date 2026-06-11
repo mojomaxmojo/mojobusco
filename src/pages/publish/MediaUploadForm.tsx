@@ -427,9 +427,8 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
       const newFiles: MediaFile[] = [];
 
       for (const picked of pickedFiles) {
-        // Preview via data: URI (base64 direkt vom FilePicker – zuverlässiger
-        // als URL.createObjectURL auf einem künstlich erzeugten File-Objekt)
-        let preview: string | undefined = picked.dataUri;
+        // Preview: data:URI primär, blob:URI als Fallback
+        let preview: string | undefined = picked.dataUri || picked.blobUri;
         if (!preview) {
           try {
             preview = URL.createObjectURL(picked.file);
@@ -437,6 +436,8 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
             // fallback: kein preview
           }
         }
+
+        console.log(`[NativePick] ${picked.name}: GPS=${picked.gpsStatus}, preview=${preview ? '✓' : '✗'}, size=${picked.size}`);
 
         const newFile: MediaFile = {
           id: Math.random().toString(36).substr(2, 9),
