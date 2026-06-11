@@ -302,3 +302,117 @@ export async function extractGpsCrossPlatform(
   if (existingGps) return existingGps;
   return null;
 }
+
+// =============================================================================
+// Direkter Kamera-Zugriff via @capacitor/camera
+// =============================================================================
+
+/**
+ * Öffnet die native Kamera und extrahiert GPS aus dem Foto.
+ *
+ * Nutzt @capacitor/camera: Camera.getPhoto({ source: CameraSource.Camera })
+ *
+ * Achtung: Auf CachyOS muss @capacitor/camera installiert sein:
+ *   npm install @capacitor/camera@latest
+ *   npx cap sync android
+ *
+ * @returns CapacitorPickedFile[] mit einem Foto (oder leer bei Fehler)
+ */
+export async function pickFromCamera(): Promise<CapacitorPickedFile[]> {
+  if (!isCapacitorNative()) {
+    console.warn('[CapacitorGPS] Kamera nur im nativen Kontext verfügbar');
+    return [];
+  }
+
+  const Camera = (window as any).Capacitor?.Plugins?.Camera;
+  if (!Camera) {
+    console.error('[CapacitorGPS] Camera Plugin nicht gefunden. Installieren: npm install @capacitor/camera@latest');
+    return [];
+  }
+
+  try {
+    console.log('[CapacitorGPS] Öffne Kamera...');
+    const photo = await Camera.getPhoto({
+      resultType: 'Uri',
+      source: 'Camera',
+      quality: 90,
+      saveToGallery: false,
+    });
+
+    if (!photo?.path && !photo?.webPath) {
+      console.warn('[CapacitorGPS] Kein Foto von Kamera');
+      return [];
+    }
+
+    const uri = photo.path || photo.webPath;
+    const name = `camera-${Date.now()}.jpg`;
+
+    console.log(`[CapacitorGPS] Foto aufgenommen: ${uri}`);
+
+    // Raw Bytes lesen für GPS
+    let gpsData: GpsData | null = null;
+    let file: File = new File([], name, { type: 'image/jpeg' });
+    let base64Data: string | null = null;
+
+    // Versuch 1: fetch(uri) für temp file (Kamera-URIs sind oft file:// oder http://)
+    try {
+      const response = await fetch(uri);
+      if (response.ok) {
+        const blob = await response.blob();
+        file = new File([blob], name, { type: 'image/jpeg' });
+
+        // GPS via exifr.gps(blob)
+        try {
+          gpsData = await exifr.gps(blob);
+          if (gpsData?.latitude && gpsData?.longitude && gpsData.latitude !== 0 && gpsData.longitude !== 0) {
+            console.log('[CapacitorGPS] ✓ Kamera GPS via exifr(fetch):', gpsData);
+          } else {
+            gpsData = null;
+          }
+        } catch { /* silent */ }
+      }
+    } catch { /* silent */ }
+
+    // Versuch 2: exifr.gps(uri) direkt (exifr kann URIs laden)
+    if (!gpsData) {
+      try {
+        gpsData = await exifr.gps(uri);
+        if (gpsData?.latitude && gpsData?.longitude && gpsData.latitude !== 0 && gpsData.longitude !== 0) {
+          console.log('[CapacitorGPS] ✓ Kamera GPS via exifr(uri):', gpsData);
+        } else {
+          gpsData = null;
+        }
+      } catch { /* silent */ }
+    }
+
+    // Preview: webPath nutzen wenn verfügbar
+    let previewBlob: Blob | null = null;
+    if (photo.webPath) {
+      try {
+        const resp = await fetch(photo.webPath);
+        if (resp.ok) {
+          previewBlob = await resp.blob();
+          if (!file.size && previewBlob.size) {
+            file = new File([previewBlob], name, { type: 'image/jpeg' });
+          }
+        }
+      } catch { /* silent */ }
+    }
+
+    const picked: CapacitorPickedFile = {
+      uri: uri || '',
+      name,
+      mimeType: 'image/jpeg',
+      size: file.size || 0,
+      gps: gpsData || undefined,
+      gpsStatus: gpsData ? 'detected' : (file.size > 0 ? 'not_found' : 'error'),
+      file,
+    };
+
+    console.log(`[CapacitorGPS] Kamera: ${name}, ${file.size}B, GPS=${picked.gpsStatus}`);
+    return [picked];
+  } catch (error) {
+    console.error('[CapacitorGPS] Kamera-Fehler:', error);
+    return [];
+  }
+}
