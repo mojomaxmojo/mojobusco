@@ -897,20 +897,20 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
               className="hidden"
               id="file-upload"
             />
-            <div className="flex flex-row flex-wrap gap-2 justify-center">
-              <Button asChild variant="outline">
+            <div className="flex flex-row gap-2 justify-center">
+              <Button asChild variant="outline" className="text-sm max-sm:text-xs max-sm:h-9 max-sm:px-2 whitespace-nowrap">
                 <label htmlFor="file-upload" className="cursor-pointer">
-                  <Camera className="h-4 w-4 mr-2" />
-                  Dateien auswaehlen
+                  <Camera className="h-4 w-4 max-sm:h-3 max-sm:w-3 mr-1" />
+                  <span className="max-sm:hidden">Dateien </span>auswaehlen
                 </label>
               </Button>
 
               <Button
                 onClick={handleNativePick}
                 variant="outline"
-                className="gap-2"
+                className="gap-1 text-sm max-sm:text-xs max-sm:h-9 max-sm:px-2 whitespace-nowrap"
               >
-                <Camera className="h-4 w-4" />
+                <Camera className="h-4 w-4 max-sm:h-3 max-sm:w-3" />
                 📱 Bilder GPS
               </Button>
 
