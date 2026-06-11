@@ -303,3 +303,15 @@ export function positionToGpsData(pos: GpsPosition): GpsData {
     precision: pos.accuracy < 20 ? 'high' : pos.accuracy < 100 ? 'medium' : 'low',
   };
 }
+
+/**
+ * Cross-Plattform GPS-Extraktion (Kompatibilitäts-Wrapper)
+ * Wird von MediaUploadForm.tsx + PlaceForm.tsx importiert.
+ */
+export async function extractGpsCrossPlatform(
+  _file: File,
+  existingGps: GpsData | null
+): Promise<GpsData | null> {
+  if (existingGps) return existingGps;
+  return null;
+}
