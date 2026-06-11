@@ -17,7 +17,7 @@ const distDir = join(rootDir, 'dist');
 const androidResDir = join(rootDir, 'android', 'app', 'src', 'main', 'res');
 
 // Mapping: Icon-Größe → Android mipmap density
-const SIZE_TO_DENSITY: Record<number, string> = {
+const SIZE_TO_DENSITY = {
   48: 'mdpi',
   72: 'hdpi',
   96: 'xhdpi',
