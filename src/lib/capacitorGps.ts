@@ -49,8 +49,37 @@ export interface CapacitorPickedFile {
   mimeType: string;
   size: number;
   gps?: GpsData;
-  gpsStatus: 'detected' | 'not_found' | 'error';
+  gpsStatus: 'detected' | 'geolocation' | 'not_found' | 'error';
   file: File;
+}
+
+// =============================================================================
+// ACCESS_MEDIA_LOCATION Runtime Permission
+// =============================================================================
+
+/**
+ * Fordert ACCESS_MEDIA_LOCATION zur Laufzeit an (GrapheneOS!)
+ * Ohne diese explizite Anfrage werden EXIF-GPS-Daten auf Systemebene gestrippt.
+ */
+async function requestMediaLocationPermission(): Promise<boolean> {
+  try {
+    const cap = (window as any).Capacitor;
+    const Permissions = cap?.Plugins?.Permissions;
+    if (!Permissions) {
+      console.log('[CapacitorGPS] Kein Permissions Plugin – ACCESS_MEDIA_LOCATION nicht anforderbar');
+      return false;
+    }
+    console.log('[CapacitorGPS] Fordere ACCESS_MEDIA_LOCATION an...');
+    const result = await Permissions.requestPermission({
+      name: 'ACCESS_MEDIA_LOCATION',
+    });
+    const granted = result?.granted === true;
+    console.log(`[CapacitorGPS] ACCESS_MEDIA_LOCATION: ${granted ? '✅ erteilt' : '❌ verweigert'}`);
+    return granted;
+  } catch (err) {
+    console.warn('[CapacitorGPS] Permission request fehlgeschlagen:', err);
+    return false;
+  }
 }
 
 /**
@@ -80,6 +109,10 @@ export async function pickFilesNative(options: {
   }
 
   try {
+    // ACCESS_MEDIA_LOCATION Permission anfordern (wichtig für GrapheneOS!)
+    // Sonst strippt das System EXIF-GPS bevor wir die Datei sehen
+    await requestMediaLocationPermission();
+
     console.log('[CapacitorGPS] pickFiles({ readData: true }) ...');
     const result = await FilePicker.pickFiles({
       multiple: options.multiple !== false,
@@ -97,6 +130,7 @@ export async function pickFilesNative(options: {
 
     for (const picked of result.files) {
       const { uri, name, mimeType, size, data } = picked;
+      let geoPos: GpsPosition | null = null;
 
       console.log(`[CapacitorGPS] ${name}: mime=${mimeType}, size=${size}, data=${data ? data.length + ' chars' : 'KEINE'}`);
 
@@ -165,8 +199,8 @@ export async function pickFilesNative(options: {
       // 3. Geolocation-Fallback
       // ================================================================
       if (!gpsData) {
-        console.log(`[CapacitorGPS] ${name}: EXIF kein GPS → Geolocation Fallback`);
-        const geoPos = await getCurrentPosition();
+        console.log(`[CapacitorGPS] ${name}: EXIF kein GPS → Geolocation`);
+        geoPos = await getCurrentPosition();
         if (geoPos) {
           gpsData = positionToGpsData(geoPos);
           console.log(`[CapacitorGPS] ${name}: ✓ GPS via Geolocation:`, gpsData);
@@ -174,12 +208,13 @@ export async function pickFilesNative(options: {
       }
 
       pickedFiles.push({
-        uri,
-        name,
+        uri, name,
         mimeType: mimeType || 'image/jpeg',
         size: size || 0,
         gps: gpsData || undefined,
-        gpsStatus: gpsData ? 'detected' : 'not_found',
+        gpsStatus: gpsData
+          ? (geoPos ? 'geolocation' : 'detected')
+          : 'not_found',
         file,
       });
     }

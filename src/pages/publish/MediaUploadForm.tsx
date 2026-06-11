@@ -465,12 +465,12 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
         newFiles.push(newFile);
 
         // Toast pro Datei
-        const gpsMsg = picked.gps
-          ? `📍 GPS: ${picked.gps.latitude.toFixed(4)}, ${picked.gps.longitude.toFixed(4)}`
-          : '📍 Kein GPS im Bild';
+        const gpsSource = picked.gpsStatus === 'geolocation' ? '📡 Geräte-GPS' :
+          picked.gps ? `📍 EXIF: ${picked.gps.latitude.toFixed(4)}, ${picked.gps.longitude.toFixed(4)}` :
+          '📍 Kein GPS';
         toast({
           title: `✅ ${picked.name}`,
-          description: `${(picked.file.size / 1024).toFixed(0)} KB | ${preview ? '🖼️ Vorschau OK' : '⚠️ Keine Vorschau'} | ${gpsMsg}`,
+          description: `${(picked.file.size / 1024).toFixed(0)} KB | ${preview ? '🖼️ OK' : '⚠️ Keine Vorschau'} | ${gpsSource}`,
         });
       }
 
@@ -502,7 +502,7 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
       toast({
         title: `${newFiles.length} Datei(en) hinzugefügt`,
         description: firstGps?.gps
-          ? `📍 Standort: ${firstGps.gps.latitude.toFixed(4)}, ${firstGps.gps.longitude.toFixed(4)}`
+          ? `📍 ${firstGps.gpsStatus === 'geolocation' ? 'Geräte-GPS' : 'EXIF-GPS'}: ${firstGps.gps.latitude.toFixed(4)}, ${firstGps.gps.longitude.toFixed(4)}`
           : '📍 Keine GPS-Daten – Standort manuell eingeben',
       });
     } catch (error) {
