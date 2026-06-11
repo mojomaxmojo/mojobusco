@@ -48,6 +48,9 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
   const [lifestyle, setLifestyle] = useState<'mojobus' | 'vanlife' | 'rvlife' | 'beachlife' | 'wohnmobil' | 'perpetual-travelers'>('mojobus');
   const [tripType, setTripType] = useState<TripType | ''>('');
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0, stage: '', status: '' });
+  // Status-Text für nativen Dateipicker (sichtbar im UI, keine Toasts)
+  const [nativePickStatus, setNativePickStatus] = useState<string | null>(null);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
   // Video-URL der fertigen Slideshow (wird automatisch in Beschreibung eingefügt)
   const [slideshowVideoUrl, setSlideshowVideoUrl] = useState<string | null>(null);
   const { toast } = useToast();
@@ -421,34 +424,27 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
    */
   const handleNativePick = async () => {
     try {
-      toast({ title: '📷 Öffne Galerie...', description: 'Wähle ein Bild aus' });
+      setNativePickStatus('📷 Öffne Galerie...');
 
       const pickedFiles = await pickFilesNative({ multiple: true });
       if (pickedFiles.length === 0) {
-        toast({ title: 'Keine Dateien', description: 'Nichts ausgewählt', variant: 'default' });
+        setNativePickStatus('❌ Keine Dateien ausgewählt');
         return;
       }
 
       const newFiles: MediaFile[] = [];
+      let gpsFoundFrom: 'exif' | 'geolocation' | null = null;
 
       for (const picked of pickedFiles) {
-        // File validieren
         if (!picked.file || picked.file.size === 0) {
-          toast({
-            title: `❌ ${picked.name}`,
-            description: 'Datei ist leer oder konnte nicht geladen werden',
-            variant: 'destructive'
-          });
+          setNativePickStatus(`❌ ${picked.name}: Datei leer`);
           continue;
         }
 
-        // Preview via URL.createObjectURL (zuverlässigste Methode)
         let preview: string | undefined;
         try {
           preview = URL.createObjectURL(picked.file);
-        } catch {
-          console.warn('[NativePick] createObjectURL fehlgeschlagen für', picked.name);
-        }
+        } catch { /* silent */ }
 
         const newFile: MediaFile = {
           id: Math.random().toString(36).substr(2, 9),
@@ -464,29 +460,26 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
 
         newFiles.push(newFile);
 
-        // Toast pro Datei
-        const gpsSource = picked.gpsStatus === 'geolocation' ? '📡 Geräte-GPS' :
-          picked.gps ? `📍 EXIF: ${picked.gps.latitude.toFixed(4)}, ${picked.gps.longitude.toFixed(4)}` :
-          '📍 Kein GPS';
-        toast({
-          title: `✅ ${picked.name}`,
-          description: `${(picked.file.size / 1024).toFixed(0)} KB | ${preview ? '🖼️ OK' : '⚠️ Keine Vorschau'} | ${gpsSource}`,
-        });
+        if (picked.gpsStatus === 'detected') gpsFoundFrom = 'exif';
+        else if (picked.gpsStatus === 'geolocation') gpsFoundFrom = 'geolocation';
+
+        const fileSize = (picked.file.size / 1024).toFixed(0);
+        const gpsTxt = picked.gps
+          ? `${picked.gpsStatus === 'geolocation' ? '📡 Geräte-GPS' : '📍 EXIF-GPS'}: ${picked.gps.latitude.toFixed(4)}, ${picked.gps.longitude.toFixed(4)}`
+          : '📍 Kein GPS';
+        setNativePickStatus(`✅ ${picked.name} (${fileSize} KB) | ${preview ? '🖼️ OK' : '⚠️ Kein Vorschau'} | ${gpsTxt}`);
       }
 
       if (newFiles.length === 0) {
-        toast({
-          title: 'Fehler',
-          description: 'Keine Datei konnte geladen werden',
-          variant: 'destructive'
-        });
+        setNativePickStatus('❌ Keine Datei konnte geladen werden');
         return;
       }
 
-      // GPS-Geocoding für erstes Bild mit GPS
-      const firstGps = newFiles.find(f => f.gps && f.gpsStatus === 'detected');
+      // GPS-Geocoding
+      const firstGps = newFiles.find(f => f.gps && (f.gpsStatus === 'detected' || f.gpsStatus === 'geolocation'));
       if (firstGps && firstGps.gps && !location) {
         try {
+          setNativePickStatus(`📍 Ermittle Standort für GPS...`);
           const locData = await reverseGeocode(firstGps.gps.latitude, firstGps.gps.longitude);
           if (locData) {
             const parts = [locData.city, locData.neighbourhood, locData.suburb].filter(Boolean);
@@ -499,19 +492,50 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
 
       setFiles(prev => [...prev, ...newFiles]);
 
-      toast({
-        title: `${newFiles.length} Datei(en) hinzugefügt`,
-        description: firstGps?.gps
-          ? `📍 ${firstGps.gpsStatus === 'geolocation' ? 'Geräte-GPS' : 'EXIF-GPS'}: ${firstGps.gps.latitude.toFixed(4)}, ${firstGps.gps.longitude.toFixed(4)}`
-          : '📍 Keine GPS-Daten – Standort manuell eingeben',
-      });
+      if (gpsFoundFrom === 'exif') {
+        setNativePickStatus(`✅ ${newFiles.length} Datei(en) | 📍 EXIF-GPS: ${firstGps?.gps?.latitude.toFixed(4)}, ${firstGps?.gps?.longitude.toFixed(4)}`);
+      } else if (gpsFoundFrom === 'geolocation') {
+        setNativePickStatus(`✅ ${newFiles.length} Datei(en) | 📡 Geräte-GPS: ${firstGps?.gps?.latitude.toFixed(4)}, ${firstGps?.gps?.longitude.toFixed(4)}`);
+      } else {
+        setNativePickStatus(`✅ ${newFiles.length} Datei(en) | 📍 Kein GPS`);
+      }
     } catch (error) {
-      console.error('[NativePick] Fehler:', error);
-      toast({
-        title: 'Fehler bei Galerie-Auswahl',
-        description: String(error),
-        variant: 'destructive'
-      });
+      console.error('[NativePick] Error:', error);
+      setNativePickStatus('❌ Fehler: ' + String(error).slice(0, 100));
+    }
+  };
+
+  /** Extra-Button: Standort vom Gerät holen (auch ohne Bild) */
+  const handleGetLocation = async () => {
+    setIsGettingLocation(true);
+    try {
+      const pos = await getCurrentPosition();
+      if (pos) {
+        const gps: GpsData = { latitude: pos.latitude, longitude: pos.longitude, precision: 'medium' };
+        // Suche erstes Bild ohne GPS und weise GPS zu
+        setFiles(prev => {
+          const updated = [...prev];
+          const firstWithoutGps = updated.findIndex(f => !f.gps);
+          if (firstWithoutGps >= 0) {
+            updated[firstWithoutGps] = { ...updated[firstWithoutGps], gps, gpsStatus: 'geolocation' };
+          }
+          return updated;
+        });
+        const locData = await reverseGeocode(pos.latitude, pos.longitude);
+        if (locData && !location) {
+          const parts = [locData.city, locData.neighbourhood, locData.suburb].filter(Boolean);
+          setLocation(parts.join(', '));
+          const country = mapCountryCode(locData);
+          if (country) setSelectedCountry(country);
+        }
+        setNativePickStatus(`📍 Geräte-GPS: ${pos.latitude.toFixed(4)}, ${pos.longitude.toFixed(4)}`);
+      } else {
+        setNativePickStatus('📍 Kein Standort – GPS auf dem Gerät aktivieren?');
+      }
+    } catch {
+      setNativePickStatus('📍 Standortabfrage fehlgeschlagen');
+    } finally {
+      setIsGettingLocation(false);
     }
   };
 
@@ -915,20 +939,37 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
               </label>
             </Button>
 
-            {/* Capacitor Native Galerie-Button (immer sichtbar, funktioniert nur im APK) */}
-            <div className="mt-4 pt-4 border-t border-dashed border-gray-300 dark:border-gray-600">
+            {/* Capacitor Native Galerie-Button + Standort */}
+            <div className="mt-4 pt-4 border-t border-dashed border-gray-300 dark:border-gray-600 space-y-2">
               <Button
                 onClick={handleNativePick}
                 variant="outline"
                 className="gap-2 w-full"
               >
                 <Camera className="h-4 w-4" />
-                {isCapacitorNative() ? '📱 Galerie öffnen (Android)' : '📱 Galerie (nur Android APK)'}
+                📱 Galerie öffnen (Android)
               </Button>
-              <p className="text-xs text-muted-foreground mt-1">
-                {isCapacitorNative()
-                  ? 'Nutzt nativen Dateipicker mit GPS-EXIF-Unterstützung'
-                  : 'Nicht verfügbar im Browser – bitte Android APK verwenden'}
+
+              {/* Status-Text (sichtbar im UI, keine Toasts) */}
+              {nativePickStatus && (
+                <div className="text-xs bg-muted/50 rounded p-2 border text-center">
+                  {nativePickStatus}
+                </div>
+              )}
+
+              {/* Extra Geolocation-Button */}
+              <Button
+                onClick={handleGetLocation}
+                variant="ghost"
+                size="sm"
+                className="gap-1 w-full text-xs h-8"
+                disabled={isGettingLocation}
+              >
+                {isGettingLocation ? '📍 Standort wird ermittelt...' : '📍 Standort jetzt erfassen'}
+              </Button>
+
+              <p className="text-xs text-muted-foreground text-center">
+                GPS via Geräte-Standort wenn EXIF leer
               </p>
             </div>
           </div>
