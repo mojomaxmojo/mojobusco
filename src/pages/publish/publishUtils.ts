@@ -131,7 +131,7 @@ export interface MediaFile {
   gps?: GpsData;
   gpsStatus?: GpsStatus;
   sortDate?: number;
-  }
+}
 
 export interface UploadProgress {
   current: number;
