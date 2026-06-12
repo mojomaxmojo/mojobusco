@@ -86,8 +86,22 @@ const result = await FilePicker.requestPermissions({
 - **Sitemap**: https://mojobus.co/sitemap.xml (Cron täglich 6:00)
 
 ## 👥 Autoren (Nostr)
-- **Mojo**: `4d584dab7c880a9809e7df0476d745bfe9a3fe91a1c062bc1fec024e0b5e1f1f`
-- **Susanne**: `94ebd1c0940881de438b7f3c532b73e0d4d6c6b0160d3fe0b8a55fe49d477bd4`
+
+Die Autoren-Stammdaten werden **nicht hartcodiert**, sondern kommen aus der zentralen Config:
+
+| Quelle | Datei | Beschreibung |
+|--------|-------|-------------|
+| **Single Source of Truth** | `src/config/authors.json` | Einzige Stelle mit pubkey, npub, nip05 |
+| **TypeScript-Import** | `src/config/relays.ts` → `AUTHORS` | Von Komponenten genutzt |
+| **Cron-Scripts** | `scripts/*.js` → Import aus `authors.json` | Alle 5 Scripts lesen aus derselben JSON |
+
+**So werden Autoren hinzugefügt/geändert:**
+Nur `src/config/authors.json` bearbeiten – alle anderen Dateien (relays.ts, blossom.ts, authorUtils.ts, BudgetPage.tsx, Cron-Scripts) referenzieren diese Datei automatisch via Import.
+
+```bash
+# Aktuelle Autoren (aus src/config/authors.json):
+cat src/config/authors.json | jq '.authors[] | {name, pubkey, nip05}'
+```
 
 ## 🔧 Wichtige Branches (GitHub)
 - **main** – Aktive Entwicklung

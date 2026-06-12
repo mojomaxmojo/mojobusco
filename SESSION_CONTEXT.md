@@ -70,6 +70,15 @@ capacitor.config.ts                    → webDir: dist, appId: co.mojobus.app
 - **Dev:** Shakespeare (browser-based IDE)
 
 ### Autoren
-- **Mojo:** `4d584dab7c880a9809e7df0476d745bfe9a3fe91a1c062bc1fec024e0b5e1f1f`
-- **Susanne:** `94ebd1c0940881de438b7f3c532b73e0d4d6c6b0160d3fe0b8a55fe49d477bd4`
-- **Relay:** `wss://relay.mojobus.co`
+
+Die Autoren-Stammdaten kommen aus der **zentralen Config** (`src/config/authors.json`):
+- TypeScript: `src/config/relays.ts` → `AUTHORS`-Array
+- Cron-Scripts: Direkter JSON-Import
+- **Single Source of Truth**: Nur `authors.json` bearbeiten, alle anderen Dateien aktualisieren sich automatisch
+
+```bash
+# Aktuelle Autoren anzeigen:
+cat src/config/authors.json | jq '.authors[] | {name, pubkey}'
+```
+
+- **Relay:** `wss://relay.mojobus.co` (Config in `src/config/relays.ts`)
