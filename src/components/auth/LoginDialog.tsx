@@ -32,6 +32,8 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
   const [isFileLoading, setIsFileLoading] = useState(false);
   const [nsec, setNsec] = useState('');
   const [bunkerUri, setBunkerUri] = useState('');
+  const [amberPubkey, setAmberPubkey] = useState('');
+  const [showAmberClipboard, setShowAmberClipboard] = useState(false);
   const [errors, setErrors] = useState<{
     nsec?: string;
     bunker?: string;
@@ -146,6 +148,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
   const handleAmberLogin = async () => {
     setIsLoading(true);
     setErrors(prev => ({ ...prev, amber: undefined }));
+    setShowAmberClipboard(false);
 
     try {
       await login.amber();
@@ -154,10 +157,40 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
     } catch (e: unknown) {
       const error = e as Error;
       console.error('Amber login failed:', error);
-      setErrors(prev => ({
-        ...prev,
-        amber: error instanceof Error ? error.message : 'Amber login failed'
-      }));
+      const msg = error instanceof Error ? error.message : 'Amber login failed';
+
+      // Clipboard-Fallback: Amber wurde geöffnet, User muss pubkey kopieren
+      if (msg.includes('PUBKEY_AUS_KWISCHENABLAGE')) {
+        setShowAmberClipboard(true);
+        setErrors(prev => ({ ...prev, amber: undefined }));
+      } else {
+        setErrors(prev => ({ ...prev, amber: msg }));
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAmberClipboardConfirm = async () => {
+    const key = amberPubkey.trim();
+    if (!key) {
+      setErrors(prev => ({ ...prev, amber: 'Bitte füge den Public Key aus Amber ein.' }));
+      return;
+    }
+    // Hex-pubkey muss 64 Zeichen sein
+    if (!/^[0-9a-f]{64}$/i.test(key)) {
+      setErrors(prev => ({ ...prev, amber: 'Ungültiger Public Key. Ein hex-pubkey hat 64 Zeichen (0-9, a-f).' }));
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { setAmberLogin } = await import('@/hooks/useLoginActions');
+      setAmberLogin({ pubkey: key, packageName: 'com.greenart7c3.nostrsigner' });
+      onLogin();
+      onClose();
+    } catch (e: unknown) {
+      setErrors(prev => ({ ...prev, amber: 'Fehler beim Speichern des Keys.' }));
     } finally {
       setIsLoading(false);
     }
@@ -393,32 +426,70 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
               </div>
             </TabsContent>
 
-            <TabsContent value='amber' className='space-y-3'>
+<TabsContent value='amber' className='space-y-3'>
               {errors.amber && (
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>{errors.amber}</AlertDescription>
                 </Alert>
               )}
-              <div className='text-center p-4 rounded-lg bg-gray-50 dark:bg-gray-800'>
-                <Smartphone className='w-12 h-12 mx-auto mb-3 text-primary' />
-                <p className='text-sm text-gray-600 dark:text-gray-300 mb-2'>
-                  Login mit Amber – deine Keys bleiben sicher in der Amber-App.
-                </p>
-                <p className='text-xs text-muted-foreground mb-4'>
-                  Amber öffnet sich zur Autorisierung. Nach einmaliger Freigabe
-                  kannst du dauerhaft signieren – ohne erneutes Einloggen.
-                </p>
-                <div className="flex justify-center">
+
+              {showAmberClipboard ? (
+                /* Clipboard-Fallback: Pubkey aus Amber einfügen */
+                <div className='text-center p-4 rounded-lg bg-gray-50 dark:bg-gray-800 space-y-3'>
+                  <Smartphone className='w-12 h-12 mx-auto mb-2 text-primary' />
+                  <p className='text-sm text-gray-600 dark:text-gray-300 mb-2'>
+                    ✅ Amber wurde geöffnet. Bitte autorisiere die Verbindung
+                    und kopiere den angezeigten <strong>Public Key</strong>.
+                  </p>
+                  <textarea
+                    value={amberPubkey}
+                    onChange={(e) => {
+                      setAmberPubkey(e.target.value);
+                      if (errors.amber) setErrors(prev => ({ ...prev, amber: undefined }));
+                    }}
+                    className='w-full h-20 p-3 text-xs font-mono rounded-lg border resize-none'
+                    placeholder='Hier den Public Key aus Amber einfügen...'
+                  />
                   <Button
-                    className='w-full rounded-full py-4 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700'
-                    onClick={handleAmberLogin}
-                    disabled={isLoading}
+                    className='w-full rounded-full py-3'
+                    onClick={handleAmberClipboardConfirm}
+                    disabled={isLoading || !amberPubkey.trim()}
                   >
-                    {isLoading ? 'Amber wird geöffnet...' : '🔐 Login mit Amber'}
+                    {isLoading ? 'Wird gespeichert...' : '✅ Public Key bestätigen'}
                   </Button>
+                  <p className='text-xs text-muted-foreground'>
+                    Nochmal probieren?{' '}
+                    <button
+                      className='text-primary underline'
+                      onClick={() => { setShowAmberClipboard(false); setErrors({}); }}
+                    >
+                      Erneut mit Amber verbinden
+                    </button>
+                  </p>
                 </div>
-              </div>
+              ) : (
+                /* Standard: Login-Button */
+                <div className='text-center p-4 rounded-lg bg-gray-50 dark:bg-gray-800'>
+                  <Smartphone className='w-12 h-12 mx-auto mb-3 text-primary' />
+                  <p className='text-sm text-gray-600 dark:text-gray-300 mb-2'>
+                    Login mit Amber – deine Keys bleiben sicher in der Amber-App.
+                  </p>
+                  <p className='text-xs text-muted-foreground mb-4'>
+                    Amber öffnet sich zur Autorisierung. Nach einmaliger Freigabe
+                    kannst du dauerhaft signieren – ohne erneutes Einloggen.
+                  </p>
+                  <div className="flex justify-center">
+                    <Button
+                      className='w-full rounded-full py-4 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700'
+                      onClick={handleAmberLogin}
+                      disabled={isLoading}
+                    >
+                      {isLoading ? 'Amber wird geöffnet...' : '🔐 Login mit Amber'}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </div>

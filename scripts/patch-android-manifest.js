@@ -24,6 +24,16 @@ const NIP55_QUERIES = `<queries>
     </intent>
 </queries>`;
 
+// Deep-Link Intent-Filter für Amber-Callback (mojobus://amber-auth)
+const AMBER_DEEP_LINK = `
+        <!-- NIP-55 Amber Callback (mojobus://amber-auth?pubkey=...) -->
+        <intent-filter>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="mojobus" android:host="amber-auth" />
+        </intent-filter>`;
+
 // Berechtigungen die sichergestellt werden müssen
 const REQUIRED_PERMISSIONS = [
   // Zugriff auf Standort-Metadaten in Fotos (Android 10+)
@@ -57,6 +67,18 @@ function patchManifest() {
     console.log('  ✅ NIP-55 nostrsigner query (Amber/Signer)');
   } else {
     console.log('  ✓ NIP-55 nostrsigner query (bereits vorhanden)');
+  }
+
+  // Amber Deep-Link Intent-Filter für Callback
+  if (!content.includes('mojobus://amber-auth')) {
+    content = content.replace(
+      '</activity>',
+      `</activity>${AMBER_DEEP_LINK}`
+    );
+    changes++;
+    console.log('  ✅ Amber Deep-Link mojobus://amber-auth');
+  } else {
+    console.log('  ✓ Amber Deep-Link (bereits vorhanden)');
   }
 
   for (const permission of REQUIRED_PERMISSIONS) {
