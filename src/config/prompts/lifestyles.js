@@ -325,48 +325,6 @@ export function getGenderPromptAddition(gender = 'neutral') {
   return config.promptAddition;
 }
 
-/**
- * Erkennt Gender basierend auf Pubkey
- * Mojo = male, Susanne = female
- * Wenn beide zusammen posten: couple
- *
- * @param {string} pubkey - Der Nostr Pubkey (hex)
- * @returns {'male' | 'female' | 'neutral' | 'couple'}
- */
-export function detectGenderFromPubkey(pubkey) {
-  if (!pubkey) return 'neutral';
-
-  // Mojo pubkey
-  if (pubkey === '4d584dab7c880a9809e7df0476d745bfe9a3fe91a1c062bc1fec024e0b5e1f1f') return 'male';
-  // Susanne pubkey
-  if (pubkey === '94ebd1c0940881de438b7f3c532b73e0d4d6c6b0160d3fe0b8a55fe49d477bd4') return 'female';
-
-  return 'neutral';
-}
-
-/**
- * Alle verfügbaren Lifestyles als Array
- */
-export function getAvailableLifestyles() {
-  return Object.entries(lifestyleBase).map(([key, config]) => ({
-    value: key,
-    label: config.community,
-    vehicle: config.vehicle
-  }));
-}
-
-/**
- * Gender-Optionen für UI-Dropdown
- */
-export const genderOptions = Object.entries(genderConfig).map(([key, config]) => ({
-  value: key,
-  label: config.label
-}));
-
-/**
- * Legacy-Export: lifestyles Objekt (für Abwärtskompatibilität)
- * Gibt neutral-Beispiele zurück
- */
 export const lifestyles = Object.fromEntries(
   Object.entries(lifestyleBase).map(([key, base]) => [
     key,
