@@ -41,6 +41,31 @@ function Places() {
 
   const currentCountry = country ? countries[country as keyof typeof countries] : null;
 
+  // SEO Meta Tags
+  const pageTitle = currentCountry
+    ? `Campingplätze in ${currentCountry.name} - MojoBus`
+    : 'Campingplätze & Stellplätze - MojoBus';
+  const pageDescription = currentCountry
+    ? `Die besten Campingplätze, Stellplätze und Wildcamping-Spots in ${currentCountry.name}. Vanlife Tipps von Perpetual Travelers.`
+    : 'Entdecke die besten Campingplätze, Stellplätze und Wildcamping-Spots in Europa. Vanlife Tipps von Perpetual Travelers.';
+
+  useHead({
+    title: pageTitle,
+    meta: [
+      { name: 'description', content: pageDescription },
+      { name: 'keywords', content: 'Campingplätze, Stellplätze, Wildcamping, Vanlife, Wohnmobil, Camping, Reisen, Europa' },
+      { property: 'og:title', content: pageTitle },
+      { property: 'og:description', content: pageDescription },
+      { property: 'og:url', content: `https://mojobus.co/plaetze${country ? '/' + country : ''}` },
+      { property: 'og:type', content: 'website' },
+      { name: 'twitter:title', content: pageTitle },
+      { name: 'twitter:description', content: pageDescription },
+    ],
+    link: [
+      { rel: 'canonical', href: `https://mojobus.co/plaetze${country ? '/' + country : ''}` }
+    ]
+  });
+
   // Filter Events nach Country
   const filteredEvents = currentCountry
     ? filterEventsByCountry(events || [], currentCountry)

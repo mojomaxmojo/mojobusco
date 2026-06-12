@@ -123,7 +123,7 @@ export function NoteView({ eventId }: NoteViewProps) {
       'offgrid', 'camper', 'reiseblog', 'microblog', ...tags.slice(0, 10)
     ];
     
-    const canonicalUrl = `https://mojobus.org/${nip19.noteEncode(eventId)}`;
+    const canonicalUrl = `https://mojobus.co/${nip19.noteEncode(eventId)}`;
     const pubDate = new Date(note.created_at * 1000).toISOString();
     const authorNpub = nip19.npubEncode(note.pubkey);
 
@@ -136,15 +136,15 @@ export function NoteView({ eventId }: NoteViewProps) {
       'author': {
         '@type': 'Person',
         'name': authorName,
-        'url': `https://mojobus.org/${authorNpub}`,
+        'url': `https://mojobus.co/${authorNpub}`,
       },
       'publisher': {
         '@type': 'Organization',
         'name': 'MojoBus',
-        'url': 'https://mojobus.org',
+        'url': 'https://mojobus.co',
         'logo': {
           '@type': 'ImageObject',
-          'url': 'https://mojobus.org/mojobuslogo.png',
+          'url': 'https://mojobus.co/mojobuslogo.png',
           'width': 512,
           'height': 512
         }
@@ -159,15 +159,15 @@ export function NoteView({ eventId }: NoteViewProps) {
       '@context': 'https://schema.org',
       '@type': 'BreadcrumbList',
       'itemListElement': [
-        { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': 'https://mojobus.org' },
-        { '@type': 'ListItem', 'position': 2, 'name': 'Notes', 'item': 'https://mojobus.org/notes' },
+        { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': 'https://mojobus.co' },
+        { '@type': 'ListItem', 'position': 2, 'name': 'Notes', 'item': 'https://mojobus.co/notes' },
         { '@type': 'ListItem', 'position': 3, 'name': title, 'item': canonicalUrl }
       ]
     };
 
     // Extrahiere erstes Bild aus Note fuer OG Image
     const images = extractNoteImages(note);
-    const ogImage = images[0] || 'https://mojobus.org/mojobuslogo.png';
+    const ogImage = images[0] || 'https://mojobus.co/mojobuslogo.png';
 
     return {
       title: `${title} - MojoBus`,
@@ -194,7 +194,7 @@ export function NoteView({ eventId }: NoteViewProps) {
       ],
       link: [
         { rel: 'canonical', href: canonicalUrl },
-        { rel: 'author', href: `https://mojobus.org/${authorNpub}` }
+        { rel: 'author', href: `https://mojobus.co/${authorNpub}` }
       ],
       script: [
         { type: 'application/ld+json', innerHTML: JSON.stringify(jsonLd) },

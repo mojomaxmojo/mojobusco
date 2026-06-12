@@ -87,11 +87,11 @@ export function Leon() {
       { name: 'keywords', content: 'Leon, Lionhunter, Hund, Vanlife, Hundegeschichten, MojoBus' },
       { property: 'og:title', content: pageTitle },
       { property: 'og:description', content: pageDescription },
-      { property: 'og:url', content: `https://mojobus.org/leon` },
+      { property: 'og:url', content: 'https://mojobus.co/artikel/leon' },
       { property: 'og:type', content: 'website' }
     ],
     link: [
-      { rel: 'canonical', href: `https://mojobus.org/leon` }
+      { rel: 'canonical', href: 'https://mojobus.co/artikel/leon' }
     ]
   });
 

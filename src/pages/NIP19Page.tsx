@@ -38,11 +38,11 @@ const ProfileView = ({ pubkey }: { pubkey: string }) => {
         { property: 'og:title', content: `${displayName} - MojoBus Profile` },
         { property: 'og:description', content: metadata?.about || `Profil von ${displayName} auf MojoBus` },
         { property: 'og:type', content: 'profile' },
-        { property: 'og:image', content: metadata?.picture || 'https://mojobus.org/mojobuslogo.png' },
+        { property: 'og:image', content: metadata?.picture || 'https://mojobus.co/mojobuslogo.png' },
         { property: 'profile:username', content: name },
       ],
       link: [
-        { rel: 'canonical', href: `https://mojobus.org/${nip19.npubEncode(pubkey)}` }
+        { rel: 'canonical', href: `https://mojobus.co/${nip19.npubEncode(pubkey)}` }
       ]
     };
   });

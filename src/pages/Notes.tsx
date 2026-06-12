@@ -61,12 +61,12 @@ export function Notes() {
       { name: 'description', content: pageDescription },
       { property: 'og:title', content: pageTitle },
       { property: 'og:description', content: pageDescription },
-      { property: 'og:url', content: `https://mojobus.org/notes${country ? '/' + country : ''}` },
+      { property: 'og:url', content: `https://mojobus.co/notes${country ? '/' + country : ''}` },
       { name: 'twitter:title', content: pageTitle },
       { name: 'twitter:description', content: pageDescription },
     ],
     link: [
-      { rel: 'canonical', href: `https://mojobus.org/notes${country ? '/' + country : ''}` }
+      { rel: 'canonical', href: `https://mojobus.co/notes${country ? '/' + country : ''}` }
     ]
   });
 

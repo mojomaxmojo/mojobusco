@@ -172,11 +172,11 @@ function Images() {
       { name: 'keywords', content: 'Vanlife, Fotografie, Reisen, Portugal, Spanien, Frankreich, Belgien, Luxemburg, Deutschland' },
       { property: 'og:title', content: pageTitle },
       { property: 'og:description', content: pageDescription },
-      { property: 'og:url', content: `https://mojobus.org/bilder${country ? '/' + country : ''}` },
+      { property: 'og:url', content: `https://mojobus.co/bilder${country ? '/' + country : ''}` },
       { property: 'og:type', content: 'website' }
     ],
     link: [
-      { rel: 'canonical', href: `https://mojobus.org/bilder${country ? '/' + country : ''}` }
+      { rel: 'canonical', href: `https://mojobus.co/bilder${country ? '/' + country : ''}` }
     ]
   });
 

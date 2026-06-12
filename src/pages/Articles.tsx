@@ -135,11 +135,11 @@ function Articles() {
       { name: 'keywords', content: 'Vanlife, Camping, Perpetual Travelers, Nostr, Reiseberichte, Geschichten, Portugal, Spanien, Frankreich, Belgien, Luxemburg, Deutschland' },
       { property: 'og:title', content: pageTitle },
       { property: 'og:description', content: pageDescription },
-      { property: 'og:url', content: `https://mojobus.org/artikel${country ? '/' + country : ''}` },
+      { property: 'og:url', content: `https://mojobus.co/artikel${country ? '/' + country : ''}` },
       { property: 'og:type', content: 'website' }
     ],
     link: [
-      { rel: 'canonical', href: `https://mojobus.org/artikel${country ? '/' + country : ''}` }
+      { rel: 'canonical', href: `https://mojobus.co/artikel${country ? '/' + country : ''}` }
     ]
   });
 

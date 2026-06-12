@@ -70,10 +70,12 @@ const PlacesPage = () => {
       { name: 'description', content: 'Alle Plätze sortiert nach Erstellungsdatum.' },
       { name: 'keywords', content: 'orte' },
       { property: 'og:title', content: 'Plätze - MojoBus' },
-      { property: 'og:url', content: 'https://mojobus.org/plaetze' },
-      { property: 'og:type', content: 'website' }
+{ property: 'og:url', content: 'https://mojobus.co/plaetze' },
+      { property: 'og:type', content: 'website' },
+      { name: 'twitter:title', content: pageTitle },
+      { name: 'twitter:description', content: pageDescription },
     ],
-    link: [{ rel: 'canonical', href: 'https://mojobus.org/plaetze' }]
+    link: [{ rel: 'canonical', href: 'https://mojobus.co/plaetze' }]
   });
 
   return (

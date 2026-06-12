@@ -17,6 +17,7 @@ import { VanillaMap, TILE_LAYERS, type MapMarker, type MapPolyline } from '@/com
 import { useGpsContent, type MapMarker as GpsMapMarker } from '@/hooks/useGpsContent';
 import { useTrips, calculateTripDistance, type Trip } from '@/hooks/useTrips';
 import { MapPin, RefreshCw, Loader2, Map as MapIcon, BarChart3, Route } from 'lucide-react';
+import { useHead } from '@unhead/react';
 
 // World bounds - alle Marker anzeigen
 const WORLD_CENTER = {
@@ -34,6 +35,24 @@ const ZOOM_SETTINGS = {
  * Main Map Page Component
  */
 export default function MapPage() {
+  // SEO Meta Tags
+  useHead({
+    title: 'Vanlife Reise Karte & Trips - MojoBus',
+    meta: [
+      { name: 'description', content: 'Interaktive Karte mit allen Vanlife-Stationen, Campingplätzen und Reiserouten. Entdecke unsere Trips durch Europa – von Portugal bis Deutschland.' },
+      { name: 'keywords', content: 'Vanlife Karte, Reiseroute, Campingplätze Karte, Europa Reisen, Roadtrip, GPS Track' },
+      { property: 'og:title', content: 'Vanlife Reise Karte & Trips - MojoBus' },
+      { property: 'og:description', content: 'Interaktive Karte mit allen Vanlife-Stationen, Campingplätzen und Reiserouten durch Europa.' },
+      { property: 'og:url', content: 'https://mojobus.co/map' },
+      { property: 'og:type', content: 'website' },
+      { name: 'twitter:title', content: 'Vanlife Reise Karte & Trips - MojoBus' },
+      { name: 'twitter:description', content: 'Interaktive Karte mit allen Vanlife-Stationen, Campingplätzen und Reiserouten durch Europa.' },
+    ],
+    link: [
+      { rel: 'canonical', href: 'https://mojobus.co/map' }
+    ]
+  });
+
   const { data: markers = [], isLoading, error, refetch } = useGpsContent();
   const { data: trips = [], isLoading: tripsLoading } = useTrips();
   const [activeFilter, setActiveFilter] = useState<'all' | 'media' | 'note' | 'place' | 'article' | 'trip'>('all');

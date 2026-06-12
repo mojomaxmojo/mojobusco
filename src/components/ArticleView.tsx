@@ -283,7 +283,7 @@ export function ArticleView({ naddr }: ArticleViewProps) {
     );
     const keywords = [...new Set([...baseKeywords, ...seoTags])];
     
-    const canonicalUrl = `https://mojobus.org/${nip19.naddrEncode(naddr)}`;
+    const canonicalUrl = `https://mojobus.co/${nip19.naddrEncode(naddr)}`;
     const pubDate = new Date(metadata.publishedAt * 1000).toISOString();
     const modifiedDate = new Date(article.created_at * 1000).toISOString();
     
@@ -303,15 +303,15 @@ export function ArticleView({ naddr }: ArticleViewProps) {
       'author': {
         '@type': 'Person',
         'name': currentAuthorName,
-        'url': `https://mojobus.org/${authorNpub}`,
+        'url': `https://mojobus.co/${authorNpub}`,
       },
       'publisher': {
         '@type': 'Organization',
         'name': 'MojoBus',
-        'url': 'https://mojobus.org',
+        'url': `https://mojobus.co`,
         'logo': {
           '@type': 'ImageObject',
-          'url': 'https://mojobus.org/mojobuslogo.png',
+          'url': 'https://mojobus.co/mojobuslogo.png',
           'width': 512,
           'height': 512
         }
@@ -348,13 +348,13 @@ export function ArticleView({ naddr }: ArticleViewProps) {
           '@type': 'ListItem',
           'position': 1,
           'name': 'Home',
-          'item': 'https://mojobus.org'
+          'item': 'https://mojobus.co'
         },
         {
           '@type': 'ListItem',
           'position': 2,
           'name': 'Artikel',
-          'item': 'https://mojobus.org/artikel'
+          'item': 'https://mojobus.co/artikel'
         },
         {
           '@type': 'ListItem',
@@ -374,7 +374,7 @@ export function ArticleView({ naddr }: ArticleViewProps) {
       { property: 'og:url', content: canonicalUrl },
       { property: 'og:site_name', content: 'MojoBus Perpetual Travelers' },
       { property: 'og:locale', content: 'de_DE' },
-      { property: 'og:image', content: metadata.image || 'https://mojobus.org/mojobuslogo.png' },
+      { property: 'og:image', content: metadata.image || 'https://mojobus.co/mojobuslogo.png' },
       { property: 'og:image:alt', content: title },
       ...(metadata.image ? [
         { property: 'og:image:width', content: '1200' },
@@ -389,7 +389,7 @@ export function ArticleView({ naddr }: ArticleViewProps) {
       { name: 'twitter:title', content: `${title} - MojoBus` },
       { name: 'twitter:description', content: description },
       { name: 'twitter:card', content: metadata.image ? 'summary_large_image' : 'summary' },
-      { name: 'twitter:image', content: metadata.image || 'https://mojobus.org/mojobuslogo.png' },
+      { name: 'twitter:image', content: metadata.image || 'https://mojobus.co/mojobuslogo.png' },
       { name: 'twitter:image:alt', content: title },
       { name: 'robots', content: 'index, follow, max-image-preview:large' },
       { name: 'language', content: 'German' },
@@ -400,7 +400,7 @@ export function ArticleView({ naddr }: ArticleViewProps) {
       meta: metaEntries,
       link: [
         { rel: 'canonical', href: canonicalUrl },
-        { rel: 'author', href: `https://mojobus.org/${authorNpub}`, title: authorName }
+        { rel: 'author', href: `https://mojobus.co/${authorNpub}`, title: authorName }
       ],
       script: [
         {

@@ -17,8 +17,27 @@ import type { NostrEvent } from '@nostrify/nostrify';
 import { memo, useState } from 'react';
 import { getListThumbnailUrl, getImagePlaceholder, generateSrcset, generateSizes } from '@/lib/imageUtils';
 import { DEFAULT_PERFORMANCE_CONFIG } from '@/config/performance';
+import { useHead } from '@unhead/react';
 
 export function DIY() {
+  // SEO Meta Tags
+  useHead({
+    title: 'DIY Vanlife Umbau & Solar - MojoBus',
+    meta: [
+      { name: 'description', content: 'DIY-Anleitungen für den Vanlife-Umbau: Solaranlage, Innenausbau, Reparaturen und Selbstbau-Projekte für Wohnmobil und Camper.' },
+      { name: 'keywords', content: 'DIY, Vanlife Umbau, Solaranlage, Wohnmobil Selbstbau, Camper Ausbau, Reparatur, Offgrid' },
+      { property: 'og:title', content: 'DIY Vanlife Umbau & Solar - MojoBus' },
+      { property: 'og:description', content: 'DIY-Anleitungen für den Vanlife-Umbau: Solaranlage, Innenausbau, Reparaturen und Selbstbau-Projekte.' },
+      { property: 'og:url', content: 'https://mojobus.co/artikel/diy' },
+      { property: 'og:type', content: 'website' },
+      { name: 'twitter:title', content: 'DIY Vanlife Umbau & Solar - MojoBus' },
+      { name: 'twitter:description', content: 'DIY-Anleitungen für den Vanlife-Umbau: Solaranlage, Innenausbau, Reparaturen und Selbstbau-Projekte.' },
+    ],
+    link: [
+      { rel: 'canonical', href: 'https://mojobus.co/artikel/diy' }
+    ]
+  });
+
   const [searchQuery, setSearchQuery] = useState('');
   const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useInfiniteLongformArticles({
     '#t': ['diy'],
