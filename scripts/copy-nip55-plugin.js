@@ -50,16 +50,19 @@ function copyPlugin() {
 
   // --- IMPORT ---
   if (!hadImport) {
-    // Nach package-Statement oder vor public class einfugen
+    const imports = [];
+    if (!content.includes('import android.os.Bundle;')) imports.push('import android.os.Bundle;');
+    imports.push('import co.mojobus.plugins.Nip55SignerPlugin;');
+    
     if (content.includes('package ')) {
       content = content.replace(
         /(package .+;\n)/,
-        '$1import co.mojobus.plugins.Nip55SignerPlugin;\n\n'
+        '$1' + imports.join('\n') + '\n\n'
       );
     } else {
-      content = 'import co.mojobus.plugins.Nip55SignerPlugin;\n\n' + content;
+      content = imports.join('\n') + '\n\n' + content;
     }
-    console.log('Import hinzugefugt');
+    console.log('Imports hinzugefugt: ' + imports.join(', '));
   }
 
   // --- REGISTERPLUGIN ---
@@ -80,8 +83,8 @@ function copyPlugin() {
       );
       console.log('✅ Plugin vor load() registriert');
     }
-    // Fall 3: Leerer Body -> Klasse hat keinen Inhalt
-    else if (content.match(/class MainActivity[^{]*\{[^}]*\}/)) {
+    // Fall 3: Leere Klasse -> komplettes onCreate erstellen
+    else if (content.match(/class MainActivity[^{]*\{/)) {
       content = content.replace(
         /class MainActivity[^{]*\{/,
         'class MainActivity extends BridgeActivity {\n' +
@@ -89,8 +92,15 @@ function copyPlugin() {
         '    public void onCreate(Bundle savedInstanceState) {\n' +
         '        super.onCreate(savedInstanceState);\n' +
         '        registerPlugin(Nip55SignerPlugin.class);\n' +
-        '    }'
+        '    }\n'
       );
+      // Bundle-Import sicherstellen (falls nicht schon da)
+      if (!content.includes('import android.os.Bundle;')) {
+        content = content.replace(
+          /(import co\.mojobus\.plugins\.Nip55SignerPlugin;\n)/,
+          'import android.os.Bundle;\n$1'
+        );
+      }
       console.log('✅ onCreate mit Plugin-Registrierung erstellt');
     }
     // Fall 4: init() - Capacitor 8
@@ -103,7 +113,6 @@ function copyPlugin() {
     }
     // Fall 5: Kein bekannter Hook - vor dem letzten } einfugen
     else {
-      // Suche das letzte } und füge onCreate davor ein
       const lastBrace = content.lastIndexOf('}');
       if (lastBrace > 0) {
         const before = content.substring(0, lastBrace);
@@ -115,6 +124,12 @@ function copyPlugin() {
           '        registerPlugin(Nip55SignerPlugin.class);\n' +
           '    }\n' +
           after;
+        if (!content.includes('import android.os.Bundle;')) {
+          content = content.replace(
+            /(import co\.mojobus\.plugins\.Nip55SignerPlugin;\n)/,
+            'import android.os.Bundle;\n$1'
+          );
+        }
         console.log('✅ onCreate-Methode mit Registrierung eingefugt');
       } else {
         console.log('⚠ Konnte keine Stelle fur registerPlugin finden.');
