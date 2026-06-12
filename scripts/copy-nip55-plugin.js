@@ -1,8 +1,8 @@
 /**
  * Kopiert das NIP-55 Signer Plugin in das Android-Projekt
+ * und registriert es in der MainActivity.
  *
- * Wird nach npx cap sync android ausgeführt, da cap sync
- * das Android-Verzeichnis neu erstellt.
+ * Wird nach npx cap sync android ausgeführt.
  *
  * Aufruf: node scripts/copy-nip55-plugin.js
  */
@@ -13,60 +13,72 @@ import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// Pfade
 const PLUGIN_SRC = join(__dirname, '..', 'plugins', 'nip55-signer', 'Nip55SignerPlugin.java');
 const ANDROID_APP_DIR = join(__dirname, '..', 'android', 'app', 'src', 'main', 'java', 'co', 'mojobus', 'plugins');
+const MAIN_ACTIVITY_PATH = join(__dirname, '..', 'android', 'app', 'src', 'main', 'java', 'co', 'mojobus', 'app', 'MainActivity.java');
 
 function copyPlugin() {
-  // Prüfe ob Plugin-Quelle existiert
   if (!existsSync(PLUGIN_SRC)) {
     console.error(`❌ Plugin-Quelle nicht gefunden: ${PLUGIN_SRC}`);
     process.exit(1);
   }
 
-  // Prüfe ob Android-Verzeichnis existiert
   if (!existsSync(join(__dirname, '..', 'android'))) {
-    console.error('❌ Android-Verzeichnis nicht gefunden. Bitte zuerst npx cap sync android ausführen.');
+    console.error('❌ Android-Verzeichnis nicht gefunden. npx cap sync android ausführen.');
     process.exit(1);
   }
 
-  // Zielverzeichnis erstellen
+  // 1. Plugin kopieren
   mkdirSync(ANDROID_APP_DIR, { recursive: true });
-
-  // Plugin kopieren
   const destPath = join(ANDROID_APP_DIR, 'Nip55SignerPlugin.java');
   copyFileSync(PLUGIN_SRC, destPath);
-  console.log(`✅ Nip55SignerPlugin.java → ${destPath}`);
+  console.log(`✅ Plugin kopiert → ${destPath}`);
 
-  // ── MainActivity patchen – Plugin registrieren ────────────────────────────
-  const mainActivityPath = join(__dirname, '..', 'android', 'app', 'src', 'main', 'java', 'co', 'mojobus', 'app', 'MainActivity.java');
-  
-  if (existsSync(mainActivityPath)) {
-    let content = readFileSync(mainActivityPath, 'utf-8');
-
-    // Prüfen ob der Import bereits existiert
-    if (!content.includes('import co.mojobus.plugins.Nip55SignerPlugin;')) {
-      // Import hinzufügen (nach dem letzten import)
-      content = content.replace(
-        /(import .+;\n)(?!import)/,
-        '$1import co.mojobus.plugins.Nip55SignerPlugin;\n'
-      );
-    }
-
-    // Prüfen ob die Plugin-Registrierung bereits existiert
-    if (!content.includes('Nip55SignerPlugin.class')) {
-      // Plugin in der bridge-Konfiguration registrieren
-      // Capacitor 8 erwartet dies normalerweise automatisch via @CapacitorPlugin Annotation,
-      // aber zur Sicherheit explizit hinzufügen falls nötig
-      console.log('  ℹ MainActivity.java gefunden – Capacitor registriert Plugins normalerweise automatisch via Annotation.');
-    }
-
-    writeFileSync(mainActivityPath, content, 'utf-8');
-    console.log('✓ MainActivity.java geprüft');
-  } else {
-    console.log('  ⚠ MainActivity.java nicht gefunden – Plugin wird via @CapacitorPlugin Annotation registriert.');
+  // 2. MainActivity patchen – Plugin registrieren
+  if (!existsSync(MAIN_ACTIVITY_PATH)) {
+    console.log('⚠ MainActivity.java nicht gefunden – überspringe Registrierung.');
+    return;
   }
 
+  let content = readFileSync(MAIN_ACTIVITY_PATH, 'utf-8');
+
+  // Import hinzufügen
+  if (!content.includes('import co.mojobus.plugins.Nip55SignerPlugin;')) {
+    content = content.replace(
+      'public class MainActivity',
+      'import co.mojobus.plugins.Nip55SignerPlugin;\n\npublic class MainActivity'
+    );
+    console.log('✅ Import hinzugefügt');
+  }
+
+  // Plugin-Registrierung in onCreate() einfügen
+  if (!content.includes('registerPlugin(Nip55SignerPlugin.class)')) {
+    // Suche super.onCreate(savedInstanceState);
+    if (content.includes('super.onCreate(savedInstanceState)')) {
+      content = content.replace(
+        'super.onCreate(savedInstanceState)',
+        'super.onCreate(savedInstanceState);\n        registerPlugin(Nip55SignerPlugin.class);'
+      );
+      // Entferne das doppelte Semikolon falls nötig
+      content = content.replace(
+        'super.onCreate(savedInstanceState);;\n        registerPlugin',
+        'super.onCreate(savedInstanceState);\n        registerPlugin'
+      );
+      console.log('✅ Plugin-Registrierung in onCreate() eingefügt');
+    } else if (content.includes('load()')) {
+      // Bridge.load() pattern (Capacitor 8)
+      content = content.replace(
+        'load()',
+        'load();\n        registerPlugin(Nip55SignerPlugin.class);'
+      );
+      console.log('✅ Plugin-Registrierung nach load() eingefügt');
+    } else {
+      console.log('⚠ Konnte onCreate() nicht finden – manuelle Registrierung nötig.');
+    }
+  }
+
+  writeFileSync(MAIN_ACTIVITY_PATH, content, 'utf-8');
+  console.log('✅ MainActivity.java aktualisiert');
   console.log('\n✅ NIP-55 Signer Plugin erfolgreich installiert!');
 }
 
