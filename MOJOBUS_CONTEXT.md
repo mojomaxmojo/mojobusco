@@ -17,8 +17,21 @@ MojoBus ist eine Nostr-basierte Vanlife/Travel-Plattform zum Teilen von Reiseerl
 | `src/lib/capacitorGps.ts` | Native Dateiauswahl + EXIF-GPS via exifr.js |
 | `src/lib/gpsExtraction.ts` | GPS-Extraktion für Browser (Standard) |
 | `src/pages/publish/MediaUploadForm.tsx` | Medien-Upload mit GPS-Button |
+| `src/pages/publish/PlaceForm.tsx` | Orte-Formular (Standard-Dateiauswahl) |
+| `src/components/ArticleView.tsx` | Artikel-Detailansicht mit SEO + JSON-LD |
+| `src/components/NoteView.tsx` | Notes-Detailansicht mit SEO |
+| `src/components/SEOHead.tsx` | Dynamische Meta-Tags, OG, Twitter, JSON-LD |
+| `src/lib/jsonld.ts` | JSON-LD Structured Data Generators |
+| `src/lib/imageUtils.ts` | Bildoptimierung via images.weserv.nl |
+| `src/config/imageService.ts` | Image-Service Konfiguration (weserv/imgproxy/Cloudflare) |
+| `src/config/performance.ts` | Performance-Konfiguration |
+| `src/config/routes.ts` | Routen-Definitionen |
+| `src/AppRouter.tsx` | Router mit Lazy Loading |
 | `scripts/patch-android-manifest.js` | Patcht AndroidManifest.xml (Permissions) |
 | `scripts/copy-icons.js` | Kopiert Icons aus public/ in Android-Ordner |
+| `scripts/generate-sitemap.js` | Generiert sitemap.xml (Cron: täglich 6:00) |
+| `scripts/generate-site-data.js` | Generiert statische JSON-Dumps (Cron: täglich 6:15) |
+| `scripts/generate-feed.js` | Generiert RSS 2.0 Feed (Cron: alle 6h) |
 | `capacitor.config.ts` | Capacitor-Konfiguration (appId: co.mojobus.app) |
 
 ## 📱 Android APK Build (CachyOS)
@@ -69,12 +82,14 @@ const result = await FilePicker.requestPermissions({
 - **Repository**: https://github.com/mojomaxmojo/mojobusco
 - **Server**: AlmaLinux 9.7 (CentminMod), Nginx, Node.js
 - **Relay**: wss://relay.mojobus.co
+- **RSS Feed**: https://mojobus.co/feed.xml (Cron alle 6h)
+- **Sitemap**: https://mojobus.co/sitemap.xml (Cron täglich 6:00)
 
 ## 👥 Autoren (Nostr)
 - **Mojo**: `4d584dab7c880a9809e7df0476d745bfe9a3fe91a1c062bc1fec024e0b5e1f1f`
 - **Susanne**: `94ebd1c0940881de438b7f3c532b73e0d4d6c6b0160d3fe0b8a55fe49d477bd4`
 
-## 🔧 Offene Punkte / Nächste Schritte
-- Kamera-Zugriff (@capacitor/camera) – GPS aus Kamera-Fotos klappt noch nicht
-- PlaceForm.tsx nachrüsten (Capacitor FilePicker für Orte-Formular)
-- Backup-Branch `backup-gps` auf GitHub (Commit 97b8dc4 – GPS funktioniert)
+## 🔧 Wichtige Branches (GitHub)
+- **main** – Aktive Entwicklung
+- **backup-gps** – GPS-Fix funktionierender Stand (Commit 97b8dc4)
+- **caption-improvements-v2** – Bildunterschriften
