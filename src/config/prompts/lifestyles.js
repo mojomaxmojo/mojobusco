@@ -377,6 +377,41 @@ export const lifestyles = Object.fromEntries(
   ])
 );
 
+// ============================================================
+// GENDER-ERKENNUNG FÜR AUTOREN
+// ============================================================
+
+/**
+ * Erkennt Gender basierend auf Nostr Pubkey (hex)
+ * Mojo = male, Susanne = female, Unbekannt = neutral
+ *
+ * WICHTIG: Hier hardcodiert, weil diese Datei sowohl im Browser (Vite)
+ * als auch im Node.js Server (ai-api) läuft – kein JSON-Import möglich.
+ *
+ * @param {string} pubkey - Der Nostr Public Key (hex)
+ * @returns {'male' | 'female' | 'neutral'}
+ */
+export function detectGenderFromPubkey(pubkey) {
+  if (!pubkey) return 'neutral';
+  if (pubkey === '4d584dab7c880a9809e7df0476d745bfe9a3fe91a1c062bc1fec024e0b5e1f1f') return 'male';
+  if (pubkey === '94ebd1c0940881de438b7f3c532b73e0d4d6c6b0160d3fe0b8a55fe49d477bd4') return 'female';
+  return 'neutral';
+}
+
+/**
+ * Erkennt Gender basierend auf Nostr npub (bech32)
+ * Mojo = male, Susanne = female, Unbekannt = neutral
+ *
+ * @param {string} npub - Der Nostr npub (z.B. npub1f4vym...)
+ * @returns {'male' | 'female' | 'neutral'}
+ */
+export function detectGenderFromNpub(npub) {
+  if (!npub) return 'neutral';
+  if (npub === 'npub1f4vym2mu3q9fsz08muz8d469hl568l5358qx90qlaspyuz67ru0sfxvupf') return 'male';
+  if (npub === 'npub1jn4arsy5pzqausut0u79x2mnur2dd34szcxnlc9c5407f828002qdls5wz') return 'female';
+  return 'neutral';
+}
+
 // Default Export
 export default {
   genderConfig,
