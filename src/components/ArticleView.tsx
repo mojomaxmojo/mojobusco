@@ -35,6 +35,7 @@ import { useState } from 'react';
 import { useHead } from '@unhead/react';
 import { nip19, type AddressPointer } from 'nostr-tools';
 import { getArticleHeaderUrl, generateSrcset, generateSizes, getResponsiveImageUrl } from '@/lib/imageUtils';
+import { Breadcrumbs } from '@/components/Breadcrumbs';
 
 interface ArticleViewProps {
   naddr: AddressPointer;
@@ -294,8 +295,25 @@ export function ArticleView({ naddr }: ArticleViewProps) {
       ['diy', 'rvlife', 'lifestyle', 'kueche', 'ausstattung', 'freeliving', 'leon'].includes(t.toLowerCase())
     ) || 'Blog';
 
-    // JSON-LD Article Schema fuer Google Rich Snippets
-    const jsonLd: Record<string, unknown> = {
+    // Prüfe ob es ein Ort (Place) ist → anderes JSON-LD Schema
+    const placeTypeTag = article.tags.find(([name]) => name === 'type');
+    const isPlaceInHead = placeTypeTag?.[1] === 'place';
+
+    // JSON-LD Schema fuer Google Rich Snippets
+    // Article für Blog-Artikel, Place für Campingplätze/Stellplätze
+    const jsonLd: Record<string, unknown> = isPlaceInHead ? {
+      '@context': 'https://schema.org',
+      '@type': 'Place',
+      'name': title,
+      'description': description,
+      'image': metadata.image || 'https://mojobus.co/og-image.jpg',
+      'url': canonicalUrl,
+      'author': {
+        '@type': 'Person',
+        'name': currentAuthorName,
+        'url': `https://mojobus.co/${authorNpub}`,
+      },
+    } : {
       '@context': 'https://schema.org',
       '@type': 'Article',
       'headline': title,
@@ -311,7 +329,7 @@ export function ArticleView({ naddr }: ArticleViewProps) {
         'url': `https://mojobus.co`,
         'logo': {
           '@type': 'ImageObject',
-          'url': 'https://mojobus.co/mojobuslogo.png',
+          'url': 'https://mojobus.co/og-image.jpg',
           'width': 512,
           'height': 512
         }
@@ -331,6 +349,23 @@ export function ArticleView({ naddr }: ArticleViewProps) {
         'width': 1200,
         'height': 630
       };
+    }
+
+    // GeoCoordinates für Places (Campingplätze, Stellplätze)
+    if (isPlaceInHead) {
+      const latTag = article.tags.find(([name]) => name === 'lat');
+      const lngTag = article.tags.find(([name]) => name === 'lng');
+      const locationTag = article.tags.find(([name]) => name === 'location');
+      if (latTag?.[1] && lngTag?.[1]) {
+        jsonLd.geo = {
+          '@type': 'GeoCoordinates',
+          'latitude': parseFloat(latTag[1]),
+          'longitude': parseFloat(lngTag[1]),
+        };
+      }
+      if (locationTag?.[1]) {
+        jsonLd.address = locationTag[1];
+      }
     }
     if (author.data?.metadata?.picture) {
       (jsonLd.author as Record<string, unknown>).image = {
@@ -370,11 +405,11 @@ export function ArticleView({ naddr }: ArticleViewProps) {
       { name: 'keywords', content: keywords.join(', ') },
       { property: 'og:title', content: `${title} - MojoBus` },
       { property: 'og:description', content: description },
-      { property: 'og:type', content: 'article' },
+      { property: 'og:type', content: isPlaceInHead ? 'place' : 'article' },
       { property: 'og:url', content: canonicalUrl },
       { property: 'og:site_name', content: 'MojoBus Perpetual Travelers' },
       { property: 'og:locale', content: 'de_DE' },
-      { property: 'og:image', content: metadata.image || 'https://mojobus.co/mojobuslogo.png' },
+      { property: 'og:image', content: metadata.image || 'https://mojobus.co/og-image.jpg' },
       { property: 'og:image:alt', content: title },
       ...(metadata.image ? [
         { property: 'og:image:width', content: '1200' },
@@ -389,7 +424,7 @@ export function ArticleView({ naddr }: ArticleViewProps) {
       { name: 'twitter:title', content: `${title} - MojoBus` },
       { name: 'twitter:description', content: description },
       { name: 'twitter:card', content: metadata.image ? 'summary_large_image' : 'summary' },
-      { name: 'twitter:image', content: metadata.image || 'https://mojobus.co/mojobuslogo.png' },
+      { name: 'twitter:image', content: metadata.image || 'https://mojobus.co/og-image.jpg' },
       { name: 'twitter:image:alt', content: title },
       { name: 'robots', content: 'index, follow, max-image-preview:large' },
       { name: 'language', content: 'German' },
@@ -570,6 +605,13 @@ export function ArticleView({ naddr }: ArticleViewProps) {
 
              {/* Divider */}
             </div>
+
+            {/* Breadcrumbs */}
+            <Breadcrumbs items={[
+              { label: 'Home', href: '/' },
+              { label: isPlace ? 'Plätze' : 'Artikel', href: isPlace ? '/plaetze' : '/artikel' },
+              { label: metadata.title },
+            ]} />
 
             {/* Tags */}
             {metadata.tags.length > 0 && (

@@ -72,7 +72,7 @@ function encodeNaddr(event) {
 function renderArticleHtml(event) {
   const title = event.tags?.find(t => t[0] === 'title')?.[1] || 'Artikel';
   const summary = event.tags?.find(t => t[0] === 'summary')?.[1] || '';
-  const image = event.tags?.find(t => t[0] === 'image')?.[1] || `${BASE_URL}/mojobuslogo.png`;
+  const image = event.tags?.find(t => t[0] === 'image')?.[1] || `${BASE_URL}/og-image.jpg`;
   const tags = event.tags?.filter(t => t[0] === 't').map(t => t[1]) || [];
   const publishedAt = event.tags?.find(t => t[0] === 'published_at')?.[1];
   const pubDate = publishedAt ? new Date(Number(publishedAt) * 1000).toISOString() : new Date(event.created_at * 1000).toISOString();
@@ -148,7 +148,7 @@ function renderArticleHtml(event) {
 function renderNoteHtml(event) {
   const contentText = (event.content || '').replace(/!\[.*?\]\(.*?\)/g, '').replace(/[#*_~`>|]/g, '').trim().substring(0, 300);
   const images = event.tags?.filter(t => t[0] === 'image').map(t => t[1]) || [];
-  const mainImage = images[0] || `${BASE_URL}/mojobuslogo.png`;
+  const mainImage = images[0] || `${BASE_URL}/og-image.jpg`;
   const tags = event.tags?.filter(t => t[0] === 't').map(t => t[1]) || [];
   const keywords = [...new Set(['vanlife', 'notes', 'microblog', 'reisen', ...tags])].join(', ');
   const title = `Note von ${event.pubkey.substring(0, 8)}`;
@@ -196,7 +196,7 @@ function renderProfileHtml(event) {
   const metadata = parseMetadata(event.content);
   const name = metadata?.display_name || metadata?.name || event.pubkey.substring(0, 8);
   const about = metadata?.about || '';
-  const picture = metadata?.picture || `${BASE_URL}/mojobuslogo.png`;
+  const picture = metadata?.picture || `${BASE_URL}/og-image.jpg`;
 
   // Korrekte SPA-URL: /{npub}
   let canonicalUrl;
@@ -245,7 +245,7 @@ function parseMetadata(content) {
 function renderPlaceHtml(event) {
   const name = event.tags?.find(t => t[0] === 'name')?.[1] || event.tags?.find(t => t[0] === 'title')?.[1] || 'Ort';
   const desc = event.content || '';
-  const image = event.tags?.find(t => t[0] === 'image')?.[1] || `${BASE_URL}/mojobuslogo.png`;
+  const image = event.tags?.find(t => t[0] === 'image')?.[1] || `${BASE_URL}/og-image.jpg`;
   const location = event.tags?.find(t => t[0] === 'location')?.[1] || '';
   const lat = event.tags?.find(t => t[0] === 'lat')?.[1] || event.tags?.find(t => t[0] === 'gps_lat')?.[1];
   const lon = event.tags?.find(t => t[0] === 'lng')?.[1] || event.tags?.find(t => t[0] === 'gps_lon')?.[1];
@@ -320,7 +320,7 @@ function renderPlaceHtml(event) {
 function renderTripHtml(event) {
   const title = event.tags?.find(t => t[0] === 'title')?.[1] || 'Reisebericht';
   const desc = event.content || event.tags?.find(t => t[0] === 'summary')?.[1] || '';
-  const image = event.tags?.find(t => t[0] === 'image')?.[1] || `${BASE_URL}/mojobuslogo.png`;
+  const image = event.tags?.find(t => t[0] === 'image')?.[1] || `${BASE_URL}/og-image.jpg`;
   const tags = event.tags?.filter(t => t[0] === 't').map(t => t[1]) || [];
   const identifier = event.tags?.find(t => t[0] === 'd')?.[1] || event.id;
   const cleanDesc = desc.replace(/!\[.*?\]\(.*?\)/g, '').replace(/[#*_~`>|]/g, '').trim().substring(0, 300);
@@ -369,7 +369,7 @@ function renderMediaHtml(event) {
   const title = event.tags?.find(t => t[0] === 'title')?.[1] || 'Bildergalerie';
   const desc = event.content || '';
   const images = event.tags?.filter(t => t[0] === 'image').map(t => t[1]) || [];
-  const mainImage = images[0] || `${BASE_URL}/mojobuslogo.png`;
+  const mainImage = images[0] || `${BASE_URL}/og-image.jpg`;
   const tags = event.tags?.filter(t => t[0] === 't').map(t => t[1]) || [];
   const identifier = event.tags?.find(t => t[0] === 'd')?.[1] || event.id;
   const cleanDesc = desc.replace(/!\[.*?\]\(.*?\)/g, '').replace(/[#*_~`>|]/g, '').trim().substring(0, 300);

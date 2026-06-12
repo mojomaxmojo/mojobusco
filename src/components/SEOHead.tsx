@@ -39,7 +39,7 @@ export function SEOHead({
   useEffect(() => {
     const fullTitle = title ? `${title} — MojoBus` : 'MojoBus – Perpetual Travelers Vanlife Blog';
     const desc = description || 'Vanlife, Reisen und Abenteuer mit dem MojoBus. Perpetual Travelers Blog auf Nostr.';
-    const img = image || 'https://mojobus.co/icon-512x512.png';
+    const img = image || 'https://mojobus.co/og-image.jpg';
     const pageUrl = url;
 
     // ── Title ──────────────────────────────────────────────────────

@@ -35,6 +35,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
 import { nip19 } from 'nostr-tools';
+import { Breadcrumbs } from '@/components/Breadcrumbs';
 
 interface NoteViewProps {
   eventId: string;
@@ -144,9 +145,9 @@ export function NoteView({ eventId }: NoteViewProps) {
         'url': 'https://mojobus.co',
         'logo': {
           '@type': 'ImageObject',
-          'url': 'https://mojobus.co/mojobuslogo.png',
-          'width': 512,
-          'height': 512
+          'url': 'https://mojobus.co/og-image.jpg',
+          'width': 1200,
+          'height': 630
         }
       },
       'datePublished': pubDate,
@@ -167,7 +168,7 @@ export function NoteView({ eventId }: NoteViewProps) {
 
     // Extrahiere erstes Bild aus Note fuer OG Image
     const images = extractNoteImages(note);
-    const ogImage = images[0] || 'https://mojobus.co/mojobuslogo.png';
+    const ogImage = images[0] || 'https://mojobus.co/og-image.jpg';
 
     return {
       title: `${title} - MojoBus`,
@@ -295,6 +296,13 @@ export function NoteView({ eventId }: NoteViewProps) {
     <div className="min-h-screen py-12">
       <div className="container mx-auto px-4">
         <div className="max-w-3xl mx-auto space-y-6">
+          {/* Breadcrumbs */}
+          <Breadcrumbs items={[
+            { label: 'Home', href: '/' },
+            { label: 'Notes', href: '/notes' },
+            { label: `Note von ${authorName}` },
+          ]} />
+
           <Button asChild variant="ghost" className="mb-4">
             <Link to="/notes">
               <ArrowLeft className="h-4 w-4 mr-2" />

@@ -39,7 +39,7 @@ export function articleJsonLd(data: JsonLdArticle): Record<string, unknown> {
     '@type': 'Article',
     headline: data.title,
     description: data.description || '',
-    image: data.image || 'https://mojobus.co/icon-512x512.png',
+    image: data.image || 'https://mojobus.co/og-image.jpg',
     url: data.url,
     mainEntityOfPage: {
       '@type': 'WebPage',
@@ -72,7 +72,7 @@ export function placeJsonLd(data: JsonLdPlace): Record<string, unknown> {
     '@type': 'Place',
     name: data.name,
     description: data.description || '',
-    image: data.image || 'https://mojobus.co/icon-512x512.png',
+    image: data.image || 'https://mojobus.co/og-image.jpg',
     url: data.url,
   };
 
