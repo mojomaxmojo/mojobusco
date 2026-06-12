@@ -4,8 +4,6 @@ import { useCallback, useMemo } from 'react';
 
 import { useAuthor } from './useAuthor.ts';
 import { detectGenderFromPubkey, type GenderType } from '@/config/prompts/lifestyles';
-import { isNativeAndroid, createNip55Signer } from '@/lib/nip55Signer';
-import { getAmberLogin } from './useLoginActions.ts';
 
 export function useCurrentUser() {
   const { nostr } = useNostr();
@@ -25,37 +23,6 @@ export function useCurrentUser() {
     }
   }, [nostr]);
 
-  // Amber-Login prüfen (separat gespeichert, kein NLogin)
-  const amberUser = useMemo(() => {
-    const amber = getAmberLogin();
-    if (!amber) return null;
-
-    try {
-      const signer = createNip55Signer(amber.pubkey, amber.packageName);
-
-      // Erzeuge ein NUser-ähnliches Objekt
-      // Da NUser ein Konstruktor ist, erstellen wir ein kompatibles Objekt
-      const user = {
-        pubkey: amber.pubkey,
-        signer,
-        type: 'amber' as const,
-        id: `amber:${amber.pubkey}`,
-        // Für Kompatibilität mit @nostrify/react
-        toJSON: () => ({
-          id: `amber:${amber.pubkey}`,
-          pubkey: amber.pubkey,
-          type: 'amber',
-        }),
-        // NUser Methoden
-        getPubkey: async () => amber.pubkey,
-      };
-
-      return user as unknown as NUser;
-    } catch {
-      return null;
-    }
-  }, [logins]); // Re-evaluate wenn sich logins ändern (damit logout erkannt wird)
-
   const users = useMemo(() => {
     const users: NUser[] = [];
 
@@ -68,13 +35,8 @@ export function useCurrentUser() {
       }
     }
 
-    // Amber-User als erster Eintrag (höchste Priorität)
-    if (amberUser) {
-      users.unshift(amberUser);
-    }
-
     return users;
-  }, [logins, loginToUser, amberUser]);
+  }, [logins, loginToUser]);
 
   const user = users[0] as NUser | undefined;
   const author = useAuthor(user?.pubkey);
