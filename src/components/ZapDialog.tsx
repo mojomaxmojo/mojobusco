@@ -306,6 +306,21 @@ export function ZapDialog({ target, children, className }: ZapDialogProps) {
     };
   }, [invoice]);
 
+  useEffect(() => {
+    if (open) {
+      setAmount(100);
+      setInvoice(null);
+      setCopied(false);
+      setQrCodeUrl('');
+    } else {
+      // Clean up state when dialog closes
+      setAmount(100);
+      setInvoice(null);
+      setCopied(false);
+      setQrCodeUrl('');
+    }
+  }, [open, setInvoice]);
+
   const handleCopy = async () => {
     if (invoice) {
       await navigator.clipboard.writeText(invoice);
