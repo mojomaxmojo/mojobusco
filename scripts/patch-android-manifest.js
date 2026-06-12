@@ -15,6 +15,15 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const manifestPath = join(__dirname, '..', 'android', 'app', 'src', 'main', 'AndroidManifest.xml');
 
+// NIP-55 Query für Android Signer Apps (Amber, Signet, etc.)
+const NIP55_QUERIES = `<queries>
+    <intent>
+        <action android:name="android.intent.action.VIEW" />
+        <category android:name="android.intent.category.BROWSABLE" />
+        <data android:scheme="nostrsigner" />
+    </intent>
+</queries>`;
+
 // Berechtigungen die sichergestellt werden müssen
 const REQUIRED_PERMISSIONS = [
   // Zugriff auf Standort-Metadaten in Fotos (Android 10+)
@@ -37,6 +46,18 @@ function patchManifest() {
 
   let content = readFileSync(manifestPath, 'utf-8');
   let changes = 0;
+
+  // NIP-55: <queries> Block für nostrsigner: Scheme hinzufügen
+  if (!content.includes('nostrsigner')) {
+    content = content.replace(
+      '<application',
+      `${NIP55_QUERIES}\n    <application`
+    );
+    changes++;
+    console.log('  ✅ NIP-55 nostrsigner query (Amber/Signer)');
+  } else {
+    console.log('  ✓ NIP-55 nostrsigner query (bereits vorhanden)');
+  }
 
   for (const permission of REQUIRED_PERMISSIONS) {
     if (!content.includes(permission)) {

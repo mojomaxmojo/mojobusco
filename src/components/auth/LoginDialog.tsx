@@ -2,7 +2,7 @@
 // It is important that all functionality in this file is preserved, and should only be modified if explicitly requested.
 
 import React, { useRef, useState, useEffect } from 'react';
-import { Shield, Upload, AlertTriangle, UserPlus, KeyRound, Sparkles, Cloud } from '@/lib/icons';
+import { Shield, Upload, AlertTriangle, UserPlus, KeyRound, Sparkles, Cloud, Smartphone } from '@/lib/icons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useLoginActions } from '@/hooks/useLoginActions';
 import { cn } from '@/lib/utils';
+import { isNativeAndroid } from '@/lib/nip55Signer';
 
 interface LoginDialogProps {
   isOpen: boolean;
@@ -36,6 +37,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
     bunker?: string;
     file?: string;
     extension?: string;
+    amber?: string;
   }>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const login = useLoginActions();
@@ -141,6 +143,26 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
     }
   };
 
+  const handleAmberLogin = async () => {
+    setIsLoading(true);
+    setErrors(prev => ({ ...prev, amber: undefined }));
+
+    try {
+      await login.amber();
+      onLogin();
+      onClose();
+    } catch (e: unknown) {
+      const error = e as Error;
+      console.error('Amber login failed:', error);
+      setErrors(prev => ({
+        ...prev,
+        amber: error instanceof Error ? error.message : 'Amber login failed'
+      }));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -177,7 +199,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
     }
   };
 
-  const defaultTab = 'nostr' in window ? 'extension' : 'key';
+  const defaultTab = 'nostr' in window ? 'extension' : isNativeAndroid() ? 'amber' : 'key';
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -227,10 +249,10 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
 
           {/* Login Methods */}
           <Tabs defaultValue={defaultTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 bg-muted/80 rounded-lg mb-4">
+            <TabsList className="grid w-full grid-cols-4 bg-muted/80 rounded-lg mb-4">
               <TabsTrigger value="extension" className="flex items-center gap-2">
                 <Shield className="w-4 h-4" />
-                <span>Extension</span>
+                <span>Ext</span>
               </TabsTrigger>
               <TabsTrigger value="key" className="flex items-center gap-2">
                 <KeyRound className="w-4 h-4" />
@@ -239,6 +261,10 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
               <TabsTrigger value="bunker" className="flex items-center gap-2">
                 <Cloud className="w-4 h-4" />
                 <span>Bunker</span>
+              </TabsTrigger>
+              <TabsTrigger value="amber" className="flex items-center gap-2">
+                <Smartphone className="w-4 h-4" />
+                <span>Amber</span>
               </TabsTrigger>
             </TabsList>
             <TabsContent value='extension' className='space-y-3 bg-muted'>
@@ -364,6 +390,34 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
                 >
                   {isLoading ? 'Connecting...' : 'Login with Bunker'}
                 </Button>
+              </div>
+            </TabsContent>
+
+            <TabsContent value='amber' className='space-y-3'>
+              {errors.amber && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>{errors.amber}</AlertDescription>
+                </Alert>
+              )}
+              <div className='text-center p-4 rounded-lg bg-gray-50 dark:bg-gray-800'>
+                <Smartphone className='w-12 h-12 mx-auto mb-3 text-primary' />
+                <p className='text-sm text-gray-600 dark:text-gray-300 mb-2'>
+                  Login mit Amber – deine Keys bleiben sicher in der Amber-App.
+                </p>
+                <p className='text-xs text-muted-foreground mb-4'>
+                  Amber öffnet sich zur Autorisierung. Nach einmaliger Freigabe
+                  kannst du dauerhaft signieren – ohne erneutes Einloggen.
+                </p>
+                <div className="flex justify-center">
+                  <Button
+                    className='w-full rounded-full py-4 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700'
+                    onClick={handleAmberLogin}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Amber wird geöffnet...' : '🔐 Login mit Amber'}
+                  </Button>
+                </div>
               </div>
             </TabsContent>
           </Tabs>
