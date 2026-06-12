@@ -34,7 +34,6 @@ const AUTHOR_MAP = {
   '4d584dab7c880a9809e7df0476d745bfe9a3fe91a1c062bc1fec024e0b5e1f1f': { id: 'mojo' },
   '94ebd1c0940881de438b7f3c532b73e0d4d6c6b0160d3fe0b8a55fe49d477bd4': { id: 'susanne' },
 };
-};
 
 // ============================================================
 // LIFESTYLE-TYPEN
