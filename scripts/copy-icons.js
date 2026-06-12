@@ -42,7 +42,6 @@ function copyIcons() {
   // 1. ALLE alten Icons in ALLEN mipmap-Ordnern löschen
   // ================================================================
   let deleted = 0;
-  let deletedDirs = 0;
   const mipmapDirs = readdirSync(androidResDir).filter(d => d.startsWith('mipmap-'));
   for (const mipDir of mipmapDirs) {
     const fullPath = join(androidResDir, mipDir);
@@ -54,21 +53,7 @@ function copyIcons() {
       }
     }
   }
-
-  // Auch mipmap-anydpi-v26 Ordner leeren (adaptive icons)
-  const anydpiDirs = readdirSync(androidResDir).filter(d => d.startsWith('mipmap-anydpi'));
-  for (const adDir of anydpiDirs) {
-    const fullPath = join(androidResDir, adDir);
-    const files = readdirSync(fullPath);
-    for (const file of files) {
-      if (file.startsWith('ic_launcher')) {
-        unlinkSync(join(fullPath, file));
-        deleted++;
-      }
-    }
-  }
   if (deleted > 0) console.log(`  🗑️ ${deleted} alte Icon-Dateien gelöscht`);
-  if (deletedDirs > 0) console.log(`  🗑️ ${deletedDirs} alte Icon-Ordner gelöscht`);
 
   // ================================================================
   // 2. Neue Icons aus public/ in Android mipmap-Ordner kopieren

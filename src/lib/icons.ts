@@ -34,7 +34,7 @@ export { Shield, Upload, UploadCloud, AlertTriangle, KeyRound, Key, CheckCircle,
 // LOCATION ICONS
 // ============================================================================
 
-export { MapPin, Flag, Calculator, Layers, Smartphone } from 'lucide-react';
+export { MapPin, Flag, Calculator, Layers } from 'lucide-react';
 
 // ============================================================================
 // MEDIA ICONS
