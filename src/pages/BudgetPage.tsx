@@ -14,6 +14,7 @@ import { AFAEntryForm } from '@/components/AFAEntryForm';
 import { AFAMonthlySummary } from '@/components/AFAMonthlySummary';
 import { isKnownAuthor } from '@/lib/authorUtils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import {
