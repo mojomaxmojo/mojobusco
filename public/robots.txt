@@ -1,25 +1,37 @@
-# robots.txt for mojobus.co
-# MojoBus - Perpetual Travelers Blog
+# robots.txt für MojoBus – Perpetual Travelers
+# https://mojobus.co
 
-# User-agent: *
 User-agent: *
+Allow: /
+Allow: /artikel
+Allow: /plaetze
+Allow: /bilder
+Allow: /notes
+Allow: /map
+Allow: /about
+Allow: /feed.xml
 
-# Disallow specific paths
-Disallow: /veroeffentlichen
-Disallow: /settings
-Disallow: /profile
-Disallow: /login
-Disallow: /admin
-Disallow: /api/
+# Prerendered statische Seiten für Crawler (ohne JS)
+Allow: /prerender/
 
-# Allow all other paths
+# Crawler-spezifische Optimierung
+# Google Bilder-Suche
+User-agent: Googlebot-Image
 Allow: /
 
-# Sitemap location
+# Bing
+User-agent: Bingbot
+Allow: /
+
+# Keine internen/auth-pages
+Disallow: /profile
+Disallow: /settings
+Disallow: /veroeffentlichen
+Disallow: /budget
+Disallow: /promotion
+
+# Crawl-Delay für schonendes Crawling
+Crawl-delay: 5
+
+# Sitemaps
 Sitemap: https://mojobus.co/sitemap.xml
-
-# Crawl-delay (optional, 1 second)
-Crawl-delay: 1
-
-# Request rate (optional, 1 request per second)
-Request-rate: 1/s

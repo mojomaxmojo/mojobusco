@@ -14,6 +14,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import { nip19 } from 'nostr-tools';
 
 const FEED_PATH = '/home/nginx/domains/mojobus.co/public/feed.xml';
 const BASE_URL = 'https://mojobus.co';
@@ -88,7 +89,7 @@ function generateFeedXml(articles) {
   xml += `    <lastBuildDate>${now}</lastBuildDate>\n`;
   xml += `    <atom:link href="${BASE_URL}/feed.xml" rel="self" type="application/rss+xml"/>\n`;
   xml += `    <image>\n`;
-  xml += `      <url>${BASE_URL}/icon-512x512.png</url>\n`;
+  xml += `      <url>${BASE_URL}/icon-144x144.png</url>\n`;
   xml += `      <title>MojoBus – Perpetual Travelers</title>\n`;
   xml += `      <link>${BASE_URL}</link>\n`;
   xml += `      <width>144</width>\n`;
@@ -105,7 +106,20 @@ function generateFeedXml(articles) {
     const pubDate = publishedAt
       ? new Date(Number(publishedAt) * 1000).toUTCString()
       : new Date(event.created_at * 1000).toUTCString();
-    const url = `${BASE_URL}/naddr1${identifier}`; // simplified – real naddr via nostr-tools
+
+    // Korrekte naddr-URL via nostr-tools
+    let url;
+    try {
+      const naddr = nip19.naddrEncode({
+        kind: 30023,
+        pubkey: event.pubkey,
+        identifier,
+      });
+      url = `${BASE_URL}/${naddr}`;
+    } catch (e) {
+      console.warn(`[Feed] naddrEncode fehlgeschlagen für ${identifier}: ${e.message}`);
+      url = `${BASE_URL}/artikel`;
+    }
     const description = escapeXml(summary || cleanContent(event.content).substring(0, 200));
     const content = escapeXml(cleanContent(event.content));
 

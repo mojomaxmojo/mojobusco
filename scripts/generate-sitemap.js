@@ -4,13 +4,18 @@
  * generate-sitemap.js
  *
  * Generiert eine dynamische sitemap.xml aus Nostr-Events.
- * Auf dem VPS als Cron-Job: 0 6 * * * node /root/deploy-git/mojobusco/scripts/generate-sitemap.js
+ * Alle URLs zeigen auf die korrekten SPA-Routen (/{naddr}, /{note}, /trip/{naddr}, /bild/{nevent}).
  *
- * Quellen:
- *   - Artikel (replaceable content, kind 30023)
- *   - Orte (kind 1 mit type=place)
- *   - Trips (kind 1 mit type=trip)
- *   - Notes (kind 1, die relevanten)
+ * SPA-Routen (aus AppRouter.tsx):
+ *   Statisch: /, /artikel, /plaetze, /bilder, /notes, /map, /about, etc.
+ *   Artikel (kind 30023): /{naddr}
+ *   Orte (kind 30023 / kind 1): /{naddr} oder /{note}
+ *   Trips (kind 1): /trip/{naddr}
+ *   Bilder (kind 1): /bild/{nevent}
+ *   Notes (kind 1): /{note}
+ *   Profile: /{npub}
+ *
+ * Auf dem VPS als Cron-Job: 0 6 * * * node /root/deploy-git/mojobusco/scripts/generate-sitemap.js
  *
  * Ausgabe: /home/nginx/domains/mojobus.co/public/sitemap.xml
  */
@@ -19,25 +24,26 @@ import fs from 'fs';
 import path from 'path';
 import { nip19 } from 'nostr-tools';
 
-// Nur Autoren (Mojo + Susanne)
-const AUTHOR_PUBKEYS = [
-  '4d584dab7c880a9809e7df0476d745bfe9a3fe91a1c062bc1fec024e0b5e1f1f',
-  '94ebd1c0940881de438b7f3c532b73e0d4d6c6b0160d3fe0b8a55fe49d477bd4',
-];
-
 // ── Config ────────────────────────────────────────────────────────────────
 const SITEMAP_PATH = '/home/nginx/domains/mojobus.co/public/sitemap.xml';
 const BASE_URL = 'https://mojobus.co';
 
-// Relays zum Abfragen
 const RELAYS = [
   'wss://relay.mojobus.co',
   'wss://relay.primal.net',
 ];
 
-// ── Simple Nostr Event Fetcher (lightweight, ohne Dependencies) ────────────
-async function queryRelay(relayUrl, filters, timeoutMs = 10000) {
-  return new Promise((resolve, reject) => {
+const AUTHOR_PUBKEYS = [
+  '4d584dab7c880a9809e7df0476d745bfe9a3fe91a1c062bc1fec024e0b5e1f1f', // Mojo
+  '94ebd1c0940881de438b7f3c532b73e0d4d6c6b0160d3fe0b8a55fe49d477bd4', // Susanne
+];
+
+const MAX_EVENTS = 500;
+const QUERY_TIMEOUT = 20000;
+
+// ── Simple Nostr Event Fetcher ────────────────────────────────────────────
+async function queryRelay(relayUrl, filters, timeoutMs = QUERY_TIMEOUT) {
+  return new Promise((resolve) => {
     let ws;
     const timeout = setTimeout(() => {
       if (ws) ws.close();
@@ -80,35 +86,18 @@ async function queryRelay(relayUrl, filters, timeoutMs = 10000) {
   });
 }
 
-// ── URL-Generierung aus Events ─────────────────────────────────────────────
-function eventToUrl(event) {
-  const { kind, tags, pubkey } = event;
-  const dTag = tags?.find(t => t[0] === 'd')?.[1];
-  const typeTag = tags?.find(t => t[0] === 'type')?.[1];
-
-  // Artikel (kind 30023, kind 1 mit type=article)
-  if (kind === 30023 || kind === 30041 || typeTag === 'article' || typeTag === 'bericht') {
-    const identifier = dTag;
-    const naddr = `naddr1${Buffer.from(JSON.stringify({
-      kind, pubkey, identifier,
-    })).toString('base64url')}`; // simplified – real naddr via nostr-tools
-    return {
-      loc: `${BASE_URL}/articles/${identifier || dTag}`,
-      priority: '0.8',
-      changefreq: 'monthly',
-    };
+// ── Helper: naddr-Enkodierung ────────────────────────────────────────────
+function encodeNaddr(event) {
+  try {
+    const identifier = event.tags?.find(t => t[0] === 'd')?.[1] || event.id;
+    return nip19.naddrEncode({
+      kind: event.kind || 30023,
+      pubkey: event.pubkey,
+      identifier,
+    });
+  } catch {
+    return null;
   }
-
-  // Orte (kind 1 mit type=place)
-  if (typeTag === 'place' || typeTag === 'camping' || typeTag === 'stellplatz') {
-    return {
-      loc: `${BASE_URL}/places?place=${dTag || ''}`,
-      priority: '0.7',
-      changefreq: 'monthly',
-    };
-  }
-
-  return null;
 }
 
 // ── Sitemap XML Generator ─────────────────────────────────────────────────
@@ -116,30 +105,14 @@ function generateSitemapXml(urls) {
   let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
   xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
 
-  // Statische Pages (das sind die einzigen funktionierenden SPA-Routen)
-  const staticPages = [
-    { loc: BASE_URL + '/', priority: '1.0', changefreq: 'daily' },
-    { loc: BASE_URL + '/artikel', priority: '0.9', changefreq: 'daily' },
-    { loc: BASE_URL + '/artikel/diy', priority: '0.8', changefreq: 'weekly' },
-    { loc: BASE_URL + '/artikel/rvlife', priority: '0.9', changefreq: 'daily' },
-    { loc: BASE_URL + '/artikel/leon', priority: '0.8', changefreq: 'weekly' },
-    { loc: BASE_URL + '/plaetze', priority: '0.9', changefreq: 'daily' },
-    { loc: BASE_URL + '/bilder', priority: '0.8', changefreq: 'daily' },
-    { loc: BASE_URL + '/notes', priority: '0.7', changefreq: 'daily' },
-    { loc: BASE_URL + '/map', priority: '0.7', changefreq: 'weekly' },
-    { loc: BASE_URL + '/map/trips', priority: '0.7', changefreq: 'weekly' },
-    { loc: BASE_URL + '/about', priority: '0.5', changefreq: 'monthly' },
-    { loc: BASE_URL + '/perpetual-travelers', priority: '0.6', changefreq: 'weekly' },
-  ];
-
-  const allUrls = [...staticPages, ...urls];
-
-  for (const url of allUrls) {
+  for (const url of urls) {
     xml += '  <url>\n';
     xml += `    <loc>${url.loc}</loc>\n`;
     xml += `    <priority>${url.priority}</priority>\n`;
     xml += `    <changefreq>${url.changefreq}</changefreq>\n`;
-    xml += '    <lastmod>' + new Date().toISOString().split('T')[0] + '</lastmod>\n';
+    if (url.lastmod) {
+      xml += `    <lastmod>${url.lastmod}</lastmod>\n`;
+    }
     xml += '  </url>\n';
   }
 
@@ -151,34 +124,122 @@ function generateSitemapXml(urls) {
 async function main() {
   console.log('[Sitemap] Generiere Sitemap...');
 
-  const allUrls = [];
-  const seen = new Set();
+  // ── Statische Pages (alle korrekten SPA-Routen) ──────────────────────
+  const staticPages = [
+    { loc: BASE_URL + '/',               priority: '1.0', changefreq: 'daily',   lastmod: new Date().toISOString().split('T')[0] },
+    { loc: BASE_URL + '/artikel',        priority: '0.9', changefreq: 'daily',   lastmod: new Date().toISOString().split('T')[0] },
+    { loc: BASE_URL + '/artikel/diy',    priority: '0.8', changefreq: 'weekly' },
+    { loc: BASE_URL + '/artikel/rvlife', priority: '0.8', changefreq: 'weekly' },
+    { loc: BASE_URL + '/artikel/leon',   priority: '0.8', changefreq: 'weekly' },
+    { loc: BASE_URL + '/plaetze',        priority: '0.9', changefreq: 'daily' },
+    { loc: BASE_URL + '/bilder',         priority: '0.8', changefreq: 'daily' },
+    { loc: BASE_URL + '/notes',          priority: '0.7', changefreq: 'daily' },
+    { loc: BASE_URL + '/map',            priority: '0.7', changefreq: 'weekly' },
+    { loc: BASE_URL + '/map/trips',      priority: '0.7', changefreq: 'weekly' },
+    { loc: BASE_URL + '/about',          priority: '0.5', changefreq: 'monthly' },
+    { loc: BASE_URL + '/perpetual-travelers', priority: '0.6', changefreq: 'weekly' },
+    { loc: BASE_URL + '/feed.xml',       priority: '0.4', changefreq: 'hourly' },
+  ];
+
+  const allUrls = [...staticPages];
+  const seen = new Set(); // Deduplizierung
 
   for (const relay of RELAYS) {
     console.log(`[Sitemap] Frage ab: ${relay}`);
 
-    // Artikel (kind 30023) – echte naddr-URLs für SPA
-    const articles = await queryRelay(relay, [{ kinds: [30023], authors: AUTHOR_PUBKEYS, limit: 500 }]);
-    console.log(`[Sitemap]  → ${articles.length} Artikel`);
+    // ── Longform-Artikel (kind 30023) ──────────────────
+    const articles = await queryRelay(relay, [{ kinds: [30023], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS }]);
+    console.log(`[Sitemap]  → ${articles.length} Longform-Events`);
 
     for (const event of articles) {
       if (seen.has(event.id)) continue;
       seen.add(event.id);
-      const dTag = event.tags?.find(t => t[0] === 'd')?.[1];
-      if (!dTag) continue;
-      try {
-        const naddr = nip19.naddrEncode({
-          kind: event.kind || 30023,
-          pubkey: event.pubkey,
-          identifier: dTag,
-        });
-        allUrls.push({
-          loc: `${BASE_URL}/${naddr}`,
-          priority: '0.8',
-          changefreq: 'monthly',
-        });
-      } catch (e) {
-        console.warn(`[Sitemap] naddr encode fehlgeschlagen für ${dTag}: ${e.message}`);
+      const naddr = encodeNaddr(event);
+      if (!naddr) continue;
+      allUrls.push({
+        loc: `${BASE_URL}/${naddr}`,
+        priority: '0.8',
+        changefreq: 'monthly',
+        lastmod: new Date(event.created_at * 1000).toISOString().split('T')[0],
+      });
+    }
+
+    // ── Notes (kind 1) ──────────────────────────────────
+    const notes = await queryRelay(relay, [{ kinds: [1], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS }]);
+    console.log(`[Sitemap]  → ${notes.length} Kind-1-Events`);
+
+    for (const event of notes) {
+      if (seen.has(event.id)) continue;
+      seen.add(event.id);
+
+      const tTags = new Set((event.tags?.filter(t => t[0] === 't').map(t => t[1]) || []).map(t => t.toLowerCase()));
+      const typeTag = (event.tags?.find(t => t[0] === 'type')?.[1] || '').toLowerCase();
+
+      // Orte mit type=place → /{naddr} (wenn kind 30023) oder /{note}
+      if (typeTag === 'place' || tTags.has('place') || tTags.has('camping') || tTags.has('stellplatz')) {
+        if (event.kind === 30023) {
+          const naddr = encodeNaddr(event);
+          if (naddr) {
+            allUrls.push({
+              loc: `${BASE_URL}/${naddr}`,
+              priority: '0.7',
+              changefreq: 'monthly',
+              lastmod: new Date(event.created_at * 1000).toISOString().split('T')[0],
+            });
+          }
+        } else {
+          try {
+            const note = nip19.noteEncode(event.id);
+            allUrls.push({
+              loc: `${BASE_URL}/${note}`,
+              priority: '0.7',
+              changefreq: 'monthly',
+              lastmod: new Date(event.created_at * 1000).toISOString().split('T')[0],
+            });
+          } catch {}
+        }
+        continue;
+      }
+
+      // Trips → /trip/{naddr}
+      if (tTags.has('trip') || tTags.has('trips') || tTags.has('travel') || tTags.has('reise')) {
+        const naddr = encodeNaddr(event);
+        if (naddr) {
+          allUrls.push({
+            loc: `${BASE_URL}/trip/${naddr}`,
+            priority: '0.7',
+            changefreq: 'monthly',
+            lastmod: new Date(event.created_at * 1000).toISOString().split('T')[0],
+          });
+        }
+        continue;
+      }
+
+      // Bilder/Media → /bild/{nevent}
+      if (tTags.has('media') || tTags.has('medien') || tTags.has('bilder') || tTags.has('images') || tTags.has('galerie')) {
+        try {
+          const nevent = nip19.neventEncode({ id: event.id });
+          allUrls.push({
+            loc: `${BASE_URL}/bild/${nevent}`,
+            priority: '0.6',
+            changefreq: 'monthly',
+            lastmod: new Date(event.created_at * 1000).toISOString().split('T')[0],
+          });
+        } catch {}
+        continue;
+      }
+
+      // Reine Notes → /{note}
+      if (event.kind === 1) {
+        try {
+          const note = nip19.noteEncode(event.id);
+          allUrls.push({
+            loc: `${BASE_URL}/${note}`,
+            priority: '0.5',
+            changefreq: 'monthly',
+            lastmod: new Date(event.created_at * 1000).toISOString().split('T')[0],
+          });
+        } catch {}
       }
     }
   }
@@ -190,7 +251,7 @@ async function main() {
   try {
     fs.writeFileSync(SITEMAP_PATH, xml, 'utf-8');
     console.log(`[Sitemap] ✅ Geschrieben: ${SITEMAP_PATH}`);
-    console.log(`[Sitemap]   ${allUrls.length} Artikel-URLs + 6 statische Seiten`);
+    console.log(`[Sitemap]   ${allUrls.length} URLs (${staticPages.length} statisch + ${allUrls.length - staticPages.length} dynamisch)`);
   } catch (err) {
     console.error(`[Sitemap] ❌ Fehler beim Schreiben: ${err.message}`);
     process.exit(1);
