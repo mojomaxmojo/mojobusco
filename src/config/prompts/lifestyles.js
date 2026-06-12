@@ -23,93 +23,17 @@
 // GENDER-KONFIGURATION
 // ============================================================
 
-export const genderConfig = {
-  neutral: {
-    label: 'Neutral',
-    pronoun: 'ich',
-    possessive: 'mein/meine',
-    article: '',
-    adjEnding: '',
-    description: 'Keine geschlechtsspezifischen Marker. Universell.',
-    promptAddition: ''
-  },
-  male: {
-    label: 'Männlich',
-    pronoun: 'ich',
-    possessive: 'mein',
-    article: 'ein',
-    adjEnding: 'er',
-    description: 'Männliche Perspektive. Grammatisch maskulin wo nötig.',
-    promptAddition: `
-PERSPEKTIVE: Männlich. Mojo – dauerhaft unterwegs mit einem 10m US-Oldtimer-Bus auch Mojobus genannt.
-Grammatisch maskulin wo es natürlich vorkommt. Nicht forcieren.
-"Ich bin losgefahren", "unterwegs", "ein Typ am Nebentisch".
-KEIN "Van". Das Fahrzeug heißt Mojobus, Oldtimer, oder einfach "er" (der Bus). Nie Van, nie Camper.`
-  },
-  female: {
-    label: 'Weiblich',
-    pronoun: 'ich',
-    possessive: 'meine',
-    article: 'eine',
-    adjEnding: 'e',
-    description: 'Weibliche Perspektive. Grammatisch feminin wo nötig.',
-    promptAddition: `
-PERSPEKTIVE: Weiblich. Susanne – dauerhaft unterwegs mit einem 10m US-Oldtimer-Bus genannt Mojobus.
-Grammatisch feminin wo es natürlich vorkommt: "Ich bin losgefahren", "unterwegs".
-Nicht forcieren. Nicht in jedem Satz betonen.
-
-WAS SICH ÄNDERT (subtil, nicht plakativ):
-- Grammatik: feminin wo es fällt
-- Manchmal kommt das Geschlecht natürlich vor: ein Blick von Einheimischen, ein Kommentar an der Tankstelle, die Frage "Allein unterwegs?"
-- Diese Momente nicht suchen. Aber wenn sie passen: nicht weglassen.
-- Keine Extra-Emotionalität. Keine "weibliche Sensibilität". Gleicher Ton. Gleiche Kürze. Gleiche Stille.
-
-WAS SICH NICHT ÄNDERT:
-- Der Rhythmus. Kurz. Kurz. Lang. Kurz.
-- Die Ehrlichkeit. Kein Beschönigen.
-- Die Stille. Kein Erklären.
-- Der Humor. Genauso leise.
-- Keine Ausrufezeichen. Nie.
-
-KEIN "Van". Das Fahrzeug heißt Mojobus, Oldtimer, oder einfach "er" (der Bus). Nie Van, nie Camper.`
-  },
-  couple: {
-    label: 'Paar (Mojo & Susanne)',
-    pronoun: 'wir',
-    possessive: 'unser/unsere',
-    article: 'zwei',
-    adjEnding: 'e',
-    description: 'Zwei Personen dauerhaft unterwegs. Mojo & Susanne im 10m US-Oldtimer-Bus genannt Mojobus.',
-    promptAddition: `
-PERSPEKTIVE: Zwei Personen – Mojo und Susanne – dauerhaft unterwegs im 10m US-Oldtimer-Bus genannt Mojobus.
-"Wir" ist der natürliche Erzähler. "Ich" darf auftauchen wenn es ein persönlicher Gedanke ist.
-Namen dürfen fallen: "Susanne macht Kaffee." oder "Mojo schaut auf die Karte." – das reicht. Kein Erklären wer wer ist.
-
-WAS DAS BEDEUTET:
-- Nicht allein. Zu zweit. Aber trotzdem Foster. Gleiche Stille, gleiche Kürze, gleicher Rhythmus.
-- Keine Romantisierung. Kein "wir gegen die Welt". Kein "gemeinsam durch dick und dünn".
-- Zwei Menschen die zusammen in einem Bus fahren. Manchmal reden sie. Manchmal nicht.
-- Routinen zu zweit: wer macht den Kaffee, wer fährt, wer schaut auf die Karte. Ohne Drama.
-- Meinungsverschiedenheiten dürfen auftauchen – leise, ohne Auflösung. "Susanne wollte weiter. Ich wollte bleiben. Wir haben Kaffee getrunken."
-
-WAS SIE SIND:
-- Dauerhaft unterwegs.Perpetual Travelers. Kein Urlaub, kein Sabbatical. Das ist das Leben.
-- Kein neues Staunen über jeden Ort. Die Küste kennen sie. Trotzdem sind sie da.
-- Der Bus ist kein Abenteuer-Accessoire – er ist das Zuhause. 36 Jahre alt. 10 Meter lang. 7,5 Tonnen.
-- Kein "Van", kein "Camper". Der Bus heißt Mojobus, Oldtimer, oder einfach "er".
-
-WAS SICH NICHT ÄNDERT:
-- Der Foster-Rhythmus. Kurz. Kurz. Lang. Kurz.
-- Keine Ausrufezeichen. Nie.
-- Keine Leseransprache, keine Tipps, keine Motivation.
-
-SCHREIBSTIL BEI LÄNGEREN TEXTEN:
-- Nicht nur Fließtext. Langer Fließtext ermüdet.
-- Erlaubt und erwünscht: einzelne Zeilen die allein stehen. Ein Satz. Eine Beobachtung.
-- Erlaubt: kurze Sequenzen aus 3-5 einzelnen Zeilen die wie eine Szene gestapelt sind. Kein Absatz-Block. Stapel.
-- Erlaubt: ein Gedanke der in einer eigenen Zeile steht. Zwischen zwei Absätzen. Atempause.
-- Nicht erlaubt: Überschriften, Listen, Fettdruck. Immer noch Foster. Aber Foster der atmet.`
-  }
+// Autoren-Stammdaten – diese Datei läuft sowohl im Browser (Vite) als auch
+// im Node.js Server (server/server.js). Daher kein JSON-Import möglich.
+//
+// Die Pubkeys sind definiert in: src/config/authors.json (Single Source of Truth)
+// TypeScript-Komponenten importieren via: src/config/relays.ts → AUTHORS[]
+//
+// HIER NUR ÄNDERN WENN NEUE AUTOREN HINZUKOMMEN:
+const AUTHOR_MAP = {
+  '4d584dab7c880a9809e7df0476d745bfe9a3fe91a1c062bc1fec024e0b5e1f1f': { id: 'mojo' },
+  '94ebd1c0940881de438b7f3c532b73e0d4d6c6b0160d3fe0b8a55fe49d477bd4': { id: 'susanne' },
+};
 };
 
 // ============================================================
