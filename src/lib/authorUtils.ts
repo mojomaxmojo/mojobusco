@@ -5,6 +5,7 @@
 
 import { getAuthorRelayConfigByPubkey } from '@/config/relays';
 import { getBlossomConfigByPubkey } from '@/config/blossom';
+import { AUTHORS } from '@/config/relays';
 
 // ============================================================================
 // AUTOR-IDENTIFIKATION
@@ -30,20 +31,16 @@ export interface AuthorConfig {
 }
 
 /**
- * Alle bekannten Autoren
+ * Alle bekannten Autoren (aus zentraler Config in src/config/relays.ts)
  */
-export const KNOWN_AUTHORS = {
-  mojo: {
-    id: 'mojo',
-    npub: 'npub1f4vym2mu3q9fsz08muz8d469hl568l5358qx90qlaspyuz67ru0sfxvupf',
-    pubkey: '4d584dab7c880a9809e7df0476d745bfe9a3fe91a1c062bc1fec024e0b5e1f1f',
-  },
-  susanne: {
-    id: 'susanne',
-    npub: 'npub1jn4arsy5pzqausut0u79x2mnur2dd34szcxnlc9c5407f828002qdls5wz',
-    pubkey: '94ebd1c0940881de438b7f3c532b73e0d4d6c6b0160d3fe0b8a55fe49d477bd4',
-  },
-} as const;
+export const KNOWN_AUTHORS: Record<string, { id: string; npub: string; pubkey: string }> = {};
+for (const author of AUTHORS) {
+  KNOWN_AUTHORS[author.id] = {
+    id: author.id,
+    npub: author.npub,
+    pubkey: author.pubkey,
+  };
+}
 
 // ============================================================================
 // AUTOR-LOOKUP FUNKTIONEN

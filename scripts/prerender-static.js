@@ -22,18 +22,21 @@
 
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { nip19 } from 'nostr-tools';
+
+// ── Autoren aus zentraler JSON-Config (Single Source of Truth) ────────────
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const authorsData = JSON.parse(
+  fs.readFileSync(path.join(__dirname, '..', 'src', 'config', 'authors.json'), 'utf-8')
+);
+const AUTHORS = authorsData.authors;
+const AUTHOR_PUBKEYS = AUTHORS.map(a => a.pubkey);
 
 const DEPLOY_DIR = '/home/nginx/domains/mojobus.co/public';
 const BASE_URL = 'https://mojobus.co';
 const RELAYS = ['wss://relay.mojobus.co', 'wss://relay.primal.net'];
 const MAX_PER_RELAY = 500;
-
-// Nur Artikel dieser Autoren (Mojo + Susanne)
-const AUTHOR_PUBKEYS = [
-  '4d584dab7c880a9809e7df0476d745bfe9a3fe91a1c062bc1fec024e0b5e1f1f', // Mojo
-  '94ebd1c0940881de438b7f3c532b73e0d4d6c6b0160d3fe0b8a55fe49d477bd4', // Susanne
-];
 
 // ── Simple WS-Query (gleicher Code wie generate-sitemap.js) ──────────────
 async function queryRelay(relayUrl, filters, timeoutMs = 15000) {

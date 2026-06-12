@@ -1,6 +1,17 @@
 /**
  * Relay-Konfiguration für MojoBus Blog
  * Zentrale Verwaltung aller Relay-Einstellungen für manuelle Anpassungen
+ *
+ * AUTOREN: Die Autoren-Stammdaten sind in authors.json definiert.
+ * https://github.com/mojomaxmojo/mojobusco/blob/main/src/config/authors.json
+ * Diese Datei ist die SINGLE SOURCE OF TRUTH für:
+ *   - pubkey (hex) – für Nostr-Queries
+ *   - npub (bech32) – für Profile-Links
+ *   - nip05 – für Verifizierung
+ *   - name – für Anzeige
+ *
+ * Alle Cron-Scripts (/scripts/*.js) importieren aus authors.json
+ * Alle TypeScript-Komponenten importieren aus dieser Datei (AUTHORS)
  */
 
 import { Author } from './types';
@@ -340,17 +351,17 @@ export interface AuthorRelayConfig {
 
 export const AUTHOR_RELAY_CONFIG: Record<string, AuthorRelayConfig> = {
   mojo: {
-    authorId: 'mojo',
-    npub: 'npub1f4vym2mu3q9fsz08muz8d469hl568l5358qx90qlaspyuz67ru0sfxvupf',
-    pubkey: '4d584dab7c880a9809e7df0476d745bfe9a3fe91a1c062bc1fec024e0b5e1f1f',
+    authorId: AUTHORS[0].id,
+    npub: AUTHORS[0].npub,
+    pubkey: AUTHORS[0].pubkey,
     read: ['wss://relay.mojobus.co'],
     write: ['wss://relay.mojobus.co'],
     activeRelay: 'wss://relay.mojobus.co',
   },
   susanne: {
-    authorId: 'susanne',
-    npub: 'npub1jn4arsy5pzqausut0u79x2mnur2dd34szcxnlc9c5407f828002qdls5wz',
-    pubkey: '94ebd1c0940881de438b7f3c532b73e0d4d6c6b0160d3fe0b8a55fe49d477bd4',
+    authorId: AUTHORS[1].id,
+    npub: AUTHORS[1].npub,
+    pubkey: AUTHORS[1].pubkey,
     read: ['wss://relay.mojobus.co'],
     write: ['wss://relay.mojobus.co'],
     activeRelay: 'wss://relay.mojobus.co',

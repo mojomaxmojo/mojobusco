@@ -4,6 +4,7 @@
  */
 
 import { Author } from './types';
+import { AUTHORS } from './relays';
 
 // ============================================================================
 // BLOSSOM-SERVER KONFIGURATION
@@ -65,18 +66,8 @@ export const getAuthorBlossomConfig = (authorId?: string): BlossomServerConfig |
  * Holt die Blossom-Server-Konfiguration basierend auf npub
  */
 export const getBlossomConfigByNpub = (npub: string): BlossomServerConfig | null => {
-  const authors = [
-    {
-      id: 'mojo',
-      npub: 'npub1f4vym2mu3q9fsz08muz8d469hl568l5358qx90qlaspyuz67ru0sfxvupf',
-    },
-    {
-      id: 'susanne',
-      npub: 'npub1jn4arsy5pzqausut0u79x2mnur2dd34szcxnlc9c5407f828002qdls5wz',
-    },
-  ];
-
-  const author = authors.find((a) => a.npub === npub);
+  if (!npub) return null;
+  const author = AUTHORS.find((a) => a.npub === npub);
   return author ? getAuthorBlossomConfig(author.id) : null;
 };
 
@@ -84,24 +75,10 @@ export const getBlossomConfigByNpub = (npub: string): BlossomServerConfig | null
  * Holt die Blossom-Server-Konfiguration basierend auf pubkey (hex)
  */
 export const getBlossomConfigByPubkey = (pubkey: string): BlossomServerConfig | null => {
-  const authors = [
-    {
-      id: 'mojo',
-      pubkey: '4d584dab7c880a9809e7df0476d745bfe9a3fe91a1c062bc1fec024e0b5e1f1f',
-    },
-    {
-      id: 'susanne',
-      pubkey: '94ebd1c0940881de438b7f3c532b73e0d4d6c6b0160d3fe0b8a55fe49d477bd4',
-    },
-  ];
-
-  const author = authors.find((a) => a.pubkey === pubkey);
+  if (!pubkey) return null;
+  const author = AUTHORS.find((a) => a.pubkey === pubkey);
   return author ? getAuthorBlossomConfig(author.id) : null;
 };
-
-// ============================================================================
-// DEFAULT KONFIGURATION
-// ============================================================================
 
 /**
  * Default Blossom-Server-Konfiguration (wenn kein Autor erkannt wird)
@@ -114,9 +91,5 @@ export const DEFAULT_BLOSSOM_SERVERS = ['https://blossom.primal.net'];
  * Globaler Backup-Blossom-Server (immer zusätzlich hochladen)
  */
 export const BACKUP_BLOSSOM_SERVER = 'https://blossom.primal.net';
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
 
 export default BLOSSOM_SERVERS;

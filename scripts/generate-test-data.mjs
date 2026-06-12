@@ -11,10 +11,12 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, '..', 'public', 'data');
 const RELAY = 'wss://relay.mojobus.co';
-const PUBKEYS = [
-  '4d584dab7c880a9809e7df0476d745bfe9a3fe91a1c062bc1fec024e0b5e1f1f',
-  '94ebd1c0940881de438b7f3c532b73e0d4d6c6b0160d3fe0b8a55fe49d477bd4',
-];
+
+// ── Autoren aus zentraler JSON-Config (Single Source of Truth) ────────────
+const authorsData = JSON.parse(
+  fs.readFileSync(path.join(__dirname, '..', 'src', 'config', 'authors.json'), 'utf-8')
+);
+const PUBKEYS = authorsData.authors.map(a => a.pubkey);
 
 function queryRelay(url, filters, timeout = 10000) {
   return new Promise((resolve) => {

@@ -12,7 +12,7 @@ import { BudgetFilters } from '@/components/BudgetFilters';
 import { AFATable } from '@/components/AFATable';
 import { AFAEntryForm } from '@/components/AFAEntryForm';
 import { AFAMonthlySummary } from '@/components/AFAMonthlySummary';
-import { Button } from '@/components/ui/button';
+import { isKnownAuthor } from '@/lib/authorUtils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -152,14 +152,9 @@ function BudgetPageContent() {
 
   const isLoadingStats = isLoadingEntries;
 
-  // Prüfen ob Benutzer autorisiert ist
+  // Prüfen ob Benutzer autorisiert ist (via zentraler Autoren-Config)
   const isAuthorized = React.useMemo(() => {
-    if (!user?.pubkey) return false;
-    
-    const mojoPubkey = '4d584dab7c880a9809e7df0476d745bfe9a3fe91a1c062bc1fec024e0b5e1f1f';
-    const susannePubkey = '94ebd1c0940881de438b7f3c532b73e0d4d6c6b0160d3fe0b8a55fe49d477bd4';
-    
-    return user.pubkey === mojoPubkey || user.pubkey === susannePubkey;
+    return isKnownAuthor(user?.pubkey);
   }, [user]);
 
   // Live-Updates abonnieren

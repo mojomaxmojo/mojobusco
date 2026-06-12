@@ -14,19 +14,27 @@
 
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { nip19 } from 'nostr-tools';
+
+// ── Autoren aus zentraler JSON-Config (Single Source of Truth) ────────────
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const authorsData = JSON.parse(
+  fs.readFileSync(path.join(__dirname, '..', 'src', 'config', 'authors.json'), 'utf-8')
+);
+const AUTHORS = authorsData.authors;
+const AUTHOR_PUBKEYS = AUTHORS.map(a => a.pubkey);
 
 const FEED_PATH = '/home/nginx/domains/mojobus.co/public/feed.xml';
 const BASE_URL = 'https://mojobus.co';
 const RELAYS = ['wss://relay.mojobus.co', 'wss://relay.primal.net'];
 
-// Nur Artikel dieser Autoren (Mojo + Susanne)
-const AUTHORS = [
-  { pubkey: '4d584dab7c880a9809e7df0476d745bfe9a3fe91a1c062bc1fec024e0b5e1f1f', name: 'Mojo', email: 'mojo@mojobus.co' },
-  { pubkey: '94ebd1c0940881de438b7f3c532b73e0d4d6c6b0160d3fe0b8a55fe49d477bd4', name: 'Susanne', email: 'susanne@mojobus.co' },
-];
-
-const AUTHOR_PUBKEYS = AUTHORS.map(a => a.pubkey);
+// Autoren-Metadaten für RSS-Feed (emails aus Stammdaten)
+const AUTHORS_META = AUTHORS.map(a => ({
+  pubkey: a.pubkey,
+  name: a.name,
+  email: `${a.id}@mojobus.co`,
+}));
 
 const MAX_ITEMS = 50; // Max Artikel im Feed
 
@@ -51,7 +59,7 @@ async function queryRelay(relayUrl, filters, timeoutMs = 15000) {
 
 // ── Author Lookup ────────────────────────────────────────────────────────
 function getAuthor(pubkey) {
-  return AUTHORS.find(a => a.pubkey === pubkey) || { name: pubkey.substring(0, 8), email: '' };
+  return AUTHORS_META.find(a => a.pubkey === pubkey) || { name: pubkey.substring(0, 8), email: '' };
 }
 
 // ── HTML-Entities escapen ────────────────────────────────────────────────

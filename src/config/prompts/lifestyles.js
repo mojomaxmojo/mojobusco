@@ -433,20 +433,25 @@ export function detectGenderFromPubkey(pubkey) {
   return 'neutral';
 }
 
+import authorsData from '../authors.json' with { type: 'json' };
+const AUTHORS = authorsData.authors;
+const AUTHOR_MAP = {};
+for (const a of AUTHORS) {
+  AUTHOR_MAP[a.pubkey] = a;
+}
+
 /**
- * Erkennt Gender basierend auf npub
+ * Erkennt Gender basierend auf pubkey
  *
- * @param {string} npub - Die Nostr npub
+ * @param {string} pubkey - Der Nostr Public Key (hex)
  * @returns {'male' | 'female' | 'neutral' | 'couple'}
  */
-export function detectGenderFromNpub(npub) {
-  if (!npub) return 'neutral';
-
-  // Mojo npub
-  if (npub === 'npub1f4vym2mu3q9fsz08muz8d469hl568l5358qx90qlaspyuz67ru0sfxvupf') return 'male';
-  // Susanne npub
-  if (npub === 'npub1jn4arsy5pzqausut0u79x2mnur2dd34szcxnlc9c5407f828002qdls5wz') return 'female';
-
+function detectGenderByPubkey(pubkey) {
+  if (!pubkey) return 'neutral';
+  const author = AUTHOR_MAP[pubkey];
+  if (!author) return 'neutral';
+  if (author.id === 'mojo') return 'male';
+  if (author.id === 'susanne') return 'female';
   return 'neutral';
 }
 
