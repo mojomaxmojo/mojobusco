@@ -12,6 +12,14 @@ const config: CapacitorConfig = {
         // Wird vom Plugin automatisch gehandhabt
       },
     },
+    // NIP-55 Signer Plugin (Amber)
+    // Kommuniziert mit com.greenart7c3.nostrsigner via Intents + Content Resolver
+    Nip55Signer: {
+      // Amber Package-Name
+      signerPackage: 'com.greenart7c3.nostrsigner',
+      // Automatischer Background-Signing Fallback
+      preferBackground: true,
+    },
   },
 };
 

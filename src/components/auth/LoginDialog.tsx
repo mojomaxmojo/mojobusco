@@ -2,7 +2,7 @@
 // It is important that all functionality in this file is preserved, and should only be modified if explicitly requested.
 
 import React, { useRef, useState, useEffect } from 'react';
-import { Shield, Upload, AlertTriangle, UserPlus, KeyRound, Sparkles, Cloud } from '@/lib/icons';
+import { Shield, Upload, AlertTriangle, UserPlus, KeyRound, Sparkles, Cloud, Smartphone, ExternalLink } from '@/lib/icons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useLoginActions } from '@/hooks/useLoginActions';
 import { cn } from '@/lib/utils';
+import { nip55Signer } from '@/lib/nip55Signer';
 
 interface LoginDialogProps {
   isOpen: boolean;
@@ -31,14 +32,29 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
   const [isFileLoading, setIsFileLoading] = useState(false);
   const [nsec, setNsec] = useState('');
   const [bunkerUri, setBunkerUri] = useState('');
+  const [amberAvailable, setAmberAvailable] = useState(false);
+  const [amberChecked, setAmberChecked] = useState(false);
   const [errors, setErrors] = useState<{
     nsec?: string;
     bunker?: string;
     file?: string;
     extension?: string;
+    amber?: string;
   }>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const login = useLoginActions();
+
+  // Prüfe ob Amber verfügbar ist wenn Dialog öffnet
+  useEffect(() => {
+    if (isOpen && !amberChecked) {
+      nip55Signer.isAvailable().then(avail => {
+        setAmberAvailable(avail.amber || avail.installed);
+        setAmberChecked(true);
+      }).catch(() => {
+        setAmberChecked(true); // nicht blockieren
+      });
+    }
+  }, [isOpen, amberChecked]);
 
   // Reset all state when dialog opens/closes
   useEffect(() => {
@@ -48,6 +64,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
       setIsFileLoading(false);
       setNsec('');
       setBunkerUri('');
+      setAmberChecked(false);
       setErrors({});
       // Reset file input
       if (fileInputRef.current) {
@@ -141,6 +158,26 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
     }
   };
 
+  const handleAmberLogin = async () => {
+    setIsLoading(true);
+    setErrors(prev => ({ ...prev, amber: undefined }));
+
+    try {
+      await login.amber();
+      onLogin();
+      onClose();
+    } catch (e: unknown) {
+      const error = e as Error;
+      console.error('Amber login failed:', error);
+      setErrors(prev => ({
+        ...prev,
+        amber: error.message || 'Amber login failed'
+      }));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -226,21 +263,25 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
           </div>
 
           {/* Login Methods */}
-          <Tabs defaultValue={defaultTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 bg-muted/80 rounded-lg mb-4">
-              <TabsTrigger value="extension" className="flex items-center gap-2">
-                <Shield className="w-4 h-4" />
-                <span>Extension</span>
-              </TabsTrigger>
-              <TabsTrigger value="key" className="flex items-center gap-2">
-                <KeyRound className="w-4 h-4" />
-                <span>Key</span>
-              </TabsTrigger>
-              <TabsTrigger value="bunker" className="flex items-center gap-2">
-                <Cloud className="w-4 h-4" />
-                <span>Bunker</span>
-              </TabsTrigger>
-            </TabsList>
+           <Tabs defaultValue={defaultTab} className="w-full">
+             <TabsList className="grid w-full grid-cols-4 bg-muted/80 rounded-lg mb-4">
+               <TabsTrigger value="extension" className="flex items-center gap-2">
+                 <Shield className="w-4 h-4" />
+                 <span>Extension</span>
+               </TabsTrigger>
+               <TabsTrigger value="key" className="flex items-center gap-2">
+                 <KeyRound className="w-4 h-4" />
+                 <span>Key</span>
+               </TabsTrigger>
+               <TabsTrigger value="bunker" className="flex items-center gap-2">
+                 <Cloud className="w-4 h-4" />
+                 <span>Bunker</span>
+               </TabsTrigger>
+               <TabsTrigger value="amber" className="flex items-center gap-2">
+                 <Smartphone className="w-4 h-4" />
+                 <span>Amber</span>
+               </TabsTrigger>
+             </TabsList>
             <TabsContent value='extension' className='space-y-3 bg-muted'>
               {errors.extension && (
                 <Alert variant="destructive">
@@ -364,6 +405,59 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
                 >
                   {isLoading ? 'Connecting...' : 'Login with Bunker'}
                 </Button>
+              </div>
+            </TabsContent>
+
+            <TabsContent value='amber' className='space-y-3 bg-muted'>
+              {errors.amber && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>{errors.amber}</AlertDescription>
+                </Alert>
+              )}
+              <div className='text-center p-4 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800'>
+                <Smartphone className='w-12 h-12 mx-auto mb-3 text-amber-600' />
+                <p className='text-sm text-gray-600 dark:text-gray-300 mb-2'>
+                  Login mit <strong>Amber</strong> – Dein privater Schlüssel bleibt sicher
+                  in Amber. Kein nsec eingeben.
+                </p>
+                <p className='text-xs text-gray-500 dark:text-gray-400 mb-4'>
+                  Amber ist ein externer Nostr-Signer für Android.
+                  MojoBus bekommt nur deinen Public Key – dein nsec bleibt geschützt.
+                </p>
+                {amberAvailable ? (
+                  <div className='space-y-3'>
+                    <div className='flex items-center justify-center gap-2 text-xs text-green-600 dark:text-green-400 mb-2'>
+                      <span className='w-2 h-2 rounded-full bg-green-500 animate-pulse'></span>
+                      Amber erkannt
+                    </div>
+                    <Button
+                      className='w-full rounded-full py-4 bg-amber-600 hover:bg-amber-700 text-white'
+                      onClick={handleAmberLogin}
+                      disabled={isLoading}
+                    >
+                      {isLoading ? 'Verbinde mit Amber...' : 'Mit Amber anmelden'}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className='space-y-3'>
+                    <p className='text-xs text-amber-700 dark:text-amber-300 mb-2'>
+                      Amber ist nicht installiert oder wurde nicht erkannt.
+                    </p>
+                    <a
+                      href='https://github.com/greenart7c3/Amber/releases'
+                      target='_blank'
+                      rel='noopener noreferrer'
+                      className='inline-flex items-center gap-1.5 text-xs text-amber-600 hover:text-amber-700 hover:underline font-medium'
+                    >
+                      <ExternalLink className='w-3 h-3' />
+                      Amber installieren (GitHub)
+                    </a>
+                    <div className='text-[11px] text-gray-400 dark:text-gray-500 mt-1'>
+                      Auch via F-Droid: <code className='text-[10px] bg-gray-100 dark:bg-gray-800 px-1 rounded'>com.greenart7c3.nostrsigner</code>
+                    </div>
+                  </div>
+                )}
               </div>
             </TabsContent>
           </Tabs>
