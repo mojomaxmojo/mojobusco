@@ -61,7 +61,7 @@ Alle Konfigurationen sind zentral in `src/config/` abgelegt. **Neue Konfiguratio
 | `src/config/performance.ts` | Performance-Konfiguration (Infinite Scroll, Cache, Relay) | TypeScript |
 | `src/config/performance.config.ts` | Build-Performance-Config (Minify, Sourcemaps) | TypeScript |
 | `src/config/cache.ts` | Cache-Konfiguration | TypeScript |
-| `src/config/prompts/` | KI-Prompt-Vorlagen (lifestyles, articles, media, notes, trips) | JS |
+| `src/config/prompts/` | **⚠️ TABU – NIEMALS ÄNDERN!** KI-Prompt-Vorlagen (lifestyles, articles, media, notes, trips). Diese Dateien laufen sowohl im Browser (Vite) als auch im Node.js Server (ai-api). | JS |
 | `src/config/budget.ts` | Haushaltsbuch-Konfiguration | TypeScript |
 | `src/config/video.ts` | Video-Konfiguration | TypeScript |
 | `src/config/leon.ts` | Leon-Story Konfiguration | TypeScript |
@@ -69,6 +69,14 @@ Alle Konfigurationen sind zentral in `src/config/` abgelegt. **Neue Konfiguratio
 | `src/config/README.md` | Detaillierte Config-Dokumentation | Markdown |
 
 **Regel**: Jede neue Konfiguration gehört nach `src/config/`. Keine hartcodierten Werte im Quellcode – immer aus den Config-Dateien importieren.
+
+### ⛔ Tabu-Zonen – Niemals ändern
+
+| Pfad | Grund |
+|------|-------|
+| `src/config/prompts/` | **KI-Prompt-Konfiguration** – läuft im Browser (Vite-Build) **und** im Node.js Server (`ai-api`). Enthält den Foster-Huntington-Schreibstil, Gender-Perspektiven, Content-Generierungs-Regeln. Änderungen zerstören die KI-Content-Erstellung. |
+| `server/` | **Node.js Backend** – wird vom `ai-api` Systemd-Service verwendet. Keine Änderungen ohne separates Deployment. |
+| `scripts/generate-*.js` | **Cron-Jobs auf dem VPS** – werden täglich/stündlich ausgeführt. Änderungen müssen via `deploy-main.sh` deployed werden. |
 
 ## 📱 Android APK Build (CachyOS)
 ```bash
