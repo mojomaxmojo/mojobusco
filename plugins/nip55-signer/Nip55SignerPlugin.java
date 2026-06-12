@@ -15,22 +15,21 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.ActivityCallback;
-import com.getcapacitor.ActivityResult;
 
 import org.json.JSONArray;
-import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.zip.GZIPOutputStream;
 
 /**
- * NIP-55 Android Signer Plugin fur Capacitor 8
+ * NIP-55 Android Signer Plugin für Capacitor 8
  *
  * Kommuniziert mit Amber (com.greenart7c3.nostrsigner) und anderen
  * NIP-55 kompatiblen Signer-Apps via Intents und Content Resolver.
  *
- * Verwendet die Capacitor-8-ActivityCallback-API fur Intent-Responses.
+ * ActivityCallback-Signatur in Capacitor 8:
+ *   @ActivityCallback void name(PluginCall call, Intent data)
  *
  * NIP-55 Spec: https://github.com/nostr-protocol/nips/blob/master/55.md
  * Amber:       https://github.com/greenart7c3/Amber
@@ -40,7 +39,6 @@ public class Nip55SignerPlugin extends Plugin {
 
     private static final String TAG = "Nip55Signer";
     private static final String AMBER_PACKAGE = "com.greenart7c3.nostrsigner";
-    private static final String SIGNER_SCHEME = "nostrsigner";
 
     // =========================================================================
     // Hilfsmethoden
@@ -70,31 +68,29 @@ public class Nip55SignerPlugin extends Plugin {
     }
 
     /**
-     * Baut das Ergebnis-Bundle des Signers in ein JSObject um.
+     * Parst Intent-Extras in ein JSObject.
      */
-    private JSObject parseSignerResult(Bundle extras) {
+    private JSObject parseIntentExtras(Intent data) {
         JSObject result = new JSObject();
+
+        if (data == null || data.getExtras() == null) {
+            result.put("rejected", false);
+            return result;
+        }
+
+        Bundle extras = data.getExtras();
         result.put("rejected", extras.getBoolean("rejected", false));
 
-        if (extras.containsKey("result")) {
-            result.put("result", extras.getString("result"));
-        }
-        if (extras.containsKey("event")) {
-            result.put("event", extras.getString("event"));
-        }
-        if (extras.containsKey("signature")) {
-            result.put("signature", extras.getString("signature"));
-        }
-        if (extras.containsKey("package")) {
-            result.put("package", extras.getString("package"));
-        }
-        if (extras.containsKey("id")) {
-            result.put("id", extras.getString("id"));
-        }
+        if (extras.containsKey("result")) result.put("result", extras.getString("result"));
+        if (extras.containsKey("event")) result.put("event", extras.getString("event"));
+        if (extras.containsKey("signature")) result.put("signature", extras.getString("signature"));
+        if (extras.containsKey("package")) result.put("package", extras.getString("package"));
+        if (extras.containsKey("id")) result.put("id", extras.getString("id"));
 
-        Log.d(TAG, "Signer response: rejected=" + extras.getBoolean("rejected", false) +
-              ", hasResult=" + extras.containsKey("result") +
-              ", hasEvent=" + extras.containsKey("event"));
+        Log.d(TAG, "Intent extras: rejected=" + result.getBool("rejected") +
+              " hasResult=" + extras.containsKey("result") +
+              " hasEvent=" + extras.containsKey("event"));
+
         return result;
     }
 
@@ -109,14 +105,16 @@ public class Nip55SignerPlugin extends Plugin {
         result.put("installed", installed);
         result.put("package", isAmberInstalled() ? AMBER_PACKAGE : null);
         result.put("amber", isAmberInstalled());
-        Log.d(TAG, "isAvailable: installed=" + installed + ", amber=" + isAmberInstalled());
+        Log.d(TAG, "isAvailable: installed=" + installed + " amber=" + isAmberInstalled());
         call.resolve(result);
     }
+
+    // ── getPublicKey ─────────────────────────────────────────────────────────
 
     @PluginMethod
     public void getPublicKey(PluginCall call) {
         if (!isSignerInstalled()) {
-            call.reject("Kein NIP-55 Signer installiert. Bitte Amber via F-Droid oder GitHub installieren.");
+            call.reject("Kein NIP-55 Signer installiert.");
             return;
         }
 
@@ -129,50 +127,35 @@ public class Nip55SignerPlugin extends Plugin {
             intent.putExtra("permissions", permissions);
         }
 
-        Log.d(TAG, "Launching get_public_key intent via ActivityCallback...");
-        startActivityForResult(call, intent, "getPublicKeyCallback");
+        Log.d(TAG, "getPublicKey intent...");
+        startActivityForResult(call, intent, "getPublicKeyResult");
     }
 
-    /**
-     * Callback fur getPublicKey – Capacitor 8 ActivityCallback API.
-     */
     @ActivityCallback
-    protected void getPublicKeyCallback(PluginCall call, ActivityResult result) {
-        if (result.getResultCode() != Activity.RESULT_OK) {
-            Log.e(TAG, "getPublicKey: Activity result NOT OK: " + result.getResultCode());
-            call.reject("Signer returned error code: " + result.getResultCode());
+    protected void getPublicKeyResult(PluginCall call, Intent data) {
+        // Capacitor 8: data==null wenn resultCode != RESULT_OK → call wurde
+        // bereits automatisch rejected, wir müssen nichts tun.
+        if (data == null) return;
+
+        JSObject extras = parseIntentExtras(data);
+
+        if (extras.getBool("rejected")) {
+            call.resolve(extras);
             return;
         }
 
-        Intent data = result.getData();
-        if (data == null || data.getExtras() == null) {
-            call.reject("Keine Antwortdaten vom Signer erhalten.");
-            return;
-        }
+        // pubkey kann in result, event oder pubkey stehen
+        String pubkey = data.getExtras().getString("result", "");
+        if (pubkey.isEmpty()) pubkey = data.getExtras().getString("pubkey", "");
+        if (pubkey.isEmpty()) pubkey = data.getExtras().getString("event", "");
 
-        Bundle extras = data.getExtras();
-        JSObject response = parseSignerResult(extras);
-
-        if (extras.getBoolean("rejected", false)) {
-            call.resolve(response);
-            return;
-        }
-
-        // Der pubkey kommt in "result" ODER als "event" ODER extra "pubkey" zuruck
-        String pubkey = extras.getString("result", "");
-        if (pubkey.isEmpty()) {
-            pubkey = extras.getString("pubkey", "");
-        }
-        // Manchmal kommt der pubkey auch als "event" wenn returnType=event
-        if (pubkey.isEmpty()) {
-            pubkey = extras.getString("event", "");
-        }
-
-        response.put("pubkey", pubkey);
-        response.put("package", extras.getString("package",
+        extras.put("pubkey", pubkey);
+        extras.put("package", data.getExtras().getString("package",
             getConfig().getString("signerPackage", AMBER_PACKAGE)));
-        call.resolve(response);
+        call.resolve(extras);
     }
+
+    // ── signEvent ────────────────────────────────────────────────────────────
 
     @PluginMethod
     public void signEvent(PluginCall call) {
@@ -187,194 +170,125 @@ public class Nip55SignerPlugin extends Plugin {
             String compressionType = call.getString("compressionType", "none");
             String returnType = call.getString("returnType", "signature");
 
-            if (event == null) {
-                call.reject("Missing event parameter");
-                return;
-            }
+            if (event == null) { call.reject("Missing event parameter"); return; }
 
             String eventJson = event.toString();
 
-            Log.d(TAG, "Signing event: kind=" + event.optInt("kind", -1) +
-                  ", compressionType=" + compressionType);
-
-            // BAUEN DES nostrsigner: URIs
-            StringBuilder uriBuilder = new StringBuilder("nostrsigner:");
+            StringBuilder uri = new StringBuilder("nostrsigner:");
 
             if ("gzip".equals(compressionType)) {
-                String compressed = gzipCompress(eventJson);
-                uriBuilder.append("Signer1").append(compressed);
+                uri.append("Signer1").append(gzipCompress(eventJson));
             } else {
-                uriBuilder.append(Uri.encode(eventJson));
+                uri.append(Uri.encode(eventJson));
             }
 
-            uriBuilder.append("?type=sign_event");
-            uriBuilder.append("&compressionType=").append(compressionType);
-            uriBuilder.append("&returnType=").append(returnType);
-
-            if (!pubkey.isEmpty()) {
-                uriBuilder.append("&current_user=").append(pubkey);
-            }
+            uri.append("?type=sign_event");
+            uri.append("&compressionType=").append(compressionType);
+            uri.append("&returnType=").append(returnType);
+            if (!pubkey.isEmpty()) uri.append("&current_user=").append(pubkey);
 
             String requestId = call.getString("id", "");
-            if (!requestId.isEmpty()) {
-                uriBuilder.append("&id=").append(requestId);
-            }
+            if (!requestId.isEmpty()) uri.append("&id=").append(requestId);
 
-            Intent intent = new Intent(Intent.ACTION_VIEW,
-                Uri.parse(uriBuilder.toString()));
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri.toString()));
             intent.setPackage(AMBER_PACKAGE);
 
-            Log.d(TAG, "Launching sign_event intent: " +
-                  uriBuilder.toString().substring(0, Math.min(120, uriBuilder.length())));
-
-            startActivityForResult(call, intent, "signEventCallback");
+            Log.d(TAG, "signEvent: " + uri.toString().substring(0, Math.min(120, uri.length())));
+            startActivityForResult(call, intent, "signEventResult");
 
         } catch (Exception e) {
             Log.e(TAG, "signEvent error: " + e.getMessage(), e);
-            call.reject("Failed to sign event: " + e.getMessage());
+            call.reject("Failed: " + e.getMessage());
         }
     }
 
     @ActivityCallback
-    protected void signEventCallback(PluginCall call, ActivityResult result) {
-        if (result.getResultCode() != Activity.RESULT_OK) {
-            call.reject("Signer returned error code: " + result.getResultCode());
-            return;
-        }
-
-        Intent data = result.getData();
-        if (data == null || data.getExtras() == null) {
-            call.reject("Keine Antwortdaten vom Signer.");
-            return;
-        }
-
-        JSObject response = parseSignerResult(data.getExtras());
-        call.resolve(response);
+    protected void signEventResult(PluginCall call, Intent data) {
+        if (data == null) return;
+        call.resolve(parseIntentExtras(data));
     }
+
+    // ── nip44Encrypt ─────────────────────────────────────────────────────────
 
     @PluginMethod
     public void nip44Encrypt(PluginCall call) {
-        if (!isSignerInstalled()) {
-            call.reject("Kein NIP-55 Signer installiert.");
-            return;
-        }
+        if (!isSignerInstalled()) { call.reject("Kein NIP-55 Signer installiert."); return; }
 
         try {
             String plaintext = call.getString("plaintext", "");
             String pubkey = call.getString("pubkey", "");
             String currentUser = call.getString("currentUser", "");
 
-            StringBuilder uriBuilder = new StringBuilder("nostrsigner:");
-            uriBuilder.append(Uri.encode(plaintext));
-            uriBuilder.append("?type=nip44_encrypt");
-            uriBuilder.append("&pubkey=").append(pubkey);
-            uriBuilder.append("&compressionType=none");
-            uriBuilder.append("&returnType=signature");
-            if (!currentUser.isEmpty()) {
-                uriBuilder.append("&current_user=").append(currentUser);
-            }
+            StringBuilder uri = new StringBuilder("nostrsigner:");
+            uri.append(Uri.encode(plaintext));
+            uri.append("?type=nip44_encrypt&pubkey=").append(pubkey);
+            uri.append("&compressionType=none&returnType=signature");
+            if (!currentUser.isEmpty()) uri.append("&current_user=").append(currentUser);
 
-            Intent intent = new Intent(Intent.ACTION_VIEW,
-                Uri.parse(uriBuilder.toString()));
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri.toString()));
             intent.setPackage(AMBER_PACKAGE);
 
-            Log.d(TAG, "Launching nip44_encrypt intent");
-            startActivityForResult(call, intent, "nip44EncryptCallback");
+            Log.d(TAG, "nip44Encrypt");
+            startActivityForResult(call, intent, "nip44EncryptResult");
 
         } catch (Exception e) {
             Log.e(TAG, "nip44Encrypt error: " + e.getMessage(), e);
-            call.reject("Failed to encrypt: " + e.getMessage());
+            call.reject("Failed: " + e.getMessage());
         }
     }
 
     @ActivityCallback
-    protected void nip44EncryptCallback(PluginCall call, ActivityResult result) {
-        if (result.getResultCode() != Activity.RESULT_OK) {
-            call.reject("Encrypt error code: " + result.getResultCode());
-            return;
-        }
-
-        Intent data = result.getData();
-        if (data == null || data.getExtras() == null) {
-            call.reject("Keine Antwort vom Signer.");
-            return;
-        }
-
-        JSObject response = parseSignerResult(data.getExtras());
-        call.resolve(response);
+    protected void nip44EncryptResult(PluginCall call, Intent data) {
+        if (data == null) return;
+        call.resolve(parseIntentExtras(data));
     }
+
+    // ── nip44Decrypt ─────────────────────────────────────────────────────────
 
     @PluginMethod
     public void nip44Decrypt(PluginCall call) {
-        if (!isSignerInstalled()) {
-            call.reject("Kein NIP-55 Signer installiert.");
-            return;
-        }
+        if (!isSignerInstalled()) { call.reject("Kein NIP-55 Signer installiert."); return; }
 
         try {
             String ciphertext = call.getString("ciphertext", "");
             String pubkey = call.getString("pubkey", "");
             String currentUser = call.getString("currentUser", "");
 
-            StringBuilder uriBuilder = new StringBuilder("nostrsigner:");
-            uriBuilder.append(Uri.encode(ciphertext));
-            uriBuilder.append("?type=nip44_decrypt");
-            uriBuilder.append("&pubkey=").append(pubkey);
-            uriBuilder.append("&compressionType=none");
-            uriBuilder.append("&returnType=signature");
-            if (!currentUser.isEmpty()) {
-                uriBuilder.append("&current_user=").append(currentUser);
-            }
+            StringBuilder uri = new StringBuilder("nostrsigner:");
+            uri.append(Uri.encode(ciphertext));
+            uri.append("?type=nip44_decrypt&pubkey=").append(pubkey);
+            uri.append("&compressionType=none&returnType=signature");
+            if (!currentUser.isEmpty()) uri.append("&current_user=").append(currentUser);
 
-            Intent intent = new Intent(Intent.ACTION_VIEW,
-                Uri.parse(uriBuilder.toString()));
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri.toString()));
             intent.setPackage(AMBER_PACKAGE);
 
-            Log.d(TAG, "Launching nip44_decrypt intent");
-            startActivityForResult(call, intent, "nip44DecryptCallback");
+            Log.d(TAG, "nip44Decrypt");
+            startActivityForResult(call, intent, "nip44DecryptResult");
 
         } catch (Exception e) {
             Log.e(TAG, "nip44Decrypt error: " + e.getMessage(), e);
-            call.reject("Failed to decrypt: " + e.getMessage());
+            call.reject("Failed: " + e.getMessage());
         }
     }
 
     @ActivityCallback
-    protected void nip44DecryptCallback(PluginCall call, ActivityResult result) {
-        if (result.getResultCode() != Activity.RESULT_OK) {
-            call.reject("Decrypt error code: " + result.getResultCode());
-            return;
-        }
-
-        Intent data = result.getData();
-        if (data == null || data.getExtras() == null) {
-            call.reject("Keine Antwort vom Signer.");
-            return;
-        }
-
-        JSObject response = parseSignerResult(data.getExtras());
-        call.resolve(response);
+    protected void nip44DecryptResult(PluginCall call, Intent data) {
+        if (data == null) return;
+        call.resolve(parseIntentExtras(data));
     }
 
-    /**
-     * Signiert ein Event im Hintergrund via Content Resolver.
-     *
-     * Funktioniert nur, wenn der User zuvor via Intent "remember my choice"
-     * gewahlt hat.
-     */
+    // ── signEventInBackground (Content Resolver) ──────────────────────────────
+
     @PluginMethod
     public void signEventInBackground(PluginCall call) {
         try {
             JSObject event = call.getObject("event");
             String pubkey = call.getString("pubkey", "");
 
-            if (event == null) {
-                call.reject("Missing event parameter");
-                return;
-            }
+            if (event == null) { call.reject("Missing event parameter"); return; }
 
             String eventJson = event.toString();
-
             Uri contentUri = Uri.parse("content://" + AMBER_PACKAGE + ".SIGN_EVENT");
             String[] selectionArgs = new String[] { eventJson, "", pubkey };
 
@@ -382,20 +296,18 @@ public class Nip55SignerPlugin extends Plugin {
                 contentUri, selectionArgs, null, null, null);
 
             if (cursor == null) {
-                Log.d(TAG, "Content Resolver not available, use Intent fallback");
-                JSObject result = new JSObject();
-                result.put("available", false);
-                result.put("reason", "content_resolver_unavailable");
-                call.resolve(result);
+                JSObject r = new JSObject();
+                r.put("available", false);
+                r.put("reason", "content_resolver_unavailable");
+                call.resolve(r);
                 return;
             }
 
             if (cursor.getColumnIndex("rejected") > -1) {
-                Log.d(TAG, "Background signing permanently rejected by user");
                 cursor.close();
-                JSObject result = new JSObject();
-                result.put("rejected", true);
-                call.resolve(result);
+                JSObject r = new JSObject();
+                r.put("rejected", true);
+                call.resolve(r);
                 return;
             }
 
@@ -403,33 +315,31 @@ public class Nip55SignerPlugin extends Plugin {
             int eventIdx = cursor.getColumnIndex("event");
 
             if (cursor.moveToFirst() && resultIdx > -1) {
-                JSObject result = new JSObject();
-                result.put("signature", cursor.getString(resultIdx));
-                result.put("event", eventIdx > -1 ? cursor.getString(eventIdx) : null);
-                result.put("available", true);
-                Log.d(TAG, "Background signing successful");
+                JSObject r = new JSObject();
+                r.put("signature", cursor.getString(resultIdx));
+                r.put("event", eventIdx > -1 ? cursor.getString(eventIdx) : null);
+                r.put("available", true);
                 cursor.close();
-                call.resolve(result);
+                call.resolve(r);
             } else {
                 cursor.close();
-                JSObject result = new JSObject();
-                result.put("available", false);
-                result.put("reason", "no_result");
-                call.resolve(result);
+                JSObject r = new JSObject();
+                r.put("available", false);
+                r.put("reason", "no_result");
+                call.resolve(r);
             }
 
         } catch (Exception e) {
             Log.e(TAG, "signEventInBackground error: " + e.getMessage(), e);
-            JSObject result = new JSObject();
-            result.put("available", false);
-            result.put("reason", e.getMessage());
-            call.resolve(result);
+            JSObject r = new JSObject();
+            r.put("available", false);
+            r.put("reason", e.getMessage());
+            call.resolve(r);
         }
     }
 
-    /**
-     * Offnet die Amber-Installationsseite (F-Droid oder GitHub).
-     */
+    // ── openAmberInstall ─────────────────────────────────────────────────────
+
     @PluginMethod
     public void openAmberInstall(PluginCall call) {
         try {
@@ -444,7 +354,7 @@ public class Nip55SignerPlugin extends Plugin {
                 getContext().startActivity(intent);
                 call.resolve();
             } catch (Exception e2) {
-                call.reject("Could not open browser: " + e2.getMessage());
+                call.reject("Browser konnte nicht geöffnet werden: " + e2.getMessage());
             }
         }
     }
