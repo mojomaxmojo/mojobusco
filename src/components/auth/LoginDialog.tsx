@@ -48,10 +48,14 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
   useEffect(() => {
     if (isOpen && !amberChecked) {
       nip55Signer.isAvailable().then(avail => {
-        setAmberAvailable(avail.amber || avail.installed);
+        // Web-Modus: Auf Android immer optimistisch (User-Agent Heuristik)
+        // APK-Modus: Plugin meldet exakte Detection
+        setAmberAvailable(avail.mode !== 'none');
         setAmberChecked(true);
       }).catch(() => {
-        setAmberChecked(true); // nicht blockieren
+        // Fallback: Auf Android immer als verfügbar annehmen
+        setAmberAvailable(/android/i.test(navigator.userAgent));
+        setAmberChecked(true);
       });
     }
   }, [isOpen, amberChecked]);
@@ -425,39 +429,25 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
                   Amber ist ein externer Nostr-Signer für Android.
                   MojoBus bekommt nur deinen Public Key – dein nsec bleibt geschützt.
                 </p>
-                {amberAvailable ? (
-                  <div className='space-y-3'>
-                    <div className='flex items-center justify-center gap-2 text-xs text-green-600 dark:text-green-400 mb-2'>
-                      <span className='w-2 h-2 rounded-full bg-green-500 animate-pulse'></span>
-                      Amber erkannt
-                    </div>
-                    <Button
-                      className='w-full rounded-full py-4 bg-amber-600 hover:bg-amber-700 text-white'
-                      onClick={handleAmberLogin}
-                      disabled={isLoading}
-                    >
-                      {isLoading ? 'Verbinde mit Amber...' : 'Mit Amber anmelden'}
-                    </Button>
-                  </div>
-                ) : (
-                  <div className='space-y-3'>
-                    <p className='text-xs text-amber-700 dark:text-amber-300 mb-2'>
-                      Amber ist nicht installiert oder wurde nicht erkannt.
-                    </p>
-                    <a
-                      href='https://github.com/greenart7c3/Amber/releases'
-                      target='_blank'
-                      rel='noopener noreferrer'
-                      className='inline-flex items-center gap-1.5 text-xs text-amber-600 hover:text-amber-700 hover:underline font-medium'
-                    >
-                      <ExternalLink className='w-3 h-3' />
-                      Amber installieren (GitHub)
-                    </a>
-                    <div className='text-[11px] text-gray-400 dark:text-gray-500 mt-1'>
-                      Auch via F-Droid: <code className='text-[10px] bg-gray-100 dark:bg-gray-800 px-1 rounded'>com.greenart7c3.nostrsigner</code>
-                    </div>
-                  </div>
-                )}
+                <Button
+                  className='w-full rounded-full py-4 bg-amber-600 hover:bg-amber-700 text-white'
+                  onClick={handleAmberLogin}
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Verbinde mit Amber...' : 'Mit Amber anmelden'}
+                </Button>
+                <p className='text-[11px] text-gray-400 dark:text-gray-500 mt-2'>
+                  Amber nicht installiert?{' '}
+                  <a
+                    href='https://github.com/greenart7c3/Amber/releases'
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    className='text-amber-600 hover:underline'
+                  >
+                    Jetzt herunterladen
+                    <ExternalLink className='w-3 h-3 inline ml-0.5' />
+                  </a>
+                </p>
               </div>
             </TabsContent>
           </Tabs>
