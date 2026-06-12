@@ -34,6 +34,42 @@ MojoBus ist eine Nostr-basierte Vanlife/Travel-Plattform zum Teilen von Reiseerl
 | `scripts/generate-feed.js` | Generiert RSS 2.0 Feed (Cron: alle 6h) |
 | `capacitor.config.ts` | Capacitor-Konfiguration (appId: co.mojobus.app) |
 
+## ⚙️ Config-Verzeichnis (`src/config/`)
+
+Alle Konfigurationen sind zentral in `src/config/` abgelegt. **Neue Konfigurationen immer hier erstellen**, nicht verteilt im Code.
+
+| Datei | Zweck | Type |
+|-------|-------|------|
+| `src/config/authors.json` | **Single Source of Truth** für Autoren (pubkey, npub, nip05) | JSON |
+| `src/config/relays.ts` | Relay-Listen, Autor-Relay-Zuordnung, Presets | TypeScript |
+| `src/config/blossom.ts` | Blossom-Server für Medien-Uploads (autor-spezifisch) | TypeScript |
+| `src/config/nostr.ts` | Legacy-Nostr-Config (re-exportiert aus relays.ts) | TypeScript |
+| `src/config/app.ts` | App-Einstellungen (Theme, UI, Performance) | TypeScript |
+| `src/config/types.ts` | Zentrale Typdefinitionen für alle Configs | TypeScript |
+| `src/config/routes.ts` | Routen-Definitionen | TypeScript |
+| `src/config/mainMenu.ts` | Hauptnavigation (Desktop + Mobile) | TypeScript |
+| `src/config/menu.ts` | Legacy-Menü-Konfiguration | TypeScript |
+| `src/config/countries.ts` | Länder-Datenbank mit Koordinaten, Keywords, Routen | TypeScript |
+| `src/config/diy.ts` | DIY-Kategorien | TypeScript |
+| `src/config/rvlife.ts` | RV Life Kategorien | TypeScript |
+| `src/config/articles.ts` | Artikel-Kategorien | TypeScript |
+| `src/config/tags.ts` | Tag-Definitionen und -Gruppen | TypeScript |
+| `src/config/tagConfigs.ts` | Erweiterte Tag-Konfigurationen | TypeScript |
+| `src/config/contentCategories.ts` | Content-Kategorie-Definitionen | TypeScript |
+| `src/config/imageService.ts` | Bildoptimierungs-Service (weserv/imgproxy/Cloudflare) | TypeScript |
+| `src/config/imageOptimization.ts` | Legacy-Bildoptimierung | TypeScript |
+| `src/config/performance.ts` | Performance-Konfiguration (Infinite Scroll, Cache, Relay) | TypeScript |
+| `src/config/performance.config.ts` | Build-Performance-Config (Minify, Sourcemaps) | TypeScript |
+| `src/config/cache.ts` | Cache-Konfiguration | TypeScript |
+| `src/config/prompts/` | KI-Prompt-Vorlagen (lifestyles, articles, media, notes, trips) | JS |
+| `src/config/budget.ts` | Haushaltsbuch-Konfiguration | TypeScript |
+| `src/config/video.ts` | Video-Konfiguration | TypeScript |
+| `src/config/leon.ts` | Leon-Story Konfiguration | TypeScript |
+| `src/config/zeitwohnmobil.ts` | ZeitWohnmobil-Konfiguration | TypeScript |
+| `src/config/README.md` | Detaillierte Config-Dokumentation | Markdown |
+
+**Regel**: Jede neue Konfiguration gehört nach `src/config/`. Keine hartcodierten Werte im Quellcode – immer aus den Config-Dateien importieren.
+
 ## 📱 Android APK Build (CachyOS)
 ```bash
 cd ~/Mojobus-APK/mojobusco
