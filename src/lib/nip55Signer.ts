@@ -28,31 +28,34 @@ import type { NostrSignerPluginType, Nip55Permission } from '@/types/nip55';
 /**
  * Das native NostrSigner Plugin (NostrSignerPlugin.java).
  * Greift nur auf Android – auf anderen Plattformen nicht verfügbar.
+ *
+ * WICHTIG: Kein android-Fallback angeben! Capacitor findet das native
+ * NostrSignerPlugin.java automatisch über die registerPlugin-Bridge.
+ * Ein android-Fallback würde das native Plugin überschreiben.
  */
 const NostrSigner = registerPlugin<NostrSignerPluginType>('NostrSigner', {
-  android: () => import('@/types/nip55').then(() => NostrSigner),
-  ios: () => import('@/types/nip55').then(() => ({
+  ios: () => Promise.resolve({
     isSignerAvailable: async () => ({ available: false }),
     getAvailableSigners: async () => ({ signers: [] }),
-    getPublicKey: async () => { throw new Error('NIP-55 nur auf Android'); },
-    signEvent: async () => { throw new Error('NIP-55 nur auf Android'); },
-    nip04Encrypt: async () => { throw new Error('NIP-55 nur auf Android'); },
-    nip04Decrypt: async () => { throw new Error('NIP-55 nur auf Android'); },
-    nip44Encrypt: async () => { throw new Error('NIP-55 nur auf Android'); },
-    nip44Decrypt: async () => { throw new Error('NIP-55 nur auf Android'); },
-    decryptZapEvent: async () => { throw new Error('NIP-55 nur auf Android'); },
-  })),
-  web: () => import('@/types/nip55').then(() => ({
+    getPublicKey: async () => { throw new Error('NIP-55 ist nur auf Android verfügbar'); },
+    signEvent: async () => { throw new Error('NIP-55 ist nur auf Android verfügbar'); },
+    nip04Encrypt: async () => { throw new Error('NIP-55 ist nur auf Android verfügbar'); },
+    nip04Decrypt: async () => { throw new Error('NIP-55 ist nur auf Android verfügbar'); },
+    nip44Encrypt: async () => { throw new Error('NIP-55 ist nur auf Android verfügbar'); },
+    nip44Decrypt: async () => { throw new Error('NIP-55 ist nur auf Android verfügbar'); },
+    decryptZapEvent: async () => { throw new Error('NIP-55 ist nur auf Android verfügbar'); },
+  }),
+  web: () => Promise.resolve({
     isSignerAvailable: async () => ({ available: false }),
     getAvailableSigners: async () => ({ signers: [] }),
-    getPublicKey: async () => { throw new Error('NIP-55 nur auf Android'); },
-    signEvent: async () => { throw new Error('NIP-55 nur auf Android'); },
-    nip04Encrypt: async () => { throw new Error('NIP-55 nur auf Android'); },
-    nip04Decrypt: async () => { throw new Error('NIP-55 nur auf Android'); },
-    nip44Encrypt: async () => { throw new Error('NIP-55 nur auf Android'); },
-    nip44Decrypt: async () => { throw new Error('NIP-55 nur auf Android'); },
-    decryptZapEvent: async () => { throw new Error('NIP-55 nur auf Android'); },
-  })),
+    getPublicKey: async () => { throw new Error('NIP-55 ist nur auf Android verfügbar'); },
+    signEvent: async () => { throw new Error('NIP-55 ist nur auf Android verfügbar'); },
+    nip04Encrypt: async () => { throw new Error('NIP-55 ist nur auf Android verfügbar'); },
+    nip04Decrypt: async () => { throw new Error('NIP-55 ist nur auf Android verfügbar'); },
+    nip44Encrypt: async () => { throw new Error('NIP-55 ist nur auf Android verfügbar'); },
+    nip44Decrypt: async () => { throw new Error('NIP-55 ist nur auf Android verfügbar'); },
+    decryptZapEvent: async () => { throw new Error('NIP-55 ist nur auf Android verfügbar'); },
+  }),
 });
 
 // =============================================================================
@@ -62,8 +65,13 @@ const NostrSigner = registerPlugin<NostrSignerPluginType>('NostrSigner', {
 /** Prüft ob wir auf nativem Android laufen (Capacitor) */
 export function isNativeAndroid(): boolean {
   try {
-    return Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
-  } catch {
+    const isNative = Capacitor.isNativePlatform();
+    const platform = Capacitor.getPlatform();
+    const result = isNative && platform === 'android';
+    console.log('[NIP-55] isNativeAndroid():', { isNative, platform, result });
+    return result;
+  } catch (e) {
+    console.warn('[NIP-55] isNativeAndroid() Fehler:', e);
     return false;
   }
 }
@@ -103,19 +111,45 @@ export async function loginWithSigner(): Promise<{
   }
 
   // Prüfen ob überhaupt eine Signer-App installiert ist
-  const { available } = await NostrSigner.isSignerAvailable();
-  if (!available) {
-    throw new Error(
-      'Keine NIP-55 Signer-App gefunden.\n\n' +
-      'Bitte installiere Amber aus dem F-Droid Store oder von GitHub:\n' +
-      'https://github.com/greenart7c3/Amber'
-    );
+  try {
+    const { available } = await NostrSigner.isSignerAvailable();
+    console.log('[NIP-55] isSignerAvailable:', available);
+    if (!available) {
+      throw new Error(
+        'Keine NIP-55 Signer-App gefunden.\n\n' +
+        'Bitte installiere Amber aus dem F-Droid Store oder von GitHub:\n' +
+        'https://github.com/greenart7c3/Amber'
+      );
+    }
+  } catch (e: unknown) {
+    if (e instanceof Error && e.message.includes('Keine NIP-55')) throw e;
+    console.warn('[NIP-55] isSignerAvailable Fehler (ignoriere):', e);
+    // Wenn isSignerAvailable fehlschlägt, trotzdem versuchen
   }
 
   // Login-Intent mit default Permissions
-  const result = await NostrSigner.getPublicKey({
-    permissions: JSON.stringify(DEFAULT_PERMISSIONS),
-  });
+  let result;
+  try {
+    console.log('[NIP-55] Rufe getPublicKey auf...');
+    result = await NostrSigner.getPublicKey({
+      permissions: JSON.stringify(DEFAULT_PERMISSIONS),
+    });
+    console.log('[NIP-55] getPublicKey Ergebnis:', result);
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error('[NIP-55] getPublicKey Fehler:', msg);
+
+    if (msg.includes('NO_SIGNER') || msg.includes('No signer app')) {
+      throw new Error(
+        'Amber wurde nicht gefunden. Bitte installiere Amber und versuche es erneut:\n' +
+        'https://github.com/greenart7c3/Amber'
+      );
+    }
+    if (msg.includes('REJECTED') || msg.includes('USER_REJECTED')) {
+      throw new Error('Anmeldung in Amber abgebrochen oder abgelehnt.');
+    }
+    throw new Error(`Amber-Fehler: ${msg}`);
+  }
 
   if (!result?.result) {
     throw new Error('Kein öffentlicher Schlüssel von der Signer-App erhalten.');
