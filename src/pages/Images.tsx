@@ -192,8 +192,8 @@ function Images() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1, 2, 3, 4, 5, 6].map(i => (
                 <Card key={i} className="overflow-hidden border border-primary/20 rounded-2xl flex flex-col rounded-b-none border-b-0">
-                  {/* Image: gleiche Höhe wie echte Card (min-h-[300px] md:min-h-[500px]) */}
-                  <div className="h-[300px] md:h-[500px] bg-muted animate-pulse" />
+                  {/* Image: gleicher aspect-[3/4] wie echte Card (Smartphone Portrait) */}
+                  <div className="aspect-[3/4] bg-muted animate-pulse" />
                   {/* CardHeader: Title + Date */}
                   <div className="p-4 pb-2 space-y-3">
                     <div className="h-5 bg-muted animate-pulse rounded-md w-3/4" />
@@ -532,7 +532,7 @@ function ImageCardComponent({
        <Card className="overflow-hidden hover:shadow-lg transition-shadow group w-full rounded-b-none border-b-0">
          <div onClick={handleImageClick} className="cursor-pointer">
             {images.length > 0 && (
-               <div className="w-full bg-gray-100 dark:bg-gray-800 relative min-h-[300px] md:min-h-[500px]">
+               <div className="w-full bg-gray-100 dark:bg-gray-800 relative aspect-[3/4]">
                  {isVideoUrl(images[0]) ? (
                    <video
                      src={images[0]}
