@@ -6,7 +6,7 @@
 // ============================================================================
 // CACHE-KONFIGURATION
 // ============================================================================
-const CACHE_VERSION = 16; // Cache Version erhöhen (war 15, jetzt 16) - kein catch-all
+const CACHE_VERSION = 17; // Cache Version erhöhen (war 16, jetzt 17) - Publish lazy split
 const CACHE_NAME = `mojobus-v${CACHE_VERSION}`; // Version aus Konfiguration
 
 // Cache-Zeiten (in Sekunden)
