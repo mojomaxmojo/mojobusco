@@ -103,6 +103,10 @@ export default defineConfig(() => ({
           }
 
           // === VENDOR CHUNKS (Nur bei Bedarf) ===
+          // React + ReactDOM + Scheduler (muss im index-Chunk landen, nicht in page-chunks)
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('node_modules/scheduler/')) {
+            return 'react-vendor';
+          }
           // Milkdown Editor (nur bei Bedarf laden)
           if (id.includes('node_modules/@milkdown/') || id.includes('node_modules/prosemirror/')) {
             return 'milkdown-vendor';
