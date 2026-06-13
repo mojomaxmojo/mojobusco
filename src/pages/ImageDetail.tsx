@@ -400,17 +400,15 @@ export function ImageDetail() {
                        loading="eager"
                      />
                    ) : (
-                     <div className="aspect-[4/3] sm:aspect-[16/10] bg-muted overflow-hidden">
-                       <img
-                         src={getArticleHeaderUrl(images[0])}
-                         srcSet={generateSrcset(images[0], 'gallery')}
-                         sizes={generateSizes('header')}
-                         alt="Reisebild"
-                         className="w-full h-full object-contain bg-gray-100 dark:bg-gray-900"
-                         loading="eager"
-                         decoding="sync"
-                       />
-                     </div>
+                     <img
+                       src={getArticleHeaderUrl(images[0])}
+                       srcSet={generateSrcset(images[0], 'gallery')}
+                       sizes={generateSizes('header')}
+                       alt="Reisebild"
+                       className="w-full object-cover bg-gray-100 dark:bg-gray-900 max-h-[800px]"
+                       loading="eager"
+                       decoding="sync"
+                     />
                    )}
 
                    {/* Hover overlay - nur für Bilder */}
