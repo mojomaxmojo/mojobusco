@@ -21,6 +21,8 @@ export default defineConfig(() => ({
     include: [
       'react',
       'react-dom',
+      'react-dom/client',
+      'scheduler',
       'nostr-tools',
       'buffer',
       '@nostrify/react',
@@ -34,6 +36,12 @@ export default defineConfig(() => ({
   },
   build: {
     rollupOptions: {
+      // scheduler NIEMALS als external markieren – muss ins Bundle!
+      external: (id) => {
+        // Explizit scheduler und react-internals ins Bundle einschließen
+        if (id === 'scheduler' || id.startsWith('scheduler/')) return false;
+        return false; // Alle anderen auch nicht extern
+      },
       output: {
         // Add hash to filenames for code busting
         entryFileNames: 'assets/[name]-[hash].js',
@@ -173,9 +181,12 @@ export default defineConfig(() => ({
       },
     },
     // CommonJS to ESM transform
+    // scheduler und react sind CJS-Pakete – müssen explizit transformiert werden
     commonjsOptions: {
       transformMixedEsModules: true,
       include: [/node_modules/],
+      // scheduler explizit als CJS behandeln
+      requireReturnsDefault: 'auto',
     },
   },
   test: {
