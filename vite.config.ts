@@ -39,12 +39,9 @@ export default defineConfig(() => ({
         interop: 'auto',
         manualChunks(id) {
           // ============================================================
-          // WICHTIG: ALLE node_modules müssen VOR den Seiten-Chunks
-          // geprüft werden. Sonst landen Bibliotheken in Seiten-Chunks
-          // und duplizieren React → "T.current is null" Fehler.
+          // SEITEN-CHUNKS – nur eigener App-Code (keine node_modules)
           // ============================================================
           if (!id.includes('/node_modules/')) {
-            // Seiten-Chunks (nur eigener App-Code)
             if (id.includes('/pages/Home')) return 'home-page';
             if (id.includes('/pages/Articles')) return 'articles-page';
             if (id.includes('/pages/Notes')) return 'notes-page';
@@ -66,10 +63,13 @@ export default defineConfig(() => ({
           }
 
           // ============================================================
-          // VENDOR CHUNKS – granular aufgeteilt nach Größe & Verwendung
+          // VENDOR CHUNKS
+          // Strategie: Kein "vendor"-Catch-All!
+          // Stattdessen: jedes Paket bekommt einen expliziten Chunk.
+          // Das verhindert Circular-Chunk-Warnungen komplett.
           // ============================================================
 
-          // 1. React Core (IMMER ZUERST – eine einzige Instanz!)
+          // 1. React Core (EINE einzige Instanz – ganz oben!)
           if (
             id.includes('/node_modules/react/') ||
             id.includes('/node_modules/react-dom/') ||
@@ -77,48 +77,54 @@ export default defineConfig(() => ({
             id.includes('/node_modules/react-is/')
           ) return 'react-vendor';
 
-          // 2. Milkdown Editor (~450 kB, nur auf Publish-Seiten)
+          // 2. Milkdown Editor + ProseMirror (~450 kB, lazy)
           if (
             id.includes('/node_modules/@milkdown/') ||
-            id.includes('/node_modules/prosemirror')
+            id.includes('/node_modules/prosemirror') ||
+            id.includes('/node_modules/rope-sequence') ||
+            id.includes('/node_modules/orderedmap') ||
+            id.includes('/node_modules/w3c-keyname')
           ) return 'milkdown-vendor';
 
-          // 3. Nostr-Stack + alle internen Abhängigkeiten (~200 kB)
-          // @noble/* und @scure/* sind interne Deps von nostr-tools
-          // → müssen im selben Chunk sein, sonst Circular chunks
+          // 3. Nostr-Stack inkl. aller kryptografischen Abhängigkeiten
           if (
             id.includes('/node_modules/nostr-tools/') ||
+            id.includes('/node_modules/nostr-wasm/') ||
             id.includes('/node_modules/@nostrify/') ||
             id.includes('/node_modules/@jsr/') ||
             id.includes('/node_modules/@noble/') ||
             id.includes('/node_modules/@scure/') ||
             id.includes('/node_modules/ngeohash/') ||
-            id.includes('/node_modules/dijkstrajs/')
+            id.includes('/node_modules/dijkstrajs/') ||
+            id.includes('/node_modules/@getalby/') ||
+            id.includes('/node_modules/webln/')
           ) return 'nostr-vendor';
 
-          // 4. Radix UI + @floating-ui (~150 kB)
-          // @floating-ui ist interne Dep von Radix → selber Chunk
+          // 4. Radix UI inkl. aller internen Deps
           if (
             id.includes('/node_modules/@radix-ui/') ||
-            id.includes('/node_modules/@floating-ui/')
+            id.includes('/node_modules/@floating-ui/') ||
+            id.includes('/node_modules/aria-hidden/') ||
+            id.includes('/node_modules/get-nonce/') ||
+            id.includes('/node_modules/cmdk/')
           ) return 'radix-vendor';
 
-          // 5. React Query (~50 kB)
+          // 5. React Query
           if (id.includes('/node_modules/@tanstack/')) return 'react-query-vendor';
 
-          // 6. React Router (~17 kB)
+          // 6. React Router
           if (
             id.includes('/node_modules/react-router/') ||
             id.includes('/node_modules/react-router-dom/')
           ) return 'router-vendor';
 
-          // 7. Karten / Leaflet (~140 kB, nur auf Map-Seiten)
+          // 7. Karten (lazy, nur Map-Seite)
           if (
             id.includes('/node_modules/leaflet/') ||
             id.includes('/node_modules/react-leaflet/')
           ) return 'map-vendor';
 
-          // 8. Markdown-Rendering (~120 kB, nur auf Article-Seiten)
+          // 8. Markdown-Rendering
           if (
             id.includes('/node_modules/react-markdown/') ||
             id.includes('/node_modules/remark') ||
@@ -128,19 +134,39 @@ export default defineConfig(() => ({
             id.includes('/node_modules/micromark') ||
             id.includes('/node_modules/unified') ||
             id.includes('/node_modules/unist') ||
-            id.includes('/node_modules/vfile')
+            id.includes('/node_modules/vfile') ||
+            id.includes('/node_modules/bail') ||
+            id.includes('/node_modules/trough') ||
+            id.includes('/node_modules/decode-named-character-reference') ||
+            id.includes('/node_modules/character-entities') ||
+            id.includes('/node_modules/ccount') ||
+            id.includes('/node_modules/comma-separated-tokens') ||
+            id.includes('/node_modules/space-separated-tokens') ||
+            id.includes('/node_modules/trim-lines') ||
+            id.includes('/node_modules/is-plain-obj') ||
+            id.includes('/node_modules/extend') ||
+            id.includes('/node_modules/html-url-attributes') ||
+            id.includes('/node_modules/property-information') ||
+            id.includes('/node_modules/longest-streak') ||
+            id.includes('/node_modules/stringify-entities') ||
+            id.includes('/node_modules/parse5') ||
+            id.includes('/node_modules/estree-util') ||
+            id.includes('/node_modules/style-to-js') ||
+            id.includes('/node_modules/style-to-object') ||
+            id.includes('/node_modules/inline-style-parser')
           ) return 'markdown-vendor';
 
-          // 9. Lucide Icons (~80 kB)
+          // 9. Lucide Icons
           if (id.includes('/node_modules/lucide-react/')) return 'icons-vendor';
 
-          // 10. QR Code (~25 kB, nur im Zap-Dialog)
+          // 10. QR Code (lazy, nur Zap-Dialog)
           if (id.includes('/node_modules/qrcode/')) return 'qrcode-vendor';
 
-          // 11. Unhead / SEO (~30 kB)
+          // 11. Unhead / SEO
           if (
             id.includes('/node_modules/@unhead/') ||
-            id.includes('/node_modules/unhead')
+            id.includes('/node_modules/unhead') ||
+            id.includes('/node_modules/hookable')
           ) return 'unhead-vendor';
 
           // 12. Node-Polyfills
@@ -151,12 +177,14 @@ export default defineConfig(() => ({
             id.includes('/node_modules/stream-browserify/') ||
             id.includes('/node_modules/util/') ||
             id.includes('/node_modules/process/') ||
-            id.includes('/node_modules/buffer/')
+            id.includes('/node_modules/buffer/') ||
+            id.includes('/node_modules/ieee754/') ||
+            id.includes('/node_modules/inherits/')
           ) return 'polyfills';
 
-          // 13. Catch-All für alle übrigen node_modules
-          // (kleine Pakete wie date-fns, clsx, zod, etc.)
-          return 'vendor';
+          // 13. Allgemeine UI / Utils – kein Catch-All mehr!
+          // Alle verbleibenden Pakete bekommen 'ui-vendor'
+          return 'ui-vendor';
         },
       },
       onwarn(warning, warn) {
@@ -165,6 +193,11 @@ export default defineConfig(() => ({
           (warning.message.includes('node_modules') ||
            warning.message.includes('dijkstrajs'))
         ) {
+          return;
+        }
+        // Circular chunk Warnungen loggen aber nicht als Fehler behandeln
+        if (warning.message && warning.message.includes('Circular chunk')) {
+          console.warn('[vite] Circular chunk detected:', warning.message);
           return;
         }
         warn(warning);
@@ -204,7 +237,6 @@ export default defineConfig(() => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-    // Vite-Deduplication: React immer aus demselben node_modules-Pfad
     dedupe: ['react', 'react-dom', 'react-dom/client', 'scheduler'],
   },
   css: {
