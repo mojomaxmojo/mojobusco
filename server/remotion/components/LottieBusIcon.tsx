@@ -142,8 +142,8 @@ const Star4: React.FC<{ cx: number; cy: number; r: number; color: string; frame:
       transform={`translate(${cx},${cy})`} opacity={0.9} />;
   };
 
-// ── Peace-Zeichen UMGEKEHRT (Strich ↓, Diagonalen → oben-außen) ──────────
-const InvertedPeace: React.FC<{
+// ── Peace-Zeichen (Strich ↑, Diagonalen ↓) ──────────────────────────
+const PeaceSign: React.FC<{
   cx: number; cy: number; r: number;
   colors?: string[]; strokeW: number; frame: number; fps: number;
 }> = ({ cx, cy, r, colors, strokeW, frame, fps }) => {
@@ -153,16 +153,16 @@ const InvertedPeace: React.FC<{
   const pulse = 1 + Math.sin((frame / fps) * Math.PI * 2 * 0.7) * 0.04;
   return (
     <g transform={`translate(${cx},${cy}) scale(${pulse})`}>
-      {/* Äußerer Kreis — Regenbogen-Strich */}
+      {/* Äußerer Kreis */}
       <circle r={r} fill="none" stroke={c[0]} strokeWidth={strokeW} />
-      {/* Senkrechter Strich: Mitte → UNTEN */}
-      <line x1={0} y1={0} x2={0} y2={r}
+      {/* Senkrechter Strich: Mitte → OBEN */}
+      <line x1={0} y1={0} x2={0} y2={-r}
         stroke={c[1]} strokeWidth={strokeW} strokeLinecap="round" />
-      {/* Linke Diagonale: Mitte → OBEN-LINKS */}
-      <line x1={0} y1={0} x2={-r * 0.71} y2={-r * 0.71}
+      {/* Linke Diagonale: Mitte → UNTEN-LINKS */}
+      <line x1={0} y1={0} x2={-r * 0.71} y2={r * 0.71}
         stroke={c[2]} strokeWidth={strokeW} strokeLinecap="round" />
-      {/* Rechte Diagonale: Mitte → OBEN-RECHTS */}
-      <line x1={0} y1={0} x2={r * 0.71} y2={-r * 0.71}
+      {/* Rechte Diagonale: Mitte → UNTEN-RECHTS */}
+      <line x1={0} y1={0} x2={r * 0.71} y2={r * 0.71}
         stroke={c[0]} strokeWidth={strokeW} strokeLinecap="round" />
     </g>
   );
@@ -232,11 +232,11 @@ const MojoBusCoach: React.FC<{
   const wheelRot  = (frame / fps) * 360 * 1.4;
   const lightPulse = 0.72 + Math.sin((frame / fps) * Math.PI * 2 * 0.9) * 0.16;
 
-  // ── Proportionen: 10m × 3.3m → H = W × 0.33 ────────────────────────────
-  const W  = size; // Original width
-  const H  = size * 0.33;
-  const WR = H * 0.40;          // Rad-Radius
-  const RY = H + WR * 0.52;     // Rad-Mitte Y
+  // ── Proportionen: Original Bus 9.20m × 3.25m, Räder Ø90cm ──────────
+  const W  = size;
+  const H  = size * 0.353;          // 9.20m × 3.25m → 2.83:1
+  const WR = H * 0.138;             // Rad-Radius 45cm bei 3.25m Höhe
+  const RY = H + WR * 0.6;          // Rad-Mitte Y
 
   // ── Farben ───────────────────────────────────────────────────────────────
   const cream    = '#faf7f0';
@@ -545,7 +545,7 @@ const MojoBusCoach: React.FC<{
 
         {/* ── Peace-Zeichen UMGEKEHRT (bunt, auf Frontschürze) ── */}
         {/* Großes buntes Peace auf der Seite (links Mitte) */}
-        <InvertedPeace
+        <PeaceSign
           cx={W*0.06} cy={H*0.72} r={H*0.18}
           colors={['#e63946', '#f4a261', '#2a9d8f']}
           strokeW={H*0.032}
