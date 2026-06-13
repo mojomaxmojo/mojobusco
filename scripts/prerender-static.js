@@ -38,6 +38,17 @@ const BASE_URL = 'https://mojobus.co';
 const RELAYS = ['wss://relay.mojobus.co', 'wss://relay.primal.net'];
 const MAX_PER_RELAY = 500;
 
+// ── HTML-Escaping (XSS-Schutz für generierte SEO-Seiten) ──────────────────
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 // ── Simple WS-Query (gleicher Code wie generate-sitemap.js) ──────────────
 async function queryRelay(relayUrl, filters, timeoutMs = 15000) {
   return new Promise((resolve) => {
