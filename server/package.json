@@ -12,11 +12,29 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
+    "@remotion/bundler": "^4.0.476",
+    "@remotion/captions": "^4.0.476",
+    "@remotion/google-fonts": "^4.0.476",
+    "@remotion/lottie": "^4.0.476",
+    "@remotion/media-utils": "^4.0.476",
+    "@remotion/motion-blur": "^4.0.476",
+    "@remotion/noise": "^4.0.476",
+    "@remotion/renderer": "^4.0.476",
+    "@remotion/shapes": "^4.0.476",
+    "@remotion/transitions": "^4.0.476",
+    "@rspack/core": "^2.0.8",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
     "axios": "^1.6.0",
     "cors": "^2.8.5",
+    "css-loader": "^7.1.4",
     "express": "^4.18.2",
+    "lottie-web": "^5.13.0",
     "multer": "^1.4.5-lts.1",
     "nostr-tools": "^2.23.3",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "remotion": "^4.0.476",
     "ws": "^8.20.0"
   }
 }
