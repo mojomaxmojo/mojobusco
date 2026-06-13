@@ -21,7 +21,6 @@ export default defineConfig(() => ({
     include: [
       'react',
       'react-dom',
-      'scheduler',
       'nostr-tools',
       'buffer',
       '@nostrify/react',
@@ -54,11 +53,10 @@ export default defineConfig(() => ({
           if (id.includes('/pages/Home')) {
             return 'home-page';
           }
-          // Articles-Seite — AUSKOMMENTIERT: verursacht "T.current is null" 
-          // Fehler in React 19 (Dispatcher nicht initialisiert beim Chunk-Loading)
-          // if (id.includes('/pages/Articles')) {
-          //   return 'articles-page';
-          // }
+          // Articles-Seite
+          if (id.includes('/pages/Articles')) {
+            return 'articles-page';
+          }
           // Notes-Seite
           if (id.includes('/pages/Notes')) {
             return 'notes-page';
@@ -104,10 +102,6 @@ export default defineConfig(() => ({
           }
 
           // === VENDOR CHUNKS (Nur bei Bedarf) ===
-          // React + ReactDOM + Scheduler (muss im index-Chunk landen, nicht in page-chunks)
-          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('node_modules/scheduler/')) {
-            return 'react-vendor';
-          }
           // Milkdown Editor (nur bei Bedarf laden)
           if (id.includes('node_modules/@milkdown/') || id.includes('node_modules/prosemirror/')) {
             return 'milkdown-vendor';
