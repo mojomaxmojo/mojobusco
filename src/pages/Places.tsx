@@ -188,11 +188,23 @@ function Places() {
 
           {/* Places Grid */}
           {isLoading ? (
-            <Card className="border-dashed">
-              <CardContent className="py-16 px-8 text-center">
-                <LoadingSpinner size="lg" text="Lade Orte vom Relay..." />
-              </CardContent>
-            </Card>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map(i => (
+                <Card key={i} className="overflow-hidden border border-primary/20 rounded-2xl flex flex-col">
+                  <div className="aspect-video bg-muted animate-pulse" />
+                  <div className="p-4 space-y-3 flex-1">
+                    <div className="flex items-start gap-2">
+                      <div className="h-4 w-4 rounded bg-muted animate-pulse shrink-0 mt-0.5" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-5 bg-muted animate-pulse rounded-md w-3/4" />
+                        <div className="h-4 bg-muted animate-pulse rounded-md w-full" />
+                        <div className="h-4 bg-muted animate-pulse rounded-md w-5/6" />
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
           ) : sortedEvents.length > 0 ? (
             <>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

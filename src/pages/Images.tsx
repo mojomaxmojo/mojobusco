@@ -189,11 +189,17 @@ function Images() {
               <Skeleton className="h-12 w-3/4 mx-auto" />
               <Skeleton className="h-6 w-1/2 mx-auto" />
             </div>
-            <Card className="border-dashed">
-              <CardContent className="py-16 px-8 text-center">
-                <LoadingSpinner size="lg" text="Lade Bilder vom Relay..." />
-              </CardContent>
-            </Card>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map(i => (
+                <Card key={i} className="overflow-hidden border border-primary/20 rounded-2xl flex flex-col">
+                  <div className="aspect-[4/3] bg-muted animate-pulse" />
+                  <div className="p-3 space-y-2 flex-1">
+                    <div className="h-4 w-32 bg-muted animate-pulse rounded-md" />
+                    <div className="h-3 w-24 bg-muted animate-pulse rounded-md" />
+                  </div>
+                </Card>
+              ))}
+            </div>
           </div>
         </div>
       </div>

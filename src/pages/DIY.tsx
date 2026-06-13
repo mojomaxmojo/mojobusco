@@ -138,11 +138,20 @@ export function DIY() {
 
           {/* Articles Grid */}
           {isLoading ? (
-            <Card className="border-dashed">
-              <CardContent className="py-16 px-8 text-center">
-                <LoadingSpinner size="lg" text="Lade DIY Anleitungen vom Relay..." />
-              </CardContent>
-            </Card>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map(i => (
+                <Card key={i} className="overflow-hidden border border-primary/20 rounded-2xl flex flex-col">
+                  <div className="aspect-[4/3] bg-muted animate-pulse" />
+                  <div className="p-4 space-y-3 flex-1">
+                    <div className="h-5 bg-muted animate-pulse rounded-md w-3/4" />
+                    <div className="space-y-2">
+                      <div className="h-4 bg-muted animate-pulse rounded-md w-full" />
+                      <div className="h-4 bg-muted animate-pulse rounded-md w-5/6" />
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
           ) : filteredArticles.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredArticles.map((article) => (

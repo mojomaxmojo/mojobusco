@@ -97,24 +97,39 @@ export function Leon() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen py-12">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto space-y-6">
-            <Skeleton className="h-12 w-3/4" />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <Card key={i}>
-                  <CardHeader>
-                    <Skeleton className="h-48 w-full rounded-md mb-4" />
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-3 w-1/2" />
-                  </CardHeader>
-                </Card>
-              ))}
+      <>
+        {/* Page Header Skeleton */}
+        <section className="relative py-12 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-accent/20 to-background" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/40 to-background" />
+          <div className="relative z-10 container mx-auto px-4">
+            <div className="text-center space-y-4">
+              <Skeleton className="h-12 w-48 mx-auto rounded-lg" />
+              <Skeleton className="h-6 w-72 mx-auto rounded-md" />
+            </div>
+          </div>
+        </section>
+        <div className="min-h-screen pb-12">
+          <div className="container mx-auto px-4">
+            <div className="max-w-6xl mx-auto space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <Card key={i} className="overflow-hidden border border-primary/20 rounded-2xl flex flex-col">
+                    <div className="aspect-[4/3] bg-muted animate-pulse" />
+                    <div className="p-4 space-y-3 flex-1">
+                      <div className="h-5 bg-muted animate-pulse rounded-md w-3/4" />
+                      <div className="space-y-2">
+                        <div className="h-4 bg-muted animate-pulse rounded-md w-full" />
+                        <div className="h-4 bg-muted animate-pulse rounded-md w-5/6" />
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </>
     );
   }
 
