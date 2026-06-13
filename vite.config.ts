@@ -36,12 +36,6 @@ export default defineConfig(() => ({
   },
   build: {
     rollupOptions: {
-      // scheduler NIEMALS als external markieren – muss ins Bundle!
-      external: (id) => {
-        // Explizit scheduler und react-internals ins Bundle einschließen
-        if (id === 'scheduler' || id.startsWith('scheduler/')) return false;
-        return false; // Alle anderen auch nicht extern
-      },
       output: {
         // Add hash to filenames for code busting
         entryFileNames: 'assets/[name]-[hash].js',
@@ -56,6 +50,18 @@ export default defineConfig(() => ({
         // Intelligentes Code Splitting für bessere Performance
         // Route-basierte Chunks für schnelleres First Load
         manualChunks(id) {
+          // === REACT CORE – IMMER ZUERST, EINE EINZIGE INSTANZ ===
+          // React, ReactDOM und Scheduler MÜSSEN in einem einzigen Chunk landen.
+          // Sonst gibt es mehrere React-Instanzen → "N.current is null" Fehler.
+          if (
+            id.includes('node_modules/react/') ||
+            id.includes('node_modules/react-dom/') ||
+            id.includes('node_modules/scheduler/') ||
+            id.includes('node_modules/react-is/')
+          ) {
+            return 'react-vendor';
+          }
+
           // === PAGE-BASED CHUNKS (Initial Load Optimierung) ===
           // Home-Seite
           if (id.includes('/pages/Home')) {
