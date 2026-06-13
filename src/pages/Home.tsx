@@ -282,14 +282,42 @@ export function Home() {
       {/* Content Section with Modern Design */}
       <section className="py-12 md:py-16">
         <div className="container mx-auto px-4">
-          <div className="max-w-7xl mx-auto">
+          <div className="max-w-7xl mx-auto min-h-[500px]">
+            {/* Loading: Skeleton-Grid mit exakten Card-Dimensionen für CLS-Freiheit */}
 
             {isLoading ? (
-              <Card className="border-dashed border-2 border-primary/30">
-                <CardContent className="py-20 px-8 text-center">
-                  <LoadingSpinner size="lg" text="Lade Inhalte vom Relay..." />
-                </CardContent>
-              </Card>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {[1, 2, 3, 4, 5, 6].map(i => (
+                  <div key={i} className="fade-in-up" style={{ animationDelay: `${i * 100}ms` }}>
+                    <Card className="overflow-hidden border-2 border-primary/20 rounded-2xl flex flex-col">
+                      {/* Image skeleton: exact aspect ratio wie ContentCard */}
+                      <div className="aspect-[4/3] bg-muted animate-pulse" />
+                      {/* CardHeader skeleton: title + summary */}
+                      <div className="space-y-4 pt-6 px-6">
+                        <div className="h-6 bg-muted animate-pulse rounded-md w-3/4" />
+                        <div className="space-y-2">
+                          <div className="h-4 bg-muted animate-pulse rounded-md w-full" />
+                          <div className="h-4 bg-muted animate-pulse rounded-md w-5/6" />
+                        </div>
+                      </div>
+                      {/* CardContent skeleton: author + date */}
+                      <div className="flex-1 pb-6 px-6 pt-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="h-4 w-24 bg-muted animate-pulse rounded-md" />
+                            <span className="text-muted-foreground/50">•</span>
+                            <div className="h-4 w-20 bg-muted animate-pulse rounded-md" />
+                          </div>
+                        </div>
+                      </div>
+                      {/* SocialBar skeleton */}
+                      <div className="px-6 pb-6 pt-0">
+                        <div className="h-8 bg-muted animate-pulse rounded-lg w-full" />
+                      </div>
+                    </Card>
+                  </div>
+                ))}
+              </div>
             ) : recentItems.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {recentItems.map((item, index) => (
