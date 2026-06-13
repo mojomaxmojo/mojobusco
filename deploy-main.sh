@@ -123,6 +123,19 @@ install_dependencies() {
     success_msg "Dependencies installiert (npm install)"
 }
 
+# Service Worker Cache-Version automatisch erhöhen bei jedem Deploy
+bump_sw_version() {
+    SW_FILE="$PROJECT_DIR/public/sw.js"
+    if [ -f "$SW_FILE" ]; then
+        CURRENT_VER=$(grep -oP 'CACHE_VERSION = \K[0-9]+' "$SW_FILE" | head -1)
+        if [ -n "$CURRENT_VER" ]; then
+            NEW_VER=$((CURRENT_VER + 1))
+            sed -i "s/const CACHE_VERSION = $CURRENT_VER;/const CACHE_VERSION = $NEW_VER; \/\/ auto-bumped by deploy/" "$SW_FILE"
+            success_msg "✓ SW Cache-Version $CURRENT_VER → $NEW_VER (Browser-Cache wird invalidiert)"
+        fi
+    fi
+}
+
 # Map-Dateien für Production wiederherstellen
 restore_map_for_production() {
     info_msg "Stelle Map-Dateien für Production wieder her..."
@@ -447,6 +460,7 @@ main() {
 
     git_pull "$@"
     install_dependencies
+    bump_sw_version
     restore_map_for_production
     build_project
     deploy_files "$1" "$2"

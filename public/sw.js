@@ -6,7 +6,7 @@
 // ============================================================================
 // CACHE-KONFIGURATION
 // ============================================================================
-const CACHE_VERSION = 7; // Cache Version erhöhen (war 6, jetzt 7)
+const CACHE_VERSION = 8; // Cache Version erhöhen (war 7, jetzt 8) - Hook-Fix Deploy
 const CACHE_NAME = `mojobus-v${CACHE_VERSION}`; // Version aus Konfiguration
 
 // Cache-Zeiten (in Sekunden)
