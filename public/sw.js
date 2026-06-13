@@ -6,7 +6,7 @@
 // ============================================================================
 // CACHE-KONFIGURATION
 // ============================================================================
-const CACHE_VERSION = 15; // Cache Version erhöhen (war 14, jetzt 15) - kein manualChunks
+const CACHE_VERSION = 16; // Cache Version erhöhen (war 15, jetzt 16) - kein catch-all
 const CACHE_NAME = `mojobus-v${CACHE_VERSION}`; // Version aus Konfiguration
 
 // Cache-Zeiten (in Sekunden)

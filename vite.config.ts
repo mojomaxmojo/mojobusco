@@ -35,10 +35,93 @@ export default defineConfig(() => ({
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',
         interop: 'auto',
-        // Kein manualChunks mehr!
-        // Rollup teilt automatisch auf – keine Circular-Chunk-Probleme möglich.
-        // Lazy-loaded Pages (via React.lazy) bekommen automatisch eigene Chunks.
-        // Gemeinsam genutzte Module werden automatisch in shared Chunks gebündelt.
+        manualChunks(id) {
+          // ================================================================
+          // STRATEGIE: Nur die GROSSEN Pakete explizit aufteilen.
+          // Kein Catch-All → kein Circular-Chunk-Problem.
+          // Rollup entscheidet für alle anderen Pakete selbst (undefined).
+          //
+          // Warum kein Catch-All funktioniert:
+          //   vaul → @radix-ui → radix-vendor
+          //   vaul liegt in catch-all → catch-all → radix-vendor → catch-all
+          //   = Circular. Unlösbar mit Catch-All.
+          //
+          // Lösung: Jedes Paket das einen anderen manualChunk importiert,
+          // muss im SELBEN Chunk wie sein Ziel liegen – ODER gar nicht
+          // in manualChunks (dann löst Rollup es selbst).
+          // ================================================================
+
+          // Nicht-node_modules: Rollup entscheidet selbst
+          if (!id.includes('/node_modules/')) return undefined;
+
+          // ── 1. React Core (eine Instanz, ~150 kB) ─────────────────────
+          if (
+            id.includes('/node_modules/react/') ||
+            id.includes('/node_modules/react-dom/') ||
+            id.includes('/node_modules/scheduler/') ||
+            id.includes('/node_modules/react-is/')
+          ) return 'react-vendor';
+
+          // ── 2. Milkdown + ProseMirror (~450 kB, nur Publish-Seite) ────
+          if (
+            id.includes('/node_modules/@milkdown/') ||
+            id.includes('/node_modules/prosemirror') ||
+            id.includes('/node_modules/rope-sequence') ||
+            id.includes('/node_modules/orderedmap') ||
+            id.includes('/node_modules/w3c-keyname')
+          ) return 'milkdown-vendor';
+
+          // ── 3. Nostr + Krypto-Stack (~200 kB) ─────────────────────────
+          // Alle deps von nostr-tools zusammen → kein Circular möglich
+          if (
+            id.includes('/node_modules/nostr-tools/') ||
+            id.includes('/node_modules/nostr-wasm/') ||
+            id.includes('/node_modules/@nostrify/') ||
+            id.includes('/node_modules/@jsr/') ||
+            id.includes('/node_modules/@noble/') ||
+            id.includes('/node_modules/@scure/') ||
+            id.includes('/node_modules/ngeohash/') ||
+            id.includes('/node_modules/dijkstrajs/') ||
+            id.includes('/node_modules/@getalby/') ||
+            id.includes('/node_modules/webln/')
+          ) return 'nostr-vendor';
+
+          // ── 4. Radix UI + ALLE seine direkten Deps ────────────────────
+          // vaul und cmdk importieren Radix → müssen mit rein!
+          // aria-hidden, @floating-ui, get-nonce sind Radix-interne Deps
+          if (
+            id.includes('/node_modules/@radix-ui/') ||
+            id.includes('/node_modules/@floating-ui/') ||
+            id.includes('/node_modules/aria-hidden/') ||
+            id.includes('/node_modules/get-nonce/') ||
+            id.includes('/node_modules/vaul/') ||
+            id.includes('/node_modules/cmdk/')
+          ) return 'radix-vendor';
+
+          // ── 5. React Query (~50 kB) ────────────────────────────────────
+          if (id.includes('/node_modules/@tanstack/')) return 'react-query-vendor';
+
+          // ── 6. React Router (~17 kB) ───────────────────────────────────
+          if (
+            id.includes('/node_modules/react-router/') ||
+            id.includes('/node_modules/react-router-dom/')
+          ) return 'router-vendor';
+
+          // ── 7. QR Code (~25 kB, nur Zap-Dialog) ───────────────────────
+          if (id.includes('/node_modules/qrcode/')) return 'qrcode-vendor';
+
+          // ── 8. Leaflet Karten (~140 kB, nur Map-Seite) ─────────────────
+          if (
+            id.includes('/node_modules/leaflet/') ||
+            id.includes('/node_modules/react-leaflet/')
+          ) return 'map-vendor';
+
+          // ── Alle anderen node_modules: Rollup entscheidet selbst ───────
+          // undefined = Rollup teilt nach eigenem Dependency-Graph auf.
+          // Das verhindert Circular-Deps für alles was wir nicht explizit
+          // kennen (date-fns, zod, lucide, unhead, embla, linkify, etc.)
+          return undefined;
+        },
       },
       onwarn(warning, warn) {
         if (
@@ -69,8 +152,7 @@ export default defineConfig(() => ({
       include: [/node_modules/],
       requireReturnsDefault: 'auto',
     },
-    // Chunk-Größen-Warnung auf 800 kB setzen (Milkdown ist groß aber lazy)
-    chunkSizeWarningLimit: 800,
+    chunkSizeWarningLimit: 600,
   },
   test: {
     globals: true,
@@ -87,7 +169,6 @@ export default defineConfig(() => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-    // Sicherstellen dass React nur einmal aufgelöst wird
     dedupe: ['react', 'react-dom', 'react-dom/client', 'scheduler'],
   },
   css: {
