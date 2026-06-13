@@ -193,6 +193,7 @@ export default defineConfig(() => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "scheduler": path.resolve(__dirname, "./src/lib/shims/scheduler-shim.js"),
     },
   },
   // Additional configuration to handle CommonJS
