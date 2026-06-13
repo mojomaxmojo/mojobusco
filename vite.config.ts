@@ -13,10 +13,6 @@ export default defineConfig(() => ({
   plugins: [
     react(),
   ],
-  // Node.js polyfills for nostr-tools
-  // define: {
-  //   'process.env': '{}',
-  // },
   optimizeDeps: {
     include: [
       'react',
@@ -30,152 +26,125 @@ export default defineConfig(() => ({
       'dijkstrajs',
       'ngeohash',
     ],
-    // Leaflet wird über CDN geladen (window.L), nicht mehr über npm imports
-    // Das vermeidet Probleme mit dem Shakespeare-Build-System (esm.sh)
     force: true,
   },
   build: {
     rollupOptions: {
       output: {
-        // Add hash to filenames for code busting
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',
-        // Disable minification during development to see chunks clearly
         compact: false,
-        // Inline dynamic imports to force code splitting
         inlineDynamicImports: false,
-        // Ensure proper interop between CJS and ESM modules
         interop: 'auto',
-        // Intelligentes Code Splitting für bessere Performance
-        // Route-basierte Chunks für schnelleres First Load
         manualChunks(id) {
-          // === REACT CORE – IMMER ZUERST, EINE EINZIGE INSTANZ ===
-          // React, ReactDOM und Scheduler MÜSSEN in einem einzigen Chunk landen.
-          // Sonst gibt es mehrere React-Instanzen → "N.current is null" Fehler.
+          // ================================================================
+          // REACT CORE – MUSS GANZ ZUERST STEHEN, EINE EINZIGE INSTANZ
+          // react, react-dom, scheduler MÜSSEN im selben Chunk sein.
+          // Alle anderen node_modules-Pakete, die React nutzen,
+          // bekommen React via shared chunk – keine Duplikate.
+          // ================================================================
           if (
-            id.includes('node_modules/react/') ||
-            id.includes('node_modules/react-dom/') ||
-            id.includes('node_modules/scheduler/') ||
-            id.includes('node_modules/react-is/')
+            id.includes('/node_modules/react/') ||
+            id.includes('/node_modules/react-dom/') ||
+            id.includes('/node_modules/scheduler/') ||
+            id.includes('/node_modules/react-is/')
           ) {
             return 'react-vendor';
           }
 
-          // === PAGE-BASED CHUNKS (Initial Load Optimierung) ===
-          // Home-Seite
-          if (id.includes('/pages/Home')) {
-            return 'home-page';
-          }
-          // Articles-Seite
-          if (id.includes('/pages/Articles')) {
-            return 'articles-page';
-          }
-          // Notes-Seite
-          if (id.includes('/pages/Notes')) {
-            return 'notes-page';
-          }
-          // Images-Seite
-          if (id.includes('/pages/Images')) {
-            return 'images-page';
-          }
-          // ImageDetail-Seite
-          if (id.includes('/pages/ImageDetail')) {
-            return 'image-detail-page';
-          }
-          // Profile-Seite
-          if (id.includes('/pages/Profile')) {
-            return 'profile-page';
-          }
-          // Settings-Seite
-          if (id.includes('/pages/Settings')) {
-            return 'settings-page';
-          }
-          // About-Seite
-          if (id.includes('/pages/About')) {
-            return 'about-page';
-          }
-          // Publish-Seiten
-          if (id.includes('/pages/Publish') ||
-              id.includes('/pages/PublishReplaceable') ||
-              id.includes('/pages/ContentEditorPage') ||
-              id.includes('/pages/ContentManagementPage')) {
-            return 'publish-pages';
-          }
-          // NIP19Page
-          if (id.includes('/pages/NIP19Page')) {
-            return 'nip19-page';
-          }
-          // ServiceWorkerSettings
-          if (id.includes('/pages/ServiceWorkerSettings')) {
-            return 'service-worker-page';
-          }
-          // NotFound
-          if (id.includes('/pages/NotFound')) {
-            return 'not-found-page';
+          // ================================================================
+          // ALLE node_modules → vendor-chunk
+          // Verhindert dass Bibliotheken ihre eigene React-Kopie mitbringen.
+          // ================================================================
+          if (id.includes('/node_modules/')) {
+            // Milkdown Editor (groß, nur bei Bedarf)
+            if (
+              id.includes('/node_modules/@milkdown/') ||
+              id.includes('/node_modules/prosemirror')
+            ) {
+              return 'milkdown-vendor';
+            }
+
+            // QR Code (nur bei Bedarf)
+            if (id.includes('/node_modules/qrcode/')) {
+              return 'qrcode-vendor';
+            }
+
+            // Radix UI Components
+            if (id.includes('/node_modules/@radix-ui/')) {
+              return 'radix-vendor';
+            }
+
+            // React Query
+            if (id.includes('/node_modules/@tanstack/')) {
+              return 'react-query-vendor';
+            }
+
+            // React Router + react-router-dom
+            if (
+              id.includes('/node_modules/react-router/') ||
+              id.includes('/node_modules/react-router-dom/')
+            ) {
+              return 'router-vendor';
+            }
+
+            // Node polyfills
+            if (
+              id.includes('/node_modules/@ungap/') ||
+              id.includes('/node_modules/base64-js/') ||
+              id.includes('/node_modules/events/') ||
+              id.includes('/node_modules/stream-browserify/') ||
+              id.includes('/node_modules/util/') ||
+              id.includes('/node_modules/process/') ||
+              id.includes('/node_modules/buffer/')
+            ) {
+              return 'polyfills';
+            }
+
+            // Alle übrigen node_modules → gemeinsamer vendor chunk
+            // (verhindert React-Duplikate in Seiten-Chunks!)
+            return 'vendor';
           }
 
-          // === VENDOR CHUNKS (Nur bei Bedarf) ===
-          // Milkdown Editor (nur bei Bedarf laden)
-          if (id.includes('node_modules/@milkdown/') || id.includes('node_modules/prosemirror/')) {
-            return 'milkdown-vendor';
-          }
+          // ================================================================
+          // APP-SEITEN – nur eigener Code, keine node_modules mehr
+          // ================================================================
+          if (id.includes('/pages/Home')) return 'home-page';
+          if (id.includes('/pages/Articles')) return 'articles-page';
+          if (id.includes('/pages/Notes')) return 'notes-page';
+          if (id.includes('/pages/Images')) return 'images-page';
+          if (id.includes('/pages/ImageDetail')) return 'image-detail-page';
+          if (id.includes('/pages/Profile')) return 'profile-page';
+          if (id.includes('/pages/Settings')) return 'settings-page';
+          if (id.includes('/pages/About')) return 'about-page';
+          if (
+            id.includes('/pages/Publish') ||
+            id.includes('/pages/PublishReplaceable') ||
+            id.includes('/pages/ContentEditorPage') ||
+            id.includes('/pages/ContentManagementPage')
+          ) return 'publish-pages';
+          if (id.includes('/pages/NIP19Page')) return 'nip19-page';
+          if (id.includes('/pages/ServiceWorkerSettings')) return 'service-worker-page';
+          if (id.includes('/pages/NotFound')) return 'not-found-page';
 
-          // QR Code (nur bei Bedarf)
-          if (id.includes('node_modules/qrcode/')) {
-            return 'qrcode-vendor';
-          }
-
-          // Node polyfills (unabhängig)
-          if (id.includes('node_modules/@ungap/structured-clone/') ||
-              id.includes('node_modules/base64-js/') ||
-              id.includes('node_modules/events/') ||
-              id.includes('node_modules/stream-browserify/') ||
-              id.includes('node_modules/util/') ||
-              id.includes('node_modules/process/') ||
-              id.includes('node_modules/buffer/')) {
-            return 'polyfills';
-          }
-
-          // === COMMON VENDORS (Im Hauptbundle, aber optimiert) ===
-          // Radix UI Components
-          if (id.includes('node_modules/@radix-ui/')) {
-            return 'radix-vendor';
-          }
-
-          // React Query
-          if (id.includes('node_modules/@tanstack/react-query/')) {
-            return 'react-query-vendor';
-          }
-
-          // React Router
-          if (id.includes('node_modules/react-router/')) {
-            return 'router-vendor';
-          }
-
-          // Alles andere: Keine manuellen Chunks, Rollup kümmert sich darum
           return undefined;
         },
       },
       onwarn(warning, warn) {
-        // Suppress external import warnings from node_modules
-        // These are usually peer dependencies that will be resolved at runtime
-        if (warning.code === 'UNRESOLVED_IMPORT' &&
-            (warning.message.includes('node_modules') ||
-             warning.message.includes('dijkstrajs'))) {
+        if (
+          warning.code === 'UNRESOLVED_IMPORT' &&
+          (warning.message.includes('node_modules') ||
+           warning.message.includes('dijkstrajs'))
+        ) {
           return;
         }
         warn(warning);
-      }
+      },
     },
-    // Asset optimization for better caching
-    assetsInlineLimit: DEFAULT_PERFORMANCE_CONFIG.assetsInlineLimit, // Inline small assets < 4KB
-    cssCodeSplit: DEFAULT_PERFORMANCE_CONFIG.enableCSSCodeSplit, // Split CSS into separate files
-
-    // Enable source maps for debugging but don't bundle them
+    assetsInlineLimit: DEFAULT_PERFORMANCE_CONFIG.assetsInlineLimit,
+    cssCodeSplit: DEFAULT_PERFORMANCE_CONFIG.enableCSSCodeSplit,
     sourcemap: DEFAULT_PERFORMANCE_CONFIG.sourceMaps,
-
-    // Minify and optimize
     minify: DEFAULT_PERFORMANCE_CONFIG.minify ? 'terser' : false,
     terserOptions: {
       compress: {
@@ -186,12 +155,9 @@ export default defineConfig(() => ({
         safari10: true,
       },
     },
-    // CommonJS to ESM transform
-    // scheduler und react sind CJS-Pakete – müssen explizit transformiert werden
     commonjsOptions: {
       transformMixedEsModules: true,
       include: [/node_modules/],
-      // scheduler explizit als CJS behandeln
       requireReturnsDefault: 'auto',
     },
   },
@@ -203,15 +169,16 @@ export default defineConfig(() => ({
       return !log.includes("React Router Future Flag Warning");
     },
     env: {
-      DEBUG_PRINT_LIMIT: '0', // Suppress DOM output that exceeds AI context windows
+      DEBUG_PRINT_LIMIT: '0',
     },
   },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    // Vite deduplication: sicherstellen dass react immer aus node_modules/ kommt
+    dedupe: ['react', 'react-dom', 'react-dom/client', 'scheduler'],
   },
-  // Additional configuration to handle CommonJS
   css: {
     devSourcemap: true,
   },

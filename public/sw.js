@@ -6,7 +6,7 @@
 // ============================================================================
 // CACHE-KONFIGURATION
 // ============================================================================
-const CACHE_VERSION = 10; // Cache Version erhöhen (war 9, jetzt 10) - react-vendor-Fix Deploy
+const CACHE_VERSION = 11; // Cache Version erhöhen (war 10, jetzt 11) - vendor-chunk Fix
 const CACHE_NAME = `mojobus-v${CACHE_VERSION}`; // Version aus Konfiguration
 
 // Cache-Zeiten (in Sekunden)
