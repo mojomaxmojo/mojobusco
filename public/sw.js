@@ -6,7 +6,7 @@
 // ============================================================================
 // CACHE-KONFIGURATION
 // ============================================================================
-const CACHE_VERSION = 12; // Cache Version erhöhen (war 11, jetzt 12) - granulare vendor-chunks
+const CACHE_VERSION = 13; // Cache Version erhöhen (war 12, jetzt 13) - circular chunks fix
 const CACHE_NAME = `mojobus-v${CACHE_VERSION}`; // Version aus Konfiguration
 
 // Cache-Zeiten (in Sekunden)

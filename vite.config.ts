@@ -83,15 +83,25 @@ export default defineConfig(() => ({
             id.includes('/node_modules/prosemirror')
           ) return 'milkdown-vendor';
 
-          // 3. Nostr-Stack (~200 kB)
+          // 3. Nostr-Stack + alle internen Abhängigkeiten (~200 kB)
+          // @noble/* und @scure/* sind interne Deps von nostr-tools
+          // → müssen im selben Chunk sein, sonst Circular chunks
           if (
             id.includes('/node_modules/nostr-tools/') ||
             id.includes('/node_modules/@nostrify/') ||
-            id.includes('/node_modules/@jsr/')
+            id.includes('/node_modules/@jsr/') ||
+            id.includes('/node_modules/@noble/') ||
+            id.includes('/node_modules/@scure/') ||
+            id.includes('/node_modules/ngeohash/') ||
+            id.includes('/node_modules/dijkstrajs/')
           ) return 'nostr-vendor';
 
-          // 4. Radix UI (~150 kB)
-          if (id.includes('/node_modules/@radix-ui/')) return 'radix-vendor';
+          // 4. Radix UI + @floating-ui (~150 kB)
+          // @floating-ui ist interne Dep von Radix → selber Chunk
+          if (
+            id.includes('/node_modules/@radix-ui/') ||
+            id.includes('/node_modules/@floating-ui/')
+          ) return 'radix-vendor';
 
           // 5. React Query (~50 kB)
           if (id.includes('/node_modules/@tanstack/')) return 'react-query-vendor';
