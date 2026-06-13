@@ -6,7 +6,7 @@
 // ============================================================================
 // CACHE-KONFIGURATION
 // ============================================================================
-const CACHE_VERSION = 14; // Cache Version erhöhen (war 13, jetzt 14) - vendor chunks final fix
+const CACHE_VERSION = 15; // Cache Version erhöhen (war 14, jetzt 15) - kein manualChunks
 const CACHE_NAME = `mojobus-v${CACHE_VERSION}`; // Version aus Konfiguration
 
 // Cache-Zeiten (in Sekunden)
