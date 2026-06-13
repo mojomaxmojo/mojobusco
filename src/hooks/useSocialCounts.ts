@@ -6,17 +6,18 @@ import { useQuery } from '@tanstack/react-query';
  * Hook to fetch all social interaction counts for an event in a single query
  * Returns counts for comments, likes, and reposts
  */
-export function useSocialCounts(root: NostrEvent) {
+export function useSocialCounts(root: NostrEvent | null | undefined) {
   const { nostr } = useNostr();
 
   return useQuery({
-    queryKey: ['social-counts', root.id],
+    queryKey: ['social-counts', root?.id],
     queryFn: async ({ signal }) => {
       // Query all relevant event types in a single query
       // Kind 7: Reactions (including likes)
       // Kind 6: Repost
       // Kind 16: Generic Repost
       // Kind 1111: Comments
+      if (!root) return { likes: 0, reposts: 0, comments: 0 };
       const events = await nostr.query([
         {
           kinds: [6, 7, 16, 1111],
@@ -60,7 +61,7 @@ export function useSocialCounts(root: NostrEvent) {
         comments: commentUsers.size,
       };
     },
-    enabled: !!root,
+    enabled: !!root?.id,
     staleTime: 60000, // 1 minute
   });
 }

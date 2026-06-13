@@ -251,11 +251,7 @@ export function ZapDialog({ target, children, className }: ZapDialogProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const isMobile = useIsMobile();
 
-  // Don't show zap dialog if target is missing or author has no lightning address
-  if (!target || (!author?.metadata?.lud06 && !author?.metadata?.lud16)) {
-    return null;
-  }
-
+  // Alle useEffects MÜSSEN vor jedem frühen Return stehen (React Hook Rules)
   useEffect(() => {
     if (target) {
       setComment('Zapped!');
@@ -321,6 +317,11 @@ export function ZapDialog({ target, children, className }: ZapDialogProps) {
     }
   }, [open, setInvoice]);
 
+  // Don't show zap dialog if target is missing or author has no lightning address
+  if (!target || (!author?.metadata?.lud06 && !author?.metadata?.lud16)) {
+    return null;
+  }
+
   const handleCopy = async () => {
     if (invoice) {
       await navigator.clipboard.writeText(invoice);
@@ -339,21 +340,6 @@ export function ZapDialog({ target, children, className }: ZapDialogProps) {
       window.open(lightningUrl, '_blank');
     }
   };
-
-  useEffect(() => {
-    if (open) {
-      setAmount(100);
-      setInvoice(null);
-      setCopied(false);
-      setQrCodeUrl('');
-    } else {
-      // Clean up state when dialog closes
-      setAmount(100);
-      setInvoice(null);
-      setCopied(false);
-      setQrCodeUrl('');
-    }
-  }, [open, setInvoice]);
 
   const handleZap = () => {
     const finalAmount = typeof amount === 'string' ? parseInt(amount, 10) : amount;

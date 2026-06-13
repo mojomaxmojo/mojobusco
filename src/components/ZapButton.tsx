@@ -25,17 +25,18 @@ export function ZapButton({
   const { data: author } = useAuthor(target?.pubkey || '');
   const { webln, activeNWC } = useWallet();
 
+  // Hooks müssen IMMER vor frühen Returns aufgerufen werden (React Hook Rules)
+  const { totalSats: fetchedTotalSats, isLoading } = useZaps(
+    // Leeres Array übergeben wenn kein target oder externe Daten vorhanden
+    (!target || externalZapData) ? ([] as unknown as typeof target) : target,
+    webln,
+    activeNWC
+  );
+
   // Don't show zap button if target is missing
   if (!target) {
     return null;
   }
-
-  // Only fetch data if not provided externally and target exists
-  const { totalSats: fetchedTotalSats, isLoading } = useZaps(
-    externalZapData ? [] : target,
-    webln,
-    activeNWC
-  );
 
   // Use external data if provided, otherwise use fetched data
   const totalSats = externalZapData?.totalSats ?? fetchedTotalSats;

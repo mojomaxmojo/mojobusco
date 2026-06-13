@@ -10,12 +10,13 @@ const COMMENT_RELAYS = [
   'wss://nos.lol',
 ];
 
-export function useComments(root: NostrEvent | URL, limit?: number) {
+export function useComments(root: NostrEvent | URL | null | undefined, limit?: number) {
   const { nostr } = useNostr();
 
   return useQuery({
-    queryKey: ['comments', root instanceof URL ? root.toString() : root.id, limit],
+    queryKey: ['comments', root instanceof URL ? root.toString() : root?.id, limit],
     queryFn: async (c) => {
+      if (!root) return { allComments: [], topLevelComments: [], getDescendants: () => [], getDirectReplies: () => [] };
       const filters: NostrFilter[] = [];
       
       // Build filters to catch comments using different tag formats
@@ -208,6 +209,6 @@ export function useComments(root: NostrEvent | URL, limit?: number) {
         }
       };
     },
-    enabled: !!root,
+    enabled: !!root && (root instanceof URL ? !!root.toString() : !!root.id),
   });
 }

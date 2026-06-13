@@ -34,24 +34,27 @@ export function SocialBar({ event, compact = false, className }: SocialBarProps)
   const { repost } = useRepostActions();
   const { webln, activeNWC } = useWallet();
 
-  // Don't render if event is missing
-  if (!event) {
-    return null;
-  }
+  // Alle Hooks MÜSSEN vor jedem frühen Return aufgerufen werden (React Hook Rules)
+  // Fetch social counts (immer aufrufen, aber nur nutzen wenn nicht compact)
+  const { data: counts, isLoading } = useSocialCounts(event ?? null);
 
-  // Fetch social counts (nur im nicht-compact Modus, sonst UI-only)
-  const { data: counts, isLoading } = compact ? { data: null, isLoading: false } : useSocialCounts(event);
+  // Fetch comments for count (immer aufrufen)
+  const { data: commentsData } = useComments(event ?? null);
 
-  // Fetch comments for count (nur im nicht-compact Modus)
-  const { data: commentsData } = compact ? { data: null } : useComments(event);
-  const commentCount = compact ? 0 : (commentsData?.allComments?.length || 0);
-
-  // Fetch zaps for count - only if event exists (nur im nicht-compact Modus)
-  const { zapCount } = compact ? { zapCount: 0 } : useZaps(event, webln, activeNWC);
+  // Fetch zaps for count (immer aufrufen)
+  const { zapCount } = useZaps(event ?? null, webln, activeNWC);
 
   // Local state for like and repost interactions (optimistic UI)
   const [isLiking, setIsLiking] = useState(false);
   const [isReposting, setIsReposting] = useState(false);
+
+  // Berechnungen nach allen Hooks
+  const commentCount = compact ? 0 : (commentsData?.allComments?.length || 0);
+
+  // Don't render if event is missing
+  if (!event) {
+    return null;
+  }
 
   const handleShare = async () => {
     // Safety check: ensure event exists
