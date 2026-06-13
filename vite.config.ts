@@ -21,6 +21,7 @@ export default defineConfig(() => ({
     include: [
       'react',
       'react-dom',
+      'scheduler',
       'nostr-tools',
       'buffer',
       '@nostrify/react',
