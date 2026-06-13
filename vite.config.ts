@@ -54,10 +54,11 @@ export default defineConfig(() => ({
           if (id.includes('/pages/Home')) {
             return 'home-page';
           }
-          // Articles-Seite
-          if (id.includes('/pages/Articles')) {
-            return 'articles-page';
-          }
+          // Articles-Seite — AUSKOMMENTIERT: verursacht "T.current is null" 
+          // Fehler in React 19 (Dispatcher nicht initialisiert beim Chunk-Loading)
+          // if (id.includes('/pages/Articles')) {
+          //   return 'articles-page';
+          // }
           // Notes-Seite
           if (id.includes('/pages/Notes')) {
             return 'notes-page';
