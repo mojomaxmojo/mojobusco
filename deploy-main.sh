@@ -111,7 +111,7 @@ install_dependencies() {
 
     # Versuche npm ci, falle auf npm install zurück bei Fehlern
     if [ -f "$PROJECT_DIR/package-lock.json" ]; then
-        if npm ci --prefix "$PROJECT_DIR" --loglevel=error >> "$LOG_FILE" 2>&1; then
+        if npm ci --prefix "$PROJECT_DIR" --loglevel=error --legacy-peer-deps >> "$LOG_FILE" 2>&1; then
             success_msg "Dependencies installiert (npm ci)"
             return
         else
@@ -119,7 +119,7 @@ install_dependencies() {
         fi
     fi
 
-    npm install --prefix "$PROJECT_DIR" --loglevel=error >> "$LOG_FILE" 2>&1 || error_exit "npm install fehlgeschlagen (Exit Code: $?)"
+    npm install --prefix "$PROJECT_DIR" --loglevel=error --legacy-peer-deps >> "$LOG_FILE" 2>&1 || error_exit "npm install fehlgeschlagen (Exit Code: $?)"
     success_msg "Dependencies installiert (npm install)"
 }
 
