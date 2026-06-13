@@ -25,6 +25,25 @@
     <link rel="preload" href="/fonts/public-sans-700.ttf" as="font" type="font/ttf" crossorigin />
     <link rel="preload" href="/fonts/playfair-display-regular.ttf" as="font" type="font/ttf" crossorigin />
 
+    <!-- Preload Logo (LCP-Element) -->
+    <link rel="preload" href="/mojobuslogo.png" as="image" fetchpriority="high" />
+
+    <!-- Critical CSS für Hero-Bereich (LCP-Optimierung: kein Warten auf CSS-Bundle) -->
+    <style>
+      .gradient-text {
+        background: linear-gradient(135deg, hsl(188 88% 42%), hsl(349 83% 51%));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .hero-title {
+        font-size: clamp(2.5rem, 8vw, 6rem);
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+      }
+    </style>
+
     <!-- ═══════════════════════════════════════════════ -->
     <!-- PINTEREST RICH PIN META TAGS -->
     <!-- ═══════════════════════════════════════════════ -->

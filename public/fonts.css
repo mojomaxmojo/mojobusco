@@ -1,9 +1,11 @@
-/* Self-hosted Public Sans Font */
+/* Self-hosted Public Sans Font — font-display: optional für CLS-Freiheit */
+/* Bei optional: Fallback-Font wird sofort angezeigt, Custom-Font nur wenn extrem schnell da */
+/* Kein Layout-Shift, da niemals ein Font-Swap stattfindet */
 @font-face {
   font-family: 'Public Sans';
   font-style: normal;
   font-weight: 400;
-  font-display: swap;
+  font-display: optional;
   src: url('./fonts/public-sans-400.ttf') format('truetype');
 }
 
@@ -11,7 +13,7 @@
   font-family: 'Public Sans';
   font-style: normal;
   font-weight: 500;
-  font-display: swap;
+  font-display: optional;
   src: url('./fonts/public-sans-500.ttf') format('truetype');
 }
 
@@ -19,7 +21,7 @@
   font-family: 'Public Sans';
   font-style: normal;
   font-weight: 600;
-  font-display: swap;
+  font-display: optional;
   src: url('./fonts/public-sans-600.ttf') format('truetype');
 }
 
@@ -27,16 +29,16 @@
   font-family: 'Public Sans';
   font-style: normal;
   font-weight: 700;
-  font-display: swap;
+  font-display: optional;
   src: url('./fonts/public-sans-700.ttf') format('truetype');
 }
 
-/* Self-hosted Playfair Display Font */
+/* Self-hosted Playfair Display Font — font-display: optional für CLS-Freiheit */
 @font-face {
   font-family: 'Playfair Display';
   font-style: normal;
   font-weight: 400;
-  font-display: swap;
+  font-display: optional;
   src: url('./fonts/playfair-display-regular.ttf') format('truetype');
 }
 
@@ -44,7 +46,7 @@
   font-family: 'Playfair Display';
   font-style: italic;
   font-weight: 400;
-  font-display: swap;
+  font-display: optional;
   src: url('./fonts/playfair-display-italic.ttf') format('truetype');
 }
 
@@ -52,6 +54,6 @@
   font-family: 'Playfair Display';
   font-style: normal;
   font-weight: 700;
-  font-display: swap;
+  font-display: optional;
   src: url('./fonts/playfair-display-700.ttf') format('truetype');
 }
