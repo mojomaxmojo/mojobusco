@@ -191,12 +191,23 @@ function Images() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1, 2, 3, 4, 5, 6].map(i => (
-                <Card key={i} className="overflow-hidden border border-primary/20 rounded-2xl flex flex-col">
-                  <div className="aspect-[4/3] bg-muted animate-pulse" />
-                  <div className="p-3 space-y-2 flex-1">
-                    <div className="h-4 w-32 bg-muted animate-pulse rounded-md" />
-                    <div className="h-3 w-24 bg-muted animate-pulse rounded-md" />
+                <Card key={i} className="overflow-hidden border border-primary/20 rounded-2xl flex flex-col rounded-b-none border-b-0">
+                  {/* Image: gleiche Höhe wie echte Card (min-h-[300px] md:min-h-[500px]) */}
+                  <div className="h-[300px] md:h-[500px] bg-muted animate-pulse" />
+                  {/* CardHeader: Title + Date */}
+                  <div className="p-4 pb-2 space-y-3">
+                    <div className="h-5 bg-muted animate-pulse rounded-md w-3/4" />
+                    <div className="h-4 w-36 bg-muted animate-pulse rounded-md" />
                   </div>
+                  {/* CardContent: Author */}
+                  <div className="px-4 pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-full bg-muted animate-pulse shrink-0" />
+                      <div className="h-4 w-28 bg-muted animate-pulse rounded-md" />
+                    </div>
+                  </div>
+                  {/* SocialBar */}
+                  <div className="h-10 bg-muted animate-pulse rounded-b-lg mx-0 mt-auto" />
                 </Card>
               ))}
             </div>
