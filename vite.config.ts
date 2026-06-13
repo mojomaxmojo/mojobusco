@@ -38,97 +38,115 @@ export default defineConfig(() => ({
         inlineDynamicImports: false,
         interop: 'auto',
         manualChunks(id) {
-          // ================================================================
-          // REACT CORE – MUSS GANZ ZUERST STEHEN, EINE EINZIGE INSTANZ
-          // react, react-dom, scheduler MÜSSEN im selben Chunk sein.
-          // Alle anderen node_modules-Pakete, die React nutzen,
-          // bekommen React via shared chunk – keine Duplikate.
-          // ================================================================
+          // ============================================================
+          // WICHTIG: ALLE node_modules müssen VOR den Seiten-Chunks
+          // geprüft werden. Sonst landen Bibliotheken in Seiten-Chunks
+          // und duplizieren React → "T.current is null" Fehler.
+          // ============================================================
+          if (!id.includes('/node_modules/')) {
+            // Seiten-Chunks (nur eigener App-Code)
+            if (id.includes('/pages/Home')) return 'home-page';
+            if (id.includes('/pages/Articles')) return 'articles-page';
+            if (id.includes('/pages/Notes')) return 'notes-page';
+            if (id.includes('/pages/Images')) return 'images-page';
+            if (id.includes('/pages/ImageDetail')) return 'image-detail-page';
+            if (id.includes('/pages/Profile')) return 'profile-page';
+            if (id.includes('/pages/Settings')) return 'settings-page';
+            if (id.includes('/pages/About')) return 'about-page';
+            if (
+              id.includes('/pages/Publish') ||
+              id.includes('/pages/PublishReplaceable') ||
+              id.includes('/pages/ContentEditorPage') ||
+              id.includes('/pages/ContentManagementPage')
+            ) return 'publish-pages';
+            if (id.includes('/pages/NIP19Page')) return 'nip19-page';
+            if (id.includes('/pages/ServiceWorkerSettings')) return 'service-worker-page';
+            if (id.includes('/pages/NotFound')) return 'not-found-page';
+            return undefined;
+          }
+
+          // ============================================================
+          // VENDOR CHUNKS – granular aufgeteilt nach Größe & Verwendung
+          // ============================================================
+
+          // 1. React Core (IMMER ZUERST – eine einzige Instanz!)
           if (
             id.includes('/node_modules/react/') ||
             id.includes('/node_modules/react-dom/') ||
             id.includes('/node_modules/scheduler/') ||
             id.includes('/node_modules/react-is/')
-          ) {
-            return 'react-vendor';
-          }
+          ) return 'react-vendor';
 
-          // ================================================================
-          // ALLE node_modules → vendor-chunk
-          // Verhindert dass Bibliotheken ihre eigene React-Kopie mitbringen.
-          // ================================================================
-          if (id.includes('/node_modules/')) {
-            // Milkdown Editor (groß, nur bei Bedarf)
-            if (
-              id.includes('/node_modules/@milkdown/') ||
-              id.includes('/node_modules/prosemirror')
-            ) {
-              return 'milkdown-vendor';
-            }
-
-            // QR Code (nur bei Bedarf)
-            if (id.includes('/node_modules/qrcode/')) {
-              return 'qrcode-vendor';
-            }
-
-            // Radix UI Components
-            if (id.includes('/node_modules/@radix-ui/')) {
-              return 'radix-vendor';
-            }
-
-            // React Query
-            if (id.includes('/node_modules/@tanstack/')) {
-              return 'react-query-vendor';
-            }
-
-            // React Router + react-router-dom
-            if (
-              id.includes('/node_modules/react-router/') ||
-              id.includes('/node_modules/react-router-dom/')
-            ) {
-              return 'router-vendor';
-            }
-
-            // Node polyfills
-            if (
-              id.includes('/node_modules/@ungap/') ||
-              id.includes('/node_modules/base64-js/') ||
-              id.includes('/node_modules/events/') ||
-              id.includes('/node_modules/stream-browserify/') ||
-              id.includes('/node_modules/util/') ||
-              id.includes('/node_modules/process/') ||
-              id.includes('/node_modules/buffer/')
-            ) {
-              return 'polyfills';
-            }
-
-            // Alle übrigen node_modules → gemeinsamer vendor chunk
-            // (verhindert React-Duplikate in Seiten-Chunks!)
-            return 'vendor';
-          }
-
-          // ================================================================
-          // APP-SEITEN – nur eigener Code, keine node_modules mehr
-          // ================================================================
-          if (id.includes('/pages/Home')) return 'home-page';
-          if (id.includes('/pages/Articles')) return 'articles-page';
-          if (id.includes('/pages/Notes')) return 'notes-page';
-          if (id.includes('/pages/Images')) return 'images-page';
-          if (id.includes('/pages/ImageDetail')) return 'image-detail-page';
-          if (id.includes('/pages/Profile')) return 'profile-page';
-          if (id.includes('/pages/Settings')) return 'settings-page';
-          if (id.includes('/pages/About')) return 'about-page';
+          // 2. Milkdown Editor (~450 kB, nur auf Publish-Seiten)
           if (
-            id.includes('/pages/Publish') ||
-            id.includes('/pages/PublishReplaceable') ||
-            id.includes('/pages/ContentEditorPage') ||
-            id.includes('/pages/ContentManagementPage')
-          ) return 'publish-pages';
-          if (id.includes('/pages/NIP19Page')) return 'nip19-page';
-          if (id.includes('/pages/ServiceWorkerSettings')) return 'service-worker-page';
-          if (id.includes('/pages/NotFound')) return 'not-found-page';
+            id.includes('/node_modules/@milkdown/') ||
+            id.includes('/node_modules/prosemirror')
+          ) return 'milkdown-vendor';
 
-          return undefined;
+          // 3. Nostr-Stack (~200 kB)
+          if (
+            id.includes('/node_modules/nostr-tools/') ||
+            id.includes('/node_modules/@nostrify/') ||
+            id.includes('/node_modules/@jsr/')
+          ) return 'nostr-vendor';
+
+          // 4. Radix UI (~150 kB)
+          if (id.includes('/node_modules/@radix-ui/')) return 'radix-vendor';
+
+          // 5. React Query (~50 kB)
+          if (id.includes('/node_modules/@tanstack/')) return 'react-query-vendor';
+
+          // 6. React Router (~17 kB)
+          if (
+            id.includes('/node_modules/react-router/') ||
+            id.includes('/node_modules/react-router-dom/')
+          ) return 'router-vendor';
+
+          // 7. Karten / Leaflet (~140 kB, nur auf Map-Seiten)
+          if (
+            id.includes('/node_modules/leaflet/') ||
+            id.includes('/node_modules/react-leaflet/')
+          ) return 'map-vendor';
+
+          // 8. Markdown-Rendering (~120 kB, nur auf Article-Seiten)
+          if (
+            id.includes('/node_modules/react-markdown/') ||
+            id.includes('/node_modules/remark') ||
+            id.includes('/node_modules/rehype') ||
+            id.includes('/node_modules/hast') ||
+            id.includes('/node_modules/mdast') ||
+            id.includes('/node_modules/micromark') ||
+            id.includes('/node_modules/unified') ||
+            id.includes('/node_modules/unist') ||
+            id.includes('/node_modules/vfile')
+          ) return 'markdown-vendor';
+
+          // 9. Lucide Icons (~80 kB)
+          if (id.includes('/node_modules/lucide-react/')) return 'icons-vendor';
+
+          // 10. QR Code (~25 kB, nur im Zap-Dialog)
+          if (id.includes('/node_modules/qrcode/')) return 'qrcode-vendor';
+
+          // 11. Unhead / SEO (~30 kB)
+          if (
+            id.includes('/node_modules/@unhead/') ||
+            id.includes('/node_modules/unhead')
+          ) return 'unhead-vendor';
+
+          // 12. Node-Polyfills
+          if (
+            id.includes('/node_modules/@ungap/') ||
+            id.includes('/node_modules/base64-js/') ||
+            id.includes('/node_modules/events/') ||
+            id.includes('/node_modules/stream-browserify/') ||
+            id.includes('/node_modules/util/') ||
+            id.includes('/node_modules/process/') ||
+            id.includes('/node_modules/buffer/')
+          ) return 'polyfills';
+
+          // 13. Catch-All für alle übrigen node_modules
+          // (kleine Pakete wie date-fns, clsx, zod, etc.)
+          return 'vendor';
         },
       },
       onwarn(warning, warn) {
@@ -176,7 +194,7 @@ export default defineConfig(() => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-    // Vite deduplication: sicherstellen dass react immer aus node_modules/ kommt
+    // Vite-Deduplication: React immer aus demselben node_modules-Pfad
     dedupe: ['react', 'react-dom', 'react-dom/client', 'scheduler'],
   },
   css: {
