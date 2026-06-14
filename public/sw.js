@@ -244,6 +244,15 @@ if (url.pathname.startsWith('/assets/')) {
   return;
 }
 
+// 2b. 🚀 CACHE-FIRST für Prerender (statische SEO-Seiten)
+// Prerender-Dateien werden täglich per Cron aktualisiert
+// Bei Treffer: sofort ausliefern (kein Relay-Query nötig!)
+// Bei Fehler: Fallback zu networkFirst (normale SPA-Ladung)
+if (url.pathname.startsWith('/prerender/')) {
+  event.respondWith(cacheFirst(request));
+  return;
+}
+
 // 3. 🚀 OPTIMIZATION: Cache-First für optimierte Bilder (images.weserv.nl)
 // Reduziert Bild-Ladezeiten drastisch durch aggressives Caching
 // BILDER SIND IMMUTABLE → 1 Jahr Cache ist sicher!

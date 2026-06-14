@@ -430,21 +430,14 @@ function renderMediaHtml(event) {
 // ── Main ─────────────────────────────────────────────────────────────────
 async function main() {
   const PRERENDER_DIR = path.join(DEPLOY_DIR, 'prerender');
-  const ARTICLES_DIR = path.join(PRERENDER_DIR, 'articles');
-  const NOTES_DIR = path.join(PRERENDER_DIR, 'notes');
-  const PROFILES_DIR = path.join(PRERENDER_DIR, 'profiles');
-  fs.mkdirSync(ARTICLES_DIR, { recursive: true });
-  fs.mkdirSync(NOTES_DIR, { recursive: true });
-  fs.mkdirSync(PROFILES_DIR, { recursive: true });
+  fs.mkdirSync(PRERENDER_DIR, { recursive: true });
 
   console.log(`[Prerender] Starte Generierung → ${PRERENDER_DIR}`);
 
-  // Existierende Dateien löschen
-  for (const dir of [ARTICLES_DIR, NOTES_DIR, PROFILES_DIR]) {
-    const existing = fs.readdirSync(dir);
-    for (const f of existing) {
-      if (f.endsWith('.html')) fs.unlinkSync(path.join(dir, f));
-    }
+  // Existierende HTML-Dateien löschen (alle prerender/*.html)
+  const existing = fs.readdirSync(PRERENDER_DIR);
+  for (const f of existing) {
+    if (f.endsWith('.html') && f !== 'index.html') fs.unlinkSync(path.join(PRERENDER_DIR, f));
   }
 
   const seenIds = new Set();   // Deduplizierung
@@ -460,11 +453,12 @@ async function main() {
     for (const event of articles) {
       if (seenIds.has(event.id)) continue;
       seenIds.add(event.id);
-      const identifier = event.tags?.find(t => t[0] === 'd')?.[1] || event.id;
-      const filename = `${identifier.replace(/[^a-zA-Z0-9_-]/g, '_')}.html`;
+      const naddr = encodeNaddr(event);
+      if (!naddr) continue;
+      const filename = `${naddr}.html`;
       const html = renderArticleHtml(event);
-      fs.writeFileSync(path.join(ARTICLES_DIR, filename), html, 'utf-8');
-      rendered.push({ type: 'Artikel', identifier });
+      fs.writeFileSync(path.join(PRERENDER_DIR, filename), html, 'utf-8');
+      rendered.push({ type: 'Artikel', identifier: naddr });
     }
 
     // ── Orte (kind 1, type=place) ─────────────────────────
@@ -479,11 +473,12 @@ async function main() {
     for (const event of places) {
       if (seenIds.has(event.id)) continue;
       seenIds.add(event.id);
-      const name = event.tags?.find(t => t[0] === 'name')?.[1] || event.tags?.find(t => t[0] === 'd')?.[1] || event.id;
-      const filename = `place_${name.replace(/[^a-zA-Z0-9_-]/g, '_')}.html`;
+      const naddr = encodeNaddr(event);
+      if (!naddr) continue;
+      const filename = `${naddr}.html`;
       const html = renderPlaceHtml(event);
-      fs.writeFileSync(path.join(ARTICLES_DIR, filename), html, 'utf-8');
-      rendered.push({ type: 'Ort', identifier: name });
+      fs.writeFileSync(path.join(PRERENDER_DIR, filename), html, 'utf-8');
+      rendered.push({ type: 'Ort', identifier: naddr });
     }
 
     // ── Trips (kind 1, type=trip) ─────────────────────────
@@ -498,11 +493,19 @@ async function main() {
     for (const event of trips) {
       if (seenIds.has(event.id)) continue;
       seenIds.add(event.id);
-      const title = event.tags?.find(t => t[0] === 'title')?.[1] || event.tags?.find(t => t[0] === 'd')?.[1] || event.id;
-      const filename = `trip_${title.replace(/[^a-zA-Z0-9_-]/g, '_')}.html`;
-      const html = renderTripHtml(event);
-      fs.writeFileSync(path.join(ARTICLES_DIR, filename), html, 'utf-8');
-      rendered.push({ type: 'Trip', identifier: title });
+      try {
+        const naddr = nip19.naddrEncode({
+          kind: event.kind || 1,
+          pubkey: event.pubkey,
+          identifier: event.id,
+        });
+        const filename = `trip-${naddr}.html`;
+        const html = renderTripHtml(event);
+        fs.writeFileSync(path.join(PRERENDER_DIR, filename), html, 'utf-8');
+        rendered.push({ type: 'Trip', identifier: naddr });
+      } catch (e) {
+        console.warn(`[Prerender] Trip naddr fehlgeschlagen: ${e.message}`);
+      }
     }
 
     // ── Bilder/Media (kind 1, type=media oder image) ────────────
@@ -517,11 +520,19 @@ async function main() {
     for (const event of mediaItems) {
       if (seenIds.has(event.id)) continue;
       seenIds.add(event.id);
-      const title = event.tags?.find(t => t[0] === 'title')?.[1] || 'Bild';
-      const filename = `media_${title.replace(/[^a-zA-Z0-9_-]/g, '_')}_${event.id.substring(0,8)}.html`;
-      const html = renderMediaHtml(event);
-      fs.writeFileSync(path.join(ARTICLES_DIR, filename), html, 'utf-8');
-      rendered.push({ type: 'Bild', identifier: title });
+      try {
+        const nevent = nip19.neventEncode({
+          id: event.id,
+          relays: relay ? [relay] : undefined,
+          author: event.pubkey,
+        });
+        const filename = `bild-${nevent}.html`;
+        const html = renderMediaHtml(event);
+        fs.writeFileSync(path.join(PRERENDER_DIR, filename), html, 'utf-8');
+        rendered.push({ type: 'Bild', identifier: nevent });
+      } catch (e) {
+        console.warn(`[Prerender] nevent fehlgeschlagen: ${e.message}`);
+      }
     }
 
     // ── Notes (kind 1, keine places/trips/media) ─────────
@@ -544,10 +555,15 @@ async function main() {
     for (const event of pureNotes) {
       if (seenIds.has(event.id)) continue;
       seenIds.add(event.id);
-      const filename = `note_${event.id.substring(0, 12)}.html`;
-      const html = renderNoteHtml(event);
-      fs.writeFileSync(path.join(NOTES_DIR, filename), html, 'utf-8');
-      rendered.push({ type: 'Note', identifier: event.id.substring(0, 12) });
+      try {
+        const noteId = nip19.noteEncode(event.id);
+        const filename = `${noteId}.html`;
+        const html = renderNoteHtml(event);
+        fs.writeFileSync(path.join(PRERENDER_DIR, filename), html, 'utf-8');
+        rendered.push({ type: 'Note', identifier: noteId });
+      } catch (e) {
+        console.warn(`[Prerender] noteEncode fehlgeschlagen: ${e.message}`);
+      }
     }
 
     // ── Profile (kind 0) ────────────────────────────────
@@ -561,10 +577,15 @@ async function main() {
     for (const event of profiles) {
       if (seenIds.has(event.id)) continue;
       seenIds.add(event.id);
-      const filename = `profile_${event.pubkey.substring(0, 12)}.html`;
-      const html = renderProfileHtml(event);
-      fs.writeFileSync(path.join(PROFILES_DIR, filename), html, 'utf-8');
-      rendered.push({ type: 'Profil', identifier: event.pubkey.substring(0, 12) });
+      try {
+        const npub = nip19.npubEncode(event.pubkey);
+        const filename = `${npub}.html`;
+        const html = renderProfileHtml(event);
+        fs.writeFileSync(path.join(PRERENDER_DIR, filename), html, 'utf-8');
+        rendered.push({ type: 'Profil', identifier: npub });
+      } catch (e) {
+        console.warn(`[Prerender] npubEncode fehlgeschlagen: ${e.message}`);
+      }
     }
   }
 

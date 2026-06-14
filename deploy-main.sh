@@ -420,6 +420,26 @@ restart_server() {
     fi
 }
 
+# ============================================
+# PRERENDER STATIC SEO SEITEN
+# ============================================
+# Generiert statische HTML-Seiten für Google/Facebook/Twitter
+# Läuft auch als Cron: 0 6 * * * node /root/deploy-git/mojobusco/scripts/prerender-static.js
+
+prerender_static() {
+    echo ""
+    echo "=========================================="
+    echo -e "${BLUE}📄 Generiere Prerender SEO-Seiten...${NC}"
+    echo "=========================================="
+    info_msg "Starte prerender-static.js..."
+
+    if node "$PROJECT_DIR/scripts/prerender-static.js" 2>&1; then
+        success_msg "Prerender-Seiten generiert ✅"
+    else
+        warn_msg "Prerender hatte Warnungen, aber Deployment wird fortgesetzt ⚠️"
+    fi
+}
+
 # Summary
 summary() {
     echo ""
@@ -466,6 +486,7 @@ main() {
     deploy_files "$1" "$2"
     restore_dev_config
     verify_deployment
+    prerender_static
     restart_server
     summary
 }
