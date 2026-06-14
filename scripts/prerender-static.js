@@ -1,17 +1,14 @@
-#!/usr/bin/env node
-
-/**
- * prerender-static.js
- *
- * Generiert statische HTML-Seiten für Crawler (Google, Facebook, Twitter/X, Pinterest, LinkedIn).
- * Alle generierten URLs (canonical, redirect, og:url) zeigen auf die korrekten SPA-Routen.
- * Dateinamen = NIP-19 IDs (naddr1xxx.html, note1xxx.html, npub1xxx.html)
- * → Nginx kann Bots direkt auf die statischen HTML-Seiten leiten
- *
- * Cron (automatisch via deploy-main.sh):
- *   Täglich 6:00 – node /root/deploy-git/mojobusco/scripts/prerender-static.js
- *
- * Fallback: Wenn eine Seite nicht gecached ist, lädt die SPA vom Relay
+// prerender-static.js
+//
+// Generiert statische HTML-Seiten für Crawler (Google, Facebook, Twitter/X, Pinterest, LinkedIn).
+// Alle generierten URLs (canonical, redirect, og:url) zeigen auf die korrekten SPA-Routen.
+// Dateinamen = NIP-19 IDs (naddr1xxx.html, note1xxx.html, npub1xxx.html)
+// → Nginx kann Bots direkt auf die statischen HTML-Seiten leiten
+//
+// Cron (automatisch via deploy-main.sh):
+//   Täglich 6:00 – node /root/deploy-git/mojobusco/scripts/prerender-static.js
+//
+// Fallback: Wenn eine Seite nicht gecached ist, lädt die SPA vom Relay
 
 import fs from 'fs';
 import path from 'path';
