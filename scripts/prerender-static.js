@@ -5,20 +5,13 @@
  *
  * Generiert statische HTML-Seiten für Crawler (Google, Facebook, Twitter/X, Pinterest, LinkedIn).
  * Alle generierten URLs (canonical, redirect, og:url) zeigen auf die korrekten SPA-Routen.
+ * Dateinamen = NIP-19 IDs (naddr1xxx.html, note1xxx.html, npub1xxx.html)
+ * → Nginx kann Bots direkt auf die statischen HTML-Seiten leiten
  *
- * SPA-Routen (aus AppRouter.tsx):
- *   Artikel (kind 30023): /{naddr}
- *   Orte (kind 30023 / kind 1): /{naddr}
- *   Trips (kind 1): /trip/{naddr}
- *   Bilder (kind 1): /bild/{nevent}
- *   Notes (kind 1): /{note}
- *   Profile: /{npub}
+ * Cron (automatisch via deploy-main.sh):
+ *   Täglich 6:00 – node /root/deploy-git/mojobusco/scripts/prerender-static.js
  *
- * Ausgabe: /home/nginx/domains/mojobus.co/public/prerender/
- *
- * Setup cron:
- *   0 6 * * * node /root/deploy-git/mojobusco/scripts/prerender-static.js
- */
+ * Fallback: Wenn eine Seite nicht gecached ist, lädt die SPA vom Relay
 
 import fs from 'fs';
 import path from 'path';

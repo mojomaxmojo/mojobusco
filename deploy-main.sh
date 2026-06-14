@@ -421,6 +421,27 @@ restart_server() {
 }
 
 # ============================================
+# PRERENDER CRON SETUP
+# ============================================
+# Stellt sicher dass der tägliche Prerender-Cron (6:00 Uhr) existiert
+
+setup_prerender_cron() {
+    local cron_job="0 6 * * * node $PROJECT_DIR/scripts/prerender-static.js > $PROJECT_DIR/logs/prerender-cron-\$(date +\\%Y\\%m\\%d-\\%H\\%M).log 2>&1"
+    
+    if crontab -l 2>/dev/null | grep -q 'prerender-static.js'; then
+        info_msg "Prerender-Cron bereits eingerichtet ✅"
+    else
+        info_msg "Richte Prerender-Cron ein (täglich 6:00)..."
+        (crontab -l 2>/dev/null; echo "$cron_job") | crontab -
+        if crontab -l 2>/dev/null | grep -q 'prerender-static.js'; then
+            success_msg "Prerender-Cron eingerichtet ✅ (täglich 6:00)"
+        else
+            warn_msg "Prerender-Cron konnte nicht gesetzt werden ⚠️"
+        fi
+    fi
+}
+
+# ============================================
 # PRERENDER STATIC SEO SEITEN
 # ============================================
 # Generiert statische HTML-Seiten für Google/Facebook/Twitter
@@ -470,6 +491,7 @@ main() {
 
     setup_logging
     check_deploy_dir
+    setup_prerender_cron
 
     # Wenn --clean-flag, lösche node_modules
     if [ "$1" == "--clean" ] || [ "$2" == "--clean" ]; then
