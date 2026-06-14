@@ -54,8 +54,14 @@ async function queryRelay(relayUrl, filters, timeoutMs = 15000) {
       try {
         const data = JSON.parse(msg.data);
         if (data[0] === 'EVENT' && data[1] === 'prerender-req') events.push(data[2]);
-        if (data[0] === 'EOSE') { clearTimeout(timeout); ws.close(); resolve(events); }
-      } catch (e) { /* ignore */ }
+        if (data[0] === 'EOSE') {
+          clearTimeout(timeout);
+          ws.close();
+          resolve(events);
+        }
+      } catch (e) {
+        // parsing error – ignore
+      }
     };
     ws.onerror = () => { clearTimeout(timeout); resolve([]); };
   });
