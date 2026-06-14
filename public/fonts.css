@@ -1,6 +1,5 @@
-/* Self-hosted Public Sans Font — font-display: optional für CLS-Freiheit */
-/* Bei optional: Fallback-Font wird sofort angezeigt, Custom-Font nur wenn extrem schnell da */
-/* Kein Layout-Shift, da niemals ein Font-Swap stattfindet */
+/* Self-hosted Public Sans Font — NUR wirklich genutzte Gewichte */
+/* font-display: optional für CLS-Freiheit (kein Font-Swap) */
 @font-face {
   font-family: 'Public Sans';
   font-style: normal;
@@ -12,28 +11,12 @@
 @font-face {
   font-family: 'Public Sans';
   font-style: normal;
-  font-weight: 500;
-  font-display: optional;
-  src: url('./fonts/public-sans-500.ttf') format('truetype');
-}
-
-@font-face {
-  font-family: 'Public Sans';
-  font-style: normal;
-  font-weight: 600;
-  font-display: optional;
-  src: url('./fonts/public-sans-600.ttf') format('truetype');
-}
-
-@font-face {
-  font-family: 'Public Sans';
-  font-style: normal;
   font-weight: 700;
   font-display: optional;
   src: url('./fonts/public-sans-700.ttf') format('truetype');
 }
 
-/* Self-hosted Playfair Display Font — font-display: optional für CLS-Freiheit */
+/* Self-hosted Playfair Display Font — NUR Headline-Gewichte */
 @font-face {
   font-family: 'Playfair Display';
   font-style: normal;
