@@ -73,7 +73,7 @@ function Images() {
     staleTime: DEFAULT_PERFORMANCE_CONFIG.cache.staleTime,
     gcTime: DEFAULT_PERFORMANCE_CONFIG.cache.gcTime,
     queryFn: async ({ signal }) => {
-      const abortSignal = AbortSignal.any([signal, AbortSignal.timeout(3000)]);
+      const abortSignal = AbortSignal.any([signal, AbortSignal.timeout(DEFAULT_PERFORMANCE_CONFIG.relay.queryTimeout)]);
 
       const allEvents = await nostr.query([
         {

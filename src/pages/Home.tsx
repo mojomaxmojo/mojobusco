@@ -116,7 +116,7 @@ export function Home() {
           '#t': ['note', 'notiz'],
           limit: 15, // Optimiert für Home-Seite (nur 6 Elemente werden angezeigt)
         }
-      ], { signal: AbortSignal.any([signal!, AbortSignal.timeout(3000)]) });
+      ], { signal: AbortSignal.any([signal!, AbortSignal.timeout(DEFAULT_PERFORMANCE_CONFIG.relay.queryTimeout)]) });
       return events;
     },
     staleTime: DEFAULT_PERFORMANCE_CONFIG.cache.staleTime,
@@ -134,7 +134,14 @@ export function Home() {
           '#t': ['medien', 'media', 'bilder', 'images'],
           limit: 15, // Optimiert für Home-Seite (nur 6 Elemente werden angezeigt)
         }
-      ], { signal: AbortSignal.any([signal!, AbortSignal.timeout(3000)]) });
+      ], { signal: AbortSignal.any([signal!, AbortSignal.timeout(DEFAULT_PERFORMANCE_CONFIG.relay.queryTimeout)]) }); // Aus Performance-Konfiguration
+
+      console.log('[Home Page] Image Events Query:', {
+        total: events.length,
+        limit: 15,
+        timeout: DEFAULT_PERFORMANCE_CONFIG.relay.queryTimeout,
+        optimization: 'Home-Spezifisches Limit (vorher 100 Events)',
+      });
 
       return events.filter((event) => {
         const content = event.content.toLowerCase();
@@ -155,15 +162,7 @@ export function Home() {
     staleTime: DEFAULT_PERFORMANCE_CONFIG.cache.staleTime,
   });
 
-  // Home zeigt Skeleton nur solange KEINE Inhalte da sind.
-  // Sobald einer der Streams Daten liefert, wird gerendert.
-  // Das verhindert dass alle 5 Queries serialisiert warten müssen.
-  const hasAnyContent = (articles && articles.length > 0)
-    || (places && places.length > 0)
-    || (noteEvents && noteEvents.length > 0)
-    || (tripsData && tripsData.length > 0)
-    || (imageEvents && imageEvents.length > 0);
-  const isLoading = !hasAnyContent && (articlesLoading || placesLoading || tripsQuery.isLoading);
+  const isLoading = articlesLoading || placesLoading || tripsQuery.isLoading;
 
   const contentItems: ContentItem[] = [];
 
