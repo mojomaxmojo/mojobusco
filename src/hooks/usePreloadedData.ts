@@ -68,9 +68,9 @@ export function usePreloadedData<T = any>(options: PreloadedDataOptions): Preloa
         return null;
       }
     },
-    staleTime: Infinity,     // Nie veralten (wird nur per Live-Update ergänzt)
-    gcTime: 1000 * 60 * 60,  // 1h GC
-    retry: 1,
+    staleTime: 1000 * 60 * 60 * 24,  // 24h – passt zum Cron-Intervall
+    gcTime: 1000 * 60 * 60 * 24 * 3, // 3 Tage GC
+    retry: 0, // Kein Retry – wenn JSON fehlt sofort fallback
   });
 
   const isPreloaded = staticQuery.data !== null && staticQuery.data !== undefined;
@@ -106,15 +106,19 @@ export function usePreloadedData<T = any>(options: PreloadedDataOptions): Preloa
   });
 
   // ── 3. Fallback: Pure Live-Query wenn kein statisches JSON ────────────
+  // WICHTIG: Wird nur aktiviert wenn /data/{name}.json NICHT existiert.
+  // Auf dem VPS existiert articles.json (Cron 6:15), also wird das hier
+  // normalerweise NICHT ausgelöst. Nur als Fallback für lokale Entwicklung.
   const fallbackQuery = useQuery({
     queryKey: ['preloaded-fallback', name],
     queryFn: async ({ signal }) => {
       if (!liveFilter) return [];
-      const abortSignal = AbortSignal.any([signal, AbortSignal.timeout(liveTimeout)]);
+      // 3s Timeout – reicht für unser privates Relay
+      const abortSignal = AbortSignal.any([signal, AbortSignal.timeout(3000)]);
 
       const filter: any = {
         kinds: liveFilter.kinds,
-        limit: 1000,
+        limit: 100, // War 1000 – massiv zu groß für initiales Laden
       };
       if (liveFilter.authors) filter.authors = liveFilter.authors;
 
@@ -127,9 +131,9 @@ export function usePreloadedData<T = any>(options: PreloadedDataOptions): Preloa
       return events;
     },
     enabled: !isPreloaded && !!liveFilter,
-    staleTime: 1000 * 60 * 30,  // 30 Min
-    gcTime: 1000 * 60 * 60,     // 1h
-    retry: true,
+    staleTime: 1000 * 60 * 60 * 24,  // 24h (war 30min – zu kurz)
+    gcTime: 1000 * 60 * 60 * 24 * 3, // 3 Tage
+    retry: false, // Kein Retry – lieber schnell scheitern
   });
 
   // ── 4. Merged Result ─────────────────────────────────────────────────

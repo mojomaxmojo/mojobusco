@@ -30,7 +30,7 @@ export function useNotes() {
       }
 
       const events = await nostr.query([filter], {
-        signal: AbortSignal.any([signal, AbortSignal.timeout(5000)]),
+        signal: AbortSignal.any([signal, AbortSignal.timeout(3000)]),
       });
 
       console.log('📦 Notes Infinite Scroll: Received', events.length, 'events from relay (limit was 30)');

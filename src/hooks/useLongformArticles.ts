@@ -179,7 +179,7 @@ export function useLongformArticles(options?: {
   return useQuery({
     queryKey: ['longform-articles', NOSTR_CONFIG.authorPubkeys, options?.['#t']],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(DEFAULT_PERFORMANCE_CONFIG.relay.queryTimeout * 2.5)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
 
       const filter: any = {
         kinds: options?.kinds || [NOSTR_CONFIG.kinds.longform],
@@ -230,7 +230,7 @@ export function useInfiniteLongformArticles(options?: {
   return useInfiniteQuery({
     queryKey: ['infinite-longform-articles', NOSTR_CONFIG.authorPubkeys, options?.['#t']],
     queryFn: async ({ pageParam, signal }) => {
-      const abortSignal = AbortSignal.any([signal!, AbortSignal.timeout(DEFAULT_PERFORMANCE_CONFIG.relay.queryTimeout * 2.5)]);
+      const abortSignal = AbortSignal.any([signal!, AbortSignal.timeout(3000)]);
 
       const filter: any = {
         kinds: options?.kinds || [NOSTR_CONFIG.kinds.longform],
@@ -313,7 +313,7 @@ export function usePlaces(options?: { limit?: number }) {
   return useQuery({
     queryKey: ['places', NOSTR_CONFIG.authorPubkeys, options?.limit],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(DEFAULT_PERFORMANCE_CONFIG.relay.queryTimeout * 2.5)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
 
       const events = await nostr.query(
         [
@@ -352,7 +352,7 @@ export function useLongformArticle(identifier: string, authorPubkey: string) {
   return useQuery({
     queryKey: ['longform-article', identifier, authorPubkey],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(DEFAULT_PERFORMANCE_CONFIG.relay.queryTimeout * 2.5)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]); // Einzelartikel: etwas mehr Zeit
 
       const events = await nostr.query(
         [

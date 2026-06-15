@@ -1,7 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { NostrEvent, NPool, NRelay1 } from '@nostrify/nostrify';
 import { NostrContext } from '@nostrify/react';
-import { useQueryClient } from '@tanstack/react-query';
 import { useAppContext } from '@/hooks/useAppContext';
 import { useAuthorRelays } from '@/hooks/useAuthorRelays';
 import { NRelayAuth } from '@/lib/NRelayAuth';
@@ -13,7 +12,6 @@ interface NostrProviderProps {
 const NostrProvider: React.FC<NostrProviderProps> = (props) => {
   const { children } = props;
   const { config } = useAppContext();
-  const queryClient = useQueryClient();
 
   // Autor-spezifische Relay-Konfiguration
   const authorRelays = useAuthorRelays();
@@ -64,24 +62,10 @@ const NostrProvider: React.FC<NostrProviderProps> = (props) => {
 
     queryClient.resetQueries();
 
-    console.log('[NostrProvider] Config updated:', {
-      author: authorRelays.authorId,
-      isAuthorConfig: useAuthorConfig,
-      read: {
-        relayUrls: readRelayUrls.current,
-        maxRelays: readMaxRelays.current,
-        queryTimeout: readQueryTimeout.current,
-      },
-      write: {
-        relayUrls: writeRelayUrls.current,
-        maxRelays: writeMaxRelays.current,
-        activeRelay: activeRelay.current,
-      },
-      shared: {
-        enableDeduplication: enableDeduplication.current,
-      },
-    });
-  }, [config.read, config.write, config.enableDeduplication, authorRelays, queryClient]);
+    // KEIN queryClient.resetQueries() hier! Das würde den kompletten
+    // TanStack Query Cache beim Init löschen → alle Seiten neu laden.
+    // Cache-Invalidierung nur bei expliziter Relay-Änderung durch den User.
+  }, [config.read, config.write, config.enableDeduplication, authorRelays]);
 
   // Create NPool instance only once
   const pool = useRef<NPool | undefined>(undefined);
