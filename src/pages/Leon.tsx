@@ -22,6 +22,7 @@ import { useHead } from '@unhead/react';
 
 export function Leon() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [visibleCount, setVisibleCount] = useState(30);
 
   // Alle Leon-Artikel abrufen mit Infinite Scroll
   const { data: articles, isLoading, error, hasNextPage, fetchNextPage, isFetchingNextPage } = useInfiniteLongformArticles({
@@ -30,23 +31,46 @@ export function Leon() {
     limit: DEFAULT_PERFORMANCE_CONFIG.infiniteScroll.itemsPerPage,
   });
 
-  // Infinite Scroll trigger
-  const { ref, inView } = useInView({
+  // Relay Infinite Scroll trigger
+  const { ref: relayRef, inView: relayInView } = useInView({
     threshold: 0.1,
     rootMargin: '100px',
   });
 
-  // Fetch more articles when scroll trigger is visible
+  // Client-side VisibleCount Scroll trigger
+  const { ref: clientRef, inView: clientInView } = useInView({
+    threshold: 0.1,
+    rootMargin: '200px',
+  });
+
+  // Fetch more articles from relay when scroll trigger is visible
   React.useEffect(() => {
-    if (inView && hasNextPage && !isFetchingNextPage) {
+    if (relayInView && hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
     }
-  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [relayInView, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // Increase visible count when client scroll trigger is visible
+  React.useEffect(() => {
+    if (clientInView) {
+      setVisibleCount(prev => prev + 30);
+    }
+  }, [clientInView]);
+
+  // Reset visible count on search
+  React.useEffect(() => {
+    setVisibleCount(30);
+  }, [searchTerm]);
 
   // Flatten all pages
   const allArticles = React.useMemo(() => {
     return articles?.pages.flat() || [];
   }, [articles]);
+
+  // Client-side visible articles (DOM-Begrenzung)
+  const visibleArticles = React.useMemo(() => {
+    return filteredArticles.slice(0, visibleCount);
+  }, [filteredArticles, visibleCount]);
 
   // Filter Leon articles by tags (client-side filtering like RVLife)
   const leonArticles = React.useMemo(() => {
@@ -196,20 +220,29 @@ export function Leon() {
           {hasContent ? (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredArticles.map((article) => (
+                {visibleArticles.map((article) => (
                   <LeonArticleCard key={article.id} article={article} />
                 ))}
               </div>
 
-              {/* Infinite Scroll Loader */}
+              {/* Relay Infinite Scroll Loader */}
               {hasNextPage && (
-                <div ref={ref} className="py-8 flex justify-center">
+                <div ref={relayRef} className="py-8 flex justify-center">
                   {isFetchingNextPage && (
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Loader2 className="h-5 w-5 animate-spin" />
                       <span>Lade mehr Stories...</span>
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* Client-side VisibleCount Loader */}
+              {!hasNextPage && visibleArticles.length < filteredArticles.length && (
+                <div ref={clientRef} className="py-8 flex justify-center">
+                  <div className="text-sm text-muted-foreground">
+                    Weitere Stories laden...
+                  </div>
                 </div>
               )}
             </>

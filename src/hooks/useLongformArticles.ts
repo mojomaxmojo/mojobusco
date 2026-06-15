@@ -396,16 +396,6 @@ export function useLongformArticle(identifier: string, authorPubkey: string) {
 export function usePreloadedArticles() {
   const result = usePreloadedData<NostrEvent>({
     name: 'articles',
-    liveFilter: {
-      kinds: [NOSTR_CONFIG.kinds.longform],
-      authors: NOSTR_CONFIG.authorPubkeys,
-    },
-    liveTimeout: 8000,
-    transformEvent: (event) => {
-      if (!validateLongformArticle(event)) return null;
-      if (isPlaceEvent(event)) return null;
-      return event;
-    },
   });
 
   // Sortieren (neueste zuerst)

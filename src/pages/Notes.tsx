@@ -72,27 +72,31 @@ export function Notes() {
 
   // Use notes hook with Infinite Scroll
   const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useNotes();
-  const { ref, inView } = useInView({
+  const { ref: relayRef, inView: relayInView } = useInView({
     threshold: 0.1,
     rootMargin: '100px',
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAuthor, setSelectedAuthor] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(30);
+  const { ref: clientRef, inView: clientInView } = useInView({ threshold: 0.1, rootMargin: '200px' });
 
-  // Fetch more notes when scroll trigger is visible
+  // Fetch more notes from relay when scroll trigger is visible
   useEffect(() => {
-    console.log('👀 Notes Infinite Scroll Trigger:', {
-      inView,
-      hasNextPage,
-      isFetchingNextPage,
-      shouldFetch: inView && hasNextPage && !isFetchingNextPage
-    });
-
-    if (inView && hasNextPage && !isFetchingNextPage) {
-      console.log('📥 Fetching next notes page...');
+    if (relayInView && hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
     }
-  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [relayInView, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // Increase client-side visible count
+  useEffect(() => {
+    if (clientInView) setVisibleCount(prev => prev + 30);
+  }, [clientInView]);
+
+  // Reset visible count on filter change
+  useEffect(() => {
+    setVisibleCount(30);
+  }, [searchQuery, selectedAuthor, country]);
 
   // Flatten all pages
   const notes = useMemo(() => {
@@ -129,6 +133,11 @@ export function Notes() {
 
     return filtered.sort((a, b) => b.created_at - a.created_at);
   }, [notes, searchQuery, selectedAuthor, currentCountry, country]);
+
+  // Client-side visible notes for DOM-Begrenzung
+  const visibleNotes = useMemo(() => {
+    return filteredNotes.slice(0, visibleCount);
+  }, [filteredNotes, visibleCount]);
 
   return (
     <>
@@ -223,14 +232,23 @@ export function Notes() {
           ) : filteredNotes.length > 0 ? (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredNotes.map((note) => (
+                {visibleNotes.map((note) => (
                   <NoteCard key={note.id} note={note} />
                 ))}
               </div>
 
-              {/* Infinite Scroll Loader */}
-              {hasNextPage && (
-                <div ref={ref} className="py-8 flex justify-center">
+              {/* Client-side visibleCount Loader */}
+              {visibleNotes.length < filteredNotes.length && (
+                <div ref={clientRef} className="py-8 flex justify-center">
+                  <div className="text-sm text-muted-foreground">
+                    Weitere Notes laden...
+                  </div>
+                </div>
+              )}
+
+              {/* Relay Infinite Scroll Loader (wenn alle sichtbaren Notes geladen sind) */}
+              {visibleNotes.length >= filteredNotes.length && hasNextPage && (
+                <div ref={relayRef} className="py-8 flex justify-center">
                   {isFetchingNextPage && (
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Loader2 className="h-5 w-5 animate-spin" />

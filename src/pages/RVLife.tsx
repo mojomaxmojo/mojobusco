@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,14 +12,15 @@ import { useAuthor } from '@/hooks/useAuthor';
 import { genUserName } from '@/lib/genUserName';
 import { getAuthorRelayConfigByPubkey } from '@/config/relays';
 import { DEFAULT_PERFORMANCE_CONFIG } from '@/config/performance';
-import { Search, Calendar, User, Home, ChefHat, Compass, Truck, Sparkles } from 'lucide-react';
+import { Search, Calendar, User, Home, ChefHat, Compass, Truck, Sparkles, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RV_LIFE_CONFIG } from '@/config/rvlife';
 import { getListThumbnailUrl, getImagePlaceholder, generateSrcset, generateSizes } from '@/lib/imageUtils';
 import { nip19 } from 'nostr-tools';
 import type { NostrEvent } from '@nostrify/nostrify';
-import { memo, useState } from 'react';
+import { memo } from 'react';
 import { useHead } from '@unhead/react';
+import { useInView } from 'react-intersection-observer';
 
 export function RVLife() {
   // SEO Meta Tags
@@ -78,6 +79,23 @@ export function RVLife() {
     // Zeige alle Artikel mit RV Life Tags
     return true;
   }) || [];
+
+  // Client-side visibleCount für DOM-Begrenzung
+  const [visibleCount, setVisibleCount] = useState(30);
+  const { ref: clientRef, inView: clientInView } = useInView({ threshold: 0.1, rootMargin: '200px' });
+
+  useEffect(() => {
+    if (clientInView) setVisibleCount(prev => prev + 30);
+  }, [clientInView]);
+
+  useEffect(() => {
+    setVisibleCount(30);
+  }, [searchTerm, category]);
+
+  // Sichtbare Artikel für DOM-Begrenzung
+  const visibleArticles = useMemo(() => {
+    return filteredArticles.slice(0, visibleCount);
+  }, [filteredArticles, visibleCount]);
 
   const isDemoMode = !displayArticles || displayArticles.length === 0;
 
@@ -274,11 +292,23 @@ export function RVLife() {
 
           {/* Articles Grid */}
           {filteredArticles.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredArticles.map((article) => (
-                <RVLifeArticleCard key={article.id} article={article} />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {visibleArticles.map((article) => (
+                  <RVLifeArticleCard key={article.id} article={article} />
+                ))}
+              </div>
+
+              {/* Client-side Scroll Loader */}
+              {visibleArticles.length < filteredArticles.length && (
+                <div ref={clientRef} className="py-8 flex justify-center">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <span>Weitere Artikel laden...</span>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

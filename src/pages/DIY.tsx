@@ -18,6 +18,7 @@ import { memo, useState } from 'react';
 import { getListThumbnailUrl, getImagePlaceholder, generateSrcset, generateSizes } from '@/lib/imageUtils';
 import { DEFAULT_PERFORMANCE_CONFIG } from '@/config/performance';
 import { useHead } from '@unhead/react';
+import { useInView } from 'react-intersection-observer';
 
 export function DIY() {
   // SEO Meta Tags
@@ -75,6 +76,23 @@ export function DIY() {
   }, [flattenData, searchQuery]);
 
   const articleCount = filteredArticles.length;
+
+  // Client-side visibleCount für DOM-Begrenzung
+  const [visibleCount, setVisibleCount] = useState(30);
+  const { ref: clientRef, inView: clientInView } = useInView({ threshold: 0.1, rootMargin: '200px' });
+
+  useEffect(() => {
+    if (clientInView) setVisibleCount(prev => prev + 30);
+  }, [clientInView]);
+
+  useEffect(() => {
+    setVisibleCount(30);
+  }, [searchQuery]);
+
+  // Sichtbare Artikel für DOM-Begrenzung
+  const visibleArticles = useMemo(() => {
+    return filteredArticles.slice(0, visibleCount);
+  }, [filteredArticles, visibleCount]);
 
   return (
     <>
@@ -154,7 +172,7 @@ export function DIY() {
             </div>
           ) : filteredArticles.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredArticles.map((article) => (
+              {visibleArticles.map((article) => (
                 <DIYArticleCard key={article.id} article={article} />
               ))}
             </div>
@@ -193,7 +211,7 @@ export function DIY() {
             </Card>
           )}
 
-          {/* Infinite Scroll Loader */}
+          {/* Relay Infinite Scroll Loader */}
           {hasNextPage && (
             <div className="py-8 flex justify-center">
               {isFetchingNextPage && (
@@ -202,6 +220,15 @@ export function DIY() {
                   <span>Lade mehr Anleitungen...</span>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Client-side Scroll Loader */}
+          {!hasNextPage && visibleArticles.length < filteredArticles.length && (
+            <div ref={clientRef} className="py-8 flex justify-center">
+              <div className="text-sm text-muted-foreground">
+                Weitere Anleitungen laden...
+              </div>
             </div>
           )}
         </div>
