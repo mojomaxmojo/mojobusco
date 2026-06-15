@@ -7,15 +7,16 @@ import { ImagePlaceholder } from '@/components/ImagePlaceholder';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { usePreloadedArticles, extractArticleMetadata } from '@/hooks/useLongformArticles';
+import { useInfiniteLongformArticles, extractArticleMetadata } from '@/hooks/useLongformArticles';
 import { useAuthor } from '@/hooks/useAuthor';
 import { genUserName } from '@/lib/genUserName';
 import { getAuthorRelayConfigByPubkey } from '@/config/relays';
 import { Wrench, Loader2 } from 'lucide-react';
 import { nip19 } from 'nostr-tools';
 import type { NostrEvent } from '@nostrify/nostrify';
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { getListThumbnailUrl, getImagePlaceholder, generateSrcset, generateSizes } from '@/lib/imageUtils';
+import { DEFAULT_PERFORMANCE_CONFIG } from '@/config/performance';
 import { useHead } from '@unhead/react';
 
 export function DIY() {
@@ -38,15 +39,12 @@ export function DIY() {
   });
 
   const [searchQuery, setSearchQuery] = useState('');
-  const { data: allArticles, isLoading } = usePreloadedArticles();
+  const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useInfiniteLongformArticles({
+    '#t': ['diy'],
+    limit: DEFAULT_PERFORMANCE_CONFIG.infiniteScroll.itemsPerPage,
+  });
 
-  // Client-seitig nach DIY-Tags filtern
-  const flattenData = useMemo(() => {
-    return (allArticles || []).filter(article => {
-      const eventTags = article.tags.filter(([name]) => name === 't').map(([, value]) => value);
-      return eventTags.some(tag => ['diy', 'anleitung', 'selbermachen', 'technik', 'solar'].includes(tag));
-    });
-  }, [allArticles]);
+  const flattenData = data?.pages.flat() || [];
   const [searchParams] = useSearchParams();
 
   // Parse Suchparameter aus URL
@@ -194,7 +192,19 @@ export function DIY() {
               </CardContent>
             </Card>
           )}
-          </div>
+
+          {/* Infinite Scroll Loader */}
+          {hasNextPage && (
+            <div className="py-8 flex justify-center">
+              {isFetchingNextPage && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <span>Lade mehr Anleitungen...</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </>
   );

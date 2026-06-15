@@ -9,8 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useInView } from 'react-intersection-observer';
 import { MapPin, Search, Calendar, User, Loader2 } from 'lucide-react';
-import { extractArticleMetadata } from '@/hooks/useLongformArticles';
-import { usePreloadedPlaces } from '@/hooks/usePreloadedData';
+import { usePlaces, extractArticleMetadata } from '@/hooks/useLongformArticles';
 import { useAuthor } from '@/hooks/useAuthor';
 import { genUserName } from '@/lib/genUserName';
 import { getAuthorRelayConfigByPubkey } from '@/config/relays';
@@ -26,7 +25,7 @@ import { useHead } from '@unhead/react';
 
 function Places() {
   const { country } = useParams();
-  const { data: events, isLoading } = usePreloadedPlaces();
+  const { data: events, isLoading } = usePlaces();
   const [searchQuery, setSearchQuery] = useState('');
   const [visibleCount, setVisibleCount] = useState(30);
 

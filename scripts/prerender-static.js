@@ -423,208 +423,6 @@ function renderMediaHtml(event) {
 </html>`;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// PRERENDER FÜR HAUPTSEITEN (liest aus den JSON-Dumps)
-// ═══════════════════════════════════════════════════════════════════════════
-
-const DATA_DIR = path.join(DEPLOY_DIR, 'data');
-const SITE_NAME = 'MojoBus – Perpetual Travelers';
-
-function readData(name) {
-  try {
-    const p = path.join(DATA_DIR, `${name}.json`);
-    if (!fs.existsSync(p)) return [];
-    return JSON.parse(fs.readFileSync(p, 'utf-8'));
-  } catch { return []; }
-}
-
-function renderListingHtml({ title, description, image, url, items, keywords }) {
-  const cleanItems = items.slice(0, 30).map(item => {
-    const itemTitle = item.tags?.find(t => t[0] === 'title')?.[1] ||
-                      item.tags?.find(t => t[0] === 'name')?.[1] || 'Eintrag';
-    const itemSummary = item.tags?.find(t => t[0] === 'summary')?.[1] || '';
-    const itemImage = item.tags?.find(t => t[0] === 'image')?.[1] || '';
-    return { title: itemTitle, summary: itemSummary, image: itemImage };
-  });
-
-  const cardsHtml = cleanItems.map(item => `
-    <article style="margin-bottom:20px;padding:15px;border:1px solid #e0e0e0;border-radius:8px">
-      ${item.image ? `<img src="${escapeHtml(item.image)}" alt="" style="max-width:100%;height:auto;border-radius:4px;margin-bottom:10px" />` : ''}
-      <h2 style="font-size:1.2em;margin:0 0 5px">${escapeHtml(item.title)}</h2>
-      ${item.summary ? `<p style="color:#555">${escapeHtml(item.summary.substring(0, 200))}</p>` : ''}
-    </article>`).join('');
-
-  const jsonLd = JSON.stringify({
-    '@context': 'https://schema.org',
-    '@type': 'CollectionPage',
-    name: title,
-    description: description,
-    url: url,
-    mainEntity: { '@type': 'ItemList', itemListElement: cleanItems.slice(0, 10).map((item, i) => ({
-      '@type': 'ListItem', position: i + 1, item: { '@type': 'Article', name: item.title }
-    }))},
-  });
-
-  return `<!DOCTYPE html>
-<html lang="de">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${escapeHtml(title)}</title>
-  <meta name="description" content="${escapeHtml(description)}" />
-  <meta name="keywords" content="${escapeHtml(keywords || 'Vanlife, Wohnmobil, Reisen, Camping, MojoBus')}" />
-  <meta property="og:type" content="website" />
-  <meta property="og:title" content="${escapeHtml(title)}" />
-  <meta property="og:description" content="${escapeHtml(description)}" />
-  <meta property="og:image" content="${escapeHtml(image)}" />
-  <meta property="og:url" content="${escapeHtml(url)}" />
-  <meta property="og:site_name" content="${SITE_NAME}" />
-  <meta property="og:locale" content="de_DE" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="${escapeHtml(title)}" />
-  <meta name="twitter:description" content="${escapeHtml(description)}" />
-  <meta name="twitter:image" content="${escapeHtml(image)}" />
-  <meta name="robots" content="index, follow" />
-  <script type="application/ld+json">${jsonLd}</script>
-  <link rel="canonical" href="${escapeHtml(url)}" />
-</head>
-<body>
-  <h1>${escapeHtml(title)}</h1>
-  <p>${escapeHtml(description)}</p>
-  ${cardsHtml}
-  <p><a href="${escapeHtml(url)}">Alle anzeigen auf MojoBus →</a></p>
-  <script>window.location.replace("${escapeHtml(url)}");</script>
-</body>
-</html>`;
-}
-
-function renderIndexPage() {
-  const articles = readData('articles');
-  const notes = readData('notes');
-  const all = [...articles, ...notes]
-    .sort((a, b) => (b.created_at || 0) - (a.created_at || 0))
-    .slice(0, 10);
-
-  return renderListingHtml({
-    title: `${SITE_NAME}`,
-    description: 'Vanlife, Reisen und Abenteuer mit dem MojoBus. Perpetual Travelers Blog auf Nostr – Geschichten, Tipps und Einblicke von unterwegs.',
-    image: `${BASE_URL}/og-image.jpg`,
-    url: BASE_URL,
-    items: all,
-    keywords: 'Vanlife, Wohnmobil, Reisen, Camping, Portugal, Perpetual Travelers, MojoBus',
-  });
-}
-
-function renderArticlesPage() {
-  const articles = readData('articles').sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
-  return renderListingHtml({
-    title: 'Alle Artikel — MojoBus',
-    description: 'Alle Reiseberichte, Geschichten und Vanlife-Artikel auf MojoBus. Von Portugal bis Europa – unsere Abenteuer.',
-    image: `${BASE_URL}/og-image.jpg`,
-    url: `${BASE_URL}/artikel`,
-    items: articles,
-    keywords: 'Artikel, Reiseberichte, Vanlife, Wohnmobil, Reisen, Camping, MojoBus',
-  });
-}
-
-function renderLeonPage() {
-  const articles = readData('articles').filter(a =>
-    a.tags?.some(t => t[0] === 't' && t[1] === 'leon')
-  ).sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
-  return renderListingHtml({
-    title: 'Leon Stories — MojoBus',
-    description: 'Die Abenteuer von Leon – unserem treuen Begleiter auf Reisen. Geschichten, Spaß und Erlebnisse von unserem Vanlife-Hund.',
-    image: `${BASE_URL}/og-image.jpg`,
-    url: `${BASE_URL}/artikel/leon`,
-    items: articles,
-    keywords: 'Leon, Hund, Vanlife-Hund, Reisen mit Hund, Camping mit Hund, MojoBus',
-  });
-}
-
-function renderDIYPage() {
-  const articles = readData('articles').filter(a =>
-    a.tags?.some(t => t[0] === 't' && ['diy', 'anleitung', 'selbermachen', 'technik', 'solar'].includes(t[1]))
-  ).sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
-  return renderListingHtml({
-    title: 'DIY & Anleitungen — MojoBus',
-    description: 'DIY-Anleitungen für den Vanlife-Umbau: Solaranlage, Innenausbau, Reparaturen und Selbstbau-Projekte für Wohnmobil und Camper.',
-    image: `${BASE_URL}/og-image.jpg`,
-    url: `${BASE_URL}/artikel/diy`,
-    items: articles,
-    keywords: 'DIY, Vanlife Umbau, Solar, Wohnmobil Ausbau, Camper, Reparatur, MojoBus',
-  });
-}
-
-function renderRVLifePage() {
-  const articles = readData('articles').filter(a =>
-    a.tags?.some(t => t[0] === 't' && ['rvlife', 'wohnmobil', 'camper', 'vanlife'].includes(t[1]))
-  ).sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
-  return renderListingHtml({
-    title: 'RV Life — MojoBus',
-    description: 'RV Life, Wohnmobil Reisen und Camper Abenteuer. Tipps, Geschichten und Inspiration fürs Leben auf Rädern.',
-    image: `${BASE_URL}/og-image.jpg`,
-    url: `${BASE_URL}/artikel/rvlife`,
-    items: articles,
-    keywords: 'RV Life, Wohnmobil, Camper, Vanlife, Reisen, Camping, Roadtrip, MojoBus',
-  });
-}
-
-function renderPlacesPage() {
-  const places = readData('places').sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
-  return renderListingHtml({
-    title: 'Campingplätze & Stellplätze — MojoBus',
-    description: 'Unsere Campingplätze, Stellplätze und Wildcamping-Spots. Bewertungen, GPS-Koordinaten und Tipps für Vanlife-Reisende.',
-    image: `${BASE_URL}/og-image.jpg`,
-    url: `${BASE_URL}/plaetze`,
-    items: places,
-    keywords: 'Campingplätze, Stellplätze, Wildcamping, Vanlife, Wohnmobil, Reisen, MojoBus',
-  });
-}
-
-function renderBilderPage() {
-  const bilder = readData('bilder').sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
-  return renderListingHtml({
-    title: 'Bilder & Galerien — MojoBus',
-    description: 'Fotos und Bildergalerien von unseren Reisen. Atemberaubende Landschaften, Strandmomente und Vanlife-Impressionen.',
-    image: `${BASE_URL}/og-image.jpg`,
-    url: `${BASE_URL}/bilder`,
-    items: bilder,
-    keywords: 'Bilder, Fotos, Galerie, Vanlife, Reisen, Landschaft, Strand, Natur, MojoBus',
-  });
-}
-
-function renderNotesPage() {
-  const notes = readData('notes').sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
-  return renderListingHtml({
-    title: 'Notes & Updates — MojoBus',
-    description: 'Aktuelle Updates, Gedanken und Momente vom Leben am Meer. Vanlife, Offgrid und tägliche Abenteuer.',
-    image: `${BASE_URL}/og-image.jpg`,
-    url: `${BASE_URL}/notes`,
-    items: notes,
-    keywords: 'Notes, Updates, Vanlife, Mikroblog, Reisen, Offgrid, MojoBus',
-  });
-}
-
-// ── Listing-Seiten generieren (aus JSON-Dumps, kein Relay nötig) ─────────
-function generateListingPages(dir) {
-  const pages = [
-    { filename: 'index.html',      render: renderIndexPage },
-    { filename: 'artikel.html',    render: renderArticlesPage },
-    { filename: 'artikel-leon.html', render: renderLeonPage },
-    { filename: 'artikel-diy.html',  render: renderDIYPage },
-    { filename: 'artikel-rvlife.html', render: renderRVLifePage },
-    { filename: 'plaetze.html',    render: renderPlacesPage },
-    { filename: 'bilder.html',     render: renderBilderPage },
-    { filename: 'notes.html',      render: renderNotesPage },
-  ];
-
-  for (const page of pages) {
-    const html = page.render();
-    fs.writeFileSync(path.join(dir, page.filename), html, 'utf-8');
-    console.log(`[Prerender]  ✅ Hauptseite: ${page.filename}`);
-  }
-}
-
 // ── Main ─────────────────────────────────────────────────────────────────
 async function main() {
   const PRERENDER_DIR = path.join(DEPLOY_DIR, 'prerender');
@@ -632,13 +430,10 @@ async function main() {
 
   console.log(`[Prerender] Starte Generierung → ${PRERENDER_DIR}`);
 
-  // Existierende HTML-Dateien löschen (nur NIP-19 generierte, keine Listing-Seiten)
+  // Existierende HTML-Dateien löschen (alle prerender/*.html)
   const existing = fs.readdirSync(PRERENDER_DIR);
   for (const f of existing) {
-    // Nur automatisch generierte NIP-19 Dateien löschen (mit naddr1, note1, npub1, trip-, bild- Präfix)
-    if (f.endsWith('.html') && (f.startsWith('naddr1') || f.startsWith('note1') || f.startsWith('npub1') || f.startsWith('trip-') || f.startsWith('bild-'))) {
-      fs.unlinkSync(path.join(PRERENDER_DIR, f));
-    }
+    if (f.endsWith('.html') && f !== 'index.html') fs.unlinkSync(path.join(PRERENDER_DIR, f));
   }
 
   const seenIds = new Set();   // Deduplizierung
@@ -789,9 +584,6 @@ async function main() {
       }
     }
   }
-
-  // ── Listing-Seiten generieren (aus JSON-Dumps) ────────────────
-  generateListingPages(PRERENDER_DIR);
 
   // Index-Seite
   const indexHtml = `<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0; url=${BASE_URL}" /></head><body></body></html>`;

@@ -173,36 +173,3 @@ export function usePreloadedData<T = any>(options: PreloadedDataOptions): Preloa
     generatedAt: cronTimestamp,
   };
 }
-
-/**
- * Notes (kind 1) – lädt aus /data/notes.json + Live-Update im Hintergrund
- */
-export function usePreloadedNotes() {
-  return usePreloadedData({
-    name: 'notes',
-    liveFilter: { kinds: [1], authors: undefined },
-    liveTimeout: 8000,
-  });
-}
-
-/**
- * Places (kind 30023 mit type=place) – lädt aus /data/places.json + Live-Update
- */
-export function usePreloadedPlaces() {
-  return usePreloadedData({
-    name: 'places',
-    liveFilter: { kinds: [30023], authors: undefined },
-    liveTimeout: 8000,
-  });
-}
-
-/**
- * Media/Bilder (kind 1 mit media-Tags) – lädt aus /data/bilder.json + Live-Update
- */
-export function usePreloadedMedia() {
-  return usePreloadedData({
-    name: 'bilder',
-    liveFilter: { kinds: [1], authors: undefined },
-    liveTimeout: 8000,
-  });
-}

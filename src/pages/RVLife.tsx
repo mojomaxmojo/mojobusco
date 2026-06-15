@@ -7,10 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { ImagePlaceholder } from '@/components/ImagePlaceholder';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { usePreloadedArticles, extractArticleMetadata } from '@/hooks/useLongformArticles';
+import { useLongformArticles, extractArticleMetadata } from '@/hooks/useLongformArticles';
 import { useAuthor } from '@/hooks/useAuthor';
 import { genUserName } from '@/lib/genUserName';
 import { getAuthorRelayConfigByPubkey } from '@/config/relays';
+import { DEFAULT_PERFORMANCE_CONFIG } from '@/config/performance';
 import { Search, Calendar, User, Home, ChefHat, Compass, Truck, Sparkles } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RV_LIFE_CONFIG } from '@/config/rvlife';
@@ -42,8 +43,11 @@ export function RVLife() {
   const { category } = useParams<{ category: string }>();
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Alle RV Life Artikel aus preloaded data (50ms)
-  const { data: articles, isLoading, error } = usePreloadedArticles();
+  // Alle RV Life Artikel mit relevanten Tags abrufen
+  const { data: articles, isLoading, error } = useLongformArticles({
+    kinds: [30023],
+    limit: 50
+  });
 
   // Automatische RV Life Tags
   const autoTags = RV_LIFE_CONFIG.autoTags;

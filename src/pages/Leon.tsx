@@ -6,27 +6,51 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { ImagePlaceholder } from '@/components/ImagePlaceholder';
-import { usePreloadedArticles, extractArticleMetadata } from '@/hooks/useLongformArticles';
+import { useInfiniteLongformArticles, extractArticleMetadata } from '@/hooks/useLongformArticles';
 import { useAuthor } from '@/hooks/useAuthor';
 import { genUserName } from '@/lib/genUserName';
 import { getAuthorRelayConfigByPubkey } from '@/config/relays';
+import { DEFAULT_PERFORMANCE_CONFIG } from '@/config/performance';
 import { getListThumbnailUrl, getImagePlaceholder, generateSrcset, generateSizes } from '@/lib/imageUtils';
 import { LEON_CONFIG } from '@/config/leon';
 import { Search, Calendar, User, Dog, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { nip19 } from 'nostr-tools';
 import type { NostrEvent } from '@nostrify/nostrify';
+import { useInView } from 'react-intersection-observer';
 import { useHead } from '@unhead/react';
 
 export function Leon() {
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Alle Leon-Artikel abrufen (preloaded data + client-side filter)
-  const { data: allArticles, isLoading, error } = usePreloadedArticles();
+  // Alle Leon-Artikel abrufen mit Infinite Scroll
+  const { data: articles, isLoading, error, hasNextPage, fetchNextPage, isFetchingNextPage } = useInfiniteLongformArticles({
+    kinds: [30023],
+    '#t': ['leon'],
+    limit: DEFAULT_PERFORMANCE_CONFIG.infiniteScroll.itemsPerPage,
+  });
 
-  // Filter Leon articles by tags (client-side filtering)
+  // Infinite Scroll trigger
+  const { ref, inView } = useInView({
+    threshold: 0.1,
+    rootMargin: '100px',
+  });
+
+  // Fetch more articles when scroll trigger is visible
+  React.useEffect(() => {
+    if (inView && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // Flatten all pages
+  const allArticles = React.useMemo(() => {
+    return articles?.pages.flat() || [];
+  }, [articles]);
+
+  // Filter Leon articles by tags (client-side filtering like RVLife)
   const leonArticles = React.useMemo(() => {
-    return (allArticles || []).filter(article => {
+    return allArticles.filter(article => {
       const eventTags = article.tags.filter(([name]) => name === 't').map(([, value]) => value);
       // Prüfe ob der Artikel mindestens ein Leon-Tag hat
       return eventTags.some(tag => LEON_CONFIG.tags.includes(tag));
@@ -177,7 +201,18 @@ export function Leon() {
                 ))}
               </div>
 
-                          </>
+              {/* Infinite Scroll Loader */}
+              {hasNextPage && (
+                <div ref={ref} className="py-8 flex justify-center">
+                  {isFetchingNextPage && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      <span>Lade mehr Stories...</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
           ) : (
             <div className="text-center py-20">
               <div className="max-w-md mx-auto">

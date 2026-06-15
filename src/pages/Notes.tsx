@@ -13,8 +13,7 @@ import { RelaySelector } from '@/components/RelaySelector';
 // Lazy loaded NoteContent für Performance-Optimierung (reduziert initial load um ~36 KB gzip)
 const NoteContent = lazy(() => import('@/components/NoteContent'));
 
-import { usePreloadedNotes } from '@/hooks/usePreloadedData';
-import { extractNoteTags, extractNoteImages } from '@/hooks/useNotes';
+import { useNotes, extractNoteTags, extractNoteImages } from '@/hooks/useNotes';
 import { useAuthor } from '@/hooks/useAuthor';
 import { genUserName } from '@/lib/genUserName';
 import { filterEventsByCountry, countries } from '@/lib/countryDetection';
@@ -71,8 +70,8 @@ export function Notes() {
     ]
   });
 
-  // Use preloaded notes (JSON dump + live update)
-  const { data: allNotes, isLoading } = usePreloadedNotes();
+  // Use notes hook with Infinite Scroll
+  const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useNotes();
   const { ref, inView } = useInView({
     threshold: 0.1,
     rootMargin: '100px',
@@ -80,26 +79,25 @@ export function Notes() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAuthor, setSelectedAuthor] = useState<string | null>(null);
 
-  // Client-seitige Pagination (da wir alle Daten auf einmal haben)
-  const [page, setPage] = useState(1);
-  const PER_PAGE = 20;
-
+  // Fetch more notes when scroll trigger is visible
   useEffect(() => {
-    if (inView) setPage(prev => prev + 1);
-  }, [inView]);
+    console.log('👀 Notes Infinite Scroll Trigger:', {
+      inView,
+      hasNextPage,
+      isFetchingNextPage,
+      shouldFetch: inView && hasNextPage && !isFetchingNextPage
+    });
 
-  useEffect(() => {
-    setPage(1);
-  }, [searchQuery, selectedAuthor, country]);
+    if (inView && hasNextPage && !isFetchingNextPage) {
+      console.log('📥 Fetching next notes page...');
+      fetchNextPage();
+    }
+  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  // Alle Daten als flaches Array
-const data = allNotes || [];
-const hasNextPage = data.length > page * PER_PAGE;
-
-// Client-seitige Pagination: slice beim Seiten-Scroll
-const notes = useMemo(() => {
-  return data.slice(0, page * PER_PAGE);
-}, [data, page]);
+  // Flatten all pages
+  const notes = useMemo(() => {
+    return data?.pages.flat() || [];
+  }, [data]);
 
   // Filter notes by author, country and search query mit intelligenter Erkennung
   const filteredNotes = useMemo(() => {
@@ -233,10 +231,12 @@ const notes = useMemo(() => {
               {/* Infinite Scroll Loader */}
               {hasNextPage && (
                 <div ref={ref} className="py-8 flex justify-center">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    <span>Lade mehr Notes...</span>
-                  </div>
+                  {isFetchingNextPage && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      <span>Lade mehr Notes...</span>
+                    </div>
+                  )}
                 </div>
               )}
             </>
