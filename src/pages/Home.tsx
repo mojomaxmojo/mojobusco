@@ -4,18 +4,14 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { useLongformArticles, usePlaces, extractArticleMetadata } from '@/hooks/useLongformArticles';
-import { useNotes } from '@/hooks/useNotes';
-import { useNostr } from '@nostrify/react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { NOSTR_CONFIG } from '@/config/nostr';
+import { usePreloadedArticles, extractArticleMetadata } from '@/hooks/useLongformArticles';
+import { usePreloadedNotes, usePreloadedPlaces, usePreloadedMedia } from '@/hooks/usePreloadedData';
+import { useQueryClient } from '@tanstack/react-query';
 import { Compass, Sun, Anchor, RefreshCw } from 'lucide-react';
 import { lazy, Suspense } from 'react';
-import type { NostrEvent } from '@nostrify/nostrify';
 import { useTrips, type Trip } from '@/hooks/useTrips';
 import { getGalleryThumbnailUrl } from '@/lib/imageUtils';
 import { useHead } from '@unhead/react';
-import { DEFAULT_PERFORMANCE_CONFIG } from '@/config/performance';
 import { useToast } from '@/hooks/useToast';
 import type { ContentItem } from '@/components/ContentCard';
 
@@ -29,7 +25,6 @@ function extractFirstImageUrl(content: string): string | null {
 }
 
 export function Home() {
-  const { nostr } = useNostr();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -70,18 +65,18 @@ export function Home() {
         description: 'Lade frische Daten von Nostr',
       });
 
-      // Invalidiere alle relevanten Queries
+      // Invalidiere alle relevanten Queries (preloaded + live-updates)
       await queryClient.invalidateQueries({
-        queryKey: ['longform-articles'],
+        queryKey: ['preloaded', 'articles'],
       });
       await queryClient.invalidateQueries({
-        queryKey: ['places'],
+        queryKey: ['preloaded', 'notes'],
       });
       await queryClient.invalidateQueries({
-        queryKey: ['home-notes'],
+        queryKey: ['preloaded', 'places'],
       });
       await queryClient.invalidateQueries({
-        queryKey: ['home-media'],
+        queryKey: ['preloaded', 'bilder'],
       });
 
       toast({
@@ -97,70 +92,13 @@ export function Home() {
     }
   };
 
-  const { data: articles, isLoading: articlesLoading } = useLongformArticles({
-    kinds: [30023],
-    limit: 15, // Optimiert für Home-Seite (nur 6 Elemente werden angezeigt)
-  });
-
-  const { data: places, isLoading: placesLoading } = usePlaces({
-    limit: 15, // Optimiert für Home-Seite (nur 6 Elemente werden angezeigt)
-  });
-
-  const { data: noteEvents = [] } = useQuery({
-    queryKey: ['home-notes', NOSTR_CONFIG.authorPubkeys],
-    queryFn: async ({ signal }) => {
-      const events = await nostr.query([
-        {
-          kinds: [NOSTR_CONFIG.kinds.note],
-          authors: NOSTR_CONFIG.authorPubkeys,
-          '#t': ['note', 'notiz'],
-          limit: 15, // Optimiert für Home-Seite (nur 6 Elemente werden angezeigt)
-        }
-      ], { signal: AbortSignal.any([signal!, AbortSignal.timeout(DEFAULT_PERFORMANCE_CONFIG.relay.queryTimeout)]) });
-      return events;
-    },
-    staleTime: DEFAULT_PERFORMANCE_CONFIG.cache.staleTime,
-  });
-
+  // ── PRELOADED DATA: JSON-Dumps (50ms) + Live-Update im Hintergrund ──
+  const { data: articles, isLoading: articlesLoading } = usePreloadedArticles();
+  const { data: places, isLoading: placesLoading } = usePreloadedPlaces();
+  const { data: noteEvents = [] } = usePreloadedNotes();
+  const { data: imageEvents = [] } = usePreloadedMedia();
   const tripsQuery = useTrips();
   const { data: tripsData = [] } = tripsQuery;
-  const { data: imageEvents = [] } = useQuery({
-    queryKey: ['home-media', NOSTR_CONFIG.authorPubkeys],
-    queryFn: async ({ signal }) => {
-      const events = await nostr.query([
-        {
-          kinds: [1, 30023], // Text notes und longform articles
-          authors: NOSTR_CONFIG.authorPubkeys,
-          '#t': ['medien', 'media', 'bilder', 'images'],
-          limit: 15, // Optimiert für Home-Seite (nur 6 Elemente werden angezeigt)
-        }
-      ], { signal: AbortSignal.any([signal!, AbortSignal.timeout(DEFAULT_PERFORMANCE_CONFIG.relay.queryTimeout)]) }); // Aus Performance-Konfiguration
-
-      console.log('[Home Page] Image Events Query:', {
-        total: events.length,
-        limit: 15,
-        timeout: DEFAULT_PERFORMANCE_CONFIG.relay.queryTimeout,
-        optimization: 'Home-Spezifisches Limit (vorher 100 Events)',
-      });
-
-      return events.filter((event) => {
-        const content = event.content.toLowerCase();
-        return content.includes('.jpg') ||
-               content.includes('.jpeg') ||
-               content.includes('.png') ||
-               content.includes('.gif') ||
-               content.includes('.webp') ||
-               content.includes('imgur.com') ||
-               content.includes('i.imgur.com') ||
-               content.includes('cdn.blossom') ||
-               content.includes('nostr.build') ||
-               content.includes('relay.mojobus.co') ||
-               content.includes('relays.mojobus.co') ||
-               content.includes('blossom.primal.net');
-      });
-    },
-    staleTime: DEFAULT_PERFORMANCE_CONFIG.cache.staleTime,
-  });
 
   const isLoading = articlesLoading || placesLoading || tripsQuery.isLoading;
 
