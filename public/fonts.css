@@ -5,7 +5,7 @@
   font-style: normal;
   font-weight: 400;
   font-display: optional;
-  src: url('./fonts/public-sans-400.ttf') format('truetype');
+  src: url('./fonts/public-sans-400.woff2') format('woff2');
 }
 
 @font-face {
@@ -13,7 +13,7 @@
   font-style: normal;
   font-weight: 700;
   font-display: optional;
-  src: url('./fonts/public-sans-700.ttf') format('truetype');
+  src: url('./fonts/public-sans-700.woff2') format('woff2');
 }
 
 /* Self-hosted Playfair Display Font — NUR Headline-Gewichte */
@@ -22,7 +22,7 @@
   font-style: normal;
   font-weight: 400;
   font-display: optional;
-  src: url('./fonts/playfair-display-regular.ttf') format('truetype');
+  src: url('./fonts/playfair-display-regular.woff2') format('woff2');
 }
 
 @font-face {
@@ -30,7 +30,7 @@
   font-style: italic;
   font-weight: 400;
   font-display: optional;
-  src: url('./fonts/playfair-display-italic.ttf') format('truetype');
+  src: url('./fonts/playfair-display-italic.woff2') format('woff2');
 }
 
 @font-face {
@@ -38,5 +38,5 @@
   font-style: normal;
   font-weight: 700;
   font-display: optional;
-  src: url('./fonts/playfair-display-700.ttf') format('truetype');
+  src: url('./fonts/playfair-display-700.woff2') format('woff2');
 }
