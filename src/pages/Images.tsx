@@ -194,53 +194,7 @@ function Images() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen py-12">
-        <div className="container mx-auto px-4">
-          <div className="max-w-6xl mx-auto space-y-8">
-            <div className="text-center space-y-4">
-              <h1 className="text-4xl md:text-5xl font-bold">
-                <span className="flex items-center justify-center gap-3">
-                  <Camera className="h-10 w-10 text-red-600" />
-                  Fehler beim Laden
-                </span>
-              </h1>
-              <p className="text-lg text-muted-foreground">
-                Es ist ein Fehler aufgetreten beim Laden der Bilder.
-              </p>
-            </div>
-            <div className="col-span-full">
-              <Card className="border-dashed border-red-200 dark:border-red-900">
-                <CardContent className="py-12 px-8 text-center">
-                  <div className="max-w-sm mx-auto space-y-6">
-                    <div className="text-6xl mb-4">⚠️</div>
-                    <h2 className="text-2xl font-semibold text-red-600 dark:text-red-400 mb-4">
-                      Verbindungsfehler
-                    </h2>
-                    <p className="text-gray-600 dark:text-gray-400 mb-4">
-                      Die Verbindung zum Relay konnte nicht hergestellt werden oder ein Fehler ist aufgetreten.
-                    </p>
-                    <div className="flex flex-col gap-2">
-                      <Button onClick={() => window.location.reload()} className="w-full">
-                        🔄 Seite neu laden
-                      </Button>
-                      <RelaySelector className="w-full" />
-                      <Link to="/bilder">
-                        <Button variant="outline" className="w-full">
-                          Zurück zur Übersicht
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  {/* error-Block entfernt – usePreloadedData hat eigenes Fehler-Handling */}
 
   if (!events || events.length === 0) {
     return (
