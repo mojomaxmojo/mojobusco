@@ -184,7 +184,7 @@ const generateWithModel = async (prompt, model = 'llama4', lifestyle = 'mojobus'
       }
 
       const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
-        model: 'anthropic/claude-sonnet',
+        model: '~anthropic/claude-sonnet-latest',
         max_tokens: maxTokens,
         temperature,
         messages: [
