@@ -6,7 +6,7 @@
 // ============================================================================
 // CACHE-KONFIGURATION
 // ============================================================================
-const CACHE_VERSION = 17; // Cache Version erhöhen (war 16, jetzt 17) - Publish lazy split
+const CACHE_VERSION = 18; // Cache Version erhöhen (war 17, jetzt 18) - staleWhileRevalidate für /data/ JSON-Dumps
 const CACHE_NAME = `mojobus-v${CACHE_VERSION}`; // Version aus Konfiguration
 
 // Cache-Zeiten (in Sekunden)
@@ -244,7 +244,18 @@ if (url.pathname.startsWith('/assets/')) {
   return;
 }
 
-// 2b. 🚀 CACHE-FIRST für Prerender (statische SEO-Seiten)
+// 2b. 🚀 STALE-WHILE-REVALIDATE für statische JSON-Dumps (/data/)
+// Täglich per Cron aktualisiert (generate-site-data.js)
+// Strategie: Sofort aus SW-Cache ausliefern, im Hintergrund aktualisieren
+// → Erster Besuch: Netzwerk-Fetch + in Cache legen (~200ms)
+// → Jeder weitere Besuch: sofort aus Cache (0ms) + Hintergrund-Update
+// → Offline: letzter bekannter Stand verfügbar
+if (url.pathname.startsWith('/data/')) {
+  event.respondWith(staleWhileRevalidate(request));
+  return;
+}
+
+// 2c. 🚀 CACHE-FIRST für Prerender (statische SEO-Seiten)
 // Prerender-Dateien werden täglich per Cron aktualisiert
 // Bei Treffer: sofort ausliefern (kein Relay-Query nötig!)
 // Bei Fehler: Fallback zu networkFirst (normale SPA-Ladung)
