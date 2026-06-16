@@ -237,10 +237,35 @@ cat src/config/authors.json | jq '.authors[] | {name, pubkey, nip05}'
 - **caption-improvements-v2** – Bildunterschriften (alter Stand)
 
 ## ⚠️ Bekannte Einschränkungen / Hinweise
-
-
-  ```
 - **Relay primal.net**: Liefert bei `generate-site-data.js` konsistent 0 Events (Timeout). Nur `relay.mojobus.co` ist produktiv. Der 20s-Timeout für primal läuft immer voll durch → Cron dauert ~40s statt ~20s.
 - **SW Cache-Version**: Wird bei jedem Deploy automatisch erhöht durch `bump_sw_version()` in `deploy-main.sh`. Aktuelle Version: **v19**.
 - **JSON-Dumps ohne content**: Artikel/Plätze haben keinen `content` in den JSON-Dumps. Detailseiten (`ArticleView`, `NoteView`) laden immer direkt vom Relay. Notes/Bilder haben max. 200 Zeichen `content` für Vorschautext.
 - **Live-Query-Aktivierung**: `usePreloadedData` startet den Live-Relay-Query erst wenn `cronTimestamp` aus `index.json` geladen ist. Fehlt `index.json`, greift der Fallback auf eine pure Live-Query.
+
+## 📋 Changelog – Änderungen 16.06.2026
+
+### AGENTS.md aktualisiert
+- MojoBus-spezifischer Header ergänzt (Tech-Stack, Tabu-Zonen, Config-Regel, VPS Deploy)
+- Verweis auf `MOJOBUS_CONTEXT.md` für jede neue Session
+
+### Claude-Modell auf OpenRouter umgestellt
+- **Betroffene Dateien**: `server/promotion-api.js`, `server/server.js`
+- **Endpoint**: `api.anthropic.com` → `openrouter.ai/api/v1/chat/completions`
+- **Modell**: `claude-sonnet-4-20250514` → `~anthropic/claude-sonnet-latest`
+- **Auth**: `ANTHROPIC_API_KEY` → `OPENROUTER_API_KEY` (bereits konfiguriert ✓)
+- **Response-Format**: `content[0].text` → `choices[0].message.content` (OpenAI-kompatibel)
+- **Grund**: Anthropic-Modellname `claude-sonnet-4-20250514` wurde von Anthropic deprecated
+
+### Fix: /bilder Filter (Images.tsx)
+- **Problem**: `liveFilter` holte `kinds: [1, 30023]`. Kind-30023 Artikel enthielten Bild-URLs im Markdown-Content, wurden fälschlich als Bilder angezeigt → 297 statt ~60 Einträge
+- **Fix**: `liveFilter` auf `kinds: [1]` reduziert, kind:30023 explizit ausgeschlossen, bessere Filterlogik (type=media Tag + Content-Längen-Prüfung)
+- **Commit**: 5384e99
+
+### Entfernt: alte .ttf Font-Dateien
+- **Betroffene Dateien**: `public/fonts/playfair-display-regular.ttf` (189 KB), `public/fonts/playfair-display-italic.ttf` (178 KB), `public/fonts/playfair-display-700.ttf` (194 KB)
+- **Grund**: GTmetrix zählte TTF als 3. Font → Score 50/100 für Webfonts. Nur `.woff2` werden von `fonts.css` referenziert
+- **Commit**: cfa8d5b
+
+### Bekannte Baustellen (heute diagnostiziert, nicht behoben)
+- **413 Payload Too Large**: Bilder >20MB werden von Nginx/Multer abgewiesen. Multer-Limit ist 20MB pro Datei. Bild-Komprimierung im Frontend (Canvas-Resize auf max 1920px, JPEG 85%) ist vorgesehen
+- **Groq API Key**: War abgelaufen (`expired_api_key`). Neuer Key musste unter https://console.groq.com/keys erstellt werden
