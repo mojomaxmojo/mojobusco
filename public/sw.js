@@ -6,7 +6,7 @@
 // ============================================================================
 // CACHE-KONFIGURATION
 // ============================================================================
-const CACHE_VERSION = 18; // Cache Version erhöhen (war 17, jetzt 18) - staleWhileRevalidate für /data/ JSON-Dumps
+const CACHE_VERSION = 19; // Cache Version erhöhen (war 18, jetzt 19) - staleWhileRevalidate NetworkError Fix
 const CACHE_NAME = `mojobus-v${CACHE_VERSION}`; // Version aus Konfiguration
 
 // Cache-Zeiten (in Sekunden)
@@ -90,30 +90,48 @@ async function networkFirst(request) {
 /**
  * Stale-While-Revalidate Strategie
  * Liefert sofort aus Cache, aktualisiert im Hintergrund
- * Für dynamische Inhalte (HTML-Seiten)
+ * Für dynamische Inhalte (HTML-Seiten) und /data/ JSON-Dumps
+ *
+ * Fixes:
+ * - Hintergrund-Fetch wird nur gecacht wenn networkResponse.ok (kein 404/500 im Cache)
+ * - Unhandled rejection verhindert: fetchPromise Fehler werden immer abgefangen
+ * - NetworkError (offline) führt nicht zum Absturz – cachedResponse oder 503 Fallback
  */
 async function staleWhileRevalidate(request) {
   const cache = await caches.open(CACHE_NAME);
   const cachedResponse = await cache.match(request);
 
-  const fetchPromise = fetch(request).then(networkResponse => {
-    cache.put(request, networkResponse.clone());
-    return networkResponse;
-  }).catch(error => {
-    console.log('[Service Worker] Fetch error:', error);
-    return cachedResponse || new Response('Offline - Keine Verbindung', {
-      status: 503,
-      statusText: 'Service Unavailable',
-      headers: new Headers({
-        'Content-Type': 'text/plain'
-      })
+  // Hintergrund-Fetch: immer starten, Fehler aber nie nach außen werfen
+  const fetchPromise = fetch(request)
+    .then(networkResponse => {
+      // Nur valide Antworten cachen (kein 404, 500 etc.)
+      if (networkResponse.ok) {
+        cache.put(request, networkResponse.clone());
+      }
+      return networkResponse;
+    })
+    .catch(error => {
+      // NetworkError (offline, DNS-Fehler, etc.) – still abfangen
+      console.log('[Service Worker] staleWhileRevalidate fetch error:', error.message || error);
+      // Fallback: letzter Cache-Stand oder 503
+      return cachedResponse
+        ? cachedResponse.clone()
+        : new Response(JSON.stringify({ error: 'Offline - Keine Verbindung' }), {
+            status: 503,
+            statusText: 'Service Unavailable',
+            headers: new Headers({ 'Content-Type': 'application/json' })
+          });
     });
-  });
 
+  // Cache-Treffer: sofort zurückgeben, Hintergrund-Fetch läuft weiter
   if (cachedResponse) {
+    // fetchPromise läuft im Hintergrund – Fehler explizit abfangen
+    // damit kein unhandled rejection entsteht
+    fetchPromise.catch(() => { /* bereits im .catch oben behandelt */ });
     return cachedResponse;
   }
 
+  // Kein Cache: auf Netzwerk warten
   return fetchPromise;
 }
 
