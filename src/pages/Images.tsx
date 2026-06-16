@@ -68,7 +68,7 @@ function Images() {
   const { data: allImageEvents, isLoading } = usePreloadedData<ImageEvent>({
     name: 'bilder',
     liveFilter: {
-      kinds: [1, 30023],
+      kinds: [1],
       authors: NOSTR_CONFIG.authorPubkeys,
     },
     liveTimeout: 6000,
@@ -79,26 +79,20 @@ function Images() {
     if (!allImageEvents?.length) return [];
 
     const imageEvents = allImageEvents.filter((event: ImageEvent) => {
+      // kind:30023 sind Artikel – niemals auf der Bilder-Seite anzeigen
+      if (event.kind === 30023) return false;
+
+      // kind:1 mit type=media Tag → definitiv ein Medien-Post
       const hasMediaType = event.tags.some(tag => tag[0] === 'type' && tag[1] === 'media');
-      const content = (event.content || '').toLowerCase();
-      const hasImageUrls = content.includes('.jpg') ||
-             content.includes('.jpeg') ||
-             content.includes('.png') ||
-             content.includes('.gif') ||
-             content.includes('.webp') ||
-             content.includes('.mp4') ||
-             content.includes('.webm') ||
-             content.includes('.mov') ||
-             content.includes('.avi') ||
-             content.includes('.mkv') ||
-             content.includes('imgur.com') ||
-             content.includes('i.imgur.com') ||
-             content.includes('cdn.blossom') ||
-             content.includes('nostr.build') ||
-             content.includes('relay.mojobus.co') ||
-             content.includes('relays.mojobus.co') ||
-             content.includes('blossom.primal.net');
-      return hasMediaType || hasImageUrls;
+      if (hasMediaType) return true;
+
+      // kind:1 ohne type=media: nur zeigen wenn Content ausschließlich aus
+      // Bild/Video-URLs besteht (kein langer Text = kein Note/Artikel)
+      const content = (event.content || '').trim();
+      const hasImageUrls = /https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|mp4|webm|mov|avi|mkv)(\?[^\s]*)?/i.test(content);
+      const isMostlyMedia = hasImageUrls && content.length < 2000;
+
+      return isMostlyMedia;
     });
 
     if (currentCountry) {
