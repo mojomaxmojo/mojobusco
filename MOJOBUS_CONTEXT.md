@@ -238,12 +238,7 @@ cat src/config/authors.json | jq '.authors[] | {name, pubkey, nip05}'
 
 ## ⚠️ Bekannte Einschränkungen / Hinweise
 
-- **Shakespeare Push**: `git push` von der Shakespeare-Plattform aus schlägt fehl (NetworkError). Commits lokal vorhanden, müssen von CachyOS gepusht werden:
-  ```bash
-  # Auf CachyOS:
-  cd ~/Mojobus-APK/mojobusco
-  git fetch origin && git merge origin/main
-  git push origin main
+
   ```
 - **Relay primal.net**: Liefert bei `generate-site-data.js` konsistent 0 Events (Timeout). Nur `relay.mojobus.co` ist produktiv. Der 20s-Timeout für primal läuft immer voll durch → Cron dauert ~40s statt ~20s.
 - **SW Cache-Version**: Wird bei jedem Deploy automatisch erhöht durch `bump_sw_version()` in `deploy-main.sh`. Aktuelle Version: **v19**.

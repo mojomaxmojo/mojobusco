@@ -1,6 +1,41 @@
-# Project Overview
+# MojoBus – AGENTS.md
 
-This project is a Nostr client application built with React 18.x, TailwindCSS 3.x, Vite, shadcn/ui, and Nostrify.
+> **WICHTIG**: Dieser AGENTS.md enthält projektspezifische Regeln für MojoBus.  
+> Der vollständige Session-Kontext (Architektur, Deploy, GPS-Fix, Performance-Optimierungen, Branches) liegt in:  
+> **`MOJOBUS_CONTEXT.md`** – bitte zu Beginn jeder Session einlesen!
+
+## MojoBus Projekt-Spezifika
+
+### Tech-Stack (Override)
+- **React 19** (nicht 18.x), **Vite 6**, **Tailwind CSS 3**, **shadcn/ui**
+- **Nostrify** (`@nostrify/nostrify@^0.46.4`) für Nostr-Client
+- **Capacitor 8** für Android APK (`co.mojobus.app`)
+- **Blossom** für Medien-Storage, **kein eigener API-Server** (außer `server/` → ai-api)
+
+### ⛔ Absolut Tabu – Niemals ändern
+| Pfad | Grund |
+|------|-------|
+| `src/config/prompts/` | KI-Prompt-Konfiguration (Browser + Node.js). Änderungen zerstören KI-Content-Erstellung |
+| `server/` | Node.js Backend (Systemd-Service `ai-api`, Port 3002). Nur mit separatem Deploy ändern |
+
+### Config-Regel
+**Alle neuen Konfigurationen gehören nach `src/config/`** – niemals hartcodierte Werte im Quellcode.  
+Autoren-Daten immer nur in `src/config/authors.json` (Single Source of Truth) ändern.
+
+### VPS Deploy
+```bash
+ssh root@server && cd /root/deploy-git/mojobusco
+bash deploy-main.sh --force
+node scripts/generate-site-data.js  # Nach erstem Deploy!
+```
+Server: AlmaLinux 9.7 (CentminMod), Nginx, Node.js, Brotli  
+Domain: https://mojobus.co | Relay: wss://relay.mojobus.co
+
+---
+
+# Nostr Client (Basis-Framework)
+
+This project is a Nostr client application built with React 19, TailwindCSS 3.x, Vite 6, shadcn/ui, and Nostrify.
 
 ## Technology Stack
 
