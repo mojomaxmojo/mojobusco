@@ -149,29 +149,32 @@ const generateWithKi = async (prompt, systemPrompt, model = 'llama4', maxTokens 
 
   try {
     if (model === 'claude') {
-      // Claude Sonnet (Anthropic)
-      if (!process.env.ANTHROPIC_API_KEY) {
-        throw new Error('ANTHROPIC_API_KEY fehlt')
+      // Claude Sonnet über OpenRouter
+      if (!process.env.OPENROUTER_API_KEY) {
+        throw new Error('OPENROUTER_API_KEY fehlt')
       }
 
-      const response = await axios.post('https://api.anthropic.com/v1/messages', {
-        model: 'claude-sonnet-latest',
+      const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
+        model: 'anthropic/claude-sonnet',
         max_tokens: maxTokens,
         temperature,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: prompt }]
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: prompt }
+        ]
       }, {
         headers: {
-          'x-api-key': process.env.ANTHROPIC_API_KEY,
-          'anthropic-version': '2023-06-01',
+          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          'HTTP-Referer': 'https://mojobus.co',
+          'X-Title': 'MojoBus',
           'Content-Type': 'application/json'
         },
         timeout: 60000
       })
 
       const duration = Date.now() - startTime
-      console.log(`[Promotion] Claude generiert in ${duration}ms`)
-      return response.data.content[0].text
+      console.log(`[Promotion] Claude via OpenRouter generiert in ${duration}ms`)
+      return response.data.choices[0].message.content
 
     } else {
       // Llama 4 Scout (Groq) - Standard
@@ -696,7 +699,7 @@ AUSGABE: Antworte IMMER NUR mit validem JSON. Keine Markdown-Code-Blöcke. Keine
       storyTag: storyTagBerechnet,
       pinData: {
         template,
-        model: model === 'claude' ? 'claude-sonnet-latest' : 'llama-4-scout',
+        model: model === 'claude' ? 'claude-sonnet (OpenRouter)' : 'llama-4-scout',
         ...pinData
       }
     })

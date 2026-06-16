@@ -178,29 +178,35 @@ const generateWithModel = async (prompt, model = 'llama4', lifestyle = 'mojobus'
 
   try {
     if (model === 'claude') {
-      // Claude Sonnet (Anthropic)
-      if (!process.env.ANTHROPIC_API_KEY) {
-        throw new Error('ANTHROPIC_API_KEY fehlt')
+      // Claude Sonnet über OpenRouter
+      if (!process.env.OPENROUTER_API_KEY) {
+        throw new Error('OPENROUTER_API_KEY fehlt')
       }
 
-      const response = await axios.post('https://api.anthropic.com/v1/messages', {
-        model: 'claude-sonnet-4-6',
+      const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
+        model: 'anthropic/claude-sonnet',
         max_tokens: maxTokens,
         temperature,
-        system: `Du schreibst wie Foster Huntington. Erste Person. Kurze Sätze. Keine Überschriften, kein Fettdruck, keine Listen. Keine Leseransprache, keine Tipps, keine Ausrufezeichen.`,
-        messages: [{ role: 'user', content: prompt }]
+        messages: [
+          {
+            role: 'system',
+            content: `Du schreibst wie Foster Huntington. Erste Person. Kurze Sätze. Keine Überschriften, kein Fettdruck, keine Listen. Keine Leseransprache, keine Tipps, keine Ausrufezeichen.`
+          },
+          { role: 'user', content: prompt }
+        ]
       }, {
         headers: {
-          'x-api-key': process.env.ANTHROPIC_API_KEY,
-          'anthropic-version': '2023-06-01',
+          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          'HTTP-Referer': 'https://mojobus.co',
+          'X-Title': 'MojoBus',
           'Content-Type': 'application/json'
         },
         timeout: 60000
       })
 
       const duration = Date.now() - startTime
-      console.log(`[KI] Claude Sonnet generiert in ${duration}ms (maxTokens: ${maxTokens})`)
-      return response.data.content[0].text
+      console.log(`[KI] Claude via OpenRouter generiert in ${duration}ms (maxTokens: ${maxTokens})`)
+      return response.data.choices[0].message.content
 
     } else {
       // Llama 4 Scout (Groq) - Standard
