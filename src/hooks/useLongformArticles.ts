@@ -306,41 +306,33 @@ export function useInfiniteLongformArticles(options?: {
 
 /**
  * Hook zum Laden von Plätzen (nur Events mit type=place oder #t place)
+ *
+ * 🚀 PERFORMANCE: Hybrid-Ansatz – /data/places.json sofort, Relay nur für neue Events
  */
-export function usePlaces(options?: { limit?: number }) {
-  const { nostr } = useNostr();
-
-  return useQuery({
-    queryKey: ['places', NOSTR_CONFIG.authorPubkeys, options?.limit],
-    queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(DEFAULT_PERFORMANCE_CONFIG.relay.queryTimeout * 2.5)]);
-
-      const events = await nostr.query(
-        [
-          {
-            kinds: [NOSTR_CONFIG.kinds.longform],
-            authors: NOSTR_CONFIG.authorPubkeys,
-            limit: options?.limit || DEFAULT_PERFORMANCE_CONFIG.infiniteScroll.itemsPerPage * 4,
-          },
-        ],
-        { signal }
-      );
-
-      // Validiere und filtere Plätze
-      const validPlaces = events.filter(event => {
-        const isValid = validateLongformArticle(event);
-        const isPlace = isPlaceEvent(event);
-        return isValid && isPlace;
-      });
-
-      // Sortiere nach Datum (neueste zuerst)
-      return validPlaces.sort((a, b) => b.created_at - a.created_at);
+export function usePlaces(_options?: { limit?: number }) {
+  const result = usePreloadedData<NostrEvent>({
+    name: 'places',
+    liveFilter: {
+      kinds: [NOSTR_CONFIG.kinds.longform],
+      authors: NOSTR_CONFIG.authorPubkeys,
     },
-    staleTime: DEFAULT_CACHE_CONFIG.lists.staleTime, // 24 Stunden
-    gcTime: DEFAULT_CACHE_CONFIG.lists.gcTime, // 3 Tage
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    liveTimeout: 6000,
+    transformEvent: (event) => {
+      if (!validateLongformArticle(event)) return null;
+      if (!isPlaceEvent(event)) return null;
+      return event;
+    },
   });
+
+  const sortedData = useMemo(() => {
+    if (!result.data?.length) return [];
+    return [...result.data].sort((a, b) => b.created_at - a.created_at);
+  }, [result.data]);
+
+  return {
+    ...result,
+    data: sortedData,
+  };
 }
 
 /**

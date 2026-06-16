@@ -117,7 +117,7 @@ export function Notes() {
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(note => {
-        const content = note.content.toLowerCase();
+        const content = (note.content || '').toLowerCase();
         const tags = extractNoteTags(note);
 
         return (

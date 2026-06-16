@@ -1,73 +1,70 @@
+import { useMemo, useState, useEffect } from 'react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useNostr } from '@/hooks/useNostr';
+import { usePreloadedData } from '@/hooks/usePreloadedData';
 import { NOSTR_CONFIG } from '@/config/nostr';
 import { DEFAULT_CACHE_CONFIG } from '@/config/cache';
-import { getValidAuthorPubkeys } from '@/lib/authors';
 import type { NostrEvent } from '@nostrify/nostrify';
 
 /**
- * Hook zum Laden von Notes mit Infinite Scroll
- * Filtert nur Notes mit #t note oder #t notiz Tags
+ * Hook zum Laden von Notes
+ *
+ * Performance-Strategie (umgestellt von pure Relay → Hybrid):
+ * 1. Lädt /data/notes.json sofort (~100ms, aus SW-Cache bei Wiederholungsbesuch: 0ms)
+ * 2. Live-Update im Hintergrund: nur Events neuer als letzter Cron-Lauf
+ * 3. Fallback auf pure Relay-Query wenn notes.json nicht existiert
+ *
+ * Interface-kompatibel zu vorher: gibt {data, isLoading, hasNextPage, fetchNextPage,
+ * isFetchingNextPage} zurück, damit Notes.tsx unverändert bleibt.
+ *
+ * Infinite Scroll: clientseitig via visibleCount (kein Relay-Paging nötig,
+ * da alle Notes aus JSON geladen werden).
  */
 export function useNotes() {
-  const { nostr } = useNostr();
+  const [visibleCount, setVisibleCount] = useState(30);
 
-  return useInfiniteQuery({
-    queryKey: ['notes', NOSTR_CONFIG.authorPubkeys],
-    queryFn: async ({ pageParam, signal }) => {
-      const filter: any = {
-        kinds: [NOSTR_CONFIG.kinds.note],
-        '#t': ['note', 'notiz'], // Nur Notes mit #t note oder #t notiz
-        limit: 30, // Reduziert - Relays geben oft mehr zurück als angefordert
-        authors: NOSTR_CONFIG.authorPubkeys,
-      };
-
-      if (pageParam) {
-        filter.until = pageParam;
-        console.log('🔄 Notes Infinite Scroll: Fetching next page', { until: pageParam });
-      } else {
-        console.log('📄 Notes Infinite Scroll: Fetching first page');
-      }
-
-      const events = await nostr.query([filter], {
-        signal: AbortSignal.any([signal, AbortSignal.timeout(5000)]),
-      });
-
-      console.log('📦 Notes Infinite Scroll: Received', events.length, 'events from relay (limit was 30)');
-
-      // Wenn der Relay zu viele Events zurückgibt, auf max 30 pro Seite beschränken
-      const MAX_PER_PAGE = 30;
-      const paginatedEvents = events.slice(0, MAX_PER_PAGE);
-
-      if (events.length > MAX_PER_PAGE) {
-        console.log(`⚠️ Notes Infinite Scroll: Limiting to ${MAX_PER_PAGE} notes (received ${events.length})`);
-      }
-
-      return paginatedEvents;
+  const { data: allNotes, isLoading } = usePreloadedData<NostrEvent>({
+    name: 'notes',
+    liveFilter: {
+      kinds: [NOSTR_CONFIG.kinds.note],
+      authors: NOSTR_CONFIG.authorPubkeys,
     },
-    getNextPageParam: (lastPage) => {
-      if (lastPage.length === 0) {
-        console.log('🚫 Notes Infinite Scroll: No more notes (empty page)');
-        return undefined;
-      }
-
-      const lastCreated = lastPage[lastPage.length - 1].created_at;
-      const nextPageParam = lastCreated - 1;
-
-      console.log('➡️ Notes Infinite Scroll: Next page param', {
-        lastPageLength: lastPage.length,
-        lastCreated,
-        nextPageParam
-      });
-
-      return nextPageParam;
+    liveTimeout: 6000,
+    // Nur Notes mit #t note oder #t notiz filtern
+    transformEvent: (event: NostrEvent) => {
+      const tags = event.tags?.filter(t => t[0] === 't').map(t => t[1]) || [];
+      const isNote = tags.some(t => ['note', 'notiz'].includes(t));
+      return isNote ? event : null;
     },
-    initialPageParam: undefined,
-    staleTime: DEFAULT_CACHE_CONFIG.lists.staleTime, // 24 小时
-    gcTime: DEFAULT_CACHE_CONFIG.lists.gcTime, // 3 天
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
   });
+
+  // Sortiert nach Datum (neueste zuerst)
+  const sortedNotes = useMemo(() => {
+    if (!allNotes?.length) return [];
+    return [...allNotes].sort((a, b) => b.created_at - a.created_at);
+  }, [allNotes]);
+
+  // Clientseitiges Infinite Scroll: sichtbare Seite simulieren
+  const visibleNotes = useMemo(() => sortedNotes.slice(0, visibleCount), [sortedNotes, visibleCount]);
+  const hasNextPage = visibleCount < sortedNotes.length;
+
+  const fetchNextPage = () => {
+    setVisibleCount(prev => prev + 30);
+  };
+
+  // visibleCount zurücksetzen wenn neue Daten kommen
+  useEffect(() => {
+    setVisibleCount(30);
+  }, [allNotes?.length]);
+
+  // Kompatibilitäts-Interface wie useInfiniteQuery (Notes.tsx bleibt unverändert)
+  return {
+    data: { pages: [visibleNotes] },
+    isLoading,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage: false,
+  };
 }
 
 /**

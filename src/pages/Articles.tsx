@@ -90,11 +90,10 @@ function Articles() {
           return false;
         }
 
-        // Search filter (case-insensitive for tags)
+        // Search filter (content nicht mehr in JSON-Dumps – Titel/Summary/Tags reichen)
         return (
           metadata.title.toLowerCase().includes(query) ||
           metadata.summary.toLowerCase().includes(query) ||
-          metadata.content.toLowerCase().includes(query) ||
           metadata.tags.some(tag => tag.toLowerCase().includes(query))
         );
       });

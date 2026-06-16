@@ -1,5 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
-import { useNostr } from '@nostrify/react';
+import { usePreloadedData } from '@/hooks/usePreloadedData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
@@ -18,7 +17,6 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrDelete } from '@/hooks/useNostrDelete';
 import { useToast } from '@/hooks/useToast';
 import { generateSrcset, generateSizes, getGalleryThumbnailUrl, getImagePlaceholder } from '@/lib/imageUtils';
-import { useState, useMemo, memo, useEffect, useRef } from 'react';
 import { nip19 } from 'nostr-tools';
 import {
   AlertDialog,
@@ -34,7 +32,7 @@ import {
 // @ts-nocheck
 // @ts-ignore
 import { useHead } from '@unhead/react';
-import { DEFAULT_PERFORMANCE_CONFIG } from '@/config/performance';
+
 
 interface ImageEvent {
   id: string;
@@ -66,85 +64,64 @@ function Images() {
   const isNatureRoute = location.pathname.includes('/bilder/natur/');
   const natureCategory = isNatureRoute && country ? country : null;
 
-  const { nostr } = useNostr();
-
-  const { data: events, isLoading, error } = useQuery({
-    queryKey: ['images', country],
-    staleTime: DEFAULT_PERFORMANCE_CONFIG.cache.staleTime,
-    gcTime: DEFAULT_PERFORMANCE_CONFIG.cache.gcTime,
-    queryFn: async ({ signal }) => {
-      const abortSignal = AbortSignal.any([signal, AbortSignal.timeout(DEFAULT_PERFORMANCE_CONFIG.relay.queryTimeout)]);
-
-      const allEvents = await nostr.query([
-        {
-          kinds: [1, 30023],
-          authors: NOSTR_CONFIG.authorPubkeys,
-          '#t': ['medien', 'media', 'bilder', 'images'],
-          limit: DEFAULT_PERFORMANCE_CONFIG.relay.maxEventsPerBatch,
-        }
-      ], { signal: abortSignal });
-
-      console.log('[Images Page] Image Events Query:', {
-        total: allEvents.length,
-        country,
-      });
-
-      const imageEvents = allEvents.filter((event: ImageEvent) => {
-        const hasMediaType = event.tags.some(tag => tag[0] === 'type' && tag[1] === 'media');
-        const content = event.content.toLowerCase();
-        const hasImageUrls = content.includes('.jpg') ||
-               content.includes('.jpeg') ||
-               content.includes('.png') ||
-               content.includes('.gif') ||
-               content.includes('.webp') ||
-               content.includes('.mp4') ||
-               content.includes('.webm') ||
-               content.includes('.mov') ||
-               content.includes('.avi') ||
-               content.includes('.mkv') ||
-               content.includes('imgur.com') ||
-               content.includes('i.imgur.com') ||
-               content.includes('cdn.blossom') ||
-               content.includes('nostr.build') ||
-               content.includes('relay.mojobus.co') ||
-               content.includes('relays.mojobus.co') ||
-               content.includes('blossom.primal.net');
-        return hasMediaType || hasImageUrls;
-      });
-
-      if (currentCountry) {
-        return filterEventsByCountry(imageEvents, country);
-      }
-
-      if (isNatureRoute && natureCategory) {
-        const natureFiltered = imageEvents.filter((event: ImageEvent) => {
-          const hasNatureTag = event.tags.some(tag => tag[0] === 't' && tag[1] === natureCategory);
-          const categoryConfig = MAIN_MENU.nature[natureCategory as keyof typeof MAIN_MENU.nature];
-          if (categoryConfig && categoryConfig.tags) {
-            const hasRelatedTag = event.tags.some(tag =>
-              tag[0] === 't' &&
-              (categoryConfig.tags.primary.includes(tag[1]) || categoryConfig.tags.secondary.includes(tag[1]))
-            );
-            return hasNatureTag || hasRelatedTag;
-          }
-          return hasNatureTag;
-        });
-        console.log('[Images Page] Gefiltert nach Natur-Kategorie:', { natureCategory, result: natureFiltered.length });
-        return natureFiltered;
-      }
-
-      const sortedEvents = [...imageEvents].sort((a, b) => b.created_at - a.created_at);
-      console.log('[Images Page] Sortierte Events:', sortedEvents.length);
-
-      return sortedEvents;
+  // 🚀 PERFORMANCE: Hybrid-Ansatz – /data/bilder.json sofort, Relay nur für neue Events
+  const { data: allImageEvents, isLoading } = usePreloadedData<ImageEvent>({
+    name: 'bilder',
+    liveFilter: {
+      kinds: [1, 30023],
+      authors: NOSTR_CONFIG.authorPubkeys,
     },
-    onSuccess: (data) => {
-      console.log('[Images Page] Events geladen:', {
-        total: data.length,
-        country,
-      });
-    },
+    liveTimeout: 6000,
   });
+
+  // Clientseitige Filterung (country, nature) – kein Relay-Round-Trip nötig
+  const events = useMemo(() => {
+    if (!allImageEvents?.length) return [];
+
+    const imageEvents = allImageEvents.filter((event: ImageEvent) => {
+      const hasMediaType = event.tags.some(tag => tag[0] === 'type' && tag[1] === 'media');
+      const content = (event.content || '').toLowerCase();
+      const hasImageUrls = content.includes('.jpg') ||
+             content.includes('.jpeg') ||
+             content.includes('.png') ||
+             content.includes('.gif') ||
+             content.includes('.webp') ||
+             content.includes('.mp4') ||
+             content.includes('.webm') ||
+             content.includes('.mov') ||
+             content.includes('.avi') ||
+             content.includes('.mkv') ||
+             content.includes('imgur.com') ||
+             content.includes('i.imgur.com') ||
+             content.includes('cdn.blossom') ||
+             content.includes('nostr.build') ||
+             content.includes('relay.mojobus.co') ||
+             content.includes('relays.mojobus.co') ||
+             content.includes('blossom.primal.net');
+      return hasMediaType || hasImageUrls;
+    });
+
+    if (currentCountry) {
+      return filterEventsByCountry(imageEvents, country);
+    }
+
+    if (isNatureRoute && natureCategory) {
+      return imageEvents.filter((event: ImageEvent) => {
+        const hasNatureTag = event.tags.some(tag => tag[0] === 't' && tag[1] === natureCategory);
+        const categoryConfig = MAIN_MENU.nature[natureCategory as keyof typeof MAIN_MENU.nature];
+        if (categoryConfig && categoryConfig.tags) {
+          const hasRelatedTag = event.tags.some(tag =>
+            tag[0] === 't' &&
+            (categoryConfig.tags.primary.includes(tag[1]) || categoryConfig.tags.secondary.includes(tag[1]))
+          );
+          return hasNatureTag || hasRelatedTag;
+        }
+        return hasNatureTag;
+      });
+    }
+
+    return [...imageEvents].sort((a, b) => b.created_at - a.created_at);
+  }, [allImageEvents, country, currentCountry, isNatureRoute, natureCategory]);
 
   const extractImages = (content: string): string[] => {
     const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|mp4|webm|mov|avi|mkv))/gi;

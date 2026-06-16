@@ -229,29 +229,56 @@ async function main() {
 
 // ── Schreiben ──────────────────────────────────────────────────────────
 
-  const stripEvent = (e) => ({
+  // ── Slim-Event: nur Felder die für die Listenseiten gebraucht werden ──
+  //
+  // Content wird NICHT gespeichert – Listenseiten brauchen nur Metadaten.
+  // Detailseiten (ArticleView, NoteView) laden den vollen Content direkt vom Relay.
+  //
+  // Relevante Tags je Typ:
+  //   Artikel/Plätze (kind 30023): d, title, summary, image, published_at, type, t
+  //   Notes/Bilder   (kind 1):     t, image, imeta, r (URLs)
+  //
+  // Einsparung: articles.json ~80% kleiner (von ~2MB → ~400KB bei 250 Artikeln)
+
+  // Tags die für Listenseiten relevant sind (alle anderen werden weggefiltert)
+  const RELEVANT_TAGS_30023 = new Set(['d', 'title', 'name', 'summary', 'image', 'published_at', 'type', 't', 'l', 'L']);
+  const RELEVANT_TAGS_KIND1 = new Set(['t', 'image', 'imeta', 'r', 'title']);
+
+  const stripArticle = (e) => ({
     id: e.id,
     pubkey: e.pubkey,
     kind: e.kind,
     created_at: e.created_at,
-    tags: e.tags,
-    // Content trimmen auf 500 Zeichen – reicht für Summaries in der Liste
-    content: e.content ? e.content.substring(0, 500) : '',
+    // Nur relevante Tags – kein Content
+    tags: (e.tags || []).filter(t => RELEVANT_TAGS_30023.has(t[0])),
+    // Kein content – wird auf Detailseite direkt vom Relay geladen
+  });
+
+  const stripNote = (e) => ({
+    id: e.id,
+    pubkey: e.pubkey,
+    kind: e.kind,
+    created_at: e.created_at,
+    tags: (e.tags || []).filter(t => RELEVANT_TAGS_KIND1.has(t[0])),
+    // Für Notes/Bilder: ersten 200 Zeichen des Contents für Vorschau-Text
+    content: e.content ? e.content.substring(0, 200) : '',
   });
 
   const writeJSON = (name, data) => {
     const p = path.join(DATA_DIR, name);
-    fs.writeFileSync(p, JSON.stringify(data), 'utf-8');
-    console.log(`[SiteData]  ✅ ${name} (${Array.isArray(data) ? data.length : 'ok'})`);
+    const json = JSON.stringify(data);
+    fs.writeFileSync(p, json, 'utf-8');
+    const kb = (Buffer.byteLength(json, 'utf-8') / 1024).toFixed(1);
+    console.log(`[SiteData]  ✅ ${name} (${Array.isArray(data) ? data.length + ' Events' : 'ok'}, ${kb} KB)`);
   };
 
-  // Rohe NostrEvents mit getrimmtem Content speichern
-  // Frontend erwartet: id, pubkey, kind, created_at, tags (string[][]), content
-  writeJSON('articles.json', allEvents.filter(e => e.kind === 30023 && !isPlace(e)).map(stripEvent));
-  writeJSON('places.json', allEvents.filter(e => isPlace(e)).map(stripEvent));
-  writeJSON('trips.json', allEvents.filter(e => e.kind === 1 && isTrip(e)).map(stripEvent));
-  writeJSON('bilder.json', allEvents.filter(e => e.kind === 1 && isMedia(e)).map(stripEvent));
-  writeJSON('notes.json', allEvents.filter(e => e.kind === 1 && isNote(e)).map(stripEvent));
+  // Artikel + Plätze: kein Content (nur Tags für Listenseite)
+  writeJSON('articles.json', allEvents.filter(e => e.kind === 30023 && !isPlace(e)).map(stripArticle));
+  writeJSON('places.json', allEvents.filter(e => isPlace(e)).map(stripArticle));
+  writeJSON('trips.json', allEvents.filter(e => e.kind === 1 && isTrip(e)).map(stripNote));
+  // Bilder + Notes: 200 Zeichen Content (für Vorschautext in der Karte)
+  writeJSON('bilder.json', allEvents.filter(e => e.kind === 1 && isMedia(e)).map(stripNote));
+  writeJSON('notes.json', allEvents.filter(e => e.kind === 1 && isNote(e)).map(stripNote));
 
   // ── naddr-Sitemap ──────────────────────────────────────────────────────
 
