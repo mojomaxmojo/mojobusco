@@ -155,7 +155,7 @@ const generateWithKi = async (prompt, systemPrompt, model = 'llama4', maxTokens 
       }
 
       const response = await axios.post('https://api.anthropic.com/v1/messages', {
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-latest',
         max_tokens: maxTokens,
         temperature,
         system: systemPrompt,
@@ -696,7 +696,7 @@ AUSGABE: Antworte IMMER NUR mit validem JSON. Keine Markdown-Code-Blöcke. Keine
       storyTag: storyTagBerechnet,
       pinData: {
         template,
-        model: model === 'claude' ? 'claude-sonnet-4-20250514' : 'llama-4-scout',
+        model: model === 'claude' ? 'claude-sonnet-latest' : 'llama-4-scout',
         ...pinData
       }
     })
