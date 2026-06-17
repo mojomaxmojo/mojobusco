@@ -254,15 +254,29 @@ async function main() {
     // Kein content – wird auf Detailseite direkt vom Relay geladen
   });
 
-  const stripNote = (e) => ({
-    id: e.id,
-    pubkey: e.pubkey,
-    kind: e.kind,
-    created_at: e.created_at,
-    tags: (e.tags || []).filter(t => RELEVANT_TAGS_KIND1.has(t[0])),
-    // Für Notes/Bilder: ersten 200 Zeichen des Contents für Vorschau-Text
-    content: e.content ? e.content.substring(0, 200) : '',
-  });
+  const stripNote = (e) => {
+    const tags = (e.tags || []).filter(t => RELEVANT_TAGS_KIND1.has(t[0]));
+
+    // Erste Bild-URL aus dem Content extrahieren und als image-Tag speichern
+    // (Content wird auf 200 Zeichen gekürzt → URL wäre sonst verloren)
+    const hasImageTag = tags.some(t => t[0] === 'image');
+    if (!hasImageTag && e.content) {
+      const imgMatch = e.content.match(/https?:\/\/[^\s)]+\.(?:jpg|jpeg|png|gif|webp|mp4|webm|mov)/i);
+      if (imgMatch) {
+        tags.push(['image', imgMatch[0]]);
+      }
+    }
+
+    return {
+      id: e.id,
+      pubkey: e.pubkey,
+      kind: e.kind,
+      created_at: e.created_at,
+      tags,
+      // Für Notes/Bilder: ersten 200 Zeichen des Contents für Vorschau-Text
+      content: e.content ? e.content.substring(0, 200) : '',
+    };
+  };
 
   const writeJSON = (name, data) => {
     const p = path.join(DATA_DIR, name);
