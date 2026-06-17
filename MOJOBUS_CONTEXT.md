@@ -269,3 +269,28 @@ cat src/config/authors.json | jq '.authors[] | {name, pubkey, nip05}'
 ### Bekannte Baustellen (heute diagnostiziert, nicht behoben)
 - **413 Payload Too Large**: Bilder >20MB werden von Nginx/Multer abgewiesen. Multer-Limit ist 20MB pro Datei. Bild-Komprimierung im Frontend (Canvas-Resize auf max 1920px, JPEG 85%) ist vorgesehen
 - **Groq API Key**: War abgelaufen (`expired_api_key`). Neuer Key musste unter https://console.groq.com/keys erstellt werden
+
+## 📋 Changelog – Änderungen 17.06.2026
+
+### Fix: /bilder + /notes Filter-Chaos
+- **Problem 1**: `/bilder` zeigte viele falsche Events (Artikel mit Bild-URLs → 297 statt ~60). `liveFilter` holte `kinds: [1, 30023]`
+- **Problem 2**: `/bilder` Bilder in Cards unsichtbar. Slim-JSON kürzt Content auf 200 Zeichen → Bild-URLs im Markdown-Content abgeschnitten
+- **Problem 3**: `/notes` zeigte alle Kind-1 Events (111 statt ~1). `transformEvent` griff nur auf Live-Events, nicht auf JSON-Daten
+- **Problem 4**: Nach erneutem Deploy immer noch keine Bilder. Service Worker lieferte alte gecachte `bilder.json` → Hard-Reload (Shift+F5) nötig
+- **Commits**: b99ca17, 20238d7, 122ace5
+
+### generate-site-data.js: image-Tag für Slim-JSON
+- **Problem**: `stripNote()` kürzt Content auf 200 Zeichen → Bild-URLs im Markdown verschwinden → `extractImages()` findet nichts
+- **Fix**: Beim Erstellen des Slim-JSON die **erste Bild-URL aus dem VOLLEN Content** extrahieren und als `['image', url]` Tag speichern
+- Der `image`-Tag bleibt erhalten (in `RELEVANT_TAGS_KIND1`) → `extractImages()` in Images.tsx findet die URL
+- **Wichtig nach Deploy**: `node scripts/generate-site-data.js` **muss** laufen, sonst fehlt das image-Tag
+- **Commit**: 122ace5
+
+### extractImages() in Images.tsx
+- Liest jetzt primär aus Tags: `image`-Tag > `imeta`-Tag > `r`-Tag > Content-Fallback
+- Images erscheinen wieder in den Cards auch wenn Content gekürzt ist
+- **Commit**: 20238d7
+
+### Bekannte Baustellen (17.06.2026)
+- **Service Worker Cache**: Nach Deploy + generate-site-data.js liefert SW alte JSONs. Browser-Cache leeren oder Hard-Reload (Shift+F5) nötig
+- **bilder.json Größe**: 42 Events, 29.1 KB (nach image-Tag Ergänzung gewachsen)
