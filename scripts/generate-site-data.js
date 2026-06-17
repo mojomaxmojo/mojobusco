@@ -242,7 +242,7 @@ async function main() {
 
   // Tags die für Listenseiten relevant sind (alle anderen werden weggefiltert)
   const RELEVANT_TAGS_30023 = new Set(['d', 'title', 'name', 'summary', 'image', 'published_at', 'type', 't', 'l', 'L']);
-  const RELEVANT_TAGS_KIND1 = new Set(['t', 'image', 'imeta', 'r', 'title']);
+  const RELEVANT_TAGS_KIND1 = new Set(['t', 'type', 'image', 'imeta', 'r', 'title']);
 
   const stripArticle = (e) => ({
     id: e.id,

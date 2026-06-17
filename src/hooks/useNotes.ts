@@ -23,20 +23,29 @@ import type { NostrEvent } from '@nostrify/nostrify';
 export function useNotes() {
   const [visibleCount, setVisibleCount] = useState(30);
 
-  const { data: allNotes, isLoading } = usePreloadedData<NostrEvent>({
+  const { data: rawNotes, isLoading } = usePreloadedData<NostrEvent>({
     name: 'notes',
     liveFilter: {
       kinds: [NOSTR_CONFIG.kinds.note],
       authors: NOSTR_CONFIG.authorPubkeys,
     },
     liveTimeout: 6000,
-    // Nur Notes mit #t note oder #t notiz filtern
+    // transformEvent gilt nur für Live-Events – JSON-Filter unten separat
     transformEvent: (event: NostrEvent) => {
       const tags = event.tags?.filter(t => t[0] === 't').map(t => t[1]) || [];
       const isNote = tags.some(t => ['note', 'notiz'].includes(t));
       return isNote ? event : null;
     },
   });
+
+  // Filter auch auf JSON-Daten anwenden (transformEvent greift nur auf Live-Events)
+  const allNotes = useMemo(() => {
+    if (!rawNotes?.length) return rawNotes;
+    return rawNotes.filter((event: NostrEvent) => {
+      const tags = event.tags?.filter(t => t[0] === 't').map(t => t[1]) || [];
+      return tags.some(t => ['note', 'notiz'].includes(t));
+    });
+  }, [rawNotes]);
 
   // Sortiert nach Datum (neueste zuerst)
   const sortedNotes = useMemo(() => {

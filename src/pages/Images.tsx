@@ -37,6 +37,7 @@ import { useHead } from '@unhead/react';
 interface ImageEvent {
   id: string;
   pubkey: string;
+  kind?: number;
   content: string;
   created_at: number;
   tags: string[][];
@@ -82,17 +83,24 @@ function Images() {
       // kind:30023 sind Artikel – niemals auf der Bilder-Seite anzeigen
       if (event.kind === 30023) return false;
 
-      // kind:1 mit type=media Tag → definitiv ein Medien-Post
+      // type=media Tag → definitiv ein Medien-Post (aus bilder.json oder Live-Relay)
       const hasMediaType = event.tags.some(tag => tag[0] === 'type' && tag[1] === 'media');
       if (hasMediaType) return true;
 
-      // kind:1 ohne type=media: nur zeigen wenn Content ausschließlich aus
-      // Bild/Video-URLs besteht (kein langer Text = kein Note/Artikel)
+      // Alternativ: media/bilder/images als t-Tag (ältere Posts)
+      const hasMediaTag = event.tags.some(tag =>
+        tag[0] === 't' && ['media', 'medien', 'bilder', 'images', 'galerie'].includes(tag[1])
+      );
+      if (hasMediaTag) return true;
+
+      // Fallback: image-Tag vorhanden (NIP-94 style)
+      const hasImageTag = event.tags.some(tag => tag[0] === 'image');
+      if (hasImageTag) return true;
+
+      // Letzter Fallback: nur Bild-URL im Content, kein langer Text
       const content = (event.content || '').trim();
       const hasImageUrls = /https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|mp4|webm|mov|avi|mkv)(\?[^\s]*)?/i.test(content);
-      const isMostlyMedia = hasImageUrls && content.length < 2000;
-
-      return isMostlyMedia;
+      return hasImageUrls && content.length < 500;
     });
 
     if (currentCountry) {
