@@ -125,10 +125,36 @@ function Images() {
     return [...imageEvents].sort((a, b) => b.created_at - a.created_at);
   }, [allImageEvents, country, currentCountry, isNatureRoute, natureCategory]);
 
-  const extractImages = (content: string): string[] => {
-    const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|mp4|webm|mov|avi|mkv))/gi;
-    const matches = content.match(urlRegex) || [];
-    return matches;
+  const extractImages = (content: string, tags?: string[][]): string[] => {
+    const results: string[] = [];
+
+    // 1. image-Tag (NIP-94 / Slim-JSON)
+    if (tags) {
+      const imageTag = tags.find(t => t[0] === 'image')?.[1];
+      if (imageTag) results.push(imageTag);
+
+      // imeta-Tag: "url https://..."
+      tags.filter(t => t[0] === 'imeta').forEach(t => {
+        const urlEntry = t.find(v => v.startsWith('url '));
+        if (urlEntry) results.push(urlEntry.substring(4));
+      });
+
+      // r-Tag (url)
+      tags.filter(t => t[0] === 'r').forEach(t => {
+        if (t[1] && /\.(jpg|jpeg|png|gif|webp|mp4|webm|mov)/i.test(t[1])) {
+          results.push(t[1]);
+        }
+      });
+    }
+
+    // 2. Content (vollständiger Text – Fallback wenn Tags keine Bilder haben)
+    if (results.length === 0) {
+      const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|mp4|webm|mov|avi|mkv))/gi;
+      const matches = content.match(urlRegex) || [];
+      results.push(...matches);
+    }
+
+    return [...new Set(results)]; // Duplikate entfernen
   };
 
   // SEO Meta Tags
@@ -348,7 +374,7 @@ function Images() {
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {visibleEvents.map((event: ImageEvent) => {
-                const images = extractImages(event.content);
+                const images = extractImages(event.content, event.tags);
 
                 return (
                   <ImageCardComponent
