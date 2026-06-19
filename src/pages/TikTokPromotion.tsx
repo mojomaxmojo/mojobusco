@@ -1,0 +1,1061 @@
+/**
+ * TikTokPromotion.tsx – TikTok Video Generator für MojoBus
+ *
+ * Workflow:
+ * 1. Nostr-Content auswählen (Bilder/Video)
+ * 2. Template wählen + KI-generierte Texte
+ * 3. Remotion rendert MP4 (serverseitig)
+ * 4. Download + manuell auf TikTok posten
+ *
+ * Route: /promotion/tiktok
+ *
+ * Abhängigkeiten:
+ * - POST /api/render-remotion  → Remotion-Video rendern
+ * - GET  /api/render-remotion/status/:jobId → Polling
+ * - GET  /api/render-remotion/download/:jobId → MP4 Stream
+ * - GET  /api/render-remotion/check → Status-Prüfung
+ */
+
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
+import { useToast } from '@/hooks/useToast'
+
+// UI Components
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+
+// Icons
+import {
+  FileText, Image as ImageIcon, Download, ExternalLink, Loader2,
+  Sparkles, ChevronRight, Wand2, Copy, Check, ArrowLeft,
+  Camera, Video, Music, Volume2, Hash, Type, MessageSquare
+} from 'lucide-react'
+
+// ContentSelector (wiederverwendet aus Pinterest)
+import { ContentSelector, type ContentItem } from '@/components/pin/ContentSelector'
+import { extractImagesFromEvent, extractTitle, extractSummary } from '@/lib/nostrEventUtils'
+
+// ═══════════════════════════════════════════════════════════
+// TYPES
+// ═══════════════════════════════════════════════════════════
+
+type TikTokTemplate = 'story' | 'listicle' | 'reveal' | 'movie'
+
+interface TikTokTemplateInfo {
+  id: TikTokTemplate
+  label: string
+  emoji: string
+  desc: string
+  duration: string
+  /** Anzahl der benötigten Bilder/Clips */
+  minImages: number
+}
+
+interface RenderStatus {
+  jobId: string
+  status: 'queued' | 'rendering' | 'completed' | 'failed'
+  progress: number
+  fileSizeMB: number | null
+  videoDurationSec: number | null
+  error: string | null
+}
+
+// ═══════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════
+
+const TEMPLATES: TikTokTemplateInfo[] = [
+  {
+    id: 'story',
+    label: 'Story',
+    emoji: '🌅',
+    desc: 'Ken-Burns Diashow – minimaler Text, maximale Atmosphäre',
+    duration: '15-25s',
+    minImages: 3,
+  },
+  {
+    id: 'listicle',
+    label: 'Listicle',
+    emoji: '📋',
+    desc: 'Liste mit 3-5 Punkten – Tipps, Fakten, Learnings',
+    duration: '25-35s',
+    minImages: 3,
+  },
+  {
+    id: 'reveal',
+    label: 'Reveal',
+    emoji: '🔥',
+    desc: 'Nostr/Wohnmobil-Erklärung – "Warum dieser Blog anders ist"',
+    duration: '20-30s',
+    minImages: 3,
+  },
+  {
+    id: 'movie',
+    label: 'Direkt-Video',
+    emoji: '🎬',
+    desc: 'Vorhandenes Video + Captions + Overlays',
+    duration: '15-30s',
+    minImages: 1,
+  },
+]
+
+/** Verfügbare Stimmen (Piper TTS auf VPS) */
+const VOICES = [
+  { id: 'de_DE-thorsten-medium', label: 'Thorsten (👨)', desc: 'Männlich, beste Qualität' },
+  { id: 'de_DE-ramona-low', label: 'Ramona (👩)', desc: 'Weiblich' },
+]
+
+/** Musik-Optionen */
+const MUSIC_OPTIONS = [
+  { value: 'ambient', label: '🌊 Ambient' },
+  { value: 'lofi', label: '🎧 Lofi' },
+  { value: 'sommer', label: '☀️ Sommer' },
+  { value: 'none', label: '🔇 Keine Musik' },
+]
+
+/** Übergangs-Optionen */
+const TRANSITION_OPTIONS = [
+  { value: 'auto', label: '🔄 Auto' },
+  { value: 'fade', label: '🎭 Fade' },
+  { value: 'wipe', label: '🧹 Wipe' },
+  { value: 'slide', label: '➡️ Slide' },
+  { value: 'glitch', label: '📺 Glitch' },
+]
+
+// ═══════════════════════════════════════════════════════════
+// MAIN COMPONENT
+// ═══════════════════════════════════════════════════════════
+
+export function TikTokPromotion() {
+  const { user } = useCurrentUser()
+  const navigate = useNavigate()
+  const { toast } = useToast()
+
+  // ── LOGIN SCHUTZ ═══════════════════════════════════════
+  useEffect(() => {
+    if (!user || !user.pubkey) {
+      toast({
+        title: 'Login erforderlich',
+        description: 'Bitte logge dich ein um die TikTok-Promotion zu nutzen.',
+        variant: 'destructive',
+      })
+      navigate('/')
+    }
+  }, [user, navigate, toast])
+
+  // ── STEP STATE ═══════════════════════════════════════════
+  const [step, setStep] = useState(1)
+  const [generating, setGenerating] = useState(false)
+  const [rendering, setRendering] = useState(false)
+
+  // ── CONTENT ══════════════════════════════════════════════
+  const [selectedContent, setSelectedContent] = useState<ContentItem | null>(null)
+  const [articleTitle, setArticleTitle] = useState('')
+  const [articleSummary, setArticleSummary] = useState('')
+  const [articleImages, setArticleImages] = useState<string[]>([])
+  const [hasVideo, setHasVideo] = useState(false)
+
+  // ── TEMPLATE ═════════════════════════════════════════════
+  const [template, setTemplate] = useState<TikTokTemplate>('story')
+
+  // ── TIKTOK TEXT ══════════════════════════════════════════
+  const [hookText, setHookText] = useState('')
+  const [bodyText, setBodyText] = useState('')
+  const [bridgeText, setBridgeText] = useState('')
+  const [ctaText, setCtaText] = useState('')
+  const [hashtags, setHashtags] = useState('')
+
+  // ── VOICEOVER ════════════════════════════════════════════
+  const [voiceoverEnabled, setVoiceoverEnabled] = useState(false)
+  const [voiceoverModel, setVoiceoverModel] = useState('de_DE-thorsten-medium')
+
+  // ── MUSIK ════════════════════════════════════════════════
+  const [musicStyle, setMusicStyle] = useState('ambient')
+
+  // ── EINSTELLUNGEN ════════════════════════════════════════
+  const [transitionType, setTransitionType] = useState('auto')
+  const [secondsPerImage, setSecondsPerImage] = useState(4)
+  const [beatSync, setBeatSync] = useState('medium')
+
+  // ── RENDER ═══════════════════════════════════════════════
+  const [renderStatus, setRenderStatus] = useState<RenderStatus | null>(null)
+  const [renderProgress, setRenderProgress] = useState(0)
+  const [downloadedMp4, setDownloadedMp4] = useState(false)
+  const pollRef = useRef<number | null>(null)
+
+  // ── REMOTION STATUS ══════════════════════════════════════
+  const [remotionAvailable, setRemotionAvailable] = useState<boolean | null>(null)
+  const [piperAvailable, setPiperAvailable] = useState(false)
+
+  // Remotion-Status beim Laden prüfen
+  useEffect(() => {
+    fetch('/api/render-remotion/check')
+      .then(r => r.json())
+      .then(data => {
+        setRemotionAvailable(data.remotion === 'installed')
+        setPiperAvailable(data.piperAvailable === true)
+      })
+      .catch(() => setRemotionAvailable(false))
+  }, [])
+
+  // ── CONTENT AUSWÄHLEN ═══════════════════════════════════
+
+  const selectContent = (item: ContentItem) => {
+    setSelectedContent(item)
+    setArticleTitle(item.title)
+    setArticleSummary(item.summary)
+    setArticleImages(item.images.slice(0, 20))
+
+    // Prüfe auf Video-URLs
+    const hasVideoUrl = item.images.some(url =>
+      /\.(mp4|webm|mov|avi|mkv)(\?|$)/i.test(url)
+    )
+    setHasVideo(hasVideoUrl)
+
+    // Bei Video-Template: automatisch auf movie stellen
+    if (hasVideoUrl && template !== 'movie') {
+      setTemplate('movie')
+    }
+
+    toast({
+      title: `${item.type === 'article' ? 'Artikel' : 'Post'} ausgewählt`,
+      description: `"${item.title}" – ${item.images.length} Medien geladen`,
+    })
+  }
+
+  // ── KI-GENERIERUNG ═══════════════════════════════════════
+
+  const generateTikTokText = async () => {
+    if (!articleTitle.trim()) {
+      toast({
+        title: 'Titel erforderlich',
+        description: 'Bitte wähle zuerst einen Artikel aus.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setGenerating(true)
+    try {
+      // KI-Prompt selbst bauen und an ai-api senden
+      const currentImageUrl = articleImages[0] || ''
+      const lifestyleKey = 'mojobus'
+
+      const res = await fetch('/api/promotion/generate-pin-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: articleTitle,
+          summary: articleSummary,
+          text: selectedContent?.content?.substring(0, 1500) || '',
+          template: 'infographic', // Nur für Text-Generierung genutzt
+          model: 'llama4',
+          lifestyle: lifestyleKey,
+          imageUrl: currentImageUrl,
+          // TikTok-spezifisch: Signal ans Backend dass es TikTok ist
+          platform: 'tiktok',
+        }),
+      })
+
+      const data = await res.json()
+      if (!data?.success) {
+        throw new Error(data?.error || 'Generierung fehlgeschlagen')
+      }
+
+      // Aus den generierten Pin-Daten TikTok-Texte extrahieren
+      const pin = data.pinData || {}
+
+      // Hook: Pin-Titel als Hook
+      setHookText(pin.pinTitle || articleTitle)
+
+      // Body: Pin-Beschreibung
+      setBodyText(pin.pinDescription || articleSummary)
+
+      // Bridge + CTA
+      setBridgeText('Mehr auf mojobus.co')
+      setCtaText('Link in Bio 📌')
+
+      // Hashtags
+      const tags = pin.hashtags || []
+      setHashtags(tags.length > 0
+        ? tags.join(' ')
+        : '#vanlife #perpetualtraveler #mojobus #wohnmobil'
+      )
+
+      toast({
+        title: 'TikTok-Text generiert!',
+        description: 'Die Texte wurden vorausgefüllt. Du kannst sie bearbeiten.',
+      })
+
+      setStep(3)
+
+    } catch (e: any) {
+      // Fallback: Manuelle Texte verwenden
+      setHookText(articleTitle)
+      setBodyText(articleSummary || '')
+      setBridgeText('Mehr auf mojobus.co')
+      setCtaText('Link in Bio 📌')
+      setHashtags('#vanlife #perpetualtraveler #mojobus')
+
+      toast({
+        title: 'Fallback – manuelle Eingabe',
+        description: e.message || 'KI nicht erreichbar. Bitte Texte manuell eingeben.',
+      })
+      setStep(3)
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  // ── REMOTION RENDER STARTEN ═════════════════════════════
+
+  const startRender = async () => {
+    if (articleImages.length === 0) {
+      toast({
+        title: 'Keine Bilder',
+        description: 'Wähle einen Artikel mit Bildern aus.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (!hookText.trim()) {
+      toast({
+        title: 'Hook fehlt',
+        description: 'Bitte gib einen Hook-Text für den Video-Start ein.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setRendering(true)
+    setRenderProgress(0)
+    setDownloadedMp4(false)
+
+    // Body-Text in Captions aufteilen
+    const bodyLines = bodyText
+      .split('\n')
+      .filter(l => l.trim())
+      .map(l => l.trim())
+
+    // Captions aus Body + Bridge + CTA
+    const captions = [
+      ...bodyLines,
+      bridgeText,
+      ctaText,
+    ].filter(c => c)
+
+    // Music-URL
+    const musicUrl = musicStyle === 'none' ? undefined : undefined
+    // Leer lassen → Server wählt zufälligen Track aus music/-Ordner
+
+    // Beat-Sync
+    const beatSyncVal = beatSync === 'none' ? 0
+      : beatSync === 'low' ? 0.3
+      : beatSync === 'medium' ? 0.6
+      : 0.8
+
+    const payload: Record<string, any> = {
+      imageUrls: articleImages,
+      title: hookText,
+      summary: articleSummary || hookText,
+      location: selectedContent?.tags?.[0] || '',
+      lifestyle: 'mojobus',
+      secondsPerImage,
+      aspectRatio: '9:16',
+      captions,
+      captionStyle: 'tiktok',
+      websiteUrl: 'mojobus.co',
+      handle: '@mojobus',
+      accentColor: '#F59E0B',
+      beatSyncStrength: beatSyncVal,
+      transitionType: transitionType || 'auto',
+      showLottieBus: true,
+    }
+
+    // Voiceover nur wenn aktiviert
+    if (voiceoverEnabled && voiceoverText.trim()) {
+      payload.voiceoverText = voiceoverText.trim()
+      payload.voiceoverModel = voiceoverModel
+    }
+
+    try {
+      const res = await fetch('/api/render-remotion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      const data = await res.json()
+      if (!data.jobId) {
+        throw new Error(data.error || 'Keine Job-ID erhalten')
+      }
+
+      toast({
+        title: '🎬 Rendering gestartet!',
+        description: `${articleImages.length} Bilder · ~${secondsPerImage}s/Bild · 9:16`,
+      })
+
+      setRenderStatus({
+        jobId: data.jobId,
+        status: 'queued',
+        progress: 0,
+        fileSizeMB: null,
+        videoDurationSec: null,
+        error: null,
+      })
+
+      // Polling starten
+      startPolling(data.jobId)
+
+    } catch (e: any) {
+      toast({
+        title: 'Render-Fehler',
+        description: e.message || 'Verbindung zum Server fehlgeschlagen.',
+        variant: 'destructive',
+      })
+      setRendering(false)
+    }
+  }
+
+  // ── POLLING ═════════════════════════════════════════════
+
+  const startPolling = useCallback((jobId: string) => {
+    if (pollRef.current) clearInterval(pollRef.current)
+
+    pollRef.current = window.setInterval(async () => {
+      try {
+        const res = await fetch(`/api/render-remotion/status/${jobId}`)
+        const data = await res.json()
+
+        setRenderStatus(prev => prev ? { ...prev, ...data } : null)
+        setRenderProgress(data.progress || 0)
+
+        if (data.status === 'completed' || data.status === 'failed') {
+          if (pollRef.current) clearInterval(pollRef.current)
+          pollRef.current = null
+
+          if (data.status === 'completed') {
+            setRendering(false)
+            setDownloadedMp4(true)
+            setStep(4)
+            toast({
+              title: '✅ Video fertig!',
+              description: `${data.fileSizeMB}MB · ${data.videoDurationSec}s`,
+            })
+          } else {
+            setRendering(false)
+            toast({
+              title: '❌ Render fehlgeschlagen',
+              description: data.error || 'Unbekannter Fehler',
+              variant: 'destructive',
+            })
+          }
+        }
+      } catch (e) {
+        // Polling-Fehler ignorieren – beim nächsten Intervall erneut versuchen
+      }
+    }, 2000)
+  }, [])
+
+  // Cleanup beim Unmount
+  useEffect(() => {
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current)
+    }
+  }, [])
+
+  // ── DOWNLOAD ════════════════════════════════════════════
+
+  const downloadMp4 = () => {
+    if (!renderStatus?.jobId) return
+    const url = `/api/render-remotion/download/${renderStatus.jobId}`
+    window.open(url, '_blank')
+  }
+
+  const copyTikTokText = () => {
+    const text = [
+      hookText,
+      '',
+      ...bodyText.split('\n').filter(l => l.trim()),
+      '',
+      `${bridgeText} – ${ctaText}`,
+      '',
+      hashtags,
+    ].join('\n')
+
+    navigator.clipboard.writeText(text)
+    toast({ title: 'Kopiert!', description: 'TikTok-Text in der Zwischenablage.' })
+  }
+
+  // ── VOICEOVER TEXT ══════════════════════════════════════
+  // Kombiniere Hook + Body + Bridge für Voiceover
+  const voiceoverText = voiceoverEnabled
+    ? [hookText, ...bodyText.split('\n').filter(l => l.trim()), bridgeText].join('. ')
+    : ''
+
+  // ── BILDER FILTERN ═════════════════════════════════════
+
+  // Prüfe ob ein Event Video-URLs enthält
+  const hasVideoUrls = (event: any): boolean => {
+    if (!event?.tags) return false
+    return event.tags.some((t: string[]) =>
+      (t[0] === 'url' || t[0] === 'r') &&
+      /\.(mp4|webm|mov|avi|mkv)(\?|$)/i.test(t[1])
+    )
+  }
+
+  // ═════════════════════════════════════════════════════════
+  // RENDER
+  // ═════════════════════════════════════════════════════════
+
+  if (remotionAvailable === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* HEADER */}
+      <div className="border-b bg-card/50 backdrop-blur sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8 sm:h-10 sm:w-10" onClick={() => navigate('/')}>
+              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+            </Button>
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-xl font-bold truncate">🎬 TikTok Promotion</h1>
+              <p className="text-xs text-muted-foreground hidden sm:block">Videos aus Blog-Inhalten rendern</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            {remotionAvailable === false && (
+              <Badge variant="destructive" className="text-xs">
+                Remotion nicht verfügbar
+              </Badge>
+            )}
+            {piperAvailable && (
+              <Badge variant="outline" className="text-xs">🎙️ TTS</Badge>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+        {/* REMOTION NOT INSTALLED WARNING */}
+        {remotionAvailable === false && (
+          <Card className="mb-6 border-amber-200 bg-amber-50 dark:bg-amber-900/20">
+            <CardContent className="py-4">
+              <p className="text-sm text-amber-600 dark:text-amber-400 font-medium">
+                ⚠️ Remotion ist auf dem Server nicht installiert.
+              </p>
+              <p className="text-xs text-amber-600/80 dark:text-amber-400/80 mt-1 font-mono">
+                cd server &amp;&amp; npm install @remotion/renderer @remotion/bundler remotion
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* STEP INDICATOR */}
+        <div className="flex items-center justify-between mb-4 sm:mb-6 max-w-2xl">
+          {['Inhalt', 'Template', 'Text', 'Export'].map((lbl, i) => (
+            <div key={i} className="flex items-center flex-1 last:flex-none">
+              <button
+                onClick={() => { if (i + 1 < step) setStep(i + 1) }}
+                className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-colors
+                  ${step === i + 1 ? 'bg-primary text-primary-foreground' :
+                    step > i + 1 ? 'bg-primary/20 text-primary cursor-pointer' :
+                    'bg-muted text-muted-foreground'}`}
+              >
+                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0
+                  ${step > i + 1 ? 'bg-primary text-primary-foreground' : ''}`}>
+                  {i + 1}
+                </span>
+                <span className="text-[10px] sm:text-sm">{lbl}</span>
+              </button>
+              {i < 3 && <ChevronRight className="w-3 h-3 text-muted-foreground/40 shrink-0 mx-0.5" />}
+            </div>
+          ))}
+        </div>
+
+        {/* ══════ STEP 1: CONTENT AUSWÄHLEN ══════ */}
+        {step === 1 && (
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4 sm:gap-6">
+            {/* LEFT: ContentSelector */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
+                  Schritt 1: Inhalt auswählen
+                </CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
+                  Wähle einen Artikel oder Post mit Bildern oder Video
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ContentSelector
+                  onSelect={selectContent}
+                  selected={selectedContent}
+                />
+              </CardContent>
+            </Card>
+
+            {/* RIGHT: Ausgewählter Content */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Ausgewählt</CardTitle>
+                <CardDescription className="text-xs">Vorausgefüllte Daten</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {selectedContent ? (
+                  <>
+                    <div className="flex items-start gap-3 p-3 bg-primary/5 rounded-lg">
+                      <div className="w-14 h-14 rounded-md overflow-hidden bg-muted shrink-0">
+                        {articleImages[0] ? (
+                          <img src={articleImages[0]} alt="" className="w-full h-full object-cover" loading="lazy" />
+                        ) : (
+                          <ImageIcon className="w-6 h-6 text-muted-foreground/50 m-auto mt-4" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm truncate">{articleTitle}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{articleSummary}</p>
+                        <div className="flex gap-1 mt-1 flex-wrap">
+                          <Badge variant="outline" className="text-[10px]">
+                            {articleImages.length} Bild{articleImages.length !== 1 ? 'er' : ''}
+                          </Badge>
+                          {hasVideo && (
+                            <Badge variant="secondary" className="text-[10px]">🎥 Video</Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <Button
+                      onClick={() => { setStep(2) }}
+                      className="w-full mt-2"
+                      size="lg"
+                      disabled={articleImages.length === 0}
+                    >
+                      Weiter zu Template <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </>
+                ) : (
+                  <div className="text-center py-8">
+                    <Camera className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+                    <p className="text-sm text-muted-foreground">
+                      Wähle links einen Artikel mit Bildern oder Video aus.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* ══════ STEP 2: TEMPLATE AUSWÄHLEN ══════ */}
+        {step === 2 && (
+          <Card className="max-w-3xl">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <Wand2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                Schritt 2: Template &amp; KI
+              </CardTitle>
+              <CardDescription className="text-xs sm:text-sm">
+                Wähle ein TikTok-Format und generiere die Texte
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              {/* Template Grid */}
+              <div>
+                <Label className="mb-2 block text-sm">Video-Template</Label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {TEMPLATES.map(tpl => (
+                    <button
+                      key={tpl.id}
+                      onClick={() => setTemplate(tpl.id)}
+                      disabled={tpl.id === 'movie' && !hasVideo}
+                      className={`p-3 sm:p-4 rounded-xl border-2 transition-all text-left active:scale-95
+                        ${template === tpl.id
+                          ? 'border-primary bg-primary/5 shadow-md ring-2 ring-primary/10'
+                          : tpl.id === 'movie' && !hasVideo
+                            ? 'border-border opacity-40 cursor-not-allowed'
+                            : 'border-border hover:border-primary/30 hover:bg-muted/30'}`}
+                    >
+                      <div className="text-2xl sm:text-3xl mb-1">{tpl.emoji}</div>
+                      <div className="font-semibold text-xs sm:text-sm leading-tight">{tpl.label}</div>
+                      <div className="text-[10px] sm:text-xs text-muted-foreground mt-1 leading-tight">{tpl.desc}</div>
+                      <div className="text-[10px] text-muted-foreground mt-1">{tpl.duration}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <Button variant="outline" onClick={() => setStep(1)} className="shrink-0">
+                  ← Zurück
+                </Button>
+                <Button
+                  onClick={() => { generateTikTokText() }}
+                  className="flex-1"
+                  size="lg"
+                  disabled={generating}
+                >
+                  {generating ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-4 h-4 mr-2" />
+                  )}
+                  KI-Text generieren &amp; Weiter
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ══════ STEP 3: TEXT BEARBEITEN + RENDER ══════ */}
+        {step === 3 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            {/* LEFT: Text-Editor */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <Type className="w-4 h-4 sm:w-5 sm:h-5" />
+                  TikTok-Text bearbeiten
+                </CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
+                  0-3s Hook · 3-22s Body · 22-27s Bridge · 27-30s CTA
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {/* Hook */}
+                <div>
+                  <Label className="text-xs sm:text-sm flex items-center gap-1">
+                    <span className="text-primary font-bold">0-3s</span> Hook
+                  </Label>
+                  <Input
+                    value={hookText}
+                    onChange={e => setHookText(e.target.value)}
+                    placeholder='"Unser Büro heute 🌊"'
+                    className="text-sm mt-1 font-semibold"
+                    maxLength={100}
+                  />
+                </div>
+
+                {/* Body */}
+                <div>
+                  <Label className="text-xs sm:text-sm flex items-center gap-1">
+                    <span className="text-primary font-bold">3-22s</span> Body (ein Satz pro Zeile)
+                  </Label>
+                  <Textarea
+                    value={bodyText}
+                    onChange={e => setBodyText(e.target.value)}
+                    placeholder="Kein Wecker. Nur Wellen.&#10;Zwei Jahre ohne Mietvertrag.&#10;Das ist Perpetual Travel."
+                    className="text-sm mt-1"
+                    rows={5}
+                  />
+                </div>
+
+                {/* Bridge */}
+                <div>
+                  <Label className="text-xs sm:text-sm flex items-center gap-1">
+                    <span className="text-primary font-bold">22-27s</span> Bridge
+                  </Label>
+                  <Input
+                    value={bridgeText}
+                    onChange={e => setBridgeText(e.target.value)}
+                    placeholder="Mehr auf mojobus.co"
+                    className="text-sm mt-1"
+                  />
+                </div>
+
+                {/* CTA + Hashtags */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs sm:text-sm flex items-center gap-1">
+                      <span className="text-primary font-bold">27-30s</span> CTA
+                    </Label>
+                    <Input
+                      value={ctaText}
+                      onChange={e => setCtaText(e.target.value)}
+                      placeholder="Link in Bio 📌"
+                      className="text-sm mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs sm:text-sm flex items-center gap-1">
+                      <Hash className="w-3 h-3" /> Hashtags
+                    </Label>
+                    <Input
+                      value={hashtags}
+                      onChange={e => setHashtags(e.target.value)}
+                      placeholder="#vanlife #mojobus"
+                      className="text-sm mt-1"
+                    />
+                  </div>
+                </div>
+
+                {/* Voiceover */}
+                <div className="p-3 bg-muted/30 rounded-lg space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs sm:text-sm flex items-center gap-1">
+                      <Volume2 className="w-3 h-3" /> Voiceover (TTS)
+                    </Label>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={voiceoverEnabled}
+                        onChange={e => setVoiceoverEnabled(e.target.checked)}
+                        disabled={!piperAvailable}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-muted-foreground/30 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary" />
+                    </label>
+                  </div>
+                  {!piperAvailable && (
+                    <p className="text-xs text-amber-500">Piper TTS nicht auf Server installiert</p>
+                  )}
+                  {voiceoverEnabled && piperAvailable && (
+                    <div className="flex gap-2">
+                      <Select value={voiceoverModel} onValueChange={setVoiceoverModel}>
+                        <SelectTrigger className="flex-1 text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {VOICES.map(v => (
+                            <SelectItem key={v.id} value={v.id}>{v.label} – {v.desc}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Badge variant="outline" className="shrink-0 self-center text-xs">
+                        {voiceoverText.length} Z.
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+
+                {/* Vorschau: Wie es klingt */}
+                <div className="p-2 bg-primary/5 rounded text-xs text-muted-foreground">
+                  <p className="font-medium mb-1">📋 Vorschau:</p>
+                  <p className="italic">
+                    [{hookText}] → [{bodyText.split('\n').filter(l => l.trim()).join(' · ')}] → [{bridgeText}]
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* RIGHT: Render-Einstellungen */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <Video className="w-4 h-4 sm:w-5 sm:h-5" />
+                  Render-Einstellungen
+                </CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
+                  9:16 · Remotion · {articleImages.length} Bilder
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Bildervorschau */}
+                <div>
+                  <Label className="text-xs mb-1 block">Bilder ({articleImages.length})</Label>
+                  <div className="flex gap-1 overflow-x-auto pb-1">
+                    {articleImages.slice(0, 8).map((url, i) => (
+                      <div key={i} className="w-12 h-16 rounded-md overflow-hidden bg-muted shrink-0">
+                        <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                      </div>
+                    ))}
+                    {articleImages.length > 8 && (
+                      <div className="w-12 h-16 rounded-md bg-muted flex items-center justify-center text-xs text-muted-foreground shrink-0">
+                        +{articleImages.length - 8}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Dauer pro Bild */}
+                <div>
+                  <Label className="text-xs sm:text-sm">Dauer pro Bild</Label>
+                  <Select value={String(secondsPerImage)} onValueChange={v => setSecondsPerImage(Number(v))}>
+                    <SelectTrigger className="mt-1 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="3">3s · ~{(articleImages.length * 3 + 10)}s Gesamt</SelectItem>
+                      <SelectItem value="4">4s · ~{(articleImages.length * 4 + 10)}s Gesamt</SelectItem>
+                      <SelectItem value="5">5s · ~{(articleImages.length * 5 + 10)}s Gesamt</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Übergang */}
+                <div>
+                  <Label className="text-xs sm:text-sm">Übergangseffekt</Label>
+                  <Select value={transitionType} onValueChange={setTransitionType}>
+                    <SelectTrigger className="mt-1 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TRANSITION_OPTIONS.map(o => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Beat Sync */}
+                <div>
+                  <Label className="text-xs sm:text-sm">Beat-Sync (Schnitte zum Musik-Beat)</Label>
+                  <Select value={beatSync} onValueChange={setBeatSync}>
+                    <SelectTrigger className="mt-1 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">🔇 Aus</SelectItem>
+                      <SelectItem value="low">📊 Leicht</SelectItem>
+                      <SelectItem value="medium">🎵 Medium</SelectItem>
+                      <SelectItem value="high">🔥 Stark</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Musik */}
+                <div>
+                  <Label className="text-xs sm:text-sm flex items-center gap-1">
+                    <Music className="w-3 h-3" /> Musik (vom Server)
+                  </Label>
+                  <Select value={musicStyle} onValueChange={setMusicStyle}>
+                    <SelectTrigger className="mt-1 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MUSIC_OPTIONS.map(o => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Zufälliger Track aus /server/music/ auf dem VPS
+                  </p>
+                </div>
+
+                {/* Render Button */}
+                <Button
+                  onClick={startRender}
+                  className="w-full mt-4"
+                  size="lg"
+                  disabled={rendering}
+                >
+                  {rendering ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Video className="w-4 h-4 mr-2" />
+                  )}
+                  {rendering ? 'Rendert...' : '🎬 Jetzt rendern!'}
+                </Button>
+
+                {/* Progress */}
+                {rendering && (
+                  <div className="space-y-2">
+                    <Progress value={renderProgress} className="h-2" />
+                    <p className="text-xs text-muted-foreground text-center">
+                      {renderProgress < 30
+                        ? '📥 Bilder werden heruntergeladen...'
+                        : renderProgress < 60
+                          ? voiceoverEnabled ? '🎙️ Voiceover wird generiert...' : '🎵 Audio wird geladen...'
+                          : renderProgress < 90
+                            ? '🎬 Video wird gerendert...'
+                            : '📦 Fertigstellung...'}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* ══════ STEP 4: EXPORT ══════ */}
+        {step === 4 && (
+          <div className="max-w-lg mx-auto space-y-4">
+            <Card className="border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20">
+              <CardContent className="py-6 text-center">
+                <div className="text-4xl mb-3">✅</div>
+                <CardTitle className="text-lg mb-1">Video fertig!</CardTitle>
+                <CardDescription className="text-sm">
+                  {renderStatus?.fileSizeMB && `${renderStatus.fileSizeMB} MB`}
+                  {renderStatus?.videoDurationSec && ` · ${renderStatus.videoDurationSec}s`}
+                </CardDescription>
+              </CardContent>
+            </Card>
+
+            {/* MP4 Download */}
+            <Card>
+              <CardContent className="py-4">
+                <Button onClick={downloadMp4} className="w-full" size="lg" variant="default">
+                  <Download className="w-4 h-4 mr-2" />
+                  ⬇️ MP4 herunterladen
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Text Copy */}
+            <Card>
+              <CardContent className="py-4 space-y-3">
+                <div className="p-3 bg-muted/30 rounded-lg text-xs font-mono whitespace-pre-wrap">
+                  {hookText}
+                  {'\n'}
+                  {bodyText.split('\n').filter(l => l.trim()).map((l, i) => (
+                    <span key={i}>{l.trim()}{'\n'}</span>
+                  ))}
+                  {'\n'}
+                  {bridgeText} – {ctaText}
+                  {'\n'}
+                  {hashtags}
+                </div>
+                <Button onClick={copyTikTokText} className="w-full" variant="outline">
+                  <Copy className="w-4 h-4 mr-2" />
+                  📋 TikTok-Text kopieren
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* TikTok Upload Link */}
+            <Card>
+              <CardContent className="py-4">
+                <p className="text-xs text-muted-foreground text-center mb-3">
+                  Jetzt manuell auf TikTok posten:
+                </p>
+                <Button
+                  onClick={() => window.open('https://www.tiktok.com/upload', '_blank')}
+                  className="w-full"
+                  variant="secondary"
+                  size="lg"
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  🔗 TikTok Upload öffnen
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Neue Runde */}
+            <Button onClick={() => { setStep(1); setRenderStatus(null); setDownloadedMp4(false) }} variant="ghost" className="w-full">
+              🔄 Neues Video erstellen
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export default TikTokPromotion

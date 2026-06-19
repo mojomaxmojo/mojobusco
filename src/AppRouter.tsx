@@ -32,6 +32,7 @@ const ServiceWorkerSettings = lazy(() => import("./pages/ServiceWorkerSettings")
 const NIP89SetupPage = lazy(() => import("./pages/NIP89SetupPage").then(m => ({ default: m.NIP89SetupPage })));
 const NIP19Page = lazy(() => import("./pages/NIP19Page").then(m => ({ default: m.NIP19Page })));
 const BudgetPage = lazy(() => import("./pages/BudgetPage").then(m => ({ default: m.BudgetPage })));
+const TikTokPromotion = lazy(() => import("./pages/TikTokPromotion").then(m => ({ default: m.TikTokPromotion })));
 const NotFound = lazy(() => import("./pages/NotFound").then(m => ({ default: m.default })));
 
 function App() {
@@ -72,6 +73,7 @@ function App() {
                <Route path="/veroeffentlichen/modern" element={<ContentEditorMinimal />} />
                 <Route path="/perpetual-travelers" element={<PerpetualTravelers />} />
                 <Route path="/promotion" element={<PromotionDashboard />} />
+                <Route path="/promotion/tiktok" element={<TikTokPromotion />} />
                <Route path="/:nip19" element={<NIP19Page />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

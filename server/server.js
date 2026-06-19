@@ -2225,6 +2225,9 @@ app.post('/api/render-remotion', async (req, res) => {
     mapImageUrl,
     // ── Lottie Bus ───────────────────────────────────────────────────
     showLottieBus = true,
+    // ── NEU: Voiceover (Piper TTS) ─────────────────────────────────────
+    voiceoverText,         // Text für Sprachausgabe (optional)
+    voiceoverModel,        // 'de_DE-thorsten-medium' | 'de_DE-ramona-low' (optional)
   } = req.body
 
   // Validierung
@@ -2313,6 +2316,9 @@ app.post('/api/render-remotion', async (req, res) => {
         mapImageUrl: mapImageUrl || undefined,
         // ── Lottie Bus ─────────────────────────────────────────────
         showLottieBus: showLottieBus !== false,
+        // ── Voiceover (Piper TTS) ─────────────────────────────────────
+        voiceoverText: voiceoverText || undefined,
+        voiceoverModel: voiceoverModel || 'de_DE-thorsten-medium',
         // ── Interner Parameter: Musik-Ordner für localhost-URL-Auflösung
         localMusicDir: MUSIC_DIR,
         onProgress: (percent) => {
@@ -2477,6 +2483,7 @@ app.get('/api/render-remotion/check', async (req, res) => {
       ffmpegPath: FFMPEG,
       musicFiles: musicFiles.length,
       musicDir: MUSIC_DIR,
+      piperAvailable: (await import('./remotion/tts.js')).isPiperAvailable(),
       activeJobs: [...remotionJobs.values()].filter(j => j.status === 'rendering').length,
     })
   } catch (err) {

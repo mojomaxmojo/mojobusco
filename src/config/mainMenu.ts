@@ -128,6 +128,7 @@ export const ACCOUNT_MENU_ITEMS: MainMenuItem[] = [
   { label: 'Einstellungen', path: '/settings', icon: 'Settings' },
   { label: 'Haushaltsbuch', path: '/budget', icon: 'Wallet' },
   { label: 'Pinterest Promotion', path: '/promotion', icon: 'Pin' },
+  { label: '🎬 TikTok Promotion', path: '/promotion/tiktok', icon: 'Video' },
 ];
 
 // ── Hilfsfunktionen ───────────────────────────────────────────────────────

@@ -24,6 +24,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FFMPEG_PATH  = process.env.FFMPEG_PATH  || '/opt/bin/ffmpeg';
 const FFPROBE_PATH = process.env.FFPROBE_PATH || '/opt/bin/ffprobe';
 
+// ── Piper TTS (optional) ───────────────────────────────────────────────────
+import { generateVoiceover, isPiperAvailable } from './tts.js';
+
 const OUTPUT_DIR = path.join(os.tmpdir(), 'remotion-renders');
 const IMAGES_DIR = path.join(os.tmpdir(), 'remotion-images');
 
@@ -470,6 +473,9 @@ export async function renderMojoBusVideo(params) {
     mapImageUrl,
     // ── NEU: Lottie Bus ───────────────────────────────────────────────
     showLottieBus = true,
+    // ── NEU: Voiceover (Piper TTS) ─────────────────────────────────────
+    voiceoverText,             // Text für Sprachausgabe (optional)
+    voiceoverModel = 'de_DE-thorsten-medium', // Stimm-Modell
     onProgress,
     // ── Interner Parameter: lokaler Musik-Ordner (übergeben von server.js) ──
     localMusicDir,
@@ -491,6 +497,7 @@ export async function renderMojoBusVideo(params) {
   let imageFilenames;
   let audioFilename = null;
   let mapFilename   = null;
+  let voiceoverFilename = null;
 
   try {
     [imageFilenames, audioFilename, mapFilename] = await Promise.all([
@@ -498,6 +505,28 @@ export async function renderMojoBusVideo(params) {
       musicUrl  ? downloadAudioFile(musicUrl, sessionDir, localMusicDir) : Promise.resolve(null),
       mapImageUrl ? downloadMapImage(mapImageUrl, sessionDir) : Promise.resolve(null),
     ]);
+
+    // Voiceover (TTS) – nur wenn Text übergeben wurde
+    if (voiceoverText && voiceoverText.trim()) {
+      try {
+        const ttsAvailable = isPiperAvailable();
+        if (ttsAvailable) {
+          console.log(`[Remotion] 🎙️ Voiceover generieren (${voiceoverModel}): "${voiceoverText.slice(0, 60)}..."`);
+          const wavPath = await generateVoiceover(voiceoverText.trim(), voiceoverModel);
+          // WAV ins sessionDir kopieren (wird vom HTTP-Server ausgeliefert)
+          const destPath = path.join(sessionDir, 'voiceover.wav');
+          fs.copyFileSync(wavPath, destPath);
+          try { fs.chmodSync(destPath, 0o644); } catch (e) {}
+          try { fs.rmSync(wavPath, { force: true }); } catch (e) {}
+          voiceoverFilename = 'voiceover.wav';
+          console.log(`[Remotion] ✅ Voiceover: voiceover.wav`);
+        } else {
+          console.warn('[Remotion] ⚠️ Piper TTS nicht installiert – Voiceover deaktiviert');
+        }
+      } catch (ttsErr) {
+        console.warn(`[Remotion] ⚠️ Voiceover fehlgeschlagen: ${ttsErr.message} – fahre ohne fort`);
+      }
+    }
   } catch (err) {
     try { fs.rmSync(sessionDir, { recursive: true, force: true }); } catch (e) {}
     throw new Error(`Download fehlgeschlagen: ${err.message}`);
@@ -523,6 +552,13 @@ export async function renderMojoBusVideo(params) {
       : musicUrl || null;
     if (httpMusicUrl) console.log(`[Remotion] Audio-URL: ${httpMusicUrl}`);
 
+    // Voiceover-URL: lokal wenn generiert
+    let httpVoiceoverUrl = null;
+    if (voiceoverFilename) {
+      httpVoiceoverUrl = `${base}/${voiceoverFilename}`;
+      console.log(`[Remotion] Voiceover-URL: ${httpVoiceoverUrl}`);
+    }
+
     // Karten-URL: lokal wenn Download OK, sonst Original-URL
     httpMapImageUrl = mapFilename
       ? `${base}/${mapFilename}`
@@ -545,6 +581,7 @@ export async function renderMojoBusVideo(params) {
       imageUrls: httpImageUrls,             // ← HTTP statt file://
       title, summary, location, country, lifestyle,
       musicUrl: httpMusicUrl,               // ← Lokal gecacht!
+      voiceoverUrl: httpVoiceoverUrl,       // ← Lokale TTS-Spur!
       secondsPerImage, aspectRatio, colorGrade,
       captions, captionStyle, websiteUrl, handle, accentColor, motionBlurStrength,
       // ── Beat-Sync, Transitions, Route, Lottie ────────────────────

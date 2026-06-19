@@ -66,6 +66,10 @@ export interface MojoBusVideoProps {
   accentColor?: string;
   motionBlurStrength?: number;
 
+  // ── NEU: Voiceover (Piper TTS) ───────────────────────────────────────
+  /** URL der generierten Sprachaufnahme (wav). Wenn gesetzt, wird parallel zur Musik abgespielt */
+  voiceoverUrl?: string;
+
   // ── NEU: Beat-Sync ────────────────────────────────────────────────────
   /** Beat-Sync Stärke 0–1 (0 = aus, 1 = standard). Default: 0.6 */
   beatSyncStrength?: number;
@@ -150,6 +154,9 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
 
   // Lottie Bus
   showLottieBus = true,
+
+  // Voiceover
+  voiceoverUrl,
 
 }) => {
   const { fps, durationInFrames } = useVideoConfig();
@@ -455,13 +462,23 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
         </Sequence>
       )}
 
-      {/* ══ SCHICHT 11: Audio ════════════════════════════════════════════════ */}
+      {/* ══ SCHICHT 11: Audio (Musik) ════════════════════════════════════════ */}
       {musicUrl && (
         <AudioLayer
           src={musicUrl}
           volume={0.72}
           fadeInSec={2}
           fadeOutSec={3}
+        />
+      )}
+
+      {/* ══ SCHICHT 11b: Audio (Voiceover) – optional, parallel zur Musik ═══ */}
+      {voiceoverUrl && (
+        <AudioLayer
+          src={voiceoverUrl}
+          volume={1.0}
+          fadeInSec={0.2}
+          fadeOutSec={0.5}
         />
       )}
 
