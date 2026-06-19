@@ -26,6 +26,8 @@ const FFPROBE_PATH = process.env.FFPROBE_PATH || '/opt/bin/ffprobe';
 
 // ── Piper TTS (optional) ───────────────────────────────────────────────────
 import { generateVoiceover, isPiperAvailable } from './tts.js';
+// ── Ambient Sounds (optional) ──────────────────────────────────────────────
+import { generateAmbient } from './ambient.js';
 
 const OUTPUT_DIR = path.join(os.tmpdir(), 'remotion-renders');
 const IMAGES_DIR = path.join(os.tmpdir(), 'remotion-images');
@@ -476,6 +478,8 @@ export async function renderMojoBusVideo(params) {
     // ── NEU: Voiceover (Piper TTS) ─────────────────────────────────────
     voiceoverText,             // Text für Sprachausgabe (optional)
     voiceoverModel = 'de_DE-thorsten-medium', // Stimm-Modell
+    // ── NEU: Ambient Sound (Atmo) ─────────────────────────────────────────
+    ambientType,               // 'ocean' | 'rain' | 'wind' | 'fire' | 'forest' (optional)
     onProgress,
     // ── Interner Parameter: lokaler Musik-Ordner (übergeben von server.js) ──
     localMusicDir,
@@ -527,6 +531,21 @@ export async function renderMojoBusVideo(params) {
         console.warn(`[Remotion] ⚠️ Voiceover fehlgeschlagen: ${ttsErr.message} – fahre ohne fort`);
       }
     }
+
+    // Ambient (Atmo) – nur wenn Typ übergeben wurde
+    if (ambientType && ambientType.trim()) {
+      try {
+        const ambientPath = path.join(sessionDir, 'ambient.wav');
+        console.log(`[Remotion] 🌊 Atmo generieren: ${ambientType} → ambient.wav`);
+        await generateAmbient(ambientType, ambientPath, 60);
+        if (fs.existsSync(ambientPath)) {
+          try { fs.chmodSync(ambientPath, 0o644); } catch (e) {}
+          console.log(`[Remotion] ✅ Atmo: ambient.wav`);
+        }
+      } catch (atmoErr) {
+        console.warn(`[Remotion] ⚠️ Atmo fehlgeschlagen: ${atmoErr.message} – fahre ohne fort`);
+      }
+    }
   } catch (err) {
     try { fs.rmSync(sessionDir, { recursive: true, force: true }); } catch (e) {}
     throw new Error(`Download fehlgeschlagen: ${err.message}`);
@@ -559,6 +578,13 @@ export async function renderMojoBusVideo(params) {
       console.log(`[Remotion] Voiceover-URL: ${httpVoiceoverUrl}`);
     }
 
+    // Ambient-URL: lokal wenn generiert (ambient.wav)
+    let httpAmbientUrl = null;
+    if (ambientType && fs.existsSync(path.join(sessionDir, 'ambient.wav'))) {
+      httpAmbientUrl = `${base}/ambient.wav`;
+      console.log(`[Remotion] Ambient-URL: ${httpAmbientUrl}`);
+    }
+
     // Karten-URL: lokal wenn Download OK, sonst Original-URL
     httpMapImageUrl = mapFilename
       ? `${base}/${mapFilename}`
@@ -582,6 +608,7 @@ export async function renderMojoBusVideo(params) {
       title, summary, location, country, lifestyle,
       musicUrl: httpMusicUrl,               // ← Lokal gecacht!
       voiceoverUrl: httpVoiceoverUrl,       // ← Lokale TTS-Spur!
+      ambientUrl: httpAmbientUrl,           // ← Lokale Atmo-Spur!
       secondsPerImage, aspectRatio, colorGrade,
       captions, captionStyle, websiteUrl, handle, accentColor, motionBlurStrength,
       // ── Beat-Sync, Transitions, Route, Lottie ────────────────────

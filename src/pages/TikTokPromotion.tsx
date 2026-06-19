@@ -112,12 +112,20 @@ const VOICES = [
   { id: 'de_DE-ramona-low', label: 'Ramona (👩)', desc: 'Weiblich' },
 ]
 
-/** Musik-Optionen */
-const MUSIC_OPTIONS = [
-  { value: 'ambient', label: '🌊 Ambient' },
-  { value: 'lofi', label: '🎧 Lofi' },
-  { value: 'sommer', label: '☀️ Sommer' },
-  { value: 'none', label: '🔇 Keine Musik' },
+/** Musik-Optionen – werden dynamisch vom Server geladen */
+const STATIC_MUSIC_OPTIONS = [
+  { value: '__random__', label: '🎲 Zufällig' },
+  { value: '__none__', label: '🔇 Keine Musik' },
+]
+
+/** Atmo-Geräusche (via FFmpeg lavfi generiert) */
+const AMBIENT_OPTIONS = [
+  { value: '__none__', label: '🔇 Kein Atmo' },
+  { value: 'ocean', label: '🌊 Meeresrauschen' },
+  { value: 'rain', label: '☔ Regen' },
+  { value: 'wind', label: '🌬️ Wind' },
+  { value: 'fire', label: '🔥 Lagerfeuer' },
+  { value: 'forest', label: '🌲 Vogelgezwitscher' },
 ]
 
 /** Übergangs-Optionen */
@@ -176,7 +184,7 @@ export function TikTokPromotion() {
   const [voiceoverEnabled, setVoiceoverEnabled] = useState(false)
   const [voiceoverModel, setVoiceoverModel] = useState('de_DE-thorsten-medium')
 
-  // ── MUSIK ════════════════════════════════════════════════
+// ── MUSIK ════════════════════════════════════════════════
   const [musicStyle, setMusicStyle] = useState('ambient')
 
   // ── EINSTELLUNGEN ════════════════════════════════════════
@@ -184,11 +192,19 @@ export function TikTokPromotion() {
   const [secondsPerImage, setSecondsPerImage] = useState(4)
   const [beatSync, setBeatSync] = useState('medium')
 
-  // ── RENDER ═══════════════════════════════════════════════
-  const [renderStatus, setRenderStatus] = useState<RenderStatus | null>(null)
-  const [renderProgress, setRenderProgress] = useState(0)
-  const [downloadedMp4, setDownloadedMp4] = useState(false)
-  const pollRef = useRef<number | null>(null)
+  // ── AMBIENT ══════════════════════════════════════════════
+  const [ambientType, setAmbientType] = useState('__none__')
+
+  // ── MUSIK (dynamisch) ════════════════════════════════════
+  const [musicTracks, setMusicTracks] = useState<{ filename: string; label: string; url: string }[]>([])
+  const [selectedTrack, setSelectedTrack] = useState('__random__')
+
+  // ── ROUTEMAP ═════════════════════════════════════════════
+  const [showRouteMap, setShowRouteMap] = useState(false)
+
+  // ── LOCATION (aus Content extrahiert) ════════════════════
+  const [location, setLocation] = useState('')
+  const [country, setCountry] = useState('')
 
   // ── REMOTION STATUS ══════════════════════════════════════
   const [remotionAvailable, setRemotionAvailable] = useState<boolean | null>(null)
@@ -205,6 +221,18 @@ export function TikTokPromotion() {
       .catch(() => setRemotionAvailable(false))
   }, [])
 
+  // Musik-Tracks vom Server laden
+  useEffect(() => {
+    fetch('/api/music/list')
+      .then(r => r.json())
+      .then(data => {
+        if (data?.tracks) {
+          setMusicTracks(data.tracks)
+        }
+      })
+      .catch(() => {})
+  }, [])
+
   // ── CONTENT AUSWÄHLEN ═══════════════════════════════════
 
   const selectContent = (item: ContentItem) => {
@@ -212,6 +240,14 @@ export function TikTokPromotion() {
     setArticleTitle(item.title)
     setArticleSummary(item.summary)
     setArticleImages(item.images.slice(0, 20))
+
+    // Location & Country aus Tags extrahieren
+    const event = item.event
+    const countryTag = event?.tags?.find((t: any[]) => t[0] === 'country' || t[0] === 'l')?.[1]
+    const locationTag = event?.tags?.find((t: any[]) => t[0] === 'location')?.[1]
+    const titleTag = event?.tags?.find((t: any[]) => t[0] === 'title')?.[1]
+    setCountry(countryTag || '')
+    setLocation(locationTag || countryTag || '')
 
     // Prüfe auf Video-URLs
     const hasVideoUrl = item.images.some(url =>
@@ -244,23 +280,15 @@ export function TikTokPromotion() {
 
     setGenerating(true)
     try {
-      // KI-Prompt selbst bauen und an ai-api senden
-      const currentImageUrl = articleImages[0] || ''
-      const lifestyleKey = 'mojobus'
-
-      const res = await fetch('/api/promotion/generate-pin-text', {
+      const res = await fetch('/api/tiktok/generate-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: articleTitle,
           summary: articleSummary,
           text: selectedContent?.content?.substring(0, 1500) || '',
-          template: 'infographic', // Nur für Text-Generierung genutzt
+          template,
           model: 'llama4',
-          lifestyle: lifestyleKey,
-          imageUrl: currentImageUrl,
-          // TikTok-spezifisch: Signal ans Backend dass es TikTok ist
-          platform: 'tiktok',
         }),
       })
 
@@ -269,29 +297,16 @@ export function TikTokPromotion() {
         throw new Error(data?.error || 'Generierung fehlgeschlagen')
       }
 
-      // Aus den generierten Pin-Daten TikTok-Texte extrahieren
-      const pin = data.pinData || {}
-
-      // Hook: Pin-Titel als Hook
-      setHookText(pin.pinTitle || articleTitle)
-
-      // Body: Pin-Beschreibung
-      setBodyText(pin.pinDescription || articleSummary)
-
-      // Bridge + CTA
-      setBridgeText('Mehr auf mojobus.co')
-      setCtaText('Link in Bio 📌')
-
-      // Hashtags
-      const tags = pin.hashtags || []
-      setHashtags(tags.length > 0
-        ? tags.join(' ')
-        : '#vanlife #perpetualtraveler #mojobus #wohnmobil'
-      )
+      // Foster-Huntington-Stil Texte aus dem neuen Endpunkt
+      setHookText(data.hook || articleTitle)
+      setBodyText((data.bodyLines || []).join('\n') || articleSummary)
+      setBridgeText(data.bridge || 'Mehr auf mojobus.co')
+      setCtaText(data.cta || 'Link in Bio 📌')
+      setHashtags((data.hashtags || []).join(' '))
 
       toast({
-        title: 'TikTok-Text generiert!',
-        description: 'Die Texte wurden vorausgefüllt. Du kannst sie bearbeiten.',
+        title: 'TikTok-Text generiert! ✍️',
+        description: 'Foster-Huntington-Stil – poetisch, authentisch, roh.',
       })
 
       setStep(3)
@@ -353,8 +368,12 @@ export function TikTokPromotion() {
     ].filter(c => c)
 
     // Music-URL
-    const musicUrl = musicStyle === 'none' ? undefined : undefined
-    // Leer lassen → Server wählt zufälligen Track aus music/-Ordner
+    let musicUrl = undefined
+    if (selectedTrack && selectedTrack !== '__none__' && selectedTrack !== '__random__') {
+      const track = musicTracks.find(t => t.filename === selectedTrack)
+      if (track) musicUrl = track.url
+    }
+    // Wenn '__random__' oder nichts ausgewählt → Server wählt zufällig
 
     // Beat-Sync
     const beatSyncVal = beatSync === 'none' ? 0
@@ -366,7 +385,8 @@ export function TikTokPromotion() {
       imageUrls: articleImages,
       title: hookText,
       summary: articleSummary || hookText,
-      location: selectedContent?.tags?.[0] || '',
+      location: location || undefined,
+      country: country || undefined,
       lifestyle: 'mojobus',
       secondsPerImage,
       aspectRatio: '9:16',
@@ -378,6 +398,8 @@ export function TikTokPromotion() {
       beatSyncStrength: beatSyncVal,
       transitionType: transitionType || 'auto',
       showLottieBus: true,
+      showRouteMap,
+      ambientType: ambientType !== '__none__' ? ambientType : undefined,
     }
 
     // Voiceover nur wenn aktiviert
@@ -932,22 +954,70 @@ export function TikTokPromotion() {
                 {/* Musik */}
                 <div>
                   <Label className="text-xs sm:text-sm flex items-center gap-1">
-                    <Music className="w-3 h-3" /> Musik (vom Server)
+                    <Music className="w-3 h-3" /> Musik
                   </Label>
-                  <Select value={musicStyle} onValueChange={setMusicStyle}>
+                  <Select value={selectedTrack} onValueChange={v => { setSelectedTrack(v) }}>
+                    <SelectTrigger className="mt-1 text-sm">
+                      <SelectValue placeholder="🎲 Zufällig" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__random__">🎲 Zufälliger Track</SelectItem>
+                      <SelectItem value="__none__">🔇 Keine Musik</SelectItem>
+                      {musicTracks.map(track => (
+                        <SelectItem key={track.filename} value={track.filename}>
+                          {track.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    {musicTracks.length} Track{musicTracks.length !== 1 ? 's' : ''} auf dem Server
+                  </p>
+                </div>
+
+                {/* Atmo */}
+                <div>
+                  <Label className="text-xs sm:text-sm flex items-center gap-1">
+                    <Volume2 className="w-3 h-3" /> Atmo-Geräusch (Hintergrund)
+                  </Label>
+                  <Select value={ambientType} onValueChange={setAmbientType}>
                     <SelectTrigger className="mt-1 text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {MUSIC_OPTIONS.map(o => (
+                      {AMBIENT_OPTIONS.map(o => (
                         <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                   <p className="text-[10px] text-muted-foreground mt-1">
-                    Zufälliger Track aus /server/music/ auf dem VPS
+                    Via FFmpeg generiert · Lautstärke ~15%
                   </p>
                 </div>
+
+                {/* RouteMap */}
+                <div className="flex items-center justify-between p-2 bg-muted/20 rounded-lg">
+                  <Label className="text-xs sm:text-sm cursor-pointer flex items-center gap-2">
+                    🗺️ Animierte Routen-Karte einblenden
+                    <span className="text-[10px] text-muted-foreground">(Mitte der Slideshow)</span>
+                  </Label>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={showRouteMap}
+                      onChange={e => setShowRouteMap(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-muted-foreground/30 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary" />
+                  </label>
+                </div>
+
+                {/* Location Anzeige */}
+                {(location || country) && (
+                  <div className="text-[10px] text-muted-foreground bg-muted/20 p-2 rounded-lg">
+                    📍 {[location, country].filter(Boolean).join(', ')}
+                  </div>
+                )}
 
                 {/* Render Button */}
                 <Button

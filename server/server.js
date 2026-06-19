@@ -2228,6 +2228,8 @@ app.post('/api/render-remotion', async (req, res) => {
     // ── NEU: Voiceover (Piper TTS) ─────────────────────────────────────
     voiceoverText,         // Text für Sprachausgabe (optional)
     voiceoverModel,        // 'de_DE-thorsten-medium' | 'de_DE-ramona-low' (optional)
+    // ── NEU: Ambient Sound (Atmo) ────────────────────────────────────────
+    ambientType,           // 'ocean' | 'rain' | 'wind' | 'fire' | 'forest' (optional)
   } = req.body
 
   // Validierung
@@ -2319,6 +2321,8 @@ app.post('/api/render-remotion', async (req, res) => {
         // ── Voiceover (Piper TTS) ─────────────────────────────────────
         voiceoverText: voiceoverText || undefined,
         voiceoverModel: voiceoverModel || 'de_DE-thorsten-medium',
+        // ── Ambient Sound (Atmo) ─────────────────────────────────────────
+        ambientType: ambientType || undefined,
         // ── Interner Parameter: Musik-Ordner für localhost-URL-Auflösung
         localMusicDir: MUSIC_DIR,
         onProgress: (percent) => {
@@ -2454,6 +2458,133 @@ app.get('/api/music/:filename', (req, res) => {
   res.setHeader('Content-Type', mimeTypes[ext] || 'audio/mpeg')
   res.setHeader('Cache-Control', 'public, max-age=3600')
   fs.createReadStream(filePath).pipe(res)
+})
+
+// ═══════════════════════════════════════════════════════════
+// TIKTOK TEXT GENERATOR – spezifisch für Vanlife-Videos
+// ═══════════════════════════════════════════════════════════
+// POST /api/tiktok/generate-text
+// Body: { title, summary, text, template?, model? }
+// Antwort: { hook, bodyLines[], bridge, cta, hashtags[] }
+// ═══════════════════════════════════════════════════════════
+
+const FOSTER_HUNTINGTON_SYSTEM_PROMPT = `Du schreibst im Stil von Foster Huntington – Autor von "Home is Where You Park It" und "Van Life".
+
+STIL-REGELN:
+- Poetisch, authentisch, roh – keine Werbesprache
+- Kurze, prägnante Sätze. Atmosphäre statt Fakten.
+- Zeige das "Leben dazwischen" – die kleinen Momente, nicht die Ziele
+- "We parked. We stayed. We lived."-Mentalität
+- Keine SEO-Optimierung, keine Keyword-Stuffing
+- Maximal ein Satz pro Caption
+- Schreibe auf DEUTSCH
+
+ANTWORT-FORMAT (NUR JSON, kein Text davor/danach):
+{
+  "hook": "Ein Satz der neugierig macht – 0-2s, max 80 Zeichen",
+  "bodyLines": ["Satz 1", "Satz 2", "Satz 3", "optional Satz 4"],
+  "bridge": "Überleitung zum Blog – 22-27s, max 60 Zeichen",
+  "cta": "Handlungsaufforderung – 27-30s, max 40 Zeichen",
+  "hashtags": ["#vanlife", "#perpetualtraveler", "#mojobus", "..."]
+}`
+
+app.post('/api/tiktok/generate-text', async (req, res) => {
+  const { title, summary, text, template = 'story', model = 'llama4' } = req.body
+
+  if (!title || !title.trim()) {
+    return res.status(400).json({ error: 'Titel ist erforderlich' })
+  }
+
+  console.log(`[TikTok] Generiere Text: template=${template}, model=${model}, title="${title.substring(0, 60)}"`)
+
+  try {
+    const userPrompt = `Erstelle TikTok-Texte für diesen Vanlife-Artikel im Foster-Huntington-Stil.
+
+ARTIKEL-TITEL: "${title}"
+ZUSAMMENFASSUNG: "${summary || ''}"
+TEXT-AUSZUG: "${(text || '').substring(0, 1200)}"
+
+TEMPLATE: ${template === 'story' ? 'Story (Atmosphäre, Emotion, minimaler Text)' :
+            template === 'listicle' ? 'Listicle (3-5 konkrete Punkte, Tipps, Erkenntnisse)' :
+            template === 'reveal' ? 'Reveal (überraschende Einsicht oder "Warum wir das anders machen")' :
+            'Story'}
+
+REGELN FÜR DIESES VIDEO:
+- HOOK (0-2s): Eine provokante Frage oder Behauptung die neugierig macht. 
+- BODY (3-22s): 3-4 Sätze. Erzähle eine kleine Geschichte. Zeige ein Problem oder einen besonderen Moment.
+- BRIDGE (22-27s): "Mehr davon auf mojobus.co" oder ähnlich – mach neugierig auf den Blog.
+- CTA (27-30s): "Link in Bio 📌" oder ähnlich.
+- HASHTAGS: 4-5 relevante Hashtags.
+
+WICHTIG: Foster Huntington-Stil – poetisch, authentisch, kein "Hochglanz-Werbesprech". 
+Zeige die Ruhe, die Weite, den Moment. Nicht "Wir haben dies und das gekauft", 
+sondern "Der Kaffee war kalt. Die Wellen waren warm. Perfekt."`
+
+    let apiKey, apiUrl, apiModel
+
+    if (model === 'claude' && process.env.OPENROUTER_API_KEY) {
+      apiKey = process.env.OPENROUTER_API_KEY
+      apiUrl = 'https://openrouter.ai/api/v1/chat/completions'
+      apiModel = '~anthropic/claude-sonnet-latest'
+    } else if (process.env.GROQ_API_KEY) {
+      apiKey = process.env.GROQ_API_KEY
+      apiUrl = 'https://api.groq.com/openai/v1/chat/completions'
+      apiModel = 'meta-llama/llama-4-scout-17b-16e-instruct'
+    } else {
+      return res.status(500).json({ error: 'Kein KI-API-Key konfiguriert (GROQ_API_KEY oder OPENROUTER_API_KEY)' })
+    }
+
+    const response = await axios.post(apiUrl, {
+      model: apiModel,
+      messages: [
+        { role: 'system', content: FOSTER_HUNTINGTON_SYSTEM_PROMPT },
+        { role: 'user', content: userPrompt }
+      ],
+      max_tokens: 600,
+      temperature: 0.8,
+      top_p: 0.9
+    }, {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        ...(model === 'claude' ? { 'HTTP-Referer': 'https://mojobus.co', 'X-Title': 'MojoBus' } : {})
+      },
+      timeout: 45000
+    })
+
+    const rawText = response.data.choices[0].message.content
+    console.log(`[TikTok] KI-Antwort erhalten (${rawText.length} Zeichen)`)
+
+    // JSON aus Antwort parsen
+    let result
+    try {
+      const jsonStr = rawText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
+      result = JSON.parse(jsonStr)
+    } catch {
+      // Fallback: JSON im Text suchen
+      const match = rawText.match(/\{[\s\S]*\}/)
+      if (match) {
+        try { result = JSON.parse(match[0]) } catch {}
+      }
+    }
+
+    if (!result) {
+      return res.status(500).json({ error: 'KI-Antwort konnte nicht geparst werden', raw: rawText.substring(0, 500) })
+    }
+
+    res.json({
+      success: true,
+      hook: result.hook || title,
+      bodyLines: Array.isArray(result.bodyLines) ? result.bodyLines : [summary || ''],
+      bridge: result.bridge || 'Mehr auf mojobus.co',
+      cta: result.cta || 'Link in Bio 📌',
+      hashtags: Array.isArray(result.hashtags) ? result.hashtags : ['#vanlife', '#mojobus'],
+    })
+
+  } catch (err) {
+    console.error('[TikTok] Fehler:', err.response?.data || err.message)
+    res.status(500).json({ error: err.message || 'Generierung fehlgeschlagen' })
+  }
 })
 
 // ── Remotion Status-Check (ist Remotion installiert?) ───────────────────

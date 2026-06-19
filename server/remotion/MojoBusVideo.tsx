@@ -67,8 +67,10 @@ export interface MojoBusVideoProps {
   motionBlurStrength?: number;
 
   // ── NEU: Voiceover (Piper TTS) ───────────────────────────────────────
-  /** URL der generierten Sprachaufnahme (wav). Wenn gesetzt, wird parallel zur Musik abgespielt */
+  /** URL der generierten Sprachaufnahme (wav) */
   voiceoverUrl?: string;
+  /** URL der generierten Atmo-Spur (wav) – Meer, Regen, Wind etc. */
+  ambientUrl?: string;
 
   // ── NEU: Beat-Sync ────────────────────────────────────────────────────
   /** Beat-Sync Stärke 0–1 (0 = aus, 1 = standard). Default: 0.6 */
@@ -157,6 +159,8 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
 
   // Voiceover
   voiceoverUrl,
+  // Ambient
+  ambientUrl,
 
 }) => {
   const { fps, durationInFrames } = useVideoConfig();
@@ -479,6 +483,16 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
           volume={1.0}
           fadeInSec={0.2}
           fadeOutSec={0.5}
+        />
+      )}
+
+      {/* ══ SCHICHT 11c: Audio (Ambient/Atmo) – leise im Hintergrund ════ */}
+      {ambientUrl && (
+        <AudioLayer
+          src={ambientUrl}
+          volume={0.15}
+          fadeInSec={3}
+          fadeOutSec={3}
         />
       )}
 
