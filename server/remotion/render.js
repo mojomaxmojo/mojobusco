@@ -556,6 +556,8 @@ export async function renderMojoBusVideo(params) {
   let httpImageUrls;
   let httpMusicUrl;
   let httpMapImageUrl;
+  let httpVoiceoverUrl = null;
+  let httpAmbientUrl = null;
 
   try {
     imageServer = await startImageServer(sessionDir);
@@ -572,14 +574,12 @@ export async function renderMojoBusVideo(params) {
     if (httpMusicUrl) console.log(`[Remotion] Audio-URL: ${httpMusicUrl}`);
 
     // Voiceover-URL: lokal wenn generiert
-    let httpVoiceoverUrl = null;
     if (voiceoverFilename) {
       httpVoiceoverUrl = `${base}/${voiceoverFilename}`;
       console.log(`[Remotion] Voiceover-URL: ${httpVoiceoverUrl}`);
     }
 
     // Ambient-URL: lokal wenn generiert (ambient.wav)
-    let httpAmbientUrl = null;
     if (ambientType && fs.existsSync(path.join(sessionDir, 'ambient.wav'))) {
       httpAmbientUrl = `${base}/ambient.wav`;
       console.log(`[Remotion] Ambient-URL: ${httpAmbientUrl}`);
