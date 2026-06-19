@@ -59,20 +59,20 @@ export const StoryCaption: React.FC<StoryCaptionProps> = ({
     style === 'bold'
       ? {
           ...TEXT_STYLES.captionBold,
-          fontSize: 'clamp(0.95rem, 3.8vw, 1.9rem)',
+          fontSize: 'clamp(1.4rem, 5.5vw, 2.8rem)',
           color: '#FFFFFF',
           textShadow: '0 2px 14px rgba(0,0,0,0.9)',
         }
       : style === 'subtitle'
       ? {
           ...TEXT_STYLES.subtitle,
-          fontSize: 'clamp(0.7rem, 2.3vw, 1.15rem)',
+          fontSize: 'clamp(1rem, 3.5vw, 1.6rem)',
           color: 'rgba(255,255,255,0.92)',
           textShadow: '0 1px 10px rgba(0,0,0,0.95)',
         }
       : {
           ...TEXT_STYLES.caption,
-          fontSize: 'clamp(0.8rem, 2.7vw, 1.3rem)',
+          fontSize: 'clamp(1.2rem, 4.5vw, 2.2rem)',
           color: '#FFFFFF',
           textShadow: '0 2px 12px rgba(0,0,0,0.9)',
         };

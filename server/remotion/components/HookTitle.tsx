@@ -93,7 +93,7 @@ export const HookTitle: React.FC<HookTitleProps> = ({
         <div
           style={{
             ...TEXT_STYLES.hookTitle,
-            fontSize: 'clamp(1.8rem, 7.5vw, 5rem)',
+            fontSize: 'clamp(2.4rem, 10vw, 5.5rem)',
             color: textColor,
             textShadow: '0 4px 24px rgba(0,0,0,0.85), 0 2px 6px rgba(0,0,0,0.7)',
             wordBreak: 'break-word',
@@ -120,7 +120,7 @@ export const HookTitle: React.FC<HookTitleProps> = ({
           <div
             style={{
               ...TEXT_STYLES.hookSubtitle,
-              fontSize: 'clamp(0.75rem, 2.8vw, 1.35rem)',
+              fontSize: 'clamp(1rem, 4vw, 1.8rem)',
               color: 'rgba(255,255,255,0.88)',
               textShadow: '0 2px 10px rgba(0,0,0,0.8)',
             }}

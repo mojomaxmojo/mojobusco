@@ -216,6 +216,9 @@ export function TikTokPromotion() {
   const [remotionAvailable, setRemotionAvailable] = useState<boolean | null>(null)
   const [piperAvailable, setPiperAvailable] = useState(false)
 
+  // ── HISTORY ═══════════════════════════════════════════════
+  const [history, setHistory] = useState<any[]>([])
+
   // Remotion-Status beim Laden prüfen
   useEffect(() => {
     fetch('/api/render-remotion/check')
@@ -238,6 +241,18 @@ export function TikTokPromotion() {
       })
       .catch(() => {})
   }, [])
+
+  // History laden
+  const loadHistory = useCallback(() => {
+    fetch('/api/render-remotion/history')
+      .then(r => r.json())
+      .then(data => {
+        if (data?.jobs) setHistory(data.jobs)
+      })
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => { loadHistory() }, [loadHistory])
 
   // ── CONTENT AUSWÄHLEN ═══════════════════════════════════
 
@@ -390,6 +405,7 @@ export function TikTokPromotion() {
     const payload: Record<string, any> = {
       imageUrls: articleImages,
       title: hookText,
+      hookText,
       summary: articleSummary || hookText,
       location: location || undefined,
       country: country || undefined,
@@ -1124,9 +1140,47 @@ export function TikTokPromotion() {
             </Card>
 
             {/* Neue Runde */}
-            <Button onClick={() => { setStep(1); setRenderStatus(null); setDownloadedMp4(false) }} variant="ghost" className="w-full">
+            <Button onClick={() => { setStep(1); setRenderStatus(null); setDownloadedMp4(false); loadHistory() }} variant="ghost" className="w-full">
               🔄 Neues Video erstellen
             </Button>
+
+            {/* ══════ HISTORY: Alle generierten Videos ══════ */}
+            {history.length > 0 && (
+              <div className="pt-6 border-t mt-6">
+                <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                  <Video className="w-4 h-4" /> Bereits gerendert ({history.length})
+                </h3>
+                <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                  {history.map(job => (
+                    <Card key={job.jobId} className="p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">{job.hook || job.title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {job.imageCount} Bilder · {job.aspectRatio}
+                            {job.fileSizeMB && ` · ${job.fileSizeMB}MB`}
+                            {job.videoDurationSec && ` · ${job.videoDurationSec}s`}
+                          </p>
+                        </div>
+                        <div className="flex gap-1 shrink-0">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 px-2 text-xs"
+                            onClick={() => window.open(`/api/render-remotion/download/${job.jobId}`, '_blank')}
+                          >
+                            <Download className="w-3 h-3 mr-1" /> MP4
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-2 text-center">
+                  MP4s werden nach 1h automatisch gelöscht. Bei Bedarf vorher downloaden.
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>

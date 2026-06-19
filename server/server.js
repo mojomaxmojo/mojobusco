@@ -2230,6 +2230,8 @@ app.post('/api/render-remotion', async (req, res) => {
     voiceoverModel,        // 'de_DE-thorsten-medium' | 'de_DE-ramona-low' (optional)
     // ── NEU: Ambient Sound (Atmo) ────────────────────────────────────────
     ambientType,           // 'ocean' | 'rain' | 'wind' | 'fire' | 'forest' (optional)
+    // ── Metadaten für History ────────────────────────────────────────────
+    hookText,              // Hook-Text für History-Anzeige (optional)
   } = req.body
 
   // Validierung
@@ -2253,6 +2255,12 @@ app.post('/api/render-remotion', async (req, res) => {
     videoDurationSec: null,
     error: null,
     created: Date.now(),
+    // Metadaten für History
+    title: title || 'MojoBus Video',
+    hook: hookText || title || '',
+    imageCount: imageUrls?.length || 0,
+    aspectRatio: aspectRatio || '16:9',
+    hashtags: [],
   })
 
   console.log(`[Remotion] Job ${jobId} erstellt: ${imageUrls.length} Bilder, ${aspectRatio}, ${lifestyle}`)
@@ -2439,6 +2447,30 @@ app.get('/api/music/list', (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message, tracks: [] })
   }
+})
+
+// ── Remotion History (alle abgeschlossenen Jobs) ───────────────────────
+app.get('/api/render-remotion/history', (req, res) => {
+  const jobs = [...remotionJobs.entries()]
+    .filter(([, job]) => job.status === 'completed' && job.outputPath)
+    .map(([jobId, job]) => ({
+      jobId,
+      status: job.status,
+      progress: job.progress,
+      fileSizeMB: job.fileSizeMB,
+      videoDurationSec: job.videoDurationSec,
+      created: job.created,
+      // Metadaten (vom POST übernommen)
+      title: job.title || 'MojoBus Video',
+      hook: job.hook || '',
+      imageCount: job.imageCount || 0,
+      aspectRatio: job.aspectRatio || '16:9',
+      hashtags: job.hashtags || [],
+    }))
+    .sort((a, b) => b.created - a.created)
+    .slice(0, 50) // max 50 Einträge
+
+  res.json({ jobs })
 })
 
 // ── Musik-Dateien für Remotion als HTTP-Assets bereitstellen ────────────

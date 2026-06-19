@@ -209,7 +209,7 @@ export const WordHighlightCaptions: React.FC<WordHighlightCaptionsProps> = ({
           <div
             style={{
               ...TEXT_STYLES.caption,
-              fontSize: 'clamp(1rem, 3.5vw, 1.8rem)',
+              fontSize: 'clamp(1.2rem, 4.5vw, 2rem)',
               color: '#FFFFFF',
               textShadow: '0 2px 12px rgba(0,0,0,0.9)',
               textAlign: 'center',
@@ -255,7 +255,7 @@ export const WordHighlightCaptions: React.FC<WordHighlightCaptionsProps> = ({
         <div
           style={{
             ...TEXT_STYLES.caption,
-            fontSize: 'clamp(0.85rem, 3vw, 1.5rem)',
+            fontSize: 'clamp(1.3rem, 5vw, 2.2rem)',
             color: '#FFFFFF',
             textShadow: '0 2px 10px rgba(0,0,0,0.9)',
             textAlign: 'center',

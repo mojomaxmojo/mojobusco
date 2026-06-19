@@ -141,7 +141,7 @@ export const MojoBusCTA: React.FC<MojoBusCTAProps> = ({
           style={{
             fontFamily: FONT_FAMILY,
             fontWeight: FONT_WEIGHT.bold,
-            fontSize: 'clamp(0.6rem, 2.8vw, 1.15rem)',
+            fontSize: 'clamp(1rem, 4vw, 1.8rem)',
             color: '#FFFFFF',
             letterSpacing: '0.16em',
             textTransform: 'uppercase',
@@ -157,7 +157,7 @@ export const MojoBusCTA: React.FC<MojoBusCTAProps> = ({
         <div
           style={{
             ...TEXT_STYLES.ctaTagline,
-            fontSize: 'clamp(0.55rem, 2vw, 0.9rem)',
+            fontSize: 'clamp(0.85rem, 3.2vw, 1.3rem)',
             color: 'rgba(255,255,255,0.65)',
             marginBottom: '1.2rem',
             opacity: interpolate(ctaEnter, [0, 1], [0, 1]),
@@ -193,7 +193,7 @@ export const MojoBusCTA: React.FC<MojoBusCTAProps> = ({
             style={{
               fontFamily: FONT_FAMILY_REGULAR,
               fontWeight: FONT_WEIGHT.semibold,
-              fontSize: 'clamp(0.55rem, 2vw, 0.88rem)',
+              fontSize: 'clamp(0.85rem, 3.2vw, 1.3rem)',
               color: accentColor,
               letterSpacing: '0.05em',
             }}
@@ -204,7 +204,7 @@ export const MojoBusCTA: React.FC<MojoBusCTAProps> = ({
             style={{
               fontFamily: FONT_FAMILY_REGULAR,
               fontWeight: FONT_WEIGHT.semibold,
-              fontSize: 'clamp(0.55rem, 2vw, 0.88rem)',
+              fontSize: 'clamp(0.85rem, 3.2vw, 1.3rem)',
               color: 'rgba(255,255,255,0.75)',
               letterSpacing: '0.05em',
             }}
