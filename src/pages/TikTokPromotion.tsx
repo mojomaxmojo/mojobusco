@@ -206,6 +206,12 @@ export function TikTokPromotion() {
   const [location, setLocation] = useState('')
   const [country, setCountry] = useState('')
 
+  // ── RENDER ═══════════════════════════════════════════════
+  const [renderStatus, setRenderStatus] = useState<RenderStatus | null>(null)
+  const [renderProgress, setRenderProgress] = useState(0)
+  const [downloadedMp4, setDownloadedMp4] = useState(false)
+  const pollRef = useRef<number | null>(null)
+
   // ── REMOTION STATUS ══════════════════════════════════════
   const [remotionAvailable, setRemotionAvailable] = useState<boolean | null>(null)
   const [piperAvailable, setPiperAvailable] = useState(false)
