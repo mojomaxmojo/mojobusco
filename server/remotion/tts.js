@@ -5,8 +5,8 @@
  * Nutzt Piper TTS Binary auf dem VPS (/opt/piper/piper).
  *
  * Verfügbare Stimmen (deutsch):
- *   de_DE-thorsten-medium  – männlich, medium Qualität (⭐⭐⭐⭐⭐)
- *   de_DE-ramona-low        – weiblich, low Qualität    (⭐⭐⭐)
+ *   de_DE-thorsten-medium  – männlich, medium Qualität
+ *   de_DE-ramona-low        – weiblich, low Qualität
  *
  * Standard: AUS — Nur wenn voiceoverText explizit übergeben wird.
  *
@@ -44,7 +44,7 @@ export const AVAILABLE_VOICES = {
 /**
  * Prüft ob Piper TTS installiert ist.
  */
-export function isPiperAvailable(): boolean {
+export function isPiperAvailable() {
   try {
     return existsSync(PIPER_BINARY);
   } catch {
@@ -55,28 +55,25 @@ export function isPiperAvailable(): boolean {
 /**
  * Generiert eine Sprachaufnahme aus Text.
  *
- * @param text          – Der Text der vorgelesen werden soll
- * @param voiceModel    – Stimm-Modell (z.B. 'de_DE-thorsten-medium')
- * @returns             – Pfad zur generierten WAV-Datei
+ * @param {string} text          – Der Text der vorgelesen werden soll
+ * @param {string} voiceModel    – Stimm-Modell (z.B. 'de_DE-thorsten-medium')
+ * @returns {Promise<string>}    – Pfad zur generierten WAV-Datei
  */
-export async function generateVoiceover(
-  text: string,
-  voiceModel: string = 'de_DE-thorsten-medium'
-): Promise<string> {
+export async function generateVoiceover(text, voiceModel = 'de_DE-thorsten-medium') {
   // Prüfen ob Binary existiert
   if (!existsSync(PIPER_BINARY)) {
     throw new Error(
-      `Piper TTS nicht gefunden unter ${PIPER_BINARY}. ` +
-      `Installiere Piper: https://github.com/rhasspy/piper`
+      'Piper TTS nicht gefunden unter ' + PIPER_BINARY + '. ' +
+      'Installiere Piper: https://github.com/rhasspy/piper'
     );
   }
 
   // Prüfen ob Stimm-Modell existiert
-  const voiceFile = join(PIPER_VOICES_DIR, `${voiceModel}.onnx`);
+  const voiceFile = join(PIPER_VOICES_DIR, voiceModel + '.onnx');
   if (!existsSync(voiceFile)) {
     throw new Error(
-      `Stimm-Modell nicht gefunden: ${voiceFile}. ` +
-      `Verfügbar: ${Object.keys(AVAILABLE_VOICES).join(', ')}`
+      'Stimm-Modell nicht gefunden: ' + voiceFile + '. ' +
+      'Verfügbar: ' + Object.keys(AVAILABLE_VOICES).join(', ')
     );
   }
 
@@ -85,13 +82,13 @@ export async function generateVoiceover(
   const wavPath = join(tmpDir, 'voiceover.wav');
 
   return new Promise((resolve, reject) => {
-    // Piper Prozess: Text → raw PCM
+    // Piper Prozess: Text -> raw PCM
     const piper = spawn(PIPER_BINARY, [
       '--model', voiceFile,
       '--output-raw',
     ]);
 
-    // FFmpeg Prozess: raw PCM → WAV (44100Hz, stereo)
+    // FFmpeg Prozess: raw PCM -> WAV (44100Hz, stereo)
     const ffmpeg = spawn('/opt/bin/ffmpeg', [
       '-f', 's16le',
       '-ar', '22050',
@@ -105,16 +102,16 @@ export async function generateVoiceover(
 
     let stderrBuffer = '';
 
-    // Piper stdout → FFmpeg stdin
+    // Piper stdout -> FFmpeg stdin
     piper.stdout.pipe(ffmpeg.stdin);
 
     // Fehler erfassen
-    piper.stderr.on('data', (chunk) => {
+    piper.stderr.on('data', function(chunk) {
       stderrBuffer += chunk.toString();
     });
 
-    ffmpeg.stderr.on('data', () => {
-      // FFmpeg schreibt viel auf stderr — ignorieren
+    ffmpeg.stderr.on('data', function() {
+      // FFmpeg schreibt viel auf stderr - ignorieren
     });
 
     // Text an Piper senden
@@ -122,25 +119,21 @@ export async function generateVoiceover(
     piper.stdin.end();
 
     // Auf Fertigstellung warten
-    ffmpeg.on('close', (code) => {
+    ffmpeg.on('close', function(code) {
       if (code === 0) {
         resolve(wavPath);
       } else {
         const piperErr = stderrBuffer.slice(-200);
-        reject(
-          new Error(
-            `Piper TTS fehlgeschlagen (ffmpeg exit ${code}): ${piperErr}`
-          )
-        );
+        reject(new Error('Piper TTS fehlgeschlagen (ffmpeg exit ' + code + '): ' + piperErr));
       }
     });
 
-    piper.on('error', (err) => {
-      reject(new Error(`Piper Prozess-Fehler: ${err.message}`));
+    piper.on('error', function(err) {
+      reject(new Error('Piper Prozess-Fehler: ' + err.message));
     });
 
-    ffmpeg.on('error', (err) => {
-      reject(new Error(`FFmpeg Prozess-Fehler: ${err.message}`));
+    ffmpeg.on('error', function(err) {
+      reject(new Error('FFmpeg Prozess-Fehler: ' + err.message));
     });
   });
 }
