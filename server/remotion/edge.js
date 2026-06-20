@@ -14,10 +14,9 @@
  * Standard: AUS — Nur wenn voiceoverEngine='edge' gesetzt ist.
  */
 
-import fs from 'fs';
+import fs, { mkdtempSync } from 'fs';
 import path from 'path';
 import os from 'os';
-import { mkdtempSync } from 'fs';
 
 // ── Verfügbare Stimmen ────────────────────────────────────────────────────
 export const AVAILABLE_VOICES = {
@@ -26,7 +25,7 @@ export const AVAILABLE_VOICES = {
     gender: 'female',
     quality: 'high',
     language: 'de',
-    desc: 'Weiblich · natürlichste deutsche Stimme ⭐',
+    desc: 'Weiblich, beste Qualitat',
   },
   'de-DE-FlorianMultilingualNeural': {
     name: 'Florian',

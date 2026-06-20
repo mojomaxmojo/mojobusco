@@ -19,17 +19,15 @@ import https from 'https';
 import http from 'http';
 import { createServer } from 'http';
 
+// ── TTS + Ambient Imports ─────────────────────────────────────────────────
+import { generateVoiceover, isPiperAvailable } from './tts.js';
+import { generateEdgeVoiceover, isEdgeTtsAvailable } from './edge.js';
+import { generateAmbient } from './ambient.js';
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const FFMPEG_PATH  = process.env.FFMPEG_PATH  || '/opt/bin/ffmpeg';
 const FFPROBE_PATH = process.env.FFPROBE_PATH || '/opt/bin/ffprobe';
-
-// ── Piper TTS (optional) ───────────────────────────────────────────────────
-import { generateVoiceover, isPiperAvailable } from './tts.js';
-// ── Edge TTS (optional, viel natürlicher) ──────────────────────────────────
-import { generateEdgeVoiceover, isEdgeTtsAvailable } from './edge.js';
-// ── Ambient Sounds (optional) ──────────────────────────────────────────────
-import { generateAmbient } from './ambient.js';
 
 const OUTPUT_DIR = path.join(os.tmpdir(), 'remotion-renders');
 const IMAGES_DIR = path.join(os.tmpdir(), 'remotion-images');
