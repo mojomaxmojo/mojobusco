@@ -246,9 +246,6 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
               totalFrames={hookFrames + TRANSITION_FRAMES}
             >
               <MediaRenderer src={images[0]} index={0} />
-                intensity={0.08}
-                motionBlurStrength={0}
-              />
             </FadeOut>
           </Sequence>
         )}
