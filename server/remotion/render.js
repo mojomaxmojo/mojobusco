@@ -21,7 +21,6 @@ import { createServer } from 'http';
 
 // ── TTS + Ambient Imports ─────────────────────────────────────────────────
 import { generateVoiceover, isPiperAvailable } from './tts.js';
-import { generateEdgeVoiceover, isEdgeTtsAvailable } from './edge.js';
 import { generateAmbient } from './ambient.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -518,21 +517,10 @@ export async function renderMojoBusVideo(params) {
     if (voiceoverText && voiceoverText.trim()) {
       try {
         if (voiceoverEngine === 'edge') {
-          // Edge TTS (natürlicher, Microsoft Azure Stimmen)
-          const edgeAvailable = isEdgeTtsAvailable();
-          if (edgeAvailable) {
-            console.log(`[Remotion] 🎙️ Edge TTS (${voiceoverModel}, ${voiceoverSpeed}x): "${voiceoverText.slice(0, 60)}..."`);
-            const mp3Path = await generateEdgeVoiceover(voiceoverText.trim(), voiceoverModel, voiceoverSpeed);
-            const destPath = path.join(sessionDir, 'voiceover.mp3');
-            fs.copyFileSync(mp3Path, destPath);
-            try { fs.chmodSync(destPath, 0o644); } catch (e) {}
-            try { fs.rmSync(mp3Path, { force: true }); } catch (e) {}
-            voiceoverFilename = 'voiceover.mp3';
-            console.log(`[Remotion] ✅ Edge TTS: voiceover.mp3`);
-          } else {
-            console.warn('[Remotion] ⚠️ edge-tts Paket nicht installiert – Voiceover deaktiviert');
-          }
-        } else {
+          // Edge TTS (noch nicht aktiv – import wird später aktiviert)
+          console.warn('[Remotion] ⚠️ Edge TTS noch nicht verfügbar – verwende Piper');
+        }
+        if (voiceoverEngine !== 'edge') {
           // Piper TTS (Standard)
           const ttsAvailable = isPiperAvailable();
           if (ttsAvailable) {
