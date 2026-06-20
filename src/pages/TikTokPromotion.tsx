@@ -1270,10 +1270,10 @@ export function TikTokPromotion() {
             {/* Text Copy */}
             <Card>
               <CardContent className="py-4 space-y-3">
-                <div className="p-3 bg-muted/30 rounded-lg text-xs font-mono whitespace-pre-wrap">
+                <div className="p-3 bg-muted/30 rounded-lg text-xs font-mono whitespace-pre-wrap leading-relaxed">
                   {hookText}
                   {'\n'}
-                  {bodyText.split('\n').filter(l => l.trim()).map((l, i) => (
+                  {bodyText.split('\n').filter((l: string) => l.trim()).map((l: string, i: number) => (
                     <span key={i}>{l.trim()}{'\n'}</span>
                   ))}
                   {'\n'}
@@ -1288,21 +1288,35 @@ export function TikTokPromotion() {
               </CardContent>
             </Card>
 
-            {/* TikTok Upload Link */}
+            {/* ── PLATTFORM-LINKS ── */}
             <Card>
               <CardContent className="py-4">
                 <p className="text-xs text-muted-foreground text-center mb-3">
-                  Jetzt manuell auf TikTok posten:
+                  Jetzt manuell posten auf:
                 </p>
-                <Button
-                  onClick={() => window.open('https://www.tiktok.com/upload', '_blank')}
-                  className="w-full"
-                  variant="secondary"
-                  size="lg"
-                >
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  🔗 TikTok Upload öffnen
-                </Button>
+                <div className="grid grid-cols-3 gap-2">
+                  <Button
+                    onClick={() => window.open('https://www.tiktok.com/upload', '_blank')}
+                    variant="secondary"
+                    className="text-xs sm:text-sm"
+                  >
+                    🎵 TikTok
+                  </Button>
+                  <Button
+                    onClick={() => window.open('https://www.instagram.com', '_blank')}
+                    variant="secondary"
+                    className="text-xs sm:text-sm"
+                  >
+                    📸 Instagram
+                  </Button>
+                  <Button
+                    onClick={() => window.open('https://studio.youtube.com', '_blank')}
+                    variant="secondary"
+                    className="text-xs sm:text-sm"
+                  >
+                    ▶️ YouTube
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
@@ -1326,91 +1340,132 @@ export function TikTokPromotion() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b bg-muted/50">
-                        <th className="text-left p-3 font-medium text-xs">Title</th>
+                        <th className="text-left p-3 font-medium text-xs">Titel / Text</th>
                         <th className="text-left p-3 font-medium text-xs hidden sm:table-cell">Datum</th>
                         <th className="text-center p-3 font-medium text-xs">Größe</th>
-                        <th className="text-center p-3 font-medium text-xs hidden md:table-cell">Bilder</th>
+                        <th className="text-center p-3 font-medium text-xs hidden md:table-cell">Medien</th>
                         <th className="text-right p-3 font-medium text-xs">Aktionen</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {history.map((job: any) => (
-                        <tr key={job.jobId || job.eventId} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
-                          <td className="p-3">
-                            <p className="font-medium text-sm truncate max-w-[200px] sm:max-w-[300px]">
-                              {job.hook || job.title || 'TikTok Video'}
-                            </p>
-                            {job.nostrEvent && (
-                              <span className="text-[10px] text-green-600 flex items-center gap-0.5 mt-0.5">
-                                <CheckCircle2 className="w-2.5 h-2.5" /> Nostr
-                              </span>
-                            )}
-                          </td>
-                          <td className="p-3 text-xs text-muted-foreground hidden sm:table-cell">
-                            {job.created ? new Date(job.created).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'}
-                          </td>
-                          <td className="p-3 text-xs text-center">
-                            {job.fileSizeMB ? `${job.fileSizeMB} MB` : '-'}
-                          </td>
-                          <td className="p-3 text-xs text-center hidden md:table-cell">
-                            {job.imageCount || '-'}
-                          </td>
-                          <td className="p-3 text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              {/* Video ansehen (Blossom oder Server) */}
-                              {(job.blossomUrl) ? (
-                                <Button
-                                  size="sm" variant="outline"
-                                  className="h-7 w-7 p-0"
-                                  onClick={() => window.open(job.blossomUrl, '_blank')}
-                                  title="Video ansehen"
-                                >
-                                  <Eye className="w-3 h-3" />
-                                </Button>
-                              ) : job.jobId ? (
-                                <Button
-                                  size="sm" variant="outline"
-                                  className="h-7 w-7 p-0"
-                                  onClick={() => window.open(`/api/render-remotion/download/${job.jobId}`, '_blank')}
-                                  title="Video ansehen"
-                                >
-                                  <Eye className="w-3 h-3" />
-                                </Button>
-                              ) : null}
+                      {history.map((job: any) => {
+                        const meta = job.meta || {}
+                        const fullText = [
+                          job.hook || meta.hook || '',
+                          ...((meta.body || '')?.split ? (meta.body as string).split('\n').filter((l: string) => l.trim()) : []),
+                          meta.bridge || '',
+                          meta.cta || '',
+                          Array.isArray(meta.hashtags) ? meta.hashtags.join(' ') : '',
+                        ].filter(Boolean).join('\n') || job.hook || job.title || 'TikTok Video'
 
-                              {/* MP4 Download (nur wenn kein Blossom) */}
-                              {!job.blossomUrl && job.jobId && (
-                                <Button
-                                  size="sm" variant="outline"
-                                  className="h-7 w-7 p-0"
-                                  onClick={() => window.open(`/api/render-remotion/download/${job.jobId}`, '_blank')}
-                                  title="Download"
-                                >
-                                  <Download className="w-3 h-3" />
-                                </Button>
+                        return (
+                          <tr
+                            key={job.jobId || job.eventId}
+                            className="border-b last:border-0 hover:bg-muted/20 transition-colors cursor-pointer"
+                            onClick={() => {
+                              // Detail-Panel öffnen mit vollem Text
+                              toast({
+                                title: job.hook || meta.hook || 'TikTok Video',
+                                description: fullText.substring(0, 300),
+                              })
+                              navigator.clipboard.writeText(fullText)
+                              toast({
+                                title: '📋 Kopiert!',
+                                description: 'Voller TikTok-Text in der Zwischenablage.',
+                              })
+                            }}
+                          >
+                            <td className="p-3">
+                              <p className="font-medium text-sm truncate max-w-[180px] sm:max-w-[250px]">
+                                {job.hook || meta.hook || job.title || 'TikTok Video'}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground truncate max-w-[180px] sm:max-w-[250px] mt-0.5">
+                                {fullText.split('\n').slice(0, 2).join(' · ')}
+                              </p>
+                              {job.nostrEvent && (
+                                <span className="text-[10px] text-green-600 flex items-center gap-0.5 mt-0.5">
+                                  <CheckCircle2 className="w-2.5 h-2.5" /> Nostr · Blossom
+                                </span>
                               )}
+                            </td>
+                            <td className="p-3 text-xs text-muted-foreground hidden sm:table-cell">
+                              {job.created ? new Date(job.created).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'}
+                            </td>
+                            <td className="p-3 text-xs text-center">
+                              {job.fileSizeMB ? `${job.fileSizeMB} MB` : '-'}
+                            </td>
+                            <td className="p-3 text-xs text-center hidden md:table-cell">
+                              {meta.imageCount || job.imageCount || '-'}
+                            </td>
+                            <td className="p-3 text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                {/* Ansehen */}
+                                {(job.blossomUrl) ? (
+                                  <Button
+                                    size="sm" variant="outline"
+                                    className="h-7 w-7 p-0"
+                                    onClick={(e) => { e.stopPropagation(); window.open(job.blossomUrl, '_blank') }}
+                                    title="Video ansehen"
+                                  >
+                                    <Eye className="w-3 h-3" />
+                                  </Button>
+                                ) : job.jobId ? (
+                                  <Button
+                                    size="sm" variant="outline"
+                                    className="h-7 w-7 p-0"
+                                    onClick={(e) => { e.stopPropagation(); window.open(`/api/render-remotion/download/${job.jobId}`, '_blank') }}
+                                    title="Video ansehen"
+                                  >
+                                    <Eye className="w-3 h-3" />
+                                  </Button>
+                                ) : null}
 
-                              {/* Blossom Download */}
-                              {job.blossomUrl && (
-                                <Button
-                                  size="sm" variant="outline"
-                                  className="h-7 w-7 p-0"
-                                  onClick={() => window.open(job.blossomUrl, '_blank')}
-                                  title="Download von Blossom"
-                                >
-                                  <Download className="w-3 h-3" />
-                                </Button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                                {/* Download */}
+                                {job.blossomUrl && (
+                                  <Button
+                                    size="sm" variant="outline"
+                                    className="h-7 w-7 p-0"
+                                    onClick={(e) => { e.stopPropagation(); window.open(job.blossomUrl, '_blank') }}
+                                    title="Download"
+                                  >
+                                    <Download className="w-3 h-3" />
+                                  </Button>
+                                )}
+
+                                {/* Löschen (nur Nostr-Events) */}
+                                {job.eventId && job.nostrEvent && (
+                                  <Button
+                                    size="sm" variant="outline"
+                                    className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                                    onClick={async (e) => {
+                                      e.stopPropagation()
+                                      try {
+                                        await deleteEvent.mutateAsync({
+                                          eventIds: job.eventId,
+                                          reason: 'Manuell gelöscht über TikTok Dashboard',
+                                        })
+                                        toast({ title: '🗑️ Gelöscht', description: 'Nostr-Event wurde auf dem Relay gelöscht.' })
+                                        loadHistory()
+                                      } catch (err: any) {
+                                        toast({ title: 'Fehler', description: err.message, variant: 'destructive' })
+                                      }
+                                    }}
+                                    title="Löschen (Nostr-Event)"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>
 
                 <p className="text-[10px] text-muted-foreground mt-2 text-center">
-                  ✓ Auf Blossom + Nostr gespeicherte Videos sind dauerhaft verfügbar
+                  Klick auf Zeile = Text kopieren · 🗑️ löscht Nostr-Event, Video auf Blossom bleibt erhalten
                 </p>
               </div>
             )}
