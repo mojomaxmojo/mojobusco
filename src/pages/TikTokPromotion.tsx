@@ -113,8 +113,13 @@ const TEMPLATES: TikTokTemplateInfo[] = [
 
 /** Verfügbare Stimmen (Piper TTS auf VPS) */
 const VOICES = [
-  { id: 'de_DE-thorsten-medium', label: 'Thorsten (👨)', desc: 'Männlich, beste Qualität' },
-  { id: 'de_DE-ramona-low', label: 'Ramona (👩)', desc: 'Weiblich' },
+  { id: 'de_DE-thorsten-medium', label: 'Thorsten (👨)', desc: 'Piper · Männlich, beste Qualität', engine: 'piper' },
+  { id: 'de_DE-ramona-low', label: 'Ramona (👩)', desc: 'Piper · Weiblich', engine: 'piper' },
+  { id: 'de-DE-SeraphinaMultilingualNeural', label: 'Seraphina (👩)', desc: 'Edge · Weiblich, natürlich ⭐', engine: 'edge' },
+  { id: 'de-DE-FlorianMultilingualNeural', label: 'Florian (👨)', desc: 'Edge · Männlich, klar', engine: 'edge' },
+  { id: 'de-DE-AmalaNeural', label: 'Amala (👩)', desc: 'Edge · Weiblich, freundlich', engine: 'edge' },
+  { id: 'de-DE-KatjaNeural', label: 'Katja (👩)', desc: 'Edge · Weiblich, warm', engine: 'edge' },
+  { id: 'de-DE-ConradNeural', label: 'Conrad (👨)', desc: 'Edge · Männlich, tief', engine: 'edge' },
 ]
 
 /** Musik-Optionen – werden dynamisch vom Server geladen */
@@ -189,6 +194,9 @@ export function TikTokPromotion() {
   const [voiceoverEnabled, setVoiceoverEnabled] = useState(false)
   const [voiceoverModel, setVoiceoverModel] = useState('de_DE-thorsten-medium')
   const [voiceoverSpeed, setVoiceoverSpeed] = useState('0.80')
+
+  // Engine automatisch aus Modell ableiten
+  const voiceoverEngine = voiceoverModel.startsWith('de-DE-') ? 'edge' : 'piper'
 
 // ── MUSIK ════════════════════════════════════════════════
   const [musicStyle, setMusicStyle] = useState('ambient')
@@ -432,6 +440,7 @@ export function TikTokPromotion() {
       payload.voiceoverText = voiceoverText.trim()
       payload.voiceoverModel = voiceoverModel
       payload.voiceoverSpeed = parseFloat(voiceoverSpeed) || 0.8
+      payload.voiceoverEngine = voiceoverEngine
     }
 
     try {
@@ -1018,10 +1027,12 @@ export function TikTokPromotion() {
                       <div className="w-9 h-5 bg-muted-foreground/30 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary" />
                     </label>
                   </div>
-                  {!piperAvailable && (
+                  {voiceoverEngine === 'edge' ? (
+                    <p className="text-xs text-green-600">🎙️ Edge TTS – natürliche Stimme (online)</p>
+                  ) : !piperAvailable ? (
                     <p className="text-xs text-amber-500">Piper TTS nicht auf Server installiert</p>
-                  )}
-                  {voiceoverEnabled && piperAvailable && (
+                  ) : null}
+                  {voiceoverEnabled && (
                     <div className="space-y-2">
                       <div className="flex gap-2">
                         <Select value={voiceoverModel} onValueChange={setVoiceoverModel}>

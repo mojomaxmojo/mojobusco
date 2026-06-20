@@ -26,6 +26,8 @@ const FFPROBE_PATH = process.env.FFPROBE_PATH || '/opt/bin/ffprobe';
 
 // ── Piper TTS (optional) ───────────────────────────────────────────────────
 import { generateVoiceover, isPiperAvailable } from './tts.js';
+// ── Edge TTS (optional, viel natürlicher) ──────────────────────────────────
+import { generateEdgeVoiceover, isEdgeTtsAvailable } from './edge.js';
 // ── Ambient Sounds (optional) ──────────────────────────────────────────────
 import { generateAmbient } from './ambient.js';
 
@@ -481,6 +483,7 @@ export async function renderMojoBusVideo(params) {
     voiceoverText,             // Text für Sprachausgabe (optional)
     voiceoverModel = 'de_DE-thorsten-medium', // Stimm-Modell
     voiceoverSpeed = 0.8,     // Sprechgeschwindigkeit (0.6-1.2)
+    voiceoverEngine = 'piper', // 'piper' | 'edge'
     // ── NEU: Ambient Sound (Atmo) ─────────────────────────────────────────
     ambientType,               // 'ocean' | 'rain' | 'wind' | 'fire' | 'forest' (optional)
     onProgress,
@@ -513,23 +516,44 @@ export async function renderMojoBusVideo(params) {
       mapImageUrl ? downloadMapImage(mapImageUrl, sessionDir) : Promise.resolve(null),
     ]);
 
-    // Voiceover (TTS) – nur wenn Text übergeben wurde
+// Voiceover (TTS) – nur wenn Text übergeben wurde
     if (voiceoverText && voiceoverText.trim()) {
       try {
-        const ttsAvailable = isPiperAvailable();
-        if (ttsAvailable) {
-          console.log(`[Remotion] 🎙️ Voiceover generieren (${voiceoverModel}): "${voiceoverText.slice(0, 60)}..."`);
-          const wavPath = await generateVoiceover(voiceoverText.trim(), voiceoverModel, voiceoverSpeed);
-          // WAV ins sessionDir kopieren (wird vom HTTP-Server ausgeliefert)
-          const destPath = path.join(sessionDir, 'voiceover.wav');
-          fs.copyFileSync(wavPath, destPath);
-          try { fs.chmodSync(destPath, 0o644); } catch (e) {}
-          try { fs.rmSync(wavPath, { force: true }); } catch (e) {}
-          voiceoverFilename = 'voiceover.wav';
-          console.log(`[Remotion] ✅ Voiceover: voiceover.wav`);
+        if (voiceoverEngine === 'edge') {
+          // Edge TTS (natürlicher, Microsoft Azure Stimmen)
+          const edgeAvailable = isEdgeTtsAvailable();
+          if (edgeAvailable) {
+            console.log(`[Remotion] 🎙️ Edge TTS (${voiceoverModel}, ${voiceoverSpeed}x): "${voiceoverText.slice(0, 60)}..."`);
+            const mp3Path = await generateEdgeVoiceover(voiceoverText.trim(), voiceoverModel, voiceoverSpeed);
+            const destPath = path.join(sessionDir, 'voiceover.mp3');
+            fs.copyFileSync(mp3Path, destPath);
+            try { fs.chmodSync(destPath, 0o644); } catch (e) {}
+            try { fs.rmSync(mp3Path, { force: true }); } catch (e) {}
+            voiceoverFilename = 'voiceover.mp3';
+            console.log(`[Remotion] ✅ Edge TTS: voiceover.mp3`);
+          } else {
+            console.warn('[Remotion] ⚠️ edge-tts Paket nicht installiert – Voiceover deaktiviert');
+          }
         } else {
-          console.warn('[Remotion] ⚠️ Piper TTS nicht installiert – Voiceover deaktiviert');
+          // Piper TTS (Standard)
+          const ttsAvailable = isPiperAvailable();
+          if (ttsAvailable) {
+            console.log(`[Remotion] 🎙️ Piper TTS (${voiceoverModel}, ${voiceoverSpeed}x): "${voiceoverText.slice(0, 60)}..."`);
+            const wavPath = await generateVoiceover(voiceoverText.trim(), voiceoverModel, voiceoverSpeed);
+            const destPath = path.join(sessionDir, 'voiceover.wav');
+            fs.copyFileSync(wavPath, destPath);
+            try { fs.chmodSync(destPath, 0o644); } catch (e) {}
+            try { fs.rmSync(wavPath, { force: true }); } catch (e) {}
+            voiceoverFilename = 'voiceover.wav';
+            console.log(`[Remotion] ✅ Piper TTS: voiceover.wav`);
+          } else {
+            console.warn('[Remotion] ⚠️ Piper TTS nicht installiert – Voiceover deaktiviert');
+          }
         }
+      } catch (ttsErr) {
+        console.warn(`[Remotion] ⚠️ Voiceover fehlgeschlagen: ${ttsErr.message} – fahre ohne fort`);
+      }
+    }
       } catch (ttsErr) {
         console.warn(`[Remotion] ⚠️ Voiceover fehlgeschlagen: ${ttsErr.message} – fahre ohne fort`);
       }
