@@ -1060,21 +1060,36 @@ export function TikTokPromotion() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Bildervorschau */}
+                {/* Medien-Vorschau (Bilder + Video) */}
                 <div>
-                  <Label className="text-xs mb-1 block">Bilder ({articleImages.length})</Label>
+                  <Label className="text-xs mb-1 block">
+                    Medien-Timeline ({articleImages.length} Einträge)
+                    {hasVideo && <span className="text-primary ml-1">· 🎥 Video erkannt</span>}
+                  </Label>
                   <div className="flex gap-1 overflow-x-auto pb-1">
-                    {articleImages.slice(0, 8).map((url, i) => (
-                      <div key={i} className="w-12 h-16 rounded-md overflow-hidden bg-muted shrink-0">
-                        <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
-                      </div>
-                    ))}
-                    {articleImages.length > 8 && (
+                    {articleImages.slice(0, 10).map((url, i) => {
+                      const isVid = /\.(mp4|webm|mov|avi|mkv)(\?|#|$)/i.test(url)
+                      return (
+                        <div key={i} className="relative w-12 h-16 rounded-md overflow-hidden bg-muted shrink-0">
+                          <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                          {isVid && (
+                            <span className="absolute bottom-0.5 right-0.5 text-[8px] bg-black/70 text-white rounded px-0.5 leading-tight">🎥</span>
+                          )}
+                          <span className="absolute top-0 left-0 text-[8px] bg-black/50 text-white rounded-br px-0.5 leading-tight">{i + 1}</span>
+                        </div>
+                      )
+                    })}
+                    {articleImages.length > 10 && (
                       <div className="w-12 h-16 rounded-md bg-muted flex items-center justify-center text-xs text-muted-foreground shrink-0">
-                        +{articleImages.length - 8}
+                        +{articleImages.length - 10}
                       </div>
                     )}
                   </div>
+                  {hasVideo && (
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      🎥 Videos werden als Clip abgespielt · 🖼️ Bilder mit Ken-Burns-Effekt
+                    </p>
+                  )}
                 </div>
 
                 {/* Dauer pro Bild */}

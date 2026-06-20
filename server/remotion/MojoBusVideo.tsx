@@ -14,7 +14,7 @@
  */
 
 import React from 'react';
-import { AbsoluteFill, Sequence, useVideoConfig } from 'remotion';
+import { AbsoluteFill, Sequence, useVideoConfig, Video } from 'remotion';
 
 import { KenBurnsImage, pickDirection } from './components/KenBurnsImage';
 import { ColorGradeOverlay, ColorGradeWrapper, lifestyleToGrade, type ColorGrade } from './components/ColorGradeOverlay';
@@ -175,6 +175,31 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
 
   const perSlide = Math.round(secondsPerImage * fps);
 
+  // ── Video-Erkennung ────────────────────────────────────────────────────
+  const isVideo = (url: string) => /\.(mp4|webm|mov|avi|mkv)(\?|#|$)/i.test(url);
+
+  // ── MediaRenderer: wählt je nach URL-Typ KenBurnsImage oder Video ──────
+  const MediaRenderer: React.FC<{ src: string; index: number }> = ({ src, index }) => {
+    if (isVideo(src)) {
+      return (
+        <AbsoluteFill style={{ overflow: 'hidden' }}>
+          <Video
+            src={src}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+        </AbsoluteFill>
+      );
+    }
+    return (
+      <KenBurnsImage
+        src={src}
+        direction={pickDirection(index)}
+        intensity={0.10}
+        motionBlurStrength={0}
+      />
+    );
+  };
+
   // Transition: 20 Frames (0.67s bei 30fps) — sanftes Überblenden
   const TRANSITION_FRAMES = Math.round(fps * 0.67); // ~20 Frames @ 30fps
 
@@ -220,9 +245,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
               durationFrames={TRANSITION_FRAMES}
               totalFrames={hookFrames + TRANSITION_FRAMES}
             >
-              <KenBurnsImage
-                src={images[0]}
-                direction={pickDirection(0)}
+              <MediaRenderer src={images[0]} index={0} />
                 intensity={0.08}
                 motionBlurStrength={0}
               />
@@ -255,12 +278,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
               overlayOpacity={mapImageUrl ? 0.4 : 0}
             />
           ) : (
-            <KenBurnsImage
-              src={src}
-              direction={pickDirection(i + 1)}
-              intensity={0.10}
-              motionBlurStrength={0}
-            />
+            <MediaRenderer src={src} index={i + 1} />
           );
 
           // Nächstes Bild — nur für pagePeel benötigt
@@ -279,12 +297,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
                 overlayOpacity={mapImageUrl ? 0.4 : 0}
               />
             ) : (
-              <KenBurnsImage
-                src={nextSrc}
-                direction={pickDirection(i + 2)}
-                intensity={0.10}
-                motionBlurStrength={0}
-              />
+              <MediaRenderer src={nextSrc} index={i + 2} />
             )
           ) : undefined;
 
@@ -329,12 +342,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
         {images[imageCount - 1] && (
           <Sequence from={hookFrames + slideshowFrames} durationInFrames={ctaFrames}>
             <FadeIn durationFrames={20}>
-              <KenBurnsImage
-                src={images[imageCount - 1]}
-                direction="zoom-out"
-                intensity={0.03}
-                motionBlurStrength={0}
-              />
+              <MediaRenderer src={images[imageCount - 1]} index={imageCount + 1} />
             </FadeIn>
           </Sequence>
         )}
