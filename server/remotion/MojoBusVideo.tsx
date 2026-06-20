@@ -442,6 +442,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
               size={140}
               accentColor={accentColor}
               driveIn={true}
+              driveInPath="curve-down"
               position="bottom-center"
             />
           </AbsoluteFill>

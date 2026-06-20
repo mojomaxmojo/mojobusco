@@ -213,20 +213,35 @@ const MojoBusCoach: React.FC<{
   accentColor?: string;
   color?: string;
   driveIn?: boolean;
+  driveInPath?: 'straight' | 'curve-down';
   label?: string;
 }> = ({
   size    = 420,
   accentColor = '#F59E0B',
   color   = '#FFFFFF',
   driveIn = true,
+  driveInPath = 'straight',
   label   = 'MOJOBUS',
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
   // ── Animationen ──────────────────────────────────────────────────────────
-  const enter     = spring({ frame, fps, config: { damping: 18, stiffness: 42, mass: 1.5 } });
+  // Langsamer, fließender bei curve-down
+  const springConfig = driveInPath === 'curve-down'
+    ? { damping: 24, stiffness: 35, mass: 2.8 }
+    : { damping: 18, stiffness: 42, mass: 1.5 };
+
+  const enter     = spring({ frame, fps, config: springConfig });
+
+  // Horizontale Einfahrt: von links (−4× Breite) zur Zielposition
   const driveInX  = driveIn ? interpolate(enter, [0, 1], [-(size * 4), 0]) : 0;
+
+  // Vertikaler Bogen bei curve-down: startet oben, senkt sich im Bogen nach unten
+  const curveY    = driveIn && driveInPath === 'curve-down'
+    ? interpolate(enter, [0, 0.5, 1], [size * 0.15, size * 0.35, size * 0.5])
+    : 0;
+
   const rockAngle = Math.sin((frame / fps) * Math.PI * 2 * 1.2) * 0.55;
   const bounceY   = Math.abs(Math.sin((frame / fps) * Math.PI * 2.4)) * 2.2;
   const wheelRot  = (frame / fps) * 360 * 1.4;
@@ -295,7 +310,7 @@ const MojoBusCoach: React.FC<{
 
   return (
     <div style={{
-      transform:       `translateX(${driveInX}px) rotate(${rockAngle}deg) translateY(${bounceY}px)`,
+      transform:       `translateX(${driveInX}px) translateY(${curveY}px) rotate(${rockAngle}deg) translateY(${bounceY}px)`,
       transformOrigin: 'bottom center',
       display:         'inline-block',
       filter:          'drop-shadow(0 14px 32px rgba(0,0,0,0.65))',
@@ -633,6 +648,7 @@ export interface LottieBusIconProps {
   bodyColor?: string;
   color?: string;
   driveIn?: boolean;
+  driveInPath?: 'straight' | 'curve-down';
   position?: 'center' | 'bottom-center' | 'top-center';
   label?: string;
   lottieData?: object | null;
@@ -644,6 +660,7 @@ export const LottieBusIcon: React.FC<LottieBusIconProps> = ({
   bodyColor,
   color    = '#FFFFFF',
   driveIn  = true,
+  driveInPath = 'straight',
   position = 'center',
   label    = 'MOJOBUS',
   lottieData,
@@ -668,6 +685,7 @@ export const LottieBusIcon: React.FC<LottieBusIconProps> = ({
         accentColor={accentColor}
         color={color}
         driveIn={driveIn}
+        driveInPath={driveInPath}
         label={label}
       />
     </div>
