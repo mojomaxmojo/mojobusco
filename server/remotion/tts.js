@@ -57,9 +57,10 @@ export function isPiperAvailable() {
  *
  * @param {string} text          – Der Text der vorgelesen werden soll
  * @param {string} voiceModel    – Stimm-Modell (z.B. 'de_DE-thorsten-medium')
+ * @param {number} speed         – Sprechgeschwindigkeit (0.5=langsam, 1.0=normal, 1.5=schnell). Default: 0.8
  * @returns {Promise<string>}    – Pfad zur generierten WAV-Datei
  */
-export async function generateVoiceover(text, voiceModel = 'de_DE-thorsten-medium') {
+export async function generateVoiceover(text, voiceModel = 'de_DE-thorsten-medium', speed = 0.8) {
   // Prüfen ob Binary existiert
   if (!existsSync(PIPER_BINARY)) {
     throw new Error(
@@ -88,17 +89,20 @@ export async function generateVoiceover(text, voiceModel = 'de_DE-thorsten-mediu
       '--output-raw',
     ]);
 
-    // FFmpeg Prozess: raw PCM -> WAV (44100Hz, stereo)
-    const ffmpeg = spawn('/opt/bin/ffmpeg', [
+    // FFmpeg Prozess: raw PCM -> WAV (44100Hz, stereo), ggf. langsamer
+    const ffmpegArgs = [
       '-f', 's16le',
       '-ar', '22050',
       '-ac', '1',
       '-i', 'pipe:0',
-      '-ar', '44100',
-      '-ac', '2',
-      '-y',
-      wavPath,
-    ]);
+    ];
+    // Geschwindigkeit anpassen (atempo ohne Pitch-Änderung)
+    if (speed && speed !== 1.0) {
+      ffmpegArgs.push('-filter:a', 'atempo=' + speed.toFixed(2));
+    }
+    ffmpegArgs.push('-ar', '44100', '-ac', '2', '-y', wavPath);
+
+    const ffmpeg = spawn('/opt/bin/ffmpeg', ffmpegArgs);
 
     let stderrBuffer = '';
 

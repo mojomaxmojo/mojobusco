@@ -2228,6 +2228,7 @@ app.post('/api/render-remotion', async (req, res) => {
     // ── NEU: Voiceover (Piper TTS) ─────────────────────────────────────
     voiceoverText,         // Text für Sprachausgabe (optional)
     voiceoverModel,        // 'de_DE-thorsten-medium' | 'de_DE-ramona-low' (optional)
+    voiceoverSpeed = 0.8, // Sprechgeschwindigkeit 0.6-1.2 (optional)
     // ── NEU: Ambient Sound (Atmo) ────────────────────────────────────────
     ambientType,           // 'ocean' | 'rain' | 'wind' | 'fire' | 'forest' (optional)
     // ── Metadaten für History ────────────────────────────────────────────
@@ -2329,6 +2330,7 @@ app.post('/api/render-remotion', async (req, res) => {
         // ── Voiceover (Piper TTS) ─────────────────────────────────────
         voiceoverText: voiceoverText || undefined,
         voiceoverModel: voiceoverModel || 'de_DE-thorsten-medium',
+        voiceoverSpeed: parseFloat(voiceoverSpeed) || 0.8,
         // ── Ambient Sound (Atmo) ─────────────────────────────────────────
         ambientType: ambientType || undefined,
         // ── Interner Parameter: Musik-Ordner für localhost-URL-Auflösung

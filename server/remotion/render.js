@@ -480,6 +480,7 @@ export async function renderMojoBusVideo(params) {
     // ── NEU: Voiceover (Piper TTS) ─────────────────────────────────────
     voiceoverText,             // Text für Sprachausgabe (optional)
     voiceoverModel = 'de_DE-thorsten-medium', // Stimm-Modell
+    voiceoverSpeed = 0.8,     // Sprechgeschwindigkeit (0.6-1.2)
     // ── NEU: Ambient Sound (Atmo) ─────────────────────────────────────────
     ambientType,               // 'ocean' | 'rain' | 'wind' | 'fire' | 'forest' (optional)
     onProgress,
@@ -518,7 +519,7 @@ export async function renderMojoBusVideo(params) {
         const ttsAvailable = isPiperAvailable();
         if (ttsAvailable) {
           console.log(`[Remotion] 🎙️ Voiceover generieren (${voiceoverModel}): "${voiceoverText.slice(0, 60)}..."`);
-          const wavPath = await generateVoiceover(voiceoverText.trim(), voiceoverModel);
+          const wavPath = await generateVoiceover(voiceoverText.trim(), voiceoverModel, voiceoverSpeed);
           // WAV ins sessionDir kopieren (wird vom HTTP-Server ausgeliefert)
           const destPath = path.join(sessionDir, 'voiceover.wav');
           fs.copyFileSync(wavPath, destPath);

@@ -188,6 +188,7 @@ export function TikTokPromotion() {
   // ── VOICEOVER ════════════════════════════════════════════
   const [voiceoverEnabled, setVoiceoverEnabled] = useState(false)
   const [voiceoverModel, setVoiceoverModel] = useState('de_DE-thorsten-medium')
+  const [voiceoverSpeed, setVoiceoverSpeed] = useState('0.80')
 
 // ── MUSIK ════════════════════════════════════════════════
   const [musicStyle, setMusicStyle] = useState('ambient')
@@ -430,6 +431,7 @@ export function TikTokPromotion() {
     if (voiceoverEnabled && voiceoverText.trim()) {
       payload.voiceoverText = voiceoverText.trim()
       payload.voiceoverModel = voiceoverModel
+      payload.voiceoverSpeed = parseFloat(voiceoverSpeed) || 0.8
     }
 
     try {
@@ -1020,20 +1022,36 @@ export function TikTokPromotion() {
                     <p className="text-xs text-amber-500">Piper TTS nicht auf Server installiert</p>
                   )}
                   {voiceoverEnabled && piperAvailable && (
-                    <div className="flex gap-2">
-                      <Select value={voiceoverModel} onValueChange={setVoiceoverModel}>
-                        <SelectTrigger className="flex-1 text-sm">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {VOICES.map(v => (
-                            <SelectItem key={v.id} value={v.id}>{v.label} – {v.desc}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Badge variant="outline" className="shrink-0 self-center text-xs">
-                        {voiceoverText.length} Z.
-                      </Badge>
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <Select value={voiceoverModel} onValueChange={setVoiceoverModel}>
+                          <SelectTrigger className="flex-1 text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {VOICES.map(v => (
+                              <SelectItem key={v.id} value={v.id}>{v.label} – {v.desc}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Badge variant="outline" className="shrink-0 self-center text-xs">
+                          {voiceoverText.length} Z.
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-muted-foreground">Langsam</span>
+                        <input
+                          type="range"
+                          min="0.60"
+                          max="1.20"
+                          step="0.05"
+                          value={voiceoverSpeed}
+                          onChange={e => setVoiceoverSpeed(e.target.value)}
+                          className="flex-1 h-1.5 accent-primary"
+                        />
+                        <span className="text-[10px] text-muted-foreground">Schnell</span>
+                        <span className="text-[10px] font-mono w-8 text-right">{voiceoverSpeed}x</span>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1100,9 +1118,9 @@ export function TikTokPromotion() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="3">3s · ~{(articleImages.length * 3 + 10)}s Gesamt</SelectItem>
-                      <SelectItem value="4">4s · ~{(articleImages.length * 4 + 10)}s Gesamt</SelectItem>
-                      <SelectItem value="5">5s · ~{(articleImages.length * 5 + 10)}s Gesamt</SelectItem>
+                      {[3,4,5,6,7,8,9,10].map(s => (
+                        <SelectItem key={s} value={String(s)}>{s}s · ~{(articleImages.length * s + 10)}s Gesamt</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
