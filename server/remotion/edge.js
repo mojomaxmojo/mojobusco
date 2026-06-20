@@ -65,15 +65,7 @@ const DEFAULT_VOICE = 'de-DE-SeraphinaMultilingualNeural';
  */
 let edgeTtsAvailable = null;
 export function isEdgeTtsAvailable() {
-  if (edgeTtsAvailable !== null) return edgeTtsAvailable;
-  try {
-    // Dynamischer Import um Fehler beim Start zu vermeiden
-    import.resolve('edge-tts');
-    edgeTtsAvailable = true;
-  } catch {
-    edgeTtsAvailable = false;
-  }
-  return edgeTtsAvailable;
+  return edgeTtsAvailable !== false; // wird erst bei Nutzung getestet
 }
 
 /**
@@ -85,45 +77,53 @@ export function isEdgeTtsAvailable() {
  * @returns {Promise<string>} – Pfad zur generierten MP3-Datei
  */
 export async function generateEdgeVoiceover(text, voiceModel = DEFAULT_VOICE, speed = 0.8) {
-  // Tempo in Edge-Format: '+XX%' oder '-XX%'
   const ratePercent = Math.round((speed - 1.0) * 100);
   const rateStr = ratePercent >= 0 ? '+' + ratePercent + '%' : ratePercent + '%';
-
-  // Temporäres Verzeichnis
   const tmpDir = mkdtempSync(path.join(os.tmpdir(), 'edge-tts-'));
   const outputPath = path.join(tmpDir, 'voiceover.mp3');
 
   try {
-    // edge-tts Paket dynamisch laden
-    const { EdgeTTS } = await import('edge-tts');
+    // Verschiedene edge-tts Package-APIs versuchen
+    let EdgeTTS;
+    try {
+      EdgeTTS = (await import('edge-tts')).EdgeTTS;
+    } catch {
+      try {
+        EdgeTTS = (await import('node-edge-tts')).EdgeTTS;
+      } catch {
+        EdgeTTS = (await import('@travisvn/edge-tts')).EdgeTTS;
+      }
+    }
 
-    const tts = new EdgeTTS({
-      voice: voiceModel,
-      lang: 'de-DE',
-      rate: rateStr,
-      outputFormat: 'audio-24khz-96kbitrate-mono-mp3',
-    });
-
-    await tts.ttsPromise(text, outputPath).catch(async () => {
-      // Fallback: toFile API versuchen
-      // Einige edge-tts Versionen nutzen andere API
-      await tts.toFile(outputPath, text).catch(() => {
-        throw new Error('Edge TTS API nicht kompatibel');
-      });
-    });
+    // API Pattern 1: tts.ttsPromise(text, filePath)
+    const tts = new EdgeTTS();
+    if (typeof tts.ttsPromise === 'function') {
+      await tts.ttsPromise(text, outputPath);
+    }
+    // API Pattern 2: tts.toFile(filePath, text)
+    else if (typeof tts.toFile === 'function') {
+      await tts.toFile(outputPath, text);
+    }
+    // API Pattern 3: new EdgeTTS(text, voice, opts).synthesize()
+    else {
+      // @travisvn/edge-tts style or universal
+      const instance = new EdgeTTS(text, voiceModel, { rate: rateStr });
+      const result = await instance.synthesize();
+      const audioBuffer = Buffer.from(await result.audio.arrayBuffer());
+      fs.writeFileSync(outputPath, audioBuffer);
+    }
 
     if (!fs.existsSync(outputPath)) {
-      throw new Error('Edge TTS hat keine Datei erzeugt');
+      throw new Error('Keine Ausgabedatei erzeugt');
     }
 
     const sizeKB = (fs.statSync(outputPath).size / 1024).toFixed(0);
-    console.log(`[EdgeTTS] ✅ Voiceover: ${path.basename(outputPath)} (${sizeKB}KB, ${rateStr})`);
+    console.log(`[EdgeTTS] ✅ Voiceover (${sizeKB}KB, ${rateStr}): "${text.slice(0, 40)}..."`);
     return outputPath;
 
   } catch (err) {
-    // Aufräumen
     try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch (e) {}
-    throw new Error('Edge TTS fehlgeschlagen: ' + (err.message || err));
+    throw new Error('Edge TTS: ' + (err.message || err));
   }
 }
 
