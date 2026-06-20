@@ -20,6 +20,10 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useToast } from '@/hooks/useToast'
+import { useUploadFile } from '@/hooks/useUploadFile'
+import { useNostrPublish } from '@/hooks/useNostrPublish'
+import { useNostrDelete } from '@/hooks/useNostrDelete'
+import { useNostr } from '@/hooks/useNostr'
 
 // UI Components
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -35,7 +39,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
   FileText, Image as ImageIcon, Download, ExternalLink, Loader2,
   Sparkles, ChevronRight, Wand2, Copy, Check, ArrowLeft,
-  Camera, Video, Music, Volume2, Hash, Type, MessageSquare
+  Camera, Video, Music, Volume2, Hash, Type, MessageSquare,
+  Trash2, Cloud, Edit, Eye, CloudUpload, CheckCircle2, Globe
 } from 'lucide-react'
 
 // ContentSelector (wiederverwendet aus Pinterest)
@@ -219,6 +224,15 @@ export function TikTokPromotion() {
   // ── HISTORY ═══════════════════════════════════════════════
   const [history, setHistory] = useState<any[]>([])
 
+  // ── UPLOAD + NOSTR ════════════════════════════════════════
+  const uploadFile = useUploadFile()
+  const publishEvent = useNostrPublish()
+  const deleteEvent = useNostrDelete()
+  const { nostr } = useNostr()
+  const [uploading, setUploading] = useState(false)
+  const [blossomUrl, setBlossomUrl] = useState('')
+  const [publishedEventId, setPublishedEventId] = useState('')
+
   // Remotion-Status beim Laden prüfen
   useEffect(() => {
     fetch('/api/render-remotion/check')
@@ -241,18 +255,6 @@ export function TikTokPromotion() {
       })
       .catch(() => {})
   }, [])
-
-  // History laden
-  const loadHistory = useCallback(() => {
-    fetch('/api/render-remotion/history')
-      .then(r => r.json())
-      .then(data => {
-        if (data?.jobs) setHistory(data.jobs)
-      })
-      .catch(() => {})
-  }, [])
-
-  useEffect(() => { loadHistory() }, [loadHistory])
 
   // ── CONTENT AUSWÄHLEN ═══════════════════════════════════
 
@@ -508,6 +510,154 @@ export function TikTokPromotion() {
       }
     }, 2000)
   }, [])
+
+  // ── UPLOAD ZU BLOSSOM ════════════════════════════════════
+
+  const uploadToBlossom = async () => {
+    if (!renderStatus?.jobId) return
+    setUploading(true)
+    try {
+      const res = await fetch(`/api/render-remotion/download/${renderStatus.jobId}`)
+      const blob = await res.blob()
+      const safeName = (hookText || 'tiktok-video').replace(/[^a-zA-Z0-9äüöÄÜÖß]/g, '-').substring(0, 40)
+      const file = new File([blob], `${safeName}.mp4`, { type: 'video/mp4' })
+
+      const tags = await uploadFile.mutateAsync(file)
+      const url = tags.find((t: string[]) => t[0] === 'url')?.[1]
+      if (url) {
+        setBlossomUrl(url)
+        toast({
+          title: '✅ Auf Blossom hochgeladen!',
+          description: 'Video ist dauerhaft verfügbar.',
+        })
+
+        // Nach Upload: Nostr Event publizieren
+        await publishToNostr(url)
+      }
+    } catch (e: any) {
+      toast({
+        title: 'Upload fehlgeschlagen',
+        description: e.message || 'Bitte erneut versuchen.',
+        variant: 'destructive',
+      })
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  // ── NOSTR REPLACEABLE EVENT PUBLIZIEREN ═══════════════════
+
+  const publishToNostr = async (mp4Url: string) => {
+    try {
+      const videoId = renderStatus?.jobId || `vid_${Date.now()}`
+      const dTag = `co.mojobus.app.tiktok-video-${videoId}`
+
+      const event = await publishEvent.mutateAsync({
+        kind: 30078,
+        tags: [
+          ['d', dTag],
+          ['url', mp4Url],
+          ['title', hookText || 'MojoBus Video'],
+          ['t', 'tiktok-video'],
+          ['L', 'co.mojobus.app'],
+          ['l', 'tiktok-video', 'co.mojobus.app'],
+        ],
+        content: JSON.stringify({
+          hook: hookText,
+          body: bodyText,
+          bridge: bridgeText,
+          cta: ctaText,
+          hashtags: hashtags.split(' ').filter(Boolean),
+          template,
+          voiceoverModel: voiceoverEnabled ? voiceoverModel : null,
+          transitionType,
+          secondsPerImage,
+          beatSync,
+          ambientType,
+          imageCount: articleImages.length,
+          aspectRatio: '9:16',
+          fileSizeMB: renderStatus?.fileSizeMB,
+          videoDurationSec: renderStatus?.videoDurationSec,
+          createdAt: Math.floor(Date.now() / 1000),
+        }),
+      })
+
+      setPublishedEventId(event.id)
+      toast({
+        title: '✅ In Nostr gespeichert!',
+        description: 'Dauerhaft auf relay.mojobus.co verfügbar.',
+      })
+
+      // History neu laden
+      loadHistory()
+    } catch (e: any) {
+      toast({
+        title: 'Nostr-Fehler',
+        description: e.message || 'Event konnte nicht publiziert werden.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  // ── NOSTR HISTORY LADEN ═══════════════════════════════════
+
+  const loadNostrHistory = async () => {
+    try {
+      if (!user?.pubkey || !nostr) return
+      const events = await nostr.query([{
+        kinds: [30078],
+        authors: [user.pubkey],
+        '#t': ['tiktok-video'],
+        limit: 100,
+      }], { signal: AbortSignal.timeout(8000) })
+      if (events && events.length > 0) {
+        // Merge: Nostr-Events haben Vorrang vor Server-History
+        const nostrItems = events
+          .filter((e: any) => e.content && e.content !== '{}')
+          .map((e: any) => {
+            let meta = {}
+            try { meta = JSON.parse(e.content) } catch {}
+            const urlTag = e.tags?.find((t: string[]) => t[0] === 'url')?.[1] || ''
+            const titleTag = e.tags?.find((t: string[]) => t[0] === 'title')?.[1] || ''
+            return {
+              jobId: e.id,
+              eventId: e.id,
+              status: 'completed',
+              title: titleTag,
+              hook: (meta as any)?.hook || titleTag || '',
+              blossomUrl: urlTag,
+              fileSizeMB: (meta as any)?.fileSizeMB,
+              videoDurationSec: (meta as any)?.videoDurationSec,
+              imageCount: (meta as any)?.imageCount || 0,
+              created: (meta as any)?.createdAt ? (meta as any)?.createdAt * 1000 : Date.now(),
+              nostrEvent: true,
+              meta,
+            }
+          })
+          .sort((a: any, b: any) => b.created - a.created)
+
+        setHistory(nostrItems)
+      }
+    } catch {
+      // Fallback auf Server-History
+      loadServerHistory()
+    }
+  }
+
+  const loadServerHistory = async () => {
+    try {
+      const res = await fetch('/api/render-remotion/history')
+      const data = await res.json()
+      if (data?.jobs) setHistory(data.jobs)
+    } catch {}
+  }
+
+  const loadHistory = useCallback(() => {
+    loadNostrHistory()
+  }, [user, nostr])
+
+  // History beim Start laden
+  useEffect(() => { loadHistory() }, [loadHistory])
 
   // Cleanup beim Unmount
   useEffect(() => {
@@ -1076,9 +1226,10 @@ export function TikTokPromotion() {
           </div>
         )}
 
-        {/* ══════ STEP 4: EXPORT ══════ */}
+        {/* ══════ STEP 4: EXPORT + HISTORY ══════ */}
         {step === 4 && (
-          <div className="max-w-lg mx-auto space-y-4">
+          <div className="max-w-4xl mx-auto space-y-4">
+            {/* ── AKTUELLES VIDEO ── */}
             <Card className="border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20">
               <CardContent className="py-6 text-center">
                 <div className="text-4xl mb-3">✅</div>
@@ -1086,9 +1237,25 @@ export function TikTokPromotion() {
                 <CardDescription className="text-sm">
                   {renderStatus?.fileSizeMB && `${renderStatus.fileSizeMB} MB`}
                   {renderStatus?.videoDurationSec && ` · ${renderStatus.videoDurationSec}s`}
+                  {blossomUrl && ` · ☁️ Auf Blossom`}
                 </CardDescription>
               </CardContent>
             </Card>
+
+            {/* ── BLOSSOM UPLOAD ── */}
+            {!blossomUrl && (
+              <Card>
+                <CardContent className="py-4">
+                  <Button onClick={uploadToBlossom} className="w-full" size="lg" disabled={uploading}>
+                    {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CloudUpload className="w-4 h-4 mr-2" />}
+                    {uploading ? 'Wird hochgeladen...' : '☁️ Dauerhaft auf Blossom speichern'}
+                  </Button>
+                  <p className="text-[10px] text-muted-foreground text-center mt-2">
+                    MP4 wird auf relay.mojobus.co gespeichert + Nostr-Event publiziert
+                  </p>
+                </CardContent>
+              </Card>
+            )}
 
             {/* MP4 Download */}
             <Card>
@@ -1140,44 +1307,110 @@ export function TikTokPromotion() {
             </Card>
 
             {/* Neue Runde */}
-            <Button onClick={() => { setStep(1); setRenderStatus(null); setDownloadedMp4(false); loadHistory() }} variant="ghost" className="w-full">
+            <Button onClick={() => { setStep(1); setRenderStatus(null); setDownloadedMp4(false); setBlossomUrl(''); loadHistory() }} variant="ghost" className="w-full">
               🔄 Neues Video erstellen
             </Button>
 
-            {/* ══════ HISTORY: Alle generierten Videos ══════ */}
+            {/* ══════ HISTORY: TABELLE ══════ */}
             {history.length > 0 && (
-              <div className="pt-6 border-t mt-6">
-                <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                  <Video className="w-4 h-4" /> Bereits gerendert ({history.length})
+              <div className="pt-6 border-t mt-8">
+                <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-primary" /> Alle Videos ({history.length})
+                  <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={loadHistory}>
+                    🔄
+                  </Button>
                 </h3>
-                <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                  {history.map(job => (
-                    <Card key={job.jobId} className="p-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium truncate">{job.hook || job.title}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {job.imageCount} Bilder · {job.aspectRatio}
-                            {job.fileSizeMB && ` · ${job.fileSizeMB}MB`}
-                            {job.videoDurationSec && ` · ${job.videoDurationSec}s`}
-                          </p>
-                        </div>
-                        <div className="flex gap-1 shrink-0">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 px-2 text-xs"
-                            onClick={() => window.open(`/api/render-remotion/download/${job.jobId}`, '_blank')}
-                          >
-                            <Download className="w-3 h-3 mr-1" /> MP4
-                          </Button>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
+
+                {/* Tabelle */}
+                <div className="overflow-x-auto rounded-lg border">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-muted/50">
+                        <th className="text-left p-3 font-medium text-xs">Title</th>
+                        <th className="text-left p-3 font-medium text-xs hidden sm:table-cell">Datum</th>
+                        <th className="text-center p-3 font-medium text-xs">Größe</th>
+                        <th className="text-center p-3 font-medium text-xs hidden md:table-cell">Bilder</th>
+                        <th className="text-right p-3 font-medium text-xs">Aktionen</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {history.map((job: any) => (
+                        <tr key={job.jobId || job.eventId} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
+                          <td className="p-3">
+                            <p className="font-medium text-sm truncate max-w-[200px] sm:max-w-[300px]">
+                              {job.hook || job.title || 'TikTok Video'}
+                            </p>
+                            {job.nostrEvent && (
+                              <span className="text-[10px] text-green-600 flex items-center gap-0.5 mt-0.5">
+                                <CheckCircle2 className="w-2.5 h-2.5" /> Nostr
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-3 text-xs text-muted-foreground hidden sm:table-cell">
+                            {job.created ? new Date(job.created).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'}
+                          </td>
+                          <td className="p-3 text-xs text-center">
+                            {job.fileSizeMB ? `${job.fileSizeMB} MB` : '-'}
+                          </td>
+                          <td className="p-3 text-xs text-center hidden md:table-cell">
+                            {job.imageCount || '-'}
+                          </td>
+                          <td className="p-3 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              {/* Video ansehen (Blossom oder Server) */}
+                              {(job.blossomUrl) ? (
+                                <Button
+                                  size="sm" variant="outline"
+                                  className="h-7 w-7 p-0"
+                                  onClick={() => window.open(job.blossomUrl, '_blank')}
+                                  title="Video ansehen"
+                                >
+                                  <Eye className="w-3 h-3" />
+                                </Button>
+                              ) : job.jobId ? (
+                                <Button
+                                  size="sm" variant="outline"
+                                  className="h-7 w-7 p-0"
+                                  onClick={() => window.open(`/api/render-remotion/download/${job.jobId}`, '_blank')}
+                                  title="Video ansehen"
+                                >
+                                  <Eye className="w-3 h-3" />
+                                </Button>
+                              ) : null}
+
+                              {/* MP4 Download (nur wenn kein Blossom) */}
+                              {!job.blossomUrl && job.jobId && (
+                                <Button
+                                  size="sm" variant="outline"
+                                  className="h-7 w-7 p-0"
+                                  onClick={() => window.open(`/api/render-remotion/download/${job.jobId}`, '_blank')}
+                                  title="Download"
+                                >
+                                  <Download className="w-3 h-3" />
+                                </Button>
+                              )}
+
+                              {/* Blossom Download */}
+                              {job.blossomUrl && (
+                                <Button
+                                  size="sm" variant="outline"
+                                  className="h-7 w-7 p-0"
+                                  onClick={() => window.open(job.blossomUrl, '_blank')}
+                                  title="Download von Blossom"
+                                >
+                                  <Download className="w-3 h-3" />
+                                </Button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
+
                 <p className="text-[10px] text-muted-foreground mt-2 text-center">
-                  MP4s werden nach 1h automatisch gelöscht. Bei Bedarf vorher downloaden.
+                  ✓ Auf Blossom + Nostr gespeicherte Videos sind dauerhaft verfügbar
                 </p>
               </div>
             )}
