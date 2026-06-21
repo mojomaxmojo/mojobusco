@@ -176,7 +176,7 @@ export function TikTokPromotion() {
   const [rendering, setRendering] = useState(false)
 
   // ── CONTENT ══════════════════════════════════════════════
-  const [selectedContent, setSelectedContent] = useState<ContentItem[]>([])
+  const [selectedContent, setSelectedContent] = useState<ContentItem | null>(null)
   const [articleTitle, setArticleTitle] = useState('')
   const [articleSummary, setArticleSummary] = useState('')
   const [articleImages, setArticleImages] = useState<string[]>([])
@@ -272,35 +272,23 @@ export function TikTokPromotion() {
 
   // ── CONTENT AUSWÄHLEN ═══════════════════════════════════
 
-  const selectContent = (items: ContentItem[]) => {
-    setSelectedContent(items)
+  const selectContent = (item: ContentItem) => {
+    setSelectedContent(item)
+    setArticleTitle(item.title)
+    setArticleSummary(item.summary)
+    setArticleImages(item.images.slice(0, 20))
 
-    // Alle Bilder aus allen ausgewählten Items sammeln (max 20)
-    const allImages: string[] = []
-    for (const item of items) {
-      for (const img of item.images) {
-        if (!allImages.includes(img) && allImages.length < 20) {
-          allImages.push(img)
-        }
-      }
-    }
-    setArticleImages(allImages)
-
-    // Titel + Summary aus allen Items kombinieren
-    const titles = items.map(i => i.title).filter(Boolean)
-    setArticleTitle(titles.join(' · ') || 'MojoBus Video')
-    setArticleSummary(items.map(i => i.summary).filter(Boolean).join(' | '))
-
-    // Location & Country aus erstem Item
-    const firstEvent = items[0]?.event
-    const countryTag = firstEvent?.tags?.find((t: any[]) => t[0] === 'country' || t[0] === 'l')?.[1]
-    const locationTag = firstEvent?.tags?.find((t: any[]) => t[0] === 'location')?.[1]
+    // Location & Country aus Tags extrahieren
+    const event = item.event
+    const countryTag = event?.tags?.find((t: any[]) => t[0] === 'country' || t[0] === 'l')?.[1]
+    const locationTag = event?.tags?.find((t: any[]) => t[0] === 'location')?.[1]
+    const titleTag = event?.tags?.find((t: any[]) => t[0] === 'title')?.[1]
     setCountry(countryTag || '')
     setLocation(locationTag || countryTag || '')
 
-    // Prüfe auf Video-URLs in allen Items
-    const hasVideoUrl = items.some(item =>
-      item.images.some(url => /\.(mp4|webm|mov|avi|mkv)(\?|$)/i.test(url))
+    // Prüfe auf Video-URLs
+    const hasVideoUrl = item.images.some(url =>
+      /\.(mp4|webm|mov|avi|mkv)(\?|$)/i.test(url)
     )
     setHasVideo(hasVideoUrl)
 
@@ -309,10 +297,9 @@ export function TikTokPromotion() {
       setTemplate('movie')
     }
 
-    const labels = items.map(i => i.type === 'article' ? 'Artikel' : 'Post').join(', ')
     toast({
-      title: `${items.length} ${items.length === 1 ? 'Inhalt' : 'Inhalte'} ausgewählt`,
-      description: `${allImages.length} Medien aus ${items.length} ${labels}`,
+      title: `${item.type === 'article' ? 'Artikel' : 'Post'} ausgewählt`,
+      description: `"${item.title}" – ${item.images.length} Medien geladen`,
     })
   }
 
@@ -336,7 +323,7 @@ export function TikTokPromotion() {
         body: JSON.stringify({
           title: articleTitle,
           summary: articleSummary,
-          text: selectedContent.map(i => i.content).filter(Boolean).join('\n\n').substring(0, 1500) || '',
+          text: selectedContent?.content?.substring(0, 1500) || '',
           template,
           model: aiModel,
         }),
@@ -827,7 +814,7 @@ export function TikTokPromotion() {
                   Schritt 1: Inhalt auswählen
                 </CardTitle>
                 <CardDescription className="text-xs sm:text-sm">
-                  Wähle 1-3 Artikel oder Posts mit Bildern/Video aus
+                  Wähle einen Artikel oder Post mit Bildern oder Video
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -845,31 +832,29 @@ export function TikTokPromotion() {
                 <CardDescription className="text-xs">Vorausgefüllte Daten</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                {selectedContent.length > 0 ? (
+                {selectedContent ? (
                   <>
-                    {/* Zusammenfassung aller ausgewählten Items */}
-                    <div className="p-3 bg-primary/5 rounded-lg space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">{selectedContent.length} {selectedContent.length === 1 ? 'Inhalt' : 'Inhalte'} ausgewählt</span>
-                        <Badge variant="outline" className="text-[10px]">
-                          {articleImages.length} Bild{articleImages.length !== 1 ? 'er' : ''}
-                        </Badge>
+                    <div className="flex items-start gap-3 p-3 bg-primary/5 rounded-lg">
+                      <div className="w-14 h-14 rounded-md overflow-hidden bg-muted shrink-0">
+                        {articleImages[0] ? (
+                          <img src={articleImages[0]} alt="" className="w-full h-full object-cover" loading="lazy" />
+                        ) : (
+                          <ImageIcon className="w-6 h-6 text-muted-foreground/50 m-auto mt-4" />
+                        )}
                       </div>
-                      {/* Mini-Liste der ausgewählten Items */}
-                      {selectedContent.map((item, i) => (
-                        <div key={item.id} className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span className="shrink-0 w-4 h-4 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[10px] font-bold">
-                            {i + 1}
-                          </span>
-                          <span className="truncate">{item.title}</span>
-                          <span className="shrink-0">📷 {item.images.length}</span>
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm truncate">{articleTitle}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{articleSummary}</p>
+                        <div className="flex gap-1 mt-1 flex-wrap">
+                          <Badge variant="outline" className="text-[10px]">
+                            {articleImages.length} Bild{articleImages.length !== 1 ? 'er' : ''}
+                          </Badge>
+                          {hasVideo && (
+                            <Badge variant="secondary" className="text-[10px]">🎥 Video</Badge>
+                          )}
                         </div>
-                      ))}
+                      </div>
                     </div>
-
-                    {hasVideo && (
-                      <Badge variant="secondary" className="text-[10px]">🎥 Video enthalten</Badge>
-                    )}
 
                     <Button
                       onClick={() => { setStep(2) }}

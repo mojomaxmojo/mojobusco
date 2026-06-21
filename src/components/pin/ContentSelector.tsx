@@ -89,11 +89,11 @@ import { extractImagesFromEvent, extractTitle, extractSummary } from '@/lib/nost
 // ═══════════════════════════════════════════════════════════
 
 interface ContentSelectorProps {
-  onSelect: (items: ContentItem[]) => void
-  selected?: ContentItem[]
+  onSelect: (item: ContentItem) => void
+  selected?: ContentItem | null
 }
 
-export function ContentSelector({ onSelect, selected = [] }: ContentSelectorProps) {
+export function ContentSelector({ onSelect, selected }: ContentSelectorProps) {
   const { nostr } = useNostr()
 
   const [loading, setLoading] = useState(true)
@@ -349,34 +349,6 @@ export function ContentSelector({ onSelect, selected = [] }: ContentSelectorProp
     onSelect(item)
   }, [onSelect])
 
-  // ── Multi-Select Handler (max 3) ──────────────────────────────────
-  const [checkedIds, setCheckedIds] = useState<Set<string>>(
-    new Set(selected.map(i => i.id))
-  )
-
-  const handleToggle = useCallback((item: ContentItem) => {
-    setCheckedIds(prev => {
-      const next = new Set(prev)
-      if (next.has(item.id)) {
-        next.delete(item.id)
-        // onChange benachrichtigen
-        const newSelected = selected.filter(i => i.id !== item.id)
-        onSelect(newSelected)
-      } else {
-        if (next.size >= 3) {
-          // Max 3 erreicht – erstes entfernen
-          const firstId = [...next][0]
-          next.delete(firstId)
-        }
-        next.add(item.id)
-        // onChange benachrichtigen: selected + neues Item
-        const newSelected = [...selected.filter(i => i.id !== item.id), item]
-        onSelect(newSelected)
-      }
-      return next
-    })
-  }, [selected, onSelect])
-
   // ── Loading ═══════════════════════════════════════════
   if (loading) {
     return (
@@ -459,8 +431,8 @@ export function ContentSelector({ onSelect, selected = [] }: ContentSelectorProp
           {postSubTab === 'notes' && (
             <ContentList
               items={filteredNotes}
-              checkedIds={checkedIds}
-              onToggle={handleToggle}
+              selected={selected}
+              onSelect={handleSelect}
               emptyText="Keine Notes gefunden"
               emptyHint='Poste Notes mit #note oder #notiz Tag'
             />
@@ -470,8 +442,8 @@ export function ContentSelector({ onSelect, selected = [] }: ContentSelectorProp
           {postSubTab === 'media' && (
             <ContentList
               items={filteredMedia}
-              checkedIds={checkedIds}
-              onToggle={handleToggle}
+              selected={selected}
+              onSelect={handleSelect}
               emptyText="Keine Medien gefunden"
               emptyHint='Poste Medien mit #medien, #media, #bilder oder #images Tag'
             />
@@ -510,8 +482,8 @@ export function ContentSelector({ onSelect, selected = [] }: ContentSelectorProp
           {articleSubTab === 'reports' && (
             <ContentList
               items={filteredReports}
-              checkedIds={checkedIds}
-              onToggle={handleToggle}
+              selected={selected}
+              onSelect={handleSelect}
               emptyText="Keine Berichte gefunden"
               emptyHint="Veröffentliche Artikel unter /veroeffentlichen"
             />
@@ -521,8 +493,8 @@ export function ContentSelector({ onSelect, selected = [] }: ContentSelectorProp
           {articleSubTab === 'places' && (
             <ContentList
               items={filteredPlaces}
-              checkedIds={checkedIds}
-              onToggle={handleToggle}
+              selected={selected}
+              onSelect={handleSelect}
               emptyText="Keine Plätze gefunden"
               emptyHint="Veröffentliche Plätze mit #place Tag"
             />
@@ -532,8 +504,8 @@ export function ContentSelector({ onSelect, selected = [] }: ContentSelectorProp
           {articleSubTab === 'trips' && (
             <ContentList
               items={filteredTrips}
-              checkedIds={checkedIds}
-              onToggle={handleToggle}
+              selected={selected}
+              onSelect={handleSelect}
               emptyText="Keine Trips gefunden"
               emptyHint="Erstelle Trips unter /trips"
             />
@@ -577,11 +549,11 @@ function SubTabButton({
 // ═══════════════════════════════════════════════════════════
 
 function ContentList({
-  items, checkedIds, onToggle, emptyText, emptyHint,
+  items, selected, onSelect, emptyText, emptyHint,
 }: {
   items: ContentItem[]
-  checkedIds: Set<string>
-  onToggle: (item: ContentItem) => void
+  selected?: ContentItem | null
+  onSelect: (item: ContentItem) => void
   emptyText: string
   emptyHint?: string
 }) {
@@ -602,8 +574,8 @@ function ContentList({
         <ContentCard
           key={item.id}
           item={item}
-          isChecked={checkedIds.has(item.id)}
-          onToggle={onToggle}
+          isSelected={selected?.id === item.id}
+          onClick={() => onSelect(item)}
         />
       ))}
     </div>
@@ -632,35 +604,20 @@ const SUB_TYPE_VARIANTS: Record<ContentSubType, 'default' | 'secondary' | 'outli
 
 interface ContentCardProps {
   item: ContentItem
-  isChecked: boolean
-  onToggle: (item: ContentItem) => void
+  isSelected: boolean
+  onClick: () => void
 }
 
-function ContentCard({ item, isChecked, onToggle }: ContentCardProps) {
+function ContentCard({ item, isSelected, onClick }: ContentCardProps) {
   return (
     <button
-      onClick={() => onToggle(item)}
+      onClick={onClick}
       className={`w-full text-left p-3 rounded-lg border-2 transition-all hover:shadow-md
-        ${isChecked
+        ${isSelected
           ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
           : 'border-border hover:border-primary/40 hover:bg-muted/20'}`}
     >
       <div className="flex gap-3">
-        {/* Checkbox */}
-        <div className="self-center shrink-0">
-          <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors
-            ${isChecked
-              ? 'bg-primary border-primary text-primary-foreground'
-              : 'border-muted-foreground/40'}`}
-          >
-            {isChecked && (
-              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
-            )}
-          </div>
-        </div>
-
         {/* Thumbnail */}
         <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted shrink-0">
           {item.mainImage ? (
@@ -713,6 +670,15 @@ function ContentCard({ item, isChecked, onToggle }: ContentCardProps) {
             </div>
           )}
         </div>
+
+        {/* Ausgewählt Indicator */}
+        {isSelected && (
+          <div className="text-primary self-center shrink-0">
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+          </div>
+        )}
       </div>
     </button>
   )
