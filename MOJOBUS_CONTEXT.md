@@ -325,15 +325,18 @@ Komplettes TikTok-Video-Promotion-System unter `/promotion/tiktok`. Erstellt aus
 | **Beat-Sync** | ✅ | Schnitte synchron zur Musik |
 | **RouteMap** | ✅ | Animierte Routen-Karte in der Slideshow-Mitte |
 | **Lottie Bus (Endkarte)** | ✅ | Animierter MojoBus fährt im Bogen ein |
-| **Voiceover (Piper TTS)** | ✅ | Thorsten (👨, medium) + Ramona (👩, low) |
+| **Voiceover (Piper TTS)** | ✅→🔀 | Thorsten (Piper) → Seraphina (Edge TTS, primär) |
 | **Speed-Regler (0.6-1.2)** | ✅ | atempo-Filter, Tonhöhe bleibt |
+| **Volume-Regler (0.00-1.50)** | ✅ | Lautstärke für Voiceover einstellbar |
 | **Dauer pro Bild (3-10s)** | ✅ | 1s-Schritte |
 | **KI-Text (Foster Huntington)** | ✅ | POST /api/tiktok/generate-text – poetisch/authentisch |
+| **KI-Modell Switcher** | ✅ | Llama 4 Scout (Groq) ↔ Claude Sonnet (OpenRouter) |
 | **Export** | ✅ | 3 Buttons: TikTok, Instagram, YouTube |
 | **Blossom-Upload** | ✅ | MP4 dauerhaft auf relay.mojobus.co |
 | **Nostr-History** | ✅ | kind 30078 + Blossom-URL → Tabelle mit Download/Löschen |
 | **Toast** | ✅ | Unten zentriert · z-[999] |
-| **Font-Größen** | ✅ | TikTok-Video: Hook 10vw, Captions 4.5-5.5vw |
+| **Font-Größen** | ✅ | TikTok-Video: Hook 10vw, Captions 7vw (+50% für Mobil) |
+| **CTA Bus** | ✅ | 25% größer (size 175) + PNG-Logo über Text |
 
 ### API-Endpunkte (Server Port 3002)
 
@@ -342,11 +345,11 @@ Komplettes TikTok-Video-Promotion-System unter `/promotion/tiktok`. Erstellt aus
 | `/api/render-remotion` | POST | Video rendern (9:16, Bilder, Captions, Musik, TTS) |
 | `/api/render-remotion/status/:jobId` | GET | Render-Fortschritt |
 | `/api/render-remotion/download/:jobId` | GET | MP4-Download |
-| `/api/render-remotion/check` | GET | Remotion + FFmpeg + Piper Status |
+| `/api/render-remotion/check` | GET | Remotion + FFmpeg + Edge TTS + Piper Status |
 | `/api/render-remotion/invalidate-bundle` | POST | Bundle-Cache leeren |
 | `/api/render-remotion/history` | GET | Abgeschlossene Render-Jobs |
 | `/api/music/list` | GET | Verfügbare Musik-Tracks |
-| `/api/tiktok/generate-text` | POST | Foster-Huntington-Texte |
+| `/api/tiktok/generate-text` | POST | Foster-Huntington-Texte (param: model='llama4'|'claude') |
 
 ### Piper TTS Installation
 
@@ -365,8 +368,40 @@ wget https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/de/de_DE/ramona/
 wget https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/de/de_DE/ramona/low/de_DE-ramona-low.onnx.json
 ```
 
-### ⚠️ Edge TTS – Vorläufig deaktiviert
-Edge TTS (Microsoft Azure, `server/remotion/edge.js`) wurde wegen Import-Problemen mit `edge-tts` NPM-Paket zurückgezogen. Aktuell läuft nur **Piper TTS**. Edge TTS kann später reaktiviert werden, wenn das Paket stabil importiert werden kann.
+### ✅ Edge TTS (aktiv, primär) – Piper als Fallback
+
+Edge TTS (Microsoft, `server/remotion/edge.js`) hat Piper als primäre TTS-Engine abgelöst.
+
+**Paket**: `node-edge-tts@^1.2.10` (Node.js-kompatibler Fork, MIT, 6.7M Downloads/Monat)
+**Warum nicht `edge-tts`**: `edge-tts@1.0.1` ist TypeScript-Only (`"main": "index.ts"`) → Node.js kann es nicht importieren.
+
+**Architektur**:
+- **Kein statischer Import** in `render.js` – nur `await import('./edge.js')` in der Funktion
+- Automatischer Fallback: Edge → Piper → kein Voiceover
+- Edge liefert **MP3**, Piper liefert **WAV** – unterschiedliche Dateinamen (`voiceover.mp3` vs `voiceover.wav`)
+
+**Edge TTS Stimmen (deutsch)**:
+| ID | Name | Typ | Qualität |
+|---|------|-----|----------|
+| `de-DE-SeraphinaMultilingualNeural` | Seraphina ⭐ | weiblich | beste |
+| `de-DE-FlorianMultilingualNeural` | Florian | männlich | hoch |
+| `de-DE-AmalaNeural` | Amala | weiblich | hoch |
+| `de-DE-KatjaNeural` | Katja | weiblich | hoch |
+| `de-DE-ConradNeural` | Conrad | männlich | hoch |
+
+**Piper TTS** (Fallback, weiterhin installiert):
+- `de_DE-thorsten-medium` – männlich
+- `de_DE-ramona-low` – weiblich
+
+**Engine-Auswahl**: Automatisch aus Modell-Präfix: `de-DE-*` → Edge, `de_DE-*` → Piper
+
+**Dashboard**: Voiceover-Sektion mit:
+- An/Aus Toggle (deaktiviert wenn weder Edge noch Piper verfügbar)
+- Stimmen-Auswahl (5 Edge + 2 Piper)
+- Speed-Regler (0.60-1.20)
+- Volume-Regler (0.00-1.50, Default 1.00)
+- Zeichen-Zähler
+- Text-Vorschau
 
 ### Bekannte Baustellen (TikTok)
 - **Remotion Bundle**: Nach Code-Änderungen im server/remotion/ muss der Bundle-Cache invalidiert werden: `curl -X POST http://localhost:3002/api/render-remotion/invalidate-cache`
@@ -374,3 +409,50 @@ Edge TTS (Microsoft Azure, `server/remotion/edge.js`) wurde wegen Import-Problem
 - **Voiceover Standard**: AUS – muss explizit aktiviert werden
 - **Video-Quellen**: Aktuell nur Bilder + Video-URLs aus Nostr-Events. Kein direkter Upload
 - **MP4 auf Blossom**: Wird beim Löschen des Nostr-Events nicht gelöscht (nur Event wird ungültig)
+
+## 📋 Changelog – Änderungen 21.06.2026
+
+### Piper TTS → Edge TTS ersetzt (aktiv, primär)
+- **Betroffene Dateien**: `server/remotion/edge.js` (NEU), `server/remotion/render.js`, `server/server.js`, `server/package.json`, `src/pages/TikTokPromotion.tsx`
+- **Paket**: `node-edge-tts@^1.2.10` (Node.js-kompatibel, MIT). Nicht `edge-tts` (TypeScript-Only!)
+- **Architektur**: Nur dynamischer `import()` in render.js, kein statischer Import
+- **Fallback**: Edge → Piper → kein Voiceover (automatisch)
+- **Stimmen**: 5 Edge-Stimmen (Seraphina ⭐ Standard) + 2 Piper-Stimmen (Fallback)
+- **Badge**: Header zeigt "Edge" oder "Piper" je nach Verfügbarkeit
+- **Commits**: 7d2b696, 7321e31, fa85931
+
+### KI-Modell Switcher (Schritt 2 TikTok)
+- **Betroffene Dateien**: `src/pages/TikTokPromotion.tsx`
+- Neuer State `aiModel` (Default: `llama4`)
+- Toggle-Switch zwischen Llama 4 Scout (Groq, kostenlos) und Claude Sonnet (OpenRouter)
+- Modell wird dynamisch an `/api/tiktok/generate-text` gesendet
+- **Commit**: f008dbc
+
+### Voiceover Volume Slider
+- **Betroffene Dateien**: `src/pages/TikTokPromotion.tsx`, `server/server.js`, `server/remotion/render.js`, `server/remotion/MojoBusVideo.tsx`
+- Slider 0.00-1.50 (Default 1.00) im Dashboard
+- Hartcodiertes `volume={1.0}` in MojoBusVideo.tsx durch `voiceoverVolume`-Prop ersetzt
+- **Commit**: bb599b4
+
+### CTA-Endkarte verbessert
+- **Betroffene Dateien**: `server/remotion/components/MojoBusCTA.tsx`, `server/remotion/MojoBusVideo.tsx`
+- PNG-Logo (Blossom) blendet zeitgleich mit MOJOBUS-Text ein
+- Bus 25% größer (size 140→175)
+- **Commit**: df18a7c
+
+### Vignette entfernt
+- **Betroffene Dateien**: `server/remotion/components/ColorGradeOverlay.tsx`
+- Radiale Vignette (transparent→35% Schwarz am Rand) entfernt
+- War Ursache für "dunkle Ränder" – nicht der Blur!
+- **Commit**: 102967d
+
+### Lauftext in Videos um ~50% vergrößert
+- **Betroffene Dateien**: `server/remotion/components/Captions.tsx`, `server/remotion/components/StoryCaption.tsx`
+- TikTok-Word-Captions hatten KEINE font-size → Browser-Default ~16px → winzig auf Pixel 6a
+- Alle Caption-Font-Sizes um ~50% erhöht (z.B. 4.5vw→7vw)
+- **Commit**: 87625e4
+
+### Depot-Informationen
+- Nach jedem Deploy `bash deploy-main.sh --force` ausführen (ink. `npm install` für Server-Dependencies)
+- Bundle-Cache nach Code-Änderungen invalidieren: `curl -X POST http://localhost:3002/api/render-remotion/invalidate-cache`
+- Oder deploy-main.sh macht das automatisch beim Restart
