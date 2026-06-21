@@ -439,7 +439,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
         >
           <AbsoluteFill style={{ pointerEvents: 'none' }}>
             <LottieBusIcon
-              size={140}
+              size={175}
               accentColor={accentColor}
               driveIn={true}
               driveInPath="curve-down"
