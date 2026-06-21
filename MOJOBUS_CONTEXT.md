@@ -294,3 +294,83 @@ cat src/config/authors.json | jq '.authors[] | {name, pubkey, nip05}'
 ### Bekannte Baustellen (17.06.2026)
 - **Service Worker Cache**: Nach Deploy + generate-site-data.js liefert SW alte JSONs. Browser-Cache leeren oder Hard-Reload (Shift+F5) nötig
 - **bilder.json Größe**: 42 Events, 29.1 KB (nach image-Tag Ergänzung gewachsen)
+
+## 📋 Changelog – TikTok Promotion System (Juni 2026)
+
+### Überblick
+Komplettes TikTok-Video-Promotion-System unter `/promotion/tiktok`. Erstellt aus Nostr-Blog-Inhalten TikTok-taugliche Videos via Remotion auf dem VPS.
+
+| Komponente | Pfad | Beschreibung |
+|------------|------|-------------|
+| Dashboard | `src/pages/TikTokPromotion.tsx` | 4-Schritte UI (Content→Template→Text→Export) |
+| Render-Engine | `server/remotion/` | Vollständiges Remotion v4 System |
+| Piper TTS | `server/remotion/tts.js` | Text-to-Speech via Piper (Thorsten/Ramona) |
+| Ambient | `server/remotion/ambient.js` | Atmo-Geräusche via FFmpeg (Meer/Regen/Wind/Feuer/Wald) |
+| Blossom Upload | TikTokPromotion.tsx | MP4 → relay.mojobus.co (permanente Speicherung) |
+| Nostr History | kind 30078, d-tag: `co.mojobus.app.tiktok-video-*` | Replaceable Events für Video-Metadaten |
+
+### Features (aktiv)
+
+| Feature | Status | Beschreibung |
+|---------|--------|-------------|
+| **Diashow aus Bildern** | ✅ | Ken-Burns Zoom, 8 Transitionen |
+| **Video + Bilder gemischt** | ✅ | MediaRenderer erkennt mp4/webm/mov und rendert Clip |
+| **Hook (0-3s)** | ✅ | Großer Text + Scale-Animation auf erstem Bild |
+| **Body (3-22s)** | ✅ | Captions pro Bild, eine Zeile pro Slide |
+| **Bridge (22-27s)** | ✅ | Überleitung zum Blog |
+| **CTA (27-30s)** | ✅ | Endkarte mit Logo + Link |
+| **TikTok-Captions (Hardcode)** | ✅ | Fest eingebrannte Untertitel |
+| **Musik (vom Server)** | ✅ | Zufälliger Track aus /server/music/ (22 Tracks) |
+| **Atmo-Geräusche** | ✅ | Meer, Regen, Wind, Feuer, Wald (FFmpeg-generiert) |
+| **Beat-Sync** | ✅ | Schnitte synchron zur Musik |
+| **RouteMap** | ✅ | Animierte Routen-Karte in der Slideshow-Mitte |
+| **Lottie Bus (Endkarte)** | ✅ | Animierter MojoBus fährt im Bogen ein |
+| **Voiceover (Piper TTS)** | ✅ | Thorsten (👨, medium) + Ramona (👩, low) |
+| **Speed-Regler (0.6-1.2)** | ✅ | atempo-Filter, Tonhöhe bleibt |
+| **Dauer pro Bild (3-10s)** | ✅ | 1s-Schritte |
+| **KI-Text (Foster Huntington)** | ✅ | POST /api/tiktok/generate-text – poetisch/authentisch |
+| **Export** | ✅ | 3 Buttons: TikTok, Instagram, YouTube |
+| **Blossom-Upload** | ✅ | MP4 dauerhaft auf relay.mojobus.co |
+| **Nostr-History** | ✅ | kind 30078 + Blossom-URL → Tabelle mit Download/Löschen |
+| **Toast** | ✅ | Unten zentriert · z-[999] |
+| **Font-Größen** | ✅ | TikTok-Video: Hook 10vw, Captions 4.5-5.5vw |
+
+### API-Endpunkte (Server Port 3002)
+
+| Endpunkt | Methode | Funktion |
+|----------|---------|----------|
+| `/api/render-remotion` | POST | Video rendern (9:16, Bilder, Captions, Musik, TTS) |
+| `/api/render-remotion/status/:jobId` | GET | Render-Fortschritt |
+| `/api/render-remotion/download/:jobId` | GET | MP4-Download |
+| `/api/render-remotion/check` | GET | Remotion + FFmpeg + Piper Status |
+| `/api/render-remotion/invalidate-bundle` | POST | Bundle-Cache leeren |
+| `/api/render-remotion/history` | GET | Abgeschlossene Render-Jobs |
+| `/api/music/list` | GET | Verfügbare Musik-Tracks |
+| `/api/tiktok/generate-text` | POST | Foster-Huntington-Texte |
+
+### Piper TTS Installation
+
+```bash
+# Binary + Stimm-Modelle (einmalig auf VPS)
+mkdir -p /opt/piper/voices
+cd /opt/piper
+wget https://github.com/rhasspy/piper/releases/download/2023.11.14-2/piper_linux_x86_64.tar.gz
+tar xzf piper_linux_x86_64.tar.gz
+cp piper/piper /opt/piper/piper  # Binary ins Root kopieren
+
+cd /opt/piper/voices
+wget https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/de/de_DE/thorsten/medium/de_DE-thorsten-medium.onnx
+wget https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/de/de_DE/thorsten/medium/de_DE-thorsten-medium.onnx.json
+wget https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/de/de_DE/ramona/low/de_DE-ramona-low.onnx
+wget https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/de/de_DE/ramona/low/de_DE-ramona-low.onnx.json
+```
+
+### ⚠️ Edge TTS – Vorläufig deaktiviert
+Edge TTS (Microsoft Azure, `server/remotion/edge.js`) wurde wegen Import-Problemen mit `edge-tts` NPM-Paket zurückgezogen. Aktuell läuft nur **Piper TTS**. Edge TTS kann später reaktiviert werden, wenn das Paket stabil importiert werden kann.
+
+### Bekannte Baustellen (TikTok)
+- **Remotion Bundle**: Nach Code-Änderungen im server/remotion/ muss der Bundle-Cache invalidiert werden: `curl -X POST http://localhost:3002/api/render-remotion/invalidate-cache`
+- **Render-Dauer**: Erst-Render dauert ~1-2 Min (Bundle + Download). Folge-Render ~30-60s
+- **Voiceover Standard**: AUS – muss explizit aktiviert werden
+- **Video-Quellen**: Aktuell nur Bilder + Video-URLs aus Nostr-Events. Kein direkter Upload
+- **MP4 auf Blossom**: Wird beim Löschen des Nostr-Events nicht gelöscht (nur Event wird ungültig)
