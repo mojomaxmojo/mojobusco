@@ -123,7 +123,7 @@ export function ContentSelector({ onSelect, selected = [] }: ContentSelectorProp
       try {
         // Kurzes Timeout (4s) – relay.mojobus.co antwortet in <1s
         // primal.net timeoutet immer → ohne Timeout würde jede Query 20s+ warten
-        const queryTimeoutMs = 4000
+        const queryTimeoutMs = 8000
 
         // ── 1. Notes (Kind 1, #t note|notiz) ─────────────
         console.debug('[ContentSelector] Lade Notes...')
