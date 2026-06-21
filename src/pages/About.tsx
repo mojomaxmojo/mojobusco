@@ -7,10 +7,14 @@ import { Mail, Globe, Zap, Key, Sun, Compass, Heart, Quote, MapPin, Coffee } fro
 import { useHead } from '@unhead/react';
 import { getZeitUnterwegsFormatiert } from '@/config/zeitwohnmobil';
 
-const MOJO_PUBKEY = '958b754e0b1ca4a2ec8d7520f1e7e0c63b53136ec5e4a25c50daa6fa18cd6a79';
-const SUMSUM_PUBKEY = '3888fbe11988144c1431e005aadfad8d2ddfb8be50f4e38cb0d5aadd648d4b0c';
-const MOJO_NPUB = 'npub1f4vym2mu3q9fsz08muz8d469hl568l5358qx90qlaspyuz67ru0sfxvupf';
-const SUMSUM_NPUB = 'npub1jn4arsy5pzqausut0u79x2mnur2dd34szcxnlc9c5407f828002qdls5wz';
+import { AUTHORS } from '@/config/nostr';
+
+const MOJO = AUTHORS.find(a => a.id === 'mojo');
+const SUMSUM = AUTHORS.find(a => a.id === 'susanne');
+const MOJO_PUBKEY = MOJO?.pubkey || '';
+const SUMSUM_PUBKEY = SUMSUM?.pubkey || '';
+const MOJO_NPUB = MOJO?.npub || '';
+const SUMSUM_NPUB = SUMSUM?.npub || '';
 
 const MOJO_BIO = `Den 10-Meter-Koloss durch enge Klippenstraßen manövrieren, während im Hintergrund der Solar-Inverter leise summt – das ist meine Komfortzone.
 
