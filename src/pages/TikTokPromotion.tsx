@@ -185,6 +185,9 @@ export function TikTokPromotion() {
   // ── TEMPLATE ═════════════════════════════════════════════
   const [template, setTemplate] = useState<TikTokTemplate>('story')
 
+  // ── KI-MODELL ═════════════════════════════════════════════
+  const [aiModel, setAiModel] = useState<string>('llama4')
+
   // ── TIKTOK TEXT ══════════════════════════════════════════
   const [hookText, setHookText] = useState('')
   const [bodyText, setBodyText] = useState('')
@@ -321,7 +324,7 @@ export function TikTokPromotion() {
           summary: articleSummary,
           text: selectedContent?.content?.substring(0, 1500) || '',
           template,
-          model: 'llama4',
+          model: aiModel,
         }),
       })
 
@@ -908,6 +911,29 @@ export function TikTokPromotion() {
                       <div className="text-[10px] text-muted-foreground mt-1">{tpl.duration}</div>
                     </button>
                   ))}
+                </div>
+              </div>
+
+              {/* KI-Modell Auswahl */}
+              <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                <div className="space-y-0.5">
+                  <Label className="text-xs sm:text-sm">KI-Modell</Label>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">
+                    {aiModel === 'llama4' ? 'Llama 4 Scout (Groq · kostenlos, schnell)' : 'Claude Sonnet (OpenRouter · bessere Qualität)'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs font-medium ${aiModel === 'llama4' ? 'text-primary' : 'text-muted-foreground'}`}>Llama 4</span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={aiModel === 'claude'}
+                    onClick={() => setAiModel(aiModel === 'llama4' ? 'claude' : 'llama4')}
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${aiModel === 'claude' ? 'bg-primary' : 'bg-muted-foreground/30'}`}
+                  >
+                    <span className={`pointer-events-none block h-4 w-4 rounded-full bg-white shadow-lg ring-0 transition-transform ${aiModel === 'claude' ? 'translate-x-4' : 'translate-x-0'}`} />
+                  </button>
+                  <span className={`text-xs font-medium ${aiModel === 'claude' ? 'text-primary' : 'text-muted-foreground'}`}>Claude</span>
                 </div>
               </div>
 
