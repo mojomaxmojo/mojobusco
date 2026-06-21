@@ -122,9 +122,10 @@ export function ContentSelector({ onSelect, selected = [] }: ContentSelectorProp
     const loadContent = async () => {
       setLoading(true)
       try {
-        const signal = AbortSignal.timeout(DEFAULT_PERFORMANCE_CONFIG.relay.queryTimeout * 2.5)
+        const queryTimeout = DEFAULT_PERFORMANCE_CONFIG.relay.queryTimeout * 2.5
 
         // ── 1. Notes (Kind 1, #t note|notiz) ─────────────
+        console.debug('[ContentSelector] Lade Notes...')
         const noteEvents = await nostr.query(
           [{
             kinds: [1],
@@ -132,8 +133,9 @@ export function ContentSelector({ onSelect, selected = [] }: ContentSelectorProp
             authors: siteAuthors,
             limit: 200,
           }],
-          { signal }
+          { signal: AbortSignal.timeout(queryTimeout) }
         )
+        console.debug('[ContentSelector] Notes geladen:', noteEvents.length)
 
         const parsedNotes: ContentItem[] = noteEvents
           .filter((e: any) => (e.content || '').trim().length > 0)
@@ -163,6 +165,7 @@ export function ContentSelector({ onSelect, selected = [] }: ContentSelectorProp
           .sort((a, b) => b.createdAt - a.createdAt)
 
         // ── 2. Medien (Kind 1 + 30023, #t medien|media|bilder|images) ──
+        console.debug('[ContentSelector] Lade Medien...')
         const mediaEvents = await nostr.query(
           [{
             kinds: [1, NOSTR_CONFIG.kinds.longform],
@@ -170,8 +173,9 @@ export function ContentSelector({ onSelect, selected = [] }: ContentSelectorProp
             authors: siteAuthors,
             limit: 200,
           }],
-          { signal }
+          { signal: AbortSignal.timeout(queryTimeout) }
         )
+        console.debug('[ContentSelector] Medien geladen:', mediaEvents.length)
 
         const parsedMedia: ContentItem[] = mediaEvents
           .filter((e: any) => isMediaEvent(e))
@@ -206,14 +210,16 @@ export function ContentSelector({ onSelect, selected = [] }: ContentSelectorProp
           .sort((a, b) => b.createdAt - a.createdAt)
 
         // ── 3. Artikel: Berichte + Plätze (Kind 30023) ───
+        console.debug('[ContentSelector] Lade Artikel...')
         const articleEvents = await nostr.query(
           [{
             kinds: [NOSTR_CONFIG.kinds.longform],
             authors: siteAuthors,
             limit: 300,
           }],
-          { signal }
+          { signal: AbortSignal.timeout(queryTimeout) }
         )
+        console.debug('[ContentSelector] Artikel geladen:', articleEvents.length)
 
         const parsedReports: ContentItem[] = []
         const parsedPlaces: ContentItem[] = []
@@ -259,14 +265,16 @@ export function ContentSelector({ onSelect, selected = [] }: ContentSelectorProp
         parsedPlaces.sort((a, b) => b.createdAt - a.createdAt)
 
         // ── 4. Trips (Kind 30025) ─────────────────────────
+        console.debug('[ContentSelector] Lade Trips...')
         const tripEvents = await nostr.query(
           [{
             kinds: [30025],
             authors: siteAuthors,
             limit: 100,
           }],
-          { signal }
+          { signal: AbortSignal.timeout(queryTimeout) }
         )
+        console.debug('[ContentSelector] Trips geladen:', tripEvents.length)
 
         const parsedTrips: ContentItem[] = tripEvents
           .filter((e: any) => {
