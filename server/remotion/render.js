@@ -19,14 +19,15 @@ import https from 'https';
 import http from 'http';
 import { createServer } from 'http';
 
-// ── TTS + Ambient Imports ─────────────────────────────────────────────────
-import { generateVoiceover, isPiperAvailable } from './tts.js';
-import { generateAmbient } from './ambient.js';
-
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const FFMPEG_PATH  = process.env.FFMPEG_PATH  || '/opt/bin/ffmpeg';
 const FFPROBE_PATH = process.env.FFPROBE_PATH || '/opt/bin/ffprobe';
+
+// ── Piper TTS (optional) ───────────────────────────────────────────────────
+import { generateVoiceover, isPiperAvailable } from './tts.js';
+// ── Ambient Sounds (optional) ──────────────────────────────────────────────
+import { generateAmbient } from './ambient.js';
 
 const OUTPUT_DIR = path.join(os.tmpdir(), 'remotion-renders');
 const IMAGES_DIR = path.join(os.tmpdir(), 'remotion-images');
@@ -480,7 +481,6 @@ export async function renderMojoBusVideo(params) {
     voiceoverText,             // Text für Sprachausgabe (optional)
     voiceoverModel = 'de_DE-thorsten-medium', // Stimm-Modell
     voiceoverSpeed = 0.8,     // Sprechgeschwindigkeit (0.6-1.2)
-    voiceoverEngine = 'piper', // 'piper' | 'edge'
     // ── NEU: Ambient Sound (Atmo) ─────────────────────────────────────────
     ambientType,               // 'ocean' | 'rain' | 'wind' | 'fire' | 'forest' (optional)
     onProgress,
@@ -513,33 +513,23 @@ export async function renderMojoBusVideo(params) {
       mapImageUrl ? downloadMapImage(mapImageUrl, sessionDir) : Promise.resolve(null),
     ]);
 
-// Voiceover (TTS) – nur wenn Text übergeben wurde
+    // Voiceover (TTS) – nur wenn Text übergeben wurde
     if (voiceoverText && voiceoverText.trim()) {
       try {
-        if (voiceoverEngine === 'edge') {
-          // Edge TTS (noch nicht aktiv – import wird später aktiviert)
-          console.warn('[Remotion] ⚠️ Edge TTS noch nicht verfügbar – verwende Piper');
+        const ttsAvailable = isPiperAvailable();
+        if (ttsAvailable) {
+          console.log(`[Remotion] 🎙️ Voiceover generieren (${voiceoverModel}): "${voiceoverText.slice(0, 60)}..."`);
+          const wavPath = await generateVoiceover(voiceoverText.trim(), voiceoverModel, voiceoverSpeed);
+          // WAV ins sessionDir kopieren (wird vom HTTP-Server ausgeliefert)
+          const destPath = path.join(sessionDir, 'voiceover.wav');
+          fs.copyFileSync(wavPath, destPath);
+          try { fs.chmodSync(destPath, 0o644); } catch (e) {}
+          try { fs.rmSync(wavPath, { force: true }); } catch (e) {}
+          voiceoverFilename = 'voiceover.wav';
+          console.log(`[Remotion] ✅ Voiceover: voiceover.wav`);
+        } else {
+          console.warn('[Remotion] ⚠️ Piper TTS nicht installiert – Voiceover deaktiviert');
         }
-        if (voiceoverEngine !== 'edge') {
-          // Piper TTS (Standard)
-          const ttsAvailable = isPiperAvailable();
-          if (ttsAvailable) {
-            console.log(`[Remotion] 🎙️ Piper TTS (${voiceoverModel}, ${voiceoverSpeed}x): "${voiceoverText.slice(0, 60)}..."`);
-            const wavPath = await generateVoiceover(voiceoverText.trim(), voiceoverModel, voiceoverSpeed);
-            const destPath = path.join(sessionDir, 'voiceover.wav');
-            fs.copyFileSync(wavPath, destPath);
-            try { fs.chmodSync(destPath, 0o644); } catch (e) {}
-            try { fs.rmSync(wavPath, { force: true }); } catch (e) {}
-            voiceoverFilename = 'voiceover.wav';
-            console.log(`[Remotion] ✅ Piper TTS: voiceover.wav`);
-          } else {
-            console.warn('[Remotion] ⚠️ Piper TTS nicht installiert – Voiceover deaktiviert');
-          }
-        }
-      } catch (ttsErr) {
-        console.warn(`[Remotion] ⚠️ Voiceover fehlgeschlagen: ${ttsErr.message} – fahre ohne fort`);
-      }
-    }
       } catch (ttsErr) {
         console.warn(`[Remotion] ⚠️ Voiceover fehlgeschlagen: ${ttsErr.message} – fahre ohne fort`);
       }
