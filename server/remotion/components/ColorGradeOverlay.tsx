@@ -82,13 +82,6 @@ export const ColorGradeOverlay: React.FC<ColorGradeOverlayProps> = ({ grade }) =
           pointerEvents: 'none',
         }}
       />
-      {/* Vignette */}
-      <AbsoluteFill
-        style={{
-          background: 'radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.35) 100%)',
-          pointerEvents: 'none',
-        }}
-      />
     </>
   );
 };

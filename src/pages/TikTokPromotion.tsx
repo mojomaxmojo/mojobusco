@@ -111,15 +111,17 @@ const TEMPLATES: TikTokTemplateInfo[] = [
   },
 ]
 
-/** Verfügbare Stimmen (Piper TTS auf VPS) */
+/** Verfügbare Stimmen (Edge TTS primär + Piper Fallback) */
 const VOICES = [
-  { id: 'de_DE-thorsten-medium', label: 'Thorsten (👨)', desc: 'Piper · Männlich, beste Qualität', engine: 'piper' },
-  { id: 'de_DE-ramona-low', label: 'Ramona (👩)', desc: 'Piper · Weiblich', engine: 'piper' },
-  { id: 'de-DE-SeraphinaMultilingualNeural', label: 'Seraphina (👩)', desc: 'Edge · Weiblich, natürlich ⭐', engine: 'edge' },
-  { id: 'de-DE-FlorianMultilingualNeural', label: 'Florian (👨)', desc: 'Edge · Männlich, klar', engine: 'edge' },
-  { id: 'de-DE-AmalaNeural', label: 'Amala (👩)', desc: 'Edge · Weiblich, freundlich', engine: 'edge' },
-  { id: 'de-DE-KatjaNeural', label: 'Katja (👩)', desc: 'Edge · Weiblich, warm', engine: 'edge' },
-  { id: 'de-DE-ConradNeural', label: 'Conrad (👨)', desc: 'Edge · Männlich, tief', engine: 'edge' },
+  // Edge TTS (primär) – natürlich, keine API-Kosten
+  { id: 'de-DE-SeraphinaMultilingualNeural', label: 'Seraphina ⭐', desc: 'Edge · Weiblich, beste Qualität', engine: 'edge' },
+  { id: 'de-DE-FlorianMultilingualNeural',   label: 'Florian',       desc: 'Edge · Männlich, klar',        engine: 'edge' },
+  { id: 'de-DE-AmalaNeural',                 label: 'Amala',         desc: 'Edge · Weiblich, freundlich',  engine: 'edge' },
+  { id: 'de-DE-KatjaNeural',                 label: 'Katja',         desc: 'Edge · Weiblich, modern',     engine: 'edge' },
+  { id: 'de-DE-ConradNeural',                label: 'Conrad',        desc: 'Edge · Männlich, tief',       engine: 'edge' },
+  // Piper TTS (Fallback) – lokal auf VPS
+  { id: 'de_DE-thorsten-medium',             label: 'Thorsten',      desc: 'Piper · Männlich',            engine: 'piper' },
+  { id: 'de_DE-ramona-low',                  label: 'Ramona',        desc: 'Piper · Weiblich',            engine: 'piper' },
 ]
 
 /** Musik-Optionen – werden dynamisch vom Server geladen */
@@ -174,7 +176,7 @@ export function TikTokPromotion() {
   const [rendering, setRendering] = useState(false)
 
   // ── CONTENT ══════════════════════════════════════════════
-  const [selectedContent, setSelectedContent] = useState<ContentItem | null>(null)
+  const [selectedContent, setSelectedContent] = useState<ContentItem[]>([])
   const [articleTitle, setArticleTitle] = useState('')
   const [articleSummary, setArticleSummary] = useState('')
   const [articleImages, setArticleImages] = useState<string[]>([])
@@ -182,6 +184,9 @@ export function TikTokPromotion() {
 
   // ── TEMPLATE ═════════════════════════════════════════════
   const [template, setTemplate] = useState<TikTokTemplate>('story')
+
+  // ── KI-MODELL ═════════════════════════════════════════════
+  const [aiModel, setAiModel] = useState<string>('llama4')
 
   // ── TIKTOK TEXT ══════════════════════════════════════════
   const [hookText, setHookText] = useState('')
@@ -192,11 +197,9 @@ export function TikTokPromotion() {
 
   // ── VOICEOVER ════════════════════════════════════════════
   const [voiceoverEnabled, setVoiceoverEnabled] = useState(false)
-  const [voiceoverModel, setVoiceoverModel] = useState('de_DE-thorsten-medium')
+  const [voiceoverModel, setVoiceoverModel] = useState('de-DE-SeraphinaMultilingualNeural')
   const [voiceoverSpeed, setVoiceoverSpeed] = useState('0.80')
-
-  // Engine automatisch aus Modell ableiten
-  const voiceoverEngine = voiceoverModel.startsWith('de-DE-') ? 'edge' : 'piper'
+  const [voiceoverVolume, setVoiceoverVolume] = useState('1.00')
 
 // ── MUSIK ════════════════════════════════════════════════
   const [musicStyle, setMusicStyle] = useState('ambient')
@@ -229,6 +232,7 @@ export function TikTokPromotion() {
   // ── REMOTION STATUS ══════════════════════════════════════
   const [remotionAvailable, setRemotionAvailable] = useState<boolean | null>(null)
   const [piperAvailable, setPiperAvailable] = useState(false)
+  const [edgeTtsAvailable, setEdgeTtsAvailable] = useState(false)
 
   // ── HISTORY ═══════════════════════════════════════════════
   const [history, setHistory] = useState<any[]>([])
@@ -249,6 +253,7 @@ export function TikTokPromotion() {
       .then(data => {
         setRemotionAvailable(data.remotion === 'installed')
         setPiperAvailable(data.piperAvailable === true)
+        setEdgeTtsAvailable(data.edgeTtsAvailable === true)
       })
       .catch(() => setRemotionAvailable(false))
   }, [])
@@ -267,23 +272,35 @@ export function TikTokPromotion() {
 
   // ── CONTENT AUSWÄHLEN ═══════════════════════════════════
 
-  const selectContent = (item: ContentItem) => {
-    setSelectedContent(item)
-    setArticleTitle(item.title)
-    setArticleSummary(item.summary)
-    setArticleImages(item.images.slice(0, 20))
+  const selectContent = (items: ContentItem[]) => {
+    setSelectedContent(items)
 
-    // Location & Country aus Tags extrahieren
-    const event = item.event
-    const countryTag = event?.tags?.find((t: any[]) => t[0] === 'country' || t[0] === 'l')?.[1]
-    const locationTag = event?.tags?.find((t: any[]) => t[0] === 'location')?.[1]
-    const titleTag = event?.tags?.find((t: any[]) => t[0] === 'title')?.[1]
+    // Alle Bilder aus allen ausgewählten Items sammeln (max 20)
+    const allImages: string[] = []
+    for (const item of items) {
+      for (const img of item.images) {
+        if (!allImages.includes(img) && allImages.length < 20) {
+          allImages.push(img)
+        }
+      }
+    }
+    setArticleImages(allImages)
+
+    // Titel + Summary aus allen Items kombinieren
+    const titles = items.map(i => i.title).filter(Boolean)
+    setArticleTitle(titles.join(' · ') || 'MojoBus Video')
+    setArticleSummary(items.map(i => i.summary).filter(Boolean).join(' | '))
+
+    // Location & Country aus erstem Item
+    const firstEvent = items[0]?.event
+    const countryTag = firstEvent?.tags?.find((t: any[]) => t[0] === 'country' || t[0] === 'l')?.[1]
+    const locationTag = firstEvent?.tags?.find((t: any[]) => t[0] === 'location')?.[1]
     setCountry(countryTag || '')
     setLocation(locationTag || countryTag || '')
 
-    // Prüfe auf Video-URLs
-    const hasVideoUrl = item.images.some(url =>
-      /\.(mp4|webm|mov|avi|mkv)(\?|$)/i.test(url)
+    // Prüfe auf Video-URLs in allen Items
+    const hasVideoUrl = items.some(item =>
+      item.images.some(url => /\.(mp4|webm|mov|avi|mkv)(\?|$)/i.test(url))
     )
     setHasVideo(hasVideoUrl)
 
@@ -292,9 +309,10 @@ export function TikTokPromotion() {
       setTemplate('movie')
     }
 
+    const labels = items.map(i => i.type === 'article' ? 'Artikel' : 'Post').join(', ')
     toast({
-      title: `${item.type === 'article' ? 'Artikel' : 'Post'} ausgewählt`,
-      description: `"${item.title}" – ${item.images.length} Medien geladen`,
+      title: `${items.length} ${items.length === 1 ? 'Inhalt' : 'Inhalte'} ausgewählt`,
+      description: `${allImages.length} Medien aus ${items.length} ${labels}`,
     })
   }
 
@@ -318,9 +336,9 @@ export function TikTokPromotion() {
         body: JSON.stringify({
           title: articleTitle,
           summary: articleSummary,
-          text: selectedContent?.content?.substring(0, 1500) || '',
+          text: selectedContent.map(i => i.content).filter(Boolean).join('\n\n').substring(0, 1500) || '',
           template,
-          model: 'llama4',
+          model: aiModel,
         }),
       })
 
@@ -440,7 +458,9 @@ export function TikTokPromotion() {
       payload.voiceoverText = voiceoverText.trim()
       payload.voiceoverModel = voiceoverModel
       payload.voiceoverSpeed = parseFloat(voiceoverSpeed) || 0.8
-      payload.voiceoverEngine = voiceoverEngine
+      payload.voiceoverVolume = parseFloat(voiceoverVolume) || 1.0
+      // Engine aus Modell-Präfix ableiten (de-DE- → edge, de_DE- → piper)
+      payload.voiceoverEngine = voiceoverModel.startsWith('de-DE-') ? 'edge' : 'piper'
     }
 
     try {
@@ -749,8 +769,11 @@ export function TikTokPromotion() {
                 Remotion nicht verfügbar
               </Badge>
             )}
-            {piperAvailable && (
-              <Badge variant="outline" className="text-xs">🎙️ TTS</Badge>
+            {edgeTtsAvailable && (
+              <Badge variant="outline" className="text-xs" title="Edge TTS (primär)">🎙️ Edge</Badge>
+            )}
+            {!edgeTtsAvailable && piperAvailable && (
+              <Badge variant="outline" className="text-xs">🎙️ Piper</Badge>
             )}
           </div>
         </div>
@@ -804,7 +827,7 @@ export function TikTokPromotion() {
                   Schritt 1: Inhalt auswählen
                 </CardTitle>
                 <CardDescription className="text-xs sm:text-sm">
-                  Wähle einen Artikel oder Post mit Bildern oder Video
+                  Wähle 1-3 Artikel oder Posts mit Bildern/Video aus
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -822,29 +845,31 @@ export function TikTokPromotion() {
                 <CardDescription className="text-xs">Vorausgefüllte Daten</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                {selectedContent ? (
+                {selectedContent.length > 0 ? (
                   <>
-                    <div className="flex items-start gap-3 p-3 bg-primary/5 rounded-lg">
-                      <div className="w-14 h-14 rounded-md overflow-hidden bg-muted shrink-0">
-                        {articleImages[0] ? (
-                          <img src={articleImages[0]} alt="" className="w-full h-full object-cover" loading="lazy" />
-                        ) : (
-                          <ImageIcon className="w-6 h-6 text-muted-foreground/50 m-auto mt-4" />
-                        )}
+                    {/* Zusammenfassung aller ausgewählten Items */}
+                    <div className="p-3 bg-primary/5 rounded-lg space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">{selectedContent.length} {selectedContent.length === 1 ? 'Inhalt' : 'Inhalte'} ausgewählt</span>
+                        <Badge variant="outline" className="text-[10px]">
+                          {articleImages.length} Bild{articleImages.length !== 1 ? 'er' : ''}
+                        </Badge>
                       </div>
-                      <div className="min-w-0">
-                        <p className="font-medium text-sm truncate">{articleTitle}</p>
-                        <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{articleSummary}</p>
-                        <div className="flex gap-1 mt-1 flex-wrap">
-                          <Badge variant="outline" className="text-[10px]">
-                            {articleImages.length} Bild{articleImages.length !== 1 ? 'er' : ''}
-                          </Badge>
-                          {hasVideo && (
-                            <Badge variant="secondary" className="text-[10px]">🎥 Video</Badge>
-                          )}
+                      {/* Mini-Liste der ausgewählten Items */}
+                      {selectedContent.map((item, i) => (
+                        <div key={item.id} className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span className="shrink-0 w-4 h-4 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[10px] font-bold">
+                            {i + 1}
+                          </span>
+                          <span className="truncate">{item.title}</span>
+                          <span className="shrink-0">📷 {item.images.length}</span>
                         </div>
-                      </div>
+                      ))}
                     </div>
+
+                    {hasVideo && (
+                      <Badge variant="secondary" className="text-[10px]">🎥 Video enthalten</Badge>
+                    )}
 
                     <Button
                       onClick={() => { setStep(2) }}
@@ -903,6 +928,29 @@ export function TikTokPromotion() {
                       <div className="text-[10px] text-muted-foreground mt-1">{tpl.duration}</div>
                     </button>
                   ))}
+                </div>
+              </div>
+
+              {/* KI-Modell Auswahl */}
+              <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                <div className="space-y-0.5">
+                  <Label className="text-xs sm:text-sm">KI-Modell</Label>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">
+                    {aiModel === 'llama4' ? 'Llama 4 Scout (Groq · kostenlos, schnell)' : 'Claude Sonnet (OpenRouter · bessere Qualität)'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs font-medium ${aiModel === 'llama4' ? 'text-primary' : 'text-muted-foreground'}`}>Llama 4</span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={aiModel === 'claude'}
+                    onClick={() => setAiModel(aiModel === 'llama4' ? 'claude' : 'llama4')}
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${aiModel === 'claude' ? 'bg-primary' : 'bg-muted-foreground/30'}`}
+                  >
+                    <span className={`pointer-events-none block h-4 w-4 rounded-full bg-white shadow-lg ring-0 transition-transform ${aiModel === 'claude' ? 'translate-x-4' : 'translate-x-0'}`} />
+                  </button>
+                  <span className={`text-xs font-medium ${aiModel === 'claude' ? 'text-primary' : 'text-muted-foreground'}`}>Claude</span>
                 </div>
               </div>
 
@@ -1021,18 +1069,16 @@ export function TikTokPromotion() {
                         type="checkbox"
                         checked={voiceoverEnabled}
                         onChange={e => setVoiceoverEnabled(e.target.checked)}
-                        disabled={!piperAvailable}
+                        disabled={!edgeTtsAvailable && !piperAvailable}
                         className="sr-only peer"
                       />
                       <div className="w-9 h-5 bg-muted-foreground/30 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary" />
                     </label>
                   </div>
-                  {voiceoverEngine === 'edge' ? (
-                    <p className="text-xs text-green-600">🎙️ Edge TTS – natürliche Stimme (online)</p>
-                  ) : !piperAvailable ? (
-                    <p className="text-xs text-amber-500">Piper TTS nicht auf Server installiert</p>
-                  ) : null}
-                  {voiceoverEnabled && (
+                  {!edgeTtsAvailable && !piperAvailable && (
+                    <p className="text-xs text-amber-500">Kein TTS verfügbar (weder Edge noch Piper)</p>
+                  )}
+                  {voiceoverEnabled && (edgeTtsAvailable || piperAvailable) && (
                     <div className="space-y-2">
                       <div className="flex gap-2">
                         <Select value={voiceoverModel} onValueChange={setVoiceoverModel}>
@@ -1062,6 +1108,21 @@ export function TikTokPromotion() {
                         />
                         <span className="text-[10px] text-muted-foreground">Schnell</span>
                         <span className="text-[10px] font-mono w-8 text-right">{voiceoverSpeed}x</span>
+                      </div>
+                      {/* Volume Slider */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-muted-foreground">🔇</span>
+                        <input
+                          type="range"
+                          min="0.00"
+                          max="1.50"
+                          step="0.05"
+                          value={voiceoverVolume}
+                          onChange={e => setVoiceoverVolume(e.target.value)}
+                          className="flex-1 h-1.5 accent-primary"
+                        />
+                        <span className="text-[10px] text-muted-foreground">🔊</span>
+                        <span className="text-[10px] font-mono w-10 text-right">{parseFloat(voiceoverVolume).toFixed(2)}x</span>
                       </div>
                     </div>
                   )}

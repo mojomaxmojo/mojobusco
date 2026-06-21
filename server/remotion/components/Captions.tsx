@@ -167,6 +167,7 @@ export const WordHighlightCaptions: React.FC<WordHighlightCaptionsProps> = ({
             flexWrap: 'wrap',
             alignItems: 'center',
             gap: '0.1em',
+            fontSize: 'clamp(1.6rem, 7vw, 3rem)', // +50% für Lesbarkeit auf Mobil
           }}
         >
           {visibleWords.map((word, i) => {
@@ -209,7 +210,7 @@ export const WordHighlightCaptions: React.FC<WordHighlightCaptionsProps> = ({
           <div
             style={{
               ...TEXT_STYLES.caption,
-              fontSize: 'clamp(1.2rem, 4.5vw, 2rem)',
+              fontSize: 'clamp(1.8rem, 7vw, 3rem)',
               color: '#FFFFFF',
               textShadow: '0 2px 12px rgba(0,0,0,0.9)',
               textAlign: 'center',
@@ -255,7 +256,7 @@ export const WordHighlightCaptions: React.FC<WordHighlightCaptionsProps> = ({
         <div
           style={{
             ...TEXT_STYLES.caption,
-            fontSize: 'clamp(1.3rem, 5vw, 2.2rem)',
+            fontSize: 'clamp(2rem, 7.5vw, 3.3rem)',
             color: '#FFFFFF',
             textShadow: '0 2px 10px rgba(0,0,0,0.9)',
             textAlign: 'center',

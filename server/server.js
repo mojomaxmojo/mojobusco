@@ -2225,11 +2225,12 @@ app.post('/api/render-remotion', async (req, res) => {
     mapImageUrl,
     // ── Lottie Bus ───────────────────────────────────────────────────
     showLottieBus = true,
-    // ── NEU: Voiceover (Piper TTS) ─────────────────────────────────────
+    // ── NEU: Voiceover (Edge TTS primär, Piper Fallback) ─────────────────
     voiceoverText,         // Text für Sprachausgabe (optional)
-    voiceoverModel,        // 'de_DE-thorsten-medium' | 'de_DE-ramona-low' (optional)
+    voiceoverModel,        // 'de-DE-SeraphinaMultilingualNeural' (Edge) | 'de_DE-thorsten-medium' (Piper)
     voiceoverSpeed = 0.8, // Sprechgeschwindigkeit 0.6-1.2 (optional)
-    voiceoverEngine = 'piper', // 'piper' | 'edge' (optional)
+    voiceoverEngine,       // 'edge' | 'piper' – wird automatisch aus Modell-Präfix abgeleitet (optional)
+    voiceoverVolume = 1.0, // Lautstärke 0-1 (optional)
     // ── NEU: Ambient Sound (Atmo) ────────────────────────────────────────
     ambientType,           // 'ocean' | 'rain' | 'wind' | 'fire' | 'forest' (optional)
     // ── Metadaten für History ────────────────────────────────────────────
@@ -2328,11 +2329,12 @@ app.post('/api/render-remotion', async (req, res) => {
         mapImageUrl: mapImageUrl || undefined,
         // ── Lottie Bus ─────────────────────────────────────────────
         showLottieBus: showLottieBus !== false,
-        // ── Voiceover (Piper TTS) ─────────────────────────────────────
+        // ── Voiceover (Edge TTS primär, Piper Fallback) ────────────────────
         voiceoverText: voiceoverText || undefined,
-        voiceoverModel: voiceoverModel || 'de_DE-thorsten-medium',
+        voiceoverModel: voiceoverModel || 'de-DE-SeraphinaMultilingualNeural',
         voiceoverSpeed: parseFloat(voiceoverSpeed) || 0.8,
-        voiceoverEngine: voiceoverEngine || 'piper',
+        voiceoverEngine: voiceoverEngine || undefined,
+        voiceoverVolume: parseFloat(voiceoverVolume) || 1.0,
         // ── Ambient Sound (Atmo) ─────────────────────────────────────────
         ambientType: ambientType || undefined,
         // ── Interner Parameter: Musik-Ordner für localhost-URL-Auflösung
@@ -2651,6 +2653,7 @@ app.get('/api/render-remotion/check', async (req, res) => {
       musicFiles: musicFiles.length,
       musicDir: MUSIC_DIR,
       piperAvailable: (await import('./remotion/tts.js')).isPiperAvailable(),
+      edgeTtsAvailable: true, // edge-tts ist als NPM-Paket installiert, wird dynamisch geladen
       activeJobs: [...remotionJobs.values()].filter(j => j.status === 'rendering').length,
     })
   } catch (err) {

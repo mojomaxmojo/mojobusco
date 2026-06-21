@@ -69,6 +69,8 @@ export interface MojoBusVideoProps {
   // ── NEU: Voiceover (Piper TTS) ───────────────────────────────────────
   /** URL der generierten Sprachaufnahme (wav) */
   voiceoverUrl?: string;
+  /** Lautstärke des Voiceover 0-1 (Default: 1.0) */
+  voiceoverVolume?: number;
   /** URL der generierten Atmo-Spur (wav) – Meer, Regen, Wind etc. */
   ambientUrl?: string;
 
@@ -159,6 +161,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
 
   // Voiceover
   voiceoverUrl,
+  voiceoverVolume = 1.0,
   // Ambient
   ambientUrl,
 
@@ -439,7 +442,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
         >
           <AbsoluteFill style={{ pointerEvents: 'none' }}>
             <LottieBusIcon
-              size={140}
+              size={175}
               accentColor={accentColor}
               driveIn={true}
               driveInPath="curve-down"
@@ -486,7 +489,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
       {voiceoverUrl && (
         <AudioLayer
           src={voiceoverUrl}
-          volume={1.0}
+          volume={voiceoverVolume}
           fadeInSec={0.2}
           fadeOutSec={0.5}
         />

@@ -19,15 +19,15 @@ import https from 'https';
 import http from 'http';
 import { createServer } from 'http';
 
-// ── TTS + Ambient Imports ─────────────────────────────────────────────────
-import { generateVoiceover, isPiperAvailable } from './tts.js';
-import { generateEdgeVoiceover, isEdgeTtsAvailable } from './edge.js';
-import { generateAmbient } from './ambient.js';
-
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const FFMPEG_PATH  = process.env.FFMPEG_PATH  || '/opt/bin/ffmpeg';
 const FFPROBE_PATH = process.env.FFPROBE_PATH || '/opt/bin/ffprobe';
+
+// ── Piper TTS (optional) ───────────────────────────────────────────────────
+import { generateVoiceover, isPiperAvailable } from './tts.js';
+// ── Ambient Sounds (optional) ──────────────────────────────────────────────
+import { generateAmbient } from './ambient.js';
 
 const OUTPUT_DIR = path.join(os.tmpdir(), 'remotion-renders');
 const IMAGES_DIR = path.join(os.tmpdir(), 'remotion-images');
@@ -477,11 +477,12 @@ export async function renderMojoBusVideo(params) {
     mapImageUrl,
     // ── NEU: Lottie Bus ───────────────────────────────────────────────
     showLottieBus = true,
-    // ── NEU: Voiceover (Piper TTS) ─────────────────────────────────────
+    // ── NEU: Voiceover (Edge TTS primär, Piper Fallback) ───────────────
     voiceoverText,             // Text für Sprachausgabe (optional)
-    voiceoverModel = 'de_DE-thorsten-medium', // Stimm-Modell
+    voiceoverModel = 'de-DE-SeraphinaMultilingualNeural', // Stimm-Modell (Edge: de-DE-*, Piper: de_DE-*)
     voiceoverSpeed = 0.8,     // Sprechgeschwindigkeit (0.6-1.2)
-    voiceoverEngine = 'piper', // 'piper' | 'edge'
+    voiceoverEngine,           // 'edge' | 'piper' – wird automatisch aus Modell-Präfix abgeleitet
+    voiceoverVolume = 1.0,    // Lautstärke 0-1 (0 = stumm, 1 = volle Lautstärke)
     // ── NEU: Ambient Sound (Atmo) ─────────────────────────────────────────
     ambientType,               // 'ocean' | 'rain' | 'wind' | 'fire' | 'forest' (optional)
     onProgress,
@@ -514,44 +515,74 @@ export async function renderMojoBusVideo(params) {
       mapImageUrl ? downloadMapImage(mapImageUrl, sessionDir) : Promise.resolve(null),
     ]);
 
-// Voiceover (TTS) – nur wenn Text übergeben wurde
+    // Voiceover (TTS) – nur wenn Text übergeben wurde
+    // Engine-Auswahl: automatisch aus Modell-Präfix ableiten
+    // 'de-DE-*' → Edge TTS (primär) | 'de_DE-*' → Piper (Fallback)
+    const effectiveEngine = voiceoverEngine || (voiceoverModel && voiceoverModel.startsWith('de-DE-') ? 'edge' : 'piper');
+
     if (voiceoverText && voiceoverText.trim()) {
       try {
-        if (voiceoverEngine === 'edge') {
-          // Edge TTS (natürlicher, Microsoft Azure Stimmen)
-          const edgeAvailable = isEdgeTtsAvailable();
-          if (edgeAvailable) {
-            console.log(`[Remotion] 🎙️ Edge TTS (${voiceoverModel}, ${voiceoverSpeed}x): "${voiceoverText.slice(0, 60)}..."`);
-            const mp3Path = await generateEdgeVoiceover(voiceoverText.trim(), voiceoverModel, voiceoverSpeed);
-            const destPath = path.join(sessionDir, 'voiceover.mp3');
-            fs.copyFileSync(mp3Path, destPath);
-            try { fs.chmodSync(destPath, 0o644); } catch (e) {}
-            try { fs.rmSync(mp3Path, { force: true }); } catch (e) {}
-            voiceoverFilename = 'voiceover.mp3';
-            console.log(`[Remotion] ✅ Edge TTS: voiceover.mp3`);
-          } else {
-            console.warn('[Remotion] ⚠️ edge-tts Paket nicht installiert – Voiceover deaktiviert');
+        const text = voiceoverText.trim();
+        console.log(`[Remotion] 🎙️ Voiceover (${effectiveEngine}) mit ${voiceoverModel}: "${text.slice(0, 60)}..."`);
+
+        if (effectiveEngine === 'edge') {
+          // 🔥 Edge TTS – dynamischer Import! Zerstört NICHT den render.js Import.
+          try {
+            const { generateEdgeVoiceover, isEdgeTtsAvailable } = await import('./edge.js');
+            const edgeAvailable = await isEdgeTtsAvailable();
+            if (edgeAvailable) {
+              const mp3Path = await generateEdgeVoiceover(text, voiceoverModel, voiceoverSpeed);
+              // MP3 ins sessionDir kopieren
+              const destPath = path.join(sessionDir, 'voiceover.mp3');
+              fs.copyFileSync(mp3Path, destPath);
+              try { fs.chmodSync(destPath, 0o644); } catch (e) {}
+              try { fs.rmSync(mp3Path, { force: true }); } catch (e) {}
+              voiceoverFilename = 'voiceover.mp3';
+              console.log(`[Remotion] ✅ Voiceover (Edge): voiceover.mp3`);
+            } else {
+              console.warn('[Remotion] ⚠️ Edge TTS nicht verfügbar – versuche Piper als Fallback');
+              // Fallback auf Piper
+              if (isPiperAvailable()) {
+                const wavPath = await generateVoiceover(text, 'de_DE-thorsten-medium', voiceoverSpeed);
+                const destPath = path.join(sessionDir, 'voiceover.wav');
+                fs.copyFileSync(wavPath, destPath);
+                try { fs.chmodSync(destPath, 0o644); } catch (e) {}
+                try { fs.rmSync(wavPath, { force: true }); } catch (e) {}
+                voiceoverFilename = 'voiceover.wav';
+                console.log(`[Remotion] ✅ Voiceover (Piper-Fallback): voiceover.wav`);
+              } else {
+                console.warn('[Remotion] ⚠️ Auch Piper nicht installiert – Voiceover deaktiviert');
+              }
+            }
+          } catch (edgeErr) {
+            console.warn(`[Remotion] ⚠️ Edge TTS Fehler: ${edgeErr.message} – versuche Piper als Fallback`);
+            // Fallback auf Piper
+            if (isPiperAvailable()) {
+              const wavPath = await generateVoiceover(text, 'de_DE-thorsten-medium', voiceoverSpeed);
+              const destPath = path.join(sessionDir, 'voiceover.wav');
+              fs.copyFileSync(wavPath, destPath);
+              try { fs.chmodSync(destPath, 0o644); } catch (e) {}
+              try { fs.rmSync(wavPath, { force: true }); } catch (e) {}
+              voiceoverFilename = 'voiceover.wav';
+              console.log(`[Remotion] ✅ Voiceover (Piper-Fallback): voiceover.wav`);
+            } else {
+              console.warn('[Remotion] ⚠️ Auch Piper nicht installiert – Voiceover deaktiviert');
+            }
           }
         } else {
-          // Piper TTS (Standard)
-          const ttsAvailable = isPiperAvailable();
-          if (ttsAvailable) {
-            console.log(`[Remotion] 🎙️ Piper TTS (${voiceoverModel}, ${voiceoverSpeed}x): "${voiceoverText.slice(0, 60)}..."`);
-            const wavPath = await generateVoiceover(voiceoverText.trim(), voiceoverModel, voiceoverSpeed);
+          // Piper TTS (Fallback oder explizit gewählt)
+          if (isPiperAvailable()) {
+            const wavPath = await generateVoiceover(text, voiceoverModel, voiceoverSpeed);
             const destPath = path.join(sessionDir, 'voiceover.wav');
             fs.copyFileSync(wavPath, destPath);
             try { fs.chmodSync(destPath, 0o644); } catch (e) {}
             try { fs.rmSync(wavPath, { force: true }); } catch (e) {}
             voiceoverFilename = 'voiceover.wav';
-            console.log(`[Remotion] ✅ Piper TTS: voiceover.wav`);
+            console.log(`[Remotion] ✅ Voiceover (Piper): voiceover.wav`);
           } else {
             console.warn('[Remotion] ⚠️ Piper TTS nicht installiert – Voiceover deaktiviert');
           }
         }
-      } catch (ttsErr) {
-        console.warn(`[Remotion] ⚠️ Voiceover fehlgeschlagen: ${ttsErr.message} – fahre ohne fort`);
-      }
-    }
       } catch (ttsErr) {
         console.warn(`[Remotion] ⚠️ Voiceover fehlgeschlagen: ${ttsErr.message} – fahre ohne fort`);
       }
@@ -633,6 +664,7 @@ export async function renderMojoBusVideo(params) {
       title, summary, location, country, lifestyle,
       musicUrl: httpMusicUrl,               // ← Lokal gecacht!
       voiceoverUrl: httpVoiceoverUrl,       // ← Lokale TTS-Spur!
+      voiceoverVolume,                      // ← Lautstärke 0-1
       ambientUrl: httpAmbientUrl,           // ← Lokale Atmo-Spur!
       secondsPerImage, aspectRatio, colorGrade,
       captions, captionStyle, websiteUrl, handle, accentColor, motionBlurStrength,
