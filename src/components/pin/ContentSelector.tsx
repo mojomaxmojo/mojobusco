@@ -13,9 +13,8 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { nip19 } from 'nostr-tools'
-import { useNostr } from '@/hooks/useNostr'
+import { useNostr } from '@nostrify/react'
 import { NOSTR_CONFIG } from '@/config/nostr'
-import { DEFAULT_PERFORMANCE_CONFIG } from '@/config/performance'
 
 // UI Components
 import { Card } from '@/components/ui/card'
@@ -122,7 +121,9 @@ export function ContentSelector({ onSelect, selected = [] }: ContentSelectorProp
     const loadContent = async () => {
       setLoading(true)
       try {
-        const queryTimeout = DEFAULT_PERFORMANCE_CONFIG.relay.queryTimeout * 2.5
+        // Kurzes Timeout (4s) – relay.mojobus.co antwortet in <1s
+        // primal.net timeoutet immer → ohne Timeout würde jede Query 20s+ warten
+        const queryTimeoutMs = 4000
 
         // ── 1. Notes (Kind 1, #t note|notiz) ─────────────
         console.debug('[ContentSelector] Lade Notes...')
@@ -133,7 +134,7 @@ export function ContentSelector({ onSelect, selected = [] }: ContentSelectorProp
             authors: siteAuthors,
             limit: 200,
           }],
-          { signal: AbortSignal.timeout(queryTimeout) }
+          { signal: AbortSignal.timeout(queryTimeoutMs) }
         )
         console.debug('[ContentSelector] Notes geladen:', noteEvents.length)
 
@@ -173,7 +174,7 @@ export function ContentSelector({ onSelect, selected = [] }: ContentSelectorProp
             authors: siteAuthors,
             limit: 200,
           }],
-          { signal: AbortSignal.timeout(queryTimeout) }
+          { signal: AbortSignal.timeout(queryTimeoutMs) }
         )
         console.debug('[ContentSelector] Medien geladen:', mediaEvents.length)
 
@@ -217,7 +218,7 @@ export function ContentSelector({ onSelect, selected = [] }: ContentSelectorProp
             authors: siteAuthors,
             limit: 300,
           }],
-          { signal: AbortSignal.timeout(queryTimeout) }
+          { signal: AbortSignal.timeout(queryTimeoutMs) }
         )
         console.debug('[ContentSelector] Artikel geladen:', articleEvents.length)
 
@@ -272,7 +273,7 @@ export function ContentSelector({ onSelect, selected = [] }: ContentSelectorProp
             authors: siteAuthors,
             limit: 100,
           }],
-          { signal: AbortSignal.timeout(queryTimeout) }
+          { signal: AbortSignal.timeout(queryTimeoutMs) }
         )
         console.debug('[ContentSelector] Trips geladen:', tripEvents.length)
 
