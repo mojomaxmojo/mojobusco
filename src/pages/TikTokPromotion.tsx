@@ -197,7 +197,7 @@ export function TikTokPromotion() {
 
   // ── VOICEOVER ════════════════════════════════════════════
   const [voiceoverEnabled, setVoiceoverEnabled] = useState(false)
-  const [voiceoverModel, setVoiceoverModel] = useState('de-DE-SeraphinaMultilingualNeural')
+  const [voiceoverModel, setVoiceoverModel] = useState('de_DE-thorsten-medium')
   const [voiceoverSpeed, setVoiceoverSpeed] = useState('0.80')
   const [voiceoverVolume, setVoiceoverVolume] = useState('1.00')
 
