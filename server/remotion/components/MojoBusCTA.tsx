@@ -1,12 +1,9 @@
 /**
  * MojoBusCTA — Call-to-Action Endkarte (letzte 6 Sekunden)
  * Nutzt Montserrat via @remotion/google-fonts (Fonts.tsx)
- *
- * v2.1: + PNG-Logo oberhalb von MOJOBUS-Text (Blossom)
- *       + Bus 25% größer (gesteuert von MojoBusVideo.tsx)
  */
 
-import { AbsoluteFill, Img, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
+import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 import { FONT_FAMILY, FONT_FAMILY_REGULAR, FONT_WEIGHT, TEXT_STYLES } from './Fonts';
 
 interface MojoBusCTAProps {
@@ -122,26 +119,6 @@ export const MojoBusCTA: React.FC<MojoBusCTAProps> = ({
           }}
         >
           {msg.emoji}
-        </div>
-
-        {/* PNG-Logo oberhalb von MOJOBUS – blendet zeitgleich mit Logo ein */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            marginBottom: '0.5rem',
-            opacity: interpolate(logoEnter, [0, 1], [0, 1]),
-            transform: `translateY(${interpolate(logoEnter, [0, 1], [10, 0])}px)`,
-          }}
-        >
-          <Img
-            src="https://blossom.primal.net/c1ef66bd871e05e8afe38c7592670907d8e7023984c875b8a37f62e98c95aa68.png"
-            style={{
-              maxWidth: 'clamp(80px, 25vw, 180px)',
-              height: 'auto',
-              filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.5))',
-            }}
-          />
         </div>
 
         {/* Logo — Montserrat Black */}

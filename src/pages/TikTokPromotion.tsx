@@ -111,17 +111,15 @@ const TEMPLATES: TikTokTemplateInfo[] = [
   },
 ]
 
-/** Verfügbare Stimmen (Edge TTS primär + Piper Fallback) */
+/** Verfügbare Stimmen (Piper TTS auf VPS) */
 const VOICES = [
-  // Edge TTS (primär) – natürlich, keine API-Kosten
-  { id: 'de-DE-SeraphinaMultilingualNeural', label: 'Seraphina ⭐', desc: 'Edge · Weiblich, beste Qualität', engine: 'edge' },
-  { id: 'de-DE-FlorianMultilingualNeural',   label: 'Florian',       desc: 'Edge · Männlich, klar',        engine: 'edge' },
-  { id: 'de-DE-AmalaNeural',                 label: 'Amala',         desc: 'Edge · Weiblich, freundlich',  engine: 'edge' },
-  { id: 'de-DE-KatjaNeural',                 label: 'Katja',         desc: 'Edge · Weiblich, modern',     engine: 'edge' },
-  { id: 'de-DE-ConradNeural',                label: 'Conrad',        desc: 'Edge · Männlich, tief',       engine: 'edge' },
-  // Piper TTS (Fallback) – lokal auf VPS
-  { id: 'de_DE-thorsten-medium',             label: 'Thorsten',      desc: 'Piper · Männlich',            engine: 'piper' },
-  { id: 'de_DE-ramona-low',                  label: 'Ramona',        desc: 'Piper · Weiblich',            engine: 'piper' },
+  { id: 'de_DE-thorsten-medium', label: 'Thorsten (👨)', desc: 'Piper · Männlich, beste Qualität', engine: 'piper' },
+  { id: 'de_DE-ramona-low', label: 'Ramona (👩)', desc: 'Piper · Weiblich', engine: 'piper' },
+  { id: 'de-DE-SeraphinaMultilingualNeural', label: 'Seraphina (👩)', desc: 'Edge · Weiblich, natürlich ⭐', engine: 'edge' },
+  { id: 'de-DE-FlorianMultilingualNeural', label: 'Florian (👨)', desc: 'Edge · Männlich, klar', engine: 'edge' },
+  { id: 'de-DE-AmalaNeural', label: 'Amala (👩)', desc: 'Edge · Weiblich, freundlich', engine: 'edge' },
+  { id: 'de-DE-KatjaNeural', label: 'Katja (👩)', desc: 'Edge · Weiblich, warm', engine: 'edge' },
+  { id: 'de-DE-ConradNeural', label: 'Conrad (👨)', desc: 'Edge · Männlich, tief', engine: 'edge' },
 ]
 
 /** Musik-Optionen – werden dynamisch vom Server geladen */
@@ -185,9 +183,6 @@ export function TikTokPromotion() {
   // ── TEMPLATE ═════════════════════════════════════════════
   const [template, setTemplate] = useState<TikTokTemplate>('story')
 
-  // ── KI-MODELL ═════════════════════════════════════════════
-  const [aiModel, setAiModel] = useState<string>('llama4')
-
   // ── TIKTOK TEXT ══════════════════════════════════════════
   const [hookText, setHookText] = useState('')
   const [bodyText, setBodyText] = useState('')
@@ -199,7 +194,9 @@ export function TikTokPromotion() {
   const [voiceoverEnabled, setVoiceoverEnabled] = useState(false)
   const [voiceoverModel, setVoiceoverModel] = useState('de_DE-thorsten-medium')
   const [voiceoverSpeed, setVoiceoverSpeed] = useState('0.80')
-  const [voiceoverVolume, setVoiceoverVolume] = useState('1.00')
+
+  // Engine automatisch aus Modell ableiten
+  const voiceoverEngine = voiceoverModel.startsWith('de-DE-') ? 'edge' : 'piper'
 
 // ── MUSIK ════════════════════════════════════════════════
   const [musicStyle, setMusicStyle] = useState('ambient')
@@ -232,7 +229,6 @@ export function TikTokPromotion() {
   // ── REMOTION STATUS ══════════════════════════════════════
   const [remotionAvailable, setRemotionAvailable] = useState<boolean | null>(null)
   const [piperAvailable, setPiperAvailable] = useState(false)
-  const [edgeTtsAvailable, setEdgeTtsAvailable] = useState(false)
 
   // ── HISTORY ═══════════════════════════════════════════════
   const [history, setHistory] = useState<any[]>([])
@@ -253,7 +249,6 @@ export function TikTokPromotion() {
       .then(data => {
         setRemotionAvailable(data.remotion === 'installed')
         setPiperAvailable(data.piperAvailable === true)
-        setEdgeTtsAvailable(data.edgeTtsAvailable === true)
       })
       .catch(() => setRemotionAvailable(false))
   }, [])
@@ -325,7 +320,7 @@ export function TikTokPromotion() {
           summary: articleSummary,
           text: selectedContent?.content?.substring(0, 1500) || '',
           template,
-          model: aiModel,
+          model: 'llama4',
         }),
       })
 
@@ -445,9 +440,7 @@ export function TikTokPromotion() {
       payload.voiceoverText = voiceoverText.trim()
       payload.voiceoverModel = voiceoverModel
       payload.voiceoverSpeed = parseFloat(voiceoverSpeed) || 0.8
-      payload.voiceoverVolume = parseFloat(voiceoverVolume) || 1.0
-      // Engine aus Modell-Präfix ableiten (de-DE- → edge, de_DE- → piper)
-      payload.voiceoverEngine = voiceoverModel.startsWith('de-DE-') ? 'edge' : 'piper'
+      payload.voiceoverEngine = voiceoverEngine
     }
 
     try {
@@ -756,11 +749,8 @@ export function TikTokPromotion() {
                 Remotion nicht verfügbar
               </Badge>
             )}
-            {edgeTtsAvailable && (
-              <Badge variant="outline" className="text-xs" title="Edge TTS (primär)">🎙️ Edge</Badge>
-            )}
-            {!edgeTtsAvailable && piperAvailable && (
-              <Badge variant="outline" className="text-xs">🎙️ Piper</Badge>
+            {piperAvailable && (
+              <Badge variant="outline" className="text-xs">🎙️ TTS</Badge>
             )}
           </div>
         </div>
@@ -916,29 +906,6 @@ export function TikTokPromotion() {
                 </div>
               </div>
 
-              {/* KI-Modell Auswahl */}
-              <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                <div className="space-y-0.5">
-                  <Label className="text-xs sm:text-sm">KI-Modell</Label>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">
-                    {aiModel === 'llama4' ? 'Llama 4 Scout (Groq · kostenlos, schnell)' : 'Claude Sonnet (OpenRouter · bessere Qualität)'}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={`text-xs font-medium ${aiModel === 'llama4' ? 'text-primary' : 'text-muted-foreground'}`}>Llama 4</span>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={aiModel === 'claude'}
-                    onClick={() => setAiModel(aiModel === 'llama4' ? 'claude' : 'llama4')}
-                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${aiModel === 'claude' ? 'bg-primary' : 'bg-muted-foreground/30'}`}
-                  >
-                    <span className={`pointer-events-none block h-4 w-4 rounded-full bg-white shadow-lg ring-0 transition-transform ${aiModel === 'claude' ? 'translate-x-4' : 'translate-x-0'}`} />
-                  </button>
-                  <span className={`text-xs font-medium ${aiModel === 'claude' ? 'text-primary' : 'text-muted-foreground'}`}>Claude</span>
-                </div>
-              </div>
-
               <div className="flex gap-2 pt-2">
                 <Button variant="outline" onClick={() => setStep(1)} className="shrink-0">
                   ← Zurück
@@ -1054,16 +1021,18 @@ export function TikTokPromotion() {
                         type="checkbox"
                         checked={voiceoverEnabled}
                         onChange={e => setVoiceoverEnabled(e.target.checked)}
-                        disabled={!edgeTtsAvailable && !piperAvailable}
+                        disabled={!piperAvailable}
                         className="sr-only peer"
                       />
                       <div className="w-9 h-5 bg-muted-foreground/30 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary" />
                     </label>
                   </div>
-                  {!edgeTtsAvailable && !piperAvailable && (
-                    <p className="text-xs text-amber-500">Kein TTS verfügbar (weder Edge noch Piper)</p>
-                  )}
-                  {voiceoverEnabled && (edgeTtsAvailable || piperAvailable) && (
+                  {voiceoverEngine === 'edge' ? (
+                    <p className="text-xs text-green-600">🎙️ Edge TTS – natürliche Stimme (online)</p>
+                  ) : !piperAvailable ? (
+                    <p className="text-xs text-amber-500">Piper TTS nicht auf Server installiert</p>
+                  ) : null}
+                  {voiceoverEnabled && (
                     <div className="space-y-2">
                       <div className="flex gap-2">
                         <Select value={voiceoverModel} onValueChange={setVoiceoverModel}>
@@ -1093,21 +1062,6 @@ export function TikTokPromotion() {
                         />
                         <span className="text-[10px] text-muted-foreground">Schnell</span>
                         <span className="text-[10px] font-mono w-8 text-right">{voiceoverSpeed}x</span>
-                      </div>
-                      {/* Volume Slider */}
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-muted-foreground">🔇</span>
-                        <input
-                          type="range"
-                          min="0.00"
-                          max="1.50"
-                          step="0.05"
-                          value={voiceoverVolume}
-                          onChange={e => setVoiceoverVolume(e.target.value)}
-                          className="flex-1 h-1.5 accent-primary"
-                        />
-                        <span className="text-[10px] text-muted-foreground">🔊</span>
-                        <span className="text-[10px] font-mono w-10 text-right">{parseFloat(voiceoverVolume).toFixed(2)}x</span>
                       </div>
                     </div>
                   )}
