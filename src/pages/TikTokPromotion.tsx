@@ -199,6 +199,7 @@ export function TikTokPromotion() {
   const [voiceoverEnabled, setVoiceoverEnabled] = useState(false)
   const [voiceoverModel, setVoiceoverModel] = useState('de_DE-thorsten-medium')
   const [voiceoverSpeed, setVoiceoverSpeed] = useState('0.80')
+  const [voiceoverVolume, setVoiceoverVolume] = useState('1.00')
 
 // ── MUSIK ════════════════════════════════════════════════
   const [musicStyle, setMusicStyle] = useState('ambient')
@@ -444,6 +445,7 @@ export function TikTokPromotion() {
       payload.voiceoverText = voiceoverText.trim()
       payload.voiceoverModel = voiceoverModel
       payload.voiceoverSpeed = parseFloat(voiceoverSpeed) || 0.8
+      payload.voiceoverVolume = parseFloat(voiceoverVolume) || 1.0
       // Engine aus Modell-Präfix ableiten (de-DE- → edge, de_DE- → piper)
       payload.voiceoverEngine = voiceoverModel.startsWith('de-DE-') ? 'edge' : 'piper'
     }
@@ -1091,6 +1093,21 @@ export function TikTokPromotion() {
                         />
                         <span className="text-[10px] text-muted-foreground">Schnell</span>
                         <span className="text-[10px] font-mono w-8 text-right">{voiceoverSpeed}x</span>
+                      </div>
+                      {/* Volume Slider */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-muted-foreground">🔇</span>
+                        <input
+                          type="range"
+                          min="0.00"
+                          max="1.50"
+                          step="0.05"
+                          value={voiceoverVolume}
+                          onChange={e => setVoiceoverVolume(e.target.value)}
+                          className="flex-1 h-1.5 accent-primary"
+                        />
+                        <span className="text-[10px] text-muted-foreground">🔊</span>
+                        <span className="text-[10px] font-mono w-10 text-right">{parseFloat(voiceoverVolume).toFixed(2)}x</span>
                       </div>
                     </div>
                   )}

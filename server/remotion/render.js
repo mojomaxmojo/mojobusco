@@ -482,6 +482,7 @@ export async function renderMojoBusVideo(params) {
     voiceoverModel = 'de-DE-SeraphinaMultilingualNeural', // Stimm-Modell (Edge: de-DE-*, Piper: de_DE-*)
     voiceoverSpeed = 0.8,     // Sprechgeschwindigkeit (0.6-1.2)
     voiceoverEngine,           // 'edge' | 'piper' – wird automatisch aus Modell-Präfix abgeleitet
+    voiceoverVolume = 1.0,    // Lautstärke 0-1 (0 = stumm, 1 = volle Lautstärke)
     // ── NEU: Ambient Sound (Atmo) ─────────────────────────────────────────
     ambientType,               // 'ocean' | 'rain' | 'wind' | 'fire' | 'forest' (optional)
     onProgress,
@@ -663,6 +664,7 @@ export async function renderMojoBusVideo(params) {
       title, summary, location, country, lifestyle,
       musicUrl: httpMusicUrl,               // ← Lokal gecacht!
       voiceoverUrl: httpVoiceoverUrl,       // ← Lokale TTS-Spur!
+      voiceoverVolume,                      // ← Lautstärke 0-1
       ambientUrl: httpAmbientUrl,           // ← Lokale Atmo-Spur!
       secondsPerImage, aspectRatio, colorGrade,
       captions, captionStyle, websiteUrl, handle, accentColor, motionBlurStrength,

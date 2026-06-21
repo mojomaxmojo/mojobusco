@@ -2230,6 +2230,7 @@ app.post('/api/render-remotion', async (req, res) => {
     voiceoverModel,        // 'de-DE-SeraphinaMultilingualNeural' (Edge) | 'de_DE-thorsten-medium' (Piper)
     voiceoverSpeed = 0.8, // Sprechgeschwindigkeit 0.6-1.2 (optional)
     voiceoverEngine,       // 'edge' | 'piper' – wird automatisch aus Modell-Präfix abgeleitet (optional)
+    voiceoverVolume = 1.0, // Lautstärke 0-1 (optional)
     // ── NEU: Ambient Sound (Atmo) ────────────────────────────────────────
     ambientType,           // 'ocean' | 'rain' | 'wind' | 'fire' | 'forest' (optional)
     // ── Metadaten für History ────────────────────────────────────────────
@@ -2333,6 +2334,7 @@ app.post('/api/render-remotion', async (req, res) => {
         voiceoverModel: voiceoverModel || 'de-DE-SeraphinaMultilingualNeural',
         voiceoverSpeed: parseFloat(voiceoverSpeed) || 0.8,
         voiceoverEngine: voiceoverEngine || undefined,
+        voiceoverVolume: parseFloat(voiceoverVolume) || 1.0,
         // ── Ambient Sound (Atmo) ─────────────────────────────────────────
         ambientType: ambientType || undefined,
         // ── Interner Parameter: Musik-Ordner für localhost-URL-Auflösung
