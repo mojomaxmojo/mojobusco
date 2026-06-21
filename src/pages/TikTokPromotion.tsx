@@ -186,7 +186,7 @@ export function TikTokPromotion() {
   const [template, setTemplate] = useState<TikTokTemplate>('story')
 
   // ── KI-MODELL ═════════════════════════════════════════════
-  const [aiModel, setAiModel] = useState<string>('llama4')
+  const [aiModel, setAiModel] = useState<string>('claude')
 
   // ── TIKTOK TEXT ══════════════════════════════════════════
   const [hookText, setHookText] = useState('')
@@ -198,7 +198,7 @@ export function TikTokPromotion() {
   // ── VOICEOVER ════════════════════════════════════════════
   const [voiceoverEnabled, setVoiceoverEnabled] = useState(false)
   const [voiceoverModel, setVoiceoverModel] = useState('de-DE-SeraphinaMultilingualNeural')
-  const [voiceoverSpeed, setVoiceoverSpeed] = useState('0.80')
+  const [voiceoverSpeed, setVoiceoverSpeed] = useState('1.00')
   const [voiceoverVolume, setVoiceoverVolume] = useState('1.00')
 
 // ── MUSIK ════════════════════════════════════════════════
@@ -339,6 +339,7 @@ export function TikTokPromotion() {
           text: selectedContent.map(i => i.content).filter(Boolean).join('\n\n').substring(0, 1500) || '',
           template,
           model: aiModel,
+          imageCount: articleImages.length,
         }),
       })
 
@@ -442,7 +443,7 @@ export function TikTokPromotion() {
       secondsPerImage,
       aspectRatio: '9:16',
       captions,
-      captionStyle: 'tiktok',
+      captionStyle: 'full-line',
       websiteUrl: 'mojobus.co',
       handle: '@mojobus',
       accentColor: '#F59E0B',

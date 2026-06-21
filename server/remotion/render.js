@@ -460,7 +460,7 @@ export async function renderMojoBusVideo(params) {
     secondsPerImage = 5,
     aspectRatio = '16:9',
     colorGrade,
-    captions = [], captionStyle = 'tiktok',
+    captions = [], captionStyle = 'full-line',
     websiteUrl = 'mojobus.co',
     handle = '@mojobus',
     accentColor = '#F59E0B',

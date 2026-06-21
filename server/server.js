@@ -2208,7 +2208,7 @@ app.post('/api/render-remotion', async (req, res) => {
     colorGrade,
     filmGrain = 'fine',
     captions = [],
-    captionStyle = 'tiktok',
+    captionStyle = 'full-line',
     websiteUrl = 'mojobus.co',
     handle = '@mojobus',
     accentColor = '#F59E0B',
@@ -2527,13 +2527,13 @@ ANTWORT-FORMAT (NUR JSON, kein Text davor/danach):
 }`
 
 app.post('/api/tiktok/generate-text', async (req, res) => {
-  const { title, summary, text, template = 'story', model = 'llama4' } = req.body
+  const { title, summary, text, template = 'story', model = 'claude', imageCount = 5 } = req.body
 
   if (!title || !title.trim()) {
     return res.status(400).json({ error: 'Titel ist erforderlich' })
   }
 
-  console.log(`[TikTok] Generiere Text: template=${template}, model=${model}, title="${title.substring(0, 60)}"`)
+  console.log(`[TikTok] Generiere Text: template=${template}, model=${model}, title="${title.substring(0, 60)}", images=${imageCount}`)
 
   try {
     const userPrompt = `Erstelle TikTok-Texte für diesen Vanlife-Artikel im Foster-Huntington-Stil.
@@ -2547,16 +2547,20 @@ TEMPLATE: ${template === 'story' ? 'Story (Atmosphäre, Emotion, minimaler Text)
             template === 'reveal' ? 'Reveal (überraschende Einsicht oder "Warum wir das anders machen")' :
             'Story'}
 
+ANZAHL BILDER: ${imageCount}
+→ Erstelle EXAKT ${imageCount} Body-Sätze, einen pro Bild.
+
 REGELN FÜR DIESES VIDEO:
-- HOOK (0-2s): Eine provokante Frage oder Behauptung die neugierig macht. 
-- BODY (3-22s): 3-4 Sätze. Erzähle eine kleine Geschichte. Zeige ein Problem oder einen besonderen Moment.
+- HOOK (0-2s): Eine provokante Frage oder Behauptung die neugierig macht.
+- BODY: EXAKT ${imageCount} Sätze (einer pro Bild). Jeder Satz ist eigenständig und beschreibt einen Moment.
 - BRIDGE (22-27s): "Mehr davon auf mojobus.co" oder ähnlich – mach neugierig auf den Blog.
 - CTA (27-30s): "Link in Bio 📌" oder ähnlich.
 - HASHTAGS: 4-5 relevante Hashtags.
 
 WICHTIG: Foster Huntington-Stil – poetisch, authentisch, kein "Hochglanz-Werbesprech". 
 Zeige die Ruhe, die Weite, den Moment. Nicht "Wir haben dies und das gekauft", 
-sondern "Der Kaffee war kalt. Die Wellen waren warm. Perfekt."`
+sondern "Der Kaffee war kalt. Die Wellen waren warm. Perfekt."
+Jeder Body-Satz ist ein eigener atmosphärischer Moment – wie eine Polaroid-Aufnahme in Worten.`
 
     let apiKey, apiUrl, apiModel
 

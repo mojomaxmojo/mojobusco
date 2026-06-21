@@ -137,7 +137,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
   secondsPerImage = 5,
   colorGrade,
   captions = [],
-  captionStyle = 'tiktok',
+  captionStyle = 'full-line',
   websiteUrl = 'mojobus.co',
   handle = '@mojobus',
   accentColor = '#F59E0B',
@@ -479,7 +479,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
       {musicUrl && (
         <AudioLayer
           src={musicUrl}
-          volume={0.72}
+          volume={0.54}
           fadeInSec={2}
           fadeOutSec={3}
         />
