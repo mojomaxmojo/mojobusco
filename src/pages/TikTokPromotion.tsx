@@ -111,10 +111,17 @@ const TEMPLATES: TikTokTemplateInfo[] = [
   },
 ]
 
-/** Verfügbare Stimmen (Piper TTS auf VPS) */
+/** Verfügbare Stimmen (Edge TTS primär + Piper Fallback) */
 const VOICES = [
-  { id: 'de_DE-thorsten-medium', label: 'Thorsten (👨)', desc: 'Männlich, beste Qualität' },
-  { id: 'de_DE-ramona-low', label: 'Ramona (👩)', desc: 'Weiblich' },
+  // Edge TTS (primär) – natürlich, keine API-Kosten
+  { id: 'de-DE-SeraphinaMultilingualNeural', label: 'Seraphina ⭐', desc: 'Edge · Weiblich, beste Qualität', engine: 'edge' },
+  { id: 'de-DE-FlorianMultilingualNeural',   label: 'Florian',       desc: 'Edge · Männlich, klar',        engine: 'edge' },
+  { id: 'de-DE-AmalaNeural',                 label: 'Amala',         desc: 'Edge · Weiblich, freundlich',  engine: 'edge' },
+  { id: 'de-DE-KatjaNeural',                 label: 'Katja',         desc: 'Edge · Weiblich, modern',     engine: 'edge' },
+  { id: 'de-DE-ConradNeural',                label: 'Conrad',        desc: 'Edge · Männlich, tief',       engine: 'edge' },
+  // Piper TTS (Fallback) – lokal auf VPS
+  { id: 'de_DE-thorsten-medium',             label: 'Thorsten',      desc: 'Piper · Männlich',            engine: 'piper' },
+  { id: 'de_DE-ramona-low',                  label: 'Ramona',        desc: 'Piper · Weiblich',            engine: 'piper' },
 ]
 
 /** Musik-Optionen – werden dynamisch vom Server geladen */
@@ -221,6 +228,7 @@ export function TikTokPromotion() {
   // ── REMOTION STATUS ══════════════════════════════════════
   const [remotionAvailable, setRemotionAvailable] = useState<boolean | null>(null)
   const [piperAvailable, setPiperAvailable] = useState(false)
+  const [edgeTtsAvailable, setEdgeTtsAvailable] = useState(false)
 
   // ── HISTORY ═══════════════════════════════════════════════
   const [history, setHistory] = useState<any[]>([])
@@ -241,6 +249,7 @@ export function TikTokPromotion() {
       .then(data => {
         setRemotionAvailable(data.remotion === 'installed')
         setPiperAvailable(data.piperAvailable === true)
+        setEdgeTtsAvailable(data.edgeTtsAvailable === true)
       })
       .catch(() => setRemotionAvailable(false))
   }, [])
@@ -432,6 +441,8 @@ export function TikTokPromotion() {
       payload.voiceoverText = voiceoverText.trim()
       payload.voiceoverModel = voiceoverModel
       payload.voiceoverSpeed = parseFloat(voiceoverSpeed) || 0.8
+      // Engine aus Modell-Präfix ableiten (de-DE- → edge, de_DE- → piper)
+      payload.voiceoverEngine = voiceoverModel.startsWith('de-DE-') ? 'edge' : 'piper'
     }
 
     try {
@@ -740,8 +751,11 @@ export function TikTokPromotion() {
                 Remotion nicht verfügbar
               </Badge>
             )}
-            {piperAvailable && (
-              <Badge variant="outline" className="text-xs">🎙️ TTS</Badge>
+            {edgeTtsAvailable && (
+              <Badge variant="outline" className="text-xs" title="Edge TTS (primär)">🎙️ Edge</Badge>
+            )}
+            {!edgeTtsAvailable && piperAvailable && (
+              <Badge variant="outline" className="text-xs">🎙️ Piper</Badge>
             )}
           </div>
         </div>
@@ -1012,16 +1026,16 @@ export function TikTokPromotion() {
                         type="checkbox"
                         checked={voiceoverEnabled}
                         onChange={e => setVoiceoverEnabled(e.target.checked)}
-                        disabled={!piperAvailable}
+                        disabled={!edgeTtsAvailable && !piperAvailable}
                         className="sr-only peer"
                       />
                       <div className="w-9 h-5 bg-muted-foreground/30 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary" />
                     </label>
                   </div>
-                  {!piperAvailable && (
-                    <p className="text-xs text-amber-500">Piper TTS nicht auf Server installiert</p>
+                  {!edgeTtsAvailable && !piperAvailable && (
+                    <p className="text-xs text-amber-500">Kein TTS verfügbar (weder Edge noch Piper)</p>
                   )}
-                  {voiceoverEnabled && piperAvailable && (
+                  {voiceoverEnabled && (edgeTtsAvailable || piperAvailable) && (
                     <div className="space-y-2">
                       <div className="flex gap-2">
                         <Select value={voiceoverModel} onValueChange={setVoiceoverModel}>
