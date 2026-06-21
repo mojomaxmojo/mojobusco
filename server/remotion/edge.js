@@ -130,13 +130,18 @@ export async function generateEdgeVoiceover(text, voiceModel = 'de-DE-SeraphinaM
 
   try {
     // node-edge-tts: Konstruktor mit Optionen, dann ttsPromise(text, outputPath)
+    // rate: Prozent-String ('+0%' = normal, '-20%' = langsamer, '+20%' = schneller)
+    const ratePercent = Math.round((speed - 1.0) * 100);
+    const rateStr = ratePercent >= 0 ? '+' + ratePercent + '%' : ratePercent + '%';
+
     const tts = new EdgeTTS({
       voice: voiceModel,
       lang: 'de-DE',
-      outputFormat: 'audio-96kbitrate-mono-mp3',
-      rate: speed < 1.0 ? 'slow' : 'fast',
-      pitch: '+0Hz',
-      timeout: 30000,
+      outputFormat: 'audio-24khz-48kbitrate-mono-mp3',
+      rate: rateStr,
+      pitch: 'default',
+      volume: 'default',
+      timeout: 60000,
     });
 
     await tts.ttsPromise(text, mp3Path);
