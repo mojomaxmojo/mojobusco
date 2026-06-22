@@ -457,6 +457,41 @@ Edge TTS (Microsoft, `server/remotion/edge.js`) hat Piper als primäre TTS-Engin
 - Bundle-Cache nach Code-Änderungen invalidieren: `curl -X POST http://localhost:3002/api/render-remotion/invalidate-cache`
 - Oder deploy-main.sh macht das automatisch beim Restart
 
+### Multi-Select (1-3 Artikel/Posts) im TikTok Dashboard
+- **Betroffene Dateien**: `src/components/pin/ContentSelector.tsx`, `src/pages/TikTokPromotion.tsx`
+- ContentSelector: Single-Select → Multi-Select (max 3) mit Checkboxen
+- TikTokPromotion: `selectedContent[]` statt single, Merge aller Bilder unique (max 20)
+- Titel + Summaries kombiniert für KI-Textgenerierung
+- **Commit**: 4f58ad4
+
+### Fix: ContentSelector – separate AbortSignals pro Query + kürzeres Timeout
+- **Problem**: Alle 4 Nostr-Queries teilten ein AbortSignal → primal.net-Timeout brach alle ab → 0 Artikel
+- **Fix**: Jede Query hat eigenen `AbortSignal.timeout(8000ms)` + Debug-Logs
+- **Commit**: 1c41fba, 37582f3, 60836f6
+
+### Defaults aktualisiert: Claude, Speed 1.0, Musik -25%, Full-Line Captions
+- **Betroffene Dateien**: `src/pages/TikTokPromotion.tsx`, `server/server.js`, `server/remotion/render.js`, `server/remotion/MojoBusVideo.tsx`
+- KI-Modell Default: `llama4` → `claude`
+- Voiceover Speed Default: `0.80` → `1.00`
+- Musik Volume: `0.72` → `0.54` (25% leiser)
+- Caption-Style Default: `tiktok` → `full-line` (ganzer Satz auf einmal)
+- Prompt: "3-4 Sätze" → dynamisch "EXAKT X Sätze (einer pro Bild)" via `imageCount`
+- **Commit**: 74b2327
+
+### About-Seite neu gestaltet
+- **Betroffene Dateien**: `src/pages/About.tsx`
+- Hero bleibt, alle Texte durch vollständige Inhalte ersetzt (Geschichte, Leon, Nostr, 3 Säulen)
+- Reisende: mojo + SumSum mit spezifischen Bios, Tags, Pubkeys
+- Farbige Gradient-Akzente pro Abschnitt
+- Author-Pubkeys aus `authors.json` statt hartcodiert (Profilbilder-Fix)
+- **Commit**: 0a2cdff, 10ddaeb
+
+### Roadmap aktualisiert
+- Batch-Rendering → Render-Queue (VPS-Schonung)
+- Whisper entfernt (nicht benötigt)
+- Features sortiert von einfach (Kapitel-Marker) bis schwer (Green-Screen)
+- **Commit**: 7b814d3
+
 ## 🗺️ TikTok-Roadmap (von einfach zu schwer)
 
 ### Stufe 0 ✅ (Abgeschlossen)
