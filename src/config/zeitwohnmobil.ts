@@ -45,10 +45,15 @@ export function getZeitUnterwegsFormatiert(jetzt: Date = new Date()): string {
   const monate = Math.floor(restTage / 30.44)
   const tage = Math.floor(restTage - monate * 30.44)
   const teile: string[] = []
-  if (jahre > 0) teile.push(`${jahre} Jahr${jahre !== 1 ? 'e' : ''}`)
-  if (monate > 0) teile.push(`${monate} Monat${monate !== 1 ? 'e' : ''}`)
-  if (tage > 0 || teile.length === 0) teile.push(`${tage} Tag${tage !== 1 ? 'e' : ''}`)
-  return teile.join(', ')
+  if (jahre > 0) teile.push(`${jahre} Jahr${jahre !== 1 ? 'en' : ''}`)
+  if (monate > 0) teile.push(`${monate} Monat${monate !== 1 ? 'en' : ''}`)
+  if (tage > 0 || teile.length === 0) teile.push(`${tage} Tag${tage !== 1 ? 'en' : ''}`)
+  // Dativ-Format: "X Jahren und Y Tagen" statt "X Jahre, Y Tage"
+  if (teile.length > 1) {
+    const last = teile.pop()
+    return teile.join(', ') + ' und ' + last
+  }
+  return teile[0] || '0 Tagen'
 }
 
 /**
