@@ -67,8 +67,9 @@ export interface MojoBusVideoProps {
   motionBlurStrength?: number;
 
   // ── NEU: Voiceover (Piper TTS) ───────────────────────────────────────
-  /** URL der generierten Sprachaufnahme (wav) */
-  voiceoverUrl?: string;
+  // ── NEU: Voiceover (Per-Slide Segmente) ────────────────────────────────
+  /** Array von {url, durationSec} – ein Segment pro Slide */
+  voiceoverUrls?: { url: string; durationSec: number }[];
   /** Lautstärke des Voiceover 0-1 (Default: 1.0) */
   voiceoverVolume?: number;
   /** URL der generierten Atmo-Spur (wav) – Meer, Regen, Wind etc. */
@@ -166,7 +167,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
   showLottieBus = true,
 
   // Voiceover
-  voiceoverUrl,
+  voiceoverUrls,
   voiceoverVolume = 1.0,
   // Ambient
   ambientUrl,
@@ -497,15 +498,20 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
         />
       )}
 
-      {/* ══ SCHICHT 11b: Audio (Voiceover) – optional, parallel zur Musik ═══ */}
-      {voiceoverUrl && (
-        <AudioLayer
-          src={voiceoverUrl}
-          volume={voiceoverVolume}
-          fadeInSec={0.2}
-          fadeOutSec={0.5}
-        />
-      )}
+      {/* ══ SCHICHT 11b: Audio (Voiceover) – Per-Slide Segmente ═══ */}
+      {voiceoverUrls?.map((seg, i) => {
+        // Segment 0 = Hook, Segmente 1..N = Body, letztes = Bridge
+        const isHook = i === 0;
+        const startFrame = isHook ? 0 : hookFrames + (i - (hookCaption ? 1 : 0)) * perSlide;
+        const durFrames = isHook
+          ? hookFrames
+          : Math.max(Math.round((seg.durationSec || 3) * fps), Math.round(3 * fps)); // min 3s
+        return (
+          <Sequence key={`vo-${i}`} from={startFrame} durationInFrames={durFrames}>
+            <AudioLayer src={seg.url} volume={voiceoverVolume} fadeInSec={0.1} fadeOutSec={0.2} />
+          </Sequence>
+        );
+      })}
 
       {/* ══ SCHICHT 11c: Audio (Ambient/Atmo) – leise im Hintergrund ════ */}
       {ambientUrl && (

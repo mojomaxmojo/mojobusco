@@ -2231,8 +2231,10 @@ app.post('/api/render-remotion', async (req, res) => {
     voiceoverSpeed = 0.8, // Sprechgeschwindigkeit 0.6-1.2 (optional)
     voiceoverEngine,       // 'edge' | 'piper' – wird automatisch aus Modell-Präfix abgeleitet (optional)
     voiceoverVolume = 1.0, // Lautstärke 0-1 (optional)
+    // ── NEU: Voiceover-Segmente (Array, pro Slide) ───────────────────────────
+    voiceoverSegments,         // Array<string> – ein Satz pro Slide (optional)
     // ── NEU: Ambient Sound (Atmo) ────────────────────────────────────────
-    ambientType,           // 'ocean' | 'rain' | 'wind' | 'fire' | 'forest' (optional)
+    ambientType,               // 'ocean' | 'rain' | 'wind' | 'fire' | 'forest' (optional)
     // ── Metadaten für History ────────────────────────────────────────────
     hookText,              // Hook-Text für History-Anzeige (optional)
   } = req.body
@@ -2331,8 +2333,9 @@ app.post('/api/render-remotion', async (req, res) => {
         mapImageUrl: mapImageUrl || undefined,
         // ── Lottie Bus ─────────────────────────────────────────────
         showLottieBus: showLottieBus !== false,
-        // ── Voiceover (Edge TTS primär, Piper Fallback) ────────────────────
-        voiceoverText: voiceoverText || undefined,
+        // ── Voiceover (Per-Slide Segmente) ─────────────────────────────────────
+        voiceoverSegmentsInput: voiceoverSegments || undefined,  // Array pro Slide
+        voiceoverText: voiceoverText || undefined,              // Legacy-Fallback
         voiceoverModel: voiceoverModel || 'de-DE-SeraphinaMultilingualNeural',
         voiceoverSpeed: parseFloat(voiceoverSpeed) || 0.8,
         voiceoverEngine: voiceoverEngine || undefined,

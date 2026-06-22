@@ -531,7 +531,7 @@ export function TikTokPromotion() {
 
     // Voiceover nur wenn aktiviert
     if (voiceoverEnabled && voiceoverText.trim()) {
-      payload.voiceoverText = voiceoverText.trim()
+      payload.voiceoverSegments = voiceoverSegmentsArray
       payload.voiceoverModel = voiceoverModel
       payload.voiceoverSpeed = parseFloat(voiceoverSpeed) || 0.8
       payload.voiceoverVolume = parseFloat(voiceoverVolume) || 1.0
@@ -797,10 +797,15 @@ export function TikTokPromotion() {
   }
 
   // ── VOICEOVER TEXT ══════════════════════════════════════
-  // Kombiniere Hook + Body + Bridge für Voiceover
+  // Kombiniere Hook + Body + Bridge für Voiceover (Vorschau)
   const voiceoverText = voiceoverEnabled
     ? [hookText, ...bodyText.split('\n').filter(l => l.trim()), bridgeText].join('. ')
     : ''
+
+  // ── VOICEOVER SEGMENTS (pro Slide) ════════════════════
+  const voiceoverSegmentsArray = voiceoverEnabled
+    ? [hookText, ...bodyText.split('\n').filter(l => l.trim()), bridgeText].filter(s => s.trim())
+    : []
 
   // ── BILDER FILTERN ═════════════════════════════════════
 
