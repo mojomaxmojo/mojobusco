@@ -15,6 +15,8 @@ interface HookTitleProps {
   toFrame?: number;
   textColor?: string;
   accentColor?: string;
+  /** Kapitel-Marker: optionale Caption unter dem Title (z.B. "Algarve, Portugal") */
+  caption?: string;
 }
 
 export const HookTitle: React.FC<HookTitleProps> = ({
@@ -25,6 +27,7 @@ export const HookTitle: React.FC<HookTitleProps> = ({
   toFrame,
   textColor = '#FFFFFF',
   accentColor = '#F59E0B',
+  caption,
 }) => {
   const frame = useCurrentFrame();
   const { durationInFrames, fps } = useVideoConfig();
@@ -126,6 +129,23 @@ export const HookTitle: React.FC<HookTitleProps> = ({
             }}
           >
             {subtitle}
+          </div>
+        )}
+
+        {/* Kapitel-Marker: Caption unter dem Titel */}
+        {caption && (
+          <div
+            style={{
+              fontFamily: FONT_FAMILY_REGULAR,
+              fontWeight: FONT_WEIGHT.medium,
+              fontSize: 'clamp(0.9rem, 3.5vw, 1.4rem)',
+              color: accentColor,
+              textShadow: '0 2px 10px rgba(0,0,0,0.8)',
+              marginTop: '0.6rem',
+              letterSpacing: '0.04em',
+            }}
+          >
+            {caption}
           </div>
         )}
       </div>

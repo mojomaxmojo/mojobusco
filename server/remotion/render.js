@@ -668,6 +668,9 @@ export async function renderMojoBusVideo(params) {
       ambientUrl: httpAmbientUrl,           // ← Lokale Atmo-Spur!
       secondsPerImage, aspectRatio, colorGrade,
       captions, captionStyle, websiteUrl, handle, accentColor, motionBlurStrength,
+      // ── Kapitel-Marker ────────────────────────────────────────────
+      hookCaption: params.hookCaption || '', // ← Hook-Caption für Titelkarte
+      ctaText: params.ctaText || '',        // ← CTA-Text für Endkarte
       // ── Beat-Sync, Transitions, Route, Lottie ────────────────────
       beatSyncStrength, beatThreshold, showWaveformBar,
       transitionType,

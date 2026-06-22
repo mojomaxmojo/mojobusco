@@ -48,6 +48,29 @@ import { ContentSelector, type ContentItem } from '@/components/pin/ContentSelec
 import { extractImagesFromEvent, extractTitle, extractSummary } from '@/lib/nostrEventUtils'
 
 // ═══════════════════════════════════════════════════════════
+// Drag&Drop – @dnd-kit für Medien-Sortierung
+// ═══════════════════════════════════════════════════════════
+
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  horizontalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { GripVertical, X } from 'lucide-react'
+
+// ═══════════════════════════════════════════════════════════
 // TYPES
 // ═══════════════════════════════════════════════════════════
 
@@ -179,14 +202,55 @@ export function TikTokPromotion() {
   const [selectedContent, setSelectedContent] = useState<ContentItem[]>([])
   const [articleTitle, setArticleTitle] = useState('')
   const [articleSummary, setArticleSummary] = useState('')
-  const [articleImages, setArticleImages] = useState<string[]>([])
   const [hasVideo, setHasVideo] = useState(false)
 
   // ── TEMPLATE ═════════════════════════════════════════════
   const [template, setTemplate] = useState<TikTokTemplate>('story')
 
-  // ── KI-MODELL ═════════════════════════════════════════════
-  const [aiModel, setAiModel] = useState<string>('claude')
+  // ── DRAG&DROP SORTIERUNG ═════════════════════════════════
+  const [sortedImages, setSortedImages] = useState<string[]>([])
+
+  // Sync sortedImages mit selectedContent
+  useEffect(() => {
+    const allImages: string[] = []
+    for (const item of selectedContent) {
+      for (const img of item.images) {
+        if (!allImages.includes(img) && allImages.length < 20) {
+          allImages.push(img)
+        }
+      }
+    }
+    // Vorhandene Sortierung erhalten, neue Bilder anhängen
+    setSortedImages(prev => {
+      const existing = prev.filter(url => allImages.includes(url))
+      const newOnes = allImages.filter(url => !prev.includes(url))
+      const merged = [...existing, ...newOnes]
+      return merged.length > 20 ? merged.slice(0, 20) : merged
+    })
+  }, [selectedContent])
+
+  const dndSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    setSortedImages(prev => {
+      const oldIdx = prev.indexOf(String(active.id))
+      const newIdx = prev.indexOf(String(over.id))
+      if (oldIdx === -1 || newIdx === -1) return prev
+      return arrayMove(prev, oldIdx, newIdx)
+    })
+  }
+
+  const removeImage = (url: string) => {
+    setSortedImages(prev => prev.filter(u => u !== url))
+  }
+
+  // articleImages wird aus sortedImages abgeleitet (für backward compat)
+  const articleImages = sortedImages
 
   // ── TIKTOK TEXT ══════════════════════════════════════════
   const [hookText, setHookText] = useState('')
@@ -275,16 +339,7 @@ export function TikTokPromotion() {
   const selectContent = (items: ContentItem[]) => {
     setSelectedContent(items)
 
-    // Alle Bilder aus allen ausgewählten Items sammeln (max 20)
-    const allImages: string[] = []
-    for (const item of items) {
-      for (const img of item.images) {
-        if (!allImages.includes(img) && allImages.length < 20) {
-          allImages.push(img)
-        }
-      }
-    }
-    setArticleImages(allImages)
+    // sortedImages wird via useEffect automatisch synchronisiert
 
     // Titel + Summary aus allen Items kombinieren
     const titles = items.map(i => i.title).filter(Boolean)
@@ -339,6 +394,16 @@ export function TikTokPromotion() {
           text: selectedContent.map(i => i.content).filter(Boolean).join('\n\n').substring(0, 1500) || '',
           template,
           model: aiModel,
+          imageCount: articleImages.length,
+          // Bild-Kontext für besseres Caption-Matching
+          locations: selectedContent
+            .map(i => {
+              const loc = i.event?.tags?.find((t: any[]) => t[0] === 'location')?.[1]
+              const country = i.event?.tags?.find((t: any[]) => t[0] === 'country' || t[0] === 'l')?.[1]
+              return [loc, country].filter(Boolean).join(', ')
+            })
+            .filter(Boolean)
+            .slice(0, articleImages.length),
           imageCount: articleImages.length,
         }),
       })
@@ -411,12 +476,15 @@ export function TikTokPromotion() {
       .filter(l => l.trim())
       .map(l => l.trim())
 
-    // Captions aus Body + Bridge + CTA
+    // Captions: HookCaption wird separat übergeben, Body/Bridge/CTA als Array
     const captions = [
       ...bodyLines,
       bridgeText,
       ctaText,
     ].filter(c => c)
+
+    // Strukturierte Captions für Kapitel-Marker
+    const hookCaption = hookText.trim()
 
     // Music-URL
     let musicUrl = undefined
@@ -436,6 +504,8 @@ export function TikTokPromotion() {
       imageUrls: articleImages,
       title: hookText,
       hookText,
+      hookCaption,                 // ← Kapitel-Marker: Hook-Caption
+      ctaText,                     // ← Kapitel-Marker: CTA-Text
       summary: articleSummary || hookText,
       location: location || undefined,
       country: country || undefined,
@@ -955,6 +1025,45 @@ export function TikTokPromotion() {
                 </div>
               </div>
 
+              {/* ── NEU: Medien-Reihenfolge (Drag&Drop) ───────────────────── */}
+              {articleImages.length > 0 && (
+                <div>
+                  <Label className="mb-2 block text-sm flex items-center gap-2">
+                    🖼️ Medien-Reihenfolge
+                    <span className="text-xs font-normal text-muted-foreground">
+                      ({articleImages.length} von max 20 · Ziehen zum Sortieren)
+                    </span>
+                  </Label>
+                  {articleImages.length > 10 && (
+                    <p className="text-[10px] text-amber-500 mb-2">
+                      ⚠ Mehr als 10 Bilder – die Slideshow wird sehr lang.
+                    </p>
+                  )}
+                  <DndContext
+                    sensors={dndSensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <SortableContext
+                      items={articleImages}
+                      strategy={horizontalListSortingStrategy}
+                    >
+                      <div className="flex gap-2 overflow-x-auto pb-2">
+                        {articleImages.map((url, i) => (
+                          <SortableThumb
+                            key={url}
+                            id={url}
+                            url={url}
+                            index={i}
+                            onRemove={removeImage}
+                          />
+                        ))}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+                </div>
+              )}
+
               <div className="flex gap-2 pt-2">
                 <Button variant="outline" onClick={() => setStep(1)} className="shrink-0">
                   ← Zurück
@@ -1010,6 +1119,14 @@ export function TikTokPromotion() {
                 <div>
                   <Label className="text-xs sm:text-sm flex items-center gap-1">
                     <span className="text-primary font-bold">3-22s</span> Body (ein Satz pro Zeile)
+                    <span className="text-xs font-normal text-muted-foreground ml-auto">
+                      {bodyText.split('\n').filter(l => l.trim()).length} Sätze → {Math.min(bodyText.split('\n').filter(l => l.trim()).length, articleImages.length)} Bilder
+                      {bodyText.split('\n').filter(l => l.trim()).length > articleImages.length && (
+                        <span className="text-amber-500 ml-1">
+                          ⚠ {bodyText.split('\n').filter(l => l.trim()).length - articleImages.length} zu viel
+                        </span>
+                      )}
+                    </span>
                   </Label>
                   <Textarea
                     value={bodyText}
@@ -1577,6 +1694,69 @@ export function TikTokPromotion() {
             )}
           </div>
         )}
+      </div>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════
+// SortableThumb – Drag&Drop-fähige Miniatur
+// ═══════════════════════════════════════════════════════════
+
+function SortableThumb({ id, url, index, onRemove }: {
+  id: string
+  url: string
+  index: number
+  onRemove: (url: string) => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 50 : 1,
+  }
+
+  const isVid = /\.(mp4|webm|mov|avi|mkv)(\?|#|$)/i.test(url)
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="relative w-[72px] shrink-0 rounded-lg overflow-hidden bg-muted border-2 border-border group"
+    >
+      {/* Drag Handle */}
+      <button
+        {...attributes}
+        {...listeners}
+        className="absolute top-0 left-0 z-10 w-full h-full cursor-grab active:cursor-grabbing"
+        title="Ziehen zum Sortieren"
+      />
+      {/* Remove Button */}
+      <button
+        onClick={(e) => { e.stopPropagation(); onRemove(url) }}
+        className="absolute top-0.5 right-0.5 z-20 w-4 h-4 bg-black/60 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+        title="Entfernen"
+      >
+        <X className="w-2.5 h-2.5" />
+      </button>
+      {/* Bild */}
+      <div className="w-full aspect-[3/4]">
+        <img
+          src={url}
+          alt=""
+          className="w-full h-full object-cover"
+          loading="lazy"
+          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+        />
+      </div>
+      {/* Nummer */}
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-1 pb-0.5 pt-3">
+        <span className="text-[10px] font-bold text-white drop-shadow-sm">
+          {index + 1}
+        </span>
+        {isVid && <span className="text-[9px] text-white/80 ml-1">🎥</span>}
       </div>
     </div>
   )

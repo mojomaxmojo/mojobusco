@@ -74,6 +74,12 @@ export interface MojoBusVideoProps {
   /** URL der generierten Atmo-Spur (wav) – Meer, Regen, Wind etc. */
   ambientUrl?: string;
 
+  // ── NEU: Kapitel-Marker (Hook + CTA Captions) ─────────────────────────
+  /** Hook-Caption – wird unter dem Titel im Hook-Bereich eingeblendet */
+  hookCaption?: string;
+  /** CTA-Text – wird auf der Endkarte eingeblendet */
+  ctaText?: string;
+
   // ── NEU: Beat-Sync ────────────────────────────────────────────────────
   /** Beat-Sync Stärke 0–1 (0 = aus, 1 = standard). Default: 0.6 */
   beatSyncStrength?: number;
@@ -164,6 +170,10 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
   voiceoverVolume = 1.0,
   // Ambient
   ambientUrl,
+
+  // Kapitel-Marker
+  hookCaption,
+  ctaText,
 
 }) => {
   const { fps, durationInFrames } = useVideoConfig();
@@ -357,6 +367,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
         <HookTitle
           title={title}
           subtitle={location || lifestyle.toUpperCase()}
+          caption={hookCaption}
           emoji={hookEmoji}
           fromFrame={5}
           toFrame={hookFrames - 5}
@@ -431,6 +442,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
           websiteUrl={websiteUrl}
           handle={handle}
           accentColor={accentColor}
+          ctaText={ctaText}
         />
       </Sequence>
 

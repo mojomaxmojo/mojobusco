@@ -15,6 +15,8 @@ interface MojoBusCTAProps {
   handle?: string;
   accentColor?: string;
   logoText?: string;
+  /** Kapitel-Marker: eigener CTA-Text (z.B. "Link in Bio 📌") */
+  ctaText?: string;
 }
 
 const LIFESTYLE_MESSAGES: Record<string, { cta: string; tagline: string; emoji: string }> = {
@@ -56,6 +58,7 @@ export const MojoBusCTA: React.FC<MojoBusCTAProps> = ({
   handle = '@mojobus',
   accentColor = '#F59E0B',
   logoText = 'MOJOBUS',
+  ctaText,
 }) => {
   const frame = useCurrentFrame();
   const { durationInFrames, fps } = useVideoConfig();
@@ -188,6 +191,24 @@ export const MojoBusCTA: React.FC<MojoBusCTAProps> = ({
         >
           {msg.tagline}
         </div>
+
+        {/* Kapitel-Marker: CTA-Text (z.B. "Link in Bio 📌") */}
+        {ctaText && (
+          <div
+            style={{
+              fontFamily: FONT_FAMILY_REGULAR,
+              fontWeight: FONT_WEIGHT.bold,
+              fontSize: 'clamp(0.9rem, 3.5vw, 1.5rem)',
+              color: accentColor,
+              textShadow: `0 0 24px ${accentColor}44`,
+              marginBottom: '1rem',
+              opacity: interpolate(ctaEnter, [0, 1], [0, 1]),
+              transform: `translateY(${interpolate(ctaEnter, [0, 1], [10, 0])}px)`,
+            }}
+          >
+            {ctaText}
+          </div>
+        )}
 
         {/* Trennlinie */}
         <div

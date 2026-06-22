@@ -2302,6 +2302,8 @@ app.post('/api/render-remotion', async (req, res) => {
       const result = await renderer.renderMojoBusVideo({
         imageUrls,
         title,
+        hookCaption: req.body.hookCaption || '',
+        ctaText: req.body.ctaText || '',
         summary,
         location,
         country,
@@ -2527,15 +2529,21 @@ ANTWORT-FORMAT (NUR JSON, kein Text davor/danach):
 }`
 
 app.post('/api/tiktok/generate-text', async (req, res) => {
-  const { title, summary, text, template = 'story', model = 'claude', imageCount = 5 } = req.body
+  const { title, summary, text, template = 'story', model = 'claude', imageCount = 5, locations } = req.body
 
   if (!title || !title.trim()) {
     return res.status(400).json({ error: 'Titel ist erforderlich' })
   }
 
-  console.log(`[TikTok] Generiere Text: template=${template}, model=${model}, title="${title.substring(0, 60)}", images=${imageCount}`)
+  console.log(`[TikTok] Generiere Text: template=${template}, model=${model}, title="${title.substring(0, 60)}", images=${imageCount}, locations=${locations?.length || 0}`)
 
   try {
+    // Bild-Kontext für besseres Caption-Matching
+    const locationContext = Array.isArray(locations) && locations.length > 0
+      ? '\nBILD-KONTEXT (Location pro Satz/Bild):\n' + locations.map((loc: string, i: number) => `  Bild ${i + 1}: ${loc || 'keine Location'}`).join('\n') +
+        '\n→ Schreibe die Sätze in der REIHENFOLGE der Bilder – Satz 1 passt zu Bild 1, Satz 2 zu Bild 2, etc.'
+      : ''
+
     const userPrompt = `Erstelle TikTok-Texte für diesen Vanlife-Artikel im Foster-Huntington-Stil.
 
 ARTIKEL-TITEL: "${title}"
@@ -2561,6 +2569,7 @@ WICHTIG: Foster Huntington-Stil – poetisch, authentisch, kein "Hochglanz-Werbe
 Zeige die Ruhe, die Weite, den Moment. Nicht "Wir haben dies und das gekauft", 
 sondern "Der Kaffee war kalt. Die Wellen waren warm. Perfekt."
 Jeder Body-Satz ist ein eigener atmosphärischer Moment – wie eine Polaroid-Aufnahme in Worten.`
+${locationContext}`
 
     let apiKey, apiUrl, apiModel
 
