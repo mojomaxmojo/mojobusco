@@ -2568,7 +2568,7 @@ REGELN FÜR DIESES VIDEO:
 WICHTIG: Foster Huntington-Stil – poetisch, authentisch, kein "Hochglanz-Werbesprech". 
 Zeige die Ruhe, die Weite, den Moment. Nicht "Wir haben dies und das gekauft", 
 sondern "Der Kaffee war kalt. Die Wellen waren warm. Perfekt."
-Jeder Body-Satz ist ein eigener atmosphärischer Moment – wie eine Polaroid-Aufnahme in Worten.`
+Jeder Body-Satz ist ein eigener atmosphärischer Moment – wie eine Polaroid-Aufnahme in Worten.
 ${locationContext}`
 
     let apiKey, apiUrl, apiModel
