@@ -71,7 +71,7 @@ export const DEFAULT_ABOUT_DATA: AboutData = {
   hero: {
     title: 'Zuhause. Überall zuhause.',
     subtitle:
-      'Seit {zeit} kein fester Wohnsitz. Dafür unzählige Sonnenuntergänge, echte Begegnungen und eine Freiheit, die man nicht kaufen kann – nur leben.',
+      'Seit **{zeit}** kein fester Wohnsitz. Dafür unzählige Sonnenuntergänge, echte Begegnungen und eine Freiheit, die man nicht kaufen kann – nur leben.',
   },
 
   sections: [

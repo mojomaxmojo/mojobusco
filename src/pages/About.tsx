@@ -16,7 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuthor } from '@/hooks/useAuthor';
-import { AboutData, formatHeroSubtitle } from '@/config/about';
+import { formatHeroSubtitle } from '@/config/about';
 import { Mail, Globe, Zap, Key, Sun, Compass, Heart } from 'lucide-react';
 import { useHead } from '@unhead/react';
 import { getZeitUnterwegsFormatiert } from '@/config/zeitwohnmobil';
@@ -135,7 +135,7 @@ export function About() {
               <span className="gradient-text">{aboutData.hero.title}</span>
             </h1>
             <p className="text-xl text-muted-foreground leading-relaxed">
-              {heroSubtitle}
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{heroSubtitle}</ReactMarkdown>
             </p>
           </div>
         </div>
