@@ -1,13 +1,28 @@
+/**
+ * About.tsx – About-Seite mit dynamischen Inhalten
+ *
+ * Layout/Design ist identisch zur Originalversion.
+ * Texte kommen aus useAboutContent (kind 30078) mit Fallback auf DEFAULT_ABOUT_DATA.
+ * {zeit} im Hero wird automatisch durch die dynamische Zeitberechnung ersetzt.
+ *
+ * Admin-Editor: /admin/about (nur für Mojo/Susanne)
+ */
+
+import { useMemo } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuthor } from '@/hooks/useAuthor';
-import { Mail, Globe, Zap, Key, Sun, Compass, Heart, Quote, MapPin, Coffee } from 'lucide-react';
+import { AboutData, formatHeroSubtitle } from '@/config/about';
+import { Mail, Globe, Zap, Key, Sun, Compass, Heart } from 'lucide-react';
 import { useHead } from '@unhead/react';
 import { getZeitUnterwegsFormatiert } from '@/config/zeitwohnmobil';
 
 import { AUTHORS } from '@/config/nostr';
+import { useAboutContent } from '@/hooks/useAboutContent';
 
 const MOJO = AUTHORS.find(a => a.id === 'mojo');
 const SUMSUM = AUTHORS.find(a => a.id === 'susanne');
@@ -16,35 +31,97 @@ const SUMSUM_PUBKEY = SUMSUM?.pubkey || '';
 const MOJO_NPUB = MOJO?.npub || '';
 const SUMSUM_NPUB = SUMSUM?.npub || '';
 
-const MOJO_BIO = `Den 10-Meter-Koloss durch enge Klippenstraßen manövrieren, während im Hintergrund der Solar-Inverter leise summt – das ist meine Komfortzone.
-
-Kein fester Wohnsitz, kein Hamsterrad. Ich bin der Tech-Kopf unseres Off-Grid-Setups und leidenschaftlicher Verfechter digitaler und physischer Freiheit. Wenn ich nicht gerade unseren US-Diesel warte oder unser solarbetriebenes Netzwerk optimiere, verliere ich mich in den endlosen Weiten von Nostr und Bitcoin. Für mich ist Freiheit kein theoretisches Konzept, sondern ein Zustand, den man sich täglich im echten und im digitalen Leben zurückholen muss. Unser Seelenhund Leon ist mein ewiger Copilot im Geiste.`;
-
-const SUMSUM_BIO = `Freiheit schmeckt nach Salz auf der Haut und riecht nach frisch gebrühtem Kaffee am einsamen Klippenrand Portugals.
-
-Ich bin Susanne (SumSum). Ich liebe die unberührte Natur, das raue Meer und die Kunst, auf engstem Raum ein echtes, warmes Zuhause zu erschaffen. Als wir vor über einem Jahrzehnt alles verkauften, habe ich nicht nur meinen Besitz losgelassen, sondern auch meine Zweifel. Ich halte unsere Reise in Bildern fest und suche in jedem neuen Ort nach den echten, tiefen Momenten. Unser Ridgeback Leon (mein "Soul Leon") hat mich gelehrt, im Hier und Jetzt zu leben – diese Verbundenheit trage ich bei jedem Strandspaziergang tief in mir.`;
-
 export function About() {
   const mojoAuthor = useAuthor(MOJO_PUBKEY);
   const sumsumAuthor = useAuthor(SUMSUM_PUBKEY);
   const mojoMeta = mojoAuthor.data?.metadata;
   const sumsumMeta = sumsumAuthor.data?.metadata;
 
+  // ── Dynamische About-Inhalte (kind 30078 mit Fallback) ──────────────────
+  const { data: aboutData } = useAboutContent();
+
+  // {zeit} im Hero-Subtitle ersetzen
+  const heroSubtitle = useMemo(() => {
+    const zeitStr = getZeitUnterwegsFormatiert();
+    return formatHeroSubtitle(aboutData.hero.subtitle, zeitStr);
+  }, [aboutData.hero.subtitle]);
+
   // SEO Meta Tags
   useHead({
-    title: 'Über Uns - MojoBus Perpetual Travelers Blog',
+    title: aboutData.seo.title,
     meta: [
-      { name: 'description', content: 'Lerne Mojo und SumSum kennen – Perpetual Travelers im MojoBus. Unsere Geschichte, Leon und das Leben in Freiheit.' },
-      { property: 'og:title', content: 'Über Uns - MojoBus Perpetual Travelers Blog' },
-      { property: 'og:description', content: 'Lerne Mojo und SumSum kennen – Perpetual Travelers im MojoBus. Unsere Geschichte, Leon und das Leben in Freiheit.' },
+      { name: 'description', content: aboutData.seo.description },
+      { property: 'og:title', content: aboutData.seo.title },
+      { property: 'og:description', content: aboutData.seo.description },
       { property: 'og:url', content: 'https://mojobus.co/about' },
-      { name: 'twitter:title', content: 'Über Uns - MojoBus Perpetual Travelers Blog' },
-      { name: 'twitter:description', content: 'Lerne Mojo und SumSum kennen – Perpetual Travelers im MojoBus.' },
+      { name: 'twitter:title', content: aboutData.seo.title },
+      { name: 'twitter:description', content: aboutData.seo.description },
     ],
     link: [
       { rel: 'canonical', href: 'https://mojobus.co/about' }
     ]
   });
+
+  // Markdown-Renderer mit Tailwind-Prose
+  const MarkdownContent = ({ content }: { content: string }) => (
+    <div className="prose prose-slate dark:prose-invert max-w-none space-y-4">
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+        {content}
+      </ReactMarkdown>
+    </div>
+  );
+
+  // Traveler-Karten
+  const TravelerCard = ({ traveler }: { traveler: typeof aboutData.travelers[0] }) => {
+    const author = AUTHORS.find(a => a.id === traveler.id);
+    const meta = traveler.id === 'mojo' ? mojoMeta : sumsumMeta;
+    const npub = traveler.id === 'mojo' ? MOJO_NPUB : SUMSUM_NPUB;
+    const isMojo = traveler.id === 'mojo';
+    const bioLines = traveler.bio.split('\n').filter(Boolean);
+    const firstLine = bioLines[0] || '';
+    const restLines = bioLines.slice(1).join('\n');
+
+    return (
+      <Card className="border-2 hover:shadow-lg transition-shadow">
+        <CardHeader>
+          <div className="flex items-start gap-4">
+            <Avatar className={`h-16 w-16 ring-2 ${isMojo ? 'ring-primary/20' : 'ring-accent/20'}`}>
+              {meta?.picture && <AvatarImage src={meta.picture} alt={traveler.name} />}
+              <AvatarFallback className="text-lg">{traveler.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-lg">{traveler.name}</h3>
+                <Badge variant="secondary" className="text-xs">✓ {author?.nip05 || ''}</Badge>
+              </div>
+              <p className="text-xs text-muted-foreground font-mono truncate mt-1">{npub}</p>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="bg-muted/30 rounded-lg p-4">
+            <p className="text-sm text-muted-foreground italic leading-relaxed">
+              "{firstLine}"
+            </p>
+          </div>
+          {restLines && (
+            <div className="text-sm text-muted-foreground leading-relaxed">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{restLines}</ReactMarkdown>
+            </div>
+          )}
+          <div className="flex flex-wrap gap-2 pt-2 border-t">
+            {traveler.badges.map((badge, i) => (
+              <Badge key={i} variant="outline">{badge}</Badge>
+            ))}
+          </div>
+          <div className="pt-2 border-t">
+            <div className="text-xs text-muted-foreground">Nostr Public Key</div>
+            <div className="font-mono text-xs break-all mt-1">{npub}</div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <>
@@ -55,11 +132,10 @@ export function About() {
         <div className="relative z-10 container mx-auto px-4">
           <div className="text-center space-y-4 max-w-3xl mx-auto">
             <h1 className="text-4xl md:text-6xl font-bold">
-              <span className="gradient-text">Zuhause. Überall zuhause.</span>
+              <span className="gradient-text">{aboutData.hero.title}</span>
             </h1>
             <p className="text-xl text-muted-foreground leading-relaxed">
-              Seit <span className="font-semibold text-foreground">{getZeitUnterwegsFormatiert()}</span> kein fester Wohnsitz.
-              Dafür unzählige Sonnenuntergänge, echte Begegnungen und eine Freiheit, die man nicht kaufen kann – nur leben.
+              {heroSubtitle}
             </p>
           </div>
         </div>
@@ -69,218 +145,82 @@ export function About() {
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto space-y-12">
 
-            {/* ═══════ UNSERE GESCHICHTE ═══════ */}
-            <Card className="border-2 overflow-hidden">
-              <div className="h-1 bg-gradient-to-r from-primary via-accent to-primary" />
-              <CardHeader>
-                <CardTitle className="text-2xl flex items-center gap-2">
-                  <Heart className="h-5 w-5 text-primary" />
-                  Unsere Geschichte: Der Tag, an dem der Wecker schwieg
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="prose prose-slate dark:prose-invert max-w-none space-y-4">
-                <p className="text-muted-foreground leading-relaxed">
-                  Es war ein ganz normaler Morgen. Das schrille, unbarmherzige Klingeln des Weckers schnitt um exakt 6:30 Uhr durch die Stille. Ein Geräusch, das unser Leben jahrelang taktete – gefangen zwischen Terminkalendern, Verpflichtungen und dem ständigen, leisen Gefühl, im falschen Film zu sein.
-                </p>
-                <p className="text-muted-foreground leading-relaxed">
-                  An diesem Morgen sahen wir uns an. Und wir wussten: Es ist das allerletzte Mal.
-                </p>
-                <p className="text-muted-foreground leading-relaxed">
-                  Wir haben an diesem Tag nicht nur den Wecker ausgeschaltet – wir haben uns aus einem ganzen System abgemeldet. Wenig später drehte Max den Zündschlüssel unseres 10 Meter langen MojoBus. Der schwere US-Dieselmotor erwachte mit einem tiefen, vibrierenden Grollen zum Leben. Vor uns lag die Straße. Hinter uns das, was man gemeinhin "Sicherheit" nennt.
-                </p>
-                <p className="text-muted-foreground leading-relaxed">
-                  Ohne festes Ziel. Ohne Endpunkt. Nur wir, die Straße, das Meer und das überwältigende Gefühl im Brustkorb: Wir sind endlich wach.
-                </p>
-                <p className="text-muted-foreground leading-relaxed">
-                  Seitdem leben wir als Perpetual Travelers. Unser Alltag ist das, wovon wir früher nur in kurzen Urlaubstagen geträumt haben. Wir stehen meist direkt am Strand, leben vollkommen autark mit der Kraft der Solarzellen auf unserem Dach, minimalistisch und ungebunden. Das wilde Rauschen der Wellen ist unser Wecker, der Horizont unser tägliches Panorama.
-                </p>
-              </CardContent>
-            </Card>
+            {/* ═══════ ARTIKEL-SEKTIONEN (dynamisch) ═══════ */}
+            {aboutData.sections.map((section, idx) => {
+              // Abwechselnde Gradienten für die Section-Header
+              const gradients = ['from-primary via-accent to-primary', 'from-amber-500 to-orange-500', 'from-purple-500 via-blue-500 to-cyan-500'];
+              const gradient = section.gradient || gradients[idx % gradients.length];
 
-            {/* ═══════ LEON ═══════ */}
-            <Card className="border-2 overflow-hidden bg-gradient-to-br from-amber-50/50 to-orange-50/30 dark:from-amber-950/20 dark:to-orange-950/10">
-              <div className="h-1 bg-gradient-to-r from-amber-500 to-orange-500" />
-              <CardHeader>
-                <CardTitle className="text-2xl flex items-center gap-2">
-                  <Heart className="h-5 w-5 text-amber-500" />
-                  Leon (Lionhunter) – Unser ewiger Co-Pilot
-                </CardTitle>
-                <CardDescription className="text-sm">🐾🌈 In ewiger Erinnerung</CardDescription>
-              </CardHeader>
-              <CardContent className="prose prose-slate dark:prose-invert max-w-none space-y-4">
-                <p className="text-muted-foreground leading-relaxed">
-                  Wer die Geschichte des MojoBus verstehen will, muss von Leon hören. Unser Rhodesian Ridgeback war nicht einfach nur ein Hund – er war der Herzschlag dieses Busses, unsere "Soul Leon".
-                </p>
-                <p className="text-muted-foreground leading-relaxed">
-                  Über ein Jahrzehnt lang hat er mit uns die Welt vermessen. Er hat die salzige Meeresluft an den Klippen geatmet, hat uns bei jeder Reifenpanne bewacht, vor dem warmen Ofen gedöst, während draußen der Sturm am Blech rüttelte, und jeden Strand zu seinem Revier gemacht.
-                </p>
-                <p className="text-muted-foreground leading-relaxed">
-                  Vor kurzem ist Leon uns vorausgegangen. Sein physischer Platz neben dem Fahrersitz ist jetzt leer. Und doch reist er auf jedem einzelnen Kilometer, den wir zurücklegen, im Herzen mit uns. Seine Spuren im Sand der Strände Europas mögen vom Wasser weggespült worden sein – doch in unserem Bus, in unseren Gedanken und in jedem roten Sonnenuntergang, der den Himmel entflammt, bleibt er für immer allgegenwärtig. Diese Reise war seine. Und sie bleibt es für immer.
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* ═══════ WARUM NOSTR ═══════ */}
-            <Card className="border-2 overflow-hidden">
-              <div className="h-1 bg-gradient-to-r from-purple-500 via-blue-500 to-cyan-500" />
-              <CardHeader>
-                <CardTitle className="text-2xl flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-purple-500" />
-                  Warum wir auf Nostr schreiben (Und nirgendwo anders)
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="prose prose-slate dark:prose-invert max-w-none space-y-4">
-                <p className="text-muted-foreground leading-relaxed">
-                  Wir leben nicht im echten Leben frei, autark und unabhängig, um uns digital an die Ketten von Tech-Giganten legen zu lassen.
-                </p>
-                <p className="text-muted-foreground leading-relaxed">
-                  Wir teilen unsere Reise ganz bewusst nicht auf den Plattformen der großen Silicon-Valley-Konzerne. Wir wollen nicht, dass Algorithmen unsere Reichweite drosseln, Konzerne unsere Daten verkaufen oder Zensoren entscheiden, was du sehen darfst und was nicht.
-                </p>
-                <p className="text-muted-foreground leading-relaxed">
-                  Nostr ist wie unser Bus: dezentral, grenzenlos und zensurresistent.
-                </p>
-                <p className="text-muted-foreground leading-relaxed">
-                  Nostr gehört niemandem – genau wie die Straße. Hier gibt es keine Mittelsmänner. Nur echte Menschen, echte Geschichten – direkt, unverfälscht und für immer kryptografisch im dezentralen Raum verankert. Wer uns folgen will, braucht keinen Account bei einer Datenkrake. Nur einen Nostr-Client, einen Public Key und den Mut, jenseits des Mainstreams zu denken. ⚡🔑
-                </p>
-              </CardContent>
-            </Card>
+              return (
+                <Card key={section.id} className={`border-2 overflow-hidden ${section.gradient ? `bg-gradient-to-br ${section.gradient}` : ''}`}>
+                  <div className={`h-1 bg-gradient-to-r ${gradient}`} />
+                  <CardHeader>
+                    <CardTitle className="text-2xl flex items-center gap-2">
+                      <Heart className="h-5 w-5 text-primary" />
+                      {section.title}
+                    </CardTitle>
+                    {section.badge && (
+                      <CardDescription className="text-sm">{section.badge}</CardDescription>
+                    )}
+                  </CardHeader>
+                  <CardContent>
+                    {section.id === 'leon' || section.id === 'story' || section.id === 'nostr' ? (
+                      <MarkdownContent content={section.content} />
+                    ) : (
+                      <div className="prose prose-slate dark:prose-invert max-w-none space-y-4">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {section.content}
+                        </ReactMarkdown>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
 
             {/* ═══════ DREI SÄULEN ═══════ */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="text-center border-2 hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex justify-center mb-2">
-                    <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Sun className="h-7 w-7 text-primary" />
-                    </div>
-                  </div>
-                  <CardTitle>🕊️ Freiheit</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Kein Chef, kein Kalender, kein Pendeln im Berufsverkehr. Nur der Wind, der uns leise verrät, wohin wir als Nächstes steuern.
-                  </p>
-                </CardContent>
-              </Card>
+              {aboutData.pillars.map((pillar) => {
+                const iconMap: Record<string, React.ReactNode> = {
+                  freiheit: <Sun className="h-7 w-7 text-primary" />,
+                  abenteuer: <Compass className="h-7 w-7 text-accent" />,
+                  autarkie: <Zap className="h-7 w-7 text-green-500" />,
+                };
+                const bgMap: Record<string, string> = {
+                  freiheit: 'bg-primary/10',
+                  abenteuer: 'bg-accent/10',
+                  autarkie: 'bg-green-500/10',
+                };
 
-              <Card className="text-center border-2 hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex justify-center mb-2">
-                    <div className="w-14 h-14 rounded-full bg-accent/10 flex items-center justify-center">
-                      <Compass className="h-7 w-7 text-accent" />
-                    </div>
-                  </div>
-                  <CardTitle>🔥 Abenteuer</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Jede Panne ist der Anfang einer unvergesslichen Geschichte. Jede Sackgasse führt uns an Orte, die auf keiner Karte stehen.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="text-center border-2 hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex justify-center mb-2">
-                    <div className="w-14 h-14 rounded-full bg-green-500/10 flex items-center justify-center">
-                      <Zap className="h-7 w-7 text-green-500" />
-                    </div>
-                  </div>
-                  <CardTitle>☀️ Autarkie</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Die Sonne bezahlt unseren Strom. Wir haben gelernt, mit wenig zu leben – und besitzen dadurch unendlich viel mehr.
-                  </p>
-                </CardContent>
-              </Card>
+                return (
+                  <Card key={pillar.id} className="text-center border-2 hover:shadow-lg transition-shadow">
+                    <CardHeader>
+                      <div className="flex justify-center mb-2">
+                        <div className={`w-14 h-14 rounded-full ${bgMap[pillar.id] || 'bg-primary/10'} flex items-center justify-center`}>
+                          {iconMap[pillar.id] || <Sun className="h-7 w-7 text-primary" />}
+                        </div>
+                      </div>
+                      <CardTitle>{pillar.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {pillar.content}
+                        </ReactMarkdown>
+                      </p>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
 
             {/* ═══════ DIE REISENDEN ═══════ */}
             <div className="space-y-6">
               <h2 className="text-3xl font-bold text-center">Die Reisenden</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                {/* Mojo */}
-                <Card className="border-2 hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <div className="flex items-start gap-4">
-                      <Avatar className="h-16 w-16 ring-2 ring-primary/20">
-                        {mojoMeta?.picture && <AvatarImage src={mojoMeta.picture} alt="Mojo" />}
-                        <AvatarFallback className="text-lg">MO</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-bold text-lg">mojo</h3>
-                          <Badge variant="secondary" className="text-xs">✓ mojo@mojobus.co</Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground font-mono truncate mt-1">{MOJO_NPUB}</p>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="bg-muted/30 rounded-lg p-4">
-                      <p className="text-sm text-muted-foreground italic leading-relaxed">
-                        "{MOJO_BIO.split('\n')[0]}"
-                      </p>
-                    </div>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {MOJO_BIO.split('\n').slice(2).join(' ')}
-                    </p>
-                    <div className="flex flex-wrap gap-2 pt-2 border-t">
-                      <Badge variant="outline">#offgridlife</Badge>
-                      <Badge variant="outline">#beachlife</Badge>
-                      <Badge variant="outline">#vanlife</Badge>
-                      <Badge variant="outline">#oceanview</Badge>
-                      <Badge variant="outline">#btc</Badge>
-                    </div>
-                    <div className="pt-2 border-t">
-                      <div className="text-xs text-muted-foreground">Nostr Public Key</div>
-                      <div className="font-mono text-xs break-all mt-1">{MOJO_NPUB}</div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* SumSum */}
-                <Card className="border-2 hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <div className="flex items-start gap-4">
-                      <Avatar className="h-16 w-16 ring-2 ring-accent/20">
-                        {sumsumMeta?.picture && <AvatarImage src={sumsumMeta.picture} alt="SumSum" />}
-                        <AvatarFallback className="text-lg">SU</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-bold text-lg">SumSum</h3>
-                          <Badge variant="secondary" className="text-xs">✓ sumsum@mojobus.co</Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground font-mono truncate mt-1">{SUMSUM_NPUB}</p>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="bg-muted/30 rounded-lg p-4">
-                      <p className="text-sm text-muted-foreground italic leading-relaxed">
-                        "{SUMSUM_BIO.split('\n')[0]}"
-                      </p>
-                    </div>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {SUMSUM_BIO.split('\n').slice(2).join(' ')}
-                    </p>
-                    <div className="flex flex-wrap gap-2 pt-2 border-t">
-                      <Badge variant="outline">#nature</Badge>
-                      <Badge variant="outline">#beachlife</Badge>
-                      <Badge variant="outline">#RVlife</Badge>
-                      <Badge variant="outline">#oceanview</Badge>
-                      <Badge variant="outline">#nostr</Badge>
-                    </div>
-                    <div className="pt-2 border-t">
-                      <div className="text-xs text-muted-foreground">Nostr Public Key</div>
-                      <div className="font-mono text-xs break-all mt-1">{SUMSUM_NPUB}</div>
-                    </div>
-                  </CardContent>
-                </Card>
-
+                {aboutData.travelers.map((traveler) => (
+                  <TravelerCard key={traveler.id} traveler={traveler} />
+                ))}
               </div>
             </div>
 
@@ -299,7 +239,7 @@ export function About() {
                     <Zap className="h-5 w-5 text-primary flex-shrink-0" />
                     <div className="min-w-0 flex-1">
                       <div className="text-xs text-muted-foreground">Lightning Address</div>
-                      <div className="font-mono text-sm truncate">wiseboot30@zeusnuts.com</div>
+                      <div className="font-mono text-sm truncate">{aboutData.contact.lightning}</div>
                     </div>
                   </div>
 
@@ -307,23 +247,23 @@ export function About() {
                     <Key className="h-5 w-5 text-primary flex-shrink-0" />
                     <div className="min-w-0 flex-1">
                       <div className="text-xs text-muted-foreground">NIP-05</div>
-                      <div className="font-mono text-sm truncate">mojo@mojobus.co</div>
+                      <div className="font-mono text-sm truncate">{aboutData.contact.nip05}</div>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3 p-3 rounded-lg bg-background border">
                     <Mail className="h-5 w-5 text-primary flex-shrink-0" />
                     <div className="min-w-0 flex-1">
-                      <div className="text-xs text-muted-foreground">Kontakt</div>
-                      <div className="text-sm">Über Nostr DM</div>
+                      <div className="text-xs text-muted-foreground">{aboutData.contact.emailLabel}</div>
+                      <div className="text-sm">{aboutData.contact.emailValue}</div>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3 p-3 rounded-lg bg-background border">
                     <Globe className="h-5 w-5 text-primary flex-shrink-0" />
                     <div className="min-w-0 flex-1">
-                      <div className="text-xs text-muted-foreground">Website</div>
-                      <div className="text-sm">mojobus.co</div>
+                      <div className="text-xs text-muted-foreground">{aboutData.contact.websiteLabel}</div>
+                      <div className="text-sm">{aboutData.contact.websiteValue}</div>
                     </div>
                   </div>
                 </div>

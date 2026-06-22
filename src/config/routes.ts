@@ -18,6 +18,7 @@ export const ROUTES: Route[] = [
   { path: '/notes', component: 'Notes', title: 'Notes', category: 'notes' },
   { path: '/notes/:country', component: 'Notes', title: 'Notes aus Land', category: 'notes' },
   { path: '/about', component: 'About', title: 'About' },
+  { path: '/admin/about', component: 'AboutAdmin', title: 'About verwalten', requiresAuth: true },
   { path: '/profile', component: 'Profile', title: 'Profil', requiresAuth: true },
   { path: '/settings', component: 'Settings', title: 'Einstellungen', requiresAuth: true },
   { path: '/veroeffentlichen', component: 'Publish', title: 'Veröffentlichen', requiresAuth: true },

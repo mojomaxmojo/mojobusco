@@ -33,6 +33,7 @@ const NIP89SetupPage = lazy(() => import("./pages/NIP89SetupPage").then(m => ({ 
 const NIP19Page = lazy(() => import("./pages/NIP19Page").then(m => ({ default: m.NIP19Page })));
 const BudgetPage = lazy(() => import("./pages/BudgetPage").then(m => ({ default: m.BudgetPage })));
 const TikTokPromotion = lazy(() => import("./pages/TikTokPromotion").then(m => ({ default: m.TikTokPromotion })));
+const AboutAdmin = lazy(() => import("./pages/admin/AboutAdmin").then(m => ({ default: m.AboutAdmin })));
 const NotFound = lazy(() => import("./pages/NotFound").then(m => ({ default: m.default })));
 
 function App() {
@@ -63,8 +64,9 @@ function App() {
               <Route path="/bild/:nip19" element={<ImageDetail />} />
               <Route path="/notes" element={<Notes />} />
               <Route path="/notes/:country" element={<Notes />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/profile" element={<Profile />} />
+<Route path="/about" element={<About />} />
+               <Route path="/admin/about" element={<AboutAdmin />} />
+               <Route path="/profile" element={<Profile />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/settings/service-worker" element={<ServiceWorkerSettings />} />
               <Route path="/settings/nostr-handler" element={<NIP89SetupPage />} />
