@@ -456,3 +456,43 @@ Edge TTS (Microsoft, `server/remotion/edge.js`) hat Piper als primäre TTS-Engin
 - Nach jedem Deploy `bash deploy-main.sh --force` ausführen (ink. `npm install` für Server-Dependencies)
 - Bundle-Cache nach Code-Änderungen invalidieren: `curl -X POST http://localhost:3002/api/render-remotion/invalidate-cache`
 - Oder deploy-main.sh macht das automatisch beim Restart
+
+## 🗺️ TikTok-Roadmap (von einfach zu schwer)
+
+### Stufe 0 ✅ (Abgeschlossen)
+- ✅ Bilder → Diashow (Ken-Burns)
+- ✅ Hook + Captions + CTA
+- ✅ Musik + Voiceover (Edge TTS) + Atmo
+- ✅ RouteMap + Lottie Bus
+- ✅ Foster Huntington KI-Texte (Llama 4 / Claude)
+- ✅ Blossom Upload + Nostr History
+- ✅ Toast bottom-center
+- ✅ Volume-Slider + Speed-Regler
+- ✅ Multi-Select (1-3 Artikel)
+- ✅ Full-Line Captions (ein Satz pro Bild)
+- ✅ Dynamische Body-Sätze pro Bildanzahl
+
+### Stufe 1 ⏳ (Einfach – Frontend + Erweiterungen)
+
+| Rang | Feature | Aufwand | Beschreibung |
+|------|---------|---------|-------------|
+| 1 | **Kapitel-Marker** | Gering | Captions in Abschnitte unterteilen – Hook, Body (X Sätze), Bridge, CTA behalten ihre eigenen Captions |
+| 2 | **Medien per Drag&Drop** | Gering | Miniaturbilder im Dashboard mit der Maus in die richtige Reihenfolge ziehen |
+| 3 | **Einfacher Trim** | Gering | Video von Sekunde X bis Y zuschneiden via FFmpeg (`-ss`, `-to`) |
+
+### Stufe 2 ⏳ (Mittel – Backend + Dashboard)
+
+| Rang | Feature | Aufwand | Beschreibung |
+|------|---------|---------|-------------|
+| 4 | **Timeline-Editor** | Mittel | Komplette visuelle Zeitleiste: Medien sortieren, löschen, hinzufügen, Captions + Dauer pro Element |
+| 5 | **Multi-Download als ZIP** | Gering | Nach Render alle MP4s als eine ZIP-Datei herunterladen |
+| 6 | **Video-Split** | Mittel | Ein langes Video via FFmpeg in X kürzere Clips aufteilen |
+| 7 | **Render-Queue** | Mittel | Videos nacheinander rendern (nicht parallel – VPS-Überlastung vermeiden) mit Fortschrittsanzeige pro Job |
+
+### Stufe 3 ⏳ (Schwer – KI / FFmpeg)
+
+| Rang | Feature | Aufwand | Beschreibung |
+|------|---------|---------|-------------|
+| 8 | **Automatischer Hook (KI)** | Hoch | KI erkennt die spannendste Videostelle und setzt sie als Hook (erste 3s) |
+| 9 | **Bild-zu-Video (KI)** | Hoch | Statische Fotos per KI leicht animieren (Wolken, Wellen, Gras) |
+| 10 | **Green-Screen** | Mittel | Grünen Hintergrund via FFmpeg chromakey ersetzen |
