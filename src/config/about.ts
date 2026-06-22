@@ -22,8 +22,10 @@ export interface SectionContent {
   title: string;
   content: string; // Markdown
   badge?: string;
-  /** Gradient-Farbe (optional, Fallback auf Default) */
-  gradient?: string;
+  /** Card-Hintergrund-Gradient (optional – nur Leon hat das im Original) */
+  cardBg?: string;
+  /** Farbverlauf der oberen Trennlinie (optional) */
+  topBar?: string;
 }
 
 export interface PillarContent {
@@ -76,6 +78,7 @@ export const DEFAULT_ABOUT_DATA: AboutData = {
     {
       id: 'story',
       title: 'Unsere Geschichte: Der Tag, an dem der Wecker schwieg',
+      topBar: 'from-primary via-accent to-primary',
       content: `Es war ein ganz normaler Morgen. Das schrille, unbarmherzige Klingeln des Weckers schnitt um exakt 6:30 Uhr durch die Stille. Ein Geräusch, das unser Leben jahrelang taktete – gefangen zwischen Terminkalendern, Verpflichtungen und dem ständigen, leisen Gefühl, im falschen Film zu sein.
 
 An diesem Morgen sahen wir uns an. Und wir wussten: Es ist das allerletzte Mal.
@@ -90,7 +93,8 @@ Seitdem leben wir als Perpetual Travelers. Unser Alltag ist das, wovon wir früh
       id: 'leon',
       title: 'Leon (Lionhunter) – Unser ewiger Co-Pilot',
       badge: '🐾🌈 In ewiger Erinnerung',
-      gradient: 'from-amber-50/50 to-orange-50/30 dark:from-amber-950/20 dark:to-orange-950/10',
+      cardBg: 'bg-gradient-to-br from-amber-50/50 to-orange-50/30 dark:from-amber-950/20 dark:to-orange-950/10',
+      topBar: 'from-amber-500 to-orange-500',
       content: `Wer die Geschichte des MojoBus verstehen will, muss von Leon hören. Unser Rhodesian Ridgeback war nicht einfach nur ein Hund – er war der Herzschlag dieses Busses, unsere "Soul Leon".
 
 Über ein Jahrzehnt lang hat er mit uns die Welt vermessen. Er hat die salzige Meeresluft an den Klippen geatmet, hat uns bei jeder Reifenpanne bewacht, vor dem warmen Ofen gedöst, während draußen der Sturm am Blech rüttelte, und jeden Strand zu seinem Revier gemacht.
@@ -100,7 +104,7 @@ Vor kurzem ist Leon uns vorausgegangen. Sein physischer Platz neben dem Fahrersi
     {
       id: 'nostr',
       title: 'Warum wir auf Nostr schreiben (Und nirgendwo anders)',
-      gradient: 'from-purple-500 via-blue-500 to-cyan-500',
+      topBar: 'from-purple-500 via-blue-500 to-cyan-500',
       content: `Wir leben nicht im echten Leben frei, autark und unabhängig, um uns digital an die Ketten von Tech-Giganten legen zu lassen.
 
 Wir teilen unsere Reise ganz bewusst nicht auf den Plattformen der großen Silicon-Valley-Konzerne. Wir wollen nicht, dass Algorithmen unsere Reichweite drosseln, Konzerne unsere Daten verkaufen oder Zensoren entscheiden, was du sehen darfst und was nicht.

@@ -146,14 +146,10 @@ export function About() {
           <div className="max-w-4xl mx-auto space-y-12">
 
             {/* ═══════ ARTIKEL-SEKTIONEN (dynamisch) ═══════ */}
-            {aboutData.sections.map((section, idx) => {
-              // Abwechselnde Gradienten für die Section-Header
-              const gradients = ['from-primary via-accent to-primary', 'from-amber-500 to-orange-500', 'from-purple-500 via-blue-500 to-cyan-500'];
-              const gradient = section.gradient || gradients[idx % gradients.length];
-
+            {aboutData.sections.map((section) => {
               return (
-                <Card key={section.id} className={`border-2 overflow-hidden ${section.gradient ? `bg-gradient-to-br ${section.gradient}` : ''}`}>
-                  <div className={`h-1 bg-gradient-to-r ${gradient}`} />
+                <Card key={section.id} className={`border-2 overflow-hidden ${section.cardBg || ''}`}>
+                  <div className={`h-1 bg-gradient-to-r ${section.topBar || 'from-primary via-accent to-primary'}`} />
                   <CardHeader>
                     <CardTitle className="text-2xl flex items-center gap-2">
                       <Heart className="h-5 w-5 text-primary" />
