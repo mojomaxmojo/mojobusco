@@ -404,7 +404,6 @@ export function TikTokPromotion() {
             })
             .filter(Boolean)
             .slice(0, articleImages.length),
-          imageCount: articleImages.length,
         }),
       })
 
