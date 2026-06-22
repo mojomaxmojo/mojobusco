@@ -2540,7 +2540,7 @@ app.post('/api/tiktok/generate-text', async (req, res) => {
   try {
     // Bild-Kontext für besseres Caption-Matching
     const locationContext = Array.isArray(locations) && locations.length > 0
-      ? '\nBILD-KONTEXT (Location pro Satz/Bild):\n' + locations.map((loc: string, i: number) => `  Bild ${i + 1}: ${loc || 'keine Location'}`).join('\n') +
+      ? '\nBILD-KONTEXT (Location pro Satz/Bild):\n' + locations.map((loc, i) => `  Bild ${i + 1}: ${loc || 'keine Location'}`).join('\n') +
         '\n→ Schreibe die Sätze in der REIHENFOLGE der Bilder – Satz 1 passt zu Bild 1, Satz 2 zu Bild 2, etc.'
       : ''
 
