@@ -207,6 +207,9 @@ export function TikTokPromotion() {
   // ── TEMPLATE ═════════════════════════════════════════════
   const [template, setTemplate] = useState<TikTokTemplate>('story')
 
+  // ── KI-MODELL ═════════════════════════════════════════════
+  const [aiModel, setAiModel] = useState<string>('claude')
+
   // ── DRAG&DROP SORTIERUNG ═════════════════════════════════
   const [sortedImages, setSortedImages] = useState<string[]>([])
 
