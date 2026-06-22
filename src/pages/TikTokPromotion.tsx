@@ -341,6 +341,9 @@ export function TikTokPromotion() {
 
     // sortedImages wird via useEffect automatisch synchronisiert
 
+    // Bildanzahl für Toast (ohne sortedImages zu überschreiben)
+    const mediaCount = items.reduce((count, item) => count + item.images.length, 0)
+
     // Titel + Summary aus allen Items kombinieren
     const titles = items.map(i => i.title).filter(Boolean)
     setArticleTitle(titles.join(' · ') || 'MojoBus Video')
@@ -367,7 +370,7 @@ export function TikTokPromotion() {
     const labels = items.map(i => i.type === 'article' ? 'Artikel' : 'Post').join(', ')
     toast({
       title: `${items.length} ${items.length === 1 ? 'Inhalt' : 'Inhalte'} ausgewählt`,
-      description: `${allImages.length} Medien aus ${items.length} ${labels}`,
+      description: `${mediaCount} Medien aus ${items.length} ${labels}`,
     })
   }
 
