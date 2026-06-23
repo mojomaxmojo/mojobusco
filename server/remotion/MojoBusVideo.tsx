@@ -25,7 +25,7 @@ import { ProgressBar } from './components/ProgressBar';
 import { AudioLayer } from './components/AudioLayer';
 import { FadeIn, FadeOut } from './components/CrossFade';
 import { StoryCaption } from './components/StoryCaption';
-import { AutoCaptions, type CaptionStyle } from './components/Captions';
+import { PerSlideCaption, type CaptionStyle } from './components/Captions';
 import { LoadFonts } from './components/Fonts';
 
 // ── NEU: 4 neue Skills ────────────────────────────────────────────────────
@@ -60,7 +60,7 @@ export interface MojoBusVideoProps {
   aspectRatio?: '16:9' | '9:16' | '1:1';
   colorGrade?: ColorGrade;
   captions?: string[];
-  captionStyle?: 'off' | CaptionStyle;
+  captionStyle?: 'off' | 'tiktok' | 'chunked' | 'full-line' | 'minimal';
   websiteUrl?: string;
   handle?: string;
   accentColor?: string;
@@ -408,14 +408,14 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
       )}
 
       // ── Auto-Captions ══════════════════════════════════════════
+      {/* ══ SCHICHT 6: Per-Slide Captions (dynamisch, synchron) ════════════════ */}
       {hasCaptions && (
-        <AutoCaptions
+        <PerSlideCaption
           captions={captions}
-          framesPerCaption={perSlide}
-          startFrame={hookFrames}
-          style={captionStyle as CaptionStyle}
+          slidesStartFrame={hookFrames}
+          slidesFrames={slidesFrames}
+          style={captionStyle as 'tiktok' | 'chunked' | 'full-line'}
           accentColor={accentColor}
-          position="bottom"
         />
       )}
 

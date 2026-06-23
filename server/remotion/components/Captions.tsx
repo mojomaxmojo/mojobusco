@@ -269,55 +269,124 @@ export const WordHighlightCaptions: React.FC<WordHighlightCaptionsProps> = ({
     </AbsoluteFill>
   );
 
-  // ── Chunked Style: 2-5 Wörter pro Chunk, Karaoke, Safe Zone ──────────────
-  if (style === 'chunked') {
-    const CHUNK_SIZE = 3;
-    const visibleChunkStart = Math.floor(activeIndex / CHUNK_SIZE) * CHUNK_SIZE;
-    const visibleChunkEnd = Math.min(visibleChunkStart + CHUNK_SIZE, words.length);
-    const chunkWords = words.slice(visibleChunkStart, visibleChunkEnd);
+  // ── PerSlide Caption (einfach, robust, dynamisch) ──────────────────────────
+//
+// Ersetzt AutoCaptions + WordHighlightCaptions für den TikTok-Fall.
+// Jeder Slide bekommt genau eine Caption, die während seiner gesamten
+// Slide-Dauer sichtbar ist. Kein Wort-Level-Timing – stattdessen wird
+// der Text Wort-für-Wort chunkweise eingeblendet (Chunk-Größe = 3).
 
-    return (
-      <AbsoluteFill style={{ pointerEvents: 'none' }}>
-        <AbsoluteFill
-          style={{
-            background: 'linear-gradient(0deg, rgba(0,0,0,0.50) 0%, transparent 22%)',
-          }}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            bottom: '35%',
-            left: '5%',
-            right: '5%',
-            display: 'flex',
-            flexWrap: 'wrap',
-            justifyContent: 'center',
-            alignItems: 'center',
-            gap: '0.1em',
-            fontSize: 'clamp(2rem, 7vw, 3rem)',
-            textShadow: '0 2px 10px rgba(0,0,0,0.9)',
-          }}
-        >
-          {chunkWords.map((word, i) => {
-            const isActive = (visibleChunkStart + i) === activeIndex;
-            return (
-              <span
-                key={`${word.text}-${visibleChunkStart + i}`}
-                style={{
-                  color: isActive ? accentColor : '#FFFFFF',
-                  fontWeight: isActive ? 900 : 700,
-                  textShadow: isActive ? `0 0 20px ${accentColor}55` : '0 2px 8px rgba(0,0,0,0.9)',
-                  transform: isActive ? 'scale(1.06)' : 'scale(1)',
-                }}
-              >
-                {word.text}{' '}
-              </span>
-            );
-          })}
-        </div>
-      </AbsoluteFill>
-    );
+interface PerSlideCaptionProps {
+  /** Array von Caption-Texten (einer pro Slide) */
+  captions: string[];
+  /** Start-Frame der Slideshow (nach Hook) */
+  slidesStartFrame: number;
+  /** Dynamische Slide-Dauern in Frames */
+  slidesFrames: number[];
+  /** Stil: 'tiktok' = Karaoke, 'chunked' = 3-Wort-Chunks */
+  style?: 'tiktok' | 'chunked' | 'full-line';
+  accentColor?: string;
+}
+
+export const PerSlideCaption: React.FC<PerSlideCaptionProps> = ({
+  captions,
+  slidesStartFrame,
+  slidesFrames,
+  style = 'chunked',
+  accentColor = '#F59E0B',
+}) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  // Aktuellen Slide finden
+  let slideIndex = -1;
+  let slideStart = slidesStartFrame;
+  for (let i = 0; i < slidesFrames.length; i++) {
+    if (frame >= slideStart && frame < slideStart + slidesFrames[i]) {
+      slideIndex = i;
+      break;
+    }
+    slideStart += slidesFrames[i];
   }
+
+  if (slideIndex === -1 || slideIndex >= captions.length) return null;
+
+  const captionText = captions[slideIndex];
+  if (!captionText || !captionText.trim()) return null;
+
+  const words = captionText.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return null;
+
+  // Wort-Timing innerhalb dieses Slides
+  const slideFrame = frame - slideStart; // Frame innerhalb dieses Slides
+  const slideDurationFrames = slidesFrames[slideIndex];
+  const perWordFrames = slideDurationFrames / words.length;
+  const activeWordIdx = Math.min(
+    Math.floor(slideFrame / perWordFrames),
+    words.length - 1
+  );
+
+  // Chunk-Fenster: 3 Wörter um das aktive herum (für 'chunked') oder alle (für 'tiktok')
+  const isChunked = style === 'chunked';
+  const windowSize = isChunked ? 3 : words.length;
+  const halfWindow = Math.floor(windowSize / 2);
+  const chunkStart = isChunked
+    ? Math.max(0, Math.min(activeWordIdx - 1, words.length - windowSize))
+    : 0;
+  const chunkEnd = isChunked
+    ? Math.min(chunkStart + windowSize, words.length)
+    : words.length;
+  const visibleWords = words.slice(chunkStart, chunkEnd);
+
+  return (
+    <AbsoluteFill style={{ pointerEvents: 'none' }}>
+      {/* Gradient unten */}
+      <AbsoluteFill
+        style={{
+          background: 'linear-gradient(0deg, rgba(0,0,0,0.50) 0%, transparent 22%)',
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          bottom: '35%',
+          left: '5%',
+          right: '5%',
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          gap: '0.15em',
+          fontSize: 'clamp(2rem, 7.5vw, 3.5rem)',
+          textShadow: '0 2px 10px rgba(0,0,0,0.9)',
+          textAlign: 'center',
+          lineHeight: 1.3,
+        }}
+      >
+        {visibleWords.map((word, i) => {
+          const globalWordIdx = chunkStart + i;
+          const isActive = globalWordIdx === activeWordIdx &&
+            (style === 'tiktok' || isChunked);
+          return (
+            <span
+              key={`${word}-${globalWordIdx}`}
+              style={{
+                color: isActive ? accentColor : '#FFFFFF',
+                fontWeight: isActive ? 900 : (style === 'full-line' ? 700 : 500),
+                textShadow: isActive
+                  ? `0 0 24px ${accentColor}66`
+                  : '0 2px 8px rgba(0,0,0,0.9)',
+                transform: isActive ? 'scale(1.08)' : 'scale(1)',
+                opacity: isChunked && !isActive && i >= windowSize - 1 ? 0.6 : 1,
+              }}
+            >
+              {word}{' '}
+            </span>
+          );
+        })}
+      </div>
+    </AbsoluteFill>
+  );
+};
 };
 
 // ── Auto Captions (einfach, ohne Paket) ──────────────────────────────────
