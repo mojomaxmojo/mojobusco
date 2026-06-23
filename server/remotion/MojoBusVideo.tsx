@@ -198,8 +198,6 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
 
   const hookFrames = 4 * fps;
   const ctaFrames  = 6 * fps;
-  const slideshowFrames = effectiveSlideshowFrames; // inkl. RouteMap wenn aktiv
-  // Gesamtlänge NICHT an Composition übergeben (die berechnet selbst)
 
   // ── Slides: inkl. extra Routen-Slide wenn showRouteMap ────────────────
   // Der Routen-Slide wird als EXTRA Slide eingefügt, ersetzt KEIN Bild
@@ -219,7 +217,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
   }
 
   const totalSlides = slideDefs.length;
-  const effectiveSlideshowFrames = slideDefs.reduce((sum, s) => sum + s.frames, 0);
+  const slideshowFrames = slideDefs.reduce((sum, s) => sum + s.frames, 0); // inkl. RouteMap
 
   const slideStartFrame = (idx: number) =>
     hookFrames + slideDefs.slice(0, idx).reduce((sum, s) => sum + s.frames, 0);
