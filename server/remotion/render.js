@@ -100,7 +100,7 @@ async function generateVoiceoverSegments(segments, voiceoverModel, voiceoverSpee
       const sizeKB = (fs.statSync(destPath).size / 1024).toFixed(0);
       console.log(`[Remotion] ✅ Segment ${i + 1}: ${filename} (${durationSec.toFixed(2)}s · ${sizeKB}KB)`);
 
-      result.push({ filename, durationSec });
+      result.push({ filename, durationSec, textLen: text.length });
     } catch (err) {
       console.warn(`[Remotion] ⚠️ Segment ${i + 1} fehlgeschlagen: ${err.message}`);
     }
@@ -125,10 +125,18 @@ async function concatVoiceoverSegments(segments, sessionDir, hookDurationSec, se
   const hookSeg = segments[0];
   const bridgeSeg = segments[segments.length - 1];
 
-  // perSlideArray berechnen: max(secondsPerImage, voiceoverDauer)
-  const perSlideArray = bodySegments.map(seg =>
-    Math.max(secondsPerImage, Math.round((seg.durationSec || secondsPerImage) * 10) / 10)
-  );
+  // perSlideArray berechnen:
+  // - Lesezeit: max(3.5s, textLen / 14 Zeichen/s + 0.5s Atempause)
+  // - Voiceover-Dauer (falls vorhanden)
+  // - User-Vorgabe (secondsPerImage)
+  // - +1s für Bildwechsel (Transition)
+  const estimateReadingTime = (textLen) => Math.max(3.5, textLen / 14 + 0.5);
+
+  const perSlideArray = bodySegments.map(seg => {
+    const readingTime = estimateReadingTime(seg.textLen || 0);
+    const audioTime = seg.durationSec || 0;
+    return Math.max(secondsPerImage, Math.round((Math.max(readingTime, audioTime) + 1) * 10) / 10);
+  });
 
   // concat.txt für ffmpeg bauen
   const concatPath = path.join(sessionDir, 'concat.txt');
