@@ -266,10 +266,11 @@ export const WordHighlightCaptions: React.FC<WordHighlightCaptionsProps> = ({
           {visibleWords.map(w => w.text).join(' ')}
         </div>
       </div>
-    </AbsoluteFill>
+</AbsoluteFill>
   );
+};
 
-  // ── PerSlide Caption (einfach, robust, dynamisch) ──────────────────────────
+// ── PerSlide Caption (einfach, robust, dynamisch) ──────────────────────────
 //
 // Ersetzt AutoCaptions + WordHighlightCaptions für den TikTok-Fall.
 // Jeder Slide bekommt genau eine Caption, die während seiner gesamten
@@ -391,7 +392,6 @@ export const PerSlideCaption: React.FC<PerSlideCaptionProps> = ({
       </div>
     </AbsoluteFill>
   );
-};
 };
 
 // ── Auto Captions (einfach, ohne Paket) ──────────────────────────────────
