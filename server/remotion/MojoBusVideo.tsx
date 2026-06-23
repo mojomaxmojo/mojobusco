@@ -198,14 +198,34 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
 
   const hookFrames = 4 * fps;
   const ctaFrames  = 6 * fps;
-  const slideshowFrames = slidesFrames.reduce((a, b) => a + b, 0);
+  const slideshowFrames = effectiveSlideshowFrames; // inkl. RouteMap wenn aktiv
   // Gesamtlänge NICHT an Composition übergeben (die berechnet selbst)
 
-  // perSlide für Legacy (wenn kein perSlideArray)
-  const perSlide = Math.round((perSlideArray?.[0] || secondsPerImage) * fps);
+  // ── Slides: inkl. extra Routen-Slide wenn showRouteMap ────────────────
+  // Der Routen-Slide wird als EXTRA Slide eingefügt, ersetzt KEIN Bild
+  const hasRouteMap = showRouteMap && images.length >= 2;
+  const routeSlideIndex = Math.floor(imageCount / 2);
+  const routeDurFrames = hasRouteMap
+    ? (slidesFrames[routeSlideIndex] || Math.round(secondsPerImage * fps))
+    : 0;
 
-  // Hilfsfunktion: Slide-i-Startframe
-  const slideStartFrame = (i: number) => hookFrames + slidesFrames.slice(0, i).reduce((a, b) => a + b, 0);
+  // Flat slide sequence: [image0, image1, ..., routeMap, imageN, ...]
+  const slideDefs: { type: 'image' | 'route'; imageIdx: number; frames: number }[] = [];
+  for (let i = 0; i < images.length; i++) {
+    if (hasRouteMap && i === routeSlideIndex) {
+      slideDefs.push({ type: 'route', imageIdx: -1, frames: routeDurFrames });
+    }
+    slideDefs.push({ type: 'image', imageIdx: i, frames: slidesFrames[i] || perSlide });
+  }
+
+  const totalSlides = slideDefs.length;
+  const effectiveSlideshowFrames = slideDefs.reduce((sum, s) => sum + s.frames, 0);
+
+  const slideStartFrame = (idx: number) =>
+    hookFrames + slideDefs.slice(0, idx).reduce((sum, s) => sum + s.frames, 0);
+
+  // perSlide für Legacy
+  const perSlide = Math.round((perSlideArray?.[0] || secondsPerImage) * fps);
 
   // ── Video-Erkennung ────────────────────────────────────────────────────
   const isVideo = (url: string) => /\.(mp4|webm|mov|avi|mkv)(\?|#|$)/i.test(url);
@@ -256,10 +276,6 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
     ? routeCoords
     : pickDemoRoute(country);
 
-  // ── Routen-Slide: in der Mitte der Slideshow (Bild 2 oder 3) ─────────
-  const routeSlideIndex = Math.floor(imageCount / 2);
-  const routeSlideStart = slideStartFrame(routeSlideIndex);
-
   return (
     <AbsoluteFill style={{ background: '#000' }}>
 
@@ -281,82 +297,39 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
           </Sequence>
         )}
 
-        {/* SLIDESHOW — jedes Bild mit dynamischer Dauer aus perSlideArray */}
-        {images.map((src, i) => {
-          const thisSlideFrames = slidesFrames[i] || perSlide;
+        {/* SLIDESHOW — alle Slides (Bilder + ggf. Routen-Karte dazwischen) */}
+        {slideDefs.map((def, i) => {
+          const isLastSlide = i === totalSlides - 1;
+          const isRoute = def.type === 'route';
           const absoluteStart = slideStartFrame(i);
-          const seqDuration = i < imageCount - 1
-            ? thisSlideFrames + TRANSITION_FRAMES
-            : thisSlideFrames;
-
-          // Routen-Slide: zeige RouteMapLine statt Bild (wenn showRouteMap)
-          const isRouteSlide     = showRouteMap && i === routeSlideIndex;
-          const isNextRouteSlide = showRouteMap && (i + 1) === routeSlideIndex;
-
-          // Aktuelles Bild (children)
-          const currentSlide = isRouteSlide ? (
-            <RouteMapLine
-              coords={effectiveRouteCoords}
-              mapImageUrl={mapImageUrl}
-              color="#FFFFFF"
-              accentColor={accentColor}
-              strokeWidth={4}
-              animType="both"
-              showLabels={true}
-              showBusMarker={true}
-              overlayOpacity={mapImageUrl ? 0.4 : 0}
-            />
-          ) : (
-            <MediaRenderer src={src} index={i + 1} />
-          );
-
-          // Nächstes Bild — nur für pagePeel benötigt
-          const nextSrc = images[i + 1];
-          const nextSlide = i < imageCount - 1 ? (
-            isNextRouteSlide ? (
-              <RouteMapLine
-                coords={effectiveRouteCoords}
-                mapImageUrl={mapImageUrl}
-                color="#FFFFFF"
-                accentColor={accentColor}
-                strokeWidth={4}
-                animType="both"
-                showLabels={true}
-                showBusMarker={true}
-                overlayOpacity={mapImageUrl ? 0.4 : 0}
-              />
-            ) : (
-              <MediaRenderer src={nextSrc} index={i + 2} />
-            )
-          ) : undefined;
+          const thisSlideFrames = def.frames;
+          const seqDuration = isLastSlide ? thisSlideFrames : thisSlideFrames + TRANSITION_FRAMES;
+          const nextDef = !isLastSlide ? slideDefs[i + 1] : undefined;
 
           return (
-            <Sequence
-              key={i}
-              from={absoluteStart}
-              durationInFrames={seqDuration}
-            >
-              <TransitionWrapper
-                type={transitionType}
-                durationFrames={TRANSITION_FRAMES}
-                imageIndex={i}
-                nextChildren={nextSlide}
-              >
-                {/* FadeOut am Ende — nicht bei pagePeel (macht es selbst) */}
-                {i < imageCount - 1 && transitionType !== 'pagePeel' ? (
-                  <FadeOut
-                    durationFrames={TRANSITION_FRAMES}
-                    totalFrames={seqDuration}
-                  >
-                    {currentSlide}
-                  </FadeOut>
-                ) : (
-                  currentSlide
-                )}
-              </TransitionWrapper>
-
-              {/* Wipe-Edge-Glow nur bei wipe/auto */}
-              {(transitionType === 'wipe' || transitionType === 'auto') && (
+            <Sequence key={`slide-${i}`} from={absoluteStart} durationInFrames={seqDuration}>
+              {isRoute ? (
+                <RouteMapLine
+                  coords={effectiveRouteCoords}
+                  mapImageUrl={mapImageUrl}
+                  color="#FFFFFF"
+                  accentColor={accentColor}
+                  strokeWidth={4}
+                  animType="both"
+                  showLabels={true}
+                  showBusMarker={true}
+                  overlayOpacity={mapImageUrl ? 0.4 : 0}
+                />
+              ) : (
+                <FadeOut
+                  durationFrames={TRANSITION_FRAMES}
+                  totalFrames={seqDuration}
+                >
+                  <MediaRenderer src={images[def.imageIdx]} index={def.imageIdx + 1} />
+                </FadeOut>
+              )}
+              {/* Wipe-Edge-Glow nur bei wipe/auto und nicht auf Route */}
+              {!isRoute && (transitionType === 'wipe' || transitionType === 'auto') && (
                 <WipeEdgeGlow
                   durationFrames={TRANSITION_FRAMES}
                   color={accentColor}
@@ -396,7 +369,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
 
       {/* ══ SCHICHT 5: Location Badge ════════════════════════════════════════ */}
       {location && imageCount >= 2 && (
-        <Sequence from={slideStartFrame(1)} durationInFrames={slidesFrames[1] + slidesFrames[2] || perSlide * 2}>
+        <Sequence from={slideStartFrame(1)} durationInFrames={slideDefs.slice(1, 3).reduce((a, b) => a + b.frames, 0) || perSlide * 2}>
           <LocationBadge
             location={location}
             country={country}
@@ -411,12 +384,15 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
       {/* ══ SCHICHT 6: Per-Slide Captions (dynamisch, synchron) ════════════════ */}
       {hasCaptions && (
         <PerSlideCaption
-          captions={captions}
+          captions={(() => {
+            const c = [...captions];
+            if (showRouteMap) c.splice(routeSlideIndex, 0, '');
+            return c;
+          })()}
           slidesStartFrame={hookFrames}
-          slidesFrames={slidesFrames}
+          slidesFrames={slideDefs.map(d => d.frames)}
           style={captionStyle as 'tiktok' | 'chunked' | 'full-line'}
           accentColor={accentColor}
-          excludeSlideIndex={showRouteMap ? routeSlideIndex : undefined}
         />
       )}
 
@@ -440,8 +416,10 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
       {/* ══ SCHICHT 8: Manuelle Captions (wenn kein AutoCaption) ═════════════ */}
       {!hasCaptions && captions.map((caption, i) => {
         if (!caption) return null;
+        const slideDef = slideDefs[i];
+        if (!slideDef || slideDef.type === 'route') return null; // Route-Slide überspringen
         const sf = slideStartFrame(i) + Math.round(fps * 0.5);
-        const ef = slideStartFrame(i) + slidesFrames[i] - Math.round(fps * 0.5);
+        const ef = slideStartFrame(i) + (slideDef.frames) - Math.round(fps * 0.5);
         return (
           <StoryCaption
             key={`cap-${i}`}
