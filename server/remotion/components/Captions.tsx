@@ -27,7 +27,7 @@ export interface CaptionWord {
   endInSeconds: number;
 }
 
-export type CaptionStyle = 'word-highlight' | 'full-line' | 'tiktok' | 'minimal';
+export type CaptionStyle = 'word-highlight' | 'full-line' | 'tiktok' | 'minimal' | 'chunked';
 
 interface AutoCaptionsProps {
   /** Array von Caption-Texten (einer pro Bild oder freier Text) */
@@ -268,6 +268,87 @@ export const WordHighlightCaptions: React.FC<WordHighlightCaptionsProps> = ({
       </div>
     </AbsoluteFill>
   );
+
+  // ── Chunked Style: 2-5 Wörter pro Chunk, Karaoke, Safe Zone ──────────────
+  if (style === 'chunked') {
+    const CHUNK_SIZE = 3; // 2-5 Wörter pro Chunk, optimal 3
+    const visibleChunkStart = Math.floor(activeIndex / CHUNK_SIZE) * CHUNK_SIZE;
+    const visibleChunkEnd = Math.min(visibleChunkStart + CHUNK_SIZE, words.length);
+    const chunkWords = words.slice(visibleChunkStart, visibleChunkEnd);
+
+    // Zeilenumbruch bei ~22 Zeichen
+    const lines: string[][] = [[]];
+    let lineLen = 0;
+    for (const w of chunkWords) {
+      const wLen = w.text.length + 1;
+      if (lineLen + wLen > 22 && lines[lines.length - 1].length > 0) {
+        lines.push([w]);
+        lineLen = wLen;
+      } else {
+        lines[lines.length - 1].push(w);
+        lineLen += wLen;
+      }
+    }
+
+    return (
+      <AbsoluteFill style={{ pointerEvents: 'none' }}>
+        <AbsoluteFill
+          style={{
+            background: 'linear-gradient(0deg, rgba(0,0,0,0.50) 0%, transparent 22%)',
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '35%', /* Safe Zone – weg von Username/Buttons unten */
+            left: '8%',
+            right: '8%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {lines.map((line, li) => (
+            <div
+              key={li}
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                flexWrap: 'nowrap',
+                gap: '0.15em',
+                fontSize: 'clamp(1.8rem, 7vw, 3rem)',
+                lineHeight: 1.2,
+                marginBottom: li < lines.length - 1 ? '0.15em' : '0',
+              }}
+            >
+              {line.map((word) => {
+                const globalIdx = visibleChunkStart + chunkWords.indexOf(word);
+                const isActive = globalIdx === activeIndex;
+                return (
+                  <span
+                    key={`${word.text}-${globalIdx}`}
+                    style={{
+                      color: isActive ? accentColor : 'rgba(255,255,255,0.85)',
+                      fontWeight: isActive ? FONT_WEIGHT.black : FONT_WEIGHT.bold,
+                      textShadow: isActive
+                        ? `0 0 24px ${accentColor}66`
+                        : '0 2px 8px rgba(0,0,0,0.9)',
+                      transform: isActive ? 'scale(1.06)' : 'scale(1)',
+                      transition: 'all 0.08s ease',
+                      letterSpacing: isActive ? '-0.01em' : '0em',
+                    }}
+                  >
+                    {word.text}{' '}
+                  </span>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </AbsoluteFill>
+    );
+  }
 };
 
 // ── Auto Captions (einfach, ohne Paket) ──────────────────────────────────

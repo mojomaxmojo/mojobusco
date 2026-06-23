@@ -527,7 +527,7 @@ export function TikTokPromotion() {
       secondsPerImage,
       aspectRatio: '9:16',
       captions,
-      captionStyle: 'tiktok',          // TikTok-Stil: Wort für Wort
+      captionStyle: 'chunked',        // Chunked: 2-5 Wörter, Karaoke, 35% Safe Zone
       websiteUrl: 'mojobus.co',
       handle: '@mojobus',
       accentColor: '#F59E0B',
