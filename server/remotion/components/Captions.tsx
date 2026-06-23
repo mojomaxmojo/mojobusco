@@ -286,6 +286,8 @@ interface PerSlideCaptionProps {
   /** Stil: 'tiktok' = Karaoke, 'chunked' = 3-Wort-Chunks */
   style?: 'tiktok' | 'chunked' | 'full-line';
   accentColor?: string;
+  /** Slide-Index der ausgeblendet werden soll (z.B. Routen-Karte) */
+  excludeSlideIndex?: number;
 }
 
 export const PerSlideCaption: React.FC<PerSlideCaptionProps> = ({
@@ -294,6 +296,7 @@ export const PerSlideCaption: React.FC<PerSlideCaptionProps> = ({
   slidesFrames,
   style = 'chunked',
   accentColor = '#F59E0B',
+  excludeSlideIndex,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -309,7 +312,9 @@ export const PerSlideCaption: React.FC<PerSlideCaptionProps> = ({
     slideStart += slidesFrames[i];
   }
 
+  // Keine Caption wenn: kein Slide, kein Text, oder exkludierter Slide
   if (slideIndex === -1 || slideIndex >= captions.length) return null;
+  if (excludeSlideIndex !== undefined && slideIndex === excludeSlideIndex) return null;
 
   const captionText = captions[slideIndex];
   if (!captionText || !captionText.trim()) return null;

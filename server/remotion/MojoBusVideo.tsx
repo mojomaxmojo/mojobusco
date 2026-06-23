@@ -416,6 +416,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
           slidesFrames={slidesFrames}
           style={captionStyle as 'tiktok' | 'chunked' | 'full-line'}
           accentColor={accentColor}
+          excludeSlideIndex={showRouteMap ? routeSlideIndex : undefined}
         />
       )}
 

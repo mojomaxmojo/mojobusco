@@ -502,11 +502,14 @@ export function TikTokPromotion() {
 
     // Music-URL
     let musicUrl = undefined
-    if (selectedTrack && selectedTrack !== '__none__' && selectedTrack !== '__random__') {
+    const noMusic = selectedTrack === '__none__'
+    if (!noMusic && selectedTrack && selectedTrack !== '__random__') {
       const track = musicTracks.find(t => t.filename === selectedTrack)
       if (track) musicUrl = track.url
     }
-    // Wenn '__random__' oder nichts ausgewählt → Server wählt zufällig
+    // noMusic=true → kein Musik-Track
+    // musicUrl=undefined + noMusic=false → Server wählt zufällig
+    // musicUrl=definiert → bestimmter Track
 
     // Beat-Sync
     const beatSyncVal = beatSync === 'none' ? 0
@@ -530,6 +533,7 @@ export function TikTokPromotion() {
       captionStyle: 'chunked',        // Chunked: 2-5 Wörter, Karaoke, 35% Safe Zone
       websiteUrl: 'mojobus.co',
       handle: '@mojobus',
+      noMusic,                     // true = kein Musik-Track
       accentColor: '#F59E0B',
       beatSyncStrength: beatSyncVal,
       transitionType: transitionType || 'auto',

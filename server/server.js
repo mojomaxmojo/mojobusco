@@ -2202,7 +2202,8 @@ app.post('/api/render-remotion', async (req, res) => {
     location,
     country,
     lifestyle = 'mojobus',
-    musicUrl,
+musicUrl,
+    noMusic = false,           // true = "Keine Musik" ausgewählt
     secondsPerImage = 5,
     aspectRatio = '16:9',
     colorGrade,
@@ -2282,9 +2283,9 @@ app.post('/api/render-remotion', async (req, res) => {
     try {
       const renderer = await getRemotionRenderer()
 
-      // Musik-URL: entweder übergeben oder aus lokalem music/-Ordner
-      let resolvedMusicUrl = musicUrl
-      if (!resolvedMusicUrl) {
+      // Musik-URL: nur wenn nicht "Keine Musik"
+      let resolvedMusicUrl = noMusic ? null : (musicUrl || null)
+      if (!noMusic && !resolvedMusicUrl) {
         // Zufälligen lokalen Track suchen
         try {
           const musicFiles = fs.readdirSync(MUSIC_DIR).filter(f =>
