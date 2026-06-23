@@ -45,10 +45,10 @@ async function getRemotionRenderer() {
 const remotionJobs = new Map()
 // { jobId: { status, progress, outputPath, fileSizeMB, videoDurationSec, error, created } }
 
-// Cleanup alter Jobs alle 30 Minuten
+// Cleanup alter Jobs alle 30 Minuten (behalte 24h)
 setInterval(() => {
   const now = Date.now()
-  const maxAge = 60 * 60 * 1000 // 1 Stunde
+  const maxAge = 24 * 60 * 60 * 1000 // 24 Stunden
   for (const [jobId, job] of remotionJobs) {
     if (now - job.created > maxAge) {
       remotionJobs.delete(jobId)
@@ -2409,7 +2409,7 @@ app.get('/api/render-remotion/download/:jobId', (req, res) => {
   stream.pipe(res)
 
   stream.on('end', () => {
-    // Nach Download aufräumen (async, nach 30 Sek damit Re-Downloads möglich)
+    // Nach 24h aufräumen (User hat genug Zeit zum Download)
     setTimeout(() => {
       try {
         if (fs.existsSync(job.outputPath)) {
@@ -2417,7 +2417,7 @@ app.get('/api/render-remotion/download/:jobId', (req, res) => {
           console.log(`[Remotion] Cleanup: ${job.outputPath}`)
         }
       } catch (e) { /* ignorieren */ }
-    }, 30000)
+    }, 24 * 60 * 60 * 1000) // 24h
   })
 })
 

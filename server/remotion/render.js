@@ -490,52 +490,49 @@ async function downloadAllImages(imageUrls, sessionDir) {
 
   console.log(`[Remotion] Download: ${imageUrls.length} Bilder`);
   const t = Date.now();
-  const localFilenames = []; // nur Dateinamen, Port kommt später
 
-  for (let i = 0; i < imageUrls.length; i++) {
+  // Parallel download: alle Bilder gleichzeitig (concurrency via Promise.allSettled)
+  // Bilder liegen auf demselben VPS (relay.mojobus.co) → schnelle HTTP-Latenz
+  const downloadOne = async (i) => {
     const url = imageUrls[i];
     const tempPath = path.join(sessionDir, `img-${String(i).padStart(3, '0')}.tmp`);
-
     try {
       const { filePath, contentType } = await downloadFileWithType(url, tempPath);
       const ext = getImageExtension(url, contentType);
       const filename = `img-${String(i).padStart(3, '0')}${ext}`;
       const finalPath = path.join(sessionDir, filename);
-
       fs.renameSync(filePath, finalPath);
       try { fs.chmodSync(finalPath, 0o644); } catch (e) {}
-
       const sizeKB = (fs.statSync(finalPath).size / 1024).toFixed(0);
       console.log(`[Remotion] ✓ Bild ${i + 1}/${imageUrls.length}: ${filename} ${sizeKB}KB`);
-      localFilenames.push(filename);
+      return filename;
     } catch (err) {
       console.error(`[Remotion] ✗ Bild ${i + 1} fehlgeschlagen: ${err.message}`);
-      // Fallback: ersten erfolgreichen Namen nochmal nutzen
-      if (localFilenames.length > 0) {
-        localFilenames.push(localFilenames[0]);
-        console.log(`[Remotion]   → Fallback auf ${localFilenames[0]}`);
-      } else {
-        localFilenames.push(null);
-      }
+      return null;
     }
-  }
+  };
+
+  // Alle parallel starten
+  const results = await Promise.allSettled(
+    imageUrls.map((_, i) => downloadOne(i))
+  );
+  const localFilenames = results.map(r => r.status === 'fulfilled' ? r.value : null);
 
   const valid = localFilenames.filter(Boolean);
   if (valid.length === 0) {
     throw new Error('Kein Bild heruntergeladen.');
   }
 
-  // null ersetzen
+  // null ersetzen durch erstes gültiges
   const result = localFilenames.map(f => f ?? valid[0]);
   console.log(`[Remotion] ${valid.length}/${imageUrls.length} Bilder in ${((Date.now() - t) / 1000).toFixed(1)}s`);
 
-  // Verzeichnis-Inhalt zur Diagnose
   try {
     const files = fs.readdirSync(sessionDir);
     console.log(`[Remotion] Dateien: ${files.join(', ')}`);
   } catch (e) {}
 
-  return result; // Array von Dateinamen (relativ zum sessionDir)
+  return result;
 }
 
 // ── Audio-Datei herunterladen ─────────────────────────────────────────────
@@ -935,7 +932,7 @@ export function cleanupRender(outputPath) {
   }
 }
 
-export function cleanupOldRenders(maxAgeMs = 60 * 60 * 1000) {
+export function cleanupOldRenders(maxAgeMs = 24 * 60 * 60 * 1000) { // 24h statt 1h
   try {
     const now = Date.now();
     for (const dir of [OUTPUT_DIR, IMAGES_DIR]) {
