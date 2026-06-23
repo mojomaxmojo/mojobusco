@@ -108,6 +108,105 @@ async function generateVoiceoverSegments(segments, voiceoverModel, voiceoverSpee
 
   return result.length > 0 ? result : null;
 }
+
+// ── Voiceover-Segmente zu einer Datei concatten mit exakten Offsets ─────
+//
+// Erzeugt eine einzige voiceover_sync.mp3, bei der jedes Segment genau zu
+// seinem Slide-Offset startet. Dazwischen wird Stille (silence) eingefügt.
+// Returnt { voiceoverFilename, perSlideArray }.
+
+async function concatVoiceoverSegments(segments, sessionDir, hookDurationSec, secondsPerImage, bridgeDurationSec) {
+  if (!segments || segments.length === 0) return null;
+
+  // segments = [{ filename, durationSec }, ...]
+  // Hook + BodyLines + Bridge → segments[0] = Hook, segments[1..N-1] = Body, segments[N-1] = Bridge
+
+  const bodySegments = segments.slice(1, -1); // alles außer Hook + Bridge
+  const hookSeg = segments[0];
+  const bridgeSeg = segments[segments.length - 1];
+
+  // perSlideArray berechnen: max(secondsPerImage, voiceoverDauer)
+  const perSlideArray = bodySegments.map(seg =>
+    Math.max(secondsPerImage, Math.round((seg.durationSec || secondsPerImage) * 10) / 10)
+  );
+
+  // concat.txt für ffmpeg bauen
+  const concatPath = path.join(sessionDir, 'concat.txt');
+  const lines = [];
+
+  // Hook-Segment (0 bis hookDurationSec)
+  if (hookSeg) {
+    lines.push(`file '${hookSeg.filename}'`);
+    const silenceAfterHook = Math.max(0, hookDurationSec - hookSeg.durationSec);
+    if (silenceAfterHook > 0.1) {
+      // Stille bis zum Ende des Hook-Blocks
+      lines.push(`duration ${silenceAfterHook.toFixed(2)}`);
+      lines.push(`file 'silence.mp3'`);
+    }
+  }
+
+  // Body-Segmente (eins pro Slide)
+  for (let i = 0; i < bodySegments.length; i++) {
+    const seg = bodySegments[i];
+    const slideDur = perSlideArray[i];
+    lines.push(`file '${seg.filename}'`);
+    const silenceAfter = Math.max(0, slideDur - (seg.durationSec || 0));
+    if (silenceAfter > 0.1) {
+      lines.push(`duration ${silenceAfter.toFixed(2)}`);
+      lines.push(`file 'silence.mp3'`);
+    }
+  }
+
+  // Bridge-Segment
+  if (bridgeSeg) {
+    lines.push(`file '${bridgeSeg.filename}'`);
+    const silenceAfterBridge = Math.max(0, bridgeDurationSec - bridgeSeg.durationSec);
+    if (silenceAfterBridge > 0.1) {
+      lines.push(`duration ${silenceAfterBridge.toFixed(2)}`);
+      lines.push(`file 'silence.mp3'`);
+    }
+  }
+
+  fs.writeFileSync(concatPath, lines.join('\n') + '\n');
+  console.log(`[Remotion] concat.txt:\n${lines.join('\n')}`);
+
+  // Silence-Datei erzeugen (1 Sekunde Stille)
+  const silencePath = path.join(sessionDir, 'silence.mp3');
+  try {
+    execSync(
+      `${FFMPEG_PATH} -f lavfi -i anullsrc=r=24000:cl=mono -t 1 -q:a 9 -y "${silencePath}"`,
+      { timeout: 10000 }
+    );
+  } catch (e) {
+    console.warn('[Remotion] Silence-Generierung fehlgeschlagen:', e.message);
+    // Fallback: leere Datei
+    fs.writeFileSync(silencePath, '');
+  }
+
+  // Concat
+  const outputPath = path.join(sessionDir, 'voiceover_sync.mp3');
+  try {
+    execSync(
+      `${FFMPEG_PATH} -f concat -safe 0 -i "${concatPath}" -c copy -y "${outputPath}"`,
+      { timeout: 30000 }
+    );
+    const sizeKB = (fs.statSync(outputPath).size / 1024).toFixed(0);
+    console.log(`[Remotion] ✅ voiceover_sync.mp3 (${sizeKB}KB) – ${perSlideArray.length} Slides`);
+
+    // Aufräumen: Einzel-Segmente löschen, silence behalten
+    for (const seg of segments) {
+      try { fs.unlinkSync(path.join(sessionDir, seg.filename)); } catch (e) {}
+    }
+
+    return {
+      voiceoverFilename: 'voiceover_sync.mp3',
+      perSlideArray,
+    };
+  } catch (e) {
+    console.error('[Remotion] ❌ Concat fehlgeschlagen:', e.message);
+    return null;
+  }
+}
 // ── Ambient Sounds (optional) ──────────────────────────────────────────────
 import { generateAmbient } from './ambient.js';
 
@@ -591,7 +690,8 @@ export async function renderMojoBusVideo(params) {
   let imageFilenames;
   let audioFilename = null;
   let mapFilename   = null;
-  let voiceoverSegments = null; // [{ filename, durationSec }, ...]
+  let perSlideArray = null;     // dynamische Slide-Dauern aus Voiceover
+  let voiceoverSyncFilename = null; // Eine fertig getaktete voiceover_sync.mp3
 
   try {
     [imageFilenames, audioFilename, mapFilename] = await Promise.all([
@@ -600,50 +700,42 @@ export async function renderMojoBusVideo(params) {
       mapImageUrl ? downloadMapImage(mapImageUrl, sessionDir) : Promise.resolve(null),
     ]);
 
-    // Voiceover (TTS) – nur wenn Text übergeben wurde
-    // Voiceover (TTS) – nur wenn Segmente übergeben wurden
-    // Engine-Auswahl: automatisch aus Modell-Präfix ableiten
-    // 'de-DE-*' → Edge TTS (primär) | 'de_DE-*' → Piper (Fallback)
+    // ── Voiceover: Segmente generieren + concatten ─────────────────────────
+    // 1. Jeder Satz wird einzeln per TTS generiert (generateVoiceoverSegments)
+    // 2. Alle Segmente werden via ffmpeg concat zu voiceover_sync.mp3
+    //    Dazwischen wird Stille eingefügt, sodass jeder Satz genau bei seinem
+    //    Slide-Offset startet.
+    // 3. perSlideArray[i] = max(secondsPerImage, voiceoverDuration[i])
     const effectiveEngine = voiceoverEngine || (voiceoverModel && voiceoverModel.startsWith('de-DE-') ? 'edge' : 'piper');
 
-    // ── NEU: Per-Segment Voiceover ─────────────────────────────────────────
-    // voiceoverSegments[] wird als Array von Strings erwartet (ein Satz pro Segment).
-    // Jedes Segment wird einzeln generiert und bekommt eine eigene Datei.
-    // Das ermöglicht: Satz 1 läuft bei Bild 1, Satz 2 bei Bild 2, etc.
-    let voiceoverSegments = null; // [{ filename, durationSec }, ...]
+    // voiceoverSegmentsInput kommt vom Frontend (Array von Strings)
+    const hasSegments = voiceoverSegmentsInput && voiceoverSegmentsInput.length > 0;
+    const hasText = voiceoverText && voiceoverText.trim();
 
-    if (voiceoverSegmentsInput && voiceoverSegmentsInput.length > 0) {
-      try {
-        const validSegments = voiceoverSegmentsInput.filter(s => s && s.trim());
-        console.log(`[Remotion] 🎙️ Generiere ${validSegments.length} Voiceover-Segmente (${effectiveEngine})`);
-        voiceoverSegments = await generateVoiceoverSegments(
-          validSegments,
-          voiceoverModel,
-          voiceoverSpeed,
-          effectiveEngine,
-          sessionDir
+    if (hasSegments || hasText) {
+      const segments = hasSegments
+        ? voiceoverSegmentsInput.filter(s => s && s.trim())
+        : [voiceoverText.trim()];
+
+      console.log(`[Remotion] 🎙️ Generiere ${segments.length} Voiceover-Segmente (${effectiveEngine})`);
+
+      const rawSegments = await generateVoiceoverSegments(
+        segments, voiceoverModel, voiceoverSpeed, effectiveEngine, sessionDir
+      );
+
+      if (rawSegments && rawSegments.length > 0) {
+        // Concat: eine Datei mit exakten Offsets
+        // hookDurationSec = 4 (Hook-Bereich)
+        // bridgeDurationSec = 6 (CTA-Bereich)
+        const concatResult = await concatVoiceoverSegments(
+          rawSegments, sessionDir, 4, secondsPerImage, 6
         );
-        if (voiceoverSegments) {
-          console.log(`[Remotion] ✅ ${voiceoverSegments.length} Segmente generiert`);
-        } else {
-          console.warn('[Remotion] ⚠️ Kein Voiceover-Segment konnte generiert werden');
+
+        if (concatResult) {
+          voiceoverSyncFilename = concatResult.voiceoverFilename;
+          perSlideArray = concatResult.perSlideArray;
+          console.log(`[Remotion] ✅ Voiceover-Sync: ${voiceoverSyncFilename}, perSlideArray=[${perSlideArray.join(', ')}]`);
         }
-      } catch (ttsErr) {
-        console.warn(`[Remotion] ⚠️ Voiceover fehlgeschlagen: ${ttsErr.message} – fahre ohne fort`);
-      }
-    } else if (voiceoverText && voiceoverText.trim()) {
-      // Legacy-Fallback: einzelner Text als ein Segment
-      console.warn('[Remotion] ⚠️ voiceoverText (String) ist deprecated – nutze voiceoverSegments[]');
-      try {
-        voiceoverSegments = await generateVoiceoverSegments(
-          [voiceoverText.trim()],
-          voiceoverModel,
-          voiceoverSpeed,
-          effectiveEngine,
-          sessionDir
-        );
-      } catch (ttsErr) {
-        console.warn(`[Remotion] ⚠️ Voiceover (Legacy) fehlgeschlagen: ${ttsErr.message}`);
       }
     }
 
@@ -671,7 +763,7 @@ export async function renderMojoBusVideo(params) {
   let httpImageUrls;
   let httpMusicUrl;
   let httpMapImageUrl;
-  let httpVoiceoverUrls = null;
+  let httpVoiceoverUrl = null;  // Single voiceover_sync.mp3 (concat)
   let httpAmbientUrl = null;
 
   try {
@@ -688,14 +780,10 @@ export async function renderMojoBusVideo(params) {
       : musicUrl || null;
     if (httpMusicUrl) console.log(`[Remotion] Audio-URL: ${httpMusicUrl}`);
 
-    // Voiceover-URLs: mehrere Segmente
-    let httpVoiceoverUrls = null;
-    if (voiceoverSegments && voiceoverSegments.length > 0) {
-      httpVoiceoverUrls = voiceoverSegments.map(seg => ({
-        url: `${base}/${seg.filename}`,
-        durationSec: seg.durationSec,
-      }));
-      console.log(`[Remotion] Voiceover: ${httpVoiceoverUrls.length} Segmente, erstes: ${httpVoiceoverUrls[0].url}`);
+    // Voiceover-URL: Einzel-Datei (concat)
+    if (voiceoverSyncFilename) {
+      httpVoiceoverUrl = `${base}/${voiceoverSyncFilename}`;
+      console.log(`[Remotion] Voiceover-URL: ${httpVoiceoverUrl}`);
     }
 
     // Ambient-URL: lokal wenn generiert (ambient.wav)
@@ -726,7 +814,8 @@ export async function renderMojoBusVideo(params) {
       imageUrls: httpImageUrls,             // ← HTTP statt file://
       title, summary, location, country, lifestyle,
       musicUrl: httpMusicUrl,               // ← Lokal gecacht!
-      voiceoverUrls: httpVoiceoverUrls,     // ← Per-Segment Voiceover!
+      voiceoverUrl: httpVoiceoverUrl,       // ← Eine getaktete Datei!
+      perSlideArray,                        // ← Dynamische Slide-Dauern
       voiceoverVolume,                      // ← Lautstärke 0-1
       ambientUrl: httpAmbientUrl,           // ← Lokale Atmo-Spur!
       secondsPerImage, aspectRatio, colorGrade,

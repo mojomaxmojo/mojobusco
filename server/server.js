@@ -2559,11 +2559,12 @@ TEMPLATE: ${template === 'story' ? 'Story (Atmosphäre, Emotion, minimaler Text)
             'Story'}
 
 ANZAHL BILDER: ${imageCount}
-→ Erstelle EXAKT ${imageCount} Body-Sätze, einen pro Bild.
+→ Erstelle EXAKT ${imageCount} Zeilen, **eine Zeile pro Bild. Niemals zwei Sätze in eine Zeile!**
+Jede Zeile ist genau ein atmosphärischer Satz – nie zwei Sätze durch Punkt getrennt.
 
 REGELN FÜR DIESES VIDEO:
 - HOOK (0-2s): Eine provokante Frage oder Behauptung die neugierig macht.
-- BODY: EXAKT ${imageCount} Sätze (einer pro Bild). Jeder Satz ist eigenständig und beschreibt einen Moment.
+- BODY: EXAKT ${imageCount} Zeilen (eine pro Bild). **Jede Zeile = ein Satz. Keine Punkte innerhalb einer Zeile, kein "." mitten in der Zeile!** Jeder Satz ist eigenständig und beschreibt einen Moment.
 - BRIDGE (22-27s): "Mehr davon auf mojobus.co" oder ähnlich – mach neugierig auf den Blog.
 - CTA (27-30s): "Link in Bio 📌" oder ähnlich.
 - HASHTAGS: 4-5 relevante Hashtags.

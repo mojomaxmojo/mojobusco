@@ -480,6 +480,8 @@ export function TikTokPromotion() {
       .split('\n')
       .filter(l => l.trim())
       .map(l => l.trim())
+      // Max so viele Zeilen wie Bilder – Überhang weg
+      .slice(0, articleImages.length)
 
     // Captions: HookCaption wird separat übergeben, Body/Bridge/CTA als Array
     const captions = [
@@ -804,7 +806,7 @@ export function TikTokPromotion() {
 
   // ── VOICEOVER SEGMENTS (pro Slide) ════════════════════
   const voiceoverSegmentsArray = voiceoverEnabled
-    ? [hookText, ...bodyText.split('\n').filter(l => l.trim()), bridgeText].filter(s => s.trim())
+    ? [hookText, ...bodyText.split('\n').filter(l => l.trim()).slice(0, Math.max(0, articleImages.length)), bridgeText].filter(s => s.trim())
     : []
 
   // ── BILDER FILTERN ═════════════════════════════════════

@@ -67,9 +67,11 @@ export interface MojoBusVideoProps {
   motionBlurStrength?: number;
 
   // ── NEU: Voiceover (Piper TTS) ───────────────────────────────────────
-  // ── NEU: Voiceover (Per-Slide Segmente) ────────────────────────────────
-  /** Array von {url, durationSec} – ein Segment pro Slide */
-  voiceoverUrls?: { url: string; durationSec: number }[];
+// ── NEU: Voiceover (concat) + dynamische Slides ────────────────────────────
+  /** URL der getakteten voiceover_sync.mp3 (alle Segmente concat) */
+  voiceoverUrl?: string;
+  /** Dynamische Slide-Dauern (Sekunden pro Bild, min = secondsPerImage) */
+  perSlideArray?: number[];
   /** Lautstärke des Voiceover 0-1 (Default: 1.0) */
   voiceoverVolume?: number;
   /** URL der generierten Atmo-Spur (wav) – Meer, Regen, Wind etc. */
@@ -167,7 +169,8 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
   showLottieBus = true,
 
   // Voiceover
-  voiceoverUrls,
+  voiceoverUrl,
+  perSlideArray,
   voiceoverVolume = 1.0,
   // Ambient
   ambientUrl,
@@ -183,11 +186,23 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
   const images     = imageUrls.slice(0, 20);
   const imageCount = images.length;
 
-  const { hookFrames, ctaFrames, slideshowFrames } = calculateDuration(
-    imageCount, fps, secondsPerImage
-  );
+  // Dynamische perSlide: perSlideArray vom Server, sonst fix von secondsPerImage
+  // Die Dauer ist in Sekunden – in Frames umrechnen
+  const slidesSec = perSlideArray && perSlideArray.length === imageCount
+    ? perSlideArray
+    : new Array(imageCount).fill(secondsPerImage);
+  const slidesFrames = slidesSec.map(s => Math.round(s * fps));
 
-  const perSlide = Math.round(secondsPerImage * fps);
+  const hookFrames = 4 * fps;
+  const ctaFrames  = 6 * fps;
+  const slideshowFrames = slidesFrames.reduce((a, b) => a + b, 0);
+  // Gesamtlänge NICHT an Composition übergeben (die berechnet selbst)
+
+  // perSlide für Legacy (wenn kein perSlideArray)
+  const perSlide = Math.round((perSlideArray?.[0] || secondsPerImage) * fps);
+
+  // Hilfsfunktion: Slide-i-Startframe
+  const slideStartFrame = (i: number) => hookFrames + slidesFrames.slice(0, i).reduce((a, b) => a + b, 0);
 
   // ── Video-Erkennung ────────────────────────────────────────────────────
   const isVideo = (url: string) => /\.(mp4|webm|mov|avi|mkv)(\?|#|$)/i.test(url);
@@ -239,9 +254,8 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
     : pickDemoRoute(country);
 
   // ── Routen-Slide: in der Mitte der Slideshow (Bild 2 oder 3) ─────────
-  // Wir nehmen den mittleren Slide als Routen-Karte
   const routeSlideIndex = Math.floor(imageCount / 2);
-  const routeSlideStart = hookFrames + routeSlideIndex * perSlide;
+  const routeSlideStart = slideStartFrame(routeSlideIndex);
 
   return (
     <AbsoluteFill style={{ background: '#000' }}>
@@ -264,12 +278,13 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
           </Sequence>
         )}
 
-        {/* SLIDESHOW — jedes Bild mit TransitionWrapper */}
+        {/* SLIDESHOW — jedes Bild mit dynamischer Dauer aus perSlideArray */}
         {images.map((src, i) => {
-          const absoluteStart = hookFrames + i * perSlide;
+          const thisSlideFrames = slidesFrames[i] || perSlide;
+          const absoluteStart = slideStartFrame(i);
           const seqDuration = i < imageCount - 1
-            ? perSlide + TRANSITION_FRAMES
-            : perSlide;
+            ? thisSlideFrames + TRANSITION_FRAMES
+            : thisSlideFrames;
 
           // Routen-Slide: zeige RouteMapLine statt Bild (wenn showRouteMap)
           const isRouteSlide     = showRouteMap && i === routeSlideIndex;
@@ -378,18 +393,18 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
 
       {/* ══ SCHICHT 5: Location Badge ════════════════════════════════════════ */}
       {location && imageCount >= 2 && (
-        <Sequence from={hookFrames + perSlide} durationInFrames={perSlide * 2}>
+        <Sequence from={slideStartFrame(1)} durationInFrames={slidesFrames[1] + slidesFrames[2] || perSlide * 2}>
           <LocationBadge
             location={location}
             country={country}
             fromFrame={10}
-            toFrame={perSlide * 2 - 10}
+            toFrame={(slidesFrames[1] + slidesFrames[2] || perSlide * 2) - 10}
             position="bottom-left"
           />
         </Sequence>
       )}
 
-      {/* ══ SCHICHT 6: Auto-Captions ══════════════════════════════════════════ */}
+      // ── Auto-Captions ══════════════════════════════════════════
       {hasCaptions && (
         <AutoCaptions
           captions={captions}
@@ -404,8 +419,8 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
       {/* ══ SCHICHT 7: Summary Subtitle (Mitte, ohne Captions) ═══════════════ */}
       {summary && imageCount >= 3 && !hasCaptions && (
         <Sequence
-          from={hookFrames + Math.floor(imageCount / 2) * perSlide}
-          durationInFrames={perSlide}
+          from={slideStartFrame(Math.floor(imageCount / 2))}
+          durationInFrames={slidesFrames[Math.floor(imageCount / 2)] || perSlide}
         >
           <StoryCaption
             text={summary.slice(0, 80)}
@@ -421,8 +436,8 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
       {/* ══ SCHICHT 8: Manuelle Captions (wenn kein AutoCaption) ═════════════ */}
       {!hasCaptions && captions.map((caption, i) => {
         if (!caption) return null;
-        const sf = hookFrames + i * perSlide + Math.round(fps * 0.5);
-        const ef = hookFrames + (i + 1) * perSlide - Math.round(fps * 0.5);
+        const sf = slideStartFrame(i) + Math.round(fps * 0.5);
+        const ef = slideStartFrame(i) + slidesFrames[i] - Math.round(fps * 0.5);
         return (
           <StoryCaption
             key={`cap-${i}`}
@@ -498,20 +513,15 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
         />
       )}
 
-      {/* ══ SCHICHT 11b: Audio (Voiceover) – Per-Slide Segmente ═══ */}
-      {voiceoverUrls?.map((seg, i) => {
-        // Segment 0 = Hook, Segmente 1..N = Body, letztes = Bridge
-        const isHook = i === 0;
-        const startFrame = isHook ? 0 : hookFrames + (i - (hookCaption ? 1 : 0)) * perSlide;
-        const durFrames = isHook
-          ? hookFrames
-          : Math.max(Math.round((seg.durationSec || 3) * fps), Math.round(3 * fps)); // min 3s
-        return (
-          <Sequence key={`vo-${i}`} from={startFrame} durationInFrames={durFrames}>
-            <AudioLayer src={seg.url} volume={voiceoverVolume} fadeInSec={0.1} fadeOutSec={0.2} />
-          </Sequence>
-        );
-      })}
+      {/* ══ SCHICHT 11b: Audio (Voiceover) – eine getaktete Datei ═══ */}
+      {voiceoverUrl && (
+        <AudioLayer
+          src={voiceoverUrl}
+          volume={voiceoverVolume}
+          fadeInSec={0.1}
+          fadeOutSec={0.5}
+        />
+      )}
 
       {/* ══ SCHICHT 11c: Audio (Ambient/Atmo) – leise im Hintergrund ════ */}
       {ambientUrl && (
