@@ -57,15 +57,16 @@ const RemotionRoot: React.FC = () => {
           const { totalFrames } = calculateDuration(
             props.imageUrls.length,
             FPS,
-            props.secondsPerImage ?? 5
+            props.secondsPerImage ?? 5,
+            (props as any).perSlideArray
           );
           return { durationInFrames: totalFrames };
         }}
       />
 
       {/* 9:16 — Instagram Reels / TikTok
-          1080×1920 bleibt — das ist der native Standard für Reels/TikTok.
-          Kleinere Auflösung würde sichtbar schlechter aussehen. */}
+           1080×1920 bleibt — das ist der native Standard für Reels/TikTok.
+           Kleinere Auflösung würde sichtbar schlechter aussehen. */}
       <Composition
         id="MojoBusVideo-9-16"
         component={MojoBusVideo}
@@ -82,15 +83,16 @@ const RemotionRoot: React.FC = () => {
           const { totalFrames } = calculateDuration(
             props.imageUrls.length,
             FPS,
-            props.secondsPerImage ?? 5
+            props.secondsPerImage ?? 5,
+            (props as any).perSlideArray
           );
           return { durationInFrames: totalFrames };
         }}
       />
 
       {/* 1:1 — Instagram Feed
-          1080×1080 bleibt — Instagram Feed Standard.
-          Könnte auf 720×720 reduziert werden aber 1080 ist der offizielle Standard. */}
+           1080×1080 bleibt — Instagram Feed Standard.
+           Könnte auf 720×720 reduziert werden aber 1080 ist der offizielle Standard. */}
       <Composition
         id="MojoBusVideo-1-1"
         component={MojoBusVideo}
@@ -107,7 +109,8 @@ const RemotionRoot: React.FC = () => {
           const { totalFrames } = calculateDuration(
             props.imageUrls.length,
             FPS,
-            props.secondsPerImage ?? 5
+            props.secondsPerImage ?? 5,
+            (props as any).perSlideArray
           );
           return { durationInFrames: totalFrames };
         }}

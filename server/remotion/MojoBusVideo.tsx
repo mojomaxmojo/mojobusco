@@ -123,12 +123,15 @@ export interface MojoBusVideoProps {
 export function calculateDuration(
   imageCount: number,
   fps: number,
-  secondsPerImage: number
+  secondsPerImage: number,
+  perSlideArray?: number[]
 ): { totalFrames: number; hookFrames: number; ctaFrames: number; slideshowFrames: number } {
   const hookFrames      = 4 * fps;
   const ctaFrames       = 6 * fps;
-  const perSlide        = Math.round(secondsPerImage * fps);
-  const slideshowFrames = imageCount * perSlide;
+  // Wenn perSlideArray übergeben: dynamische Summe, sonst fix
+  const slideshowFrames = perSlideArray && perSlideArray.length === imageCount
+    ? perSlideArray.reduce((sum, sec) => sum + Math.round(sec * fps), 0)
+    : imageCount * Math.round(secondsPerImage * fps);
   const totalFrames     = hookFrames + slideshowFrames + ctaFrames;
   return { totalFrames, hookFrames, ctaFrames, slideshowFrames };
 }

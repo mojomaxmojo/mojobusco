@@ -698,7 +698,7 @@ export async function renderMojoBusVideo(params) {
   let imageFilenames;
   let audioFilename = null;
   let mapFilename   = null;
-  let perSlideArray = null;     // dynamische Slide-Dauern aus Voiceover
+  let perSlideArray = null;     // dynamische Slide-Dauern aus Voiceover/Lesezeit
   let voiceoverSyncFilename = null; // Eine fertig getaktete voiceover_sync.mp3
 
   try {
@@ -708,15 +708,20 @@ export async function renderMojoBusVideo(params) {
       mapImageUrl ? downloadMapImage(mapImageUrl, sessionDir) : Promise.resolve(null),
     ]);
 
-    // ── Voiceover: Segmente generieren + concatten ─────────────────────────
-    // 1. Jeder Satz wird einzeln per TTS generiert (generateVoiceoverSegments)
-    // 2. Alle Segmente werden via ffmpeg concat zu voiceover_sync.mp3
-    //    Dazwischen wird Stille eingefügt, sodass jeder Satz genau bei seinem
-    //    Slide-Offset startet.
-    // 3. perSlideArray[i] = max(secondsPerImage, voiceoverDuration[i])
-    const effectiveEngine = voiceoverEngine || (voiceoverModel && voiceoverModel.startsWith('de-DE-') ? 'edge' : 'piper');
+    // ── perSlideArray IMMER berechnen (auch ohne Voiceover) ──────────────
+    // Lesezeit aus Captions, min = secondsPerImage, +1s Transition
+    const estimateReadingTime = (textLen) => Math.max(3.5, textLen / 14 + 0.5);
+    const bodyTexts = Array.isArray(captions) ? captions : [];
+    perSlideArray = [];
+    for (let i = 0; i < imageUrls.length; i++) {
+      const text = bodyTexts[i] || '';
+      const readingTime = estimateReadingTime(text.length);
+      perSlideArray.push(Math.max(secondsPerImage, Math.round((readingTime + 1) * 10) / 10));
+    }
+    console.log(`[Remotion] ⏱️ Basis-perSlideArray=[${perSlideArray.join(', ')}] (${imageUrls.length} Slides, ${secondsPerImage}s min, Lesezeit)`);
 
-    // voiceoverSegmentsInput kommt vom Frontend (Array von Strings)
+    // ── Voiceover: Segmente generieren + concatten ─────────────────────────
+    const effectiveEngine = voiceoverEngine || (voiceoverModel && voiceoverModel.startsWith('de-DE-') ? 'edge' : 'piper');
     const hasSegments = voiceoverSegmentsInput && voiceoverSegmentsInput.length > 0;
     const hasText = voiceoverText && voiceoverText.trim();
 
@@ -732,9 +737,7 @@ export async function renderMojoBusVideo(params) {
       );
 
       if (rawSegments && rawSegments.length > 0) {
-        // Concat: eine Datei mit exakten Offsets
-        // hookDurationSec = 4 (Hook-Bereich)
-        // bridgeDurationSec = 6 (CTA-Bereich)
+        // Concat: perSlideArray wird durch concat überschrieben (inkl. Voiceover-Dauer)
         const concatResult = await concatVoiceoverSegments(
           rawSegments, sessionDir, 4, secondsPerImage, 6
         );
@@ -742,7 +745,7 @@ export async function renderMojoBusVideo(params) {
         if (concatResult) {
           voiceoverSyncFilename = concatResult.voiceoverFilename;
           perSlideArray = concatResult.perSlideArray;
-          console.log(`[Remotion] ✅ Voiceover-Sync: ${voiceoverSyncFilename}, perSlideArray=[${perSlideArray.join(', ')}]`);
+          console.log(`[Remotion] ✅ Voiceover-Sync: perSlideArray=[${perSlideArray.join(', ')}]`);
         }
       }
     }
