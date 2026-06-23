@@ -527,7 +527,7 @@ export function TikTokPromotion() {
       secondsPerImage,
       aspectRatio: '9:16',
       captions,
-      captionStyle: 'full-line',
+      captionStyle: 'tiktok',          // TikTok-Stil: Wort für Wort
       websiteUrl: 'mojobus.co',
       handle: '@mojobus',
       accentColor: '#F59E0B',
