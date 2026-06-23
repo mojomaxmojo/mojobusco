@@ -480,8 +480,15 @@ export function TikTokPromotion() {
       .split('\n')
       .filter(l => l.trim())
       .map(l => l.trim())
-      // Max so viele Zeilen wie Bilder – Überhang weg
-      .slice(0, articleImages.length)
+
+    // Wenn mehr Zeilen als Bilder: Überlauf an vorherige Zeile anhängen
+    // (KI ignoriert manchmal den Prompt und macht 3 Zeilen für 1 Bild)
+    while (bodyLines.length > articleImages.length) {
+      const overflow = bodyLines.pop();
+      if (bodyLines.length > 0 && overflow) {
+        bodyLines[bodyLines.length - 1] += ' ' + overflow;
+      }
+    }
 
     // Captions: HookCaption wird separat übergeben, Body/Bridge/CTA als Array
     const captions = [
@@ -805,8 +812,18 @@ export function TikTokPromotion() {
     : ''
 
   // ── VOICEOVER SEGMENTS (pro Slide) ════════════════════
+  // bodyLinesWithOverflow: gleiche Logik wie in startRender – Überlauf wird angehängt
+  const voBodyLines = voiceoverEnabled
+    ? bodyText.split('\n').filter(l => l.trim()).map(l => l.trim())
+    : []
+  while (voBodyLines.length > Math.max(1, articleImages.length)) {
+    const overflow = voBodyLines.pop()
+    if (voBodyLines.length > 0 && overflow) {
+      voBodyLines[voBodyLines.length - 1] += ' ' + overflow
+    }
+  }
   const voiceoverSegmentsArray = voiceoverEnabled
-    ? [hookText, ...bodyText.split('\n').filter(l => l.trim()).slice(0, Math.max(0, articleImages.length)), bridgeText].filter(s => s.trim())
+    ? [hookText, ...voBodyLines, bridgeText].filter(s => s.trim())
     : []
 
   // ── BILDER FILTERN ═════════════════════════════════════
