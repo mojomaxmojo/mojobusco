@@ -539,6 +539,7 @@ export function TikTokPromotion() {
       transitionType: transitionType || 'auto',
       showLottieBus: true,
       showRouteMap,
+      muteVoiceoverSlide: showRouteMap ? Math.floor(articleImages.length / 2) : -1,
       ambientType: ambientType !== '__none__' ? ambientType : undefined,
     }
 

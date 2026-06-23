@@ -2234,6 +2234,7 @@ musicUrl,
     voiceoverVolume = 1.0, // Lautstärke 0-1 (optional)
     // ── NEU: Voiceover-Segmente (Array, pro Slide) ───────────────────────────
     voiceoverSegments,         // Array<string> – ein Satz pro Slide (optional)
+    muteVoiceoverSlide = -1,   // Slide-Index für stumm (z.B. Routen-Karte) (optional)
     // ── NEU: Ambient Sound (Atmo) ────────────────────────────────────────
     ambientType,               // 'ocean' | 'rain' | 'wind' | 'fire' | 'forest' (optional)
     // ── Metadaten für History ────────────────────────────────────────────
@@ -2332,6 +2333,7 @@ musicUrl,
         showRouteMap: !!showRouteMap,
         routeCoords: Array.isArray(routeCoords) ? routeCoords : undefined,
         mapImageUrl: mapImageUrl || undefined,
+        muteVoiceoverSlide,
         // ── Lottie Bus ─────────────────────────────────────────────
         showLottieBus: showLottieBus !== false,
         // ── Voiceover (Per-Slide Segmente) ─────────────────────────────────────

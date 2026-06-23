@@ -115,7 +115,7 @@ async function generateVoiceoverSegments(segments, voiceoverModel, voiceoverSpee
 // seinem Slide-Offset startet. Dazwischen wird Stille (silence) eingefügt.
 // Returnt { voiceoverFilename, perSlideArray }.
 
-async function concatVoiceoverSegments(segments, sessionDir, hookDurationSec, secondsPerImage, bridgeDurationSec) {
+async function concatVoiceoverSegments(segments, sessionDir, hookDurationSec, secondsPerImage, bridgeDurationSec, muteBodyIndex) {
   if (!segments || segments.length === 0) return null;
 
   // segments = [{ filename, durationSec }, ...]
@@ -157,11 +157,20 @@ async function concatVoiceoverSegments(segments, sessionDir, hookDurationSec, se
   for (let i = 0; i < bodySegments.length; i++) {
     const seg = bodySegments[i];
     const slideDur = perSlideArray[i];
-    lines.push(`file '${seg.filename}'`);
-    const silenceAfter = Math.max(0, slideDur - (seg.durationSec || 0));
-    if (silenceAfter > 0.1) {
-      lines.push(`duration ${silenceAfter.toFixed(2)}`);
+
+    // Wenn dieser Slide stumm sein soll (z.B. Routen-Karte):
+    // nur Stille, kein Voiceover-Segment
+    if (muteBodyIndex !== undefined && i === muteBodyIndex) {
       lines.push(`file 'silence.mp3'`);
+      lines.push(`duration ${slideDur.toFixed(2)}`);
+      console.log(`[Remotion] 🔇 Slide ${i + 1} stumm (RouteMap o.ä.)`);
+    } else {
+      lines.push(`file '${seg.filename}'`);
+      const silenceAfter = Math.max(0, slideDur - (seg.durationSec || 0));
+      if (silenceAfter > 0.1) {
+        lines.push(`duration ${silenceAfter.toFixed(2)}`);
+        lines.push(`file 'silence.mp3'`);
+      }
     }
   }
 
@@ -669,6 +678,7 @@ export async function renderMojoBusVideo(params) {
     // ── NEU: Voiceover-Segmente ─────────────────────────────────────────
     /** Array von Text-Strings – jeder String wird einzeln als MP3 generiert und pro Slide abgespielt */
     voiceoverSegmentsInput,    // Array<string> – ein Satz pro Slide (optional, ersetzt voiceoverText)
+    muteVoiceoverSlide = -1, // Slide-Index für Stille (z.B. Routen-Karte)
     // ── ALT (deprecated): Einzel-Text ──────────────────────────────────────
     voiceoverText,             // Text für Sprachausgabe (optional, deprecated)
     voiceoverModel = 'de-DE-SeraphinaMultilingualNeural', // Stimm-Modell
@@ -739,7 +749,7 @@ export async function renderMojoBusVideo(params) {
       if (rawSegments && rawSegments.length > 0) {
         // Concat: perSlideArray wird durch concat überschrieben (inkl. Voiceover-Dauer)
         const concatResult = await concatVoiceoverSegments(
-          rawSegments, sessionDir, 4, secondsPerImage, 6
+          rawSegments, sessionDir, 4, secondsPerImage, 6, muteVoiceoverSlide
         );
 
         if (concatResult) {
