@@ -145,12 +145,7 @@ async function concatVoiceoverSegments(segments, sessionDir, hookDurationSec, se
   // Hook-Segment (0 bis hookDurationSec)
   if (hookSeg) {
     lines.push(`file '${hookSeg.filename}'`);
-    const silenceAfterHook = Math.max(0, hookDurationSec - hookSeg.durationSec);
-    if (silenceAfterHook > 0.1) {
-      // Stille bis zum Ende des Hook-Blocks
-      lines.push(`duration ${silenceAfterHook.toFixed(2)}`);
-      lines.push(`file 'silence.mp3'`);
-    }
+    lines.push(`duration ${hookDurationSec.toFixed(2)}`);
   }
 
   // Body-Segmente (eins pro Slide)
@@ -165,23 +160,16 @@ async function concatVoiceoverSegments(segments, sessionDir, hookDurationSec, se
       lines.push(`duration ${slideDur.toFixed(2)}`);
       console.log(`[Remotion] 🔇 Slide ${i + 1} stumm (RouteMap o.ä.)`);
     } else {
+      // voiceover + duration = ffmpeg pad't automatisch mit Stille
       lines.push(`file '${seg.filename}'`);
-      const silenceAfter = Math.max(0, slideDur - (seg.durationSec || 0));
-      if (silenceAfter > 0.1) {
-        lines.push(`duration ${silenceAfter.toFixed(2)}`);
-        lines.push(`file 'silence.mp3'`);
-      }
+      lines.push(`duration ${slideDur.toFixed(2)}`);
     }
   }
 
   // Bridge-Segment
   if (bridgeSeg) {
     lines.push(`file '${bridgeSeg.filename}'`);
-    const silenceAfterBridge = Math.max(0, bridgeDurationSec - bridgeSeg.durationSec);
-    if (silenceAfterBridge > 0.1) {
-      lines.push(`duration ${silenceAfterBridge.toFixed(2)}`);
-      lines.push(`file 'silence.mp3'`);
-    }
+    lines.push(`duration ${bridgeDurationSec.toFixed(2)}`);
   }
 
   fs.writeFileSync(concatPath, lines.join('\n') + '\n');
