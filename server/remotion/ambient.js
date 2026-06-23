@@ -24,23 +24,26 @@ const FFMPEG = process.env.FFMPEG_PATH || '/opt/bin/ffmpeg';
 const AMBIENT_FILTERS = {
   ocean: {
     desc: 'Meeresrauschen',
-    filter: 'aeval=sin(1000*t*exp(-t/10)) + sin(500*t) + noise(0.3)|sin(1000*t*exp(-t/10)) + sin(500*t) + noise(0.3) [a]; aresample=44100',
+    // Pink noise + lowpass → sanftes Rauschen wie Wellen
+    filter: 'anoisesrc=d=60:color=pink:seed=123:a=0.35,lowpass=f=400',
   },
   rain: {
     desc: 'Regen',
-    filter: 'anoisesrc=d=60:color=pink:seed=42:a=0.5|anoisesrc=d=60:color=pink:seed=42:a=0.5,lowpass=f=2000',
+    filter: 'anoisesrc=d=60:color=pink:seed=42:a=0.5,lowpass=f=2000',
   },
   wind: {
     desc: 'Wind',
-    filter: 'anoisesrc=d=60:color=brown:seed=7:a=0.6|anoisesrc=d=60:color=brown:seed=7:a=0.6,lowpass=f=500',
+    filter: 'anoisesrc=d=60:color=brown:seed=7:a=0.6,lowpass=f=500',
   },
   fire: {
     desc: 'Lagerfeuer',
-    filter: 'aeval=noise(0.2)*sin(200*t) + noise(0.1)*sin(300*t)|noise(0.2)*sin(200*t) + noise(0.1)*sin(300*t),lowpass=f=4000',
+    // Crackling: brown noise + bandpass
+    filter: 'anoisesrc=d=60:color=brown:seed=13:a=0.3,bandpass=f=300:w=800',
   },
   forest: {
     desc: 'Vogelgezwitscher',
-    filter: 'aeval=sin(2000*t + 5*sin(10*t))*exp(-0.1*abs(sin(0.5*t))) + sin(3000*t + 3*sin(8*t))*exp(-0.1*abs(sin(0.3*t))) + noise(0.1)|sin(2000*t + 5*sin(10*t))*exp(-0.1*abs(sin(0.5*t))) + sin(3000*t + 3*sin(8*t))*exp(-0.1*abs(sin(0.3*t))) + noise(0.1),lowpass=f=8000',
+    // High-frequency pink noise → Vogelgezwitscher-ähnlich
+    filter: 'anoisesrc=d=60:color=pink:seed=99:a=0.25,bandpass=f=3000:w=2000',
   },
 };
 

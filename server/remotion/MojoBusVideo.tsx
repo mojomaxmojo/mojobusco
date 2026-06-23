@@ -511,7 +511,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
       {musicUrl && (
         <AudioLayer
           src={musicUrl}
-          volume={0.54}
+          volume={0.49}
           fadeInSec={2}
           fadeOutSec={3}
         />
@@ -531,7 +531,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
       {ambientUrl && (
         <AudioLayer
           src={ambientUrl}
-          volume={0.15}
+          volume={0.20}
           fadeInSec={3}
           fadeOutSec={3}
         />
