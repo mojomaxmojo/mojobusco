@@ -133,7 +133,7 @@ async function generateVoiceoverSegments(segments, voiceoverModel, voiceoverSpee
 // seinem Slide-Offset startet. Dazwischen wird Stille (silence) eingefügt.
 // Returnt { voiceoverFilename, perSlideArray }.
 
-async function concatVoiceoverSegments(segments, sessionDir, hookDurationSec, secondsPerImage, bridgeDurationSec, muteBodyIndex) {
+async function concatVoiceoverSegments(segments, sessionDir, hookDurationSec, secondsPerImage, bridgeDurationSec, muteBodyIndex, routeSlideIndex = -1, routeDuration = 0) {
   if (!segments || segments.length === 0) return null;
 
   // segments = [{ filename, durationSec }, ...]
@@ -155,6 +155,12 @@ async function concatVoiceoverSegments(segments, sessionDir, hookDurationSec, se
     return Math.max(secondsPerImage, Math.round(Math.max(readingTime, audioTime + 1) * 10) / 10);
   });
 
+  // RouteMap als extra Slide in der Mitte einfügen (Stille)
+  if (routeSlideIndex >= 0 && routeDuration > 0) {
+    perSlideArray.splice(routeSlideIndex, 0, routeDuration);
+    console.log(`[Remotion] 🗺️ RouteMap-Slide in concat: Position ${routeSlideIndex} (${routeDuration}s Stille)`);
+  }
+
   // concat.txt für ffmpeg bauen
   const concatPath = path.join(sessionDir, 'concat.txt');
   const lines = [];
@@ -165,19 +171,27 @@ async function concatVoiceoverSegments(segments, sessionDir, hookDurationSec, se
     lines.push(`duration ${hookDurationSec.toFixed(2)}`);
   }
 
-  // Body-Segmente (eins pro Slide)
+  // Body-Segmente (eins pro Slide) + ggf. RouteMap-Stille dazwischen
   for (let i = 0; i < bodySegments.length; i++) {
     const seg = bodySegments[i];
-    const slideDur = perSlideArray[i];
+
+    // RouteMap-Stille VOR diesem Slide einfügen (extra Slide)
+    if (routeSlideIndex >= 0 && i === routeSlideIndex) {
+      lines.push(`file 'silence.mp3'`);
+      lines.push(`duration ${routeDuration.toFixed(2)}`);
+      console.log(`[Remotion] 🗺️ RouteMap Slide ${i + 1} Stille (${routeDuration}s)`);
+    }
+
+    // Index im erweiterten perSlideArray (RouteMap verschiebt alle ab Position)
+    const paIdx = routeSlideIndex >= 0 && i >= routeSlideIndex ? i + 1 : i;
+    const slideDur = perSlideArray[paIdx];
 
     // Wenn dieser Slide stumm sein soll (z.B. Routen-Karte):
-    // nur Stille, kein Voiceover-Segment
     if (muteBodyIndex !== undefined && i === muteBodyIndex) {
       lines.push(`file 'silence.mp3'`);
       lines.push(`duration ${slideDur.toFixed(2)}`);
-      console.log(`[Remotion] 🔇 Slide ${i + 1} stumm (RouteMap o.ä.)`);
+      console.log(`[Remotion] 🔇 Slide ${paIdx + 1} stumm (muteBodyIndex)`);
     } else {
-      // voiceover + duration = ffmpeg pad't automatisch mit Stille
       lines.push(`file '${seg.filename}'`);
       lines.push(`duration ${slideDur.toFixed(2)}`);
     }
@@ -759,22 +773,23 @@ export async function renderMojoBusVideo(params) {
       );
 
       if (rawSegments && rawSegments.length > 0) {
-        // Concat: perSlideArray wird durch concat überschrieben (inkl. Voiceover-Dauer)
+        // RouteMap-Slide Vorbereitung: wurde als Extra Slide vom Frontend gemeldet
+        // concatVoiceoverSegments baut die Stille direkt in die Audio-Datei ein
+        const routeIdx = showRouteMap && imageUrls.length >= 2
+          ? Math.floor(imageUrls.length / 2) : -1;
+        const routeDur = routeIdx >= 0
+          ? (perSlideArray[routeIdx] || secondsPerImage) : 0;
+
+        // Concat: perSlideArray wird durch concat überschrieben (inkl. Voiceover-Dauer + RouteMap)
         const concatResult = await concatVoiceoverSegments(
-          rawSegments, sessionDir, 4, secondsPerImage, 6, muteVoiceoverSlide
+          rawSegments, sessionDir, 4, secondsPerImage, 6,
+          showRouteMap ? -1 : muteVoiceoverSlide, // muteBodyIndex deaktivieren wenn RouteMap
+          routeIdx, routeDur
         );
 
         if (concatResult) {
           voiceoverSyncFilename = concatResult.voiceoverFilename;
           perSlideArray = concatResult.perSlideArray;
-
-          // RouteMap als extra Slide in der Mitte einfügen
-          if (showRouteMap && imageUrls.length >= 2) {
-            const routeIdx = Math.floor(imageUrls.length / 2);
-            const routeDur = perSlideArray[routeIdx] || secondsPerImage;
-            perSlideArray.splice(routeIdx, 0, routeDur);
-          }
-
           console.log(`[Remotion] ✅ Voiceover-Sync: perSlideArray=[${perSlideArray.join(', ')}]`);
         }
       }
