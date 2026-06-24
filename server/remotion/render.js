@@ -19,6 +19,7 @@ import https from 'https';
 import http from 'http';
 import { createServer } from 'http';
 import { promisify } from 'util';
+const execFileAsync = promisify(execFile);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
