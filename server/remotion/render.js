@@ -22,8 +22,20 @@ import { promisify } from 'util';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const FFMPEG_PATH  = process.env.FFMPEG_PATH  || '/opt/bin/ffmpeg';
-const FFPROBE_PATH = process.env.FFPROBE_PATH || '/opt/bin/ffprobe';
+// ── Binary-Pfade (ffmpeg/ffprobe) automatisch erkennen ────────────────────
+// sucht zuerst via command -v (POSIX), dann /usr/bin/, zuletzt /usr/local/bin/
+const findBinary = (name) => {
+  try {
+    const found = execSync(`command -v ${name} 2>/dev/null`).toString().trim();
+    if (found) return found;
+  } catch {}
+  // Fallback-Pfade
+  if (fs.existsSync(`/usr/bin/${name}`)) return `/usr/bin/${name}`;
+  if (fs.existsSync(`/usr/local/bin/${name}`)) return `/usr/local/bin/${name}`;
+  return `/usr/bin/${name}`; // letzter Fallback
+};
+const FFMPEG_PATH  = process.env.FFMPEG_PATH  || findBinary('ffmpeg');
+const FFPROBE_PATH = process.env.FFPROBE_PATH || findBinary('ffprobe');
 
 // ── Per-Segment Voiceover generieren ─────────────────────────────────────
 //
