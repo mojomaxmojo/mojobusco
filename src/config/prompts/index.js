@@ -16,6 +16,7 @@ export * from './articles.js'
 export { generateArticleSummaryPrompt, generateArticleTitlesPrompt } from './articles.js'
 export * from './notes.js'
 export * from './place.js'
+export * from './tiktok.js'
 
 /**
  * Tab-Namen und zugehörige Prompt-Funktionen

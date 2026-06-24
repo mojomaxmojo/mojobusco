@@ -88,7 +88,8 @@ import {
   getTripImageAnalysisPrompt,
   getArticleImageAnalysisPrompt,
   getNoteImageAnalysisPrompt,
-  getPlaceImageAnalysisPrompt
+  getPlaceImageAnalysisPrompt,
+  FOSTER_HUNTINGTON_SYSTEM_PROMPT
 } from '../src/config/prompts/index.js'
 
 // ── Bot Meta-Tag Middleware ────────────────────────────────
@@ -2527,25 +2528,7 @@ app.get('/api/music/:filename', (req, res) => {
 // Antwort: { hook, bodyLines[], bridge, cta, hashtags[] }
 // ═══════════════════════════════════════════════════════════
 
-const FOSTER_HUNTINGTON_SYSTEM_PROMPT = `Du schreibst im Stil von Foster Huntington – Autor von "Home is Where You Park It" und "Van Life".
-
-STIL-REGELN:
-- Poetisch, authentisch, roh – keine Werbesprache
-- Kurze, prägnante Sätze. Atmosphäre statt Fakten.
-- Zeige das "Leben dazwischen" – die kleinen Momente, nicht die Ziele
-- "We parked. We stayed. We lived."-Mentalität
-- Keine SEO-Optimierung, keine Keyword-Stuffing
-- Maximal ein Satz pro Caption
-- Schreibe auf DEUTSCH
-
-ANTWORT-FORMAT (NUR JSON, kein Text davor/danach):
-{
-  "hook": "Ein Satz der neugierig macht – 0-2s, max 80 Zeichen",
-  "bodyLines": ["Satz 1", "Satz 2", "Satz 3", "optional Satz 4"],
-  "bridge": "Überleitung zum Blog – 22-27s, max 60 Zeichen",
-  "cta": "Handlungsaufforderung – 27-30s, max 40 Zeichen",
-  "hashtags": ["#vanlife", "#perpetualtraveler", "#mojobus", "..."]
-}`
+// ── System-Prompt aus src/config/prompts/tiktok.js ─────────────────────
 
 app.post('/api/tiktok/generate-text', async (req, res) => {
   const { title, summary, text, template = 'story', model = 'claude', imageCount = 5, locations } = req.body
