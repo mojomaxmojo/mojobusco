@@ -13,11 +13,12 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import os from 'os';
 import fs from 'fs';
-import { execSync } from 'child_process';
+import { execFile, execSync } from 'child_process';
 import crypto from 'crypto';
 import https from 'https';
 import http from 'http';
 import { createServer } from 'http';
+import { promisify } from 'util';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -86,7 +87,11 @@ async function generateVoiceoverSegments(segments, voiceoverModel, voiceoverSpee
         const info = JSON.parse(stdout);
         durationSec = parseFloat(info?.format?.duration) || 0;
       } catch {
-        console.warn(`[Remotion] ⚠️ ffprobe für Segment ${i + 1} fehlgeschlagen`);
+        // ffprobe kann Edge-TTS MP3-Metadaten nicht lesen → Fallback: Dateigröße
+        // Edge TTS verwendet 48kbps → duration = (bytes * 8) / 48000
+        const bytes = fs.statSync(mp3Path).size;
+        durationSec = (bytes * 8) / 48000;
+        console.log(`[Remotion] ⚠️ ffprobe für Segment ${i + 1} fehlgeschlagen, Dauer geschätzt: ${durationSec.toFixed(2)}s (${bytes}B)`);
       }
 
       // Datei ins sessionDir kopieren
