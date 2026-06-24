@@ -145,15 +145,14 @@ async function concatVoiceoverSegments(segments, sessionDir, hookDurationSec, se
 
   // perSlideArray berechnen:
   // - Lesezeit: max(3.5s, textLen / 14 Zeichen/s + 0.5s Atempause)
-  // - Voiceover-Dauer (falls vorhanden)
+  // - Voiceover-Dauer + 1s Stille am Ende (damit nächster Slide nicht zu früh kommt)
   // - User-Vorgabe (secondsPerImage)
-  // - +1s für Bildwechsel (Transition)
   const estimateReadingTime = (textLen) => Math.max(3.5, textLen / 14 + 0.5);
 
   const perSlideArray = bodySegments.map(seg => {
     const readingTime = estimateReadingTime(seg.textLen || 0);
     const audioTime = seg.durationSec || 0;
-    return Math.max(secondsPerImage, Math.round((Math.max(readingTime, audioTime) + 1) * 10) / 10);
+    return Math.max(secondsPerImage, Math.round(Math.max(readingTime, audioTime + 1) * 10) / 10);
   });
 
   // concat.txt für ffmpeg bauen
