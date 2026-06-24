@@ -189,31 +189,36 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
   const images     = imageUrls.slice(0, 20);
   const imageCount = images.length;
 
-  // Dynamische perSlide: perSlideArray vom Server, sonst fix von secondsPerImage
-  // Die Dauer ist in Sekunden – in Frames umrechnen
-  const slidesSec = perSlideArray && perSlideArray.length === imageCount
+  // ── Slides: inkl. extra Routen-Slide wenn showRouteMap ────────────────
+  // Der Routen-Slide wird als EXTRA Slide eingefügt, ersetzt KEIN Bild
+  const hasRouteMap = showRouteMap && images.length >= 2;
+  const routeSlideIndex = Math.floor(imageCount / 2);
+  const totalSlideCount = hasRouteMap ? imageCount + 1 : imageCount;
+
+  // Dynamische perSlide: perSlideArray vom Server (inkl. RouteMap), sonst fix
+  const slidesSec = perSlideArray && perSlideArray.length === totalSlideCount
     ? perSlideArray
-    : new Array(imageCount).fill(secondsPerImage);
+    : new Array(totalSlideCount).fill(secondsPerImage);
   const slidesFrames = slidesSec.map(s => Math.round(s * fps));
 
   const hookFrames = 4 * fps;
   const ctaFrames  = 6 * fps;
 
-  // ── Slides: inkl. extra Routen-Slide wenn showRouteMap ────────────────
-  // Der Routen-Slide wird als EXTRA Slide eingefügt, ersetzt KEIN Bild
-  const hasRouteMap = showRouteMap && images.length >= 2;
-  const routeSlideIndex = Math.floor(imageCount / 2);
+  // routeDurFrames aus slidesFrames (enthält bereits RouteMap-Eintrag an routeSlideIndex)
   const routeDurFrames = hasRouteMap
     ? (slidesFrames[routeSlideIndex] || Math.round(secondsPerImage * fps))
     : 0;
 
   // Flat slide sequence: [image0, image1, ..., routeMap, imageN, ...]
+  // slidesFrames hat totalSlideCount Einträge (inkl. RouteMap an routeSlideIndex)
+  // Für Bilder: Index < routeSlideIndex → slidesFrames[i], Index >= routeSlideIndex → slidesFrames[i+1]
   const slideDefs: { type: 'image' | 'route'; imageIdx: number; frames: number }[] = [];
   for (let i = 0; i < images.length; i++) {
     if (hasRouteMap && i === routeSlideIndex) {
-      slideDefs.push({ type: 'route', imageIdx: -1, frames: routeDurFrames });
+      slideDefs.push({ type: 'route', imageIdx: -1, frames: slidesFrames[routeSlideIndex] });
     }
-    slideDefs.push({ type: 'image', imageIdx: i, frames: slidesFrames[i] || perSlide });
+    const framesIdx = hasRouteMap && i >= routeSlideIndex ? i + 1 : i;
+    slideDefs.push({ type: 'image', imageIdx: i, frames: slidesFrames[framesIdx] || perSlide });
   }
 
   const totalSlides = slideDefs.length;

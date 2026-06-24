@@ -733,7 +733,14 @@ export async function renderMojoBusVideo(params) {
       const readingTime = estimateReadingTime(text.length);
       perSlideArray.push(Math.max(secondsPerImage, Math.round((readingTime + 1) * 10) / 10));
     }
-    console.log(`[Remotion] ⏱️ Basis-perSlideArray=[${perSlideArray.join(', ')}] (${imageUrls.length} Slides, ${secondsPerImage}s min, Lesezeit)`);
+
+    // RouteMap als extra Slide in der Mitte einfügen
+    if (showRouteMap && imageUrls.length >= 2) {
+      const routeIdx = Math.floor(imageUrls.length / 2);
+      const routeDur = perSlideArray[routeIdx] || secondsPerImage;
+      perSlideArray.splice(routeIdx, 0, routeDur);
+    }
+    console.log(`[Remotion] ⏱️ Basis-perSlideArray=[${perSlideArray.join(', ')}] (${perSlideArray.length} Slides, ${secondsPerImage}s min, Lesezeit)`);
 
     // ── Voiceover: Segmente generieren + concatten ─────────────────────────
     const effectiveEngine = voiceoverEngine || (voiceoverModel && voiceoverModel.startsWith('de-DE-') ? 'edge' : 'piper');
@@ -760,6 +767,14 @@ export async function renderMojoBusVideo(params) {
         if (concatResult) {
           voiceoverSyncFilename = concatResult.voiceoverFilename;
           perSlideArray = concatResult.perSlideArray;
+
+          // RouteMap als extra Slide in der Mitte einfügen
+          if (showRouteMap && imageUrls.length >= 2) {
+            const routeIdx = Math.floor(imageUrls.length / 2);
+            const routeDur = perSlideArray[routeIdx] || secondsPerImage;
+            perSlideArray.splice(routeIdx, 0, routeDur);
+          }
+
           console.log(`[Remotion] ✅ Voiceover-Sync: perSlideArray=[${perSlideArray.join(', ')}]`);
         }
       }
