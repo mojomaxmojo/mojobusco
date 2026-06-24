@@ -124,14 +124,16 @@ export function calculateDuration(
   imageCount: number,
   fps: number,
   secondsPerImage: number,
-  perSlideArray?: number[]
+  perSlideArray?: number[],
+  showRouteMap?: boolean
 ): { totalFrames: number; hookFrames: number; ctaFrames: number; slideshowFrames: number } {
   const hookFrames      = 4 * fps;
   const ctaFrames       = 6 * fps;
+  const totalSlideCount = showRouteMap && imageCount >= 2 ? imageCount + 1 : imageCount;
   // Wenn perSlideArray übergeben: dynamische Summe, sonst fix
-  const slideshowFrames = perSlideArray && perSlideArray.length === imageCount
+  const slideshowFrames = perSlideArray && perSlideArray.length === totalSlideCount
     ? perSlideArray.reduce((sum, sec) => sum + Math.round(sec * fps), 0)
-    : imageCount * Math.round(secondsPerImage * fps);
+    : totalSlideCount * Math.round(secondsPerImage * fps);
   const totalFrames     = hookFrames + slideshowFrames + ctaFrames;
   return { totalFrames, hookFrames, ctaFrames, slideshowFrames };
 }
