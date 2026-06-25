@@ -155,9 +155,12 @@ async function concatVoiceoverSegments(segments, sessionDir, hookDurationSec, se
   // Bridge wird separat NICHT im Audio eingebaut – sie hat ihren eigenen Slide
   // im Video mit eigenem Text-Overlay.
 
-  const hookSeg = segments[0];
-  const bodySegments = segments.slice(1); // alle nach Hook = Body (kein Bridge mehr)
-  const bridgeSeg = null;                  // Bridge nicht gesprochen – nur Text-Overlay
+  // Alle Segmente sind Body-Segmente. Hook wird NICHT gesprochen.
+  // HookTitle ist auf dem Screen sichtbar → kein Audio nötig.
+  // AudioLayer in MojoBusVideo startet mit startFrom=hookFrames (4s Offset).
+  const hookSeg = null;
+  const bodySegments = segments; // alle Segmente = Body
+  const bridgeSeg = null;        // Bridge nicht gesprochen – nur Text-Overlay
 
   // perSlideArray berechnen:
   // - Lesezeit: max(3.5s, textLen / 14 Zeichen/s + 0.5s Atempause)

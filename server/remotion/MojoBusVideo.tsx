@@ -500,14 +500,19 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
         />
       )}
 
-      {/* ══ SCHICHT 11b: Audio (Voiceover) – eine getaktete Datei ═══ */}
+      {/* ══ SCHICHT 11b: Audio (Voiceover) – startet mit Slideshow, nicht Hook ═══
+           Voiceover enthält nur Body-Sätze (kein Hook-Text).
+           startFrom=hookFrames: Audio startet synchron mit Slide 0 der Slideshow.
+           Hook-Slide (0-4s): kein Voiceover, nur HookTitle-Text auf dem Screen. */}
       {voiceoverUrl && (
-        <AudioLayer
-          src={voiceoverUrl}
-          volume={voiceoverVolume}
-          fadeInSec={0.1}
-          fadeOutSec={0.5}
-        />
+        <Sequence from={hookFrames}>
+          <AudioLayer
+            src={voiceoverUrl}
+            volume={voiceoverVolume}
+            fadeInSec={0.1}
+            fadeOutSec={0.5}
+          />
+        </Sequence>
       )}
 
       {/* ══ SCHICHT 11c: Audio (Ambient/Atmo) – leise im Hintergrund ════ */}

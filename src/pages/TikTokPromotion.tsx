@@ -822,9 +822,10 @@ export function TikTokPromotion() {
   }
 
   // ── VOICEOVER TEXT ══════════════════════════════════════
-  // Hook + Body – KEIN Bridge: "Mehr auf mojobus.co" klingt gesprochen wie ein Werbejingle
+  // Nur Body-Sätze – kein Hook (HookTitle ist sichtbar), kein Bridge (Werbetext)
+  // AudioLayer startet mit startFrom=hookFrames → synchron mit Slideshow-Beginn
   const voiceoverText = voiceoverEnabled
-    ? [hookText, ...bodyText.split('\n').filter(l => l.trim())].join('. ')
+    ? bodyText.split('\n').filter(l => l.trim()).join('. ')
     : ''
 
   // ── VOICEOVER SEGMENTS (pro Slide) ════════════════════
@@ -839,8 +840,11 @@ export function TikTokPromotion() {
       voBodyLines[voBodyLines.length - 1] += ' ' + overflow
     }
   }
+  // Hook-Text NICHT im Voiceover: HookTitle ist bereits sichtbar auf dem Screen.
+  // Hook-Voiceover erzeugt wahrnehmbare Stille (Satz endet, 1s+ Stille bis Slideshow startet).
+  // Voiceover startet direkt mit body1 – AudioLayer bekommt startFrom=hookFrames.
   const voiceoverSegmentsArray = voiceoverEnabled
-    ? [hookText, ...voBodyLines].filter(s => s.trim())
+    ? voBodyLines.filter(s => s.trim())
     : []
 
   // ── BILDER FILTERN ═════════════════════════════════════
