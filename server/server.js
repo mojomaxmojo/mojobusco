@@ -89,7 +89,8 @@ import {
   getArticleImageAnalysisPrompt,
   getNoteImageAnalysisPrompt,
   getPlaceImageAnalysisPrompt,
-  FOSTER_HUNTINGTON_SYSTEM_PROMPT
+  FOSTER_HUNTINGTON_SYSTEM_PROMPT,
+  generateTikTokUserPrompt
 } from '../src/config/prompts/index.js'
 
 // ── Bot Meta-Tag Middleware ────────────────────────────────
@@ -2531,48 +2532,36 @@ app.get('/api/music/:filename', (req, res) => {
 // ── System-Prompt aus src/config/prompts/tiktok.js ─────────────────────
 
 app.post('/api/tiktok/generate-text', async (req, res) => {
-  const { title, summary, text, template = 'story', model = 'claude', imageCount = 5, locations } = req.body
+  const {
+    title,
+    summary,
+    text,
+    template = 'story',
+    model = 'claude',
+    imageCount = 5,
+    locations,
+    voiceoverEnabled = false,
+    platform = 'tiktok',
+  } = req.body
 
   if (!title || !title.trim()) {
     return res.status(400).json({ error: 'Titel ist erforderlich' })
   }
 
-  console.log(`[TikTok] Generiere Text: template=${template}, model=${model}, title="${title.substring(0, 60)}", images=${imageCount}, locations=${locations?.length || 0}`)
+  console.log(`[TikTok] Generiere Text: platform=${platform}, template=${template}, model=${model}, title="${title.substring(0, 60)}", images=${imageCount}, voiceover=${voiceoverEnabled}, locations=${locations?.length || 0}`)
 
   try {
-    // Bild-Kontext für besseres Caption-Matching
-    const locationContext = Array.isArray(locations) && locations.length > 0
-      ? '\nBILD-KONTEXT (Location pro Satz/Bild):\n' + locations.map((loc, i) => `  Bild ${i + 1}: ${loc || 'keine Location'}`).join('\n') +
-        '\n→ Schreibe die Sätze in der REIHENFOLGE der Bilder – Satz 1 passt zu Bild 1, Satz 2 zu Bild 2, etc.'
-      : ''
-
-    const userPrompt = `Erstelle TikTok-Texte für diesen Vanlife-Artikel im Foster-Huntington-Stil.
-
-ARTIKEL-TITEL: "${title}"
-ZUSAMMENFASSUNG: "${summary || ''}"
-TEXT-AUSZUG: "${(text || '').substring(0, 1200)}"
-
-TEMPLATE: ${template === 'story' ? 'Story (Atmosphäre, Emotion, minimaler Text)' :
-            template === 'listicle' ? 'Listicle (3-5 konkrete Punkte, Tipps, Erkenntnisse)' :
-            template === 'reveal' ? 'Reveal (überraschende Einsicht oder "Warum wir das anders machen")' :
-            'Story'}
-
-ANZAHL BILDER: ${imageCount}
-→ Erstelle EXAKT ${imageCount} Zeilen. **STRENG: Eine Zeile = Ein Satz!**
-Wenn dein Text 3 Sätze hat, dann schreibe ALLE 3 Sätze in EINE Zeile – durch Punkte getrennt. Niemals 2+ Zeilen für dasselbe Bild!
-
-REGELN FÜR DIESES VIDEO:
-- HOOK (0-2s): Eine provokante Frage oder Behauptung die neugierig macht.
-- BODY: EXAKT ${imageCount} Zeilen (eine pro Bild). **JEDE Zeile enthält genau EINEN in sich geschlossenen Satz. Ausnahme: Du kannst mehrere Sätze in EINE Zeile packen (durch Punkt getrennt) – aber dann niemals eine zweite Zeile für dasselbe Bild.** Jeder Satz beschreibt einen atmosphärischen Moment.
-- BRIDGE (22-27s): "Mehr davon auf mojobus.co" oder ähnlich – mach neugierig auf den Blog.
-- CTA (27-30s): "Link in Bio 📌" oder ähnlich.
-- HASHTAGS: 4-5 relevante Hashtags.
-
-WICHTIG: Foster Huntington-Stil – poetisch, authentisch, kein "Hochglanz-Werbesprech". 
-Zeige die Ruhe, die Weite, den Moment. Nicht "Wir haben dies und das gekauft", 
-sondern "Der Kaffee war kalt. Die Wellen waren warm. Perfekt."
-Jeder Body-Satz ist ein eigener atmosphärischer Moment – wie eine Polaroid-Aufnahme in Worten.
-${locationContext}`
+    // User-Prompt aus tiktok.js generieren (statt hartcodiertem String)
+    const userPrompt = generateTikTokUserPrompt({
+      title,
+      summary: summary || '',
+      text: text || '',
+      template,
+      imageCount,
+      locations: locations || [],
+      voiceoverMode: voiceoverEnabled === true,
+      platform,
+    })
 
     let apiKey, apiUrl, apiModel
 
@@ -2594,7 +2583,7 @@ ${locationContext}`
         { role: 'system', content: FOSTER_HUNTINGTON_SYSTEM_PROMPT },
         { role: 'user', content: userPrompt }
       ],
-      max_tokens: 600,
+      max_tokens: 900,   // erhöht: neuer Prompt ist detaillierter (Hook-Mechaniken, Retention-Bogen)
       temperature: 0.8,
       top_p: 0.9
     }, {
@@ -2626,12 +2615,15 @@ ${locationContext}`
       return res.status(500).json({ error: 'KI-Antwort konnte nicht geparst werden', raw: rawText.substring(0, 500) })
     }
 
+    console.log(`[TikTok] Generiert: hook="${(result.hook || '').substring(0, 50)}", bodyLines=${Array.isArray(result.bodyLines) ? result.bodyLines.length : 0}, thumbnail="${result.thumbnail || ''}"`)
+
     res.json({
       success: true,
       hook: result.hook || title,
       bodyLines: Array.isArray(result.bodyLines) ? result.bodyLines : [summary || ''],
       bridge: result.bridge || 'Mehr auf mojobus.co',
       cta: result.cta || 'Link in Bio 📌',
+      thumbnail: result.thumbnail || '',
       hashtags: Array.isArray(result.hashtags) ? result.hashtags : ['#vanlife', '#mojobus'],
     })
 

@@ -261,6 +261,10 @@ export function TikTokPromotion() {
   const [bridgeText, setBridgeText] = useState('')
   const [ctaText, setCtaText] = useState('')
   const [hashtags, setHashtags] = useState('')
+  const [thumbnailText, setThumbnailText] = useState('')
+
+  // ── PLATTFORM ═════════════════════════════════════════════
+  const [platform, setPlatform] = useState<'tiktok' | 'reels' | 'youtube'>('tiktok')
 
   // ── VOICEOVER ════════════════════════════════════════════
   const [voiceoverEnabled, setVoiceoverEnabled] = useState(false)
@@ -401,6 +405,8 @@ export function TikTokPromotion() {
           template,
           model: aiModel,
           imageCount: articleImages.length,
+          voiceoverEnabled,   // → Prompt wechselt in TTS-optimierten Modus
+          platform,           // → 'tiktok' | 'reels' | 'youtube' (Hook-Fenster, Hashtag-Strategie)
           // Bild-Kontext für besseres Caption-Matching
           locations: selectedContent
             .map(i => {
@@ -424,10 +430,13 @@ export function TikTokPromotion() {
       setBridgeText(data.bridge || 'Mehr auf mojobus.co')
       setCtaText(data.cta || 'Link in Bio 📌')
       setHashtags((data.hashtags || []).join(' '))
+      setThumbnailText(data.thumbnail || '')
 
+      const platLabel = platform === 'reels' ? 'Reels' : platform === 'youtube' ? 'YouTube' : 'TikTok'
+      const voLabel = voiceoverEnabled ? ' · TTS-optimiert' : ''
       toast({
-        title: 'TikTok-Text generiert! ✍️',
-        description: 'Foster-Huntington-Stil – poetisch, authentisch, roh.',
+        title: `${platLabel}-Text generiert! ✍️`,
+        description: `Foster-Huntington-Stil${voLabel} – poetisch, authentisch, roh.`,
       })
 
       setStep(3)
@@ -439,6 +448,7 @@ export function TikTokPromotion() {
       setBridgeText('Mehr auf mojobus.co')
       setCtaText('Link in Bio 📌')
       setHashtags('#vanlife #perpetualtraveler #mojobus')
+      setThumbnailText('')
 
       toast({
         title: 'Fallback – manuelle Eingabe',
@@ -1128,13 +1138,36 @@ export function TikTokPromotion() {
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                   <Type className="w-4 h-4 sm:w-5 sm:h-5" />
-                  TikTok-Text bearbeiten
+                  Text bearbeiten
                 </CardTitle>
                 <CardDescription className="text-xs sm:text-sm">
                   0-3s Hook · 3-22s Body · 22-27s Bridge · 27-30s CTA
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
+
+                {/* Plattform-Selector */}
+                <div className="flex gap-1.5 p-1 bg-muted/40 rounded-lg">
+                  {(['tiktok', 'reels', 'youtube'] as const).map(p => (
+                    <button
+                      key={p}
+                      onClick={() => setPlatform(p)}
+                      className={`flex-1 py-1 px-2 rounded text-xs font-medium transition-colors ${
+                        platform === p
+                          ? 'bg-background shadow text-foreground'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {p === 'tiktok' ? '🎵 TikTok' : p === 'reels' ? '📸 Reels' : '▶️ YouTube'}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[10px] text-muted-foreground -mt-1">
+                  {platform === 'tiktok' && 'Hook 1-2s · 3-4 Hashtags · Caption max 80 Zeichen'}
+                  {platform === 'reels' && 'Hook 2-3s · 5-8 Hashtags · Caption max 100 Zeichen'}
+                  {platform === 'youtube' && 'Hook 3-5s · 2-3 Hashtags · Caption max 120 Zeichen'}
+                </p>
+
                 {/* Hook */}
                 <div>
                   <Label className="text-xs sm:text-sm flex items-center gap-1">
@@ -1210,6 +1243,33 @@ export function TikTokPromotion() {
                   </div>
                 </div>
 
+                {/* Thumbnail-Text */}
+                <div>
+                  <Label className="text-xs sm:text-sm flex items-center gap-1">
+                    <ImageIcon className="w-3 h-3" />
+                    Thumbnail-Text
+                    <span className="text-[10px] font-normal text-muted-foreground ml-1">
+                      – Cover-Text für YouTube/Reels (max 5 Wörter)
+                    </span>
+                  </Label>
+                  <div className="flex gap-2 mt-1">
+                    <Input
+                      value={thumbnailText}
+                      onChange={e => setThumbnailText(e.target.value)}
+                      placeholder='z.B. "Küste. Kein Plan." oder "36 Jahre unterwegs"'
+                      className="text-sm flex-1"
+                      maxLength={60}
+                    />
+                    {thumbnailText && (
+                      <div className="shrink-0 flex items-center justify-center bg-black rounded px-2 py-1">
+                        <span className="text-white text-[10px] font-bold leading-tight text-center max-w-[80px]">
+                          {thumbnailText}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 {/* Voiceover */}
                 <div className="p-3 bg-muted/30 rounded-lg space-y-2">
                   <div className="flex items-center justify-between">
@@ -1281,11 +1341,21 @@ export function TikTokPromotion() {
                 </div>
 
                 {/* Vorschau: Wie es klingt */}
-                <div className="p-2 bg-primary/5 rounded text-xs text-muted-foreground">
-                  <p className="font-medium mb-1">📋 Vorschau:</p>
+                <div className="p-2 bg-primary/5 rounded text-xs text-muted-foreground space-y-1">
+                  <p className="font-medium">📋 Vorschau:</p>
                   <p className="italic">
                     [{hookText}] → [{bodyText.split('\n').filter(l => l.trim()).join(' · ')}] → [{bridgeText}]
                   </p>
+                  {thumbnailText && (
+                    <p className="text-[10px] text-muted-foreground/70">
+                      🖼 Thumbnail: <span className="font-medium text-foreground">{thumbnailText}</span>
+                    </p>
+                  )}
+                  {voiceoverEnabled && (
+                    <p className="text-[10px] text-primary/70">
+                      🎙 TTS-optimiert für Edge TTS
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
