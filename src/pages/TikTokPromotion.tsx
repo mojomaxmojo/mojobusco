@@ -279,6 +279,7 @@ export function TikTokPromotion() {
   const [transitionType, setTransitionType] = useState('auto')
   const [secondsPerImage, setSecondsPerImage] = useState(4)
   const [beatSync, setBeatSync] = useState('medium')
+  const [captionStyle, setCaptionStyle] = useState<'chunked' | 'full-line'>('full-line')
 
   // ── AMBIENT ══════════════════════════════════════════════
   const [ambientType, setAmbientType] = useState('__none__')
@@ -540,7 +541,7 @@ export function TikTokPromotion() {
       secondsPerImage,
       aspectRatio: '9:16',
       captions,
-      captionStyle: 'chunked',        // Chunked: 2-5 Wörter, Karaoke, 35% Safe Zone
+      captionStyle,                    // 'full-line' = ganzer Satz auf einmal | 'chunked' = Karaoke 2-5 Wörter
       websiteUrl: 'mojobus.co',
       handle: '@mojobus',
       noMusic,                     // true = kein Musik-Track
@@ -821,13 +822,14 @@ export function TikTokPromotion() {
   }
 
   // ── VOICEOVER TEXT ══════════════════════════════════════
-  // Kombiniere Hook + Body + Bridge für Voiceover (Vorschau)
+  // Hook + Body – KEIN Bridge: "Mehr auf mojobus.co" klingt gesprochen wie ein Werbejingle
   const voiceoverText = voiceoverEnabled
-    ? [hookText, ...bodyText.split('\n').filter(l => l.trim()), bridgeText].join('. ')
+    ? [hookText, ...bodyText.split('\n').filter(l => l.trim())].join('. ')
     : ''
 
   // ── VOICEOVER SEGMENTS (pro Slide) ════════════════════
   // bodyLinesWithOverflow: gleiche Logik wie in startRender – Überlauf wird angehängt
+  // Bridge absichtlich NICHT enthalten – wird als Text-Overlay gezeigt, nicht gesprochen
   const voBodyLines = voiceoverEnabled
     ? bodyText.split('\n').filter(l => l.trim()).map(l => l.trim())
     : []
@@ -838,7 +840,7 @@ export function TikTokPromotion() {
     }
   }
   const voiceoverSegmentsArray = voiceoverEnabled
-    ? [hookText, ...voBodyLines, bridgeText].filter(s => s.trim())
+    ? [hookText, ...voBodyLines].filter(s => s.trim())
     : []
 
   // ── BILDER FILTERN ═════════════════════════════════════
@@ -1108,6 +1110,33 @@ export function TikTokPromotion() {
                 </div>
               )}
 
+              {/* Plattform-Selector – hier, damit die KI beim ersten Klick die richtige Plattform bekommt */}
+              <div className="p-3 bg-muted/30 rounded-lg space-y-2">
+                <Label className="text-xs sm:text-sm font-medium flex items-center gap-1">
+                  <Globe className="w-3 h-3" /> Ziel-Plattform
+                </Label>
+                <div className="flex gap-1.5 p-1 bg-muted/40 rounded-lg">
+                  {(['tiktok', 'reels', 'youtube'] as const).map(p => (
+                    <button
+                      key={p}
+                      onClick={() => setPlatform(p)}
+                      className={`flex-1 py-1 px-2 rounded text-xs font-medium transition-colors ${
+                        platform === p
+                          ? 'bg-background shadow text-foreground'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {p === 'tiktok' ? '🎵 TikTok' : p === 'reels' ? '📸 Reels' : '▶️ YouTube'}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  {platform === 'tiktok' && 'Hook 1-2s · 3-4 Hashtags · Caption max 80 Zeichen'}
+                  {platform === 'reels' && 'Hook 2-3s · 5-8 Hashtags · Caption max 100 Zeichen'}
+                  {platform === 'youtube' && 'Hook 3-5s · 2-3 Hashtags · Caption max 120 Zeichen'}
+                </p>
+              </div>
+
               <div className="flex gap-2 pt-2">
                 <Button variant="outline" onClick={() => setStep(1)} className="shrink-0">
                   ← Zurück
@@ -1123,7 +1152,7 @@ export function TikTokPromotion() {
                   ) : (
                     <Sparkles className="w-4 h-4 mr-2" />
                   )}
-                  KI-Text generieren &amp; Weiter
+                  {platform === 'tiktok' ? '🎵' : platform === 'reels' ? '📸' : '▶️'} KI-Text generieren &amp; Weiter
                 </Button>
               </div>
             </CardContent>
@@ -1145,28 +1174,6 @@ export function TikTokPromotion() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-
-                {/* Plattform-Selector */}
-                <div className="flex gap-1.5 p-1 bg-muted/40 rounded-lg">
-                  {(['tiktok', 'reels', 'youtube'] as const).map(p => (
-                    <button
-                      key={p}
-                      onClick={() => setPlatform(p)}
-                      className={`flex-1 py-1 px-2 rounded text-xs font-medium transition-colors ${
-                        platform === p
-                          ? 'bg-background shadow text-foreground'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      {p === 'tiktok' ? '🎵 TikTok' : p === 'reels' ? '📸 Reels' : '▶️ YouTube'}
-                    </button>
-                  ))}
-                </div>
-                <p className="text-[10px] text-muted-foreground -mt-1">
-                  {platform === 'tiktok' && 'Hook 1-2s · 3-4 Hashtags · Caption max 80 Zeichen'}
-                  {platform === 'reels' && 'Hook 2-3s · 5-8 Hashtags · Caption max 100 Zeichen'}
-                  {platform === 'youtube' && 'Hook 3-5s · 2-3 Hashtags · Caption max 120 Zeichen'}
-                </p>
 
                 {/* Hook */}
                 <div>
@@ -1432,6 +1439,40 @@ export function TikTokPromotion() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+
+                {/* Caption-Stil */}
+                <div>
+                  <Label className="text-xs sm:text-sm flex items-center gap-1">
+                    <Type className="w-3 h-3" /> Caption-Stil
+                  </Label>
+                  <div className="flex gap-1.5 mt-1 p-1 bg-muted/40 rounded-lg">
+                    <button
+                      onClick={() => setCaptionStyle('full-line')}
+                      className={`flex-1 py-1 px-2 rounded text-xs font-medium transition-colors ${
+                        captionStyle === 'full-line'
+                          ? 'bg-background shadow text-foreground'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      📄 Full-Line
+                    </button>
+                    <button
+                      onClick={() => setCaptionStyle('chunked')}
+                      className={`flex-1 py-1 px-2 rounded text-xs font-medium transition-colors ${
+                        captionStyle === 'chunked'
+                          ? 'bg-background shadow text-foreground'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      🎤 Karaoke
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    {captionStyle === 'full-line'
+                      ? 'Ganzer Satz auf einmal – Retention-Bogen bleibt erhalten'
+                      : 'Karaoke: 2-5 Wörter werden schrittweise aufgedeckt'}
+                  </p>
                 </div>
 
                 {/* Beat Sync */}

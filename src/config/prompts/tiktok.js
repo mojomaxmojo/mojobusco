@@ -33,12 +33,15 @@ STIL-REGELN:
 ANTWORT-FORMAT (NUR JSON, kein Text davor/danach):
 {
   "hook": "Ein Satz der neugierig macht – 0-2s, max 80 Zeichen",
-  "bodyLines": ["Satz 1", "Satz 2", "Satz 3", "optional Satz 4"],
+  "bodyLines": ["...exakt so viele Einträge wie Bilder vorhanden sind..."],
   "bridge": "Überleitung zum Blog – 22-27s, max 60 Zeichen",
   "cta": "Handlungsaufforderung – 27-30s, max 40 Zeichen",
   "thumbnail": "Cover-Text max 5 Wörter – für YouTube/Reels Thumbnail",
   "hashtags": ["#vanlife", "#perpetualtraveler", "#mojobus", "..."]
-}`
+}
+
+WICHTIG für bodyLines: Die Anzahl der Einträge wird im User-Prompt als EXAKT-Vorgabe festgelegt.
+Halte dich strikt daran – nicht mehr, nicht weniger.`
 
 // ════════════════════════════════════════════════════════════════════════
 // HOOK-MECHANIKEN
