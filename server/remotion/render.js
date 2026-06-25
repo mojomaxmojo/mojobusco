@@ -245,9 +245,15 @@ async function concatVoiceoverSegments(segments, sessionDir, hookDurationSec, se
   // Concat
   const outputPath = path.join(sessionDir, 'voiceover_sync.mp3');
   try {
+    // WICHTIG: -c:a libmp3lame statt -c copy!
+    // Mit -c copy ignoriert ffmpeg die duration-Direktive in der concat-Datei
+    // und gibt nur die tatsächliche Dateilänge aus → kein Stille-Padding.
+    // Mit -c:a libmp3lame wird re-encodiert und duration wird als harte Grenze
+    // behandelt → Stille wird eingefügt wenn das Segment kürzer ist als duration.
+    // -q:a 4 = VBR ~165kbps (gut für Sprache, kaum Qualitätsverlust)
     execSync(
-      `${FFMPEG_PATH} -f concat -safe 0 -i "${concatPath}" -c copy -y "${outputPath}"`,
-      { timeout: 30000 }
+      `${FFMPEG_PATH} -f concat -safe 0 -i "${concatPath}" -c:a libmp3lame -q:a 4 -y "${outputPath}"`,
+      { timeout: 60000 }
     );
     const sizeKB = (fs.statSync(outputPath).size / 1024).toFixed(0);
     console.log(`[Remotion] ✅ voiceover_sync.mp3 (${sizeKB}KB) – ${perSlideArray.length} Slides`);
