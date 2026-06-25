@@ -267,7 +267,8 @@ export function generateTikTokUserPrompt({
   text = '',
   template = 'story',
   imageCount = 4,
-  locations = [],
+  locations = [],        // legacy: 1 Location pro Artikel (wird durch imageContexts ersetzt)
+  imageContexts = [],    // neu: 1 Kontext-String pro Bild in sortierter Reihenfolge
   voiceoverMode = false,
   platform = 'tiktok',
 }) {
@@ -283,11 +284,26 @@ export function generateTikTokUserPrompt({
   // Retention-Bogen mit korrekter Bildanzahl
   const retentionArc = RETENTION_ARC.replace('{imageCount}', imageCount)
 
-  // Location-Kontext (optional, verbessert Caption-Matching)
-  const locationContext = Array.isArray(locations) && locations.length > 0
-    ? '\nBILD-KONTEXT (Location pro Satz/Bild):\n' +
-      locations.map((loc, i) => `  Bild ${i + 1}: ${loc || 'keine Location'}`).join('\n') +
-      '\n→ Schreibe die Sätze in REIHENFOLGE der Bilder – Satz 1 passt zu Bild 1, usw.'
+  // Bild-Kontext pro Bild (imageContexts bevorzugt, locations als Fallback)
+  // imageContexts[i] = Kontext für Bild i in der sortierten Reihenfolge
+  const contextSource = Array.isArray(imageContexts) && imageContexts.some(c => c && c.trim())
+    ? imageContexts
+    : Array.isArray(locations) && locations.length > 0
+      ? locations
+      : []
+
+  const locationContext = contextSource.length > 0
+    ? '\n═══════════════════════════════════════\n' +
+      'BILD-KONTEXT (sortierte Reihenfolge)\n' +
+      '═══════════════════════════════════════\n' +
+      'Die Bilder sind in dieser Reihenfolge im Video. ' +
+      'Schreibe Satz N PASSEND zu Bild N.\n\n' +
+      contextSource.map((ctx, i) =>
+        `  Bild ${i + 1}: ${ctx && ctx.trim() ? ctx.trim() : '(kein Kontext)'}`
+      ).join('\n') +
+      '\n\n→ WICHTIG: Satz 1 bezieht sich auf Bild 1, Satz 2 auf Bild 2, usw.\n' +
+      '→ Die Reihenfolge der bodyLines muss der Bild-Reihenfolge entsprechen.\n' +
+      '→ Erfinde keine Orte oder Details – nur aus dem Kontext ableiten.'
     : ''
 
   return `Erstelle ${plat.label}-Texte für diesen Vanlife-Artikel im Foster-Huntington-Stil.

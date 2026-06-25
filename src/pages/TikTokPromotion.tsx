@@ -406,17 +406,46 @@ export function TikTokPromotion() {
           template,
           model: aiModel,
           imageCount: articleImages.length,
-          voiceoverEnabled,   // → Prompt wechselt in TTS-optimierten Modus
-          platform,           // → 'tiktok' | 'reels' | 'youtube' (Hook-Fenster, Hashtag-Strategie)
-          // Bild-Kontext für besseres Caption-Matching
-          locations: selectedContent
-            .map(i => {
-              const loc = i.event?.tags?.find((t: any[]) => t[0] === 'location')?.[1]
-              const country = i.event?.tags?.find((t: any[]) => t[0] === 'country' || t[0] === 'l')?.[1]
-              return [loc, country].filter(Boolean).join(', ')
+          voiceoverEnabled,
+          platform,
+          // ── Bild-Kontext pro Bild (in sortierter Reihenfolge) ──────────────
+          // imageContexts[i] beschreibt Bild i in sortedImages
+          // → KI schreibt Satz i passend zu Bild i
+          imageContexts: (() => {
+            // Für jede Bild-URL: finde das zugehörige Event und extrahiere Kontext
+            return articleImages.map(url => {
+              // Finde das Event das diese Bild-URL enthält
+              const ownerItem = selectedContent.find(item => item.images.includes(url))
+              if (!ownerItem) return ''
+              const ev = ownerItem.event
+              if (!ev) return ''
+
+              const parts: string[] = []
+
+              // 1. imeta alt-Text für diese spezifische URL
+              const imetaTag = ev.tags?.find((t: string[]) =>
+                t[0] === 'imeta' && t.some((v: string) => v === `url ${url}` || v.startsWith('url ') && v.includes(url))
+              )
+              if (imetaTag) {
+                const altEntry = imetaTag.find((v: string) => v.startsWith('alt '))
+                if (altEntry) parts.push(altEntry.replace('alt ', '').trim())
+              }
+
+              // 2. Location + Country aus Event-Tags
+              const loc = ev.tags?.find((t: string[]) => t[0] === 'location')?.[1]
+              const country = ev.tags?.find((t: string[]) => t[0] === 'country' || t[0] === 'l')?.[1]
+              if (loc) parts.push(loc)
+              else if (country) parts.push(country)
+
+              // 3. URL-Fragment als letzter Fallback (Dateiname kann beschreibend sein)
+              if (parts.length === 0) {
+                const filename = url.split('/').pop()?.split('?')[0]?.replace(/\.[^.]+$/, '') || ''
+                if (filename && filename.length > 3 && filename.length < 60) parts.push(filename)
+              }
+
+              return parts.join(' · ')
             })
-            .filter(Boolean)
-            .slice(0, articleImages.length),
+          })(),
         }),
       })
 

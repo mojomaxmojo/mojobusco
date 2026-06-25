@@ -2540,6 +2540,7 @@ app.post('/api/tiktok/generate-text', async (req, res) => {
     model = 'claude',
     imageCount = 5,
     locations,
+    imageContexts,       // neu: 1 Kontext pro Bild in sortierter Reihenfolge
     voiceoverEnabled = false,
     platform = 'tiktok',
   } = req.body
@@ -2548,7 +2549,8 @@ app.post('/api/tiktok/generate-text', async (req, res) => {
     return res.status(400).json({ error: 'Titel ist erforderlich' })
   }
 
-  console.log(`[TikTok] Generiere Text: platform=${platform}, template=${template}, model=${model}, title="${title.substring(0, 60)}", images=${imageCount}, voiceover=${voiceoverEnabled}, locations=${locations?.length || 0}`)
+  const hasImageContexts = Array.isArray(imageContexts) && imageContexts.some(c => c && c.trim())
+  console.log(`[TikTok] Generiere Text: platform=${platform}, template=${template}, model=${model}, title="${title.substring(0, 60)}", images=${imageCount}, voiceover=${voiceoverEnabled}, imageContexts=${hasImageContexts ? imageContexts.length : 0}`)
 
   try {
     // User-Prompt aus tiktok.js generieren (statt hartcodiertem String)
@@ -2559,6 +2561,7 @@ app.post('/api/tiktok/generate-text', async (req, res) => {
       template,
       imageCount,
       locations: locations || [],
+      imageContexts: imageContexts || [],   // pro Bild, sortiert
       voiceoverMode: voiceoverEnabled === true,
       platform,
     })
