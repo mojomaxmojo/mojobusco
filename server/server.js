@@ -2618,12 +2618,64 @@ app.post('/api/tiktok/generate-text', async (req, res) => {
       return res.status(500).json({ error: 'KI-Antwort konnte nicht geparst werden', raw: rawText.substring(0, 500) })
     }
 
-    console.log(`[TikTok] Generiert: hook="${(result.hook || '').substring(0, 50)}", bodyLines=${Array.isArray(result.bodyLines) ? result.bodyLines.length : 0}, thumbnail="${result.thumbnail || ''}"`)
+    // ── bodyLines bereinigen: EXAKT 1 Satz pro Zeile, exakt imageCount Zeilen ──
+    //
+    // Die KI ignoriert oft die Prompt-Regel und schreibt mehrere Sätze in eine Zeile:
+    //   "Max kommt zurück. Stacheln in der Hose. Ich lache."  ← 3 Sätze = 1 KI-Zeile
+    //
+    // Fix:
+    // 1. Jeden KI-Eintrag an Satzgrenzen aufteilen (". ", "! ", "? ")
+    // 2. Alle Sätze in eine flache Liste sammeln
+    // 3. Auf exakt imageCount kürzen ODER auffüllen
+    const rawLines = Array.isArray(result.bodyLines) ? result.bodyLines : [summary || '']
+
+    // Satz-Splitter: "A. B. C." → ["A.", "B.", "C."]
+    // Erhält Satzzeichen am Ende, trimmt Leerzeichen
+    const splitIntoSentences = (text) => {
+      if (!text || !text.trim()) return []
+      // Split an ". ", "! ", "? " – aber NICHT an Abkürzungen (z.B. "ca. 5km")
+      // Heuristik: Split nur wenn nach dem Punkt ein Großbuchstabe oder Anführungszeichen folgt
+      const parts = text.split(/(?<=[.!?])\s+(?=[A-ZÄÖÜ"„])/)
+      return parts.map(s => s.trim()).filter(Boolean)
+    }
+
+    // Alle KI-Zeilen aufsplitten → flache Liste aller Sätze
+    let allSentences = []
+    for (const line of rawLines) {
+      const sentences = splitIntoSentences(line)
+      if (sentences.length > 0) {
+        allSentences.push(...sentences)
+      } else if (line && line.trim()) {
+        allSentences.push(line.trim())
+      }
+    }
+
+    // Auf exakt imageCount Zeilen bringen
+    let cleanBodyLines
+    if (allSentences.length >= imageCount) {
+      // Zu viele Sätze: auf imageCount kürzen
+      cleanBodyLines = allSentences.slice(0, imageCount)
+    } else if (allSentences.length > 0) {
+      // Zu wenige: letzten Satz wiederholen bis imageCount erreicht
+      cleanBodyLines = [...allSentences]
+      while (cleanBodyLines.length < imageCount) {
+        cleanBodyLines.push(allSentences[allSentences.length - 1])
+      }
+    } else {
+      // Fallback: leere Sätze
+      cleanBodyLines = Array(imageCount).fill('')
+    }
+
+    console.log(`[TikTok] Generiert: hook="${(result.hook || '').substring(0, 50)}", bodyLines=${rawLines.length}→${cleanBodyLines.length} (nach Bereinigung), imageCount=${imageCount}`)
+    if (rawLines.length !== cleanBodyLines.length) {
+      console.log(`[TikTok] bodyLines bereinigt: ${rawLines.map(l => `"${l.substring(0, 40)}"`).join(' | ')}`)
+      console.log(`[TikTok] bodyLines final:     ${cleanBodyLines.map(l => `"${l.substring(0, 40)}"`).join(' | ')}`)
+    }
 
     res.json({
       success: true,
       hook: result.hook || title,
-      bodyLines: Array.isArray(result.bodyLines) ? result.bodyLines : [summary || ''],
+      bodyLines: cleanBodyLines,
       bridge: result.bridge || 'Mehr auf mojobus.co',
       cta: result.cta || 'Link in Bio 📌',
       thumbnail: result.thumbnail || '',
