@@ -175,11 +175,10 @@ async function concatVoiceoverSegments(segments, sessionDir, hookDurationSec, se
   for (let i = 0; i < bodySegments.length; i++) {
     const seg = bodySegments[i];
 
-    // RouteMap-Stille VOR diesem Slide einfügen (extra Slide)
+    // RouteMap-Stille VOR diesem Slide einfügen (extra Slide, bereits exakte Länge)
     if (routeSlideIndex >= 0 && i === routeSlideIndex) {
-      lines.push(`file 'silence.mp3'`);
-      lines.push(`duration ${routeDuration.toFixed(2)}`);
-      console.log(`[Remotion] 🗺️ RouteMap Slide ${i + 1} Stille (${routeDuration}s)`);
+      lines.push(`file 'route_silence.mp3'`); // hat bereits korrekte Dauer (kein duration-Padding nötig)
+      console.log(`[Remotion] 🗺️ RouteMap Slide ${i + 1} Stille (${routeDuration.toFixed(1)}s)`);
     }
 
     // Index im erweiterten perSlideArray (RouteMap verschiebt alle ab Position)
@@ -206,7 +205,7 @@ async function concatVoiceoverSegments(segments, sessionDir, hookDurationSec, se
   fs.writeFileSync(concatPath, lines.join('\n') + '\n');
   console.log(`[Remotion] concat.txt:\n${lines.join('\n')}`);
 
-  // Silence-Datei erzeugen (1 Sekunde Stille)
+  // Silence-Dateien erzeugen (generische 1s-Stille + ggf. RouteMap mit exakter Länge)
   const silencePath = path.join(sessionDir, 'silence.mp3');
   try {
     execSync(
@@ -215,8 +214,22 @@ async function concatVoiceoverSegments(segments, sessionDir, hookDurationSec, se
     );
   } catch (e) {
     console.warn('[Remotion] Silence-Generierung fehlgeschlagen:', e.message);
-    // Fallback: leere Datei
     fs.writeFileSync(silencePath, '');
+  }
+
+  // RouteMap-Silence mit exakter Länge (concat-Padding ist unzuverlässig mit -c copy)
+  const routeSilencePath = path.join(sessionDir, 'route_silence.mp3');
+  if (routeSlideIndex >= 0 && routeDuration > 0) {
+    try {
+      execSync(
+        `${FFMPEG_PATH} -f lavfi -i anullsrc=r=24000:cl=mono -t ${routeDuration.toFixed(1)} -q:a 9 -y "${routeSilencePath}"`,
+        { timeout: 10000 }
+      );
+    } catch (e) {
+      console.warn('[Remotion] RouteMap-Silence fehlgeschlagen:', e.message);
+      // Fallback: normale silence.mp3 kopieren
+      try { fs.copyFileSync(silencePath, routeSilencePath); } catch (e2) {}
+    }
   }
 
   // Concat
