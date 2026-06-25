@@ -187,29 +187,25 @@ async function concatVoiceoverSegments(segments, sessionDir, hookDurationSec, se
     lines.push(`duration ${hookDurationSec.toFixed(2)}`);
   }
 
-  // Body-Segmente (eins pro Slide) + ggf. RouteMap-Stille dazwischen
+  // Body-Segmente (eins pro Slide) + RouteMap-Stille dazwischen
   for (let i = 0; i < bodySegments.length; i++) {
     const seg = bodySegments[i];
 
-    // RouteMap-Stille VOR diesem Slide einfügen (extra Slide, bereits exakte Länge)
+    // RouteMap-Stille VOR diesem Slide einfügen (extra Slide)
+    // WICHTIG: auch hier muss eine duration-Zeile gesetzt werden,
+    // damit ffmpeg concat die Stille auf die gewünschte Länge paddet.
     if (routeSlideIndex >= 0 && i === routeSlideIndex) {
-      lines.push(`file 'route_silence.mp3'`); // hat bereits korrekte Dauer (kein duration-Padding nötig)
-      console.log(`[Remotion] 🗺️ RouteMap Slide ${i + 1} Stille (${routeDuration.toFixed(1)}s)`);
+      lines.push(`file 'route_silence.mp3'`);
+      lines.push(`duration ${routeDuration.toFixed(2)}`); // ← PFLICHT: ohne duration spielt ffmpeg nur 1s
+      console.log(`[Remotion] 🗺️ RouteMap Slide ${i + 1} Stille (${routeDuration.toFixed(2)}s)`);
     }
 
-    // Index im erweiterten perSlideArray (RouteMap verschiebt alle ab Position)
+    // Index im erweiterten perSlideArray (RouteMap-Eintrag verschiebt alle ab Position)
     const paIdx = routeSlideIndex >= 0 && i >= routeSlideIndex ? i + 1 : i;
     const slideDur = perSlideArray[paIdx];
 
-    // Wenn dieser Slide stumm sein soll (z.B. Routen-Karte):
-    if (muteBodyIndex !== undefined && i === muteBodyIndex) {
-      lines.push(`file 'silence.mp3'`);
-      lines.push(`duration ${slideDur.toFixed(2)}`);
-      console.log(`[Remotion] 🔇 Slide ${paIdx + 1} stumm (muteBodyIndex)`);
-    } else {
-      lines.push(`file '${seg.filename}'`);
-      lines.push(`duration ${slideDur.toFixed(2)}`);
-    }
+    lines.push(`file '${seg.filename}'`);
+    lines.push(`duration ${slideDur.toFixed(2)}`);
   }
 
   // Bridge: wird NICHT mehr gesprochen (kein Segment im Audio).
@@ -801,16 +797,24 @@ export async function renderMojoBusVideo(params) {
 
       if (rawSegments && rawSegments.length > 0) {
         // RouteMap-Slide Vorbereitung: wurde als Extra Slide vom Frontend gemeldet
-        // concatVoiceoverSegments baut die Stille direkt in die Audio-Datei ein
+        // RouteMap: Position berechnen (Mitte der Bilder)
         const routeIdx = showRouteMap && imageUrls.length >= 2
           ? Math.floor(imageUrls.length / 2) : -1;
+
+        // routeDur: Dauer des RouteMap-Slides.
+        // Wir nehmen den größten Wert aus Basis-perSlideArray an dieser Position
+        // (Lesezeit des benachbarten Body-Slides) als Mindest-Dauer.
+        // concatVoiceoverSegments überschreibt perSlideArray danach sowieso.
         const routeDur = routeIdx >= 0
-          ? (perSlideArray[routeIdx] || secondsPerImage) : 0;
+          ? Math.max(secondsPerImage, perSlideArray[routeIdx] || secondsPerImage)
+          : 0;
 
         // Concat: perSlideArray wird durch concat überschrieben (inkl. Voiceover-Dauer + RouteMap)
+        // muteBodyIndex: RouteMap hat eigene Stille (route_silence.mp3) in concat.txt –
+        // muteVoiceoverSlide vom Frontend wird hier NICHT mehr gebraucht und ignoriert.
         const concatResult = await concatVoiceoverSegments(
           rawSegments, sessionDir, 4, secondsPerImage, 6,
-          showRouteMap ? -1 : muteVoiceoverSlide, // muteBodyIndex deaktivieren wenn RouteMap
+          -1, // muteBodyIndex: immer -1 – RouteMap-Stille wird direkt in concat eingebaut
           routeIdx, routeDur
         );
 
