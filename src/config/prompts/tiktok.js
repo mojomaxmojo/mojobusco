@@ -32,16 +32,20 @@ STIL-REGELN:
 
 ANTWORT-FORMAT (NUR JSON, kein Text davor/danach):
 {
-  "hook": "Ein Satz der neugierig macht – 0-2s, max 80 Zeichen",
-  "bodyLines": ["...exakt so viele Einträge wie Bilder vorhanden sind..."],
-  "bridge": "Überleitung zum Blog – 22-27s, max 60 Zeichen",
-  "cta": "Handlungsaufforderung – 27-30s, max 40 Zeichen",
-  "thumbnail": "Cover-Text max 5 Wörter – für YouTube/Reels Thumbnail",
-  "hashtags": ["#vanlife", "#perpetualtraveler", "#mojobus", "..."]
+  "hook": "Ein Satz – max 80 Zeichen",
+  "bodyLines": ["Satz für Bild 1", "Satz für Bild 2", "..."],
+  "bridge": "Überleitung zum Blog – max 60 Zeichen",
+  "cta": "Handlungsaufforderung – max 40 Zeichen",
+  "thumbnail": "Cover-Text max 5 Wörter",
+  "hashtags": ["#vanlife", "#perpetualtraveler", "#mojobus"]
 }
 
-WICHTIG für bodyLines: Die Anzahl der Einträge wird im User-Prompt als EXAKT-Vorgabe festgelegt.
-Halte dich strikt daran – nicht mehr, nicht weniger.`
+KRITISCHE REGELN für bodyLines:
+1. Anzahl der Einträge = exakt so viele wie Bilder (steht im User-Prompt)
+2. Jeder Eintrag = EXAKT EIN grammatischer Satz, maximal 15 Wörter
+3. KEIN Punkt innerhalb eines Eintrags – nur am Ende
+4. "Motor aus. Stille." → FALSCH (zwei Sätze)
+5. "Motor aus, dann Stille." → RICHTIG (ein Satz)`
 
 // ════════════════════════════════════════════════════════════════════════
 // HOOK-MECHANIKEN
@@ -109,24 +113,25 @@ HOOK-MECHANIKEN – wähle den zum Artikel-Inhalt passendsten Typ:
 const RETENTION_ARC = `
 BODY-STRUKTUR – Spannungsbogen über die Slides (EXAKT {imageCount} Zeilen):
 
+⚠️ EISERNE REGEL – EINE ZEILE = EIN EINZIGER GRAMMATISCHER SATZ:
+   Maximal 15 Wörter. Kein Punkt gefolgt von weiterem Text in derselben Zeile.
+   "Motor aus. Stille." → VERBOTEN (zwei Sätze)
+   "Motor aus, dann Stille." → ERLAUBT (ein Satz)
+   "Der Motor kühlt ab." → PERFEKT
+
 Slide 1 – SITUATION: Atmosphärisch, neutral, setzt die Szene.
-  → Der Zuschauer kommt an. Kein Drama. Nur Ort und Moment.
   → Beispiel: "Der Mojobus steht am Ende einer Schotterstraße."
 
 Slide 2 – BRUCH: Das Kleine das alles verändert. Unspektakulär.
-  → Nicht ein Problem. Eine Verschiebung. Ein Detail das nicht passt.
   → Beispiel: "Die Wasserpumpe macht ein neues Geräusch."
 
 Slide 3 – INTIMITÄT: Der ehrliche, ungeschönte Moment.
-  → Was man normalerweise nicht zeigt. Kein Filter. Keine Dramaturgie.
-  → Beispiel: "Wir sitzen und schweigen. Beide wissen es."
+  → Beispiel: "Wir sitzen und schweigen."
 
-Slide 4+ – OFFEN: Kein Fazit. Kein Abschluss. Ein Bild das bleibt.
-  → Der letzte Satz fragt nichts. Er zeigt etwas. Das reicht.
-  → Beispiel: "Leon schläft schon. Der Motor kühlt ab. Morgen weiter."
+Slide 4+ – OFFEN: Kein Fazit. Ein Bild das bleibt.
+  → Beispiel: "Leon schläft noch, der Motor kühlt schon ab."
 
-REGEL: Jeder Satz ist ein EIGENER Moment – wie eine Polaroid-Aufnahme in Worten.
-Kein Satz erklärt den vorherigen. Kein Satz löst den nächsten auf.`
+REGEL: Eine Zeile = ein Gedanke = ein Slide. Nicht mehr.`
 
 // ════════════════════════════════════════════════════════════════════════
 // PLATTFORM-KONFIGURATION
@@ -190,22 +195,21 @@ const PLATFORM_CONFIG = {
 const VOICEOVER_RULES = {
   off: `
 CAPTION-MODUS (kein Voiceover):
-- Stakkato-Fragmentsätze sind stark: "Motor aus. Stille."
-- Drei-Wort-Sätze erlaubt und erwünscht.
-- Zahlen als Ziffern: "36 Jahre."
-- Foster-Rhythmus: kurz. kurz. kurz. dann ein längerer.`,
+- Ein grammatischer Satz pro Zeile. Maximal 15 Wörter.
+- Kurze Sätze sind stark: "Der Motor kühlt ab."
+- Zahlen als Ziffern: "36 Jahre." (das ist bereits ein vollständiger Satz)
+- NICHT: "Motor aus. Stille." (zwei Sätze → zwei Zeilen → Sync bricht)
+- RICHTIG: "Motor aus, dann Stille." (ein Satz mit Komma)`,
 
   on: `
 VOICEOVER-MODUS (Edge TTS spricht diese Sätze):
-- Vollständige Sätze die sich natürlich sprechen lassen.
-- Kein reines Stakkato – "36. Jahre. Alt." klingt gesprochen kaputt.
-- Stattdessen: "Sechsunddreißig Jahre alt – das ist unser Zuhause."
-- Zahlen ausschreiben: "sechsunddreißig" statt "36", "zehn Meter" statt "10m".
-- Gedankenstriche (–) erlaubt für natürliche Sprechpausen.
-- Sätze enden mit Punkt oder Komma – niemals Ausrufezeichen, niemals Frage.
-- Foster bleibt Foster: kurz, direkt, kein Erklären. Aber sprechbar.
-- Hook-Stakkato darf bleiben wenn er wie ein Atemzug klingt: 
-  "Sechsunddreißig Jahre alt. Zehn Meter lang." (kurze Pause dazwischen = OK)`
+- Ein grammatischer Satz pro Zeile der sich natürlich sprechen lässt.
+- Zahlen ausschreiben: "sechsunddreißig Jahre" statt "36 Jahre".
+- Gedankenstriche (–) für natürliche Sprechpausen erlaubt.
+- Kein Punkt gefolgt von weiterem Text in derselben Zeile.
+- NICHT: "Motor aus. Stille." (zwei Sätze → Sync bricht)
+- RICHTIG: "Motor aus – dann Stille." (ein Satz)
+- Maximal 15 Wörter pro Satz.`
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -344,9 +348,13 @@ ${retentionArc}
 ${voRules}
 
 ANZAHL BILDER: ${imageCount}
-→ EXAKT ${imageCount} Zeilen in bodyLines. Nicht mehr, nicht weniger.
-→ Jede Zeile = genau ein Slide. Kein Übertrag auf die nächste Zeile.
-→ Wenn ein Gedanke länger ist: in EINE Zeile packen (durch Komma oder Gedankenstrich trennen).
+→ EXAKT ${imageCount} Einträge in bodyLines. Nicht mehr, nicht weniger.
+→ Jeder Eintrag = GENAU EIN grammatischer Satz = GENAU EIN Slide.
+→ Maximal 15 Wörter pro Eintrag.
+→ KEIN Punkt gefolgt von weiterem Text: "Satz A. Satz B." ist VERBOTEN.
+→ Komma oder Gedankenstrich statt Punkt wenn ein Gedanke länger ist.
+
+SELBSTCHECK vor der Antwort: Zähle die bodyLines-Einträge. Sind es exakt ${imageCount}? Hat jeder Eintrag nur einen Punkt am Ende (nicht mittendrin)? Wenn nicht → korrigieren.
 
 ═══════════════════════════════════════
 BRIDGE + CTA + THUMBNAIL
