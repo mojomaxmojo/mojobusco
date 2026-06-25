@@ -531,3 +531,117 @@ Edge TTS (Microsoft, `server/remotion/edge.js`) hat Piper als primäre TTS-Engin
 | 8 | **Automatischer Hook (KI)** | Hoch | KI erkennt die spannendste Videostelle und setzt sie als Hook (erste 3s) |
 | 9 | **Bild-zu-Video (KI)** | Hoch | Statische Fotos per KI leicht animieren (Wolken, Wellen, Gras) |
 | 10 | **Green-Screen** | Mittel | Grünen Hintergrund via FFmpeg chromakey ersetzen |
+
+---
+
+## 📋 Changelog – Änderungen 25.06.2026
+
+### ✅ ffprobe-Fix (Voiceover-Dauer wurde nie ausgelesen)
+
+**Problem-Ursachenkette** (3 separate Bugs):
+
+| Bug | Ursache | Commit |
+|-----|---------|--------|
+| `execFileAsync is not defined` | `promisify(execFile)` importiert aber nie der Variable zugewiesen | `548d011` |
+| `/opt/bin/ffprobe` existiert nicht | CentminMod/AlmaLinux installiert ffprobe nach `/usr/local/bin/` | `2ae8e94` |
+| Dauer immer 0.00s | Kombination beider Fehler → catch-Block → Fallback auf Dateigröße | — |
+
+**Fix**: `render.js` – nach `import { promisify } from 'util'` fehlendes `const execFileAsync = promisify(execFile)` hinzugefügt. Pfad-Erkennung via `command -v ffprobe` statt hartcodiertem `/opt/bin/`.
+
+**Diagnose-Methode**: catch-Block in render.js temporär mit vollständiger Fehlermeldung patchen:
+```bash
+sed -i 's/} catch {/} catch (ffErr) { console.error(`FFPROBE CRASH: ${ffErr.message}`);/' \
+  /home/nginx/domains/mojobus.co/public/server/remotion/render.js
+systemctl restart ai-api
+```
+
+---
+
+### ✅ RouteMap-Sync-Fix (Voiceover lief über Routen-Karte)
+
+**Problem**: Animierte Routen-Karte (Mitte der Slideshow) zerstörte den kompletten Audio-Sync. Voiceover redete über die Karte statt Stille.
+
+**Ursachen** (mehrere Layers):
+
+| Layer | Bug | Datei | Commit |
+|-------|-----|-------|--------|
+| 1 | `perSlideArray` für `imageCount` Bilder berechnet, aber `slideDefs` hat `imageCount+1` Einträge | `render.js` | `8f195e9` |
+| 2 | RouteMap-Stille nachträglich in `perSlideArray` eingefügt, NACH `voiceover_sync.mp3`-Erstellung | `render.js` | `d4b5aad` |
+| 3 | `calculateDuration` prüfte `perSlideArray.length === imageCount` → RouteMap macht +1 → Fallback auf `3×4s` → Video nur 22s statt 41s | `MojoBusVideo.tsx` | `ac40213` |
+| 4 | `calculateMetadata` in `index.tsx` übergab `showRouteMap` nicht → `durationInFrames` immer falsch | `index.tsx` | `ac40213` |
+| 5 | `silence.mp3` nur 1s lang, concat-`duration`-Padding mit `-c copy` bei MP3 unzuverlässig → Stille war effektiv 1s statt 6.7s | `render.js` | `97493b2` |
+
+**Finale Lösung**:
+- `concatVoiceoverSegments()` bekommt `routeSlideIndex` + `routeDuration` als Parameter
+- `route_silence.mp3` wird mit **exakter Dauer** per ffmpeg generiert (`-t ${routeDuration}`)
+- `perSlideArray` inkl. RouteMap-Eintrag bereits in der Funktion berechnet
+- `calculateDuration()` hat neuen Parameter `showRouteMap` → `totalSlideCount = imageCount + 1`
+- Alle 3 `calculateMetadata`-Aufrufe in `index.tsx` übergeben `props.showRouteMap`
+
+**Architektur nach Fix** (3 Bilder + RouteMap):
+```
+voiceover_sync.mp3:
+  [hook(4s), img0_vo(7.4s), route_silence(8.6s), img1_vo(7.6s), img2_vo(7.6s), bridge(6s)]
+
+perSlideArray = [7.4, 8.6(route), 7.6, 7.6]   ← 4 Einträge = totalSlideCount ✅
+slideDefs     = [img0, route, img1, img2]        ← 4 Einträge ✅
+durationInFrames = (4+8.6+7.6+7.6+6) × 25 = 1030 Frames = 41.2s ✅
+```
+
+---
+
+### ✅ +1s Stille nach Voiceover-Segment
+
+- **Betroffene Datei**: `server/remotion/render.js`
+- **Fix**: `Math.max(readingTime, audioTime + 1)` statt `Math.max(readingTime, audioTime) + 1`
+- Jedes Voiceover-Segment hat jetzt 1s Stille am Ende → nächster Slide startet nicht sofort nach dem letzten Wort
+- **Commit**: `57f904c`
+
+---
+
+### ✅ TikTok-Prompt ausgelagert nach src/config/prompts/tiktok.js
+
+- **Problem**: `FOSTER_HUNTINGTON_SYSTEM_PROMPT` war hartcodierter String in `server/server.js`
+- **Fix**: Neue Datei `src/config/prompts/tiktok.js` mit `export const FOSTER_HUNTINGTON_SYSTEM_PROMPT`
+- Export in `src/config/prompts/index.js` hinzugefügt
+- `server/server.js` importiert jetzt aus `../src/config/prompts/index.js`
+- **Commit**: `42155a2`
+- **Prompt anpassen**: Nur `src/config/prompts/tiktok.js` bearbeiten
+
+**Struktur**:
+```
+src/config/prompts/
+├── tiktok.js      ← FOSTER_HUNTINGTON_SYSTEM_PROMPT (TikTok Voiceover-Stil)
+├── articles.js    ← generateArticlePrompt()
+├── notes.js       ← generateNotePrompt()
+├── place.js       ← generatePlacePrompt()
+├── media.js       ← generateMediaPrompt()
+├── trips.js       ← generateTripPrompt()
+├── lifestyles.js  ← fosterHuntingtonStyle, getGenderPromptAddition
+└── index.js       ← re-exportiert alles
+```
+
+---
+
+### ⚠️ Wichtige Hinweise für nächste Session
+
+**ffmpeg/ffprobe auf CentminMod/AlmaLinux 9.7**:
+- `which ffprobe` → `/usr/local/bin/ffprobe` (Symlink auf `/opt/bin/ffprobe`)
+- `which ffmpeg`  → `/usr/local/bin/ffmpeg`  (Symlink auf `/opt/bin/ffmpeg`)
+- `render.js` erkennt den Pfad automatisch via `command -v ffprobe`
+- `server.js` sucht via `fs.existsSync` in `/usr/bin/`, `/usr/local/bin/`, `/opt/bin/`
+- **Niemals** `/opt/bin/ffprobe` direkt hartcodieren!
+
+**RouteMap-Debug**:
+```bash
+# Logs beim Rendern mit RouteMap prüfen:
+journalctl -u ai-api -f | grep -i "Route\|perSlide\|Frames\|Stille"
+# Erwartete Ausgabe:
+# 🗺️ RouteMap-Slide in concat: Position 1 (8.6s Stille)
+# 🗺️ RouteMap Slide 2 Stille (8.6s)
+# Output #0, mp3, to '.../route_silence.mp3':  ← route_silence.mp3 wird generiert
+# ✅ Voiceover-Sync: perSlideArray=[7.4, 8.6, 7.6, 7.6]  ← 4 Einträge bei 3 Bildern+RouteMap
+# 1030 Frames @ 25fps = 41.2s  ← korrekte Gesamtlänge
+```
+
+**Letzter Commit dieser Session**: `97493b2` – RouteMap-Silence mit exakter Länge
