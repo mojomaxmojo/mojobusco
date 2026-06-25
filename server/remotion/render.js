@@ -137,11 +137,27 @@ async function concatVoiceoverSegments(segments, sessionDir, hookDurationSec, se
   if (!segments || segments.length === 0) return null;
 
   // segments = [{ filename, durationSec }, ...]
-  // Hook + BodyLines + Bridge → segments[0] = Hook, segments[1..N-1] = Body, segments[N-1] = Bridge
+  //
+  // Altes Format (mit Bridge):  [Hook, Body1, Body2, ..., Bridge]
+  // Neues Format (ohne Bridge): [Hook, Body1, Body2, ...]
+  //
+  // Erkennung: Bridge ist optional. Wenn segments.length === imageCount + 1
+  // (Hook + Body), gibt es keine Bridge im Audio – sie wird als Text-Overlay
+  // angezeigt aber nicht gesprochen (Edge TTS würde "Mehr auf mojobus.co" als
+  // Werbejingle klingen lassen).
+  //
+  // Heuristik: Wir haben immer mindestens Hook + 1 Body.
+  // Wenn das letzte Segment deutlich kürzer als ein Body-Satz ist UND
+  // kein bodyText enthält → könnte Bridge sein. Aber das ist fragil.
+  //
+  // Robustere Lösung: Frontend sendet explizit hasBridge=false (Standardfall).
+  // Fallback: wir behandeln ALLE Segmente nach dem Hook als Body-Segmente.
+  // Bridge wird separat NICHT im Audio eingebaut – sie hat ihren eigenen Slide
+  // im Video mit eigenem Text-Overlay.
 
-  const bodySegments = segments.slice(1, -1); // alles außer Hook + Bridge
   const hookSeg = segments[0];
-  const bridgeSeg = segments[segments.length - 1];
+  const bodySegments = segments.slice(1); // alle nach Hook = Body (kein Bridge mehr)
+  const bridgeSeg = null;                  // Bridge nicht gesprochen – nur Text-Overlay
 
   // perSlideArray berechnen:
   // - Lesezeit: max(3.5s, textLen / 14 Zeichen/s + 0.5s Atempause)
@@ -196,11 +212,9 @@ async function concatVoiceoverSegments(segments, sessionDir, hookDurationSec, se
     }
   }
 
-  // Bridge-Segment
-  if (bridgeSeg) {
-    lines.push(`file '${bridgeSeg.filename}'`);
-    lines.push(`duration ${bridgeDurationSec.toFixed(2)}`);
-  }
+  // Bridge: wird NICHT mehr gesprochen (kein Segment im Audio).
+  // Sie erscheint als Text-Overlay auf dem Bridge-Slide im Video.
+  // bridgeSeg ist null seit dem Frontend-Fix (Bridge aus voiceoverSegmentsArray entfernt).
 
   fs.writeFileSync(concatPath, lines.join('\n') + '\n');
   console.log(`[Remotion] concat.txt:\n${lines.join('\n')}`);
