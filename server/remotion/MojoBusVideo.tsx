@@ -257,6 +257,24 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
     );
   };
 
+  // ── Hook Dim Overlay: sanftes Fade-in/out ────────────────────────────
+  // Abdunkelung für den Hook-Slide damit Text auf hellem Bild lesbar bleibt
+  const HookDimOverlay: React.FC<{ opacity: number; fps: number; hookFrames: number }> = ({ opacity, fps, hookFrames }) => {
+    const frame = useCurrentFrame();
+    const fadeInFrames  = Math.round(fps * 0.4);  // 0.4s einblenden
+    const fadeOutFrames = Math.round(fps * 0.5);  // 0.5s ausblenden
+
+    const alpha = (() => {
+      if (frame < fadeInFrames) return (frame / fadeInFrames) * opacity;
+      if (frame > hookFrames - fadeOutFrames) return ((hookFrames - frame) / fadeOutFrames) * opacity;
+      return opacity;
+    })();
+
+    return (
+      <AbsoluteFill style={{ background: `rgba(0,0,0,${alpha.toFixed(3)})`, pointerEvents: 'none' }} />
+    );
+  };
+
   // Transition: 20 Frames (0.67s bei 30fps) — sanftes Überblenden
   const TRANSITION_FRAMES = Math.round(fps * 0.67); // ~20 Frames @ 30fps
 
@@ -359,7 +377,14 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
       {/* ══ SCHICHT 2: Color Grade Overlay ══════════════════════════════════ */}
       <ColorGradeOverlay grade={grade} />
 
-      {/* ══ SCHICHT 4: Hook Titel (erste 4s) ════════════════════════════════ */}
+      {/* ══ SCHICHT 3: Hook Abdunkelung (nur während Hook-Slide) ══════════════
+           Gleichmäßiges dunkles Overlay damit der Hook-Text auf jedem Bild
+           gut lesbar ist. Opacity 0.55 = Bild erkennbar aber Text klar.        */}
+      <Sequence from={0} durationInFrames={hookFrames}>
+        <HookDimOverlay opacity={0.55} fps={fps} hookFrames={hookFrames} />
+      </Sequence>
+
+      {/* ══ SCHICHT 4: Hook Titel (erste 5s) ════════════════════════════════ */}
       <Sequence from={0} durationInFrames={hookFrames}>
         <HookTitle
           title={title}

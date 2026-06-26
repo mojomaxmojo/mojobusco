@@ -61,10 +61,11 @@ export const HookTitle: React.FC<HookTitleProps> = ({
         pointerEvents: 'none',
       }}
     >
-      {/* Dunkler Gradient-Hintergrund */}
+      {/* Radialer Gradient um den Text-Bereich für extra Tiefe
+           (globales Dim-Overlay macht bereits das Abdunkeln des Bildes) */}
       <AbsoluteFill
         style={{
-          background: 'linear-gradient(180deg, rgba(0,0,0,0.0) 0%, rgba(0,0,0,0.65) 60%, rgba(0,0,0,0.88) 100%)',
+          background: 'radial-gradient(ellipse 80% 60% at 50% 55%, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.0) 100%)',
         }}
       />
 
