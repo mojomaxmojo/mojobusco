@@ -835,8 +835,9 @@ export async function renderMojoBusVideo(params) {
         // muteBodyIndex: RouteMap hat eigene Stille (route_silence.mp3) in concat.txt –
         // muteVoiceoverSlide vom Frontend wird hier NICHT mehr gebraucht und ignoriert.
         const concatResult = await concatVoiceoverSegments(
-          rawSegments, sessionDir, 4, secondsPerImage, 6,
-          -1, // muteBodyIndex: immer -1 – RouteMap-Stille wird direkt in concat eingebaut
+          rawSegments, sessionDir, 5, secondsPerImage, 6,
+          // hookDurationSec=5 (MojoBusVideo hookFrames = 5s, war 4s)
+          -1, // muteBodyIndex: immer -1
           routeIdx, routeDur
         );
 

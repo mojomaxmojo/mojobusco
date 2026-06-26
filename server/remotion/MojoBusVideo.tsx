@@ -127,7 +127,7 @@ export function calculateDuration(
   perSlideArray?: number[],
   showRouteMap?: boolean
 ): { totalFrames: number; hookFrames: number; ctaFrames: number; slideshowFrames: number } {
-  const hookFrames      = 4 * fps;
+  const hookFrames      = 5 * fps;  // 5s Hook: mehr Zeit für Stop-the-Scroll (war 4s)
   const ctaFrames       = 6 * fps;
   const totalSlideCount = showRouteMap && imageCount >= 2 ? imageCount + 1 : imageCount;
   // Wenn perSlideArray übergeben: dynamische Summe, sonst fix
@@ -203,7 +203,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
     : new Array(totalSlideCount).fill(secondsPerImage);
   const slidesFrames = slidesSec.map(s => Math.round(s * fps));
 
-  const hookFrames = 4 * fps;
+  const hookFrames = 5 * fps;  // 5s Hook (muss mit calculateDuration übereinstimmen)
   const ctaFrames  = 6 * fps;
 
   // routeDurFrames aus slidesFrames (enthält bereits RouteMap-Eintrag an routeSlideIndex)

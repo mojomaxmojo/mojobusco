@@ -537,8 +537,9 @@ export function TikTokPromotion() {
       ctaText,
     ].filter(c => c)
 
-    // Strukturierte Captions für Kapitel-Marker
-    const hookCaption = hookText.trim()
+    // hookCaption = kurze Unterzeile im HookTitle (Location oder leer)
+    // NICHT hookText – der ist bereits als title= im HookTitle, Dopplung vermeiden
+    const hookCaption = (location || country || '').trim()
 
     // Music-URL
     let musicUrl = undefined

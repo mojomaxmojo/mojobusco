@@ -337,8 +337,12 @@ HOOK-MECHANIKEN
 ${HOOK_MECHANICS}
 
 Hook für dieses Video (max ${plat.hookMaxChars} Zeichen):
-→ Wähle den Typ der zum Artikel-Inhalt passt. Begründe NICHT – schreibe einfach den Hook.
-→ Foster-Regeln gelten: kein Ausrufezeichen, keine Leseransprache, kein Motivations-Satz.
+→ Der Hook erscheint als GROSSER TEXT auf dem ersten Bild (0-5s).
+→ Wähle den Typ der zum Artikel-Inhalt passt. Begründe NICHT.
+→ Der Hook muss in ${plat.hookWindow} entscheiden ob der Zuschauer weiterschaut.
+→ Test: Würde ein fremder Mensch beim Scrollen bei diesem Text stoppen?
+→ Foster-Regeln: kein Ausrufezeichen, keine Leseransprache, kein Motivations-Satz.
+→ Kurz schlägt lang: "36 Jahre. Mein Zuhause." > "Wir leben seit Jahren in einem alten Bus."
 
 ═══════════════════════════════════════
 BODY-STRUKTUR
