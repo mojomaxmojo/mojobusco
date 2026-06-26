@@ -118,6 +118,30 @@ export interface MojoBusVideoProps {
 
 }
 
+// ── HookDimOverlay ────────────────────────────────────────────────────────
+// Top-Level Komponente (PFLICHT: useCurrentFrame darf nicht in inneren Funktionen stehen)
+// Gleichmäßige Abdunkelung des Bildes während des Hook-Slides (0-hookFrames).
+// Sanftes Fade-in (0.4s) und Fade-out (0.5s) für cinematic Look.
+
+const HookDimOverlay: React.FC<{ opacity: number; fps: number; hookFrames: number }> = ({ opacity, fps, hookFrames }) => {
+  const frame = useCurrentFrame();
+  const fadeInFrames  = Math.round(fps * 0.4);
+  const fadeOutFrames = Math.round(fps * 0.5);
+
+  let alpha: number;
+  if (frame < fadeInFrames) {
+    alpha = (frame / fadeInFrames) * opacity;
+  } else if (frame > hookFrames - fadeOutFrames) {
+    alpha = Math.max(0, ((hookFrames - frame) / fadeOutFrames) * opacity);
+  } else {
+    alpha = opacity;
+  }
+
+  return (
+    <AbsoluteFill style={{ background: `rgba(0,0,0,${alpha.toFixed(3)})`, pointerEvents: 'none' }} />
+  );
+};
+
 // ── calculateDuration ─────────────────────────────────────────────────────
 
 export function calculateDuration(
@@ -254,24 +278,6 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
         intensity={0.10}
         motionBlurStrength={0}
       />
-    );
-  };
-
-  // ── Hook Dim Overlay: sanftes Fade-in/out ────────────────────────────
-  // Abdunkelung für den Hook-Slide damit Text auf hellem Bild lesbar bleibt
-  const HookDimOverlay: React.FC<{ opacity: number; fps: number; hookFrames: number }> = ({ opacity, fps, hookFrames }) => {
-    const frame = useCurrentFrame();
-    const fadeInFrames  = Math.round(fps * 0.4);  // 0.4s einblenden
-    const fadeOutFrames = Math.round(fps * 0.5);  // 0.5s ausblenden
-
-    const alpha = (() => {
-      if (frame < fadeInFrames) return (frame / fadeInFrames) * opacity;
-      if (frame > hookFrames - fadeOutFrames) return ((hookFrames - frame) / fadeOutFrames) * opacity;
-      return opacity;
-    })();
-
-    return (
-      <AbsoluteFill style={{ background: `rgba(0,0,0,${alpha.toFixed(3)})`, pointerEvents: 'none' }} />
     );
   };
 
