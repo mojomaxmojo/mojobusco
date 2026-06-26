@@ -14,7 +14,7 @@
  */
 
 import React from 'react';
-import { AbsoluteFill, Sequence, useVideoConfig, Video } from 'remotion';
+import { AbsoluteFill, Sequence, useVideoConfig, useCurrentFrame, Video } from 'remotion';
 
 import { KenBurnsImage, pickDirection } from './components/KenBurnsImage';
 import { ColorGradeOverlay, ColorGradeWrapper, lifestyleToGrade, type ColorGrade } from './components/ColorGradeOverlay';
