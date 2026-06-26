@@ -2650,6 +2650,16 @@ app.post('/api/tiktok/generate-text', async (req, res) => {
       }
     }
 
+    // ── Erkennung: KI hat Bild 1 für den Hook "verbraucht" ──────────────
+    // Symptom: allSentences.length === imageCount - 1
+    // Ursache: KI schreibt Hook aus Bild-1-Inhalt und lässt bodyLines[0] weg
+    // Fix: Hook-Text als bodyLines[0] einfügen → alle anderen verschieben sich
+    const hookConsumedBild1 = allSentences.length === imageCount - 1
+    if (hookConsumedBild1 && result.hook && result.hook.trim()) {
+      console.log(`[TikTok] ⚠️ KI hat Bild 1 für Hook verbraucht (${allSentences.length} statt ${imageCount} bodyLines) → Hook als bodyLines[0] eingesetzt`)
+      allSentences.unshift(result.hook.trim())
+    }
+
     // Auf exakt imageCount Zeilen bringen
     let cleanBodyLines
     if (allSentences.length >= imageCount) {
@@ -2666,10 +2676,9 @@ app.post('/api/tiktok/generate-text', async (req, res) => {
       cleanBodyLines = Array(imageCount).fill('')
     }
 
-    console.log(`[TikTok] Generiert: hook="${(result.hook || '').substring(0, 50)}", bodyLines=${rawLines.length}→${cleanBodyLines.length} (nach Bereinigung), imageCount=${imageCount}`)
-    if (rawLines.length !== cleanBodyLines.length) {
-      console.log(`[TikTok] bodyLines bereinigt: ${rawLines.map(l => `"${l.substring(0, 40)}"`).join(' | ')}`)
-      console.log(`[TikTok] bodyLines final:     ${cleanBodyLines.map(l => `"${l.substring(0, 40)}"`).join(' | ')}`)
+    console.log(`[TikTok] Generiert: hook="${(result.hook || '').substring(0, 50)}", bodyLines=${rawLines.length}→${cleanBodyLines.length}/${imageCount}${hookConsumedBild1 ? ' [Bild1-Fix]' : ''}`)
+    if (rawLines.length !== cleanBodyLines.length || hookConsumedBild1) {
+      console.log(`[TikTok] bodyLines final: ${cleanBodyLines.map(l => `"${l.substring(0, 35)}"`).join(' | ')}`)
     }
 
     res.json({

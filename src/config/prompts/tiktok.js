@@ -351,14 +351,26 @@ ${retentionArc}
 
 ${voRules}
 
+⚠️ HOOK ≠ SATZ ZU EINEM BILD – DIESE REGEL IST ABSOLUT:
+Der Hook ist ein EXTRA Element. Er ist kein bodyLine-Eintrag.
+Er erscheint auf dem ersten Bild ABER er ersetzt KEINEN bodyLine-Satz.
+Auch wenn der Hook inhaltlich Bild 1 beschreibt: bodyLines[0] ist TROTZDEM
+ein eigener Satz zu Bild 1. Er darf denselben Moment anders beschreiben.
+
+FALSCH: hook="Sand und Blüten" → bodyLines hat nur 9 Einträge (Bild 1 "verbraucht")
+RICHTIG: hook="Sand und Blüten" → bodyLines[0] beschreibt Bild 1 NEU, anders, knapper
+
 ANZAHL BILDER: ${imageCount}
-→ EXAKT ${imageCount} Einträge in bodyLines. Nicht mehr, nicht weniger.
+→ bodyLines hat EXAKT ${imageCount} Einträge – einen pro Bild, Bild 1 bis Bild ${imageCount}.
 → Jeder Eintrag = GENAU EIN grammatischer Satz = GENAU EIN Slide.
 → Maximal 15 Wörter pro Eintrag.
 → KEIN Punkt gefolgt von weiterem Text: "Satz A. Satz B." ist VERBOTEN.
 → Komma oder Gedankenstrich statt Punkt wenn ein Gedanke länger ist.
 
-SELBSTCHECK vor der Antwort: Zähle die bodyLines-Einträge. Sind es exakt ${imageCount}? Hat jeder Eintrag nur einen Punkt am Ende (nicht mittendrin)? Wenn nicht → korrigieren.
+SELBSTCHECK vor der Antwort:
+  1. Zähle bodyLines-Einträge: sind es exakt ${imageCount}? Wenn nicht → korrigieren.
+  2. Hat jeder Eintrag höchstens einen Punkt (am Ende)? Wenn nicht → aufteilen.
+  3. Ist bodyLines[0] ein eigener Satz zu Bild 1 (unabhängig vom Hook)? Wenn nicht → neu schreiben.
 
 ═══════════════════════════════════════
 BRIDGE + CTA + THUMBNAIL
