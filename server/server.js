@@ -2529,6 +2529,125 @@ app.get('/api/music/:filename', (req, res) => {
 // Antwort: { hook, bodyLines[], bridge, cta, hashtags[] }
 // ═══════════════════════════════════════════════════════════
 
+// ══════════════════════════════════════════════════════════════════════
+// POST /api/tiktok/analyze-images
+// Analysiert Bild-URLs via Vision-KI (Groq → OpenRouter Fallback)
+// Body: { imageUrls: string[], existingContexts?: string[] }
+// Response: { descriptions: string[] }  – eine Beschreibung pro Bild
+// ══════════════════════════════════════════════════════════════════════
+
+// Vision-Prompt: sachlich, kurz, für Foster-Stil nutzbar
+const VISION_PROMPT = `Beschreibe dieses Bild sachlich in 1-2 kurzen Sätzen.
+Was ist das Hauptmotiv? (Tier, Pflanze, Landschaft, Mensch, Objekt, Fahrzeug)
+Was fällt sofort auf? Farbe, Licht, Stimmung, Besonderheit.
+Kein Urteil, keine Bewertung. Nur was sichtbar ist.
+Beispiel: "Braune Gottesanbeterin auf einem Kaktus. Makro-Aufnahme, warmes Seitenlicht."
+Antwort: NUR die Beschreibung, kein Intro, kein "Das Bild zeigt".`
+
+// Eine Bild-URL analysieren – Groq Vision zuerst, dann OpenRouter Fallback
+async function analyzeOneImage(imageUrl, preferredModel = 'groq') {
+  // ── Versuch 1: Groq (Llama 4 Scout Vision) – kostenlos ──────────────
+  if (preferredModel !== 'claude' && process.env.GROQ_API_KEY) {
+    try {
+      const response = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
+        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'text', text: VISION_PROMPT },
+            { type: 'image_url', image_url: { url: imageUrl } }
+          ]
+        }],
+        max_tokens: 120,
+        temperature: 0.2,
+      }, {
+        headers: { 'Authorization': `Bearer ${process.env.GROQ_API_KEY}` },
+        timeout: 20000
+      })
+      const desc = response.data.choices[0].message.content.trim()
+      console.log(`[Vision] Groq ✓: "${desc.substring(0, 60)}..."`)
+      return desc
+    } catch (err) {
+      console.warn(`[Vision] Groq fehlgeschlagen: ${err.response?.data?.error?.message || err.message} → Claude Fallback`)
+    }
+  }
+
+  // ── Versuch 2: Claude Sonnet via OpenRouter – Fallback ───────────────
+  if (process.env.OPENROUTER_API_KEY) {
+    try {
+      const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
+        model: '~anthropic/claude-sonnet-latest',
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'text', text: VISION_PROMPT },
+            { type: 'image_url', image_url: { url: imageUrl } }
+          ]
+        }],
+        max_tokens: 120,
+        temperature: 0.2,
+      }, {
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          'HTTP-Referer': 'https://mojobus.co',
+          'X-Title': 'MojoBus',
+          'Content-Type': 'application/json'
+        },
+        timeout: 25000
+      })
+      const desc = response.data.choices[0].message.content.trim()
+      console.log(`[Vision] Claude ✓: "${desc.substring(0, 60)}..."`)
+      return desc
+    } catch (err) {
+      console.warn(`[Vision] Claude fehlgeschlagen: ${err.response?.data?.error?.message || err.message}`)
+    }
+  }
+
+  return null // kein Vision verfügbar
+}
+
+app.post('/api/tiktok/analyze-images', async (req, res) => {
+  const { imageUrls, existingContexts = [] } = req.body
+
+  if (!Array.isArray(imageUrls) || imageUrls.length === 0) {
+    return res.status(400).json({ error: 'imageUrls fehlt oder leer' })
+  }
+
+  const maxImages = Math.min(imageUrls.length, 20)
+  console.log(`[Vision] Analysiere ${maxImages} Bilder...`)
+  const startTime = Date.now()
+
+  // Alle Bilder parallel analysieren
+  // Bilder mit existingContexts (imeta alt-Tag) überspringen – bereits beschrieben
+  const tasks = imageUrls.slice(0, maxImages).map(async (url, i) => {
+    // Wenn bereits ein guter Kontext vorhanden → Vision überspringen
+    const existing = existingContexts[i]
+    if (existing && existing.trim() && existing.trim().length > 10) {
+      console.log(`[Vision] Bild ${i + 1}: übersprungen (vorhandener Kontext: "${existing.substring(0, 40)}")`)
+      return existing
+    }
+
+    // Video-URLs überspringen (Vision kann keine Videos analysieren)
+    if (/\.(mp4|webm|mov|avi|mkv)(\?|#|$)/i.test(url)) {
+      console.log(`[Vision] Bild ${i + 1}: Video übersprungen`)
+      return existingContexts[i] || 'Video-Clip'
+    }
+
+    const desc = await analyzeOneImage(url)
+    return desc || existingContexts[i] || ''
+  })
+
+  const descriptions = await Promise.all(tasks)
+  const duration = Date.now() - startTime
+
+  // Log: Zusammenfassung
+  const analyzed = descriptions.filter((d, i) => d && (!existingContexts[i] || existingContexts[i].length <= 10)).length
+  console.log(`[Vision] ✅ ${maxImages} Bilder analysiert in ${duration}ms (${analyzed} via KI, ${maxImages - analyzed} aus Cache)`)
+  descriptions.forEach((d, i) => console.log(`[Vision] Bild ${i + 1}: "${(d || '').substring(0, 60)}"`))
+
+  res.json({ descriptions, durationMs: duration })
+})
+
 // ── System-Prompt aus src/config/prompts/tiktok.js ─────────────────────
 
 app.post('/api/tiktok/generate-text', async (req, res) => {

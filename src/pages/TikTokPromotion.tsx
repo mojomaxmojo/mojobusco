@@ -384,6 +384,43 @@ export function TikTokPromotion() {
 
   // ── KI-GENERIERUNG ═══════════════════════════════════════
 
+  // ── Hilfsfunktion: Markdown bereinigen ════════════════════════════
+  const cleanMarkdown = (content: string): string =>
+    content
+      .replace(/\[BILD_\d+\]/g, '')
+      .replace(/!\[.*?\]\(.*?\)/g, '')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/^#{1,6}\s+/gm, '')
+      .replace(/\*\*(.+?)\*\*/g, '$1')
+      .replace(/\*(.+?)\*/g, '$1')
+      .replace(/`[^`]+`/g, '')
+      .replace(/^\s*[-*+]\s+/gm, '')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim()
+
+  // ── Hilfsfunktion: Bestehende Kontexte aus Event-Tags ═════════════
+  const getExistingContexts = (): string[] =>
+    articleImages.map(url => {
+      const ownerItem = selectedContent.find(item => item.images.includes(url))
+      if (!ownerItem?.event) return ''
+      const ev = ownerItem.event
+      const parts: string[] = []
+      // imeta alt-Tag
+      const imetaTag = ev.tags?.find((t: string[]) =>
+        t[0] === 'imeta' && t.some((v: string) => v.includes(url))
+      )
+      if (imetaTag) {
+        const alt = imetaTag.find((v: string) => v.startsWith('alt '))
+        if (alt) parts.push(alt.replace('alt ', '').trim())
+      }
+      // Location
+      const loc = ev.tags?.find((t: string[]) => t[0] === 'location')?.[1]
+      const country = ev.tags?.find((t: string[]) => t[0] === 'country' || t[0] === 'l')?.[1]
+      if (loc) parts.push(loc)
+      else if (country) parts.push(country)
+      return parts.join(' · ')
+    })
+
   const generateTikTokText = async () => {
     if (!articleTitle.trim()) {
       toast({
@@ -395,80 +432,62 @@ export function TikTokPromotion() {
     }
 
     setGenerating(true)
+
+    // ── Schritt 1: Vision-Analyse aller Bilder ═══════════════════════
+    // Läuft parallel zur UI – User sieht "KI analysiert Bilder..."
+    let visionDescriptions: string[] = getExistingContexts()
     try {
+      toast({
+        title: '🔍 Bilder werden analysiert...',
+        description: `${articleImages.length} Bilder · Vision-KI`,
+      })
+      const visionRes = await fetch('/api/tiktok/analyze-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageUrls: articleImages,
+          existingContexts: visionDescriptions,
+        }),
+      })
+      if (visionRes.ok) {
+        const visionData = await visionRes.json()
+        if (Array.isArray(visionData.descriptions)) {
+          visionDescriptions = visionData.descriptions
+        }
+      }
+    } catch (vErr) {
+      console.warn('[Vision] Analyse fehlgeschlagen, fahre mit Basis-Kontexten fort:', vErr)
+    }
+
+    // ── Schritt 2: Text-Generierung mit Vision-Beschreibungen ═════════
+    try {
+      // Artikel-Text bereinigen (Markdown entfernen, Multi-Content als Blöcke)
+      const cleanText = selectedContent
+        .filter(i => i.content)
+        .map((i, idx) => {
+          const clean = cleanMarkdown(i.content)
+          return selectedContent.length > 1
+            ? `[Inhalt ${idx + 1}: ${i.title}]\n${clean}`
+            : clean
+        })
+        .join('\n\n---\n\n')
+        .substring(0, 2000) || ''
+
       const res = await fetch('/api/tiktok/generate-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: articleTitle,
           summary: articleSummary,
-          // Multi-Content: jeden Artikel als eigenen Block, Markdown bereinigt
-          // → KI weiß welche Bilder zu welchem Inhalt gehören
-          text: selectedContent
-            .filter(i => i.content)
-            .map((i, idx) => {
-              // Markdown bereinigen: Platzhalter, Überschriften, Fettdruck, Links entfernen
-              const clean = i.content
-                .replace(/\[BILD_\d+\]/g, '')           // Bild-Platzhalter
-                .replace(/!\[.*?\]\(.*?\)/g, '')         // Markdown-Bilder
-                .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Links → nur Text
-                .replace(/^#{1,6}\s+/gm, '')             // Überschriften
-                .replace(/\*\*(.+?)\*\*/g, '$1')         // Fettdruck
-                .replace(/\*(.+?)\*/g, '$1')             // Kursiv
-                .replace(/`[^`]+`/g, '')                 // Code
-                .replace(/^\s*[-*+]\s+/gm, '')           // Listen
-                .replace(/\n{3,}/g, '\n\n')              // Mehrfach-Leerzeilen
-                .trim()
-              // Bei mehreren Artikeln: Label voranstellen
-              return selectedContent.length > 1
-                ? `[Inhalt ${idx + 1}: ${i.title}]\n${clean}`
-                : clean
-            })
-            .join('\n\n---\n\n')
-            .substring(0, 2000) || '',
+          text: cleanText,
           template,
           model: aiModel,
           imageCount: articleImages.length,
           voiceoverEnabled,
           platform,
-          // ── Bild-Kontext pro Bild (in sortierter Reihenfolge) ──────────────
-          // imageContexts[i] beschreibt Bild i in sortedImages
-          // → KI schreibt Satz i passend zu Bild i
-          imageContexts: (() => {
-            // Für jede Bild-URL: finde das zugehörige Event und extrahiere Kontext
-            return articleImages.map(url => {
-              // Finde das Event das diese Bild-URL enthält
-              const ownerItem = selectedContent.find(item => item.images.includes(url))
-              if (!ownerItem) return ''
-              const ev = ownerItem.event
-              if (!ev) return ''
-
-              const parts: string[] = []
-
-              // 1. imeta alt-Text für diese spezifische URL
-              const imetaTag = ev.tags?.find((t: string[]) =>
-                t[0] === 'imeta' && t.some((v: string) => v === `url ${url}` || v.startsWith('url ') && v.includes(url))
-              )
-              if (imetaTag) {
-                const altEntry = imetaTag.find((v: string) => v.startsWith('alt '))
-                if (altEntry) parts.push(altEntry.replace('alt ', '').trim())
-              }
-
-              // 2. Location + Country aus Event-Tags
-              const loc = ev.tags?.find((t: string[]) => t[0] === 'location')?.[1]
-              const country = ev.tags?.find((t: string[]) => t[0] === 'country' || t[0] === 'l')?.[1]
-              if (loc) parts.push(loc)
-              else if (country) parts.push(country)
-
-              // 3. URL-Fragment als letzter Fallback (Dateiname kann beschreibend sein)
-              if (parts.length === 0) {
-                const filename = url.split('/').pop()?.split('?')[0]?.replace(/\.[^.]+$/, '') || ''
-                if (filename && filename.length > 3 && filename.length < 60) parts.push(filename)
-              }
-
-              return parts.join(' · ')
-            })
-          })(),
+          // Vision-Beschreibungen pro Bild in sortierter Reihenfolge
+          // Priorität: Vision-API > imeta alt > location > leer
+          imageContexts: visionDescriptions,
         }),
       })
 
@@ -477,7 +496,6 @@ export function TikTokPromotion() {
         throw new Error(data?.error || 'Generierung fehlgeschlagen')
       }
 
-      // Foster-Huntington-Stil Texte aus dem neuen Endpunkt
       setHookText(data.hook || articleTitle)
       setBodyText((data.bodyLines || []).join('\n') || articleSummary)
       setBridgeText(data.bridge || 'Mehr auf mojobus.co')
@@ -489,7 +507,7 @@ export function TikTokPromotion() {
       const voLabel = voiceoverEnabled ? ' · TTS-optimiert' : ''
       toast({
         title: `${platLabel}-Text generiert! ✍️`,
-        description: `Foster-Huntington-Stil${voLabel} – poetisch, authentisch, roh.`,
+        description: `Foster-Huntington-Stil${voLabel} – Bilder analysiert ✓`,
       })
 
       setStep(3)

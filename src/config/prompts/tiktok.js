@@ -285,15 +285,21 @@ export function generateTikTokUserPrompt({
     ? imageContexts
     : Array.isArray(locations) && locations.length > 0 ? locations : []
 
+  // bildOrientierung: Vision-Beschreibungen sind die wichtigste Orientierung
+  // Sie kommen von einer Vision-KI die das Bild tatsächlich gesehen hat
+  // → Reihenfolge MUSS eingehalten werden: bodyLines[N-1] = Bild N
   const bildOrientierung = contextSource.length > 0
     ? '\n' +
-      'BILD-ORIENTIERUNG (Stimmung/Ort – nicht beschreiben, sondern erspueren):\n' +
-      'NICHT: was auf Bild N zu sehen ist.\n' +
-      'SONDERN: was denkt/fuehlt/riecht Mojo oder Susanne bei Bild N?\n\n' +
+      'BILDER IN REIHENFOLGE – von Vision-KI analysiert:\n' +
+      '(Diese Beschreibungen sind FAKTEN – eine KI hat die Bilder gesehen)\n\n' +
       contextSource.map((ctx, i) =>
         '  Bild ' + (i + 1) + ': ' + (ctx && ctx.trim() ? ctx.trim() : '(kein Kontext)')
       ).join('\n') +
-      '\n\n-> Satz N orientiert sich an Bild N – aus dem INNENLEBEN, nicht von aussen.'
+      '\n\n' +
+      'PFLICHT: bodyLines[0] = Satz ZU Bild 1, bodyLines[1] = Satz ZU Bild 2, usw.\n' +
+      'Die Reihenfolge ist ABSOLUT. Nicht interpretieren, nicht tauschen.\n' +
+      'Schreibe aus dem INNENLEBEN: was denkt/fuehlt/riecht Mojo oder Susanne bei diesem Bild?\n' +
+      'NICHT: beschreibe was auf dem Bild zu sehen ist (das weiss der Zuschauer selbst).'
     : ''
 
   return 'Erstelle ' + plat.label + '-Texte fuer diesen Vanlife-Artikel im Foster-Huntington-Stil.\n\n' +
