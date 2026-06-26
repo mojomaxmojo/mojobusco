@@ -402,7 +402,30 @@ export function TikTokPromotion() {
         body: JSON.stringify({
           title: articleTitle,
           summary: articleSummary,
-          text: selectedContent.map(i => i.content).filter(Boolean).join('\n\n').substring(0, 1500) || '',
+          // Multi-Content: jeden Artikel als eigenen Block, Markdown bereinigt
+          // → KI weiß welche Bilder zu welchem Inhalt gehören
+          text: selectedContent
+            .filter(i => i.content)
+            .map((i, idx) => {
+              // Markdown bereinigen: Platzhalter, Überschriften, Fettdruck, Links entfernen
+              const clean = i.content
+                .replace(/\[BILD_\d+\]/g, '')           // Bild-Platzhalter
+                .replace(/!\[.*?\]\(.*?\)/g, '')         // Markdown-Bilder
+                .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Links → nur Text
+                .replace(/^#{1,6}\s+/gm, '')             // Überschriften
+                .replace(/\*\*(.+?)\*\*/g, '$1')         // Fettdruck
+                .replace(/\*(.+?)\*/g, '$1')             // Kursiv
+                .replace(/`[^`]+`/g, '')                 // Code
+                .replace(/^\s*[-*+]\s+/gm, '')           // Listen
+                .replace(/\n{3,}/g, '\n\n')              // Mehrfach-Leerzeilen
+                .trim()
+              // Bei mehreren Artikeln: Label voranstellen
+              return selectedContent.length > 1
+                ? `[Inhalt ${idx + 1}: ${i.title}]\n${clean}`
+                : clean
+            })
+            .join('\n\n---\n\n')
+            .substring(0, 2000) || '',
           template,
           model: aiModel,
           imageCount: articleImages.length,

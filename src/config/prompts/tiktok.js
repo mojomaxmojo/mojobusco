@@ -271,129 +271,98 @@ export function generateTikTokUserPrompt({
   text = '',
   template = 'story',
   imageCount = 4,
-  locations = [],        // legacy: 1 Location pro Artikel (wird durch imageContexts ersetzt)
-  imageContexts = [],    // neu: 1 Kontext-String pro Bild in sortierter Reihenfolge
+  locations = [],
+  imageContexts = [],
   voiceoverMode = false,
   platform = 'tiktok',
 }) {
-  // Template-Config
   const tmpl = TEMPLATE_CONFIG[template] || TEMPLATE_CONFIG.story
-
-  // Plattform-Config
   const plat = PLATFORM_CONFIG[platform] || PLATFORM_CONFIG.tiktok
-
-  // Voiceover-Regeln
   const voRules = voiceoverMode ? VOICEOVER_RULES.on : VOICEOVER_RULES.off
-
-  // Retention-Bogen mit korrekter Bildanzahl
   const retentionArc = RETENTION_ARC.replace('{imageCount}', imageCount)
 
-  // Bild-Kontext pro Bild (imageContexts bevorzugt, locations als Fallback)
-  // imageContexts[i] = Kontext für Bild i in der sortierten Reihenfolge
   const contextSource = Array.isArray(imageContexts) && imageContexts.some(c => c && c.trim())
     ? imageContexts
-    : Array.isArray(locations) && locations.length > 0
-      ? locations
-      : []
+    : Array.isArray(locations) && locations.length > 0 ? locations : []
 
-  const locationContext = contextSource.length > 0
-    ? '\n═══════════════════════════════════════\n' +
-      'BILD-KONTEXT (sortierte Reihenfolge)\n' +
-      '═══════════════════════════════════════\n' +
-      'Die Bilder sind in dieser Reihenfolge im Video. ' +
-      'Schreibe Satz N PASSEND zu Bild N.\n\n' +
+  const bildOrientierung = contextSource.length > 0
+    ? '\n' +
+      'BILD-ORIENTIERUNG (Stimmung/Ort – nicht beschreiben, sondern erspueren):\n' +
+      'NICHT: was auf Bild N zu sehen ist.\n' +
+      'SONDERN: was denkt/fuehlt/riecht Mojo oder Susanne bei Bild N?\n\n' +
       contextSource.map((ctx, i) =>
-        `  Bild ${i + 1}: ${ctx && ctx.trim() ? ctx.trim() : '(kein Kontext)'}`
+        '  Bild ' + (i + 1) + ': ' + (ctx && ctx.trim() ? ctx.trim() : '(kein Kontext)')
       ).join('\n') +
-      '\n\n→ WICHTIG: Satz 1 bezieht sich auf Bild 1, Satz 2 auf Bild 2, usw.\n' +
-      '→ Die Reihenfolge der bodyLines muss der Bild-Reihenfolge entsprechen.\n' +
-      '→ Erfinde keine Orte oder Details – nur aus dem Kontext ableiten.'
+      '\n\n-> Satz N orientiert sich an Bild N – aus dem INNENLEBEN, nicht von aussen.'
     : ''
 
-  return `Erstelle ${plat.label}-Texte für diesen Vanlife-Artikel im Foster-Huntington-Stil.
-
-ARTIKEL-TITEL: "${title}"
-ZUSAMMENFASSUNG: "${summary}"
-TEXT-AUSZUG: "${text.substring(0, 1200)}"
-
-═══════════════════════════════════════
-PLATTFORM: ${plat.label.toUpperCase()}
-═══════════════════════════════════════
-- Hook-Fenster: ${plat.hookWindow} – der Zuschauer entscheidet in dieser Zeit
-- Caption-Länge: max ${plat.bodyMaxChars} Zeichen pro Slide
-- Hashtag-Strategie: ${plat.hashtagCount} Tags – ${plat.hashtagStrategy}
-- CTA-Stil: ${plat.ctaStyle}
-${plat.note ? `- Hinweis: ${plat.note}` : ''}
-
-═══════════════════════════════════════
-TEMPLATE: ${tmpl.label.toUpperCase()} – ${tmpl.description}
-═══════════════════════════════════════
-HOOK-AUSWAHL: ${tmpl.hookGuidance}
-BODY-AUSWAHL: ${tmpl.bodyGuidance}
-
-═══════════════════════════════════════
-HOOK-MECHANIKEN
-═══════════════════════════════════════
-${HOOK_MECHANICS}
-
-Hook für dieses Video (max ${plat.hookMaxChars} Zeichen):
-→ Der Hook erscheint als GROSSER TEXT auf dem ersten Bild (0-5s).
-→ Wähle den Typ der zum Artikel-Inhalt passt. Begründe NICHT.
-→ Der Hook muss in ${plat.hookWindow} entscheiden ob der Zuschauer weiterschaut.
-→ Test: Würde ein fremder Mensch beim Scrollen bei diesem Text stoppen?
-→ Foster-Regeln: kein Ausrufezeichen, keine Leseransprache, kein Motivations-Satz.
-→ Kurz schlägt lang: "36 Jahre. Mein Zuhause." > "Wir leben seit Jahren in einem alten Bus."
-
-═══════════════════════════════════════
-BODY-STRUKTUR
-═══════════════════════════════════════
-${retentionArc}
-
-${voRules}
-
-⚠️ HOOK ≠ SATZ ZU EINEM BILD – DIESE REGEL IST ABSOLUT:
-Der Hook ist ein EXTRA Element. Er ist kein bodyLine-Eintrag.
-Er erscheint auf dem ersten Bild ABER er ersetzt KEINEN bodyLine-Satz.
-Auch wenn der Hook inhaltlich Bild 1 beschreibt: bodyLines[0] ist TROTZDEM
-ein eigener Satz zu Bild 1. Er darf denselben Moment anders beschreiben.
-
-FALSCH: hook="Sand und Blüten" → bodyLines hat nur 9 Einträge (Bild 1 "verbraucht")
-RICHTIG: hook="Sand und Blüten" → bodyLines[0] beschreibt Bild 1 NEU, anders, knapper
-
-ANZAHL BILDER: ${imageCount}
-→ bodyLines hat EXAKT ${imageCount} Einträge – einen pro Bild, Bild 1 bis Bild ${imageCount}.
-→ Jeder Eintrag = GENAU EIN grammatischer Satz = GENAU EIN Slide.
-→ Maximal 15 Wörter pro Eintrag.
-→ KEIN Punkt gefolgt von weiterem Text: "Satz A. Satz B." ist VERBOTEN.
-→ Komma oder Gedankenstrich statt Punkt wenn ein Gedanke länger ist.
-
-SELBSTCHECK vor der Antwort:
-  1. Zähle bodyLines-Einträge: sind es exakt ${imageCount}? Wenn nicht → korrigieren.
-  2. Hat jeder Eintrag höchstens einen Punkt (am Ende)? Wenn nicht → aufteilen.
-  3. Ist bodyLines[0] ein eigener Satz zu Bild 1 (unabhängig vom Hook)? Wenn nicht → neu schreiben.
-
-═══════════════════════════════════════
-BRIDGE + CTA + THUMBNAIL
-═══════════════════════════════════════
-- BRIDGE (22-27s): Überleitung zu mojobus.co – neugierig machen, nicht erklären. Max 60 Zeichen.
-- CTA (27-30s): ${plat.ctaStyle}. Max 40 Zeichen.
-- THUMBNAIL: Max 5 Wörter für das Cover-Bild (YouTube/Reels Thumbnail-Text).
-  → Kein Clickbait. Kein "Du wirst nicht glauben...". Konkret oder lakonisch.
-  → Beispiele: "Küste. Kein Plan." | "36 Jahre unterwegs" | "Der Bus als Zuhause"
-
-═══════════════════════════════════════
-FOSTER-REGELN (immer gültig)
-═══════════════════════════════════════
-- Keine Ausrufezeichen. Nie.
-- Keine Leseransprache: kein "Kennst du das?", kein "Was meint ihr?"
-- Keine Tipps: kein "Mein Tipp:", kein "Ihr solltet..."
-- Keine Motivation: kein "Einfach machen!", kein "Lebe deinen Traum!"
-- Kein Instagram-Vokabular: kein "blessed", "grateful", "vibes", "living my best life"
-- Kein "Van" – das Fahrzeug heißt Mojobus, Oldtimer, oder einfach "er"
-- Erste Person (ich/wir). Präsens. Direkt rein ohne Einleitung.
-${locationContext}
-
-ANTWORT: Nur JSON. Kein Text davor oder danach. Kein \`\`\`json Block.`
+  return 'Erstelle ' + plat.label + '-Texte fuer diesen Vanlife-Artikel im Foster-Huntington-Stil.\n\n' +
+'WER SCHREIBT\n' +
+'Mojo & Susanne – zwei Menschen dauerhaft unterwegs in ihrem 36 Jahre alten\n' +
+'US-Oldtimer-Bus. Zehn Meter lang. Sieben Komma fuenf Tonnen. Kein Urlaub.\n' +
+'Kein Sabbatical. Das ist ihr Leben.\n\n' +
+'Das Fahrzeug heisst Mojobus. Nie "Van". Nie "Camper". Manchmal einfach "er".\n\n' +
+'Leon (Lionhunter) war ihr Rhodesian Ridgeback – "Soul Leon". Ueber ein Jahrzehnt\n' +
+'ihr Co-Pilot. Er ist kuerzlich vorausgegangen. Sein Platz neben dem Fahrersitz\n' +
+'ist leer. Er darf in Texten vorkommen – als Erinnerung, als Stille, als Geruch\n' +
+'der bleibt. Nicht als lebender Begleiter. Nie als lebender Begleiter.\n\n' +
+'SO KLINGT DIESER STIL (lerne davon):\n' +
+'  "Der Mojobus riecht nach gestern. Diesel, Kaffee. Leons Platz ist leer."\n' +
+'  "Susanne macht die Tuer auf. Sie sagt nichts. Ich auch nicht. Passt trotzdem."\n' +
+'  "Wir fahren seit... wie lange eigentlich. Ich muss rechnen. Soul Leon faehrt mit."\n' +
+'  "Kein Empfang. Kein Mensch. Nur Schotter und Wind. Das reicht."\n' +
+'  "Der Koerper fragt ob wir weitermachen. Der Bus antwortet fuer uns."\n\n' +
+'INHALT\n' +
+'TITEL: "' + title + '"\n' +
+'ZUSAMMENFASSUNG: "' + summary + '"\n\n' +
+(text ? 'INHALT:\n' + text.substring(0, 2000) + '\n\n' : '') +
+'PLATTFORM: ' + plat.label.toUpperCase() + '\n' +
+'- Hook-Fenster: ' + plat.hookWindow + '\n' +
+'- Caption-Laenge: max ' + plat.bodyMaxChars + ' Zeichen pro Slide\n' +
+'- Hashtag-Strategie: ' + plat.hashtagCount + ' Tags – ' + plat.hashtagStrategy + '\n' +
+'- CTA-Stil: ' + plat.ctaStyle + '\n' +
+(plat.note ? '- Hinweis: ' + plat.note + '\n' : '') + '\n' +
+'TEMPLATE: ' + tmpl.label.toUpperCase() + ' – ' + tmpl.description + '\n' +
+'HOOK-AUSWAHL: ' + tmpl.hookGuidance + '\n' +
+'BODY-AUSWAHL: ' + tmpl.bodyGuidance + '\n\n' +
+'HOOK-MECHANIKEN\n' +
+HOOK_MECHANICS + '\n\n' +
+'Hook fuer dieses Video (max ' + plat.hookMaxChars + ' Zeichen):\n' +
+'-> Grosser TEXT auf dem ersten Bild (0-5s). Entscheidet in ' + plat.hookWindow + '.\n' +
+'-> Test: Wuerde ein Fremder beim Scrollen bei diesem Text stoppen?\n' +
+'-> Foster-Regeln: kein Ausrufezeichen, keine Leseransprache, kein Motivations-Satz.\n' +
+'-> Kurz schlaegt lang: "36 Jahre. Mein Zuhause." > langer erklaerter Satz.\n\n' +
+'BODY-STRUKTUR\n' +
+retentionArc + '\n\n' +
+voRules + '\n\n' +
+'HOOK != SATZ ZU EINEM BILD – ABSOLUT:\n' +
+'bodyLines[0] ist ein eigener Satz zu Bild 1 – unabhaengig vom Hook.\n' +
+'FALSCH: hook beschreibt Bild 1 => bodyLines hat nur ' + (imageCount - 1) + ' Eintraege\n' +
+'RICHTIG: bodyLines[0] beschreibt Bild 1 NEU, aus dem Innenleben\n\n' +
+'ANZAHL BILDER: ' + imageCount + '\n' +
+'-> bodyLines hat EXAKT ' + imageCount + ' Eintraege – einen pro Bild.\n' +
+'-> Jeder Eintrag = GENAU EIN grammatischer Satz.\n' +
+'-> 6-20 Woerter. Mindestens EINER muss laenger sein (15-20 W.) – emotionaler Traeger.\n' +
+'-> Foster-Rhythmus: kurz. kurz. LANG. kurz. – nicht alle gleich lang.\n' +
+'-> KEIN Punkt gefolgt von weiterem Text. Komma oder Gedankenstrich stattdessen.\n\n' +
+'SELBSTCHECK vor der Antwort:\n' +
+'  1. Exakt ' + imageCount + ' bodyLines?\n' +
+'  2. Jeder Eintrag max. ein Punkt (am Ende)?\n' +
+'  3. Aus dem INNENLEBEN geschrieben (Gedanken, Gefuehle, Gerueche)?\n' +
+'  4. Mindestens ein Satz 15+ Woerter?\n' +
+'  5. Kommt Leon als lebender Begleiter vor? => sofort entfernen.\n\n' +
+'BRIDGE + CTA + THUMBNAIL\n' +
+'- BRIDGE: Ueberleitung zu mojobus.co. Max 60 Zeichen.\n' +
+'- CTA: ' + plat.ctaStyle + '. Max 40 Zeichen.\n' +
+'- THUMBNAIL: Max 5 Woerter. Konkret oder lakonisch.\n' +
+'  Beispiele: "Kuste. Kein Plan." | "36 Jahre unterwegs" | "Soul Leon faehrt mit"\n\n' +
+'FOSTER-REGELN (immer):\n' +
+'- Keine Ausrufezeichen. Keine Leseransprache. Keine Tipps. Kein Instagram-Vokabular.\n' +
+'- Kein "Van" – Mojobus, Oldtimer, oder "er".\n' +
+'- Erste Person (ich/wir). Praesens. Direkt rein.\n' +
+'- Sinne statt Ansicht: was riecht, klingt, fuehlt sich an – nicht was sichtbar ist.\n' +
+bildOrientierung + '\n\n' +
+'ANTWORT: Nur JSON. Kein Text davor oder danach. Kein ```json Block.'
 }
 
 export default {

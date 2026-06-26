@@ -141,45 +141,45 @@ export const lifestyleExamples = {
   // ============================================================
   mojobus: {
     neutral: {
-      example1: 'Der Mojobus riecht nach gestern. Diesel, Kaffee, Hund soul Leon. Die Tür geht auf und draußen ist es kalt und grau und genau richtig.',
+      example1: 'Der Mojobus riecht nach gestern. Diesel, Kaffee. Leons Platz ist leer. Die Tür geht auf und draußen ist es kalt und grau und genau richtig.',
       example2: 'Kein Empfang. Kein Mensch. Nur Schotter und Wind und ein Platz der auf keiner Karte steht. Stuhl raus, sitzen. Das reicht.',
       example3: 'Wir fahren seit... wie lange eigentlich. Ich muss rechnen. Das ist ein gutes Zeichen.'
     },
     male: {
-      example1: 'Der Mojobus riecht nach gestern. Diesel, Kaffee, Hund. Ich mach die Tür auf und draußen ist es kalt und grau und genau richtig.',
+      example1: 'Der Mojobus riecht nach gestern. Diesel, Kaffee. Ich mach die Tür auf und draußen ist es kalt und grau und genau richtig. Leons Geruch bleibt.',
       example2: 'Kein Empfang. Kein Mensch. Nur Schotter und Wind und ein Platz der auf keiner Karte steht. Ich stell den Stuhl raus und sitze. Das reicht.',
       example3: 'Zwei Stunden nach Wasser gesucht heute. Kanister leer, nächster Ort fünfzehn Kilometer. Bin hingefahren, hab gefüllt, bin zurück. Nicht glamourös. Aber der Kaffee danach war es wert.'
     },
     female: {
-      example1: 'Der Mojobus riecht nach gestern. Diesel, Kaffee, Hund soul Leon. Ich mach die Tür auf und draußen ist es kalt und grau und genau richtig.',
+      example1: 'Der Mojobus riecht nach gestern. Diesel, Kaffee. Leons Platz neben dem Fahrersitz ist leer. Ich mach die Tür auf und draußen ist es kalt und grau und genau richtig.',
       example2: 'Kein Empfang. Kein Mensch. Ein Platz der auf keiner Karte steht. Der Typ an der letzten Tankstelle hat gefragt ob ich wirklich allein fahre. Ja. Ich stell den Stuhl raus und sitze. Das reicht.',
       example3: 'Zwei Stunden nach Wasser gesucht heute. Kanister leer, nächster Ort fünfzehn Kilometer. Bin hingefahren, hab gefüllt, bin zurück. An der Zapfstelle ein alter Mann der mir helfen wollte. Konnte ich selber. Aber nett gemeint.'
     },
     couple: {
-      example1: 'Der Mojobus riecht nach gestern. Diesel, Kaffee, Hund soul Leon. Susanne macht die Tür auf und draußen ist es kalt und grau. Sie sagt nichts. Ich auch nicht. Passt.',
+      example1: 'Der Mojobus riecht nach gestern. Diesel, Kaffee. Susanne macht die Tür auf und draußen ist es kalt und grau. Sie sagt nichts. Ich auch nicht. Leons Platz ist leer. Passt trotzdem.',
       example2: 'Wir kennen diese Küste. War letztes Jahr anders – oder das Jahr davor. Susanne sagt, die Bäckerei war früher links. Sie war rechts. Wir haben beide recht.',
-      example3: 'Wir fahren seit... wie lange eigentlich. Ich muss rechnen. Das ist ein gutes Zeichen. Susanne schläft noch. Der Mojobus kennt die Straße.'
+      example3: 'Wir fahren seit... wie lange eigentlich. Ich muss rechnen. Das ist ein gutes Zeichen. Susanne schläft noch. Der Mojobus kennt die Straße. Soul Leon fährt mit.'
     }
   },
 
   vanlife: {
     neutral: {
-      example1: 'Der Van riecht nach gestern. Kaffee, nasse Jacke, Hund soul Leon. Ich mache die Schiebetür auf und draußen ist es kalt und grau und genau richtig.',
+      example1: 'Der Van riecht nach gestern. Kaffee, nasse Jacke. Ich mache die Schiebetür auf und draußen ist es kalt und grau und genau richtig.',
       example2: 'Kein Empfang. Kein Mensch. Nur Schotter und Wind und ein Parkplatz der auf keiner Karte steht. Ich stell den Stuhl raus und sitze. Das reicht.',
       example3: 'Zwei Stunden nach Wasser gesucht heute. Kanister leer, nächster Ort fünfzehn Kilometer. Bin hingefahren, hab gefüllt, bin zurück. Nicht glamourös. Aber der Kaffee danach war es wert.'
     },
     male: {
-      example1: 'Der Van riecht nach gestern. Kaffee, nasse Jacke, Hund soul Leon. Ich mache die Schiebetür auf und draußen ist es kalt und grau und genau richtig.',
+      example1: 'Der Van riecht nach gestern. Kaffee, nasse Jacke. Ich mache die Schiebetür auf und draußen ist es kalt und grau und genau richtig.',
       example2: 'Kein Empfang. Kein Mensch. Nur Schotter und Wind und ein Parkplatz der auf keiner Karte steht. Ich stell den Stuhl raus und sitze. Das reicht.',
       example3: 'Zwei Stunden nach Wasser gesucht heute. Kanister leer, nächster Ort fünfzehn Kilometer. Bin hingefahren, hab gefüllt, bin zurück. Nicht glamourös. Aber der Kaffee danach war es wert.'
     },
     female: {
-      example1: 'Der Van riecht nach gestern. Kaffee, nasse Jacke, Hund soul Leon. Ich mache die Schiebetür auf und draußen ist es kalt und grau und genau richtig.',
+      example1: 'Der Van riecht nach gestern. Kaffee, nasse Jacke. Ich mache die Schiebetür auf und draußen ist es kalt und grau und genau richtig.',
       example2: 'Kein Empfang. Kein Mensch. Ein Parkplatz der auf keiner Karte steht. Der Typ an der letzten Tankstelle hat gefragt ob ich wirklich allein fahre. Ja. Ich stell den Stuhl raus und sitze. Das reicht.',
       example3: 'Zwei Stunden nach Wasser gesucht heute. Kanister leer, nächster Ort fünfzehn Kilometer. Bin hingefahren, hab gefüllt, bin zurück. An der Zapfstelle ein alter Mann der mir helfen wollte. Konnte ich selber. Aber nett gemeint.'
     },
     couple: {
-      example1: 'Der Van riecht nach gestern. Kaffee, nasse Jacke, Hund soul Leon. Wir machen die Schiebetür auf und draußen ist es kalt und grau und genau richtig.',
+      example1: 'Der Van riecht nach gestern. Kaffee, nasse Jacke. Wir machen die Schiebetür auf und draußen ist es kalt und grau und genau richtig.',
       example2: 'Kein Empfang. Kein Mensch. Nur Schotter und Wind. Wir stellen zwei Stühle raus und sitzen. Das reicht.',
       example3: 'Zwei Stunden nach Wasser gesucht. Kanister leer, nächster Ort fünfzehn Kilometer. Einer fährt, einer schläft. Der Kaffee danach war es wert.'
     }

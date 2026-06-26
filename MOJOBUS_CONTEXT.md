@@ -29,7 +29,7 @@ MojoBus ist eine Nostr-basierte Vanlife/Travel-Plattform zum Teilen von Reiseerl
 | `src/config/routes.ts` | Routen-Definitionen |
 | `src/AppRouter.tsx` | Router mit Lazy Loading |
 | `public/fonts.css` | **font-display: optional** (kein CLS durch Font-Swap) |
-| `public/sw.js` | Service Worker v19 – staleWhileRevalidate für /data/, Cache-First für Prerender |
+| `public/sw.js` | Service Worker v20 – staleWhileRevalidate für /data/, Cache-First für Prerender |
 | `src/hooks/usePreloadedData.ts` | Generischer Hybrid-Hook: JSON-Dump sofort + Live-Relay im Hintergrund |
 | `scripts/prerender-static.js` | Prerender: statische HTML-Seiten mit NIP-19 Dateinamen |
 | `scripts/generate-sitemap.js` | Generiert sitemap.xml (Cron: täglich 6:00) |
@@ -39,6 +39,9 @@ MojoBus ist eine Nostr-basierte Vanlife/Travel-Plattform zum Teilen von Reiseerl
 | `scripts/copy-icons.js` | Kopiert Icons aus public/ in Android-Ordner |
 | `capacitor.config.ts` | Capacitor-Konfiguration (appId: co.mojobus.app) |
 | `mojobus.co.ssl.conf` | Nginx-Config: Bot-Prerender + Brotli + Caching + `/data/` mit max-age=86400 |
+| `src/config/prompts/tiktok.js` | **Foster Huntington TikTok-Prompt** – 5 Hook-Mechaniken, Retention-Bogen, voiceoverMode, Plattform-Parameter |
+| `server/remotion/MojoBusVideo.tsx` | Remotion-Hauptkomponente – HookDimOverlay, perSlideArray-Sync, Caption-Styles |
+| `server/remotion/render.js` | Render-Engine – Slide-genaue MP3s, ffprobe-Sync, Ambient, Concat-Voiceover |
 
 ## ⚙️ Config-Verzeichnis (`src/config/`)
 
@@ -67,7 +70,7 @@ Alle Konfigurationen sind zentral in `src/config/` abgelegt. **Neue Konfiguratio
 | `src/config/performance.ts` | Performance-Konfiguration (Infinite Scroll, Cache, Relay) | TypeScript |
 | `src/config/performance.config.ts` | Build-Performance-Config (Minify, Sourcemaps) | TypeScript |
 | `src/config/cache.ts` | Granulare Cache-Konfiguration (24h/7d/1y) | TypeScript |
-| `src/config/prompts/` | **⚠️ TABU – NIEMALS ÄNDERN!** KI-Prompt-Vorlagen | JS |
+| `src/config/prompts/` | **⚠️ TABU – NIEMALS ÄNDERN!** (außer tiktok.js – wird aktiv weiterentwickelt) KI-Prompt-Vorlagen | JS |
 | `src/config/budget.ts` | Haushaltsbuch-Konfiguration | TypeScript |
 | `src/config/video.ts` | Video-Konfiguration | TypeScript |
 | `src/config/leon.ts` | Leon-Story Konfiguration | TypeScript |
@@ -80,7 +83,7 @@ Alle Konfigurationen sind zentral in `src/config/` abgelegt. **Neue Konfiguratio
 
 | Pfad | Grund |
 |------|-------|
-| `src/config/prompts/` | **KI-Prompt-Konfiguration** – läuft im Browser (Vite-Build) **und** im Node.js Server (`ai-api`). Änderungen zerstören die KI-Content-Erstellung. |
+| `src/config/prompts/` (außer tiktok.js) | **KI-Prompt-Konfiguration** – läuft im Browser (Vite-Build) **und** im Node.js Server (`ai-api`). Änderungen an articles/notes/place/media/trips/lifestyles zerstören die KI-Content-Erstellung. **tiktok.js darf bearbeitet werden** (wird aktiv weiterentwickelt). |
 | `server/` | **Node.js Backend** – wird vom `ai-api` Systemd-Service verwendet. Keine Änderungen ohne separates Deployment. |
 
 ### ✅ Performance-Optimierungen (Juni 2026)
@@ -238,7 +241,7 @@ cat src/config/authors.json | jq '.authors[] | {name, pubkey, nip05}'
 
 ## ⚠️ Bekannte Einschränkungen / Hinweise
 - **Relay primal.net**: Liefert bei `generate-site-data.js` konsistent 0 Events (Timeout). Nur `relay.mojobus.co` ist produktiv. Der 20s-Timeout für primal läuft immer voll durch → Cron dauert ~40s statt ~20s.
-- **SW Cache-Version**: Wird bei jedem Deploy automatisch erhöht durch `bump_sw_version()` in `deploy-main.sh`. Aktuelle Version: **v19**.
+- **SW Cache-Version**: Wird bei jedem Deploy automatisch erhöht durch `bump_sw_version()` in `deploy-main.sh`. Aktuelle Version: **v20**.
 - **JSON-Dumps ohne content**: Artikel/Plätze haben keinen `content` in den JSON-Dumps. Detailseiten (`ArticleView`, `NoteView`) laden immer direkt vom Relay. Notes/Bilder haben max. 200 Zeichen `content` für Vorschautext.
 - **Live-Query-Aktivierung**: `usePreloadedData` startet den Live-Relay-Query erst wenn `cronTimestamp` aus `index.json` geladen ist. Fehlt `index.json`, greift der Fallback auf eine pure Live-Query.
 
@@ -644,4 +647,103 @@ journalctl -u ai-api -f | grep -i "Route\|perSlide\|Frames\|Stille"
 # 1030 Frames @ 25fps = 41.2s  ← korrekte Gesamtlänge
 ```
 
-**Letzter Commit dieser Session**: `97493b2` – RouteMap-Silence mit exakter Länge
+**Letzter Commit dieser Session**: `c7f76fe` – HookDimOverlay als Top-Level Komponente (useCurrentFrame Import)
+
+---
+
+## 📋 Changelog – Änderungen 26.06.2026
+
+### TikTok Prompt-System komplett überarbeitet (02ffc6b, 9068054)
+
+| Änderung | Beschreibung | Datei |
+|----------|-------------|-------|
+| `generateTikTokUserPrompt()` | User-Prompt als exportierbare Funktion (statt hartcodiert in server.js) | `tiktok.js` |
+| 5 Hook-Mechaniken | Zahlen-, Paradox-, Szene-, Subtext-, Kontrast-Hook | `tiktok.js` |
+| Retention-Bogen | bodyLines: Situation → Bruch → Intimität → Offen | `tiktok.js` |
+| Eiserne Regel: 1 Satz pro bodyLine | Kein Punkt innerhalb eines Eintrags. Max 15 Wörter. Selbstcheck vor Antwort. | `tiktok.js` |
+| Serverseitige bodyLine-Bereinigung | KI-Einträge an Satzgrenzen splitten → auf imageCount kürzen/auffüllen | `server.js` |
+| Kein Wiederhohlungs-Fallback mehr | Wenn KI imageCount-1 liefert: Hook als bodyLines[0] einsetzen | `server.js` |
+
+### voiceoverMode + Plattform-Parameter (02ffc6b, ece8ace)
+
+| Feature | Beschreibung |
+|---------|-------------|
+| **voiceoverMode** | Caption-optimiert (Stakkato/Fragmente) vs TTS-optimiert (vollständige Sätze, Zahlen ausschreiben) |
+| **Platform** | `'tiktok'` \| `'reels'` \| `'youtube'` – je eigene Hook-Länge, Hashtag-Strategie, CTA-Stil |
+| **thumbnail** | Neues JSON-Feld: max 5 Wörter für Cover-Text, mit Live-Preview im UI |
+| **Platform-Selector** | In Step 2 (vor Generieren-Button) – KI bekommt beim ersten Klick die richtige Plattform |
+| **captionStyle Toggle** | Full-Line (Default) vs Karaoke/Chunked in den Render-Einstellungen |
+
+### Bridge aus Voiceover entfernt (ece8ace, 17109fa)
+
+- **Problem**: "Mehr auf mojobus.co" klang gesprochen wie ein Werbejingle
+- **Fix**: Bridge aus `voiceoverSegmentsArray` + `voiceoverText` entfernt
+- Bridge erscheint als Text-Overlay, wird nicht von Edge TTS gesprochen
+
+**Alle Voiceover-Änderungen auf einen Blick:**
+
+| Aspekt | Vorher | Nachher |
+|--------|--------|--------|
+| Segmente | `[hook, body1..bodyN, bridge]` | `[body1..bodyN]` (kein Hook, keine Bridge) |
+| AudioLayer-Start | Frame 0 | `<Sequence from={hookFrames}>` (5s Offset) |
+| hookCaption | `hookText` (Dopplung) | `location \|\| country` |
+| Hook-Dauer | 4s | **5s** (mehr Zeit für Stop-the-Scroll) |
+| Hook-Overlay | Linearer Gradient (oben hell) | **55% gleichmäßiges Dim** via HookDimOverlay |
+
+### Voiceover-Sync: Slide-genaue MP3s (af9fe37, 33dede0)
+
+**Fundamentaler Sync-Bug behoben:**
+
+```
+ALT: concat.txt + duration-Direktive + -c:a libmp3lame
+  → MP3-Frames = ±26ms → bei 9 Slides bis zu 0.23s Drift → hörbar asynchron
+
+NEU: slide-genaue MP3s via ffprobe-Garantie
+  → Für jeden Slide: Audio + exakte Stille (ffmpeg -t) → slide_N.mp3
+  → ffprobe misst echte Dauer → perSlideArray aus GEMESSENEN Werten
+  → Alle slide_N.mp3 mit -c copy zu voiceover_sync.mp3 (kein Drift)
+  → Video-Slide-Frames = Math.round(echte_dauer × fps) → 100% Sync
+```
+
+**Log-Ausgabe pro Slide:**
+```
+📐 Slide 1: 6.210s (audio 5.21s + stille 1.002s)
+📐 Slide 2: 5.370s (audio 4.37s + stille 1.002s)
+...
+✅ voiceover_sync.mp3 (300KB, 64.77s) – 11 Slides
+```
+
+### Hook-Qualität + UI (7271bbc, 491eda3, c7f76fe)
+
+- **HookDimOverlay** – Gleichmäßige 55% Abdunkelung während Hook-Slide (statt Gradient nur unten)
+- **Hook-Prompt** – Expliziter Scroll-Stop-Test: "Würde ein fremder Mensch beim Scrollen stoppen?"
+- **Dopplung entfernt** – `hookCaption` zeigt jetzt `location` statt `hookText` (war 2× sichtbar)
+
+### imageContexts: Bild-Kontext pro Slide (d948e27)
+
+- **Problem**: `locations` hatte 1 Eintrag pro ARTIKEL, nicht pro BILD → KI schrieb Sätze in beliebiger Reihenfolge
+- **Fix**: `imageContexts[]` mit 1 Eintrag pro Bild in `sortedImages`-Reihenfolge
+- Extraktion: `imeta` alt-Text → location/country aus Event-Tags → URL-Dateiname als Fallback
+- Prompt: "Satz 1 bezieht sich auf Bild 1, Satz 2 auf Bild 2..."
+
+### Bekannte Baustellen (26.06.2026)
+
+- **HookDimOverlay Opacity**: Aktuell 0.55 (55% Abdunkelung). Bei Bedarf in `MojoBusVideo.tsx` anpassbar.
+- **bodyLine-Kürzung**: Bei mehr Sätzen als Bilder werden die letzten abgeschnitten. Der Prompt zwingt zu `imageCount` Sätzen, aber der serverseitige Fallback (Satz-Splitter + Kürzen) ist das letzte Sicherheitsnetz.
+- **Bundle-Cache**: Nach jeder `server/remotion/`-Code-Änderung wird der Bundle-Cache beim Deploy automatisch geleert (deploy-main.sh). Manuell: `curl -X POST http://localhost:3002/api/render-remotion/invalidate-bundle`
+
+### Wichtige Debug-Kommandos (26.06.2026)
+
+```bash
+# Sync prüfen (pro Slide):
+journalctl -u ai-api -f | grep -i "📐\|perSlideArray\|Frames\|voiceover_sync"
+
+# bodyLine-Bereinigung prüfen:
+journalctl -u ai-api -f | grep -i "bodyLines\|Bild1\|Generiert"
+
+# RouteMap-Debug:
+journalctl -u ai-api -f | grep -i "RouteMap\|🗺️"
+
+# Bundle-Cache leeren (nach Code-Änderungen):
+curl -X POST http://localhost:3002/api/render-remotion/invalidate-bundle
+```
