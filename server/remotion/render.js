@@ -136,142 +136,155 @@ async function generateVoiceoverSegments(segments, voiceoverModel, voiceoverSpee
 async function concatVoiceoverSegments(segments, sessionDir, hookDurationSec, secondsPerImage, bridgeDurationSec, muteBodyIndex, routeSlideIndex = -1, routeDuration = 0) {
   if (!segments || segments.length === 0) return null;
 
-  // segments = [{ filename, durationSec }, ...]
+  // ═══════════════════════════════════════════════════════════════════════
+  // NEUER ANSATZ: Slide-genaue MP3s → exakter Sync garantiert
   //
-  // Altes Format (mit Bridge):  [Hook, Body1, Body2, ..., Bridge]
-  // Neues Format (ohne Bridge): [Hook, Body1, Body2, ...]
+  // Problem mit concat + duration:
+  //   -c:a libmp3lame: duration wird als harte Grenze behandelt, aber
+  //   MP3-Frame-Grenzen sind nicht sample-genau → ±1 MP3-Frame (~26ms) Fehler
+  //   pro Segment. Bei 9 Segmenten = bis zu 0.23s Drift. Bei VBR noch mehr.
   //
-  // Erkennung: Bridge ist optional. Wenn segments.length === imageCount + 1
-  // (Hook + Body), gibt es keine Bridge im Audio – sie wird als Text-Overlay
-  // angezeigt aber nicht gesprochen (Edge TTS würde "Mehr auf mojobus.co" als
-  // Werbejingle klingen lassen).
+  // Neue Strategie: Für jeden Slide eine eigene MP3-Datei mit EXAKTER Länge:
+  //   1. Slide-Dauer berechnen (audioTime + 1s Puffer, min secondsPerImage)
+  //   2. Stille = slideDur - audioTime → als separate MP3 mit ffmpeg -t erzeugen
+  //   3. Audio + Stille zu slide_N.mp3 zusammenfügen (kein duration-Padding!)
+  //   4. Alle slide_N.mp3 ffprobe-messen → perSlideArray aus ECHTEN Dauern
+  //   5. Alles zu voiceover_sync.mp3 mit -c copy (kein Re-Encoding)
   //
-  // Heuristik: Wir haben immer mindestens Hook + 1 Body.
-  // Wenn das letzte Segment deutlich kürzer als ein Body-Satz ist UND
-  // kein bodyText enthält → könnte Bridge sein. Aber das ist fragil.
-  //
-  // Robustere Lösung: Frontend sendet explizit hasBridge=false (Standardfall).
-  // Fallback: wir behandeln ALLE Segmente nach dem Hook als Body-Segmente.
-  // Bridge wird separat NICHT im Audio eingebaut – sie hat ihren eigenen Slide
-  // im Video mit eigenem Text-Overlay.
+  // Ergebnis: perSlideArray[i] = tatsächliche Dauer von slide_i.mp3 via ffprobe
+  //   → Video-Slide-Dauer = Audio-Slide-Dauer per Definition → 100% Sync
+  // ═══════════════════════════════════════════════════════════════════════
 
-  // Alle Segmente sind Body-Segmente. Hook wird NICHT gesprochen.
-  // HookTitle ist auf dem Screen sichtbar → kein Audio nötig.
-  // AudioLayer in MojoBusVideo startet mit startFrom=hookFrames (4s Offset).
-  const hookSeg = null;
-  const bodySegments = segments; // alle Segmente = Body
-  const bridgeSeg = null;        // Bridge nicht gesprochen – nur Text-Overlay
-
-  // perSlideArray berechnen:
-  // - Lesezeit: max(3.5s, textLen / 14 Zeichen/s + 0.5s Atempause)
-  // - Voiceover-Dauer + 1s Stille am Ende (damit nächster Slide nicht zu früh kommt)
-  // - User-Vorgabe (secondsPerImage)
+  const bodySegments = segments; // alle = Body (Hook + Bridge sind nicht im Audio)
   const estimateReadingTime = (textLen) => Math.max(3.5, textLen / 14 + 0.5);
 
-  const perSlideArray = bodySegments.map(seg => {
+  // ── Schritt 1: Ziel-Dauer pro Slide berechnen ─────────────────────────
+  const targetDurations = bodySegments.map(seg => {
     const readingTime = estimateReadingTime(seg.textLen || 0);
     const audioTime = seg.durationSec || 0;
-    return Math.max(secondsPerImage, Math.round(Math.max(readingTime, audioTime + 1) * 10) / 10);
+    // +1s Puffer nach dem Voiceover, min secondsPerImage
+    const raw = Math.max(readingTime, audioTime + 1.0);
+    // Auf 2 Dezimalstellen runden (MP3-Frame-sicher)
+    return Math.max(secondsPerImage, Math.round(raw * 100) / 100);
   });
 
-  // RouteMap als extra Slide in der Mitte einfügen (Stille)
-  if (routeSlideIndex >= 0 && routeDuration > 0) {
-    perSlideArray.splice(routeSlideIndex, 0, routeDuration);
-    console.log(`[Remotion] 🗺️ RouteMap-Slide in concat: Position ${routeSlideIndex} (${routeDuration}s Stille)`);
-  }
-
-  // concat.txt für ffmpeg bauen
-  const concatPath = path.join(sessionDir, 'concat.txt');
-  const lines = [];
-
-  // Hook-Segment (0 bis hookDurationSec)
-  if (hookSeg) {
-    lines.push(`file '${hookSeg.filename}'`);
-    lines.push(`duration ${hookDurationSec.toFixed(2)}`);
-  }
-
-  // Body-Segmente (eins pro Slide) + RouteMap-Stille dazwischen
+  // ── Schritt 2: Pro Slide Audio + exakte Stille → slide_N.mp3 ──────────
+  const slideFiles = [];
   for (let i = 0; i < bodySegments.length; i++) {
     const seg = bodySegments[i];
+    const targetDur = targetDurations[i];
+    const audioDur = seg.durationSec || 0;
+    const silenceDur = Math.max(0.05, targetDur - audioDur); // min 50ms Stille
 
-    // RouteMap-Stille VOR diesem Slide einfügen (extra Slide)
-    // WICHTIG: auch hier muss eine duration-Zeile gesetzt werden,
-    // damit ffmpeg concat die Stille auf die gewünschte Länge paddet.
-    if (routeSlideIndex >= 0 && i === routeSlideIndex) {
-      lines.push(`file 'route_silence.mp3'`);
-      lines.push(`duration ${routeDuration.toFixed(2)}`); // ← PFLICHT: ohne duration spielt ffmpeg nur 1s
-      console.log(`[Remotion] 🗺️ RouteMap Slide ${i + 1} Stille (${routeDuration.toFixed(2)}s)`);
-    }
+    const audioPath   = path.join(sessionDir, seg.filename);
+    const silPath     = path.join(sessionDir, `sil_${i}.mp3`);
+    const slidePath   = path.join(sessionDir, `slide_${i}.mp3`);
+    const slideTxt    = path.join(sessionDir, `slide_${i}.txt`);
 
-    // Index im erweiterten perSlideArray (RouteMap-Eintrag verschiebt alle ab Position)
-    const paIdx = routeSlideIndex >= 0 && i >= routeSlideIndex ? i + 1 : i;
-    const slideDur = perSlideArray[paIdx];
-
-    lines.push(`file '${seg.filename}'`);
-    lines.push(`duration ${slideDur.toFixed(2)}`);
-  }
-
-  // Bridge: wird NICHT mehr gesprochen (kein Segment im Audio).
-  // Sie erscheint als Text-Overlay auf dem Bridge-Slide im Video.
-  // bridgeSeg ist null seit dem Frontend-Fix (Bridge aus voiceoverSegmentsArray entfernt).
-
-  fs.writeFileSync(concatPath, lines.join('\n') + '\n');
-  console.log(`[Remotion] concat.txt:\n${lines.join('\n')}`);
-
-  // Silence-Dateien erzeugen (generische 1s-Stille + ggf. RouteMap mit exakter Länge)
-  const silencePath = path.join(sessionDir, 'silence.mp3');
-  try {
-    execSync(
-      `${FFMPEG_PATH} -f lavfi -i anullsrc=r=24000:cl=mono -t 1 -q:a 9 -y "${silencePath}"`,
-      { timeout: 10000 }
-    );
-  } catch (e) {
-    console.warn('[Remotion] Silence-Generierung fehlgeschlagen:', e.message);
-    fs.writeFileSync(silencePath, '');
-  }
-
-  // RouteMap-Silence mit exakter Länge (concat-Padding ist unzuverlässig mit -c copy)
-  const routeSilencePath = path.join(sessionDir, 'route_silence.mp3');
-  if (routeSlideIndex >= 0 && routeDuration > 0) {
+    // Stille mit exakter Länge generieren
     try {
       execSync(
-        `${FFMPEG_PATH} -f lavfi -i anullsrc=r=24000:cl=mono -t ${routeDuration.toFixed(1)} -q:a 9 -y "${routeSilencePath}"`,
+        `${FFMPEG_PATH} -f lavfi -i anullsrc=r=24000:cl=mono -t ${silenceDur.toFixed(3)} -ar 24000 -ac 1 -q:a 9 -y "${silPath}"`,
         { timeout: 10000 }
       );
     } catch (e) {
-      console.warn('[Remotion] RouteMap-Silence fehlgeschlagen:', e.message);
-      // Fallback: normale silence.mp3 kopieren
-      try { fs.copyFileSync(silencePath, routeSilencePath); } catch (e2) {}
+      console.warn(`[Remotion] ⚠️ Stille ${i} fehlgeschlagen: ${e.message}`);
+      // Fallback: leere Datei
+      fs.writeFileSync(silPath, Buffer.alloc(0));
+    }
+
+    // Audio + Stille zu einem Slide zusammenfügen
+    fs.writeFileSync(slideTxt, `file '${audioPath}'\nfile '${silPath}'\n`);
+    try {
+      execSync(
+        `${FFMPEG_PATH} -f concat -safe 0 -i "${slideTxt}" -c copy -y "${slidePath}"`,
+        { timeout: 15000 }
+      );
+    } catch (e) {
+      console.warn(`[Remotion] ⚠️ Slide ${i} concat fehlgeschlagen: ${e.message} – kopiere Audio direkt`);
+      fs.copyFileSync(audioPath, slidePath);
+    }
+
+    slideFiles.push(slidePath);
+  }
+
+  // ── Schritt 3: Tatsächliche Dauer jedes slide_N.mp3 via ffprobe messen ─
+  // perSlideArray basiert auf ECHTEN Dauern → Video-Frames stimmen exakt überein
+  const measuredDurations = [];
+  for (let i = 0; i < slideFiles.length; i++) {
+    let dur = targetDurations[i]; // Fallback auf Ziel-Dauer
+    try {
+      const { stdout } = await execFileAsync(FFPROBE, [
+        '-v', 'quiet', '-print_format', 'json',
+        '-show_entries', 'format=duration',
+        slideFiles[i],
+      ]);
+      const parsed = JSON.parse(stdout);
+      const measured = parseFloat(parsed?.format?.duration);
+      if (measured > 0) dur = measured;
+    } catch (e) {
+      console.warn(`[Remotion] ⚠️ ffprobe slide_${i} fehlgeschlagen, nutze Ziel-Dauer ${dur}s`);
+    }
+    measuredDurations.push(dur);
+    console.log(`[Remotion] 📐 Slide ${i + 1}: ${dur.toFixed(3)}s (audio ${(bodySegments[i].durationSec||0).toFixed(2)}s + stille ${(dur-(bodySegments[i].durationSec||0)).toFixed(3)}s)`);
+  }
+
+  // ── Schritt 4: perSlideArray aufbauen (inkl. RouteMap) ─────────────────
+  const perSlideArray = [...measuredDurations];
+  if (routeSlideIndex >= 0 && routeDuration > 0) {
+    perSlideArray.splice(routeSlideIndex, 0, routeDuration);
+    console.log(`[Remotion] 🗺️ RouteMap bei Index ${routeSlideIndex}: ${routeDuration}s`);
+  }
+
+  // ── Schritt 5: RouteMap-Stille als slide_route.mp3 ─────────────────────
+  let routeFile = null;
+  if (routeSlideIndex >= 0 && routeDuration > 0) {
+    const routeSilPath = path.join(sessionDir, 'slide_route.mp3');
+    try {
+      execSync(
+        `${FFMPEG_PATH} -f lavfi -i anullsrc=r=24000:cl=mono -t ${routeDuration.toFixed(3)} -ar 24000 -ac 1 -q:a 9 -y "${routeSilPath}"`,
+        { timeout: 10000 }
+      );
+      routeFile = routeSilPath;
+      console.log(`[Remotion] 🗺️ RouteMap-Stille: ${routeDuration}s`);
+    } catch (e) {
+      console.warn(`[Remotion] ⚠️ RouteMap-Stille fehlgeschlagen: ${e.message}`);
     }
   }
 
-  // Concat
+  // ── Schritt 6: Alle Slides zu voiceover_sync.mp3 zusammenfügen ─────────
+  // Reihenfolge: slide_0, slide_1, ..., [route vor routeSlideIndex], ...
+  const finalFiles = [];
+  for (let i = 0; i < slideFiles.length; i++) {
+    if (routeFile && i === routeSlideIndex) {
+      finalFiles.push(routeFile); // RouteMap-Stille VOR slide_routeSlideIndex
+    }
+    finalFiles.push(slideFiles[i]);
+  }
+
+  const finalConcatTxt = path.join(sessionDir, 'concat_final.txt');
+  fs.writeFileSync(finalConcatTxt, finalFiles.map(f => `file '${f}'`).join('\n') + '\n');
+
   const outputPath = path.join(sessionDir, 'voiceover_sync.mp3');
   try {
-    // WICHTIG: -c:a libmp3lame statt -c copy!
-    // Mit -c copy ignoriert ffmpeg die duration-Direktive in der concat-Datei
-    // und gibt nur die tatsächliche Dateilänge aus → kein Stille-Padding.
-    // Mit -c:a libmp3lame wird re-encodiert und duration wird als harte Grenze
-    // behandelt → Stille wird eingefügt wenn das Segment kürzer ist als duration.
-    // -q:a 4 = VBR ~165kbps (gut für Sprache, kaum Qualitätsverlust)
+    // -c copy: kein Re-Encoding, kein Timing-Drift
+    // Alle slide_N.mp3 sind bereits exakt bemessen
     execSync(
-      `${FFMPEG_PATH} -f concat -safe 0 -i "${concatPath}" -c:a libmp3lame -q:a 4 -y "${outputPath}"`,
+      `${FFMPEG_PATH} -f concat -safe 0 -i "${finalConcatTxt}" -c copy -y "${outputPath}"`,
       { timeout: 60000 }
     );
-    const sizeKB = (fs.statSync(outputPath).size / 1024).toFixed(0);
-    console.log(`[Remotion] ✅ voiceover_sync.mp3 (${sizeKB}KB) – ${perSlideArray.length} Slides`);
 
-    // Aufräumen: Einzel-Segmente löschen, silence behalten
-    for (const seg of segments) {
-      try { fs.unlinkSync(path.join(sessionDir, seg.filename)); } catch (e) {}
-    }
+    const sizeKB = (fs.statSync(outputPath).size / 1024).toFixed(0);
+    const totalSec = perSlideArray.reduce((a, b) => a + b, 0).toFixed(2);
+    console.log(`[Remotion] ✅ voiceover_sync.mp3 (${sizeKB}KB, ${totalSec}s) – ${perSlideArray.length} Slides`);
+    console.log(`[Remotion] ✅ perSlideArray=[${perSlideArray.map(s => s.toFixed(2)).join(', ')}]`);
 
     return {
       voiceoverFilename: 'voiceover_sync.mp3',
       perSlideArray,
     };
   } catch (e) {
-    console.error('[Remotion] ❌ Concat fehlgeschlagen:', e.message);
+    console.error('[Remotion] ❌ Final-Concat fehlgeschlagen:', e.message);
     return null;
   }
 }
