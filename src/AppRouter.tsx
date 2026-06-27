@@ -34,6 +34,7 @@ const NIP19Page = lazy(() => import("./pages/NIP19Page").then(m => ({ default: m
 const BudgetPage = lazy(() => import("./pages/BudgetPage").then(m => ({ default: m.BudgetPage })));
 const TikTokPromotion = lazy(() => import("./pages/TikTokPromotion").then(m => ({ default: m.TikTokPromotion })));
 const AboutAdmin = lazy(() => import("./pages/admin/AboutAdmin").then(m => ({ default: m.AboutAdmin })));
+const Videos = lazy(() => import("./pages/Videos").then(m => ({ default: m.Videos })));
 const NotFound = lazy(() => import("./pages/NotFound").then(m => ({ default: m.default })));
 
 function App() {
@@ -64,6 +65,9 @@ function App() {
               <Route path="/bild/:nip19" element={<ImageDetail />} />
               <Route path="/notes" element={<Notes />} />
               <Route path="/notes/:country" element={<Notes />} />
+              <Route path="/artikel/notes" element={<Notes />} />
+              <Route path="/artikel/notes/:country" element={<Notes />} />
+              <Route path="/videos" element={<Videos />} />
 <Route path="/about" element={<About />} />
                <Route path="/admin/about" element={<AboutAdmin />} />
                <Route path="/profile" element={<Profile />} />

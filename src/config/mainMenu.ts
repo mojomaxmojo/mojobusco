@@ -64,6 +64,7 @@ export const MAIN_MENU_CONFIG: MainMenuItem[] = [
       { label: 'RV Life', emoji: '🚐', icon: 'MapPin', children: RV_LIFE_ITEMS },
       { divider: true },
       { label: 'Leon Story', path: '/artikel/leon', emoji: '🦁', icon: 'Dog' },
+      { label: 'Notes', path: '/artikel/notes', emoji: '📝', icon: 'StickyNote' },
     ],
   },
 
@@ -113,8 +114,8 @@ export const MAIN_MENU_CONFIG: MainMenuItem[] = [
     ],
   },
 
-  // ── Notes ──────────────────────────────────────────────────────────────
-  { label: 'Notes', path: '/notes', icon: 'StickyNote' },
+  // ── Videos ─────────────────────────────────────────────────────────────
+  { label: 'Videos', path: '/videos', icon: 'Film', emoji: '🎬' },
 
   // ── About ──────────────────────────────────────────────────────────────
   { label: 'About', path: '/about', icon: 'Info' },

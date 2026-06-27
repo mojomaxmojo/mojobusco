@@ -317,6 +317,8 @@ export function TikTokPromotion() {
   const [uploading, setUploading] = useState(false)
   const [blossomUrl, setBlossomUrl] = useState('')
   const [publishedEventId, setPublishedEventId] = useState('')
+  // Checkbox: auf /videos publizieren (kind 34236 NIP-71)
+  const [publishToVideos, setPublishToVideos] = useState(true)
 
   // Remotion-Status beim Laden prüfen
   useEffect(() => {
@@ -755,34 +757,58 @@ export function TikTokPromotion() {
       const videoId = renderStatus?.jobId || `vid_${Date.now()}`
       const dTag = `co.mojobus.app.tiktok-video-${videoId}`
 
-      const event = await publishEvent.mutateAsync({
-        kind: 30078,
-        tags: [
-          ['d', dTag],
-          ['url', mp4Url],
-          ['title', hookText || 'MojoBus Video'],
-          ['t', 'tiktok-video'],
-          ['L', 'co.mojobus.app'],
-          ['l', 'tiktok-video', 'co.mojobus.app'],
+      // Beschreibungstext: Foster-Sätze als Alt/Content
+      const descriptionLines = [
+        hookText,
+        ...bodyText.split('\n').filter((l: string) => l.trim()),
+        bridgeText,
+      ].filter(Boolean)
+      const description = descriptionLines.join('\n')
+
+      // Thumbnail: erstes Bild aus der Slideshow
+      const thumbnailUrl = articleImages[0] || ''
+
+      // Aspektverhältnis: 9:16 (Hochformat) oder 16:9 (Querformat)
+      const dimTag = '1080x1920' // 9:16
+
+      // Hashtags als t-Tags
+      const hashtagTags: string[][] = hashtags
+        .split(' ')
+        .filter(Boolean)
+        .map((h: string) => ['t', h.replace('#', '')])
+
+      // kind 34236 = Addressable Short Video Event (NIP-71)
+      // Wird auf /videos angezeigt wenn publishToVideos=true
+      const kind = publishToVideos ? 34236 : 30078
+
+      const baseTags: string[][] = [
+        ['d', dTag],
+        ['title', hookText || 'MojoBus Video'],
+        ['published_at', String(Math.floor(Date.now() / 1000))],
+        ['alt', description],
+        // imeta: Video-Metadaten (NIP-71 / NIP-92)
+        ['imeta',
+          `url ${mp4Url}`,
+          'm video/mp4',
+          `dim ${dimTag}`,
+          ...(renderStatus?.videoDurationSec ? [`duration ${renderStatus.videoDurationSec}`] : []),
         ],
-        content: JSON.stringify({
-          hook: hookText,
-          body: bodyText,
-          bridge: bridgeText,
-          cta: ctaText,
-          hashtags: hashtags.split(' ').filter(Boolean),
-          template,
-          voiceoverModel: voiceoverEnabled ? voiceoverModel : null,
-          transitionType,
-          secondsPerImage,
-          beatSync,
-          ambientType,
-          imageCount: articleImages.length,
-          aspectRatio: '9:16',
-          fileSizeMB: renderStatus?.fileSizeMB,
-          videoDurationSec: renderStatus?.videoDurationSec,
-          createdAt: Math.floor(Date.now() / 1000),
-        }),
+        ...(thumbnailUrl ? [['image', thumbnailUrl]] : []),
+        ...(renderStatus?.videoDurationSec ? [['duration', String(renderStatus.videoDurationSec)]] : []),
+        ...hashtagTags,
+        ['r', 'https://mojobus.co'],
+      ]
+
+      // Bei kind 30078 (nicht öffentlich): extra App-Tags
+      const appTags: string[][] = kind === 30078 ? [
+        ['L', 'co.mojobus.app'],
+        ['l', 'tiktok-video', 'co.mojobus.app'],
+      ] : []
+
+      const event = await publishEvent.mutateAsync({
+        kind,
+        tags: [...baseTags, ...appTags],
+        content: description,
       })
 
       setPublishedEventId(event.id)
@@ -807,33 +833,63 @@ export function TikTokPromotion() {
   const loadNostrHistory = async () => {
     try {
       if (!user?.pubkey || !nostr) return
+      // kind 34236 = NIP-71 Short Video (neu), kind 30078 = App-intern (alt)
       const events = await nostr.query([{
-        kinds: [30078],
+        kinds: [34236, 30078],
         authors: [user.pubkey],
-        '#t': ['tiktok-video'],
         limit: 100,
       }], { signal: AbortSignal.timeout(8000) })
       if (events && events.length > 0) {
         // Merge: Nostr-Events haben Vorrang vor Server-History
         const nostrItems = events
-          .filter((e: any) => e.content && e.content !== '{}')
           .map((e: any) => {
-            let meta = {}
-            try { meta = JSON.parse(e.content) } catch {}
-            const urlTag = e.tags?.find((t: string[]) => t[0] === 'url')?.[1] || ''
+            const isNip71 = e.kind === 34236 || e.kind === 34235
+            // kind 34236: URL aus imeta-Tag, content = Beschreibungstext
+            // kind 30078: URL aus url-Tag, content = JSON
+            let meta: any = {}
+            let videoUrl = ''
+            let thumbnailUrl = ''
+            let durationSec: string | null = null
+
+            if (isNip71) {
+              // NIP-71: imeta-Tag enthält Video-URL
+              const imetaTag = e.tags?.find((t: string[]) => t[0] === 'imeta')
+              if (imetaTag) {
+                const urlEntry = imetaTag.find((v: string) => v.startsWith('url '))
+                if (urlEntry) videoUrl = urlEntry.replace('url ', '').trim()
+                const durEntry = imetaTag.find((v: string) => v.startsWith('duration '))
+                if (durEntry) durationSec = durEntry.replace('duration ', '').trim()
+              }
+              const imgTag = e.tags?.find((t: string[]) => t[0] === 'image')?.[1] || ''
+              thumbnailUrl = imgTag
+              const dur = e.tags?.find((t: string[]) => t[0] === 'duration')?.[1]
+              if (dur) durationSec = dur
+            } else {
+              // kind 30078: JSON in content, url-Tag
+              try { meta = JSON.parse(e.content) } catch {}
+              videoUrl = e.tags?.find((t: string[]) => t[0] === 'url')?.[1] || ''
+            }
+
             const titleTag = e.tags?.find((t: string[]) => t[0] === 'title')?.[1] || ''
+            const hookText = isNip71 ? (e.content?.split('\n')[0] || titleTag) : (meta?.hook || titleTag)
+
             return {
               jobId: e.id,
               eventId: e.id,
+              kind: e.kind,
               status: 'completed',
               title: titleTag,
-              hook: (meta as any)?.hook || titleTag || '',
-              blossomUrl: urlTag,
-              fileSizeMB: (meta as any)?.fileSizeMB,
-              videoDurationSec: (meta as any)?.videoDurationSec,
-              imageCount: (meta as any)?.imageCount || 0,
-              created: (meta as any)?.createdAt ? (meta as any)?.createdAt * 1000 : Date.now(),
+              hook: hookText,
+              blossomUrl: videoUrl,
+              thumbnailUrl,
+              fileSizeMB: meta?.fileSizeMB || null,
+              videoDurationSec: durationSec || meta?.videoDurationSec,
+              imageCount: meta?.imageCount || 0,
+              created: isNip71
+                ? (e.created_at ? e.created_at * 1000 : Date.now())
+                : (meta?.createdAt ? meta.createdAt * 1000 : Date.now()),
               nostrEvent: true,
+              isNip71,
               meta,
             }
           })
@@ -1688,13 +1744,30 @@ export function TikTokPromotion() {
             {/* ── BLOSSOM UPLOAD ── */}
             {!blossomUrl && (
               <Card>
-                <CardContent className="py-4">
+                <CardContent className="py-4 space-y-3">
+                  {/* Checkbox: auf /videos publizieren */}
+                  <label className="flex items-center gap-3 cursor-pointer p-2 rounded-lg hover:bg-muted/30 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={publishToVideos}
+                      onChange={e => setPublishToVideos(e.target.checked)}
+                      className="w-4 h-4 accent-primary"
+                    />
+                    <div>
+                      <span className="text-sm font-medium flex items-center gap-1">
+                        🎬 Auf <span className="text-primary font-semibold">/videos</span> publizieren
+                      </span>
+                      <p className="text-[10px] text-muted-foreground">
+                        Video erscheint öffentlich auf mojobus.co/videos (Nostr kind 34236)
+                      </p>
+                    </div>
+                  </label>
                   <Button onClick={uploadToBlossom} className="w-full" size="lg" disabled={uploading}>
                     {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CloudUpload className="w-4 h-4 mr-2" />}
                     {uploading ? 'Wird hochgeladen...' : '☁️ Dauerhaft auf Blossom speichern'}
                   </Button>
-                  <p className="text-[10px] text-muted-foreground text-center mt-2">
-                    MP4 wird auf relay.mojobus.co gespeichert + Nostr-Event publiziert
+                  <p className="text-[10px] text-muted-foreground text-center">
+                    MP4 → relay.mojobus.co {publishToVideos ? '· Öffentlich auf /videos' : '· Nur privat gespeichert'}
                   </p>
                 </CardContent>
               </Card>
@@ -1827,7 +1900,8 @@ export function TikTokPromotion() {
                               </p>
                               {job.nostrEvent && (
                                 <span className="text-[10px] text-green-600 flex items-center gap-0.5 mt-0.5">
-                                  <CheckCircle2 className="w-2.5 h-2.5" /> Nostr · Blossom
+                                  <CheckCircle2 className="w-2.5 h-2.5" />
+                                  {job.isNip71 ? '🎬 /videos · Blossom' : 'Nostr · Blossom'}
                                 </span>
                               )}
                             </td>
