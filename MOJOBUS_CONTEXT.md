@@ -29,7 +29,7 @@ MojoBus ist eine Nostr-basierte Vanlife/Travel-Plattform zum Teilen von Reiseerl
 | `src/config/routes.ts` | Routen-Definitionen |
 | `src/AppRouter.tsx` | Router mit Lazy Loading |
 | `public/fonts.css` | **font-display: optional** (kein CLS durch Font-Swap) |
-| `public/sw.js` | Service Worker v20 – staleWhileRevalidate für /data/, Cache-First für Prerender |
+| `public/sw.js` | Service Worker v21 – staleWhileRevalidate für /data/, Cache-First für Prerender |
 | `src/hooks/usePreloadedData.ts` | Generischer Hybrid-Hook: JSON-Dump sofort + Live-Relay im Hintergrund |
 | `scripts/prerender-static.js` | Prerender: statische HTML-Seiten mit NIP-19 Dateinamen |
 | `scripts/generate-sitemap.js` | Generiert sitemap.xml (Cron: täglich 6:00) |
@@ -42,6 +42,9 @@ MojoBus ist eine Nostr-basierte Vanlife/Travel-Plattform zum Teilen von Reiseerl
 | `src/config/prompts/tiktok.js` | **Foster Huntington TikTok-Prompt** – 5 Hook-Mechaniken, Retention-Bogen, voiceoverMode, Plattform-Parameter |
 | `server/remotion/MojoBusVideo.tsx` | Remotion-Hauptkomponente – HookDimOverlay, perSlideArray-Sync, Caption-Styles |
 | `server/remotion/render.js` | Render-Engine – Slide-genaue MP3s, ffprobe-Sync, Ambient, Concat-Voiceover |
+| `src/pages/Videos.tsx` | **NEU** Video-Feed-Seite – kind 34236 NIP-71, Lazy Loading, Single-Column |
+| `src/hooks/useVideos.ts` | **NEU** Hook zum Laden von kind 34236+34235 Video-Events |
+| `server/remotion/components/KenBurnsImage.tsx` | KenBurns mit noise/breathing/focus-in/handheld + GammaFade |
 
 ## ⚙️ Config-Verzeichnis (`src/config/`)
 
@@ -241,7 +244,7 @@ cat src/config/authors.json | jq '.authors[] | {name, pubkey, nip05}'
 
 ## ⚠️ Bekannte Einschränkungen / Hinweise
 - **Relay primal.net**: Liefert bei `generate-site-data.js` konsistent 0 Events (Timeout). Nur `relay.mojobus.co` ist produktiv. Der 20s-Timeout für primal läuft immer voll durch → Cron dauert ~40s statt ~20s.
-- **SW Cache-Version**: Wird bei jedem Deploy automatisch erhöht durch `bump_sw_version()` in `deploy-main.sh`. Aktuelle Version: **v20**.
+- **SW Cache-Version**: Wird bei jedem Deploy automatisch erhöht durch `bump_sw_version()` in `deploy-main.sh`. Aktuelle Version: **v21**.
 - **JSON-Dumps ohne content**: Artikel/Plätze haben keinen `content` in den JSON-Dumps. Detailseiten (`ArticleView`, `NoteView`) laden immer direkt vom Relay. Notes/Bilder haben max. 200 Zeichen `content` für Vorschautext.
 - **Live-Query-Aktivierung**: `usePreloadedData` startet den Live-Relay-Query erst wenn `cronTimestamp` aus `index.json` geladen ist. Fehlt `index.json`, greift der Fallback auf eine pure Live-Query.
 
@@ -353,6 +356,7 @@ Komplettes TikTok-Video-Promotion-System unter `/promotion/tiktok`. Erstellt aus
 | `/api/render-remotion/history` | GET | Abgeschlossene Render-Jobs |
 | `/api/music/list` | GET | Verfügbare Musik-Tracks |
 | `/api/tiktok/generate-text` | POST | Foster-Huntington-Texte (param: model='llama4'|'claude') |
+| `/api/tiktok/analyze-images` | POST | **NEU** Vision-KI Bild-Analyse (Groq → Claude Fallback) |
 
 ### Piper TTS Installation
 
@@ -647,7 +651,7 @@ journalctl -u ai-api -f | grep -i "Route\|perSlide\|Frames\|Stille"
 # 1030 Frames @ 25fps = 41.2s  ← korrekte Gesamtlänge
 ```
 
-**Letzter Commit dieser Session**: `c7f76fe` – HookDimOverlay als Top-Level Komponente (useCurrentFrame Import)
+**Letzter Commit dieser Session**: `951affe` – Fix "n.body is undefined" in TikTok History-Tabelle
 
 ---
 
@@ -747,3 +751,135 @@ journalctl -u ai-api -f | grep -i "RouteMap\|🗺️"
 # Bundle-Cache leeren (nach Code-Änderungen):
 curl -X POST http://localhost:3002/api/render-remotion/invalidate-bundle
 ```
+
+---
+
+## 📋 Changelog – Änderungen 26.06.2026 (Abendsession)
+
+### Vision-KI für Bild-Analyse (2a4744a)
+
+**Neuer Endpoint** `POST /api/tiktok/analyze-images`:
+
+| Feature | Beschreibung |
+|---------|-------------|
+| **Groq Vision** | Llama 4 Scout – kostenlos, schnell, erster Versuch |
+| **Claude Fallback** | Über OpenRouter – falls Groq fehlschlägt |
+| **Vision-Prompt** | Sachlich: "Was ist das Hauptmotiv? Farbe, Licht, Besonderheit." |
+| **Parallel** | `Promise.all` – alle Bilder gleichzeitig analysiert |
+| **Cache** | Bilder mit `imeta alt`-Tag werden übersprungen (schon beschrieben) |
+| **Timeout** | Groq 20s, Claude 25s |
+
+**Prompt-Integration:**
+```
+BILDER IN REIHENFOLGE – von Vision-KI analysiert (FAKTEN)
+PFLICHT: bodyLines[0] = Satz ZU Bild 1, bodyLines[1] = Satz ZU Bild 2
+Die Reihenfolge ist ABSOLUT. Nicht interpretieren, nicht tauschen.
+Schreibe aus dem INNENLEBEN – nicht: beschreibe was auf dem Bild zu sehen ist.
+```
+
+**Frontend-Flow:**
+```
+User klickt "KI-Text generieren"
+  Schritt 1: /api/tiktok/analyze-images (Toast: "Bilder werden analysiert...")
+  Schritt 2: Vision-Beschreibungen als imageContexts → /api/tiktok/generate-text
+```
+| Datei | Änderung |
+|-------|----------|
+| `server/server.js` | `analyzeOneImage()` + `/api/tiktok/analyze-images` Endpoint |
+| `TikTokPromotion.tsx` | generateTikTokText() in 2 Schritte aufgeteilt + Hilfsfunktionen |
+| `tiktok.js` | Prompt: "BILDER IN REIHENFOLGE – Vision-KI analysiert (FAKTEN)" |
+
+### Leon in ewiger Erinnerung (8ac7d59)
+
+**`lifestyles.js`** – Alle "Hund soul Leon" (als lebender Hund) ersetzt:
+
+| Vorher | Nachher |
+|--------|---------|
+| `"Diesel, Kaffee, Hund soul Leon."` | `"Diesel, Kaffee. Leons Platz ist leer."` |
+| `"Hund. ...genau richtig."` | `"...Leons Geruch bleibt."` |
+| `"Hund soul Leon. Susanne macht die Tür auf..."` | `"Susanne macht die Tür auf. ...Leons Platz ist leer. Passt trotzdem."` |
+| (vanlife) `"Hund soul Leon"` | Entfernt (nur Mojobus kennt Leon) |
+
+**`tiktok.js` – Charakter-Block (neu):**
+```
+WER SCHREIBT:
+  Mojo & Susanne, 36 Jahre alter US-Oldtimer-Bus, 10m, 7.5t,
+  Perpetual Travelers. Leon (Soul Leon) – vorausgegangen, in Erinnerung.
+  NIE als lebender Begleiter. Nie.
+```
+
+**Textqualität-Verbesserungen:**
+- 15 Wörter → 6-20 Wörter + ein langer Satz (emotionaler Träger) erlaubt
+- Foster-Rhythmus: kurz. kurz. LANG. kurz.
+- Bild-Orientierung: "was denkt/fühlt/riecht Mojo?" statt Bildbeschreibung
+- text-Limit: 1200 → 2000 Zeichen
+- Markdown-Texteingabe im Frontend bereinigt (`[BILD_N]`, `**`, `##` entfernt)
+- Multi-Content: `[Inhalt 1: Titel]` als separate Blöcke
+
+### KenBurns erweitert – 4 neue Effekte (88c5640)
+
+| Effekt | Direction | Was passiert | Wann |
+|--------|-----------|-------------|------|
+| **Atmender Zoom** | `'breathing'` | Sinus-Puls (2×/Slide) + Noise-Pan | Naturfotos, Tierfotos |
+| **Fokus-Blur→Scharf** | `'focus-in'` | blur 4px→0 in 33% der Zeit + Zoom | Makros, emotionale Momente |
+| **Handkamera** | `'handheld'` | Noise 3× höhere Frequenz, 2.5% Amplitude | Authentischer Look |
+| **Gamma-Fade** | prop `gammaFade` | Farbstich/Dunkel blendet in 0.4s aus | Bild 1: `dark-in`, Bild 2: `warm-in` |
+
+**`pickDirection()` neue Verteilung:**
+```
+noise      → 4 Slots (33%) – organisch
+breathing  → 2 Slots (17%) – lebendig
+focus-in   → 2 Slots (17%) – cinematic
+handheld   → 2 Slots (17%) – authentisch
+zoom/diag  → 2 Slots (17%) – klassisch
+```
+
+| Datei | Änderung |
+|-------|----------|
+| `KenBurnsImage.tsx` | 3 neue Direction-Typen + GammaFade + 3 neue Transform-Funktionen |
+| `MojoBusVideo.tsx` | MediaRenderer übergibt gammaFade nach Index |
+
+### Musik-Lautstärke gesenkt (08fcf34)
+
+- Musik: `0.49` → **`0.34`** (30% leiser)
+- Voiceover bleibt bei 1.0 (voll hörbar), Ambient bei 0.20
+- Nur eine Stelle: `MojoBusVideo.tsx` AudioLayer
+
+### /videos Seite + NIP-71 kind 34236 Video-Events (e0cdff2, 951affe)
+
+**Event-Typ Umstellung:**
+| Aspekt | Vorher (kind 30078) | Nachher (kind 34236) |
+|--------|-------------------|-------------------|
+| Nostr-Standard | App-intern | **NIP-71 Short Video** |
+| content | JSON mit Meta-Daten | **Foster-Sätze (Klartext)** |
+| Video-URL | `['url', ...]` Tag | **`['imeta', 'url ...', ...]`** |
+| Thumbnail | Nicht vorhanden | **`['image', url]`** |
+| Sichtbar auf | Nur in History | **mojobus.co/videos** |
+| Andere Clients | Unsichtbar | **Zap.stream, Flare, Primal** |
+
+**Publish-Flow im TikTok Dashboard:**
+```
+Video fertig → Card: ☑️ "Auf /videos publizieren" (default: an)
+  → Checkbox AN:  kind 34236 (NIP-71) → erscheint auf /videos
+  → Checkbox AUS: kind 30078 (app-intern) → nur in History
+```
+
+**Neue Dateien:**
+| Datei | Beschreibung |
+|-------|-------------|
+| `src/pages/Videos.tsx` | Single-Column Feed: 9:16 (400px), 16:9 (800px), Lazy Loading, Play/Klick |
+| `src/hooks/useVideos.ts` | Lädt kind 34236+34235, parst imeta/image-Tags, aspectRatio-Erkennung |
+
+**Geänderte Dateien:**
+| Datei | Änderung |
+|-------|----------|
+| `AppRouter.tsx` | `/videos` lazy import + `/artikel/notes` Route |
+| `routes.ts` | `/videos`, `/artikel/notes` ergänzt |
+| `mainMenu.ts` | Notes → unter Artikel, Videos als Toplevel 🎬 |
+| `TikTokPromotion.tsx` | publishToNostr() auf 34236, History liest beide Kinds |
+
+### Ausblick / Nächste Schritte
+- **16:9 Querformat**: `/videos` unterstützt beide Formate. Für 16:9 Videos muss im TikTok Dashboard das dim-Tag auf `1920x1080` gesetzt werden (aktuell hartcodiert auf `1080x1920`).
+- **Prerender für kind 34236**: `scripts/prerender-static.js` erweitern für Video-Seiten (SEO für /videos).
+- **Video-Detailseite**: `/video/:naddr` – einzelne Video-Seite mit OG-Tags für Social Sharing.
+- **JSON-Dump**: `/data/videos.json` für schnelles Laden (analog zu articles/notes).

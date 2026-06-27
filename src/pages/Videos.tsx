@@ -170,17 +170,24 @@ export function Videos() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b bg-card/50 py-6 px-4 mb-8">
-        <div className="max-w-2xl mx-auto">
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Film className="w-6 h-6 text-primary" /> Videos
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Kurzvideos · Reels · Momente aus dem Mojobus-Leben
-          </p>
+      {/* Page Header mit Gradient Background – identisch zu Bilder/Notes */}
+      <section className="relative py-12 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-accent/20 to-background" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/40 to-background" />
+        <div className="relative z-10 container mx-auto px-4">
+          <div className="text-center space-y-4">
+            <h1 className="text-4xl md:text-6xl font-bold">
+              <span className="flex items-center justify-center gap-3">
+                <Film className="h-10 w-10 text-primary" />
+                <span className="gradient-text">Videos</span>
+              </span>
+            </h1>
+            <p className="text-xl text-muted-foreground">
+              Kurzvideos · Reels · Momente aus dem Mojobus-Leben
+            </p>
+          </div>
         </div>
-      </div>
+      </section>
 
       {/* Content */}
       <div className="max-w-2xl mx-auto px-4 pb-16 space-y-12">

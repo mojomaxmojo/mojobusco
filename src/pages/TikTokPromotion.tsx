@@ -805,6 +805,7 @@ export function TikTokPromotion() {
         ['l', 'tiktok-video', 'co.mojobus.app'],
       ] : []
 
+      // Event 1: kind 34236 (NIP-71) oder kind 30078
       const event = await publishEvent.mutateAsync({
         kind,
         tags: [...baseTags, ...appTags],
@@ -812,10 +813,58 @@ export function TikTokPromotion() {
       })
 
       setPublishedEventId(event.id)
-      toast({
-        title: '✅ In Nostr gespeichert!',
-        description: 'Dauerhaft auf relay.mojobus.co verfügbar.',
-      })
+
+      // Event 2: kind 1 (Short Text Note) – für Amethyst, Primal, Damus etc.
+      // Video-URL MUSS direkt im content stehen damit Clients es als Video rendern
+      if (publishToVideos) {
+        try {
+          const hashtagText = hashtags.split(' ').filter(Boolean).join(' ')
+          const kind1Content = [
+            description,
+            '',
+            mp4Url,   // ← URL direkt im Text = Amethyst/Primal rendert Video
+            '',
+            hashtagText,
+          ].filter(Boolean).join('\n')
+
+          const kind1Tags: string[][] = [
+            ['r', mp4Url],
+            // imeta damit Clients die Dimensionen kennen
+            ['imeta',
+              `url ${mp4Url}`,
+              'm video/mp4',
+              `dim ${dimTag}`,
+              ...(renderStatus?.videoDurationSec ? [`duration ${renderStatus.videoDurationSec}`] : []),
+            ],
+            // Referenz auf das kind 34236 Event
+            ['a', `34236:${user?.pubkey}:${dTag}`, 'wss://relay.mojobus.co'],
+            ...hashtagTags,
+          ]
+
+          await publishEvent.mutateAsync({
+            kind: 1,
+            tags: kind1Tags,
+            content: kind1Content,
+          })
+
+          toast({
+            title: '✅ Publiziert!',
+            description: 'Auf relay.mojobus.co + im Nostr-Feed (Amethyst/Primal) sichtbar.',
+          })
+        } catch (kind1Err: any) {
+          // kind 1 Fehler nicht blockieren – kind 34236 wurde bereits gespeichert
+          console.warn('[Publish] kind 1 fehlgeschlagen:', kind1Err.message)
+          toast({
+            title: '✅ Gespeichert',
+            description: 'Auf /videos verfügbar. Feed-Publikation fehlgeschlagen.',
+          })
+        }
+      } else {
+        toast({
+          title: '✅ In Nostr gespeichert!',
+          description: 'Dauerhaft auf relay.mojobus.co verfügbar.',
+        })
+      }
 
       // History neu laden
       loadHistory()
