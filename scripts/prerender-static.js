@@ -374,6 +374,87 @@ function renderTripHtml(event) {
 </html>`;
 }
 
+// ── HTML Template für Videos (kind 34236 / kind 34235 – NIP-71) ────────
+function renderVideoHtml(event) {
+  const title = event.tags?.find(t => t[0] === 'title')?.[1] || 'MojoBus Video';
+  // Video-URL aus imeta-Tag
+  const imetaTag = event.tags?.find(t => t[0] === 'imeta');
+  const videoUrl = imetaTag?.find(v => typeof v === 'string' && v.startsWith('url '))?.replace('url ', '') || '';
+  const durationRaw = imetaTag?.find(v => typeof v === 'string' && v.startsWith('duration '))?.replace('duration ', '') || '';
+  const duration = durationRaw ? parseFloat(durationRaw) : null;
+  const thumbnailUrl = event.tags?.find(t => t[0] === 'image')?.[1] || `${BASE_URL}/og-image.jpg`;
+  const description = event.content || '';
+  const tags = event.tags?.filter(t => t[0] === 't').map(t => t[1]) || [];
+  const dTag = event.tags?.find(t => t[0] === 'd')?.[1] || event.id;
+  const isShort = event.kind === 34236;
+
+  // Canonical URL: naddr auf /videos (SPA rendert dort)
+  let canonicalUrl = `${BASE_URL}/videos`;
+  try {
+    const naddr = nip19.naddrEncode({ kind: event.kind, pubkey: event.pubkey, identifier: dTag });
+    canonicalUrl = `${BASE_URL}/videos`; // Feed-URL, nicht Einzelseite (noch keine Detailseite)
+  } catch {}
+
+  const cleanTitle = escapeHtml(title);
+  const cleanDesc = escapeHtml(description.substring(0, 160));
+  const keywords = [...new Set(['vanlife', 'mojobus', 'video', 'reels', isShort ? 'shorts' : 'video', ...tags])].join(', ');
+
+  // JSON-LD VideoObject für Google
+  const jsonLd = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'VideoObject',
+    name: title,
+    description: description.substring(0, 300),
+    thumbnailUrl: thumbnailUrl,
+    contentUrl: videoUrl,
+    embedUrl: videoUrl,
+    uploadDate: new Date(event.created_at * 1000).toISOString(),
+    publisher: { '@type': 'Organization', name: 'MojoBus', logo: { '@type': 'ImageObject', url: `${BASE_URL}/icon-192x192.png` } },
+    ...(duration ? { duration: `PT${Math.round(duration)}S` } : {}),
+    keywords: keywords,
+  });
+
+  return `<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${cleanTitle} — MojoBus Video</title>
+  <meta name="description" content="${cleanDesc}" />
+  <meta name="keywords" content="${escapeHtml(keywords)}" />
+  <meta property="og:type" content="video.other" />
+  <meta property="og:title" content="${cleanTitle} — MojoBus" />
+  <meta property="og:description" content="${cleanDesc}" />
+  <meta property="og:image" content="${escapeHtml(thumbnailUrl)}" />
+  <meta property="og:image:width" content="${isShort ? '1080' : '1920'}" />
+  <meta property="og:image:height" content="${isShort ? '1920' : '1080'}" />
+  <meta property="og:url" content="${escapeHtml(canonicalUrl)}" />
+  <meta property="og:site_name" content="MojoBus – Perpetual Travelers" />
+  <meta property="og:locale" content="de_DE" />
+  ${videoUrl ? `<meta property="og:video" content="${escapeHtml(videoUrl)}" />
+  <meta property="og:video:type" content="video/mp4" />
+  <meta property="og:video:width" content="${isShort ? '1080' : '1920'}" />
+  <meta property="og:video:height" content="${isShort ? '1920' : '1080'}" />` : ''}
+  <meta name="twitter:card" content="player" />
+  <meta name="twitter:title" content="${cleanTitle} — MojoBus" />
+  <meta name="twitter:description" content="${cleanDesc}" />
+  <meta name="twitter:image" content="${escapeHtml(thumbnailUrl)}" />
+  ${videoUrl ? `<meta name="twitter:player" content="${escapeHtml(videoUrl)}" />` : ''}
+  <meta name="robots" content="index, follow, max-image-preview:large" />
+  <script type="application/ld+json">${jsonLd}</script>
+  <link rel="canonical" href="${escapeHtml(canonicalUrl)}" />
+</head>
+<body>
+  <h1>${cleanTitle}</h1>
+  <p>${cleanDesc}</p>
+  ${thumbnailUrl ? `<img src="${escapeHtml(thumbnailUrl)}" alt="${cleanTitle}" style="max-width:600px" />` : ''}
+  ${videoUrl ? `<video src="${escapeHtml(videoUrl)}" poster="${escapeHtml(thumbnailUrl)}" controls style="max-width:400px"></video>` : ''}
+  <p><a href="${escapeHtml(canonicalUrl)}">Video auf MojoBus ansehen →</a></p>
+  <script>window.location.replace("${escapeHtml(canonicalUrl)}");</script>
+</body>
+</html>`;
+}
+
 // ── HTML Template für Bilder/Media ─────────────────────────────────────
 function renderMediaHtml(event) {
   const title = event.tags?.find(t => t[0] === 'title')?.[1] || 'Bildergalerie';
@@ -559,6 +640,29 @@ async function main() {
         rendered.push({ type: 'Note', identifier: noteId });
       } catch (e) {
         console.warn(`[Prerender] noteEncode fehlgeschlagen: ${e.message}`);
+      }
+    }
+
+    // ── Videos (kind 34236 + kind 34235, NIP-71) ────────
+    const videoEvents = await queryRelay(relay, [{
+      kinds: [34236, 34235],
+      authors: AUTHOR_PUBKEYS,
+      limit: MAX_PER_RELAY,
+    }]);
+    console.log(`[Prerender]  → ${videoEvents.length} Video-Events`);
+
+    for (const event of videoEvents) {
+      if (seenIds.has(event.id)) continue;
+      seenIds.add(event.id);
+      const dTag = event.tags?.find(t => t[0] === 'd')?.[1] || event.id;
+      try {
+        const naddr = nip19.naddrEncode({ kind: event.kind, pubkey: event.pubkey, identifier: dTag });
+        const filename = `video-${naddr}.html`;
+        const html = renderVideoHtml(event);
+        fs.writeFileSync(path.join(PRERENDER_DIR, filename), html, 'utf-8');
+        rendered.push({ type: 'Video', identifier: naddr });
+      } catch (e) {
+        console.warn(`[Prerender] Video naddr fehlgeschlagen: ${e.message}`);
       }
     }
 

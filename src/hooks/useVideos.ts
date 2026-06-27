@@ -1,15 +1,18 @@
 /**
- * useVideos – lädt kind 34236 Short Video Events (NIP-71) vom Relay
+ * useVideos – Hybrid-Hook: /data/videos.json sofort + Relay-Live im Hintergrund
  *
- * kind 34236 = Addressable Short Video Event (9:16 Hochformat / Reels / Shorts)
- * kind 34235 = Addressable Normal Video Event (16:9 Querformat) – für die Zukunft
+ * Gleiche Strategie wie useNotes / usePreloadedData:
+ * 1. /data/videos.json sofort laden (aus SW-Cache 0ms, erstes Laden ~100ms)
+ * 2. Live-Query vom Relay für neue Videos im Hintergrund
+ * 3. Merge: JSON + Live, dedupliciert, nach Datum sortiert
  *
- * Beide Kinds werden geladen damit auch ältere 16:9 Videos angezeigt werden.
+ * kind 34236 = Addressable Short Video Event (NIP-71, 9:16)
+ * kind 34235 = Addressable Normal Video Event (NIP-71, 16:9)
  */
 
-import { useQuery } from '@tanstack/react-query';
-import { useNostr } from '@/hooks/useNostr';
-import { NOSTR_CONFIG } from '@/config/nostr';
+import { useState, useEffect, useMemo } from 'react'
+import { useNostr } from '@/hooks/useNostr'
+import { NOSTR_CONFIG } from '@/config/nostr'
 
 export interface VideoItem {
   id: string
@@ -26,7 +29,7 @@ export interface VideoItem {
   isShort: boolean       // kind 34236 = Short/Reels, kind 34235 = Normal
 }
 
-function parseVideoEvent(e: any): VideoItem | null {
+export function parseVideoEvent(e: any): VideoItem | null {
   if (!e?.tags) return null
 
   // imeta-Tag: Video-URL + Dimensionen + Dauer
@@ -36,11 +39,11 @@ function parseVideoEvent(e: any): VideoItem | null {
   let dim = ''
 
   if (imetaTag) {
-    const urlEntry = imetaTag.find((v: string) => v.startsWith('url '))
+    const urlEntry = imetaTag.find((v: string) => typeof v === 'string' && v.startsWith('url '))
     if (urlEntry) videoUrl = urlEntry.replace('url ', '').trim()
-    const durEntry = imetaTag.find((v: string) => v.startsWith('duration '))
+    const durEntry = imetaTag.find((v: string) => typeof v === 'string' && v.startsWith('duration '))
     if (durEntry) durationSec = parseFloat(durEntry.replace('duration ', '')) || null
-    const dimEntry = imetaTag.find((v: string) => v.startsWith('dim '))
+    const dimEntry = imetaTag.find((v: string) => typeof v === 'string' && v.startsWith('dim '))
     if (dimEntry) dim = dimEntry.replace('dim ', '').trim()
   }
 
@@ -52,7 +55,6 @@ function parseVideoEvent(e: any): VideoItem | null {
     const [w, h] = dim.split('x').map(Number)
     if (w && h) aspectRatio = h > w ? '9:16' : '16:9'
   }
-  // kind 34236 = Short → 9:16
   if (e.kind === 34236) aspectRatio = '9:16'
   if (e.kind === 34235) aspectRatio = '16:9'
 
@@ -87,27 +89,76 @@ function parseVideoEvent(e: any): VideoItem | null {
 
 export function useVideos() {
   const { nostr } = useNostr()
+  const [jsonVideos, setJsonVideos] = useState<any[]>([])
+  const [liveVideos, setLiveVideos] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [cronTimestamp, setCronTimestamp] = useState<number | null>(null)
 
-  return useQuery({
-    queryKey: ['videos', NOSTR_CONFIG.authorPubkeys],
-    queryFn: async () => {
-      if (!nostr) return []
+  // Schritt 1: /data/videos.json sofort laden (SW-Cache → 0ms beim Wiederholungsbesuch)
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      try {
+        const [indexRes, videosRes] = await Promise.all([
+          fetch('/data/index.json'),
+          fetch('/data/videos.json'),
+        ])
+        if (cancelled) return
+        if (indexRes.ok) {
+          const idx = await indexRes.json()
+          setCronTimestamp(idx.generatedAtUnix || null)
+        }
+        if (videosRes.ok) {
+          const data = await videosRes.json()
+          if (Array.isArray(data)) setJsonVideos(data)
+        }
+      } catch {
+        // Fallback auf pure Relay-Query
+      } finally {
+        if (!cancelled) setIsLoading(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [])
 
-      const events = await nostr.query([{
-        kinds: [34236, 34235], // Short + Normal Video Events (NIP-71)
-        authors: NOSTR_CONFIG.authorPubkeys,
-        limit: 100,
-      }], { signal: AbortSignal.timeout(10000) })
+  // Schritt 2: Live-Query nur für neue Videos (nach letztem Cron-Lauf)
+  useEffect(() => {
+    if (!nostr || cronTimestamp === null) return
+    let cancelled = false
+    const run = async () => {
+      try {
+        const since = cronTimestamp - 60 // 1 Min Puffer
+        const events = await nostr.query([{
+          kinds: [34236, 34235],
+          authors: NOSTR_CONFIG.authorPubkeys,
+          since,
+          limit: 50,
+        }], { signal: AbortSignal.timeout(8000) })
+        if (!cancelled && events.length > 0) {
+          setLiveVideos(events)
+        }
+      } catch {
+        // Live-Fehler ignorieren – JSON-Dump reicht
+      }
+    }
+    run()
+    return () => { cancelled = true }
+  }, [nostr, cronTimestamp])
 
-      const videos = events
-        .map(parseVideoEvent)
-        .filter((v): v is VideoItem => v !== null)
-        .sort((a, b) => b.createdAt - a.createdAt)
+  // Merge + Deduplizierung + Sortierung
+  const videos = useMemo(() => {
+    const allRaw = [...liveVideos, ...jsonVideos]
+    const seen = new Set<string>()
+    const parsed: VideoItem[] = []
+    for (const e of allRaw) {
+      if (seen.has(e.id)) continue
+      seen.add(e.id)
+      const v = parseVideoEvent(e)
+      if (v) parsed.push(v)
+    }
+    return parsed.sort((a, b) => b.createdAt - a.createdAt)
+  }, [jsonVideos, liveVideos])
 
-      return videos
-    },
-    enabled: !!nostr,
-    staleTime: 1000 * 60 * 5, // 5 Min
-    gcTime: 1000 * 60 * 30,
-  })
+  return { videos, isLoading }
 }

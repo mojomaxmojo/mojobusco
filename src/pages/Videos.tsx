@@ -155,7 +155,8 @@ function VideoCard({ video }: { video: VideoItem }) {
 // ── Videos Page ───────────────────────────────────────────────────────────────
 
 export function Videos() {
-  const { data: videos, isLoading, error } = useVideos()
+  const { videos, isLoading } = useVideos()
+  const error = false
 
   useHead({
     title: 'Videos – MojoBus',

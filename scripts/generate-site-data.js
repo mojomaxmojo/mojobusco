@@ -175,6 +175,7 @@ async function main() {
   fs.mkdirSync(DATA_DIR, { recursive: true });
 
   const allEvents = [];
+  const allVideoEvents = [];
   const seenIds = new Set();
 
   for (const relay of RELAYS) {
@@ -188,10 +189,21 @@ async function main() {
     const notes = await queryRelay(relay, [{ kinds: [1], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS }]);
     console.log(`[SiteData]  → ${notes.length} Kind-1-Events`);
 
+    // Video-Events NIP-71: kind 34236 (Short/Reels 9:16) + kind 34235 (Normal 16:9)
+    const videos = await queryRelay(relay, [{ kinds: [34236, 34235], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS }]);
+    console.log(`[SiteData]  → ${videos.length} Video-Events (kind 34236/34235)`);
+
     for (const event of [...articles, ...notes]) {
       if (!seenIds.has(event.id)) {
         seenIds.add(event.id);
         allEvents.push(event);
+      }
+    }
+
+    for (const event of videos) {
+      if (!seenIds.has(event.id)) {
+        seenIds.add(event.id);
+        allVideoEvents.push(event);
       }
     }
   }
@@ -254,6 +266,18 @@ async function main() {
     // Kein content – wird auf Detailseite direkt vom Relay geladen
   });
 
+  // Video-Events (kind 34236/34235): relevante Tags für Listenseite behalten
+  // content = Foster-Sätze (kurz, kein Kürzen nötig)
+  const RELEVANT_TAGS_VIDEO = new Set(['d', 'title', 'imeta', 'image', 'duration', 't', 'r', 'published_at', 'alt']);
+  const stripVideo = (e) => ({
+    id: e.id,
+    pubkey: e.pubkey,
+    kind: e.kind,
+    created_at: e.created_at,
+    tags: (e.tags || []).filter(t => RELEVANT_TAGS_VIDEO.has(t[0])),
+    content: e.content ? e.content.substring(0, 300) : '', // Foster-Sätze als Beschreibung
+  });
+
   const stripNote = (e) => {
     const tags = (e.tags || []).filter(t => RELEVANT_TAGS_KIND1.has(t[0]));
 
@@ -293,6 +317,9 @@ async function main() {
   // Bilder + Notes: 200 Zeichen Content (für Vorschautext in der Karte)
   writeJSON('bilder.json', allEvents.filter(e => e.kind === 1 && isMedia(e)).map(stripNote));
   writeJSON('notes.json', allEvents.filter(e => e.kind === 1 && isNote(e)).map(stripNote));
+  // Videos: kind 34236 + 34235 (NIP-71), nach Datum sortiert
+  const videosSorted = allVideoEvents.sort((a, b) => b.created_at - a.created_at);
+  writeJSON('videos.json', videosSorted.map(stripVideo));
 
   // ── naddr-Sitemap ──────────────────────────────────────────────────────
 
@@ -320,6 +347,7 @@ async function main() {
       trips: metaTrips.length,
       bilder: metaBilder.length,
       notes: metaNotes.length,
+      videos: videosSorted.length,
       sitemap: sitemap.length,
     },
     duration: `${((Date.now() - startTime) / 1000).toFixed(1)}s`,
@@ -333,6 +361,7 @@ async function main() {
   console.log(`[SiteData]   Trips:   ${metaTrips.length}`);
   console.log(`[SiteData]   Bilder:  ${metaBilder.length}`);
   console.log(`[SiteData]   Notes:   ${metaNotes.length}`);
+  console.log(`[SiteData]   Videos:  ${videosSorted.length}`);
 }
 
 main().catch(err => { console.error('[SiteData] ❌ Fehler:', err); process.exit(1); });
