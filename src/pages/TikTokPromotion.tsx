@@ -843,35 +843,37 @@ export function TikTokPromotion() {
         // Merge: Nostr-Events haben Vorrang vor Server-History
         const nostrItems = events
           .map((e: any) => {
+            if (!e?.id) return null
             const isNip71 = e.kind === 34236 || e.kind === 34235
-            // kind 34236: URL aus imeta-Tag, content = Beschreibungstext
-            // kind 30078: URL aus url-Tag, content = JSON
             let meta: any = {}
             let videoUrl = ''
             let thumbnailUrl = ''
             let durationSec: string | null = null
+            const contentStr: string = e.content || ''
 
             if (isNip71) {
               // NIP-71: imeta-Tag enthält Video-URL
               const imetaTag = e.tags?.find((t: string[]) => t[0] === 'imeta')
               if (imetaTag) {
-                const urlEntry = imetaTag.find((v: string) => v.startsWith('url '))
+                const urlEntry = imetaTag.find((v: string) => typeof v === 'string' && v.startsWith('url '))
                 if (urlEntry) videoUrl = urlEntry.replace('url ', '').trim()
-                const durEntry = imetaTag.find((v: string) => v.startsWith('duration '))
+                const durEntry = imetaTag.find((v: string) => typeof v === 'string' && v.startsWith('duration '))
                 if (durEntry) durationSec = durEntry.replace('duration ', '').trim()
               }
-              const imgTag = e.tags?.find((t: string[]) => t[0] === 'image')?.[1] || ''
-              thumbnailUrl = imgTag
+              thumbnailUrl = e.tags?.find((t: string[]) => t[0] === 'image')?.[1] || ''
               const dur = e.tags?.find((t: string[]) => t[0] === 'duration')?.[1]
               if (dur) durationSec = dur
             } else {
               // kind 30078: JSON in content, url-Tag
-              try { meta = JSON.parse(e.content) } catch {}
+              try { meta = JSON.parse(contentStr) } catch {}
               videoUrl = e.tags?.find((t: string[]) => t[0] === 'url')?.[1] || ''
             }
 
             const titleTag = e.tags?.find((t: string[]) => t[0] === 'title')?.[1] || ''
-            const hookText = isNip71 ? (e.content?.split('\n')[0] || titleTag) : (meta?.hook || titleTag)
+            // Für NIP-71: erste Zeile des content (Foster-Hook-Satz), sonst aus meta
+            const hookVal = isNip71
+              ? (contentStr.split('\n')[0] || titleTag || '')
+              : (meta?.hook || titleTag || '')
 
             return {
               jobId: e.id,
@@ -879,20 +881,21 @@ export function TikTokPromotion() {
               kind: e.kind,
               status: 'completed',
               title: titleTag,
-              hook: hookText,
+              hook: hookVal,
               blossomUrl: videoUrl,
               thumbnailUrl,
               fileSizeMB: meta?.fileSizeMB || null,
-              videoDurationSec: durationSec || meta?.videoDurationSec,
+              videoDurationSec: durationSec || meta?.videoDurationSec || null,
               imageCount: meta?.imageCount || 0,
               created: isNip71
                 ? (e.created_at ? e.created_at * 1000 : Date.now())
                 : (meta?.createdAt ? meta.createdAt * 1000 : Date.now()),
               nostrEvent: true,
               isNip71,
-              meta,
+              meta: meta || {},
             }
           })
+          .filter(Boolean)
           .sort((a: any, b: any) => b.created - a.created)
 
         setHistory(nostrItems)
@@ -1866,9 +1869,14 @@ export function TikTokPromotion() {
                     <tbody>
                       {history.map((job: any) => {
                         const meta = job.meta || {}
+                        // NIP-71 (kind 34236): kein meta.body – fullText aus hook/title
+                        // kind 30078: meta.body ist ein String mit Zeilenumbrüchen
+                        const metaBodyLines = typeof meta.body === 'string' && meta.body
+                          ? meta.body.split('\n').filter((l: string) => l.trim())
+                          : []
                         const fullText = [
                           job.hook || meta.hook || '',
-                          ...((meta.body || '')?.split ? (meta.body as string).split('\n').filter((l: string) => l.trim()) : []),
+                          ...metaBodyLines,
                           meta.bridge || '',
                           meta.cta || '',
                           Array.isArray(meta.hashtags) ? meta.hashtags.join(' ') : '',
