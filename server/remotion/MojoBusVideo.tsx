@@ -16,7 +16,7 @@
 import React from 'react';
 import { AbsoluteFill, Sequence, useVideoConfig, useCurrentFrame, Video } from 'remotion';
 
-import { KenBurnsImage, pickDirection } from './components/KenBurnsImage';
+import { KenBurnsImage, pickDirection, type GammaFade } from './components/KenBurnsImage';
 import { ColorGradeOverlay, ColorGradeWrapper, lifestyleToGrade, type ColorGrade } from './components/ColorGradeOverlay';
 import { HookTitle } from './components/HookTitle';
 import { LocationBadge } from './components/LocationBadge';
@@ -277,6 +277,8 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
         direction={pickDirection(index)}
         intensity={0.10}
         motionBlurStrength={0}
+        noiseSeed={index}
+        gammaFade={index === 0 ? 'dark-in' : index === 1 ? 'warm-in' : 'none'}
       />
     );
   };
