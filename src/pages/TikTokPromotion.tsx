@@ -1022,9 +1022,10 @@ export function TikTokPromotion() {
       return
     }
 
-    // Absolute URL – nötig für Capacitor-App (file:// Kontext)
-    // Im Desktop-Browser: getApiBaseUrl() = '' → relative URL funktioniert
-    const url = `${getApiBaseUrl()}${track.url}`
+    // MP3s liegen als statische Dateien unter /server/music/ (via Nginx)
+    // NICHT über /api/music/ (API-Endpunkt nicht erreichbar)
+    // Absolute URL für Capacitor-App (file:// Kontext)
+    const url = `${getApiBaseUrl()}/server/music/${track.filename}`
     const audio = new Audio()
     // KEIN crossOrigin = 'anonymous' – verursacht NS_BINDING_ABORTED
     // weil der Server keinen Access-Control-Allow-Headers: Range schickt
