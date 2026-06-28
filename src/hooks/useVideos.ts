@@ -151,16 +151,32 @@ export function useVideos() {
   }, [nostr, cronTimestamp])
 
   // Merge + Deduplizierung + Sortierung
+  // ⚠️ Replaceable Events: Schlüssel = pubkey:kind:d-tag (NICHT event.id!)
+  // Pro d-tag immer nur das NEUESTE Event behalten.
   const videos = useMemo(() => {
+    // Live-Events zuerst (neuer), dann JSON-Dump
     const allRaw = [...liveVideos, ...jsonVideos]
-    const seen = new Set<string>()
-    const parsed: VideoItem[] = []
+
+    // Map: replaceableKey → neustes Event
+    const byReplaceableKey = new Map<string, any>()
+
     for (const e of allRaw) {
-      if (seen.has(e.id)) continue
-      seen.add(e.id)
+      const dTag = e.tags?.find((t: string[]) => t[0] === 'd')?.[1] ?? e.id
+      // Replaceable key: pubkey + kind + d-tag (NIP-01)
+      const key = `${e.pubkey ?? ''}:${e.kind}:${dTag}`
+      const existing = byReplaceableKey.get(key)
+      // Neueres Event gewinnt
+      if (!existing || (e.created_at ?? 0) > (existing.created_at ?? 0)) {
+        byReplaceableKey.set(key, e)
+      }
+    }
+
+    const parsed: VideoItem[] = []
+    for (const e of byReplaceableKey.values()) {
       const v = parseVideoEvent(e)
       if (v) parsed.push(v)
     }
+
     return parsed.sort((a, b) => b.createdAt - a.createdAt)
   }, [jsonVideos, liveVideos])
 
