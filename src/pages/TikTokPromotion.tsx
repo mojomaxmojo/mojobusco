@@ -40,7 +40,8 @@ import {
   FileText, Image as ImageIcon, Download, ExternalLink, Loader2,
   Sparkles, ChevronRight, Wand2, Copy, Check, ArrowLeft,
   Camera, Video, Music, Volume2, Hash, Type, MessageSquare,
-  Trash2, Cloud, Edit, Eye, CloudUpload, CheckCircle2, Globe
+  Trash2, Cloud, Edit, Eye, CloudUpload, CheckCircle2, Globe,
+  Play, Square
 } from 'lucide-react'
 
 // ContentSelector (wiederverwendet aus Pinterest)
@@ -304,6 +305,8 @@ export function TikTokPromotion() {
   // ── MUSIK (dynamisch) ════════════════════════════════════
   const [musicTracks, setMusicTracks] = useState<{ filename: string; label: string; url: string }[]>([])
   const [selectedTrack, setSelectedTrack] = useState('__random__')
+  const [playingPreview, setPlayingPreview] = useState(false)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
 
   // ── ROUTEMAP ═════════════════════════════════════════════
   const [showRouteMap, setShowRouteMap] = useState(false)
@@ -999,8 +1002,52 @@ export function TikTokPromotion() {
   useEffect(() => {
     return () => {
       if (pollRef.current) clearInterval(pollRef.current)
+      // Audio stoppen beim Verlassen der Seite
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current = null
+      }
     }
   }, [])
+
+  // ── MUSIK VORSCHAU ══════════════════════════════════════
+  const toggleMusicPreview = () => {
+    const track = musicTracks.find(t => t.filename === selectedTrack)
+    if (!track) return
+
+    if (playingPreview && audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current = null
+      setPlayingPreview(false)
+      return
+    }
+
+    // Absolute URL für Capacitor-App nötig
+    const url = `${getApiBaseUrl()}${track.url}`
+    const audio = new Audio(url)
+    audioRef.current = audio
+    audio.volume = 0.6
+    audio.play().then(() => {
+      setPlayingPreview(true)
+    }).catch(() => {
+      setPlayingPreview(false)
+    })
+    // Automatisch stoppen wenn Track zu Ende
+    audio.onended = () => {
+      setPlayingPreview(false)
+      audioRef.current = null
+    }
+  }
+
+  // Preview stoppen wenn anderer Track gewählt wird
+  const handleTrackChange = (value: string) => {
+    if (playingPreview && audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current = null
+      setPlayingPreview(false)
+    }
+    setSelectedTrack(value)
+  }
 
   // ── DOWNLOAD ════════════════════════════════════════════
 
@@ -1704,22 +1751,40 @@ export function TikTokPromotion() {
                   <Label className="text-xs sm:text-sm flex items-center gap-1">
                     <Music className="w-3 h-3" /> Musik
                   </Label>
-                  <Select value={selectedTrack} onValueChange={v => { setSelectedTrack(v) }}>
-                    <SelectTrigger className="mt-1 text-sm">
-                      <SelectValue placeholder="🎲 Zufällig" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__random__">🎲 Zufälliger Track</SelectItem>
-                      <SelectItem value="__none__">🔇 Keine Musik</SelectItem>
-                      {musicTracks.map(track => (
-                        <SelectItem key={track.filename} value={track.filename}>
-                          {track.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <Select value={selectedTrack} onValueChange={handleTrackChange}>
+                      <SelectTrigger className="text-sm flex-1">
+                        <SelectValue placeholder="🎲 Zufällig" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__random__">🎲 Zufälliger Track</SelectItem>
+                        <SelectItem value="__none__">🔇 Keine Musik</SelectItem>
+                        {musicTracks.map(track => (
+                          <SelectItem key={track.filename} value={track.filename}>
+                            {track.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {/* Mini Play-Button */}
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant={playingPreview ? 'default' : 'outline'}
+                      className="h-9 w-9 shrink-0"
+                      disabled={!selectedTrack || selectedTrack === '__random__' || selectedTrack === '__none__'}
+                      onClick={toggleMusicPreview}
+                      title={playingPreview ? 'Stoppen' : 'Vorschau abspielen'}
+                    >
+                      {playingPreview
+                        ? <Square className="w-3.5 h-3.5 fill-current" />
+                        : <Play className="w-3.5 h-3.5 fill-current" />
+                      }
+                    </Button>
+                  </div>
                   <p className="text-[10px] text-muted-foreground mt-1">
                     {musicTracks.length} Track{musicTracks.length !== 1 ? 's' : ''} auf dem Server
+                    {playingPreview && <span className="ml-2 text-primary animate-pulse">♪ läuft…</span>}
                   </p>
                 </div>
 
