@@ -47,6 +47,23 @@ import {
 import { ContentSelector, type ContentItem } from '@/components/pin/ContentSelector'
 import { extractImagesFromEvent, extractTitle, extractSummary } from '@/lib/nostrEventUtils'
 
+// ── Capacitor-Fix: absolute API-URL ──────────────────────────────────────────
+// In der nativen App (Capacitor WebView) läuft die Seite im file:// Kontext.
+// Relative Pfade wie /api/... werden zu file:///api/... → Server nie erreicht.
+// Im Desktop-Browser: leerer String → relative URLs funktionieren wie gewohnt.
+function getApiBaseUrl(): string {
+  try {
+    const cap = (window as any).Capacitor
+    const isNative =
+      cap?.isNative === true ||
+      (window as any).__Capacitor?.isNative === true ||
+      cap?.getPlatform?.() === 'android' ||
+      cap?.getPlatform?.() === 'ios'
+    if (isNative) return 'https://mojobus.co'
+  } catch { /* ignore */ }
+  return ''
+}
+
 // ═══════════════════════════════════════════════════════════
 // Drag&Drop – @dnd-kit für Medien-Sortierung
 // ═══════════════════════════════════════════════════════════
@@ -322,7 +339,8 @@ export function TikTokPromotion() {
 
   // Remotion-Status beim Laden prüfen
   useEffect(() => {
-    fetch('/api/render-remotion/check')
+    const base = getApiBaseUrl()
+    fetch(`${base}/api/render-remotion/check`)
       .then(r => r.json())
       .then(data => {
         setRemotionAvailable(data.remotion === 'installed')
@@ -334,7 +352,8 @@ export function TikTokPromotion() {
 
   // Musik-Tracks vom Server laden
   useEffect(() => {
-    fetch('/api/music/list')
+    const base = getApiBaseUrl()
+    fetch(`${base}/api/music/list`)
       .then(r => r.json())
       .then(data => {
         if (data?.tracks) {
@@ -639,7 +658,8 @@ export function TikTokPromotion() {
     }
 
     try {
-      const res = await fetch('/api/render-remotion', {
+      const base = getApiBaseUrl()
+      const res = await fetch(`${base}/api/render-remotion`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -684,7 +704,8 @@ export function TikTokPromotion() {
 
     pollRef.current = window.setInterval(async () => {
       try {
-        const res = await fetch(`/api/render-remotion/status/${jobId}`)
+        const base = getApiBaseUrl()
+        const res = await fetch(`${base}/api/render-remotion/status/${jobId}`)
         const data = await res.json()
 
         setRenderStatus(prev => prev ? { ...prev, ...data } : null)
@@ -723,7 +744,8 @@ export function TikTokPromotion() {
     if (!renderStatus?.jobId) return
     setUploading(true)
     try {
-      const res = await fetch(`/api/render-remotion/download/${renderStatus.jobId}`)
+      const base = getApiBaseUrl()
+      const res = await fetch(`${base}/api/render-remotion/download/${renderStatus.jobId}`)
       const blob = await res.blob()
       const safeName = (hookText || 'tiktok-video').replace(/[^a-zA-Z0-9äüöÄÜÖß]/g, '-').substring(0, 40)
       const file = new File([blob], `${safeName}.mp4`, { type: 'video/mp4' })
@@ -958,7 +980,8 @@ export function TikTokPromotion() {
 
   const loadServerHistory = async () => {
     try {
-      const res = await fetch('/api/render-remotion/history')
+      const base = getApiBaseUrl()
+      const res = await fetch(`${base}/api/render-remotion/history`)
       const data = await res.json()
       if (data?.jobs) setHistory(data.jobs)
     } catch {}
@@ -982,7 +1005,7 @@ export function TikTokPromotion() {
 
   const downloadMp4 = () => {
     if (!renderStatus?.jobId) return
-    const url = `/api/render-remotion/download/${renderStatus.jobId}`
+    const url = `${getApiBaseUrl()}/api/render-remotion/download/${renderStatus.jobId}`
     window.open(url, '_blank')
   }
 
@@ -1988,7 +2011,7 @@ export function TikTokPromotion() {
                                   <Button
                                     size="sm" variant="outline"
                                     className="h-7 w-7 p-0"
-                                    onClick={(e) => { e.stopPropagation(); window.open(`/api/render-remotion/download/${job.jobId}`, '_blank') }}
+                                    onClick={(e) => { e.stopPropagation(); window.open(`${getApiBaseUrl()}/api/render-remotion/download/${job.jobId}`, '_blank') }}
                                     title="Video ansehen"
                                   >
                                     <Eye className="w-3 h-3" />
