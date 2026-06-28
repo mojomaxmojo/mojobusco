@@ -651,7 +651,7 @@ journalctl -u ai-api -f | grep -i "Route\|perSlide\|Frames\|Stille"
 # 1030 Frames @ 25fps = 41.2s  ← korrekte Gesamtlänge
 ```
 
-**Letzter Commit dieser Session**: `951affe` – Fix "n.body is undefined" in TikTok History-Tabelle
+**Letzter Commit dieser Session**: `aac4452` – Caption Safe Zone per Plattform + Pill-Hintergrund
 
 ---
 
@@ -879,7 +879,97 @@ Video fertig → Card: ☑️ "Auf /videos publizieren" (default: an)
 | `TikTokPromotion.tsx` | publishToNostr() auf 34236, History liest beide Kinds |
 
 ### Ausblick / Nächste Schritte
-- **16:9 Querformat**: `/videos` unterstützt beide Formate. Für 16:9 Videos muss im TikTok Dashboard das dim-Tag auf `1920x1080` gesetzt werden (aktuell hartcodiert auf `1080x1920`).
-- **Prerender für kind 34236**: `scripts/prerender-static.js` erweitern für Video-Seiten (SEO für /videos).
-- **Video-Detailseite**: `/video/:naddr` – einzelne Video-Seite mit OG-Tags für Social Sharing.
-- **JSON-Dump**: `/data/videos.json` für schnelles Laden (analog zu articles/notes).
+- ✅ **16:9 Querformat** – `/videos` unterstützt 16:9 + 9:16 (dim-Tag aktuell hartcodiert auf `1080x1920`)
+- ✅ **Prerender für kind 34236** – `scripts/prerender-static.js` erweitert
+- ✅ **JSON-Dump** – `/data/videos.json` für schnelles Laden
+- ⬜ **Video-Detailseite**: `/video/:naddr` – einzelne Video-Seite mit OG-Tags für Social Sharing
+- ⬜ **16:9 Querformat dim-Tag** im TikTok Dashboard konfigurierbar machen (aktuell hartkodiert 1080x1920)
+
+---
+
+## 📋 Changelog – Weiteres Update (26.06.2026)
+
+### Caption Safe Zone per Plattform + leicht abgedunkelter Pill (aac4452)
+
+**Problem:** Caption saß bei `bottom: 35%` – fast in der Bildmitte. Plattform-UI (Text/Captions unten) überlappte.
+
+**Fix:** Plattform-abhängige Positionierung + Gradient durch leichten Pill ersetzt.
+
+| Plattform | Bottom % | Abstand von unten | UI-Endet bei |
+|-----------|----------|-------------------|--------------|
+| **TikTok** | `20%` | 384px frei | ~350px ✅ |
+| **Reels** | `25%` | 480px frei | ~450px ✅ |
+| **YouTube** | `18%` | 346px frei | ~300px ✅ |
+
+**Pill-Hintergrund (statt Gradient-Overlay):**
+- `background: rgba(0,0,0,0.28)` – leicht abgedunkelt, Bild bleibt sichtbar
+- `backdropFilter: blur(4px)` – sanfte Tiefenwirkung
+- `borderRadius: 12px`, `padding: 0.35em 0.8em`
+- TextShadow reduziert – Pill übernimmt den Kontrast
+- Kein globaler Gradient mehr der das Bild abdunkelt
+
+**Propagation:**
+```
+TikTokPromotion.tsx: platform → Payload
+render.js:           platform → inputProps
+MojoBusVideo.tsx:    platform → PerSlideCaption
+Captions.tsx:        platform → CAPTION_BOTTOM[platform] → bottom
+```
+
+### Dual-Event Publishing: kind 34236 + kind 1 für Feed (6875397)
+
+**Problem:** kind 34236 (NIP-71) erscheint nicht im Feed von Amethyst/Primal/Damus.
+
+**Fix:** Wenn Checkbox "Auf /videos publizieren" aktiv → **zwei Events**:
+
+| Event | Kind | Zweck |
+|-------|------|--------|
+| Event 1 | `34236` | `/videos` Seite, Video-Clients (Zap.stream, Flare) |
+| Event 2 | `kind 1` | Amethyst, Primal, Damus, alle Feed-Clients |
+
+**kind 1 Struktur:**
+```
+content: "Foster-Sätze\n\nhttps://blossom.../video.mp4\n\n#vanlife #mojobus"
+tags: [
+  ['r', mp4Url],
+  ['imeta', 'url ...', 'm video/mp4', 'dim 1080x1920'],
+  ['a', '34236:pubkey:dTag', 'wss://relay.mojobus.co'],
+  ...hashtagTags,
+]
+```
+- mp4Url **direkt im content-Text** → Amethyst/Primal rendert es als Video
+- `a`-Tag referenziert das kind 34236 Event
+- kind 1 Fehler blockiert nicht – kind 34236 bereits gespeichert
+
+### Stufe 2 – JSON-Dump + Prerender + Hybrid-Hook (31f2f2b)
+
+| Maßnahme | Beschreibung | Datei |
+|----------|-------------|-------|
+| **JSON-Dump** | `/data/videos.json` mit kind 34236+34235, stripVideo() | `scripts/generate-site-data.js` |
+| **Prerender** | `/prerender/video-naddr1xxx.html` mit og:video, twitter:player, JSON-LD VideoObject | `scripts/prerender-static.js` |
+| **Hybrid-Hook** | `/data/videos.json` sofort + Relay-Live im Hintergrund (wie useNotes) | `src/hooks/useVideos.ts` |
+| **SW-Cache** | `/data/videos.json` automatisch in staleWhileRevalidate | `public/sw.js` (kein Change) |
+
+**generate-site-data.js:**
+- kind 34236+34235 abfragen
+- `stripVideo()`: relevante Tags behalten (imeta, image, duration, title, t, r)
+- content auf 300 Zeichen (Foster-Sätze)
+- `videos.json` schreiben, index.json: videos-Zähler
+
+**prerender-static.js:**
+- `renderVideoHtml()`: og:type=video.other, og:video, twitter:player, JSON-LD VideoObject
+- Dateiname: `video-naddr1xxx.html`
+- main(): kind 34236+34235 abfragen + rendern
+
+**useVideos.ts (Hybrid-Hook):**
+- Schritt 1: `/data/videos.json` + `/data/index.json` (cronTimestamp)
+- Schritt 2: Relay-Live für neue Videos seit letztem Cron-Lauf
+- Merge + Deduplizierung + Sortierung (wie useNotes/usePreloadedData)
+
+### Videos Header Gradient (6875397)
+
+Header identisch zu `/bilder` und `/notes`:
+```
+bg-gradient-to-br from-primary/30 via-accent/20 to-background
++ bg-gradient-to-b from-transparent to-background
++ gradient-text für Titel + Film-Icon

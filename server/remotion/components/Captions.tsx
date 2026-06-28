@@ -379,7 +379,7 @@ export const PerSlideCaption: React.FC<PerSlideCaptionProps> = ({
           textAlign: 'center',
           lineHeight: 1.4,
           // Pill: leicht abgedunkelter Hintergrund, weiche Kanten
-          background: 'rgba(0,0,0,0.28)',
+          background: 'rgba(0,0,0,0.18)',
           backdropFilter: 'blur(4px)',
           borderRadius: '12px',
           padding: '0.35em 0.8em',
