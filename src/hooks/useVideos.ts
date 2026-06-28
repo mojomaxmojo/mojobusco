@@ -27,6 +27,8 @@ export interface VideoItem {
   hashtags: string[]
   createdAt: number      // Unix timestamp
   isShort: boolean       // kind 34236 = Short/Reels, kind 34235 = Normal
+  pubkey: string         // Autor-Pubkey für isAuthor-Check
+  event: any             // Originales Nostr-Event für Bearbeiten/Löschen
 }
 
 export function parseVideoEvent(e: any): VideoItem | null {
@@ -84,6 +86,8 @@ export function parseVideoEvent(e: any): VideoItem | null {
     hashtags,
     createdAt: e.created_at || 0,
     isShort: e.kind === 34236,
+    pubkey: e.pubkey || '',
+    event: e,
   }
 }
 

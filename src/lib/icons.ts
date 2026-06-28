@@ -40,7 +40,7 @@ export { MapPin, Flag, Calculator, Layers } from 'lucide-react';
 // MEDIA ICONS
 // ============================================================================
 
-export { Camera, Images, Image as ImageIcon, Video, Music, File, Eye, Loader2 } from 'lucide-react';
+export { Camera, Images, Image as ImageIcon, Video, Film, Music, File, Eye, Loader2 } from 'lucide-react';
 
 // ============================================================================
 // UI ICONS
