@@ -462,7 +462,7 @@ export function TikTokPromotion() {
         title: '🔍 Bilder werden analysiert...',
         description: `${articleImages.length} Bilder · Vision-KI`,
       })
-      const visionRes = await fetch('/api/tiktok/analyze-images', {
+      const visionRes = await fetch(`${getApiBaseUrl()}/api/tiktok/analyze-images`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -494,7 +494,7 @@ export function TikTokPromotion() {
         .join('\n\n---\n\n')
         .substring(0, 2000) || ''
 
-      const res = await fetch('/api/tiktok/generate-text', {
+      const res = await fetch(`${getApiBaseUrl()}/api/tiktok/generate-text`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
