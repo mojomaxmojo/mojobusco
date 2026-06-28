@@ -723,6 +723,7 @@ export async function renderMojoBusVideo(params) {
     aspectRatio = '16:9',
     colorGrade,
     captions = [], captionStyle = 'full-line',
+    platform = 'tiktok',             // 'tiktok' | 'reels' | 'youtube' → Caption safe zone
     websiteUrl = 'mojobus.co',
     handle = '@mojobus',
     accentColor = '#F59E0B',
@@ -929,7 +930,7 @@ export async function renderMojoBusVideo(params) {
       voiceoverVolume,                      // ← Lautstärke 0-1
       ambientUrl: httpAmbientUrl,           // ← Lokale Atmo-Spur!
       secondsPerImage, aspectRatio, colorGrade,
-      captions, captionStyle, websiteUrl, handle, accentColor, motionBlurStrength,
+      captions, captionStyle, platform, websiteUrl, handle, accentColor, motionBlurStrength,
       // ── Kapitel-Marker ────────────────────────────────────────────
       hookCaption: params.hookCaption || '', // ← Hook-Caption für Titelkarte
       ctaText: params.ctaText || '',        // ← CTA-Text für Endkarte

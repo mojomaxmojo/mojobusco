@@ -61,6 +61,8 @@ export interface MojoBusVideoProps {
   colorGrade?: ColorGrade;
   captions?: string[];
   captionStyle?: 'off' | 'tiktok' | 'chunked' | 'full-line' | 'minimal';
+  /** Ziel-Plattform – steuert Caption-Position (safe zone) */
+  platform?: 'tiktok' | 'reels' | 'youtube';
   websiteUrl?: string;
   handle?: string;
   accentColor?: string;
@@ -176,6 +178,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
   colorGrade,
   captions = [],
   captionStyle = 'full-line',
+  platform = 'tiktok',
   websiteUrl = 'mojobus.co',
   handle = '@mojobus',
   accentColor = '#F59E0B',
@@ -431,6 +434,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
           slidesFrames={slideDefs.map(d => d.frames)}
           style={captionStyle as 'tiktok' | 'chunked' | 'full-line'}
           accentColor={accentColor}
+          platform={platform}
         />
       )}
 

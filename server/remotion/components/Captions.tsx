@@ -289,7 +289,21 @@ interface PerSlideCaptionProps {
   accentColor?: string;
   /** Slide-Index der ausgeblendet werden soll (z.B. Routen-Karte) */
   excludeSlideIndex?: number;
+  /**
+   * Ziel-Plattform – bestimmt die Caption-Position (bottom %)
+   *   tiktok:  20% (384px frei, UI endet bei ~350px)
+   *   reels:   25% (480px frei, UI endet bei ~450px nach Update 2025)
+   *   youtube: 18% (346px frei, UI endet bei ~300px)
+   */
+  platform?: 'tiktok' | 'reels' | 'youtube';
 }
+
+// Plattform → bottom %-Wert (Abstand vom unteren Rand)
+const CAPTION_BOTTOM: Record<string, string> = {
+  tiktok:  '20%',
+  reels:   '25%',
+  youtube: '18%',
+};
 
 export const PerSlideCaption: React.FC<PerSlideCaptionProps> = ({
   captions,
@@ -298,6 +312,7 @@ export const PerSlideCaption: React.FC<PerSlideCaptionProps> = ({
   style = 'chunked',
   accentColor = '#F59E0B',
   excludeSlideIndex,
+  platform = 'tiktok',
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -344,28 +359,30 @@ export const PerSlideCaption: React.FC<PerSlideCaptionProps> = ({
     : words.length;
   const visibleWords = words.slice(chunkStart, chunkEnd);
 
+  const bottomPos = CAPTION_BOTTOM[platform] || CAPTION_BOTTOM.tiktok;
+
   return (
     <AbsoluteFill style={{ pointerEvents: 'none' }}>
-      {/* Gradient unten */}
-      <AbsoluteFill
-        style={{
-          background: 'linear-gradient(0deg, rgba(0,0,0,0.50) 0%, transparent 22%)',
-        }}
-      />
+      {/* Pill-Hintergrund + Caption-Text */}
       <div
         style={{
           position: 'absolute',
-          bottom: '35%',
-          left: '5%',
-          right: '5%',
+          bottom: bottomPos,
+          left: '6%',
+          right: '6%',
           display: 'flex',
           flexWrap: 'wrap',
           justifyContent: 'center',
+          alignItems: 'center',
           gap: '0.15em',
           fontSize: 'clamp(2rem, 7.5vw, 3.5rem)',
-          textShadow: '0 2px 10px rgba(0,0,0,0.9)',
           textAlign: 'center',
-          lineHeight: 1.3,
+          lineHeight: 1.4,
+          // Pill: leicht abgedunkelter Hintergrund, weiche Kanten
+          background: 'rgba(0,0,0,0.28)',
+          backdropFilter: 'blur(4px)',
+          borderRadius: '12px',
+          padding: '0.35em 0.8em',
         }}
       >
         {visibleWords.map((word, i) => {
@@ -379,10 +396,10 @@ export const PerSlideCaption: React.FC<PerSlideCaptionProps> = ({
                 color: isActive ? accentColor : '#FFFFFF',
                 fontWeight: isActive ? 900 : (style === 'full-line' ? 700 : 500),
                 textShadow: isActive
-                  ? `0 0 24px ${accentColor}66`
-                  : '0 2px 8px rgba(0,0,0,0.9)',
-                transform: isActive ? 'scale(1.08)' : 'scale(1)',
-                opacity: isChunked && !isActive && i >= windowSize - 1 ? 0.6 : 1,
+                  ? `0 0 20px ${accentColor}88`
+                  : '0 1px 4px rgba(0,0,0,0.7)',
+                transform: isActive ? 'scale(1.06)' : 'scale(1)',
+                opacity: isChunked && !isActive && i >= windowSize - 1 ? 0.65 : 1,
               }}
             >
               {word}{' '}

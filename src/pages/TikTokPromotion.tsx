@@ -615,6 +615,7 @@ export function TikTokPromotion() {
       aspectRatio: '9:16',
       captions,
       captionStyle,                    // 'full-line' = ganzer Satz auf einmal | 'chunked' = Karaoke 2-5 Wörter
+      platform,                        // 'tiktok' | 'reels' | 'youtube' → Caption-Position (safe zone)
       websiteUrl: 'mojobus.co',
       handle: '@mojobus',
       noMusic,                     // true = kein Musik-Track
