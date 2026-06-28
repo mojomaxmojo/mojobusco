@@ -1022,21 +1022,38 @@ export function TikTokPromotion() {
       return
     }
 
-    // Absolute URL für Capacitor-App nötig
+    // Absolute URL – nötig für Capacitor-App (file:// Kontext)
+    // Im Desktop-Browser: getApiBaseUrl() = '' → relative URL funktioniert
     const url = `${getApiBaseUrl()}${track.url}`
-    const audio = new Audio(url)
-    audioRef.current = audio
+    const audio = new Audio()
+    audio.crossOrigin = 'anonymous'
     audio.volume = 0.6
-    audio.play().then(() => {
-      setPlayingPreview(true)
-    }).catch(() => {
+    audioRef.current = audio
+
+    audio.oncanplay = () => {
+      audio.play().then(() => {
+        setPlayingPreview(true)
+      }).catch((err) => {
+        console.warn('[MusicPreview] play() fehlgeschlagen:', err)
+        setPlayingPreview(false)
+        audioRef.current = null
+      })
+    }
+
+    audio.onerror = (err) => {
+      console.warn('[MusicPreview] Audio-Ladefehler:', err)
       setPlayingPreview(false)
-    })
-    // Automatisch stoppen wenn Track zu Ende
+      audioRef.current = null
+    }
+
     audio.onended = () => {
       setPlayingPreview(false)
       audioRef.current = null
     }
+
+    // Jetzt erst src setzen → löst Load aus
+    audio.src = url
+    audio.load()
   }
 
   // Preview stoppen wenn anderer Track gewählt wird
