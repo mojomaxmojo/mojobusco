@@ -1026,7 +1026,8 @@ export function TikTokPromotion() {
     // Im Desktop-Browser: getApiBaseUrl() = '' → relative URL funktioniert
     const url = `${getApiBaseUrl()}${track.url}`
     const audio = new Audio()
-    audio.crossOrigin = 'anonymous'
+    // KEIN crossOrigin = 'anonymous' – verursacht NS_BINDING_ABORTED
+    // weil der Server keinen Access-Control-Allow-Headers: Range schickt
     audio.volume = 0.6
     audioRef.current = audio
 
