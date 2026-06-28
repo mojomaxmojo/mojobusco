@@ -8,11 +8,28 @@
  *
  * kind 34236 = Addressable Short Video Event (NIP-71, 9:16)
  * kind 34235 = Addressable Normal Video Event (NIP-71, 16:9)
+ *
+ * Capacitor-Fix: relative URLs (/data/...) funktionieren in der nativen App nicht
+ * (file:///android_asset/ Kontext). Daher absolute URLs für Capacitor-Native.
  */
 
 import { useState, useEffect, useMemo } from 'react'
 import { useNostr } from '@/hooks/useNostr'
 import { NOSTR_CONFIG } from '@/config/nostr'
+
+// Absolute Basis-URL für API/Daten – nötig in Capacitor WebView (file:// Kontext)
+function getDataBaseUrl(): string {
+  try {
+    const cap = (window as any).Capacitor
+    const isNative =
+      cap?.isNative === true ||
+      (window as any).__Capacitor?.isNative === true ||
+      cap?.getPlatform?.() === 'android' ||
+      cap?.getPlatform?.() === 'ios'
+    if (isNative) return 'https://mojobus.co'
+  } catch { /* ignore */ }
+  return '' // Browser: relative URLs funktionieren
+}
 
 export interface VideoItem {
   id: string
@@ -99,13 +116,15 @@ export function useVideos() {
   const [cronTimestamp, setCronTimestamp] = useState<number | null>(null)
 
   // Schritt 1: /data/videos.json sofort laden (SW-Cache → 0ms beim Wiederholungsbesuch)
+  // Capacitor-Fix: absolute URL, da relative Pfade in file:// Kontext nicht funktionieren
   useEffect(() => {
     let cancelled = false
+    const base = getDataBaseUrl()
     const load = async () => {
       try {
         const [indexRes, videosRes] = await Promise.all([
-          fetch('/data/index.json'),
-          fetch('/data/videos.json'),
+          fetch(`${base}/data/index.json`),
+          fetch(`${base}/data/videos.json`),
         ])
         if (cancelled) return
         if (indexRes.ok) {

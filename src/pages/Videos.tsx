@@ -170,24 +170,46 @@ function VideoEditDialog({ video, open, onClose }: EditDialogProps) {
 
 // ── VideoCard ─────────────────────────────────────────────────────────────────
 
+// Erkennt Capacitor-Native (Android/iOS WebView)
+function isCapacitorNative(): boolean {
+  try {
+    const cap = (window as any).Capacitor
+    return (
+      cap?.isNative === true ||
+      (window as any).__Capacitor?.isNative === true ||
+      cap?.getPlatform?.() === 'android' ||
+      cap?.getPlatform?.() === 'ios'
+    )
+  } catch {
+    return false
+  }
+}
+
 function VideoCard({ video, isAuthor }: { video: VideoItem; isAuthor: boolean }) {
   const [playing, setPlaying] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const [inView, setInView] = useState(false)
+  // Capacitor-Fix: In der nativen App (WebView) IntersectionObserver oft unzuverlässig.
+  // Alle Videos direkt als "im Viewport" behandeln → kein schwarzes Bild.
+  const [inView, setInView] = useState(() => isCapacitorNative())
   const { mutateAsync: deleteEvent } = useNostrDelete()
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
   // IntersectionObserver – Video nur laden wenn im Viewport
+  // Capacitor: wird übersprungen, da inView bereits true ist
   useEffect(() => {
+    if (isCapacitorNative()) return // In App nicht nötig
     const el = containerRef.current
     if (!el) return
     const observer = new IntersectionObserver(
       ([entry]) => setInView(entry.isIntersecting),
-      { threshold: 0.1 }
+      {
+        threshold: 0,           // Schon bei 1px sichtbar triggern
+        rootMargin: '200px',    // 200px vor Eintritt vorladen
+      }
     )
     observer.observe(el)
     return () => observer.disconnect()
