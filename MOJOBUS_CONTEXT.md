@@ -45,6 +45,7 @@ MojoBus ist eine Nostr-basierte Vanlife/Travel-Plattform zum Teilen von Reiseerl
 | `src/pages/Videos.tsx` | **NEU** Video-Feed-Seite – kind 34236 NIP-71, Lazy Loading, Single-Column |
 | `src/hooks/useVideos.ts` | **NEU** Hook zum Laden von kind 34236+34235 Video-Events |
 | `server/remotion/components/KenBurnsImage.tsx` | KenBurns mit noise/breathing/focus-in/handheld + GammaFade |
+| `src/pages/TikTokPromotion.tsx` | TikTok-Video-Generator – Remotion-Render + KI-Text + Capacitor-kompatibel via `getApiBaseUrl()` |
 
 ## ⚙️ Config-Verzeichnis (`src/config/`)
 
@@ -973,3 +974,117 @@ Header identisch zu `/bilder` und `/notes`:
 bg-gradient-to-br from-primary/30 via-accent/20 to-background
 + bg-gradient-to-b from-transparent to-background
 + gradient-text für Titel + Film-Icon
+
+---
+
+## 📋 Changelog – 28.06.2026 (Capacitor-App-Kompatibilität)
+
+### Problem: Alle Seiten in der APK (Android Capacitor WebView) funktionierten nicht
+
+**Root Cause:** Die Capacitor-App lädt im `file:///android_asset/` Kontext. Relative URLs wie `/api/...` und `/data/...` werden zu `file:///api/...` aufgelöst → existieren nicht → 404/Fehler.
+
+Betroffen waren:
+- `/videos` → keine Daten (kein `/data/videos.json` im file:// Kontext)
+- `/promotion/tiktok` → „Remotion nicht verfügbar", „is not valid JSON"
+- Musik-Vorschau → Tod-Stumm
+
+### Fix 1: Capacitor-Erkennung + absolute URLs (`getApiBaseUrl()` / `getDataBaseUrl()`)
+
+**Strategie:** Einmal prüfen ob `Capacitor.isNative === true`, dann absolute URLs `https://mojobus.co/api/...` verwenden statt relativer.
+
+```typescript
+function getApiBaseUrl(): string {
+  try {
+    const cap = (window as any).Capacitor
+    const isNative =
+      cap?.isNative === true ||
+      (window as any).__Capacitor?.isNative === true ||
+      cap?.getPlatform?.() === 'android' ||
+      cap?.getPlatform?.() === 'ios'
+    if (isNative) return 'https://mojobus.co'
+  } catch { /* ignore */ }
+  return '' // Browser → relative URLs
+}
+```
+
+| Datei | Helper | Verwendung |
+|-------|--------|-----------|
+| `src/hooks/useVideos.ts` | `getDataBaseUrl()` | `fetch(base/data/index.json)`, `fetch(base/data/videos.json)` |
+| `src/pages/TikTokPromotion.tsx` | `getApiBaseUrl()` | Alle 8 fetch + 2 window.open API-Calls |
+
+**Alle korrigierten API-Calls in TikTokPromotion.tsx:**
+
+| # | Endpoint | Methode |
+|---|----------|--------|
+| 1 | `/api/render-remotion/check` | GET |
+| 2 | `/api/music/list` | GET |
+| 3 | `/api/tiktok/analyze-images` | POST |
+| 4 | `/api/tiktok/generate-text` | POST |
+| 5 | `/api/render-remotion` | POST |
+| 6 | `/api/render-remotion/status/:jobId` | GET (Polling) |
+| 7 | `/api/render-remotion/download/:jobId` | GET (Blob) |
+| 8 | `/api/render-remotion/history` | GET |
+| 9 | `/api/render-remotion/download/:jobId` | window.open (×2) |
+
+### Fix 2: Videos in der App sichtbar
+
+**useVideos.ts:**
+- `fetch('/data/videos.json')` → `fetch('${getDataBaseUrl()}/data/videos.json')`
+
+**Videos.tsx VideoCard:**
+- `inView` startet mit `true` wenn `isCapacitorNative()` (IntersectionObserver in WebView unzuverlässig)
+- Browser: `threshold: 0` + `rootMargin: 200px` (früheres Vorladen)
+
+### Fix 3: IntersectionObserver-Verbesserung (Desktop)
+
+- `threshold: 0.1` → `threshold: 0` (triggert bei 1px Sichtbarkeit)
+- `rootMargin: '200px'` (200px vor Eintritt vorladen)
+
+### Fix 4: Musik-Vorschau Play-Button
+
+**Neue UI:** Mini ▶/■ Button direkt neben dem Musik-Select
+
+```
+🎵 Musik
+[ Alexguz Road Trip 279005  ▼ ]  [ ▶ ]
+  22 Tracks auf dem Server  ♪ läuft…
+```
+
+**Technik:**
+- `useRef<HTMLAudioElement>` – kein sichtbares `<audio>` Element
+- `audio.oncanplay` → `play()` (wartet bis geladen)
+- `audio.onerror` → sauberer Fallback `setPlayingPreview(false)`
+- `audio.onended` → Button springt zurück auf ▶
+- `handleTrackChange()` stoppt laufende Vorschau bei Track-Wechsel
+- Absolute URL: `base/server/music/track.filename` (statische Dateien via Nginx, **nicht** /api/music/)
+
+**Key Fix:** MP3s liegen unter `/server/music/` als statische Nginx-Dateien, nicht über den `/api/music/` API-Endpunkt erreichbar (gab 404). Die URL wird daher als `base/server/music/filename.mp3` aufgebaut, nicht aus `track.url`.
+
+### Betroffene Dateien dieser Session
+
+| Datei | Änderung |
+|-------|----------|
+| `src/hooks/useVideos.ts` | `getDataBaseUrl()` + absolute URLs + cronTimestamp Fallback |
+| `src/pages/Videos.tsx` | `isCapacitorNative()`, `inView` initial true, threshold 0 + rootMargin 200px |
+| `src/pages/TikTokPromotion.tsx` | `getApiBaseUrl()` + 10 API-Calls auf absolut + Musik-Play-Button |
+
+### Wichtiges für zukünftige Feature-Entwicklung
+
+- **Jede neue fetch/API-URL in TikTokPromotion.tsx** muss `${getApiBaseUrl()}` prefix haben
+- **Jede neue Daten-URL in useVideos.ts** muss `${getDataBaseUrl()}` prefix haben
+- **Musik-URLs**: `/server/music/filename.mp3` (statisch via Nginx), nicht `/api/music/filename`
+- **Capacitor Test** nach jedem Build: immer APK bauen und auf Android testen
+- Bei neuen Seiten mit API-Calls: `isCapacitorNative()` prüfen und absolute URLs bereitstellen
+
+### Commits dieser Session
+
+| Hash | Beschreibung |
+|------|-------------|
+| `c190141` | Videos in Capacitor-App sichtbar machen |
+| `03ae76f` | TikTokPromotion API-Calls repariert (8 Stellen) |
+| `1f35509` | 2 vergessene relative API-URLs (analyze-images, generate-text) |
+| `2876670` | generateTikTokText base-Variable konsistent |
+| `663690c` | Musik-Vorschau Play-Button |
+| `aa82fcf` | Audio-Loading repariert (oncanplay statt sofort play()) |
+| `7b291b5` | crossOrigin entfernt (NS_BINDING_ABORTED) |
+| `2b3a65c` | Musik-URL auf /server/music/ korrigiert |
