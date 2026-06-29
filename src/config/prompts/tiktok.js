@@ -302,16 +302,24 @@ export function generateTikTokUserPrompt({
   // → Reihenfolge MUSS eingehalten werden: bodyLines[N-1] = Bild N
   const bildOrientierung = contextSource.length > 0
     ? '\n' +
-      'BILDER IN REIHENFOLGE – von Vision-KI analysiert:\n' +
-      '(Diese Beschreibungen sind FAKTEN – eine KI hat die Bilder gesehen)\n\n' +
+      'BILDER IN REIHENFOLGE (Vision-KI hat diese Bilder analysiert):\n\n' +
       contextSource.map((ctx, i) =>
         '  Bild ' + (i + 1) + ': ' + (ctx && ctx.trim() ? ctx.trim() : '(kein Kontext)')
       ).join('\n') +
       '\n\n' +
-      'PFLICHT: bodyLines[0] = Satz ZU Bild 1, bodyLines[1] = Satz ZU Bild 2, usw.\n' +
-      'Die Reihenfolge ist ABSOLUT. Nicht interpretieren, nicht tauschen.\n' +
-      'Schreibe aus dem INNENLEBEN: was denkt/fuehlt/riecht Mojo oder Susanne bei diesem Bild?\n' +
-      'NICHT: beschreibe was auf dem Bild zu sehen ist (das weiss der Zuschauer selbst).'
+      'HYBRID-REGEL fuer bodyLines – ZWINGEND:\n' +
+      'Jeder Satz entsteht aus ZWEI Quellen gleichzeitig:\n' +
+      '  1. ARTIKEL-INHALT: Was ist das Thema, die Stimmung, der Moment im Text?\n' +
+      '  2. BILD-KONTEXT: Was zeigt dieses spezifische Bild (laut Vision-KI oben)?\n\n' +
+      'Der Satz verbindet beides – er klingt nach Foster, aber er passt zum Bild.\n\n' +
+      'BEISPIEL:\n' +
+      '  Bild zeigt: "Sonnenuntergang am Atlantik, Silhouette des Busses"\n' +
+      '  Artikel handelt von: Portugal-Reise, Entschleunigung\n' +
+      '  SCHLECHT: "Das Leben ist schoen." (kein Bezug zum Bild)\n' +
+      '  SCHLECHT: "Die Sonne geht unter hinter dem Bus." (reine Bildbeschreibung)\n' +
+      '  GUT: "Der Atlantik haelt uns fest. Noch eine Nacht." (Foster-Stil + Bild-Stimmung)\n\n' +
+      'PFLICHT: bodyLines[0] zu Bild 1, bodyLines[1] zu Bild 2, usw.\n' +
+      'Reihenfolge ist ABSOLUT – nicht tauschen, nicht weglassen.'
     : ''
 
   return 'Erstelle ' + plat.label + '-Texte fuer diesen Vanlife-Artikel im Foster-Huntington-Stil.\n\n' +
