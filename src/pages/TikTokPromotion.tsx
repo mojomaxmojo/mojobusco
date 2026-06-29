@@ -470,7 +470,11 @@ export function TikTokPromotion() {
   // den besten Bild-Index als Hook-Empfehlung zurück.
   // Keywords zweisprachig (DE + EN) – Vision-KI antwortet oft auf Englisch.
   const scoreImageForHook = (descriptions: string[]): HookSuggestion | null => {
-    if (!descriptions || descriptions.length < 2) return null
+    console.log('[HookScore] Eingabe:', descriptions?.length, 'Beschreibungen:', descriptions)
+    if (!descriptions || descriptions.length < 2) {
+      console.log('[HookScore] Abbruch: weniger als 2 Beschreibungen')
+      return null
+    }
 
     const rules: { keywords: string[]; points: number; label: string }[] = [
       {
@@ -604,9 +608,9 @@ export function TikTokPromotion() {
     }
 
     // ── Schritt 1b: Hook-Score berechnen ═════════════════════════════
-    // Kein Extra-API-Call – wertet visionDescriptions[] aus.
     // visionDescriptions im Ref speichern damit Banner-Buttons sie noch haben
     visionDescriptionsRef.current = visionDescriptions
+    console.log('[HookScore] visionDescriptions nach Analyse:', visionDescriptions)
 
     const suggestion = scoreImageForHook(visionDescriptions)
     if (suggestion) {
@@ -1702,11 +1706,14 @@ export function TikTokPromotion() {
 
                 {/* Hook */}
                 <div>
-                  <Label className="text-xs sm:text-sm flex items-center gap-1">
-                    <span className="text-primary font-bold">0-3s</span> Hook
+                  {/* Label-Zeile: "0-3s Hook" + Score-Badge + Zeichenzähler */}
+                  <div className="flex items-center gap-1 mb-1">
+                    <Label className="text-xs sm:text-sm flex items-center gap-1">
+                      <span className="text-primary font-bold">0-3s</span> Hook
+                    </Label>
                     {/* Hook-Score Badge (aus KI-Response) */}
                     {kiHookScore && (
-                      <span className={`ml-auto flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                      <span className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${
                         kiHookScore.score >= 75
                           ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
                           : kiHookScore.score >= 50
@@ -1719,18 +1726,18 @@ export function TikTokPromotion() {
                         {kiHookScore.score} · {kiHookScore.type}
                       </span>
                     )}
-                    {/* Zeichenzähler */}
-                    <span className={`${kiHookScore ? '' : 'ml-auto'} text-[10px] font-normal ${
+                    {/* Zeichenzähler – außerhalb Label damit kein Farb-Override */}
+                    <span className={`ml-auto text-[10px] font-normal ${
                       hookText.length > 70 ? 'text-red-500' : hookText.length > 50 ? 'text-amber-500' : 'text-muted-foreground'
                     }`}>
                       {hookText.length}/80
                     </span>
-                  </Label>
+                  </div>
                   <Input
                     value={hookText}
                     onChange={e => setHookText(e.target.value)}
                     placeholder='"Unser Büro heute 🌊"'
-                    className="text-sm mt-1 font-semibold"
+                    className="text-sm font-semibold"
                     maxLength={100}
                   />
                   {/* Hook-Score Begründung */}
