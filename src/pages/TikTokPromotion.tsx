@@ -228,25 +228,6 @@ export function TikTokPromotion() {
   // ── KI-MODELL ═════════════════════════════════════════════
   const [aiModel, setAiModel] = useState<string>('claude')
 
-  // ── HOOK-SCORE / BILD-EMPFEHLUNG ══════════════════════════
-  interface HookSuggestion {
-    index: number    // empfohlener Bild-Index in sortedImages
-    score: number    // 0-100
-    reason: string   // "Leon · Sonnenuntergang erkannt"
-  }
-  const [hookSuggestion, setHookSuggestion] = useState<HookSuggestion | null>(null)
-  const [waitingForHookDecision, setWaitingForHookDecision] = useState(false)
-  // URL des aktuell gewählten Hook-Bildes (nicht Index – Indizes ändern sich beim Sortieren)
-  const [hookImageUrl, setHookImageUrl] = useState<string | null>(null)
-
-  // ── KI HOOK-SCORE (aus KI-Response, Änderung 3b) ══════════
-  interface KiHookScore {
-    score: number    // 0-100
-    type: string     // "ZAHLEN-HOOK" etc.
-    reason: string   // kurze Begründung
-  }
-  const [kiHookScore, setKiHookScore] = useState<KiHookScore | null>(null)
-
   // ── DRAG&DROP SORTIERUNG ═════════════════════════════════
   const [sortedImages, setSortedImages] = useState<string[]>([])
 
@@ -326,10 +307,6 @@ export function TikTokPromotion() {
   const [selectedTrack, setSelectedTrack] = useState('__random__')
   const [playingPreview, setPlayingPreview] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
-  // Vision-Beschreibungen zwischenspeichern damit sie beim Banner-Klick noch verfügbar sind
-  const visionDescriptionsRef = useRef<string[]>([])
-  // Neue Bild-Reihenfolge nach Thumbnail-Klick – synchron berechnet, kein React-State-Delay
-  const orderedImageUrlsRef = useRef<string[]>([])
 
   // ── ROUTEMAP ═════════════════════════════════════════════
   const [showRouteMap, setShowRouteMap] = useState(false)
@@ -343,7 +320,6 @@ export function TikTokPromotion() {
   const [renderProgress, setRenderProgress] = useState(0)
   const [downloadedMp4, setDownloadedMp4] = useState(false)
   const pollRef = useRef<number | null>(null)
-  const hookBannerRef = useRef<HTMLDivElement | null>(null)
 
   // ── REMOTION STATUS ══════════════════════════════════════
   const [remotionAvailable, setRemotionAvailable] = useState<boolean | null>(null)
@@ -469,117 +445,6 @@ export function TikTokPromotion() {
       return parts.join(' · ')
     })
 
-  // ── URL-BASIERTER SCHNELL-SCORE (ohne Vision-API) ════════
-  // Nur für den ersten Vorschlag im Banner – bevor Vision läuft.
-  const scoreImageByUrl = (urls: string[]): HookSuggestion | null => {
-    if (!urls || urls.length < 2) return null
-    // Keine echten Merkmale erkennbar ohne Vision → kein Vorschlag
-    return null
-  }
-
-  // ── HOOK-SCORE ════════════════════════════════════════════
-  // Wertet Vision-Beschreibungen aus (kein API-Call) und gibt
-  // den besten Bild-Index als Hook-Empfehlung zurück.
-  // Keywords zweisprachig (DE + EN) – Vision-KI antwortet oft auf Englisch.
-  const scoreImageForHook = (descriptions: string[]): HookSuggestion | null => {
-    console.log('[HookScore] Eingabe:', descriptions?.length, 'Beschreibungen:', descriptions)
-    if (!descriptions || descriptions.length < 2) {
-      console.log('[HookScore] Abbruch: weniger als 2 Beschreibungen')
-      return null
-    }
-
-    const rules: { keywords: string[]; points: number; label: string }[] = [
-      {
-        keywords: ['leon', 'soul leon', 'dog', 'hund', 'ridgeback'],
-        points: 30, label: 'Leon'
-      },
-      {
-        keywords: [
-          'gesicht', 'auge', 'augen', 'blick', 'person', 'mensch', 'frau', 'mann', 'kind',
-          'face', 'eye', 'eyes', 'look', 'woman', 'man', 'child', 'people', 'portrait',
-        ],
-        points: 25, label: 'Gesicht/Person'
-      },
-      {
-        keywords: [
-          'sonnenuntergang', 'golden', 'gegenlicht', 'sonne', 'dämmerung', 'goldene stunde',
-          'sunset', 'sunrise', 'golden hour', 'backlight', 'silhouette', 'sun', 'glow', 'warm light',
-        ],
-        points: 20, label: 'Licht/Sonnenuntergang'
-      },
-      {
-        keywords: [
-          'bewegung', 'welle', 'wellen', 'sturm', 'fährt', 'rennt', 'laufen', 'sprung',
-          'wave', 'waves', 'storm', 'motion', 'running', 'jump', 'action', 'dramatic',
-        ],
-        points: 15, label: 'Bewegung'
-      },
-      {
-        keywords: [
-          'meer', 'ozean', 'küste', 'strand', 'wasser', 'see',
-          'ocean', 'sea', 'beach', 'coast', 'water', 'lake', 'atlantic',
-        ],
-        points: 10, label: 'Meer/Wasser'
-      },
-      {
-        keywords: [
-          'bus', 'mojobus', 'fahrzeug', 'oldtimer',
-          'vehicle', 'rv', 'camper', 'van',
-        ],
-        points: 8, label: 'Bus/Fahrzeug'
-      },
-    ]
-
-    const scores: number[] = []
-    const reasons: string[] = []
-
-    descriptions.forEach((desc) => {
-      if (!desc || !desc.trim()) {
-        scores.push(0)
-        reasons.push('')
-        return
-      }
-      const lower = desc.toLowerCase()
-      let score = 0
-      const matched: string[] = []
-      for (const rule of rules) {
-        if (rule.keywords.some(kw => lower.includes(kw))) {
-          score += rule.points
-          matched.push(rule.label)
-        }
-      }
-      scores.push(score)
-      reasons.push(matched.slice(0, 3).join(' · ') || '')
-    })
-
-    console.log('[HookScore] Scores:', scores.map((s, i) => `Bild${i + 1}:${s}`).join(' | '))
-
-    // Bestes Bild = höchster Score
-    let bestIndex = 0
-    let bestScore = scores[0]
-    for (let i = 1; i < scores.length; i++) {
-      if (scores[i] > bestScore) {
-        bestScore = scores[i]
-        bestIndex = i
-      }
-    }
-
-    // Nur vorschlagen wenn:
-    // - bestes Bild ist NICHT bereits an Position 0
-    // - UND bestes Bild hat höheren Score als Bild[0]
-    //   ODER Bild[0] hat Score 0 (d.h. kein erkanntes Merkmal → beliebig)
-    const score0 = scores[0]
-    if (bestIndex === 0) return null
-    if (bestScore === 0 && score0 === 0) return null  // alle leer → kein Vorschlag
-    if (bestScore <= score0) return null               // Bild[0] ist schon optimal
-
-    return {
-      index: bestIndex,
-      score: Math.min(100, bestScore),
-      reason: reasons[bestIndex] || 'Visuell stärker als Bild 1',
-    }
-  }
-
   const generateTikTokText = async () => {
     if (!articleTitle.trim()) {
       toast({
@@ -590,69 +455,23 @@ export function TikTokPromotion() {
       return
     }
 
-    // ── SCHRITT 1: Hook-Bild Auswahl anzeigen ════════════════════════
-    // ZUERST User Hook wählen lassen – DANN Vision-Analyse mit richtiger Reihenfolge.
-    // orderedImageUrlsRef mit aktueller Reihenfolge initialisieren
-    orderedImageUrlsRef.current = [...articleImages]
-    visionDescriptionsRef.current = [] // wird erst nach Hook-Wahl befüllt
-
-    if (articleImages.length >= 2) {
-      // Score ohne Vision – nur auf Basis von Dateinamen/URL (schnell, kein API-Call)
-      const urlBasedSuggestion = scoreImageByUrl(articleImages)
-      setHookSuggestion(urlBasedSuggestion)
-      setWaitingForHookDecision(true)
-      return  // ← warten auf User-Klick "KI starten"
-    }
-
-    // Nur 1 Bild → direkt weiter
-    await runKiGeneration([], articleImages)
-  }
-
-  // ── KI-GENERIERUNG ════════════════════════════════════════
-  // imageUrls = finale Bild-Reihenfolge (synchron aus orderedImageUrlsRef).
-  // Vision-Analyse läuft HIER mit dieser Reihenfolge → Kontexte passen zu Bildern.
-  const runKiGeneration = async (
-    _unused: string[],
-    imageUrls?: string[],
-  ) => {
-    const base = getApiBaseUrl()
-    // Finale Reihenfolge: explizit übergeben > Ref > sortedImages
-    const effectiveImageUrls = imageUrls ?? orderedImageUrlsRef.current
     setGenerating(true)
-    setWaitingForHookDecision(false)
+    const base = getApiBaseUrl()
 
-    // ── Vision-Analyse MIT finaler Reihenfolge ───────────────────────
-    // Beschreibungen[i] beschreibt effectiveImageUrls[i] – immer synchron
-    let visionDescriptions: string[] = effectiveImageUrls.map(() => '')
+    // ── Schritt 1: Vision-Analyse aller Bilder ═══════════════════════
+    // Läuft parallel zur UI – User sieht "KI analysiert Bilder..."
+    let visionDescriptions: string[] = getExistingContexts()
     try {
       toast({
         title: '🔍 Bilder werden analysiert...',
-        description: `${effectiveImageUrls.length} Bilder · Vision-KI`,
-      })
-      const existingCtx = effectiveImageUrls.map(url => {
-        const ownerItem = selectedContent.find(item => item.images.includes(url))
-        if (!ownerItem?.event) return ''
-        const ev = ownerItem.event
-        const parts: string[] = []
-        const imetaTag = ev.tags?.find((t: string[]) =>
-          t[0] === 'imeta' && t.some((v: string) => v.includes(url))
-        )
-        if (imetaTag) {
-          const alt = imetaTag.find((v: string) => v.startsWith('alt '))
-          if (alt) parts.push(alt.replace('alt ', '').trim())
-        }
-        const loc = ev.tags?.find((t: string[]) => t[0] === 'location')?.[1]
-        const country = ev.tags?.find((t: string[]) => t[0] === 'country' || t[0] === 'l')?.[1]
-        if (loc) parts.push(loc)
-        else if (country) parts.push(country)
-        return parts.join(' · ')
+        description: `${articleImages.length} Bilder · Vision-KI`,
       })
       const visionRes = await fetch(`${base}/api/tiktok/analyze-images`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          imageUrls: effectiveImageUrls,    // ← finale Reihenfolge
-          existingContexts: existingCtx,
+          imageUrls: articleImages,
+          existingContexts: visionDescriptions,
         }),
       })
       if (visionRes.ok) {
@@ -662,14 +481,12 @@ export function TikTokPromotion() {
         }
       }
     } catch (vErr) {
-      console.warn('[Vision] fehlgeschlagen, fahre ohne Beschreibungen fort:', vErr)
+      console.warn('[Vision] Analyse fehlgeschlagen, fahre mit Basis-Kontexten fort:', vErr)
     }
 
-    // sortedImages auf finale Reihenfolge setzen (für Render-Payload)
-    setSortedImages(effectiveImageUrls)
-
+    // ── Schritt 2: Text-Generierung mit Vision-Beschreibungen ═════════
     try {
-      // Artikel-Text bereinigen
+      // Artikel-Text bereinigen (Markdown entfernen, Multi-Content als Blöcke)
       const cleanText = selectedContent
         .filter(i => i.content)
         .map((i, idx) => {
@@ -690,10 +507,11 @@ export function TikTokPromotion() {
           text: cleanText,
           template,
           model: aiModel,
-          imageCount: effectiveImageUrls.length,
+          imageCount: articleImages.length,
           voiceoverEnabled,
           platform,
-          // visionDescriptions[i] beschreibt effectiveImageUrls[i] – garantiert
+          // Vision-Beschreibungen pro Bild in sortierter Reihenfolge
+          // Priorität: Vision-API > imeta alt > location > leer
           imageContexts: visionDescriptions,
         }),
       })
@@ -709,17 +527,6 @@ export function TikTokPromotion() {
       setCtaText(data.cta || 'Link in Bio 📌')
       setHashtags((data.hashtags || []).join(' '))
       setThumbnailText(data.thumbnail || '')
-
-      // ── Hook-Score aus KI-Response auslesen (Änderung 3b) ────────────
-      if (data.hookScore !== undefined) {
-        setKiHookScore({
-          score: data.hookScore || 0,
-          type: data.hookType || '',
-          reason: data.hookReason || '',
-        })
-      } else {
-        setKiHookScore(null)
-      }
 
       const platLabel = platform === 'reels' ? 'Reels' : platform === 'youtube' ? 'YouTube' : 'TikTok'
       const voLabel = voiceoverEnabled ? ' · TTS-optimiert' : ''
@@ -738,7 +545,6 @@ export function TikTokPromotion() {
       setCtaText('Link in Bio 📌')
       setHashtags('#vanlife #perpetualtraveler #mojobus')
       setThumbnailText('')
-      setKiHookScore(null)
 
       toast({
         title: 'Fallback – manuelle Eingabe',
@@ -1204,15 +1010,6 @@ export function TikTokPromotion() {
     }
   }, [])
 
-  // Auto-Scroll zum Hook-Banner wenn er erscheint
-  useEffect(() => {
-    if (hookSuggestion && waitingForHookDecision && hookBannerRef.current) {
-      setTimeout(() => {
-        hookBannerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      }, 100)
-    }
-  }, [hookSuggestion, waitingForHookDecision])
-
   // ── MUSIK VORSCHAU ══════════════════════════════════════
   const toggleMusicPreview = () => {
     const track = musicTracks.find(t => t.filename === selectedTrack)
@@ -1490,13 +1287,6 @@ export function TikTokPromotion() {
         {/* ══════ STEP 2: TEMPLATE AUSWÄHLEN ══════ */}
         {step === 2 && (
           <Card className="max-w-3xl">
-            {/* Lade-Banner: Vision-Analyse läuft */}
-            {generating && (
-              <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 border-b text-xs text-primary rounded-t-lg">
-                <Loader2 className="w-3 h-3 animate-spin shrink-0" />
-                <span>Bilder werden analysiert – Hook-Empfehlung wird berechnet...</span>
-              </div>
-            )}
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                 <Wand2 className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -1621,116 +1411,6 @@ export function TikTokPromotion() {
                 </p>
               </div>
 
-              {/* ── Hook-Bild wählen (erscheint nach Vision-Analyse bei ≥2 Bildern) ── */}
-              {waitingForHookDecision && articleImages.length >= 2 && (
-                <div ref={hookBannerRef} className="rounded-xl border-2 border-primary/40 bg-primary/5 p-3 space-y-3">
-
-                  {/* Header */}
-                  <div className="flex items-start gap-2">
-                    <span className="text-lg shrink-0">🎯</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold">Welches Bild soll der Hook sein?</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Sekunde 0–5: großer Titel auf dem Hook-Bild (★).
-                        {hookSuggestion && (
-                          <span className="ml-1 text-amber-600 dark:text-amber-400 font-medium">
-                            KI empfiehlt Bild {hookSuggestion.index + 1}
-                            {' '}(Score {hookSuggestion.score} · {hookSuggestion.reason})
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Thumbnails – URL als stabile ID, kein Index-Vergleich */}
-                  <div className="flex gap-2 flex-wrap">
-                    {articleImages.map((url, i) => {
-                      // hookImageUrl=null → Bild[0] ist Hook (Standard)
-                      const effectiveHookUrl = hookImageUrl ?? articleImages[0]
-                      const isHook = url === effectiveHookUrl
-                      // KI-Empfehlung: URL des empfohlenen Bildes merken
-                      const recommendedUrl = hookSuggestion
-                        ? visionDescriptionsRef.current && articleImages[hookSuggestion.index]
-                        : null
-                      const isRecommended = recommendedUrl ? url === recommendedUrl : false
-
-                      return (
-                        <button
-                          key={url}
-                          title={isHook ? 'Aktueller Hook' : `Bild ${i + 1} als Hook wählen`}
-                          onClick={() => {
-                            if (isHook) return
-                            setHookImageUrl(url)
-
-                            // Neue Reihenfolge synchron in Refs berechnen
-                            // (React setState ist async – Refs sind sofort verfügbar)
-                            const oldIdx = orderedImageUrlsRef.current.indexOf(url)
-                            if (oldIdx <= 0) return
-
-                            // URLs neu sortieren
-                            const newUrls = [...orderedImageUrlsRef.current]
-                            newUrls.splice(oldIdx, 1)
-                            newUrls.unshift(url)
-                            orderedImageUrlsRef.current = newUrls
-
-                            // Vision-Kontexte synchron neu sortieren (gleicher Index)
-                            const newCtx = [...visionDescriptionsRef.current]
-                            const [movedCtx] = newCtx.splice(oldIdx, 1)
-                            newCtx.unshift(movedCtx)
-                            visionDescriptionsRef.current = newCtx
-
-                            // sortedImages State für UI aktualisieren (Drag&Drop Anzeige)
-                            setSortedImages(newUrls)
-                          }}
-                          className={`relative shrink-0 rounded-lg overflow-hidden border-2 transition-all ${
-                            isHook
-                              ? 'border-primary ring-2 ring-primary/30 cursor-default'
-                              : isRecommended
-                              ? 'border-amber-400 ring-2 ring-amber-300/40 hover:scale-105 cursor-pointer'
-                              : 'border-muted hover:border-primary/50 hover:scale-105 cursor-pointer'
-                          }`}
-                        >
-                          <img src={url} className="w-16 h-16 object-cover" alt={`Bild ${i + 1}`} />
-                          {/* Hook-Badge */}
-                          <div className={`absolute top-0.5 left-0.5 text-[10px] font-bold px-1 rounded ${
-                            isHook ? 'bg-primary text-white' : 'bg-black/60 text-white'
-                          }`}>
-                            {isHook ? '★' : i + 1}
-                          </div>
-                          {/* KI-Badge */}
-                          {isRecommended && !isHook && (
-                            <div className="absolute bottom-0.5 right-0.5 text-[9px] font-bold bg-amber-500 text-white px-1 rounded">
-                              KI
-                            </div>
-                          )}
-                        </button>
-                      )
-                    })}
-                  </div>
-
-                  {/* KI starten */}
-                  <div className="flex items-center gap-2 pt-1 border-t border-primary/10">
-                    <p className="text-xs text-muted-foreground flex-1">
-                      Hook-Bild gewählt (★) · Reihenfolge im Drag&amp;Drop oben anpassen
-                    </p>
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        setHookImageUrl(null) // reset für nächsten Durchlauf
-                        // Explizit beide Refs übergeben – kein React-State-Delay
-                        runKiGeneration(
-                          visionDescriptionsRef.current,
-                          orderedImageUrlsRef.current,
-                        )
-                      }}
-                    >
-                      <Sparkles className="w-3 h-3 mr-1" />
-                      KI starten
-                    </Button>
-                  </div>
-                </div>
-              )}
-
               <div className="flex gap-2 pt-2">
                 <Button variant="outline" onClick={() => setStep(1)} className="shrink-0">
                   ← Zurück
@@ -1739,17 +1419,14 @@ export function TikTokPromotion() {
                   onClick={() => { generateTikTokText() }}
                   className="flex-1"
                   size="lg"
-                  disabled={generating || waitingForHookDecision}
+                  disabled={generating}
                 >
                   {generating ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   ) : (
                     <Sparkles className="w-4 h-4 mr-2" />
                   )}
-                  {waitingForHookDecision
-                    ? '⏳ Hook-Entscheidung ausstehend...'
-                    : `${platform === 'tiktok' ? '🎵' : platform === 'reels' ? '📸' : '▶️'} KI-Text generieren & Weiter`
-                  }
+                  {platform === 'tiktok' ? '🎵' : platform === 'reels' ? '📸' : '▶️'} KI-Text generieren &amp; Weiter
                 </Button>
               </div>
             </CardContent>
@@ -1774,46 +1451,16 @@ export function TikTokPromotion() {
 
                 {/* Hook */}
                 <div>
-                  {/* Label-Zeile: "0-3s Hook" + Score-Badge + Zeichenzähler */}
-                  <div className="flex items-center gap-1 mb-1">
-                    <Label className="text-xs sm:text-sm flex items-center gap-1">
-                      <span className="text-primary font-bold">0-3s</span> Hook
-                    </Label>
-                    {/* Hook-Score Badge (aus KI-Response) */}
-                    {kiHookScore && (
-                      <span className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                        kiHookScore.score >= 75
-                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                          : kiHookScore.score >= 50
-                          ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-                          : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                      }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${
-                          kiHookScore.score >= 75 ? 'bg-green-500' : kiHookScore.score >= 50 ? 'bg-amber-500' : 'bg-red-500'
-                        }`} />
-                        {kiHookScore.score} · {kiHookScore.type}
-                      </span>
-                    )}
-                    {/* Zeichenzähler – außerhalb Label damit kein Farb-Override */}
-                    <span className={`ml-auto text-[10px] font-normal ${
-                      hookText.length > 70 ? 'text-red-500' : hookText.length > 50 ? 'text-amber-500' : 'text-muted-foreground'
-                    }`}>
-                      {hookText.length}/80
-                    </span>
-                  </div>
+                  <Label className="text-xs sm:text-sm flex items-center gap-1">
+                    <span className="text-primary font-bold">0-3s</span> Hook
+                  </Label>
                   <Input
                     value={hookText}
                     onChange={e => setHookText(e.target.value)}
                     placeholder='"Unser Büro heute 🌊"'
-                    className="text-sm font-semibold"
+                    className="text-sm mt-1 font-semibold"
                     maxLength={100}
                   />
-                  {/* Hook-Score Begründung */}
-                  {kiHookScore?.reason && (
-                    <p className="text-[10px] text-muted-foreground mt-1 italic">
-                      „{kiHookScore.reason}"
-                    </p>
-                  )}
                 </div>
 
                 {/* Body */}

@@ -33,24 +33,12 @@ STIL-REGELN:
 ANTWORT-FORMAT (NUR JSON, kein Text davor/danach):
 {
   "hook": "Ein Satz – max 80 Zeichen",
-  "hookScore": 82,
-  "hookType": "ZAHLEN-HOOK",
-  "hookReason": "Kurze Begründung – max 60 Zeichen",
   "bodyLines": ["Satz für Bild 1", "Satz für Bild 2", "..."],
   "bridge": "Überleitung zum Blog – max 60 Zeichen",
   "cta": "Handlungsaufforderung – max 40 Zeichen",
   "thumbnail": "Cover-Text max 5 Wörter",
   "hashtags": ["#vanlife", "#perpetualtraveler", "#mojobus"]
 }
-
-HOOK-SCORE REGELN:
-- hookScore: 0-100. Bewerte deinen eigenen Hook ehrlich.
-  90-100: Stop-the-Scroll garantiert (Zahlen + Widerspruch)
-  70-89:  Stark, zieht die meisten an
-  50-69:  Mittel, funktioniert aber nicht viral
-  unter 50: Schwach – zu generisch oder zu lang
-- hookType: genau einer der 5 Typen aus den HOOK-MECHANIKEN (ZAHLEN-HOOK / PARADOX-HOOK / SZENE-HOOK / SUBTEXT-HOOK / KONTRAST-HOOK)
-- hookReason: ein Satz warum dieser Hook stoppt – max 60 Zeichen
 
 KRITISCHE REGELN für bodyLines:
 1. Anzahl der Einträge = exakt so viele wie Bilder (steht im User-Prompt)
@@ -302,24 +290,16 @@ export function generateTikTokUserPrompt({
   // → Reihenfolge MUSS eingehalten werden: bodyLines[N-1] = Bild N
   const bildOrientierung = contextSource.length > 0
     ? '\n' +
-      'BILDER IN REIHENFOLGE (Vision-KI hat diese Bilder analysiert):\n\n' +
+      'BILDER IN REIHENFOLGE – von Vision-KI analysiert:\n' +
+      '(Diese Beschreibungen sind FAKTEN – eine KI hat die Bilder gesehen)\n\n' +
       contextSource.map((ctx, i) =>
         '  Bild ' + (i + 1) + ': ' + (ctx && ctx.trim() ? ctx.trim() : '(kein Kontext)')
       ).join('\n') +
       '\n\n' +
-      'HYBRID-REGEL fuer bodyLines – ZWINGEND:\n' +
-      'Jeder Satz entsteht aus ZWEI Quellen gleichzeitig:\n' +
-      '  1. ARTIKEL-INHALT: Was ist das Thema, die Stimmung, der Moment im Text?\n' +
-      '  2. BILD-KONTEXT: Was zeigt dieses spezifische Bild (laut Vision-KI oben)?\n\n' +
-      'Der Satz verbindet beides – er klingt nach Foster, aber er passt zum Bild.\n\n' +
-      'BEISPIEL:\n' +
-      '  Bild zeigt: "Sonnenuntergang am Atlantik, Silhouette des Busses"\n' +
-      '  Artikel handelt von: Portugal-Reise, Entschleunigung\n' +
-      '  SCHLECHT: "Das Leben ist schoen." (kein Bezug zum Bild)\n' +
-      '  SCHLECHT: "Die Sonne geht unter hinter dem Bus." (reine Bildbeschreibung)\n' +
-      '  GUT: "Der Atlantik haelt uns fest. Noch eine Nacht." (Foster-Stil + Bild-Stimmung)\n\n' +
-      'PFLICHT: bodyLines[0] zu Bild 1, bodyLines[1] zu Bild 2, usw.\n' +
-      'Reihenfolge ist ABSOLUT – nicht tauschen, nicht weglassen.'
+      'PFLICHT: bodyLines[0] = Satz ZU Bild 1, bodyLines[1] = Satz ZU Bild 2, usw.\n' +
+      'Die Reihenfolge ist ABSOLUT. Nicht interpretieren, nicht tauschen.\n' +
+      'Schreibe aus dem INNENLEBEN: was denkt/fuehlt/riecht Mojo oder Susanne bei diesem Bild?\n' +
+      'NICHT: beschreibe was auf dem Bild zu sehen ist (das weiss der Zuschauer selbst).'
     : ''
 
   return 'Erstelle ' + plat.label + '-Texte fuer diesen Vanlife-Artikel im Foster-Huntington-Stil.\n\n' +
@@ -376,8 +356,7 @@ voRules + '\n\n' +
 '  2. Jeder Eintrag max. ein Punkt (am Ende)?\n' +
 '  3. Aus dem INNENLEBEN geschrieben (Gedanken, Gefuehle, Gerueche)?\n' +
 '  4. Mindestens ein Satz 15+ Woerter?\n' +
-'  5. Kommt Leon als lebender Begleiter vor? => sofort entfernen.\n' +
-'  6. hookScore gesetzt (0-100)? hookType = einer der 5 Typen? hookReason max 60 Zeichen?\n\n' +
+'  5. Kommt Leon als lebender Begleiter vor? => sofort entfernen.\n\n' +
 'BRIDGE + CTA + THUMBNAIL\n' +
 '- BRIDGE: Ueberleitung zu mojobus.co. Max 60 Zeichen.\n' +
 '- CTA: ' + plat.ctaStyle + '. Max 40 Zeichen.\n' +
