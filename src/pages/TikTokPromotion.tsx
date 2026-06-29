@@ -469,6 +469,14 @@ export function TikTokPromotion() {
       return parts.join(' · ')
     })
 
+  // ── URL-BASIERTER SCHNELL-SCORE (ohne Vision-API) ════════
+  // Nur für den ersten Vorschlag im Banner – bevor Vision läuft.
+  const scoreImageByUrl = (urls: string[]): HookSuggestion | null => {
+    if (!urls || urls.length < 2) return null
+    // Keine echten Merkmale erkennbar ohne Vision → kein Vorschlag
+    return null
+  }
+
   // ── HOOK-SCORE ════════════════════════════════════════════
   // Wertet Vision-Beschreibungen aus (kein API-Call) und gibt
   // den besten Bild-Index als Hook-Empfehlung zurück.
@@ -582,23 +590,69 @@ export function TikTokPromotion() {
       return
     }
 
-    setGenerating(true)
-    const base = getApiBaseUrl()
+    // ── SCHRITT 1: Hook-Bild Auswahl anzeigen ════════════════════════
+    // ZUERST User Hook wählen lassen – DANN Vision-Analyse mit richtiger Reihenfolge.
+    // orderedImageUrlsRef mit aktueller Reihenfolge initialisieren
+    orderedImageUrlsRef.current = [...articleImages]
+    visionDescriptionsRef.current = [] // wird erst nach Hook-Wahl befüllt
 
-    // ── Schritt 1: Vision-Analyse aller Bilder ═══════════════════════
-    // Läuft parallel zur UI – User sieht "KI analysiert Bilder..."
-    let visionDescriptions: string[] = getExistingContexts()
+    if (articleImages.length >= 2) {
+      // Score ohne Vision – nur auf Basis von Dateinamen/URL (schnell, kein API-Call)
+      const urlBasedSuggestion = scoreImageByUrl(articleImages)
+      setHookSuggestion(urlBasedSuggestion)
+      setWaitingForHookDecision(true)
+      return  // ← warten auf User-Klick "KI starten"
+    }
+
+    // Nur 1 Bild → direkt weiter
+    await runKiGeneration([], articleImages)
+  }
+
+  // ── KI-GENERIERUNG ════════════════════════════════════════
+  // imageUrls = finale Bild-Reihenfolge (synchron aus orderedImageUrlsRef).
+  // Vision-Analyse läuft HIER mit dieser Reihenfolge → Kontexte passen zu Bildern.
+  const runKiGeneration = async (
+    _unused: string[],
+    imageUrls?: string[],
+  ) => {
+    const base = getApiBaseUrl()
+    // Finale Reihenfolge: explizit übergeben > Ref > sortedImages
+    const effectiveImageUrls = imageUrls ?? orderedImageUrlsRef.current
+    setGenerating(true)
+    setWaitingForHookDecision(false)
+
+    // ── Vision-Analyse MIT finaler Reihenfolge ───────────────────────
+    // Beschreibungen[i] beschreibt effectiveImageUrls[i] – immer synchron
+    let visionDescriptions: string[] = effectiveImageUrls.map(() => '')
     try {
       toast({
         title: '🔍 Bilder werden analysiert...',
-        description: `${articleImages.length} Bilder · Vision-KI`,
+        description: `${effectiveImageUrls.length} Bilder · Vision-KI`,
+      })
+      const existingCtx = effectiveImageUrls.map(url => {
+        const ownerItem = selectedContent.find(item => item.images.includes(url))
+        if (!ownerItem?.event) return ''
+        const ev = ownerItem.event
+        const parts: string[] = []
+        const imetaTag = ev.tags?.find((t: string[]) =>
+          t[0] === 'imeta' && t.some((v: string) => v.includes(url))
+        )
+        if (imetaTag) {
+          const alt = imetaTag.find((v: string) => v.startsWith('alt '))
+          if (alt) parts.push(alt.replace('alt ', '').trim())
+        }
+        const loc = ev.tags?.find((t: string[]) => t[0] === 'location')?.[1]
+        const country = ev.tags?.find((t: string[]) => t[0] === 'country' || t[0] === 'l')?.[1]
+        if (loc) parts.push(loc)
+        else if (country) parts.push(country)
+        return parts.join(' · ')
       })
       const visionRes = await fetch(`${base}/api/tiktok/analyze-images`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          imageUrls: articleImages,
-          existingContexts: visionDescriptions,
+          imageUrls: effectiveImageUrls,    // ← finale Reihenfolge
+          existingContexts: existingCtx,
         }),
       })
       if (visionRes.ok) {
@@ -608,45 +662,14 @@ export function TikTokPromotion() {
         }
       }
     } catch (vErr) {
-      console.warn('[Vision] Analyse fehlgeschlagen, fahre mit Basis-Kontexten fort:', vErr)
+      console.warn('[Vision] fehlgeschlagen, fahre ohne Beschreibungen fort:', vErr)
     }
 
-    // ── Schritt 1b: Hook-Bild Auswahl ════════════════════════════════
-    // Beide Refs synchron befüllen – Reihenfolge muss immer übereinstimmen
-    visionDescriptionsRef.current = visionDescriptions
-    orderedImageUrlsRef.current = [...articleImages] // aktuelle Reihenfolge als Snapshot
-
-    // Banner IMMER zeigen wenn ≥2 Bilder – Score ist nur Empfehlung, kein Gate.
-    if (articleImages.length >= 2) {
-      const suggestion = scoreImageForHook(visionDescriptions)
-      // suggestion kann null sein (Bild[0] bereits optimal) –
-      // dann trotzdem Banner zeigen ohne Empfehlung (User kann trotzdem wählen)
-      setHookSuggestion(suggestion)
-      setWaitingForHookDecision(true)
-      setGenerating(false)
-      return  // ← Pause: Banner zeigt alle Bilder, User wählt Hook-Bild
-    }
-
-    // ── Schritt 2: nur 1 Bild → direkt KI starten ════════════════════
-    await runKiGeneration(visionDescriptions)
-  }
-
-  // ── KI-GENERIERUNG (Schritt 2) ════════════════════════════
-  // imageUrls + visionDescriptions werden EXPLIZIT übergeben –
-  // kein Zugriff auf articleImages (React State, evtl. noch nicht aktuell).
-  const runKiGeneration = async (
-    visionDescriptions: string[],
-    imageUrls?: string[],
-  ) => {
-    const base = getApiBaseUrl()
-    // imageUrls-Fallback: sortedImages direkt lesen (aktuell im Closure)
-    const effectiveImageUrls = imageUrls ?? sortedImages
-    setGenerating(true)
-    setWaitingForHookDecision(false)
-    // hookSuggestion NICHT löschen – Score-Badge soll in Step 3 sichtbar bleiben
+    // sortedImages auf finale Reihenfolge setzen (für Render-Payload)
+    setSortedImages(effectiveImageUrls)
 
     try {
-      // Artikel-Text bereinigen (Markdown entfernen, Multi-Content als Blöcke)
+      // Artikel-Text bereinigen
       const cleanText = selectedContent
         .filter(i => i.content)
         .map((i, idx) => {
@@ -670,7 +693,7 @@ export function TikTokPromotion() {
           imageCount: effectiveImageUrls.length,
           voiceoverEnabled,
           platform,
-          // Vision-Beschreibungen in exakt derselben Reihenfolge wie effectiveImageUrls
+          // visionDescriptions[i] beschreibt effectiveImageUrls[i] – garantiert
           imageContexts: visionDescriptions,
         }),
       })
@@ -686,9 +709,6 @@ export function TikTokPromotion() {
       setCtaText(data.cta || 'Link in Bio 📌')
       setHashtags((data.hashtags || []).join(' '))
       setThumbnailText(data.thumbnail || '')
-
-      // sortedImages auf effectiveImageUrls setzen – damit Render-Payload stimmt
-      setSortedImages(effectiveImageUrls)
 
       // ── Hook-Score aus KI-Response auslesen (Änderung 3b) ────────────
       if (data.hookScore !== undefined) {
