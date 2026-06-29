@@ -236,6 +236,8 @@ export function TikTokPromotion() {
   }
   const [hookSuggestion, setHookSuggestion] = useState<HookSuggestion | null>(null)
   const [waitingForHookDecision, setWaitingForHookDecision] = useState(false)
+  // URL des aktuell gewählten Hook-Bildes (nicht Index – Indizes ändern sich beim Sortieren)
+  const [hookImageUrl, setHookImageUrl] = useState<string | null>(null)
 
   // ── KI HOOK-SCORE (aus KI-Response, Änderung 3b) ══════════
   interface KiHookScore {
@@ -326,6 +328,8 @@ export function TikTokPromotion() {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   // Vision-Beschreibungen zwischenspeichern damit sie beim Banner-Klick noch verfügbar sind
   const visionDescriptionsRef = useRef<string[]>([])
+  // Neue Bild-Reihenfolge nach Thumbnail-Klick – synchron berechnet, kein React-State-Delay
+  const orderedImageUrlsRef = useRef<string[]>([])
 
   // ── ROUTEMAP ═════════════════════════════════════════════
   const [showRouteMap, setShowRouteMap] = useState(false)
@@ -608,8 +612,9 @@ export function TikTokPromotion() {
     }
 
     // ── Schritt 1b: Hook-Bild Auswahl ════════════════════════════════
-    // visionDescriptions im Ref speichern
+    // Beide Refs synchron befüllen – Reihenfolge muss immer übereinstimmen
     visionDescriptionsRef.current = visionDescriptions
+    orderedImageUrlsRef.current = [...articleImages] // aktuelle Reihenfolge als Snapshot
 
     // Banner IMMER zeigen wenn ≥2 Bilder – Score ist nur Empfehlung, kein Gate.
     if (articleImages.length >= 2) {
@@ -627,13 +632,18 @@ export function TikTokPromotion() {
   }
 
   // ── KI-GENERIERUNG (Schritt 2) ════════════════════════════
-  // Eigene Funktion damit sie nach User-Entscheidung beim Hook-Banner
-  // erneut aufgerufen werden kann (mit aktualisierten Bild-Kontexten).
-  const runKiGeneration = async (visionDescriptions: string[]) => {
+  // imageUrls + visionDescriptions werden EXPLIZIT übergeben –
+  // kein Zugriff auf articleImages (React State, evtl. noch nicht aktuell).
+  const runKiGeneration = async (
+    visionDescriptions: string[],
+    imageUrls?: string[],
+  ) => {
     const base = getApiBaseUrl()
+    // imageUrls-Fallback: sortedImages direkt lesen (aktuell im Closure)
+    const effectiveImageUrls = imageUrls ?? sortedImages
     setGenerating(true)
-    setHookSuggestion(null)
     setWaitingForHookDecision(false)
+    // hookSuggestion NICHT löschen – Score-Badge soll in Step 3 sichtbar bleiben
 
     try {
       // Artikel-Text bereinigen (Markdown entfernen, Multi-Content als Blöcke)
@@ -657,11 +667,10 @@ export function TikTokPromotion() {
           text: cleanText,
           template,
           model: aiModel,
-          imageCount: articleImages.length,
+          imageCount: effectiveImageUrls.length,
           voiceoverEnabled,
           platform,
-          // Vision-Beschreibungen pro Bild in sortierter Reihenfolge
-          // Priorität: Vision-API > imeta alt > location > leer
+          // Vision-Beschreibungen in exakt derselben Reihenfolge wie effectiveImageUrls
           imageContexts: visionDescriptions,
         }),
       })
@@ -677,6 +686,9 @@ export function TikTokPromotion() {
       setCtaText(data.cta || 'Link in Bio 📌')
       setHashtags((data.hashtags || []).join(' '))
       setThumbnailText(data.thumbnail || '')
+
+      // sortedImages auf effectiveImageUrls setzen – damit Render-Payload stimmt
+      setSortedImages(effectiveImageUrls)
 
       // ── Hook-Score aus KI-Response auslesen (Änderung 3b) ────────────
       if (data.hookScore !== undefined) {
@@ -1589,71 +1601,84 @@ export function TikTokPromotion() {
                 </p>
               </div>
 
-              {/* ── Hook-Bild wählen (erscheint IMMER nach Vision-Analyse bei ≥2 Bildern) ── */}
+              {/* ── Hook-Bild wählen (erscheint nach Vision-Analyse bei ≥2 Bildern) ── */}
               {waitingForHookDecision && articleImages.length >= 2 && (
                 <div ref={hookBannerRef} className="rounded-xl border-2 border-primary/40 bg-primary/5 p-3 space-y-3">
+
                   {/* Header */}
                   <div className="flex items-start gap-2">
                     <span className="text-lg shrink-0">🎯</span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold">
-                        Welches Bild soll der Hook sein?
-                      </p>
+                      <p className="text-sm font-semibold">Welches Bild soll der Hook sein?</p>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        Das erste Bild erscheint in Sekunde 0–5 mit dem großen Titel.
+                        Sekunde 0–5: großer Titel auf dem Hook-Bild (★).
                         {hookSuggestion && (
                           <span className="ml-1 text-amber-600 dark:text-amber-400 font-medium">
-                            KI empfiehlt Bild {hookSuggestion.index + 1} (Score {hookSuggestion.score} · {hookSuggestion.reason})
+                            KI empfiehlt Bild {hookSuggestion.index + 1}
+                            {' '}(Score {hookSuggestion.score} · {hookSuggestion.reason})
                           </span>
                         )}
                       </p>
                     </div>
                   </div>
 
-                  {/* Alle Bilder als klickbare Thumbnails */}
+                  {/* Thumbnails – URL als stabile ID, kein Index-Vergleich */}
                   <div className="flex gap-2 flex-wrap">
                     {articleImages.map((url, i) => {
-                      const isCurrentHook = i === 0
-                      const isRecommended = hookSuggestion?.index === i
+                      // hookImageUrl=null → Bild[0] ist Hook (Standard)
+                      const effectiveHookUrl = hookImageUrl ?? articleImages[0]
+                      const isHook = url === effectiveHookUrl
+                      // KI-Empfehlung: URL des empfohlenen Bildes merken
+                      const recommendedUrl = hookSuggestion
+                        ? visionDescriptionsRef.current && articleImages[hookSuggestion.index]
+                        : null
+                      const isRecommended = recommendedUrl ? url === recommendedUrl : false
+
                       return (
                         <button
                           key={url}
+                          title={isHook ? 'Aktueller Hook' : `Bild ${i + 1} als Hook wählen`}
                           onClick={() => {
-                            if (i === 0) return // bereits an Position 1
-                            // Bild i nach vorne schieben
-                            setSortedImages(prev => {
-                              const next = [...prev]
-                              const [moved] = next.splice(i, 1)
-                              next.unshift(moved)
-                              return next
-                            })
-                            // Vision-Kontexte synchron neu sortieren
-                            const ctx = [...visionDescriptionsRef.current]
-                            const [movedCtx] = ctx.splice(i, 1)
-                            ctx.unshift(movedCtx)
-                            visionDescriptionsRef.current = ctx
+                            if (isHook) return
+                            setHookImageUrl(url)
+
+                            // Neue Reihenfolge synchron in Refs berechnen
+                            // (React setState ist async – Refs sind sofort verfügbar)
+                            const oldIdx = orderedImageUrlsRef.current.indexOf(url)
+                            if (oldIdx <= 0) return
+
+                            // URLs neu sortieren
+                            const newUrls = [...orderedImageUrlsRef.current]
+                            newUrls.splice(oldIdx, 1)
+                            newUrls.unshift(url)
+                            orderedImageUrlsRef.current = newUrls
+
+                            // Vision-Kontexte synchron neu sortieren (gleicher Index)
+                            const newCtx = [...visionDescriptionsRef.current]
+                            const [movedCtx] = newCtx.splice(oldIdx, 1)
+                            newCtx.unshift(movedCtx)
+                            visionDescriptionsRef.current = newCtx
+
+                            // sortedImages State für UI aktualisieren (Drag&Drop Anzeige)
+                            setSortedImages(newUrls)
                           }}
                           className={`relative shrink-0 rounded-lg overflow-hidden border-2 transition-all ${
-                            isCurrentHook
+                            isHook
                               ? 'border-primary ring-2 ring-primary/30 cursor-default'
                               : isRecommended
-                              ? 'border-amber-400 ring-2 ring-amber-400/30 hover:scale-105 cursor-pointer'
+                              ? 'border-amber-400 ring-2 ring-amber-300/40 hover:scale-105 cursor-pointer'
                               : 'border-muted hover:border-primary/50 hover:scale-105 cursor-pointer'
                           }`}
                         >
-                          <img
-                            src={url}
-                            className="w-16 h-16 object-cover"
-                            alt={`Bild ${i + 1}`}
-                          />
-                          {/* Position-Badge */}
+                          <img src={url} className="w-16 h-16 object-cover" alt={`Bild ${i + 1}`} />
+                          {/* Hook-Badge */}
                           <div className={`absolute top-0.5 left-0.5 text-[10px] font-bold px-1 rounded ${
-                            isCurrentHook ? 'bg-primary text-white' : 'bg-black/60 text-white'
+                            isHook ? 'bg-primary text-white' : 'bg-black/60 text-white'
                           }`}>
-                            {isCurrentHook ? '★1' : i + 1}
+                            {isHook ? '★' : i + 1}
                           </div>
-                          {/* Empfohlen-Badge */}
-                          {isRecommended && !isCurrentHook && (
+                          {/* KI-Badge */}
+                          {isRecommended && !isHook && (
                             <div className="absolute bottom-0.5 right-0.5 text-[9px] font-bold bg-amber-500 text-white px-1 rounded">
                               KI
                             </div>
@@ -1663,14 +1688,21 @@ export function TikTokPromotion() {
                     })}
                   </div>
 
-                  {/* Aktuelle Auswahl + Buttons */}
+                  {/* KI starten */}
                   <div className="flex items-center gap-2 pt-1 border-t border-primary/10">
-                    <div className="text-xs text-muted-foreground flex-1">
-                      Hook-Bild: <span className="font-semibold text-foreground">Bild 1 (aktuell oben links)</span>
-                    </div>
+                    <p className="text-xs text-muted-foreground flex-1">
+                      Hook-Bild gewählt (★) · Reihenfolge im Drag&amp;Drop oben anpassen
+                    </p>
                     <Button
                       size="sm"
-                      onClick={() => runKiGeneration(visionDescriptionsRef.current)}
+                      onClick={() => {
+                        setHookImageUrl(null) // reset für nächsten Durchlauf
+                        // Explizit beide Refs übergeben – kein React-State-Delay
+                        runKiGeneration(
+                          visionDescriptionsRef.current,
+                          orderedImageUrlsRef.current,
+                        )
+                      }}
                     >
                       <Sparkles className="w-3 h-3 mr-1" />
                       KI starten
