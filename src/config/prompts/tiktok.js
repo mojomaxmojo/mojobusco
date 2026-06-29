@@ -33,12 +33,24 @@ STIL-REGELN:
 ANTWORT-FORMAT (NUR JSON, kein Text davor/danach):
 {
   "hook": "Ein Satz – max 80 Zeichen",
+  "hookScore": 82,
+  "hookType": "ZAHLEN-HOOK",
+  "hookReason": "Kurze Begründung – max 60 Zeichen",
   "bodyLines": ["Satz für Bild 1", "Satz für Bild 2", "..."],
   "bridge": "Überleitung zum Blog – max 60 Zeichen",
   "cta": "Handlungsaufforderung – max 40 Zeichen",
   "thumbnail": "Cover-Text max 5 Wörter",
   "hashtags": ["#vanlife", "#perpetualtraveler", "#mojobus"]
 }
+
+HOOK-SCORE REGELN:
+- hookScore: 0-100. Bewerte deinen eigenen Hook ehrlich.
+  90-100: Stop-the-Scroll garantiert (Zahlen + Widerspruch)
+  70-89:  Stark, zieht die meisten an
+  50-69:  Mittel, funktioniert aber nicht viral
+  unter 50: Schwach – zu generisch oder zu lang
+- hookType: genau einer der 5 Typen aus den HOOK-MECHANIKEN (ZAHLEN-HOOK / PARADOX-HOOK / SZENE-HOOK / SUBTEXT-HOOK / KONTRAST-HOOK)
+- hookReason: ein Satz warum dieser Hook stoppt – max 60 Zeichen
 
 KRITISCHE REGELN für bodyLines:
 1. Anzahl der Einträge = exakt so viele wie Bilder (steht im User-Prompt)
@@ -356,7 +368,8 @@ voRules + '\n\n' +
 '  2. Jeder Eintrag max. ein Punkt (am Ende)?\n' +
 '  3. Aus dem INNENLEBEN geschrieben (Gedanken, Gefuehle, Gerueche)?\n' +
 '  4. Mindestens ein Satz 15+ Woerter?\n' +
-'  5. Kommt Leon als lebender Begleiter vor? => sofort entfernen.\n\n' +
+'  5. Kommt Leon als lebender Begleiter vor? => sofort entfernen.\n' +
+'  6. hookScore gesetzt (0-100)? hookType = einer der 5 Typen? hookReason max 60 Zeichen?\n\n' +
 'BRIDGE + CTA + THUMBNAIL\n' +
 '- BRIDGE: Ueberleitung zu mojobus.co. Max 60 Zeichen.\n' +
 '- CTA: ' + plat.ctaStyle + '. Max 40 Zeichen.\n' +

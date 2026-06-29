@@ -228,6 +228,23 @@ export function TikTokPromotion() {
   // ── KI-MODELL ═════════════════════════════════════════════
   const [aiModel, setAiModel] = useState<string>('claude')
 
+  // ── HOOK-SCORE / BILD-EMPFEHLUNG ══════════════════════════
+  interface HookSuggestion {
+    index: number    // empfohlener Bild-Index in sortedImages
+    score: number    // 0-100
+    reason: string   // "Leon · Sonnenuntergang erkannt"
+  }
+  const [hookSuggestion, setHookSuggestion] = useState<HookSuggestion | null>(null)
+  const [waitingForHookDecision, setWaitingForHookDecision] = useState(false)
+
+  // ── KI HOOK-SCORE (aus KI-Response, Änderung 3b) ══════════
+  interface KiHookScore {
+    score: number    // 0-100
+    type: string     // "ZAHLEN-HOOK" etc.
+    reason: string   // kurze Begründung
+  }
+  const [kiHookScore, setKiHookScore] = useState<KiHookScore | null>(null)
+
   // ── DRAG&DROP SORTIERUNG ═════════════════════════════════
   const [sortedImages, setSortedImages] = useState<string[]>([])
 
@@ -445,6 +462,51 @@ export function TikTokPromotion() {
       return parts.join(' · ')
     })
 
+  // ── HOOK-SCORE ════════════════════════════════════════════
+  // Wertet Vision-Beschreibungen aus (kein API-Call) und gibt
+  // den besten Bild-Index als Hook-Empfehlung zurück.
+  const scoreImageForHook = (descriptions: string[]): HookSuggestion | null => {
+    if (!descriptions || descriptions.length === 0) return null
+
+    const rules: { keywords: string[]; points: number; label: string }[] = [
+      { keywords: ['leon', 'soul leon'],                                            points: 30, label: 'Leon' },
+      { keywords: ['gesicht', 'auge', 'augen', 'blick', 'person', 'mensch', 'frau', 'mann', 'kind'], points: 25, label: 'Gesicht/Person' },
+      { keywords: ['sonnenuntergang', 'golden', 'gegenlicht', 'licht', 'sonne', 'dämmerung', 'goldene stunde'], points: 20, label: 'Licht/Sonnenuntergang' },
+      { keywords: ['bewegung', 'welle', 'wellen', 'sturm', 'fährt', 'rennt', 'laufen', 'sprung'], points: 15, label: 'Bewegung' },
+      { keywords: ['meer', 'ozean', 'küste', 'strand', 'wasser', 'see'],            points: 10, label: 'Meer/Wasser' },
+      { keywords: ['bus', 'mojobus', 'fahrzeug', 'oldtimer'],                       points: 8,  label: 'Bus/Fahrzeug' },
+    ]
+
+    let bestIndex = 0
+    let bestScore = -1
+    let bestReason = ''
+
+    descriptions.forEach((desc, i) => {
+      if (!desc) return
+      const lower = desc.toLowerCase()
+      let score = 0
+      const matched: string[] = []
+
+      for (const rule of rules) {
+        if (rule.keywords.some(kw => lower.includes(kw))) {
+          score += rule.points
+          matched.push(rule.label)
+        }
+      }
+
+      if (score > bestScore) {
+        bestScore = score
+        bestIndex = i
+        bestReason = matched.slice(0, 3).join(' · ') || 'Allgemein'
+      }
+    })
+
+    // Nur vorschlagen wenn Bild ≠ Position 0 und Score > 0
+    if (bestIndex === 0 || bestScore <= 0) return null
+
+    return { index: bestIndex, score: Math.min(100, bestScore), reason: bestReason }
+  }
+
   const generateTikTokText = async () => {
     if (!articleTitle.trim()) {
       toast({
@@ -484,7 +546,30 @@ export function TikTokPromotion() {
       console.warn('[Vision] Analyse fehlgeschlagen, fahre mit Basis-Kontexten fort:', vErr)
     }
 
+    // ── Schritt 1b: Hook-Score berechnen ═════════════════════════════
+    // Kein Extra-API-Call – wertet visionDescriptions[] aus.
+    // Wenn ein besseres Bild als images[0] gefunden: User-Entscheidung einholen.
+    const suggestion = scoreImageForHook(visionDescriptions)
+    if (suggestion) {
+      setHookSuggestion(suggestion)
+      setWaitingForHookDecision(true)
+      setGenerating(false)
+      return  // ← Pause: Banner anzeigen, User entscheidet per Button
+    }
+
     // ── Schritt 2: Text-Generierung mit Vision-Beschreibungen ═════════
+    await runKiGeneration(visionDescriptions)
+  }
+
+  // ── KI-GENERIERUNG (Schritt 2) ════════════════════════════
+  // Eigene Funktion damit sie nach User-Entscheidung beim Hook-Banner
+  // erneut aufgerufen werden kann (mit aktualisierten Bild-Kontexten).
+  const runKiGeneration = async (visionDescriptions: string[]) => {
+    const base = getApiBaseUrl()
+    setGenerating(true)
+    setHookSuggestion(null)
+    setWaitingForHookDecision(false)
+
     try {
       // Artikel-Text bereinigen (Markdown entfernen, Multi-Content als Blöcke)
       const cleanText = selectedContent
@@ -528,6 +613,17 @@ export function TikTokPromotion() {
       setHashtags((data.hashtags || []).join(' '))
       setThumbnailText(data.thumbnail || '')
 
+      // ── Hook-Score aus KI-Response auslesen (Änderung 3b) ────────────
+      if (data.hookScore !== undefined) {
+        setKiHookScore({
+          score: data.hookScore || 0,
+          type: data.hookType || '',
+          reason: data.hookReason || '',
+        })
+      } else {
+        setKiHookScore(null)
+      }
+
       const platLabel = platform === 'reels' ? 'Reels' : platform === 'youtube' ? 'YouTube' : 'TikTok'
       const voLabel = voiceoverEnabled ? ' · TTS-optimiert' : ''
       toast({
@@ -545,6 +641,7 @@ export function TikTokPromotion() {
       setCtaText('Link in Bio 📌')
       setHashtags('#vanlife #perpetualtraveler #mojobus')
       setThumbnailText('')
+      setKiHookScore(null)
 
       toast({
         title: 'Fallback – manuelle Eingabe',
@@ -1411,6 +1508,81 @@ export function TikTokPromotion() {
                 </p>
               </div>
 
+              {/* ── Hook-Empfehlung Banner (erscheint nach Vision-Analyse) ── */}
+              {hookSuggestion && waitingForHookDecision && (
+                <div className="rounded-xl border-2 border-amber-400 bg-amber-50 dark:bg-amber-900/20 p-3 space-y-2">
+                  <div className="flex items-start gap-2">
+                    <span className="text-lg shrink-0">🎯</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
+                        Hook-Empfehlung: Bild {hookSuggestion.index + 1} an Position 1
+                        <span className="ml-2 text-xs font-normal bg-amber-200 dark:bg-amber-800 px-1.5 py-0.5 rounded-full">
+                          Score {hookSuggestion.score}
+                        </span>
+                      </p>
+                      <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5 truncate">
+                        Erkannt: {hookSuggestion.reason}
+                      </p>
+                    </div>
+                  </div>
+                  {/* Bild-Vorschau: aktuell[0] vs. empfohlen */}
+                  <div className="flex items-center gap-2">
+                    <div className="text-center">
+                      <div className="text-[10px] text-muted-foreground mb-1">Aktuell Bild 1</div>
+                      <img
+                        src={articleImages[0]}
+                        className="w-14 h-14 object-cover rounded-lg border-2 border-muted"
+                        alt="Aktuell Bild 1"
+                      />
+                    </div>
+                    <span className="text-muted-foreground text-xs">→</span>
+                    <div className="text-center">
+                      <div className="text-[10px] text-amber-600 dark:text-amber-400 mb-1 font-semibold">Empfohlen</div>
+                      <img
+                        src={articleImages[hookSuggestion.index]}
+                        className="w-14 h-14 object-cover rounded-lg border-2 border-amber-400"
+                        alt="Empfohlenes Hook-Bild"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      className="flex-1 bg-amber-500 hover:bg-amber-600 text-white"
+                      onClick={() => {
+                        // Bild an hookSuggestion.index nach vorne schieben
+                        setSortedImages(prev => {
+                          const next = [...prev]
+                          const [moved] = next.splice(hookSuggestion.index, 1)
+                          next.unshift(moved)
+                          return next
+                        })
+                        // Sofort KI-Generierung starten mit aktualisierten Kontexten
+                        // visionDescriptions sind nicht mehr im scope → neu aus getExistingContexts
+                        const ctx = getExistingContexts()
+                        runKiGeneration(ctx)
+                      }}
+                    >
+                      ✅ Übernehmen &amp; KI starten
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        setHookSuggestion(null)
+                        setWaitingForHookDecision(false)
+                        // Direkt mit aktueller Reihenfolge weitermachen
+                        const ctx = getExistingContexts()
+                        runKiGeneration(ctx)
+                      }}
+                    >
+                      ✗ Ignorieren
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               <div className="flex gap-2 pt-2">
                 <Button variant="outline" onClick={() => setStep(1)} className="shrink-0">
                   ← Zurück
@@ -1419,14 +1591,17 @@ export function TikTokPromotion() {
                   onClick={() => { generateTikTokText() }}
                   className="flex-1"
                   size="lg"
-                  disabled={generating}
+                  disabled={generating || waitingForHookDecision}
                 >
                   {generating ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   ) : (
                     <Sparkles className="w-4 h-4 mr-2" />
                   )}
-                  {platform === 'tiktok' ? '🎵' : platform === 'reels' ? '📸' : '▶️'} KI-Text generieren &amp; Weiter
+                  {waitingForHookDecision
+                    ? '⏳ Hook-Entscheidung ausstehend...'
+                    : `${platform === 'tiktok' ? '🎵' : platform === 'reels' ? '📸' : '▶️'} KI-Text generieren & Weiter`
+                  }
                 </Button>
               </div>
             </CardContent>
@@ -1453,6 +1628,27 @@ export function TikTokPromotion() {
                 <div>
                   <Label className="text-xs sm:text-sm flex items-center gap-1">
                     <span className="text-primary font-bold">0-3s</span> Hook
+                    {/* Hook-Score Badge (aus KI-Response) */}
+                    {kiHookScore && (
+                      <span className={`ml-auto flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                        kiHookScore.score >= 75
+                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                          : kiHookScore.score >= 50
+                          ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                          : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${
+                          kiHookScore.score >= 75 ? 'bg-green-500' : kiHookScore.score >= 50 ? 'bg-amber-500' : 'bg-red-500'
+                        }`} />
+                        {kiHookScore.score} · {kiHookScore.type}
+                      </span>
+                    )}
+                    {/* Zeichenzähler */}
+                    <span className={`${kiHookScore ? '' : 'ml-auto'} text-[10px] font-normal ${
+                      hookText.length > 70 ? 'text-red-500' : hookText.length > 50 ? 'text-amber-500' : 'text-muted-foreground'
+                    }`}>
+                      {hookText.length}/80
+                    </span>
                   </Label>
                   <Input
                     value={hookText}
@@ -1461,6 +1657,12 @@ export function TikTokPromotion() {
                     className="text-sm mt-1 font-semibold"
                     maxLength={100}
                   />
+                  {/* Hook-Score Begründung */}
+                  {kiHookScore?.reason && (
+                    <p className="text-[10px] text-muted-foreground mt-1 italic">
+                      „{kiHookScore.reason}"
+                    </p>
+                  )}
                 </div>
 
                 {/* Body */}
