@@ -290,35 +290,16 @@ export function generateTikTokUserPrompt({
   // → Reihenfolge MUSS eingehalten werden: bodyLines[N-1] = Bild N
   const bildOrientierung = contextSource.length > 0
     ? '\n' +
-      'BILDER IN REIHENFOLGE – von Vision-KI analysiert:\n\n' +
+      'BILDER IN REIHENFOLGE – von Vision-KI analysiert:\n' +
+      '(Diese Beschreibungen sind FAKTEN – eine KI hat die Bilder gesehen)\n\n' +
       contextSource.map((ctx, i) =>
         '  Bild ' + (i + 1) + ': ' + (ctx && ctx.trim() ? ctx.trim() : '(kein Kontext)')
       ).join('\n') +
       '\n\n' +
-      'WIE DU DIE BILDER NUTZT – HYBRID-PRINZIP:\n' +
-      'Jeder bodyLines-Satz entsteht aus ZWEI Quellen:\n' +
-      '  Quelle A – Artikel: Thema, Stimmung, Kontext aus Titel/Text oben\n' +
-      '  Quelle B – Bild: das konkrete visuelle Element aus der Vision-Beschreibung\n\n' +
-      'Der Satz verbindet beides. Er klingt nach Foster – aber der Zuschauer\n' +
-      'sieht das Bild und spuert: dieser Satz gehoert genau dazu.\n\n' +
-      'DREI BEISPIELE (lerne das Muster):\n' +
-      '  Bild zeigt "Atlantik-Kueuste, Sonnenuntergang, Silhouette Bus"\n' +
-      '  Artikel handelt von Entschleunigung in Portugal\n' +
-      '  FALSCH: "Das Leben ist schoen." → kein Bildbezug, beliebig\n' +
-      '  FALSCH: "Die Sonne geht hinter dem Bus unter." → trockene Bildbeschreibung\n' +
-      '  RICHTIG: "Der Atlantik haelt uns fest – noch eine Nacht." → Artikel + Bild-Stimmung\n\n' +
-      '  Bild zeigt "nasser Hund schuettelt sich am Strand"\n' +
-      '  Artikel handelt von Alltagsleben im Bus\n' +
-      '  FALSCH: "Leon war immer dabei." → kein Bildbezug\n' +
-      '  FALSCH: "Der Hund schuettelt Wasser ab." → Bildbeschreibung\n' +
-      '  RICHTIG: "Leon taucht aus der Welle auf – nass, zufrieden, zuhause." → beides\n\n' +
-      '  Bild zeigt "enge Gasse, Mojobus passt kaum durch, Zuschauer"\n' +
-      '  Artikel handelt von Stadtfahrten in Suedeuropa\n' +
-      '  FALSCH: "Staedte sind laut." → kein Bildbezug\n' +
-      '  FALSCH: "Der Bus faehrt durch eine enge Gasse." → Bildbeschreibung\n' +
-      '  RICHTIG: "Zehn Meter durch fuenf Meter Gasse – die Leute bleiben stehen." → beides\n\n' +
-      'PFLICHT: bodyLines[0] gehoert zu Bild 1, bodyLines[1] zu Bild 2, usw.\n' +
-      'Reihenfolge ABSOLUT – nicht tauschen, nicht weglassen.'
+      'PFLICHT: bodyLines[0] = Satz ZU Bild 1, bodyLines[1] = Satz ZU Bild 2, usw.\n' +
+      'Die Reihenfolge ist ABSOLUT. Nicht interpretieren, nicht tauschen.\n' +
+      'Schreibe aus dem INNENLEBEN: was denkt/fuehlt/riecht Mojo oder Susanne bei diesem Bild?\n' +
+      'NICHT: beschreibe was auf dem Bild zu sehen ist (das weiss der Zuschauer selbst).'
     : ''
 
   return 'Erstelle ' + plat.label + '-Texte fuer diesen Vanlife-Artikel im Foster-Huntington-Stil.\n\n' +
@@ -373,8 +354,7 @@ voRules + '\n\n' +
 'SELBSTCHECK vor der Antwort:\n' +
 '  1. Exakt ' + imageCount + ' bodyLines?\n' +
 '  2. Jeder Eintrag max. ein Punkt (am Ende)?\n' +
-'  3. Jeder Satz: passt er zum Bild (Quelle B) UND zum Artikel (Quelle A)?\n' +
-'     Wenn nur Artikel → zu allgemein. Wenn nur Bild → trockene Caption.\n' +
+'  3. Aus dem INNENLEBEN geschrieben (Gedanken, Gefuehle, Gerueche)?\n' +
 '  4. Mindestens ein Satz 15+ Woerter?\n' +
 '  5. Kommt Leon als lebender Begleiter vor? => sofort entfernen.\n\n' +
 'BRIDGE + CTA + THUMBNAIL\n' +
