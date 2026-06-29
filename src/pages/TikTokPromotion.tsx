@@ -324,6 +324,8 @@ export function TikTokPromotion() {
   const [selectedTrack, setSelectedTrack] = useState('__random__')
   const [playingPreview, setPlayingPreview] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  // Vision-Beschreibungen zwischenspeichern damit sie beim Banner-Klick noch verfügbar sind
+  const visionDescriptionsRef = useRef<string[]>([])
 
   // ── ROUTEMAP ═════════════════════════════════════════════
   const [showRouteMap, setShowRouteMap] = useState(false)
@@ -337,6 +339,7 @@ export function TikTokPromotion() {
   const [renderProgress, setRenderProgress] = useState(0)
   const [downloadedMp4, setDownloadedMp4] = useState(false)
   const pollRef = useRef<number | null>(null)
+  const hookBannerRef = useRef<HTMLDivElement | null>(null)
 
   // ── REMOTION STATUS ══════════════════════════════════════
   const [remotionAvailable, setRemotionAvailable] = useState<boolean | null>(null)
@@ -465,46 +468,100 @@ export function TikTokPromotion() {
   // ── HOOK-SCORE ════════════════════════════════════════════
   // Wertet Vision-Beschreibungen aus (kein API-Call) und gibt
   // den besten Bild-Index als Hook-Empfehlung zurück.
+  // Keywords zweisprachig (DE + EN) – Vision-KI antwortet oft auf Englisch.
   const scoreImageForHook = (descriptions: string[]): HookSuggestion | null => {
-    if (!descriptions || descriptions.length === 0) return null
+    if (!descriptions || descriptions.length < 2) return null
 
     const rules: { keywords: string[]; points: number; label: string }[] = [
-      { keywords: ['leon', 'soul leon'],                                            points: 30, label: 'Leon' },
-      { keywords: ['gesicht', 'auge', 'augen', 'blick', 'person', 'mensch', 'frau', 'mann', 'kind'], points: 25, label: 'Gesicht/Person' },
-      { keywords: ['sonnenuntergang', 'golden', 'gegenlicht', 'licht', 'sonne', 'dämmerung', 'goldene stunde'], points: 20, label: 'Licht/Sonnenuntergang' },
-      { keywords: ['bewegung', 'welle', 'wellen', 'sturm', 'fährt', 'rennt', 'laufen', 'sprung'], points: 15, label: 'Bewegung' },
-      { keywords: ['meer', 'ozean', 'küste', 'strand', 'wasser', 'see'],            points: 10, label: 'Meer/Wasser' },
-      { keywords: ['bus', 'mojobus', 'fahrzeug', 'oldtimer'],                       points: 8,  label: 'Bus/Fahrzeug' },
+      {
+        keywords: ['leon', 'soul leon', 'dog', 'hund', 'ridgeback'],
+        points: 30, label: 'Leon'
+      },
+      {
+        keywords: [
+          'gesicht', 'auge', 'augen', 'blick', 'person', 'mensch', 'frau', 'mann', 'kind',
+          'face', 'eye', 'eyes', 'look', 'woman', 'man', 'child', 'people', 'portrait',
+        ],
+        points: 25, label: 'Gesicht/Person'
+      },
+      {
+        keywords: [
+          'sonnenuntergang', 'golden', 'gegenlicht', 'sonne', 'dämmerung', 'goldene stunde',
+          'sunset', 'sunrise', 'golden hour', 'backlight', 'silhouette', 'sun', 'glow', 'warm light',
+        ],
+        points: 20, label: 'Licht/Sonnenuntergang'
+      },
+      {
+        keywords: [
+          'bewegung', 'welle', 'wellen', 'sturm', 'fährt', 'rennt', 'laufen', 'sprung',
+          'wave', 'waves', 'storm', 'motion', 'running', 'jump', 'action', 'dramatic',
+        ],
+        points: 15, label: 'Bewegung'
+      },
+      {
+        keywords: [
+          'meer', 'ozean', 'küste', 'strand', 'wasser', 'see',
+          'ocean', 'sea', 'beach', 'coast', 'water', 'lake', 'atlantic',
+        ],
+        points: 10, label: 'Meer/Wasser'
+      },
+      {
+        keywords: [
+          'bus', 'mojobus', 'fahrzeug', 'oldtimer',
+          'vehicle', 'rv', 'camper', 'van',
+        ],
+        points: 8, label: 'Bus/Fahrzeug'
+      },
     ]
 
-    let bestIndex = 0
-    let bestScore = -1
-    let bestReason = ''
+    const scores: number[] = []
+    const reasons: string[] = []
 
-    descriptions.forEach((desc, i) => {
-      if (!desc) return
+    descriptions.forEach((desc) => {
+      if (!desc || !desc.trim()) {
+        scores.push(0)
+        reasons.push('')
+        return
+      }
       const lower = desc.toLowerCase()
       let score = 0
       const matched: string[] = []
-
       for (const rule of rules) {
         if (rule.keywords.some(kw => lower.includes(kw))) {
           score += rule.points
           matched.push(rule.label)
         }
       }
-
-      if (score > bestScore) {
-        bestScore = score
-        bestIndex = i
-        bestReason = matched.slice(0, 3).join(' · ') || 'Allgemein'
-      }
+      scores.push(score)
+      reasons.push(matched.slice(0, 3).join(' · ') || '')
     })
 
-    // Nur vorschlagen wenn Bild ≠ Position 0 und Score > 0
-    if (bestIndex === 0 || bestScore <= 0) return null
+    console.log('[HookScore] Scores:', scores.map((s, i) => `Bild${i + 1}:${s}`).join(' | '))
 
-    return { index: bestIndex, score: Math.min(100, bestScore), reason: bestReason }
+    // Bestes Bild = höchster Score
+    let bestIndex = 0
+    let bestScore = scores[0]
+    for (let i = 1; i < scores.length; i++) {
+      if (scores[i] > bestScore) {
+        bestScore = scores[i]
+        bestIndex = i
+      }
+    }
+
+    // Nur vorschlagen wenn:
+    // - bestes Bild ist NICHT bereits an Position 0
+    // - UND bestes Bild hat höheren Score als Bild[0]
+    //   ODER Bild[0] hat Score 0 (d.h. kein erkanntes Merkmal → beliebig)
+    const score0 = scores[0]
+    if (bestIndex === 0) return null
+    if (bestScore === 0 && score0 === 0) return null  // alle leer → kein Vorschlag
+    if (bestScore <= score0) return null               // Bild[0] ist schon optimal
+
+    return {
+      index: bestIndex,
+      score: Math.min(100, bestScore),
+      reason: reasons[bestIndex] || 'Visuell stärker als Bild 1',
+    }
   }
 
   const generateTikTokText = async () => {
@@ -548,7 +605,9 @@ export function TikTokPromotion() {
 
     // ── Schritt 1b: Hook-Score berechnen ═════════════════════════════
     // Kein Extra-API-Call – wertet visionDescriptions[] aus.
-    // Wenn ein besseres Bild als images[0] gefunden: User-Entscheidung einholen.
+    // visionDescriptions im Ref speichern damit Banner-Buttons sie noch haben
+    visionDescriptionsRef.current = visionDescriptions
+
     const suggestion = scoreImageForHook(visionDescriptions)
     if (suggestion) {
       setHookSuggestion(suggestion)
@@ -1107,6 +1166,15 @@ export function TikTokPromotion() {
     }
   }, [])
 
+  // Auto-Scroll zum Hook-Banner wenn er erscheint
+  useEffect(() => {
+    if (hookSuggestion && waitingForHookDecision && hookBannerRef.current) {
+      setTimeout(() => {
+        hookBannerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 100)
+    }
+  }, [hookSuggestion, waitingForHookDecision])
+
   // ── MUSIK VORSCHAU ══════════════════════════════════════
   const toggleMusicPreview = () => {
     const track = musicTracks.find(t => t.filename === selectedTrack)
@@ -1384,6 +1452,13 @@ export function TikTokPromotion() {
         {/* ══════ STEP 2: TEMPLATE AUSWÄHLEN ══════ */}
         {step === 2 && (
           <Card className="max-w-3xl">
+            {/* Lade-Banner: Vision-Analyse läuft */}
+            {generating && (
+              <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 border-b text-xs text-primary rounded-t-lg">
+                <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                <span>Bilder werden analysiert – Hook-Empfehlung wird berechnet...</span>
+              </div>
+            )}
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                 <Wand2 className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -1510,7 +1585,7 @@ export function TikTokPromotion() {
 
               {/* ── Hook-Empfehlung Banner (erscheint nach Vision-Analyse) ── */}
               {hookSuggestion && waitingForHookDecision && (
-                <div className="rounded-xl border-2 border-amber-400 bg-amber-50 dark:bg-amber-900/20 p-3 space-y-2">
+                <div ref={hookBannerRef} className="rounded-xl border-2 border-amber-400 bg-amber-50 dark:bg-amber-900/20 p-3 space-y-2">
                   <div className="flex items-start gap-2">
                     <span className="text-lg shrink-0">🎯</span>
                     <div className="flex-1 min-w-0">
@@ -1557,9 +1632,11 @@ export function TikTokPromotion() {
                           next.unshift(moved)
                           return next
                         })
-                        // Sofort KI-Generierung starten mit aktualisierten Kontexten
-                        // visionDescriptions sind nicht mehr im scope → neu aus getExistingContexts
-                        const ctx = getExistingContexts()
+                        // Vision-Beschreibungen auch neu sortieren (Bild 0 ↔ empfohlenes Bild tauschen)
+                        const ctx = [...visionDescriptionsRef.current]
+                        const [movedCtx] = ctx.splice(hookSuggestion.index, 1)
+                        ctx.unshift(movedCtx)
+                        visionDescriptionsRef.current = ctx
                         runKiGeneration(ctx)
                       }}
                     >
@@ -1572,9 +1649,8 @@ export function TikTokPromotion() {
                       onClick={() => {
                         setHookSuggestion(null)
                         setWaitingForHookDecision(false)
-                        // Direkt mit aktueller Reihenfolge weitermachen
-                        const ctx = getExistingContexts()
-                        runKiGeneration(ctx)
+                        // Mit den gespeicherten Vision-Beschreibungen (original Reihenfolge) weitermachen
+                        runKiGeneration(visionDescriptionsRef.current)
                       }}
                     >
                       ✗ Ignorieren
