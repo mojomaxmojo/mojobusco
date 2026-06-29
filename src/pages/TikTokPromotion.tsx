@@ -607,20 +607,22 @@ export function TikTokPromotion() {
       console.warn('[Vision] Analyse fehlgeschlagen, fahre mit Basis-Kontexten fort:', vErr)
     }
 
-    // ── Schritt 1b: Hook-Score berechnen ═════════════════════════════
-    // visionDescriptions im Ref speichern damit Banner-Buttons sie noch haben
+    // ── Schritt 1b: Hook-Bild Auswahl ════════════════════════════════
+    // visionDescriptions im Ref speichern
     visionDescriptionsRef.current = visionDescriptions
-    console.log('[HookScore] visionDescriptions nach Analyse:', visionDescriptions)
 
-    const suggestion = scoreImageForHook(visionDescriptions)
-    if (suggestion) {
+    // Banner IMMER zeigen wenn ≥2 Bilder – Score ist nur Empfehlung, kein Gate.
+    if (articleImages.length >= 2) {
+      const suggestion = scoreImageForHook(visionDescriptions)
+      // suggestion kann null sein (Bild[0] bereits optimal) –
+      // dann trotzdem Banner zeigen ohne Empfehlung (User kann trotzdem wählen)
       setHookSuggestion(suggestion)
       setWaitingForHookDecision(true)
       setGenerating(false)
-      return  // ← Pause: Banner anzeigen, User entscheidet per Button
+      return  // ← Pause: Banner zeigt alle Bilder, User wählt Hook-Bild
     }
 
-    // ── Schritt 2: Text-Generierung mit Vision-Beschreibungen ═════════
+    // ── Schritt 2: nur 1 Bild → direkt KI starten ════════════════════
     await runKiGeneration(visionDescriptions)
   }
 
@@ -1587,77 +1589,91 @@ export function TikTokPromotion() {
                 </p>
               </div>
 
-              {/* ── Hook-Empfehlung Banner (erscheint nach Vision-Analyse) ── */}
-              {hookSuggestion && waitingForHookDecision && (
-                <div ref={hookBannerRef} className="rounded-xl border-2 border-amber-400 bg-amber-50 dark:bg-amber-900/20 p-3 space-y-2">
+              {/* ── Hook-Bild wählen (erscheint IMMER nach Vision-Analyse bei ≥2 Bildern) ── */}
+              {waitingForHookDecision && articleImages.length >= 2 && (
+                <div ref={hookBannerRef} className="rounded-xl border-2 border-primary/40 bg-primary/5 p-3 space-y-3">
+                  {/* Header */}
                   <div className="flex items-start gap-2">
                     <span className="text-lg shrink-0">🎯</span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
-                        Hook-Empfehlung: Bild {hookSuggestion.index + 1} an Position 1
-                        <span className="ml-2 text-xs font-normal bg-amber-200 dark:bg-amber-800 px-1.5 py-0.5 rounded-full">
-                          Score {hookSuggestion.score}
-                        </span>
+                      <p className="text-sm font-semibold">
+                        Welches Bild soll der Hook sein?
                       </p>
-                      <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5 truncate">
-                        Erkannt: {hookSuggestion.reason}
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Das erste Bild erscheint in Sekunde 0–5 mit dem großen Titel.
+                        {hookSuggestion && (
+                          <span className="ml-1 text-amber-600 dark:text-amber-400 font-medium">
+                            KI empfiehlt Bild {hookSuggestion.index + 1} (Score {hookSuggestion.score} · {hookSuggestion.reason})
+                          </span>
+                        )}
                       </p>
                     </div>
                   </div>
-                  {/* Bild-Vorschau: aktuell[0] vs. empfohlen */}
-                  <div className="flex items-center gap-2">
-                    <div className="text-center">
-                      <div className="text-[10px] text-muted-foreground mb-1">Aktuell Bild 1</div>
-                      <img
-                        src={articleImages[0]}
-                        className="w-14 h-14 object-cover rounded-lg border-2 border-muted"
-                        alt="Aktuell Bild 1"
-                      />
-                    </div>
-                    <span className="text-muted-foreground text-xs">→</span>
-                    <div className="text-center">
-                      <div className="text-[10px] text-amber-600 dark:text-amber-400 mb-1 font-semibold">Empfohlen</div>
-                      <img
-                        src={articleImages[hookSuggestion.index]}
-                        className="w-14 h-14 object-cover rounded-lg border-2 border-amber-400"
-                        alt="Empfohlenes Hook-Bild"
-                      />
-                    </div>
+
+                  {/* Alle Bilder als klickbare Thumbnails */}
+                  <div className="flex gap-2 flex-wrap">
+                    {articleImages.map((url, i) => {
+                      const isCurrentHook = i === 0
+                      const isRecommended = hookSuggestion?.index === i
+                      return (
+                        <button
+                          key={url}
+                          onClick={() => {
+                            if (i === 0) return // bereits an Position 1
+                            // Bild i nach vorne schieben
+                            setSortedImages(prev => {
+                              const next = [...prev]
+                              const [moved] = next.splice(i, 1)
+                              next.unshift(moved)
+                              return next
+                            })
+                            // Vision-Kontexte synchron neu sortieren
+                            const ctx = [...visionDescriptionsRef.current]
+                            const [movedCtx] = ctx.splice(i, 1)
+                            ctx.unshift(movedCtx)
+                            visionDescriptionsRef.current = ctx
+                          }}
+                          className={`relative shrink-0 rounded-lg overflow-hidden border-2 transition-all ${
+                            isCurrentHook
+                              ? 'border-primary ring-2 ring-primary/30 cursor-default'
+                              : isRecommended
+                              ? 'border-amber-400 ring-2 ring-amber-400/30 hover:scale-105 cursor-pointer'
+                              : 'border-muted hover:border-primary/50 hover:scale-105 cursor-pointer'
+                          }`}
+                        >
+                          <img
+                            src={url}
+                            className="w-16 h-16 object-cover"
+                            alt={`Bild ${i + 1}`}
+                          />
+                          {/* Position-Badge */}
+                          <div className={`absolute top-0.5 left-0.5 text-[10px] font-bold px-1 rounded ${
+                            isCurrentHook ? 'bg-primary text-white' : 'bg-black/60 text-white'
+                          }`}>
+                            {isCurrentHook ? '★1' : i + 1}
+                          </div>
+                          {/* Empfohlen-Badge */}
+                          {isRecommended && !isCurrentHook && (
+                            <div className="absolute bottom-0.5 right-0.5 text-[9px] font-bold bg-amber-500 text-white px-1 rounded">
+                              KI
+                            </div>
+                          )}
+                        </button>
+                      )
+                    })}
                   </div>
-                  <div className="flex gap-2">
+
+                  {/* Aktuelle Auswahl + Buttons */}
+                  <div className="flex items-center gap-2 pt-1 border-t border-primary/10">
+                    <div className="text-xs text-muted-foreground flex-1">
+                      Hook-Bild: <span className="font-semibold text-foreground">Bild 1 (aktuell oben links)</span>
+                    </div>
                     <Button
                       size="sm"
-                      className="flex-1 bg-amber-500 hover:bg-amber-600 text-white"
-                      onClick={() => {
-                        // Bild an hookSuggestion.index nach vorne schieben
-                        setSortedImages(prev => {
-                          const next = [...prev]
-                          const [moved] = next.splice(hookSuggestion.index, 1)
-                          next.unshift(moved)
-                          return next
-                        })
-                        // Vision-Beschreibungen auch neu sortieren (Bild 0 ↔ empfohlenes Bild tauschen)
-                        const ctx = [...visionDescriptionsRef.current]
-                        const [movedCtx] = ctx.splice(hookSuggestion.index, 1)
-                        ctx.unshift(movedCtx)
-                        visionDescriptionsRef.current = ctx
-                        runKiGeneration(ctx)
-                      }}
+                      onClick={() => runKiGeneration(visionDescriptionsRef.current)}
                     >
-                      ✅ Übernehmen &amp; KI starten
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => {
-                        setHookSuggestion(null)
-                        setWaitingForHookDecision(false)
-                        // Mit den gespeicherten Vision-Beschreibungen (original Reihenfolge) weitermachen
-                        runKiGeneration(visionDescriptionsRef.current)
-                      }}
-                    >
-                      ✗ Ignorieren
+                      <Sparkles className="w-3 h-3 mr-1" />
+                      KI starten
                     </Button>
                   </div>
                 </div>
