@@ -108,7 +108,7 @@ export function ContentSelector({ onSelect, selected = [] }: ContentSelectorProp
 
   const [search, setSearch] = useState('')
   const [activeTab, setActiveTab] = useState<'posts' | 'articles'>('posts')
-  const [postSubTab, setPostSubTab] = useState<'notes' | 'media'>('notes')
+  const [postSubTab, setPostSubTab] = useState<'notes' | 'media'>('media')
   const [articleSubTab, setArticleSubTab] = useState<'reports' | 'places' | 'trips'>('reports')
 
   // ── Lade alle Inhalte ═════════════════════════════════
@@ -446,15 +446,8 @@ export function ContentSelector({ onSelect, selected = [] }: ContentSelectorProp
         {/* ═══════════ POSTS TAB ═══════════ */}
         <TabsContent value="posts" className="mt-3 space-y-3">
 
-          {/* Sub-Tabs: Notes / Medien */}
+          {/* Sub-Tabs: Medien / Notes */}
           <div className="flex gap-2 border-b pb-2">
-            <SubTabButton
-              active={postSubTab === 'notes'}
-              onClick={() => setPostSubTab('notes')}
-              icon={<MessageSquare className="w-3.5 h-3.5" />}
-              label="Notes"
-              count={filteredNotes.length}
-            />
             <SubTabButton
               active={postSubTab === 'media'}
               onClick={() => setPostSubTab('media')}
@@ -462,18 +455,14 @@ export function ContentSelector({ onSelect, selected = [] }: ContentSelectorProp
               label="Medien"
               count={filteredMedia.length}
             />
-          </div>
-
-          {/* Notes Liste */}
-          {postSubTab === 'notes' && (
-            <ContentList
-              items={filteredNotes}
-              checkedIds={checkedIds}
-              onToggle={handleToggle}
-              emptyText="Keine Notes gefunden"
-              emptyHint='Poste Notes mit #note oder #notiz Tag'
+            <SubTabButton
+              active={postSubTab === 'notes'}
+              onClick={() => setPostSubTab('notes')}
+              icon={<MessageSquare className="w-3.5 h-3.5" />}
+              label="Notizen"
+              count={filteredNotes.length}
             />
-          )}
+          </div>
 
           {/* Medien Liste */}
           {postSubTab === 'media' && (
@@ -483,6 +472,17 @@ export function ContentSelector({ onSelect, selected = [] }: ContentSelectorProp
               onToggle={handleToggle}
               emptyText="Keine Medien gefunden"
               emptyHint='Poste Medien mit #medien, #media, #bilder oder #images Tag'
+            />
+          )}
+
+          {/* Notes Liste */}
+          {postSubTab === 'notes' && (
+            <ContentList
+              items={filteredNotes}
+              checkedIds={checkedIds}
+              onToggle={handleToggle}
+              emptyText="Keine Notes gefunden"
+              emptyHint='Poste Notes mit #note oder #notiz Tag'
             />
           )}
         </TabsContent>
