@@ -298,8 +298,11 @@ export function generateTikTokUserPrompt({
       '\n\n' +
       'PFLICHT: bodyLines[0] = Satz ZU Bild 1, bodyLines[1] = Satz ZU Bild 2, usw.\n' +
       'Die Reihenfolge ist ABSOLUT. Nicht interpretieren, nicht tauschen.\n' +
-      'Schreibe aus dem INNENLEBEN: was denkt/fuehlt/riecht Mojo oder Susanne bei diesem Bild?\n' +
-      'NICHT: beschreibe was auf dem Bild zu sehen ist (das weiss der Zuschauer selbst).'
+      'Schreibe aus dem INNENLEBEN (was denkt/fuehlt/riecht Mojo oder Susanne) –\n' +
+      'aber nimm das konkrete Bild-Detail als Anker.\n' +
+      'NICHT: reine Bildbeschreibung ("Die Sonne geht unter.")\n' +
+      'NICHT: Innenleben ohne Bildbezug ("Wir bleiben. Der Koerper fragt nicht mehr.")\n' +
+      'RICHTIG: "Der Atlantik haelt uns fest – noch eine Nacht." (Bild-Stimmung + Innenleben)'
     : ''
 
   return 'Erstelle ' + plat.label + '-Texte fuer diesen Vanlife-Artikel im Foster-Huntington-Stil.\n\n' +
