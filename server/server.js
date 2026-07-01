@@ -2254,6 +2254,8 @@ musicUrl,
     ambientType,               // 'ocean' | 'rain' | 'wind' | 'fire' | 'forest' (optional)
     // ── Metadaten für History ────────────────────────────────────────────
     hookText,              // Hook-Text für History-Anzeige (optional)
+    // ── Plattform (Caption safe zone) ────────────────────────────────────
+    platform = 'tiktok',  // 'tiktok' | 'reels' | 'youtube'
   } = req.body
 
   // Validierung
@@ -2285,7 +2287,7 @@ musicUrl,
     hashtags: [],
   })
 
-  console.log(`[Remotion] Job ${jobId} erstellt: ${imageUrls.length} Bilder, ${aspectRatio}, ${lifestyle}`)
+  console.log(`[Remotion] Job ${jobId} erstellt: ${imageUrls.length} Bilder, ${aspectRatio}, platform=${platform}, voiceover=${!!(voiceoverSegments || voiceoverText)}`)
   res.json({ jobId, imageCount: imageUrls.length, aspectRatio })
 
   // Async rendern (non-blocking)
@@ -2334,6 +2336,7 @@ musicUrl,
         filmGrain,
         captions,
         captionStyle,
+        platform: platform || 'tiktok',
         websiteUrl,
         handle,
         accentColor,
