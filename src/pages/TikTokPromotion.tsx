@@ -507,7 +507,7 @@ export function TikTokPromotion() {
           text: cleanText,
           template,
           model: aiModel,
-          imageCount: Math.min(articleImages.length, 8),
+          imageCount: articleImages.length,
           voiceoverEnabled,
           platform,
           // Vision-Beschreibungen pro Bild in sortierter Reihenfolge
