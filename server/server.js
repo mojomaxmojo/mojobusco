@@ -2620,27 +2620,35 @@ app.post('/api/tiktok/analyze-images', async (req, res) => {
   console.log(`[Vision] Analysiere ${maxImages} Bilder...`)
   const startTime = Date.now()
 
-  // Alle Bilder parallel analysieren
-  // Bilder mit existingContexts (imeta alt-Tag) überspringen – bereits beschrieben
-  const tasks = imageUrls.slice(0, maxImages).map(async (url, i) => {
-    // Wenn bereits ein guter Kontext vorhanden → Vision überspringen
+  // Bilder sequenziell analysieren (nicht parallel) – verhindert Groq Rate-Limit bei vielen Bildern
+  // 300ms Pause zwischen den Requests reicht fuer Groq (1000 req/min Limit)
+  const descriptions = []
+  for (let i = 0; i < maxImages; i++) {
+    const url = imageUrls[i]
     const existing = existingContexts[i]
+
+    // Vorhandener Kontext → ueberspringen
     if (existing && existing.trim() && existing.trim().length > 10) {
       console.log(`[Vision] Bild ${i + 1}: übersprungen (vorhandener Kontext: "${existing.substring(0, 40)}")`)
-      return existing
+      descriptions.push(existing)
+      continue
     }
 
-    // Video-URLs überspringen (Vision kann keine Videos analysieren)
+    // Video-URLs überspringen
     if (/\.(mp4|webm|mov|avi|mkv)(\?|#|$)/i.test(url)) {
       console.log(`[Vision] Bild ${i + 1}: Video übersprungen`)
-      return existingContexts[i] || 'Video-Clip'
+      descriptions.push(existingContexts[i] || 'Video-Clip')
+      continue
     }
 
     const desc = await analyzeOneImage(url)
-    return desc || existingContexts[i] || ''
-  })
+    descriptions.push(desc || existingContexts[i] || '')
 
-  const descriptions = await Promise.all(tasks)
+    // 300ms Pause zwischen Requests – Groq Rate-Limit-Schutz
+    if (i < maxImages - 1) {
+      await new Promise(resolve => setTimeout(resolve, 300))
+    }
+  }
   const duration = Date.now() - startTime
 
   // Log: Zusammenfassung
