@@ -2708,7 +2708,7 @@ app.post('/api/tiktok/generate-text', async (req, res) => {
         { role: 'system', content: FOSTER_HUNTINGTON_SYSTEM_PROMPT },
         { role: 'user', content: userPrompt }
       ],
-      max_tokens: 900,   // erhöht: neuer Prompt ist detaillierter (Hook-Mechaniken, Retention-Bogen)
+      max_tokens: Math.min(2000, 600 + imageCount * 80), // dynamisch: 1 Bild=680, 5=1000, 20=2000
       temperature: 0.8,
       top_p: 0.9
     }, {
