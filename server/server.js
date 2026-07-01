@@ -2254,6 +2254,8 @@ musicUrl,
     ambientType,               // 'ocean' | 'rain' | 'wind' | 'fire' | 'forest' (optional)
     // ── Metadaten für History ────────────────────────────────────────────
     hookText,              // Hook-Text für History-Anzeige (optional)
+    // ── Plattform (Caption safe zone) ────────────────────────────────────
+    platform = 'tiktok',  // 'tiktok' | 'reels' | 'youtube'
   } = req.body
 
   // Validierung
@@ -2285,7 +2287,7 @@ musicUrl,
     hashtags: [],
   })
 
-  console.log(`[Remotion] Job ${jobId} erstellt: ${imageUrls.length} Bilder, ${aspectRatio}, ${lifestyle}`)
+  console.log(`[Remotion] Job ${jobId} erstellt: ${imageUrls.length} Bilder, ${aspectRatio}, platform=${platform}, voiceover=${!!(voiceoverSegments || voiceoverText)}`)
   res.json({ jobId, imageCount: imageUrls.length, aspectRatio })
 
   // Async rendern (non-blocking)
@@ -2334,6 +2336,7 @@ musicUrl,
         filmGrain,
         captions,
         captionStyle,
+        platform: platform || 'tiktok',
         websiteUrl,
         handle,
         accentColor,
@@ -2705,7 +2708,7 @@ app.post('/api/tiktok/generate-text', async (req, res) => {
         { role: 'system', content: FOSTER_HUNTINGTON_SYSTEM_PROMPT },
         { role: 'user', content: userPrompt }
       ],
-      max_tokens: 900,   // erhöht: neuer Prompt ist detaillierter (Hook-Mechaniken, Retention-Bogen)
+      max_tokens: 1800,  // max 8 bodyLines × ~20 Woerter + hook/bridge/cta/hashtags
       temperature: 0.8,
       top_p: 0.9
     }, {
@@ -2717,8 +2720,13 @@ app.post('/api/tiktok/generate-text', async (req, res) => {
       timeout: 45000
     })
 
-    const rawText = response.data.choices[0].message.content
-    console.log(`[TikTok] KI-Antwort erhalten (${rawText.length} Zeichen)`)
+    const rawText = response.data.choices?.[0]?.message?.content
+    if (!rawText) {
+      const reason = response.data.choices?.[0]?.finish_reason || 'unknown'
+      console.error(`[TikTok] KI-Antwort leer (finish_reason: ${reason}), volle Response:`, JSON.stringify(response.data).substring(0, 500))
+      return res.status(500).json({ error: `KI-Antwort leer (finish_reason: ${reason}). Bitte erneut versuchen.` })
+    }
+    console.log(`[TikTok] KI-Antwort erhalten (${rawText.length} Zeichen, finish_reason: ${response.data.choices?.[0]?.finish_reason})`)
 
     // JSON aus Antwort parsen
     let result

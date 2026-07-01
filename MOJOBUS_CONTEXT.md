@@ -1088,3 +1088,60 @@ function getApiBaseUrl(): string {
 | `aa82fcf` | Audio-Loading repariert (oncanplay statt sofort play()) |
 | `7b291b5` | crossOrigin entfernt (NS_BINDING_ABORTED) |
 | `2b3a65c` | Musik-URL auf /server/music/ korrigiert |
+
+## 📋 Session 29.06.2026 – nach Revert auf 87758dc
+
+**Revert-Hintergrund:** Der gesamte Feature-Code (Hook-Score, Bild-Empfehlung, Hook-Banner, Vision-Analyse-Flow) zwischen 87758dc und d4c3ae6 wurde rückgängig gemacht. Nur drei Änderungen wurden nach dem Revert neu eingebracht:
+
+### Änderung 1: Audio fadeIn sofort hörbar
+**Commit:** `894ebe1`
+
+| Datei | Änderung |
+|-------|----------|
+| `server/remotion/MojoBusVideo.tsx` | Musik `fadeInSec`: 2s → 0.3s |
+| `server/remotion/MojoBusVideo.tsx` | Atmo `fadeInSec`: 3s → 0.5s |
+
+Musik ist bei Sekunde 0.3 bereits auf voller Lautstärke, Atmo bei 0.5s. Voiceover bleibt bei 0.1s.
+
+### Änderung 2: Hybrid-Prompt (tiktok.js)
+**Commit:** `1000d81`
+
+**Problem:** Der Prompt sagte "Schreibe aus dem INNENLEBEN" + "NICHT: beschreibe was auf dem Bild zu sehen ist" – ein Widerspruch der die KI dazu brachte, Vision-Beschreibungen komplett zu ignorieren und freie Foster-Prosa ohne Bildbezug zu schreiben.
+
+**Fix im `bildOrientierung`-Block von `generateTikTokUserPrompt()`:**
+
+| Alte Zeile | Neue Formulierung |
+|------------|------------------|
+| `Schreibe aus dem INNENLEBEN...` | `Schreibe aus dem INNENLEBEN – aber nimm das konkrete Bild-Detail als Anker.` |
+| `NICHT: beschreibe was auf dem Bild zu sehen ist` | `NICHT: reine Bildbeschreibung ("Die Sonne geht unter.")` |
+| – | `NICHT: Innenleben ohne Bildbezug ("Wir bleiben.")` |
+| – | `RICHTIG: "Der Atlantik haelt uns fest – noch eine Nacht."` |
+
+Foster-Stil (poetisch, roh, Innenleben) bleibt erhalten. Neu: das Bild-Detail wird als **Anker** genutzt – kein Widerspruch mehr zwischen Vision-Beschreibung und Text.
+
+**Restlicher Prompt unverändert:** System-Prompt, 5 Hook-Mechaniken, Retention-Bogen, Plattform-Config, Voiceover-Regeln, Template-Config.
+
+### Änderung 3: ContentSelector – Button-Reihenfolge
+**Commit:** `51c562c`
+
+| Datei | Änderung |
+|-------|----------|
+| `src/components/pin/ContentSelector.tsx` | Default Sub-Tab: `'notes'` → `'media'` |
+| `src/components/pin/ContentSelector.tsx` | Button-Reihenfolge getauscht: **Medien** (1.) + **Notizen** (2.) |
+| `src/components/pin/ContentSelector.tsx` | Label: `"Notes"` → `"Notizen"` |
+
+### Betroffene Dateien dieser Session
+
+| Datei | Änderung |
+|-------|----------|
+| `server/remotion/MojoBusVideo.tsx` | Musik fadeInSec 0.3s, Atmo fadeInSec 0.5s |
+| `src/config/prompts/tiktok.js` | Hybrid-Prompt – Bild-Detail als Anker, Innenleben als Stimme |
+| `src/components/pin/ContentSelector.tsx` | Medien als Standard, Notizen an 2. Stelle |
+
+### Commits dieser Session
+
+| Hash | Beschreibung |
+|------|-------------|
+| `894ebe1` | Audio: Musik fadeInSec 0.3s, Atmo 0.5s |
+| `1000d81` | Hybrid-Prompt: Bild-Detail als Anker + Innenleben als Stimme |
+| `51c562c` | ContentSelector: Medien Default, Notizen 2. Stelle |
