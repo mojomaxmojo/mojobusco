@@ -2708,7 +2708,7 @@ app.post('/api/tiktok/generate-text', async (req, res) => {
         { role: 'system', content: FOSTER_HUNTINGTON_SYSTEM_PROMPT },
         { role: 'user', content: userPrompt }
       ],
-      max_tokens: 900,   // erhöht: neuer Prompt ist detaillierter (Hook-Mechaniken, Retention-Bogen)
+      max_tokens: 1200,  // Hook-First Prompt + Foster-Rhythmus braucht mehr Output-Raum
       temperature: 0.8,
       top_p: 0.9
     }, {
@@ -2720,8 +2720,13 @@ app.post('/api/tiktok/generate-text', async (req, res) => {
       timeout: 45000
     })
 
-    const rawText = response.data.choices[0].message.content
-    console.log(`[TikTok] KI-Antwort erhalten (${rawText.length} Zeichen)`)
+    const rawText = response.data.choices?.[0]?.message?.content
+    if (!rawText) {
+      const reason = response.data.choices?.[0]?.finish_reason || 'unknown'
+      console.error(`[TikTok] KI-Antwort leer (finish_reason: ${reason}), volle Response:`, JSON.stringify(response.data).substring(0, 500))
+      return res.status(500).json({ error: `KI-Antwort leer (finish_reason: ${reason}). Bitte erneut versuchen.` })
+    }
+    console.log(`[TikTok] KI-Antwort erhalten (${rawText.length} Zeichen, finish_reason: ${response.data.choices?.[0]?.finish_reason})`)
 
     // JSON aus Antwort parsen
     let result
