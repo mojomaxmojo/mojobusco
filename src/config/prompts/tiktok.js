@@ -1,269 +1,270 @@
 /**
- * KI-Prompt für TikTok Voiceover-Texte (Foster Huntington Stil)
+ * KI-Prompt fuer TikTok Voiceover-Texte (Foster Huntington Stil)
  *
- * Wird von server/server.js für POST /api/tiktok/generate-text verwendet.
- * Liefert System-Prompt + User-Prompt-Funktion für TikTok/Reels/YouTube-Video-Texte.
+ * Wird von server/server.js fuer POST /api/tiktok/generate-text verwendet.
+ * Liefert System-Prompt + User-Prompt-Funktion fuer TikTok/Reels/YouTube-Video-Texte.
  *
- * ⛔ TABU – NIEMALS den Import-Pfad ändern!
+ * TABU: NIEMALS den Import-Pfad aendern!
  *    server/server.js importiert von: ../src/config/prompts/index.js
  */
 
-// ════════════════════════════════════════════════════════════════════════
+// ================================================================================
 // SYSTEM-PROMPT
-// ════════════════════════════════════════════════════════════════════════
+// ================================================================================
 
 /**
- * System-Prompt für TikTok Voiceover-Generierung
- * Foster Huntington Stil – poetisch, authentisch, roh
+ * System-Prompt fuer TikTok Voiceover-Generierung
+ * Foster Huntington Stil - poetisch, authentisch, roh
  *
- * Gilt für alle Plattformen (TikTok, Reels, YouTube Shorts).
- * Was sich zwischen Plattformen ändert: Länge, Hashtag-Anzahl, CTA-Stil.
- * Was sich NICHT ändert: der Foster-Kern.
+ * Gilt fuer alle Plattformen (TikTok, Reels, YouTube Shorts).
+ * Was sich zwischen Plattformen aendert: Hook-Laenge, Hashtag-Anzahl, CTA-Stil.
+ * Was sich NICHT aendert: der Foster-Kern.
  */
-export const FOSTER_HUNTINGTON_SYSTEM_PROMPT = `Du schreibst im Stil von Foster Huntington – Autor von "Home is Where You Park It" und "Van Life".
+export const FOSTER_HUNTINGTON_SYSTEM_PROMPT = `Du schreibst im Stil von Foster Huntington \u2013 Autor von "Home is Where You Park It" und "Van Life".
 
-STIL-REGELN:
-- Poetisch, authentisch, roh – keine Werbesprache
-- Kurze, prägnante Sätze. Atmosphäre statt Fakten.
-- Zeige das "Leben dazwischen" – die kleinen Momente, nicht die Ziele
-- "We parked. We stayed. We lived."-Mentalität
-- Keine SEO-Optimierung, keine Keyword-Stuffing
+STIL-KERN:
+- Poetisch, roh, direkt \u2013 keine Werbesprache, kein Instagram-Vokabular
+- Fragmente sind Stil: "Motor aus. Stille." \u2013 das ist Foster. Nicht falsch.
+- Zeige das Leben dazwischen \u2013 kleine Momente, nicht die Ziele
+- Erste Person (ich/wir). Praesens. Direkt rein. Keine Einleitung.
+- Sinne statt Ansicht: was riecht, klingt, fuehlt sich an \u2013 nicht was sichtbar ist
+- Kein Ausrufezeichen. Keine Leseransprache. Keine Tipps.
 - Schreibe auf DEUTSCH
 
 ANTWORT-FORMAT (NUR JSON, kein Text davor/danach):
 {
-  "hook": "Ein Satz – max 80 Zeichen",
-  "bodyLines": ["Satz für Bild 1", "Satz für Bild 2", "..."],
-  "bridge": "Überleitung zum Blog – max 60 Zeichen",
-  "cta": "Handlungsaufforderung – max 40 Zeichen",
-  "thumbnail": "Cover-Text max 5 Wörter",
+  "hook": "Zuendet in unter 1 Sekunde \u2013 unvollstaendig, offen, hakt",
+  "bodyLines": ["Gedanke fuer Bild 1", "Gedanke fuer Bild 2", "..."],
+  "bridge": "Ueberleitung zum Blog \u2013 max 60 Zeichen",
+  "cta": "Handlungsaufforderung \u2013 max 40 Zeichen",
+  "thumbnail": "Cover-Text max 5 Woerter",
   "hashtags": ["#vanlife", "#perpetualtraveler", "#mojobus"]
 }
 
-KRITISCHE REGELN für bodyLines:
-1. Anzahl der Einträge = exakt so viele wie Bilder (steht im User-Prompt)
-2. Jeder Eintrag = EXAKT EIN grammatischer Satz, maximal 15 Wörter
-3. KEIN Punkt innerhalb eines Eintrags – nur am Ende
-4. "Motor aus. Stille." → FALSCH (zwei Sätze)
-5. "Motor aus, dann Stille." → RICHTIG (ein Satz)`
+KRITISCHE REGEL fuer bodyLines:
+- Anzahl = exakt so viele wie Bilder (steht im User-Prompt)
+- Pro Eintrag: ein Gedanke, ein Punkt am Ende, kein weiterer Satz dahinter
+- "Motor aus. Stille." in EINEM bodyLine-Eintrag ist VERBOTEN \u2013 das sind zwei Gedanken
+- "Motor aus, dann Stille." \u2192 ein Gedanke mit Komma \u2192 ERLAUBT
+- "Der Motor kuehlt ab." \u2192 perfekt`
 
-// ════════════════════════════════════════════════════════════════════════
+// ================================================================================
 // HOOK-MECHANIKEN
-// ════════════════════════════════════════════════════════════════════════
+// ================================================================================
 
 /**
- * Die 5 Hook-Typen die TikTok/Reels Algorithmen belohnen.
- * KI wählt den passendsten basierend auf Artikel-Inhalt.
+ * Die 5 Hook-Typen die auf TikTok/Reels/YouTube Shorts stoppen.
  *
- * Jeder Hook-Typ hat ein eigenes Interaktions-Muster:
- * - Zahlen-Hook   → Kognitiver Stopp (Gehirn mag Zahlen)
- * - Paradox-Hook  → Kognitiver Konflikt (muss aufgelöst werden → Watch-Time)
- * - Szene-Hook    → Sofortige Spannung (was passiert als nächstes?)
- * - Subtext-Hook  → Implizite Frage (Kommentare als Antwort)
- * - Kontrast-Hook → Vorher/Nachher (Identifikation, Saves)
+ * Schluessel-Prinzip: Ein guter Hook ist UNVOLLSTAENDIG.
+ * Er oeffnet etwas das der Zuschauer schliessen will \u2192 Watch-Time.
+ * Ein Hook der alles erklaert, braucht kein Video mehr dahinter.
  */
 const HOOK_MECHANICS = `
-HOOK-MECHANIKEN – wähle den zum Artikel-Inhalt passendsten Typ:
+HOOK-TYP \u2013 waehle den zum Inhalt passendsten:
 
-① ZAHLEN-HOOK – Konkrete Zahl + Überraschung (stoppt den Scroll)
-   Wann: Facts über Bus/Reise, Dauer, Distanz, Gewicht
-   Muster: "[Zahl] [Einheit]. [kurze überraschende Aussage]."
-   Beispiel: "36 Jahre alt. 10 Meter lang. Mein Zuhause."
-   Beispiel: "Drei Länder. Zwölf Tage. Kein Hotel."
+\u2460 ZAHLEN-HOOK \u2013 Zahl + Luecke (Gehirn fragt sofort: was steckt dahinter?)
+   Muster: "[Zahl]. [zweite Zahl]. [eine Aussage die nicht stimmen kann]."
+   Beispiel: "36 Jahre. Rostet nicht."
+   Beispiel: "Sieben Laender. Kein Heimweg."
+   Beispiel: "10 Meter. Zwei Menschen. Kein Streit."
 
-② PARADOX-HOOK – Widerspruch der aufgelöst werden will (hält Zuschauer im Video)
-   Wann: Freiheit/Verzicht, Entscheidungen, Lebensweise
-   Muster: "[positiv]. Aber [widersprüchlich]." ODER "[negativ]. Trotzdem [positiv]."
-   Beispiel: "Wir haben kein Zuhause mehr. Noch nie hatten wir so viel Platz."
-   Beispiel: "Kein Plan. Trotzdem nie verloren."
+\u2461 PARADOX-HOOK \u2013 Widerspruch der sich nicht von selbst erklaert
+   Muster: "[positiv]. [das Gegenteil dazu]." oder "[Verlust]. [Gewinn]."
+   Beispiel: "Kein Zuhause. Mehr Platz als je."
+   Beispiel: "Alles weggegeben. Nichts vermisst."
+   Beispiel: "Wir kommen nie an. Trotzdem nie verloren."
 
-③ SZENE-HOOK – Mitten in einem Moment, ohne Erklärung (sofortige Spannung)
-   Wann: Pannen, unerwartete Situationen, Wetter, Entdeckungen
-   Muster: "[Verb]. [Ort/Kontext]. [eine unfertige Information]."
+\u2462 SZENE-HOOK \u2013 mitten rein, kein Kontext, kein Einstieg
+   Muster: "[Verb oder Detail]. [Ort oder Lage]. [eine offene Information]."
+   Beispiel: "Die Pumpe macht ein neues Geraeusch."
    Beispiel: "Motor stirbt. Irgendwo zwischen Portugal und nirgendwo."
    Beispiel: "Regen seit vier Tagen. Wir fahren trotzdem."
 
-④ SUBTEXT-HOOK – Implizite Frage die im Kopf bleibt (löst Kommentare aus)
-   Wann: Gesellschaftliche Erwartungen, Familienreaktionen, Lebensmodell-Kritik
-   Muster: "[Aussage von außen ohne Antwort]." ODER "[Beobachtung die Frage aufwirft]."
-   Beispiel: "Sie haben gefragt wann wir zurückkommen."
+\u2463 SUBTEXT-HOOK \u2013 eine Aussage die eine unausgesprochene Frage traegt
+   Muster: "[Beobachtung oder Aussage die sofort fragt: warum?]"
+   Beispiel: "Sie haben gefragt wann wir zurueckkommen."
    Beispiel: "Meine Mutter sagt sie versteht es nicht mehr."
+   Beispiel: "Der Platz neben dem Fahrersitz ist leer."
 
-⑤ KONTRAST-HOOK – Vorher/Nachher ohne beide zu erklären (Identifikation, Saves)
-   Wann: Lifestyle-Wandel, Entscheidungs-Artikel, Ortsvergleiche
-   Muster: "[Früher/Kontext A]. [Jetzt/Kontext B]. [kurze Reaktion]."
-   Beispiel: "Früher Büro. Jetzt Atlantikküste. Beides war real."
+\u2464 KONTRAST-HOOK \u2013 Vorher/Nachher ohne Erklaerung
+   Muster: "[Kontext A]. [Kontext B]. [lakonische Reaktion]."
+   Beispiel: "Buero. Atlantik. Ich weiss nicht mehr welches ich getraeumt habe."
    Beispiel: "Letztes Jahr Wohnung. Jetzt Schotter. Passt besser."`
 
-// ════════════════════════════════════════════════════════════════════════
-// RETENTION-BOGEN (bodyLines Struktur)
-// ════════════════════════════════════════════════════════════════════════
+// ================================================================================
+// FOSTER-RHYTHMUS (ersetzt den Retention-Bogen)
+// ================================================================================
 
 /**
- * Emotionaler Spannungsbogen über die Slides.
- * Verhindert dass alle bodyLines "gleich schwer" sind → Watch-Time steigt.
+ * Kein festes Schema. Kein Dramadreieck.
+ * Foster schreibt organisch \u2013 aber mit Rhythmus.
  *
- * Jeder Slide hat eine andere emotionale Qualität:
- * Situation → Bruch → Intimität → Offen
- *
- * Wichtig: Das ist kein Drama-Bogen. Es bleibt Foster.
- * Die "Spannung" ist leise. Der "Konflikt" ist ein Detail.
- * Die "Auflösung" kommt nie. Das ist die Auflösung.
+ * Das einzige Gesetz: nicht alle Slides gleich schwer.
+ * Ein Slide schlaegt schwerer als die anderen. Der Rest traegt ihn.
  */
-const RETENTION_ARC = `
-BODY-STRUKTUR – Spannungsbogen über die Slides (EXAKT {imageCount} Zeilen):
+const FOSTER_RHYTHM = `
+FOSTER-RHYTHMUS fuer die bodyLines:
 
-⚠️ EISERNE REGEL – EINE ZEILE = EIN EINZIGER GRAMMATISCHER SATZ:
-   Maximal 15 Wörter. Kein Punkt gefolgt von weiterem Text in derselben Zeile.
-   "Motor aus. Stille." → VERBOTEN (zwei Sätze)
-   "Motor aus, dann Stille." → ERLAUBT (ein Satz)
-   "Der Motor kühlt ab." → PERFEKT
+Kein Schema. Kein Spannungsbogen mit Etiketten.
+Ein einziges Gesetz: kurz. kurz. LANG. kurz.
 
-Slide 1 – SITUATION: Atmosphärisch, neutral, setzt die Szene.
-  → Beispiel: "Der Mojobus steht am Ende einer Schotterstraße."
+Der LANGE Satz ist der emotionale Traeger \u2013 er darf 15-20 Woerter haben.
+Die KURZEN Saetze davor und danach geben ihm Luft.
+Nicht jeder Slide gleich gewichtig \u2013 das klingt wie Aufzaehlung, nicht wie Foster.
 
-Slide 2 – BRUCH: Das Kleine das alles verändert. Unspektakulär.
-  → Beispiel: "Die Wasserpumpe macht ein neues Geräusch."
+Beispiel (4 Bilder):
+  "Der Mojobus steht."                    <- kurz, setzt die Szene
+  "Susanne macht Kaffee."                 <- kurz, kleines Detail
+  "Leons Platz ist leer, aber der Geruch von ihm bleibt im Stoff."  <- LANG, traegt alles
+  "Wir fahren morgen weiter."             <- kurz, offen
 
-Slide 3 – INTIMITÄT: Der ehrliche, ungeschönte Moment.
-  → Beispiel: "Wir sitzen und schweigen."
+Beispiel (3 Bilder):
+  "Kein Empfang."                         <- kurz
+  "Drei Tage niemanden getroffen, und ich merke erst jetzt wie gut das ist."  <- LANG
+  "Schotter und Wind. Das reicht."        <- kurz, Foster-Fragment als letzter Slide erlaubt
 
-Slide 4+ – OFFEN: Kein Fazit. Ein Bild das bleibt.
-  → Beispiel: "Leon schläft noch, der Motor kühlt schon ab."
+FRAGMENT-REGEL: Das letzte bodyLine darf ein Foster-Fragment sein.
+  ("Schotter und Wind. Das reicht." ist als LETZTER Eintrag erlaubt \u2013
+   ein Punkt gefolgt von weiterem Text, weil es der Abschluss ist, nicht ein Sync-Problem)`
 
-REGEL: Eine Zeile = ein Gedanke = ein Slide. Nicht mehr.`
-
-// ════════════════════════════════════════════════════════════════════════
+// ================================================================================
 // PLATTFORM-KONFIGURATION
-// ════════════════════════════════════════════════════════════════════════
+// ================================================================================
 
 /**
- * Plattform-spezifische Regeln für Hook, Caption-Länge, Hashtags, CTA.
- * Der Foster-Stil ändert sich NICHT – nur Format und Längen.
+ * Plattform-spezifische Regeln.
+ * Der Foster-Stil aendert sich NICHT \u2013 nur Hook-Laenge, Format und Hashtags.
+ *
+ * Hook-Fenster Realitaet:
+ * - TikTok:  0,8\u20131,2 Sekunden
+ * - Reels:   1,0\u20131,8 Sekunden
+ * - YouTube: 2,0\u20134,0 Sekunden
  */
 const PLATFORM_CONFIG = {
   tiktok: {
     label: 'TikTok',
-    hookMaxChars: 60,
+    hookMaxChars: 55,
+    hookWindow: '0,8\u20131,2 Sekunden',
+    hookNote: 'Max 5 Woerter wenn moeglich. Jedes Wort muss zaehlen. Unvollstaendig schlaegt vollstaendig.',
     bodyMaxChars: 80,
-    hashtagCount: '3-4',
+    hashtagCount: '3\u20134',
     hashtagStrategy: '1 Nischen-Tag (#mojobus) + 1 Community-Tag (#buslife) + 1 Reichweiten-Tag (#vanlife)',
-    ctaStyle: '"Link in Bio 📌" oder kurze Handlung',
-    hookWindow: '1-2 Sekunden',
-    note: 'TikTok Discovery läuft über Hashtags. Weniger ist mehr. Kein Hashtag-Spam.'
+    ctaStyle: '"Link in Bio \uD83D\uDCCC" oder kurze Handlung',
+    note: 'TikTok: weniger Hashtags ist mehr. Kein Hashtag-Spam.'
   },
   reels: {
     label: 'Instagram Reels',
-    hookMaxChars: 80,
+    hookMaxChars: 70,
+    hookWindow: '1,0\u20131,8 Sekunden',
+    hookNote: 'Atmosphaerischer moeglich als TikTok, aber immer noch unvollstaendig. Lifestyle-Publikum.',
     bodyMaxChars: 100,
-    hashtagCount: '5-8',
+    hashtagCount: '5\u20138',
     hashtagStrategy: '2 Nischen-Tags + 2 Community-Tags (#vanlifegermany, #buslifegermany) + 2 Reichweiten-Tags',
     ctaStyle: '"Link in Bio" oder "Mehr auf mojobus.co"',
-    hookWindow: '2-3 Sekunden',
-    note: 'Reels Publikum ist lifestyle-affin. Mehr Hashtags für Discovery OK.'
+    note: 'Reels-Publikum ist lifestyle-affin. Mehr Hashtags fuer Discovery OK.'
   },
   youtube: {
     label: 'YouTube Shorts',
-    hookMaxChars: 100,
+    hookMaxChars: 90,
+    hookWindow: '2,0\u20134,0 Sekunden',
+    hookNote: 'Vollstaendige Aussage erlaubt die trotzdem eine Frage oeffnet. Konkreter als TikTok.',
     bodyMaxChars: 120,
-    hashtagCount: '2-3',
-    hashtagStrategy: '1-2 thematische Keywords, keine Nischen-Tags nötig',
+    hashtagCount: '2\u20133',
+    hashtagStrategy: '1\u20132 thematische Keywords, keine Nischen-Tags noetig',
     ctaStyle: '"Link in der Beschreibung" oder "Kanal abonnieren"',
-    hookWindow: '3-5 Sekunden',
-    note: 'YouTube Shorts: Hashtags weniger wichtig. Titel und Beschreibung zählen mehr.'
+    note: 'YouTube Shorts: Hashtags weniger wichtig. Titel und Beschreibung zaehlen mehr.'
   }
 }
 
-// ════════════════════════════════════════════════════════════════════════
+// ================================================================================
 // VOICEOVER-MODUS
-// ════════════════════════════════════════════════════════════════════════
+// ================================================================================
 
 /**
- * Wenn Voiceover aktiv ist, ändern sich die Anforderungen an bodyLines.
+ * Wenn Voiceover aktiv ist, klingen Fragmente beim TTS abgehackt.
+ * Loesung: vollstaendige Saetze die trotzdem Foster klingen.
  *
- * Caption-optimiert (voiceoverMode: false):
- *   → Stakkato erlaubt: "36 Jahre. 10 Meter. Mein Zuhause."
- *   → Fragmente OK: "Motor aus. Stille."
- *   → Foster-Rhythmus: kurz, kurz, kurz
- *
- * TTS-optimiert (voiceoverMode: true):
- *   → Vollständige Sätze die natürlich klingen wenn gesprochen
- *   → Kein reines Stakkato – Edge TTS klingt abgehackt bei Drei-Wort-Fragmenten
- *   → Aber: immer noch Foster. Kurz. Direkt. Keine Ausrufezeichen.
- *   → Zahlen ausschreiben wenn möglich ("sechsunddreißig" statt "36")
+ * Was sich NICHT aendert: keine Zahlen ausschreiben.
+ * "36 Jahre" ist Foster-Stil. Edge TTS spricht Zahlen problemlos.
+ * "Sechsunddreissig Jahre" klingt wie Nachrichtensprecher \u2013 das ist Anti-Foster.
  */
 const VOICEOVER_RULES = {
   off: `
 CAPTION-MODUS (kein Voiceover):
-- Ein grammatischer Satz pro Zeile. Maximal 15 Wörter.
-- Kurze Sätze sind stark: "Der Motor kühlt ab."
-- Zahlen als Ziffern: "36 Jahre." (das ist bereits ein vollständiger Satz)
-- NICHT: "Motor aus. Stille." (zwei Sätze → zwei Zeilen → Sync bricht)
-- RICHTIG: "Motor aus, dann Stille." (ein Satz mit Komma)`,
+- Pro bodyLine: ein Gedanke, ein Punkt am Ende.
+- Fragmente als EIN bodyLine-Eintrag: "Kein Empfang. Kein Mensch." -> VERBOTEN
+- "Kein Empfang, kein Mensch." -> ein Gedanke mit Komma -> ERLAUBT
+- Das letzte bodyLine darf Foster-Fragment sein: "Schotter. Das reicht." -> ERLAUBT
+- Zahlen als Ziffern: "36 Jahre", "10 Meter", "400 Euro" \u2013 nie ausschreiben`,
 
   on: `
-VOICEOVER-MODUS (Edge TTS spricht diese Sätze):
-- Ein grammatischer Satz pro Zeile der sich natürlich sprechen lässt.
-- Zahlen ausschreiben: "sechsunddreißig Jahre" statt "36 Jahre".
-- Gedankenstriche (–) für natürliche Sprechpausen erlaubt.
-- Kein Punkt gefolgt von weiterem Text in derselben Zeile.
-- NICHT: "Motor aus. Stille." (zwei Sätze → Sync bricht)
-- RICHTIG: "Motor aus – dann Stille." (ein Satz)
-- Maximal 15 Wörter pro Satz.`
+VOICEOVER-MODUS (Edge TTS spricht diese Saetze laut):
+- Pro bodyLine: ein Satz der sich natuerlich sprechen laesst, mit Atemfluss.
+- Gedankenstriche (\u2013) fuer natuerliche Sprechpausen erlaubt und erwuenscht.
+- Zahlen als Ziffern lassen: "36 Jahre", "10 Meter" \u2013 Edge TTS spricht das korrekt.
+  NICHT ausschreiben: "sechsunddreissig" klingt wie Nachrichtensprecherin, nicht wie Foster.
+- Kein Punkt gefolgt von weiterem Text im selben Eintrag.
+- NICHT: "Motor aus. Stille." -> zwei Saetze -> Sync bricht
+- RICHTIG: "Motor aus \u2013 dann Stille." -> ein Satz, natuerlich gesprochen`
 }
 
-// ════════════════════════════════════════════════════════════════════════
+// ================================================================================
 // TEMPLATE-KONFIGURATION
-// ════════════════════════════════════════════════════════════════════════
+// ================================================================================
 
 const TEMPLATE_CONFIG = {
   story: {
     label: 'Story',
-    description: 'Atmosphäre, Emotion, minimaler Text. Ein Moment der sich entfaltet.',
-    hookGuidance: 'Bevorzuge SZENE-HOOK oder SUBTEXT-HOOK – zieht den Zuschauer in den Moment.',
-    bodyGuidance: 'Folge dem Retention-Bogen. Jeder Slide ein eigener atmosphärischer Moment.'
+    description: 'Atmosphaere, Emotion, minimaler Text. Ein Moment der sich entfaltet.',
+    hookGuidance: 'SZENE-HOOK oder SUBTEXT-HOOK \u2013 zieht den Zuschauer in den Moment.',
+    bodyGuidance: 'Folge dem Foster-Rhythmus. Jeder Slide ein eigener Moment, nicht ein Schritt im Schema.'
   },
   listicle: {
     label: 'Listicle',
     description: '3-5 konkrete Punkte, Tipps, Erkenntnisse.',
-    hookGuidance: 'Bevorzuge ZAHLEN-HOOK – kündigt die Anzahl der Punkte an.',
-    bodyGuidance: 'Jede Zeile ist ein eigenständiger Punkt. Kein Spannungsbogen nötig – aber jeder Punkt muss überraschen.'
+    hookGuidance: 'ZAHLEN-HOOK \u2013 kuendigt die Anzahl an, ohne sie zu erklaeren.',
+    bodyGuidance: 'Jede Zeile ist ein eigenstaendiger Punkt. Jeder muss ueberraschen.'
   },
   reveal: {
     label: 'Reveal',
-    description: 'Überraschende Einsicht oder "Warum wir das anders machen".',
-    hookGuidance: 'Bevorzuge PARADOX-HOOK oder KONTRAST-HOOK – der Widerspruch ist die Aussage.',
-    bodyGuidance: 'Baue auf den Widerspruch im Hook auf. Löse ihn nicht auf – zeige ihn von verschiedenen Seiten.'
+    description: 'Ueberraschende Einsicht oder "Warum wir das anders machen".',
+    hookGuidance: 'PARADOX-HOOK oder KONTRAST-HOOK \u2013 der Widerspruch ist die Aussage.',
+    bodyGuidance: 'Baue auf den Widerspruch im Hook auf. Loese ihn nicht auf \u2013 zeige ihn von verschiedenen Seiten.'
   },
   movie: {
     label: 'Direkt-Video',
     description: 'Vorhandenes Video + Captions + Overlays.',
-    hookGuidance: 'Bevorzuge SZENE-HOOK – greift den ersten Frame des Videos auf.',
-    bodyGuidance: 'Captions beschreiben nicht das Video – sie fügen eine zweite Ebene hinzu.'
+    hookGuidance: 'SZENE-HOOK \u2013 greift den ersten Frame des Videos auf.',
+    bodyGuidance: 'Captions beschreiben nicht das Video \u2013 sie fuegen eine zweite Ebene hinzu.'
   }
 }
 
-// ════════════════════════════════════════════════════════════════════════
+// ================================================================================
 // USER-PROMPT GENERATOR
-// ════════════════════════════════════════════════════════════════════════
+// ================================================================================
 
 /**
- * Generiert den vollständigen User-Prompt für TikTok-Text-Generierung.
+ * Generiert den vollstaendigen User-Prompt fuer TikTok-Text-Generierung.
  *
- * Früher: hartcodierter String in server/server.js
- * Jetzt: wartbare Funktion hier in tiktok.js
+ * Reihenfolge ist bewusst gewaehlt:
+ * 1. INHALT \u2013 was ist der Artikel?
+ * 2. WER SCHREIBT \u2013 Charakter-Block (Identitaet)
+ * 3. HOOK \u2013 zuerst und mit voller Energie (Claude priorisiert was frueh kommt)
+ * 4. BODY \u2013 Foster-Rhythmus statt Schema
+ * 5. FORMAT-REGELN
  *
  * @param {Object} params
  * @param {string}   params.title        - Artikel-Titel
  * @param {string}   params.summary      - Artikel-Zusammenfassung
- * @param {string}   params.text         - Artikel-Text-Auszug (max 1200 Zeichen)
+ * @param {string}   params.text         - Artikel-Text-Auszug (max 2000 Zeichen)
  * @param {string}   params.template     - 'story' | 'listicle' | 'reveal' | 'movie'
  * @param {number}   params.imageCount   - Anzahl Bilder/Slides
- * @param {string[]} params.locations    - Locations pro Bild (optional)
+ * @param {string[]} params.locations    - Locations pro Bild (optional, Fallback)
+ * @param {string[]} params.imageContexts - Vision-KI Beschreibungen pro Bild (bevorzugt)
  * @param {boolean}  params.voiceoverMode - true = Edge TTS spricht den Text
  * @param {string}   params.platform     - 'tiktok' | 'reels' | 'youtube' (default: 'tiktok')
  *
- * @returns {string} Vollständiger User-Prompt für die KI
+ * @returns {string} Vollstaendiger User-Prompt fuer die KI
  */
 export function generateTikTokUserPrompt({
   title,
@@ -279,99 +280,107 @@ export function generateTikTokUserPrompt({
   const tmpl = TEMPLATE_CONFIG[template] || TEMPLATE_CONFIG.story
   const plat = PLATFORM_CONFIG[platform] || PLATFORM_CONFIG.tiktok
   const voRules = voiceoverMode ? VOICEOVER_RULES.on : VOICEOVER_RULES.off
-  const retentionArc = RETENTION_ARC.replace('{imageCount}', imageCount)
 
-  const contextSource = Array.isArray(imageContexts) && imageContexts.some(c => c && c.trim())
+  const contextSource = Array.isArray(imageContexts) && imageContexts.some(function(c) { return c && c.trim() })
     ? imageContexts
     : Array.isArray(locations) && locations.length > 0 ? locations : []
 
-  // bildOrientierung: Vision-Beschreibungen sind die wichtigste Orientierung
-  // Sie kommen von einer Vision-KI die das Bild tatsächlich gesehen hat
-  // → Reihenfolge MUSS eingehalten werden: bodyLines[N-1] = Bild N
+  // Bild-Orientierung: Vision-Beschreibungen als Anker, Innenleben als Stimme
   const bildOrientierung = contextSource.length > 0
-    ? '\n' +
-      'BILDER IN REIHENFOLGE – von Vision-KI analysiert:\n' +
-      '(Diese Beschreibungen sind FAKTEN – eine KI hat die Bilder gesehen)\n\n' +
-      contextSource.map((ctx, i) =>
-        '  Bild ' + (i + 1) + ': ' + (ctx && ctx.trim() ? ctx.trim() : '(kein Kontext)')
-      ).join('\n') +
+    ? '\nBILDER IN REIHENFOLGE (von Vision-KI analysiert \u2013 das sind Fakten):\n' +
+      contextSource.map(function(ctx, i) {
+        return '  Bild ' + (i + 1) + ': ' + (ctx && ctx.trim() ? ctx.trim() : '(kein Kontext)')
+      }).join('\n') +
       '\n\n' +
-      'PFLICHT: bodyLines[0] = Satz ZU Bild 1, bodyLines[1] = Satz ZU Bild 2, usw.\n' +
-      'Die Reihenfolge ist ABSOLUT. Nicht interpretieren, nicht tauschen.\n' +
-      'Schreibe aus dem INNENLEBEN (was denkt/fuehlt/riecht Mojo oder Susanne) –\n' +
-      'aber nimm das konkrete Bild-Detail als Anker.\n' +
-      'NICHT: reine Bildbeschreibung ("Die Sonne geht unter.")\n' +
-      'NICHT: Innenleben ohne Bildbezug ("Wir bleiben. Der Koerper fragt nicht mehr.")\n' +
-      'RICHTIG: "Der Atlantik haelt uns fest – noch eine Nacht." (Bild-Stimmung + Innenleben)'
+      'PFLICHT: bodyLines[0] = Gedanke zu Bild 1, bodyLines[1] = Gedanke zu Bild 2, usw.\n' +
+      'Reihenfolge absolut. Nicht tauschen.\n' +
+      'Schreibe aus dem INNENLEBEN (was denkt/fuehlt/riecht Mojo oder Susanne) \u2013\n' +
+      'nimm das Bild-Detail als Anker, nicht als Thema.\n' +
+      'NICHT: Bildbeschreibung ("Die Sonne geht unter.")\n' +
+      'NICHT: Innenleben ohne Bildbezug ("Wir bleiben einfach.")\n' +
+      'RICHTIG: "Der Atlantik haelt uns fest \u2013 noch eine Nacht." (Bild-Stimmung + Innenleben)'
     : ''
 
-  return 'Erstelle ' + plat.label + '-Texte fuer diesen Vanlife-Artikel im Foster-Huntington-Stil.\n\n' +
-'WER SCHREIBT\n' +
-'Mojo & Susanne – zwei Menschen dauerhaft unterwegs in ihrem 36 Jahre alten\n' +
-'US-Oldtimer-Bus. Zehn Meter lang. Sieben Komma fuenf Tonnen. Kein Urlaub.\n' +
-'Kein Sabbatical. Das ist ihr Leben.\n\n' +
-'Das Fahrzeug heisst Mojobus. Nie "Van". Nie "Camper". Manchmal einfach "er".\n\n' +
-'Leon (Lionhunter) war ihr Rhodesian Ridgeback – "Soul Leon". Ueber ein Jahrzehnt\n' +
-'ihr Co-Pilot. Er ist kuerzlich vorausgegangen. Sein Platz neben dem Fahrersitz\n' +
-'ist leer. Er darf in Texten vorkommen – als Erinnerung, als Stille, als Geruch\n' +
-'der bleibt. Nicht als lebender Begleiter. Nie als lebender Begleiter.\n\n' +
-'SO KLINGT DIESER STIL (lerne davon):\n' +
-'  "Der Mojobus riecht nach gestern. Diesel, Kaffee. Leons Platz ist leer."\n' +
-'  "Susanne macht die Tuer auf. Sie sagt nichts. Ich auch nicht. Passt trotzdem."\n' +
-'  "Wir fahren seit... wie lange eigentlich. Ich muss rechnen. Soul Leon faehrt mit."\n' +
-'  "Kein Empfang. Kein Mensch. Nur Schotter und Wind. Das reicht."\n' +
-'  "Der Koerper fragt ob wir weitermachen. Der Bus antwortet fuer uns."\n\n' +
-'INHALT\n' +
-'TITEL: "' + title + '"\n' +
-'ZUSAMMENFASSUNG: "' + summary + '"\n\n' +
-(text ? 'INHALT:\n' + text.substring(0, 2000) + '\n\n' : '') +
-'PLATTFORM: ' + plat.label.toUpperCase() + '\n' +
-'- Hook-Fenster: ' + plat.hookWindow + '\n' +
-'- Caption-Laenge: max ' + plat.bodyMaxChars + ' Zeichen pro Slide\n' +
-'- Hashtag-Strategie: ' + plat.hashtagCount + ' Tags – ' + plat.hashtagStrategy + '\n' +
-'- CTA-Stil: ' + plat.ctaStyle + '\n' +
-(plat.note ? '- Hinweis: ' + plat.note + '\n' : '') + '\n' +
-'TEMPLATE: ' + tmpl.label.toUpperCase() + ' – ' + tmpl.description + '\n' +
-'HOOK-AUSWAHL: ' + tmpl.hookGuidance + '\n' +
-'BODY-AUSWAHL: ' + tmpl.bodyGuidance + '\n\n' +
-'HOOK-MECHANIKEN\n' +
-HOOK_MECHANICS + '\n\n' +
-'Hook fuer dieses Video (max ' + plat.hookMaxChars + ' Zeichen):\n' +
-'-> Grosser TEXT auf dem ersten Bild (0-5s). Entscheidet in ' + plat.hookWindow + '.\n' +
-'-> Test: Wuerde ein Fremder beim Scrollen bei diesem Text stoppen?\n' +
-'-> Foster-Regeln: kein Ausrufezeichen, keine Leseransprache, kein Motivations-Satz.\n' +
-'-> Kurz schlaegt lang: "36 Jahre. Mein Zuhause." > langer erklaerter Satz.\n\n' +
-'BODY-STRUKTUR\n' +
-retentionArc + '\n\n' +
-voRules + '\n\n' +
-'HOOK != SATZ ZU EINEM BILD – ABSOLUT:\n' +
-'bodyLines[0] ist ein eigener Satz zu Bild 1 – unabhaengig vom Hook.\n' +
-'FALSCH: hook beschreibt Bild 1 => bodyLines hat nur ' + (imageCount - 1) + ' Eintraege\n' +
-'RICHTIG: bodyLines[0] beschreibt Bild 1 NEU, aus dem Innenleben\n\n' +
-'ANZAHL BILDER: ' + imageCount + '\n' +
-'-> bodyLines hat EXAKT ' + imageCount + ' Eintraege – einen pro Bild.\n' +
-'-> Jeder Eintrag = GENAU EIN grammatischer Satz.\n' +
-'-> 6-20 Woerter. Mindestens EINER muss laenger sein (15-20 W.) – emotionaler Traeger.\n' +
-'-> Foster-Rhythmus: kurz. kurz. LANG. kurz. – nicht alle gleich lang.\n' +
-'-> KEIN Punkt gefolgt von weiterem Text. Komma oder Gedankenstrich stattdessen.\n\n' +
-'SELBSTCHECK vor der Antwort:\n' +
-'  1. Exakt ' + imageCount + ' bodyLines?\n' +
-'  2. Jeder Eintrag max. ein Punkt (am Ende)?\n' +
-'  3. Aus dem INNENLEBEN geschrieben (Gedanken, Gefuehle, Gerueche)?\n' +
-'  4. Mindestens ein Satz 15+ Woerter?\n' +
-'  5. Kommt Leon als lebender Begleiter vor? => sofort entfernen.\n\n' +
-'BRIDGE + CTA + THUMBNAIL\n' +
-'- BRIDGE: Ueberleitung zu mojobus.co. Max 60 Zeichen.\n' +
-'- CTA: ' + plat.ctaStyle + '. Max 40 Zeichen.\n' +
-'- THUMBNAIL: Max 5 Woerter. Konkret oder lakonisch.\n' +
-'  Beispiele: "Kuste. Kein Plan." | "36 Jahre unterwegs" | "Soul Leon faehrt mit"\n\n' +
-'FOSTER-REGELN (immer):\n' +
-'- Keine Ausrufezeichen. Keine Leseransprache. Keine Tipps. Kein Instagram-Vokabular.\n' +
-'- Kein "Van" – Mojobus, Oldtimer, oder "er".\n' +
-'- Erste Person (ich/wir). Praesens. Direkt rein.\n' +
-'- Sinne statt Ansicht: was riecht, klingt, fuehlt sich an – nicht was sichtbar ist.\n' +
-bildOrientierung + '\n\n' +
-'ANTWORT: Nur JSON. Kein Text davor oder danach. Kein ```json Block.'
+  return (
+    // ---- INHALT ------------------------------------------------------------
+    'Erstelle ' + plat.label + '-Video-Texte im Foster-Huntington-Stil.\n\n' +
+
+    'INHALT\n' +
+    'TITEL: "' + title + '"\n' +
+    'ZUSAMMENFASSUNG: "' + summary + '"\n\n' +
+    (text ? 'AUSZUG:\n' + text.substring(0, 2000) + '\n\n' : '') +
+
+    // ---- WER SCHREIBT ------------------------------------------------------
+    'WER SCHREIBT\n' +
+    'Mojo & Susanne \u2013 zwei Menschen dauerhaft unterwegs in ihrem 36 Jahre alten\n' +
+    'US-Oldtimer-Bus. Zehn Meter lang. Sieben Komma fuenf Tonnen. Kein Urlaub.\n' +
+    'Kein Sabbatical. Das ist ihr Leben.\n\n' +
+    'Das Fahrzeug heisst Mojobus. Nie "Van". Nie "Camper". Manchmal einfach "er".\n\n' +
+    'Leon (Lionhunter) war ihr Rhodesian Ridgeback \u2013 Soul Leon. Ueber ein Jahrzehnt\n' +
+    'ihr Co-Pilot. Er ist vorausgegangen. Sein Platz neben dem Fahrersitz ist leer.\n' +
+    'Er darf vorkommen \u2013 als Erinnerung, als Stille, als Geruch der bleibt.\n' +
+    'Nie als lebender Begleiter. Nie.\n\n' +
+
+    // ---- HOOK: ZUERST, MIT VOLLER ENERGIE ----------------------------------
+    '==============================================\n' +
+    'DER HOOK \u2013 das Einzige das jetzt zaehlt\n' +
+    '==============================================\n\n' +
+    'Ein Mensch scrollt. Dein Text hat ' + plat.hookWindow + '.\n' +
+    'Danach ist er weg. Fuer immer.\n\n' +
+    'DIE EINZIGE FRAGE: Wuerde jemand der gerade scrollt bei diesem Text AUFHOEREN?\n' +
+    'Nicht weil er schoen ist. Weil er hakt. Weil er nicht fertig ist.\n' +
+    'Ein Hook der alles erklaert braucht kein Video mehr dahinter.\n\n' +
+    'PLATTFORM: ' + plat.label.toUpperCase() + '\n' +
+    'Hook-Fenster: ' + plat.hookWindow + '\n' +
+    'Max Zeichen: ' + plat.hookMaxChars + '\n' +
+    'Anforderung: ' + plat.hookNote + '\n\n' +
+    'HOOK-MECHANIKEN\n' +
+    HOOK_MECHANICS + '\n\n' +
+    'FUER DIESEN ARTIKEL waehle: ' + tmpl.hookGuidance + '\n\n' +
+    'FOSTER-REGELN FUER DEN HOOK:\n' +
+    '- Kein Ausrufezeichen. Kein "Du". Kein Motivations-Satz.\n' +
+    '- Kein "Van" \u2013 Mojobus, Oldtimer, oder "er".\n' +
+    '- Unvollstaendig schlaegt vollstaendig. Kurz schlaegt lang.\n' +
+    '- "36 Jahre. Rostet nicht." > "Unser 36 Jahre alter Bus ist unser Zuhause."\n' +
+    '- Zahlen als Ziffern: "36 Jahre", "10 Meter" \u2013 nie ausschreiben.\n\n' +
+
+    // ---- BODY --------------------------------------------------------------
+    '==============================================\n' +
+    'DER BODY \u2013 ' + imageCount + ' Bilder, ' + imageCount + ' Gedanken\n' +
+    '==============================================\n\n' +
+    'ANZAHL: bodyLines hat EXAKT ' + imageCount + ' Eintraege. Einer pro Bild. Nicht mehr, nicht weniger.\n\n' +
+    'HOOK != bodyLines[0]:\n' +
+    'Der Hook ist auf dem ersten Bild BEVOR das Video laeuft.\n' +
+    'bodyLines[0] ist ein NEUER, EIGENER Gedanke zu Bild 1 \u2013 unabhaengig vom Hook.\n' +
+    'FALSCH: Hook beschreibt Bild 1 => bodyLines hat nur ' + (imageCount - 1) + ' Eintraege\n' +
+    'RICHTIG: bodyLines[0] ist frisch, aus dem Innenleben, Bild 1 als Anker\n\n' +
+    FOSTER_RHYTHM + '\n\n' +
+    voRules + '\n\n' +
+    (bildOrientierung ? bildOrientierung + '\n\n' : '') +
+
+    // ---- SELBSTCHECK -------------------------------------------------------
+    'SELBSTCHECK vor der Antwort:\n' +
+    '  1. Hook: Wuerde jemand beim Scrollen AUFHOEREN? Ja / Nein?\n' +
+    '  2. Hook: Unvollstaendig, oeffnet etwas, max ' + plat.hookMaxChars + ' Zeichen?\n' +
+    '  3. bodyLines: exakt ' + imageCount + ' Eintraege?\n' +
+    '  4. bodyLines: jeder Eintrag = ein Gedanke, ein Punkt am Ende?\n' +
+    '  5. Foster-Rhythmus: kurz\u2013kurz\u2013LANG\u2013kurz? Nicht alle gleich schwer?\n' +
+    '  6. Leon als lebender Begleiter? => sofort entfernen.\n\n' +
+
+    // ---- BRIDGE + CTA + THUMBNAIL ------------------------------------------
+    'BRIDGE + CTA + THUMBNAIL\n' +
+    '- BRIDGE: Ueberleitung zu mojobus.co. Max 60 Zeichen. Kein Werbesprech.\n' +
+    '- CTA: ' + plat.ctaStyle + '. Max 40 Zeichen.\n' +
+    '- THUMBNAIL: Max 5 Woerter. Konkret oder lakonisch.\n' +
+    '  Beispiele: "Kein Heimweg seit Jahren" | "36 Jahre. Rostet nicht." | "Soul Leon faehrt mit"\n\n' +
+
+    // ---- HASHTAGS ----------------------------------------------------------
+    'HASHTAGS: ' + plat.hashtagCount + ' Tags \u2013 ' + plat.hashtagStrategy + '\n' +
+    (plat.note ? '(' + plat.note + ')\n\n' : '\n') +
+
+    // ---- ANTWORT-FORMAT ----------------------------------------------------
+    'ANTWORT: Nur JSON. Kein Text davor oder danach. Kein ```json Block.'
+  )
 }
 
 export default {
