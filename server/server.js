@@ -2708,7 +2708,7 @@ app.post('/api/tiktok/generate-text', async (req, res) => {
         { role: 'system', content: FOSTER_HUNTINGTON_SYSTEM_PROMPT },
         { role: 'user', content: userPrompt }
       ],
-      max_tokens: 1200,  // Hook-First Prompt + Foster-Rhythmus braucht mehr Output-Raum
+      max_tokens: 1800,  // max 8 bodyLines × ~20 Woerter + hook/bridge/cta/hashtags
       temperature: 0.8,
       top_p: 0.9
     }, {
