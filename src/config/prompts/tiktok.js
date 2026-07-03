@@ -293,6 +293,12 @@ RETENTION-MECHANIKEN (Pflicht fuer dieses Template):
    widersprechen kann. Kein Fragezeichen. Keine Leseransprache.
    Muster: "10 Meter sind zu gross, sagen alle \u2013 alle haben eine Wohnung."
 
+\u26A0 BILD-ANKER GILT AUCH HIER: Payoff, Loop und Koeder ERSETZEN den
+   Bild-Bezug ihrer Zeile NICHT \u2013 sie werden hineingebaut.
+   Waehle fuer den Koeder eine Zeile deren Bild zur Aussage passt
+   (z.B. Bus/Fahrzeug im Bild \u2192 Koeder ueber die Bus-Groesse).
+   Ein Koeder ueber "10 Meter" auf einem Blumen-Makro wirkt kaputt.
+
 Alle drei Mechaniken in Foster-Ton: lakonisch, roh, nie nach Trick klingend.`
 
 // ================================================================================
@@ -356,8 +362,17 @@ export function generateTikTokUserPrompt({
         return '  Bild ' + (i + 1) + ': ' + (ctx && ctx.trim() ? ctx.trim() : '(kein Kontext)')
       }).join('\n') +
       '\n\n' +
-      'PFLICHT: bodyLines[0] = Gedanke zu Bild 1, bodyLines[1] = Gedanke zu Bild 2, usw.\n' +
-      'Reihenfolge absolut. Nicht tauschen.\n' +
+      'DIE WICHTIGSTE REGEL DIESES PROMPTS \u2013 BILD-ANKER-PFLICHT:\n' +
+      'bodyLines[0] gehoert zu Bild 1. bodyLines[1] zu Bild 2. Und so weiter.\n' +
+      'Der Zuschauer SIEHT das Bild waehrend der Text erscheint \u2013\n' +
+      'ein Satz ueber Felsen auf einem Blumen-Bild wirkt kaputt.\n\n' +
+      'JEDE bodyLine MUSS ein konkretes Detail aus IHREM Bild aufgreifen\n' +
+      '(Motiv, Farbe, Licht, Objekt \u2013 irgendetwas das im Bild sichtbar ist).\n' +
+      'Das gilt AUSNAHMSLOS \u2013 auch fuer Koeder-Zeile, Payoff und Loop:\n' +
+      'diese Mechaniken werden IN den Bild-Anker eingebaut, nie statt ihm.\n\n' +
+      'ARBEITSWEISE: Gehe Bild fuer Bild vor. Lies die Beschreibung von Bild N,\n' +
+      'waehle EIN sichtbares Detail, schreibe den Gedanken dazu. Erst dann Bild N+1.\n' +
+      'NICHT: erst die Geschichte schreiben und dann auf die Bilder verteilen.\n\n' +
       'WICHTIG: Die Bilder koennen aus verschiedenen Momenten, Orten und Reisen stammen.\n' +
       'Erfinde KEINE zeitliche oder oertliche Verbindung zwischen den Bildern\n' +
       '("dann", "danach", "am selben Tag") \u2013 ausser der Kontext belegt sie.\n' +
@@ -366,7 +381,10 @@ export function generateTikTokUserPrompt({
       'nimm das Bild-Detail als Anker, nicht als Thema.\n' +
       'NICHT: Bildbeschreibung ("Die Sonne geht unter.")\n' +
       'NICHT: Innenleben ohne Bildbezug ("Wir bleiben einfach.")\n' +
-      'RICHTIG: "Der Atlantik haelt uns fest \u2013 noch eine Nacht." (Bild-Stimmung + Innenleben)'
+      'RICHTIG: "Der Atlantik haelt uns fest \u2013 noch eine Nacht." (Bild-Stimmung + Innenleben)\n\n' +
+      'SELBSTCHECK PRO ZEILE (vor der Antwort fuer JEDE bodyLine durchgehen):\n' +
+      '"Wenn ich Bild N anschaue und bodyLines[N-1] lese \u2013 passen sie zusammen?"\n' +
+      'Wenn nein: Zeile neu schreiben. Nicht die Reihenfolge aendern.'
     : ''
 
   return (
@@ -376,7 +394,13 @@ export function generateTikTokUserPrompt({
     'INHALT\n' +
     'TITEL: "' + title + '"\n' +
     'ZUSAMMENFASSUNG: "' + summary + '"\n\n' +
-    (text ? 'AUSZUG:\n' + text.substring(0, 2000) + '\n\n' : '') +
+    (text
+      ? 'AUSZUG (nur fuer Ton, Fakten und Stimmung \u2013 NICHT fuer die Reihenfolge!):\n' +
+        text.substring(0, 2000) + '\n\n' +
+        'WICHTIG: Der Auszug erzaehlt SEINE Geschichte in SEINER Reihenfolge.\n' +
+        'Deine bodyLines folgen NICHT dem Auszug \u2013 sie folgen den BILDERN (siehe unten).\n' +
+        'Nimm aus dem Auszug nur Details die zum jeweiligen Bild passen.\n\n'
+      : '') +
 
     // ---- WER SCHREIBT ------------------------------------------------------
     'WER SCHREIBT\n' +
@@ -436,16 +460,19 @@ export function generateTikTokUserPrompt({
 
     // ---- SELBSTCHECK -------------------------------------------------------
     'SELBSTCHECK vor der Antwort:\n' +
-    '  1. Hook: Wuerde jemand beim Scrollen AUFHOEREN? Ja / Nein?\n' +
-    '  2. Hook: Unvollstaendig, oeffnet etwas, max ' + plat.hookMaxChars + ' Zeichen?\n' +
-    '  3. bodyLines: exakt ' + imageCount + ' Eintraege? Jeder max ' + plat.bodyMaxChars + ' Zeichen?\n' +
-    '  4. bodyLines: jeder Eintrag = ein Gedanke, ein Punkt am Ende (Fragment nur in der letzten)?\n' +
-    '  5. Foster-Rhythmus: lange und kurze Saetze gemischt? Nicht alle gleich schwer?\n' +
-    '  6. Verbotene Woerter (Wanderlust, Freiheit, Abenteuer...) benutzt? => ersetzen.\n' +
-    '  7. Beispiel aus dem Prompt kopiert? => neu schreiben.\n' +
-    '  8. Leon als lebender Begleiter? => sofort entfernen.\n' +
+    '  1. BILD-ANKER: Greift JEDE bodyLine ein sichtbares Detail aus IHREM Bild auf?\n' +
+    '     (Zeile 1 <-> Bild 1, Zeile 2 <-> Bild 2 ... einzeln pruefen!)\n' +
+    '  2. Hook: Wuerde jemand beim Scrollen AUFHOEREN? Ja / Nein?\n' +
+    '  3. Hook: Unvollstaendig, oeffnet etwas, max ' + plat.hookMaxChars + ' Zeichen?\n' +
+    '  4. bodyLines: exakt ' + imageCount + ' Eintraege? Jeder max ' + plat.bodyMaxChars + ' Zeichen?\n' +
+    '  5. bodyLines: jeder Eintrag = ein Gedanke, ein Punkt am Ende (Fragment nur in der letzten)?\n' +
+    '  6. Foster-Rhythmus: lange und kurze Saetze gemischt? Nicht alle gleich schwer?\n' +
+    '  7. Verbotene Woerter (Wanderlust, Freiheit, Abenteuer...) benutzt? => ersetzen.\n' +
+    '  8. Beispiel aus dem Prompt kopiert? => neu schreiben.\n' +
+    '  9. Leon als lebender Begleiter? => sofort entfernen.\n' +
     (isRetention
-      ? '  9. RETENTION: Payoff in der letzten Zeile? Loop zum Hook? Genau 1 Koeder-Zeile?\n'
+      ? ' 10. RETENTION: Payoff in der letzten Zeile? Loop zum Hook? Genau 1 Koeder-Zeile?\n' +
+        '     Und: haben Payoff/Loop/Koeder trotzdem ihren Bild-Anker behalten?\n'
       : '') +
     '\n' +
 

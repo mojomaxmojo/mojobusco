@@ -2567,7 +2567,9 @@ async function analyzeOneImage(imageUrl, preferredModel = 'groq') {
         headers: { 'Authorization': `Bearer ${process.env.GROQ_API_KEY}` },
         timeout: 20000
       })
-      const desc = response.data.choices[0].message.content.trim()
+      // Zeilenumbrüche entfernen: mehrzeilige Beschreibungen zerschießen
+      // die "Bild N: ..."-Struktur im Text-Prompt
+      const desc = response.data.choices[0].message.content.trim().replace(/\s*\n+\s*/g, ' ')
       console.log(`[Vision] Groq ✓: "${desc.substring(0, 60)}..."`)
       return desc
     } catch (err) {
@@ -2598,7 +2600,7 @@ async function analyzeOneImage(imageUrl, preferredModel = 'groq') {
         },
         timeout: 25000
       })
-      const desc = response.data.choices[0].message.content.trim()
+      const desc = response.data.choices[0].message.content.trim().replace(/\s*\n+\s*/g, ' ')
       console.log(`[Vision] Claude ✓: "${desc.substring(0, 60)}..."`)
       return desc
     } catch (err) {
@@ -2790,75 +2792,62 @@ app.post('/api/tiktok/generate-text', async (req, res) => {
       return res.status(500).json({ error: 'KI-Antwort konnte nicht geparst werden', raw: rawText.substring(0, 500) })
     }
 
-    // ── bodyLines bereinigen: EXAKT 1 Satz pro Zeile, exakt imageCount Zeilen ──
+    // ── bodyLines bereinigen: POSITIONS-ERHALTEND (1 Zeile = 1 Bild) ─────
     //
-    // Die KI ignoriert oft die Prompt-Regel und schreibt mehrere Sätze in eine Zeile:
-    //   "Max kommt zurück. Stacheln in der Hose. Ich lache."  ← 3 Sätze = 1 KI-Zeile
+    // ⚠️ ALTER ANSATZ (Bug, 03.07.2026 behoben): flatten → split → slice.
+    // Alle Zeilen wurden in Einzelsätze zerlegt und flach gesammelt.
+    // Sobald EINE Zeile 2 Sätze enthielt, verschoben sich ALLE folgenden
+    // Zeilen um 1 gegenüber ihren Bildern → Bild-Text-Zuordnung zerstört.
     //
-    // Fix:
-    // 1. Jeden KI-Eintrag an Satzgrenzen aufteilen (". ", "! ", "? ")
-    //    AUSNAHME: Die LETZTE Zeile bleibt intakt – der Prompt erlaubt dort
-    //    ausdrücklich ein Foster-Fragment ("Schotter und Wind. Das reicht.").
-    // 2. Alle Sätze in eine flache Liste sammeln
-    // 3. Auf exakt imageCount kürzen ODER mit leeren Captions auffüllen
+    // NEUER ANSATZ: Die Zeilen-Position ist heilig (Zeile i = Bild i).
+    // 1. Pro Zeile: mehrere Sätze → zu EINEM Gedanken verbinden (" – ")
+    //    AUSNAHME: letzte Zeile bleibt intakt (Foster-Fragment erlaubt)
+    // 2. Zu viele Zeilen → hinten abschneiden (Mapping der ersten N bleibt)
+    // 3. Zu wenige → hinten mit '' auffüllen (Stille-Slides)
     const rawLines = Array.isArray(result.bodyLines) ? result.bodyLines : [summary || '']
 
     // Satz-Splitter: "A. B. C." → ["A.", "B.", "C."]
-    // Erhält Satzzeichen am Ende, trimmt Leerzeichen
     const splitIntoSentences = (text) => {
       if (!text || !text.trim()) return []
-      // Split an ". ", "! ", "? " – aber NICHT an Abkürzungen (z.B. "ca. 5km")
-      // Heuristik: Split nur wenn nach dem Punkt ein Großbuchstabe oder Anführungszeichen folgt
+      // Split nur wenn nach dem Satzzeichen ein Großbuchstabe/Anführungszeichen folgt
+      // (schützt Abkürzungen wie "ca. 5km")
       const parts = text.split(/(?<=[.!?])\s+(?=[A-ZÄÖÜ"„])/)
       return parts.map(s => s.trim()).filter(Boolean)
     }
 
-    // Alle KI-Zeilen aufsplitten → flache Liste aller Sätze
-    // Die LETZTE Zeile wird NICHT gesplittet (Foster-Fragment erlaubt)
-    let allSentences = []
-    for (let li = 0; li < rawLines.length; li++) {
-      const line = rawLines[li]
-      const isLastLine = li === rawLines.length - 1
-      if (isLastLine) {
-        // Fragment-Regel: letzte Zeile intakt lassen
-        if (line && line.trim()) allSentences.push(line.trim())
-        continue
-      }
-      const sentences = splitIntoSentences(line)
-      if (sentences.length > 0) {
-        allSentences.push(...sentences)
-      } else if (line && line.trim()) {
-        allSentences.push(line.trim())
-      }
+    // Pro Zeile: mehrere Sätze zu EINEM Gedanken verbinden.
+    // "Motor aus. Stille." → "Motor aus – Stille." (Position bleibt, TTS-tauglich)
+    const mergeToOneThought = (line, isLast) => {
+      if (!line || !line.trim()) return ''
+      const trimmed = line.trim()
+      if (isLast) return trimmed // Foster-Fragment in der letzten Zeile erlaubt
+      const sentences = splitIntoSentences(trimmed)
+      if (sentences.length <= 1) return trimmed
+      // Satzzeichen der inneren Sätze entfernen, mit Gedankenstrich verbinden
+      return sentences
+        .map((s, i) => i < sentences.length - 1 ? s.replace(/[.!?]+$/, '') : s)
+        .join(' – ')
     }
+
+    let cleanBodyLines = rawLines.map((line, i) =>
+      mergeToOneThought(line, i === rawLines.length - 1)
+    )
 
     // ── Erkennung: KI hat Bild 1 für den Hook "verbraucht" ──────────────
-    // Symptom: allSentences.length === imageCount - 1
-    // Ursache: KI schreibt Hook aus Bild-1-Inhalt und lässt bodyLines[0] weg
-    // Fix: Hook-Text als bodyLines[0] einfügen → alle anderen verschieben sich
-    const hookConsumedBild1 = allSentences.length === imageCount - 1
+    // Symptom: genau 1 Zeile zu wenig → Hook als bodyLines[0] einsetzen
+    const hookConsumedBild1 = cleanBodyLines.length === imageCount - 1
     if (hookConsumedBild1 && result.hook && result.hook.trim()) {
-      console.log(`[TikTok] ⚠️ KI hat Bild 1 für Hook verbraucht (${allSentences.length} statt ${imageCount} bodyLines) → Hook als bodyLines[0] eingesetzt`)
-      allSentences.unshift(result.hook.trim())
+      console.log(`[TikTok] ⚠️ KI hat Bild 1 für Hook verbraucht (${cleanBodyLines.length} statt ${imageCount} bodyLines) → Hook als bodyLines[0] eingesetzt`)
+      cleanBodyLines.unshift(result.hook.trim())
     }
 
-    // Auf exakt imageCount Zeilen bringen
-    let cleanBodyLines
-    if (allSentences.length >= imageCount) {
-      // Zu viele Sätze: auf imageCount kürzen
-      cleanBodyLines = allSentences.slice(0, imageCount)
-    } else if (allSentences.length > 0) {
-      // Zu wenige: mit LEEREN Captions auffüllen (statt letzten Satz zu wiederholen).
-      // Slide ohne Text = Foster-Stille. Sichtbare Wiederholung wirkt kaputt.
-      // Die leeren Einträge bleiben als Platzhalter erhalten → Caption/Voiceover-
-      // Zuordnung pro Slide verschiebt sich nicht.
-      cleanBodyLines = [...allSentences]
-      while (cleanBodyLines.length < imageCount) {
-        cleanBodyLines.push('')
-      }
-    } else {
-      // Fallback: leere Sätze
-      cleanBodyLines = Array(imageCount).fill('')
+    // Auf exakt imageCount Zeilen bringen (Position der ersten N bleibt!)
+    if (cleanBodyLines.length > imageCount) {
+      console.log(`[TikTok] ⚠️ ${cleanBodyLines.length} Zeilen für ${imageCount} Bilder → überzählige hinten abgeschnitten`)
+      cleanBodyLines = cleanBodyLines.slice(0, imageCount)
+    }
+    while (cleanBodyLines.length < imageCount) {
+      cleanBodyLines.push('') // Stille-Slide
     }
 
     console.log(`[TikTok] Generiert: hook="${(result.hook || '').substring(0, 50)}", bodyLines=${rawLines.length}→${cleanBodyLines.length}/${imageCount}${hookConsumedBild1 ? ' [Bild1-Fix]' : ''}`)

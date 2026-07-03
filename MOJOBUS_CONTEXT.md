@@ -1221,4 +1221,34 @@ Frontend-Fallback füllte Hook mit Titel-Kette + Body mit Artikeltext (18 Sätze
 - Hook = nur erster Titel-Teil (`split('·')[0]`) statt kompletter Multi-Select-Kette
 - Body bleibt LEER statt Artikeltext (verhinderte 18-Sätze-Chaos)
 - Toast: destructive + 10s + klare Ansage "NICHT generiert"
+
+### Fix: Bild-Text-Zuordnung zerstört (Live-Test 03.07.2026, Falesia-Video)
+
+**Symptom:** bodyLines passten nicht zu ihren Bildern (Felsen-Satz auf Blumen-Bild etc.).
+
+**Ursache 1 – Bug in server.js:** Die Bereinigung machte flatten→split→slice:
+Alle KI-Zeilen wurden in Einzelsätze zerlegt und flach gesammelt. Sobald EINE Zeile
+2 Sätze enthielt, verschoben sich ALLE folgenden Zeilen um 1 gegenüber ihren Bildern.
+
+**Fix 1 (server.js):** Positions-erhaltende Bereinigung:
+- Zeile i = Bild i ist heilig, keine flache Liste mehr
+- Mehrere Sätze in einer Zeile → zu EINEM Gedanken verbunden ("Motor aus – Stille.")
+- Letzte Zeile bleibt intakt (Foster-Fragment)
+- Zu viele Zeilen → hinten abgeschnitten / zu wenige → '' (Stille-Slides)
+
+**Ursache 2 – Prompt:** Der 2000-Zeichen-AUSZUG dominierte die Erzähl-Reihenfolge –
+KI schrieb die Artikel-Story chronologisch runter statt pro Bild. Retention-Mechaniken
+(Köder) ignorierten ihren Bild-Anker.
+
+**Fix 2 (tiktok.js):**
+- AUSZUG-Label: "nur für Ton, Fakten, Stimmung – NICHT für die Reihenfolge"
+- "BILD-ANKER-PFLICHT" als wichtigste Regel: jede bodyLine MUSS ein sichtbares
+  Detail aus IHREM Bild aufgreifen – auch Payoff/Loop/Köder
+- Arbeitsweise vorgegeben: "Gehe Bild für Bild vor" statt Story-dann-verteilen
+- Selbstcheck: Bild-Anker-Prüfung ist jetzt Punkt 1 (pro Zeile einzeln)
+- Retention: Köder-Zeile muss zu ihrem Bild passen (Bus-Köder nicht auf Blumen-Makro)
+
+**Fix 3 (server.js Vision):** Zeilenumbrüche in Vision-Beschreibungen werden zu
+Leerzeichen (mehrzeilige Antworten zerschossen die "Bild N:"-Struktur im Prompt –
+im Log sichtbar bei Bild 10).
 | `51c562c` | ContentSelector: Medien Default, Notizen 2. Stelle |
