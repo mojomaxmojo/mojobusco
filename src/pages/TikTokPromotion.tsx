@@ -547,16 +547,22 @@ export function TikTokPromotion() {
 
     } catch (e: any) {
       // Fallback: Manuelle Texte verwenden
-      setHookText(articleTitle)
-      setBodyText(articleSummary || '')
+      // Hook = nur erster Titel-Teil (bei Multi-Select sind Titel mit · verkettet
+      // → als Hook viel zu lang). Body bleibt LEER statt Artikeltext –
+      // sonst landen 18 Artikel-Sätze als Captions auf 12 Bildern.
+      const shortTitle = articleTitle.split('·')[0].trim()
+      setHookText(shortTitle)
+      setBodyText('')
       setBridgeText('Mehr auf mojobus.co')
       setCtaText('Link in Bio 📌')
       setHashtags('#vanlife #perpetualtraveler #mojobus')
       setThumbnailText('')
 
       toast({
-        title: 'Fallback – manuelle Eingabe',
-        description: e.message || 'KI nicht erreichbar. Bitte Texte manuell eingeben.',
+        title: '⚠️ KI-Generierung fehlgeschlagen!',
+        description: `${e.message || 'KI nicht erreichbar.'} – Texte sind NICHT generiert, bitte manuell eingeben oder erneut versuchen.`,
+        variant: 'destructive',
+        duration: 10000,
       })
       setStep(3)
     } finally {

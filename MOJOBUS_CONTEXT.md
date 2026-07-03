@@ -1200,4 +1200,25 @@ KI liefert zu wenige Sätze
 2. Bundle-Cache: `curl -X POST http://localhost:3002/api/render-remotion/invalidate-bundle`
 3. **Test-Render mit Voiceover + RouteMap** (Sync-Stress-Test): `journalctl -u ai-api -f | grep -i "📐\|perSlideArray\|Frames"`
 4. Erwartung: TikTok-Video jetzt 2s kürzer (Hook 3s statt 5s)
+
+### Hotfix: Claude-Reasoning-Modell lieferte leere Antworten (03.07.2026)
+
+**Symptom (Live-Test):** `finish_reason: length`, `content: null`, `reasoning_details` in der Response.
+OpenRouter löst `~anthropic/claude-sonnet-latest` inzwischen auf **claude-sonnet-5** (Reasoning-Modell) auf.
+Das Modell verbrauchte alle 4096 max_tokens fürs interne Nachdenken → keine Antwort →
+Frontend-Fallback füllte Hook mit Titel-Kette + Body mit Artikeltext (18 Sätze/12 Bilder, kein Thumbnail).
+
+**Fix in `server.js` (`/api/tiktok/generate-text`):**
+| Änderung | Wert |
+|----------|------|
+| `max_tokens` | 4096 → **16384** (Reasoning-Budget + JSON-Antwort) |
+| `reasoning: { effort: 'low' }` | Neu – begrenzt Denk-Budget (OpenRouter-Param, andere ignorieren ihn) |
+| `timeout` | 45s → **90s** (Reasoning braucht länger, Log zeigte 44s) |
+| **Groq-Fallback** | Claude-Antwort leer → automatisch Llama 4 Scout |
+| Log | zeigt jetzt das AUFGELÖSTE Modell (`response.data.model`) |
+
+**Fix in `TikTokPromotion.tsx` (Fehler-Fallback):**
+- Hook = nur erster Titel-Teil (`split('·')[0]`) statt kompletter Multi-Select-Kette
+- Body bleibt LEER statt Artikeltext (verhinderte 18-Sätze-Chaos)
+- Toast: destructive + 10s + klare Ansage "NICHT generiert"
 | `51c562c` | ContentSelector: Medien Default, Notizen 2. Stelle |

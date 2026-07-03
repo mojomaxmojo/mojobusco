@@ -2710,31 +2710,68 @@ app.post('/api/tiktok/generate-text', async (req, res) => {
       return res.status(500).json({ error: 'Kein KI-API-Key konfiguriert (GROQ_API_KEY oder OPENROUTER_API_KEY)' })
     }
 
-    const response = await axios.post(apiUrl, {
-      model: apiModel,
-      messages: [
-        { role: 'system', content: FOSTER_HUNTINGTON_SYSTEM_PROMPT },
-        { role: 'user', content: userPrompt }
-      ],
-      max_tokens: 4096, // grosszuegig: 20 Bilder + imageContexts passen immer rein
-      temperature: 0.8,
-      top_p: 0.9
-    }, {
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        ...(model === 'claude' ? { 'HTTP-Referer': 'https://mojobus.co', 'X-Title': 'MojoBus' } : {})
-      },
-      timeout: 45000
-    })
+    // ── KI-Call mit Retry-Kette ──────────────────────────────────────────
+    //
+    // Problem (03.07.2026): OpenRouter löst '~anthropic/claude-sonnet-latest'
+    // inzwischen auf ein REASONING-Modell auf (claude-sonnet-5). Das Modell
+    // verbraucht das komplette max_tokens-Budget fürs interne Nachdenken
+    // (reasoning_details), content bleibt null, finish_reason='length'.
+    //
+    // Fix:
+    // 1. max_tokens 4096 → 16384 (Reasoning + Antwort passen beide rein)
+    // 2. reasoning.effort='low' – begrenzt das Denk-Budget (OpenRouter-Param,
+    //    wird von Nicht-Reasoning-Modellen ignoriert)
+    // 3. Wenn content trotzdem leer → automatischer Fallback auf Groq
+    const callAi = async (url, mdl, key, isOpenRouter) => {
+      const resp = await axios.post(url, {
+        model: mdl,
+        messages: [
+          { role: 'system', content: FOSTER_HUNTINGTON_SYSTEM_PROMPT },
+          { role: 'user', content: userPrompt }
+        ],
+        max_tokens: 16384, // Reasoning-Modelle: Denk-Budget + JSON-Antwort
+        temperature: 0.8,
+        top_p: 0.9,
+        // Reasoning-Budget klein halten – Foster-Texte brauchen Stil, kein Nachdenken.
+        // Nicht-Reasoning-Modelle und Groq ignorieren den Parameter.
+        ...(isOpenRouter ? { reasoning: { effort: 'low' } } : {})
+      }, {
+        headers: {
+          'Authorization': `Bearer ${key}`,
+          'Content-Type': 'application/json',
+          ...(isOpenRouter ? { 'HTTP-Referer': 'https://mojobus.co', 'X-Title': 'MojoBus' } : {})
+        },
+        timeout: 90000 // Reasoning-Modelle brauchen länger (war 45s → Log zeigte 44s Antwortzeit)
+      })
+      return resp
+    }
 
-    const rawText = response.data.choices?.[0]?.message?.content
+    let response = await callAi(apiUrl, apiModel, apiKey, model === 'claude')
+    let rawText = response.data.choices?.[0]?.message?.content
+
+    // ── Fallback: Claude leer/abgeschnitten → Groq (Llama 4 Scout) ────────
+    if (!rawText && model === 'claude' && process.env.GROQ_API_KEY) {
+      const reason = response.data.choices?.[0]?.finish_reason || 'unknown'
+      console.warn(`[TikTok] ⚠️ Claude-Antwort leer (finish_reason: ${reason}, model: ${response.data.model || apiModel}) → Groq-Fallback`)
+      try {
+        response = await callAi(
+          'https://api.groq.com/openai/v1/chat/completions',
+          'meta-llama/llama-4-scout-17b-16e-instruct',
+          process.env.GROQ_API_KEY,
+          false
+        )
+        rawText = response.data.choices?.[0]?.message?.content
+      } catch (fbErr) {
+        console.error(`[TikTok] Groq-Fallback fehlgeschlagen: ${fbErr.message}`)
+      }
+    }
+
     if (!rawText) {
       const reason = response.data.choices?.[0]?.finish_reason || 'unknown'
       console.error(`[TikTok] KI-Antwort leer (finish_reason: ${reason}), volle Response:`, JSON.stringify(response.data).substring(0, 500))
       return res.status(500).json({ error: `KI-Antwort leer (finish_reason: ${reason}). Bitte erneut versuchen.` })
     }
-    console.log(`[TikTok] KI-Antwort erhalten (${rawText.length} Zeichen, finish_reason: ${response.data.choices?.[0]?.finish_reason})`)
+    console.log(`[TikTok] KI-Antwort erhalten (${rawText.length} Zeichen, finish_reason: ${response.data.choices?.[0]?.finish_reason}, model: ${response.data.model || apiModel})`)
 
     // JSON aus Antwort parsen
     let result
