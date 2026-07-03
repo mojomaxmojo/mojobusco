@@ -2760,8 +2760,10 @@ app.post('/api/tiktok/generate-text', async (req, res) => {
     //
     // Fix:
     // 1. Jeden KI-Eintrag an Satzgrenzen aufteilen (". ", "! ", "? ")
+    //    AUSNAHME: Die LETZTE Zeile bleibt intakt – der Prompt erlaubt dort
+    //    ausdrücklich ein Foster-Fragment ("Schotter und Wind. Das reicht.").
     // 2. Alle Sätze in eine flache Liste sammeln
-    // 3. Auf exakt imageCount kürzen ODER auffüllen
+    // 3. Auf exakt imageCount kürzen ODER mit leeren Captions auffüllen
     const rawLines = Array.isArray(result.bodyLines) ? result.bodyLines : [summary || '']
 
     // Satz-Splitter: "A. B. C." → ["A.", "B.", "C."]
@@ -2775,8 +2777,16 @@ app.post('/api/tiktok/generate-text', async (req, res) => {
     }
 
     // Alle KI-Zeilen aufsplitten → flache Liste aller Sätze
+    // Die LETZTE Zeile wird NICHT gesplittet (Foster-Fragment erlaubt)
     let allSentences = []
-    for (const line of rawLines) {
+    for (let li = 0; li < rawLines.length; li++) {
+      const line = rawLines[li]
+      const isLastLine = li === rawLines.length - 1
+      if (isLastLine) {
+        // Fragment-Regel: letzte Zeile intakt lassen
+        if (line && line.trim()) allSentences.push(line.trim())
+        continue
+      }
       const sentences = splitIntoSentences(line)
       if (sentences.length > 0) {
         allSentences.push(...sentences)
@@ -2801,10 +2811,13 @@ app.post('/api/tiktok/generate-text', async (req, res) => {
       // Zu viele Sätze: auf imageCount kürzen
       cleanBodyLines = allSentences.slice(0, imageCount)
     } else if (allSentences.length > 0) {
-      // Zu wenige: letzten Satz wiederholen bis imageCount erreicht
+      // Zu wenige: mit LEEREN Captions auffüllen (statt letzten Satz zu wiederholen).
+      // Slide ohne Text = Foster-Stille. Sichtbare Wiederholung wirkt kaputt.
+      // Die leeren Einträge bleiben als Platzhalter erhalten → Caption/Voiceover-
+      // Zuordnung pro Slide verschiebt sich nicht.
       cleanBodyLines = [...allSentences]
       while (cleanBodyLines.length < imageCount) {
-        cleanBodyLines.push(allSentences[allSentences.length - 1])
+        cleanBodyLines.push('')
       }
     } else {
       // Fallback: leere Sätze

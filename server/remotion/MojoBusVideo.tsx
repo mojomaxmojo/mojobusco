@@ -120,6 +120,24 @@ export interface MojoBusVideoProps {
 
 }
 
+// ── Hook-Dauer pro Plattform ─────────────────────────────────────────────
+// EINZIGE QUELLE für die Hook-Dauer – wird von calculateDuration UND der
+// Komponente verwendet. NIEMALS an anderer Stelle hartcodieren!
+//
+// Realität der Hook-Fenster (siehe src/config/prompts/tiktok.js):
+//   TikTok:  0,8–1,2s Entscheidung → 3s Hook-Slide reicht
+//   Reels:   1,0–1,8s → 4s
+//   YouTube: 2,0–4,0s → 5s
+export const HOOK_SECONDS: Record<string, number> = {
+  tiktok: 3,
+  reels: 4,
+  youtube: 5,
+};
+
+export function getHookSeconds(platform?: string): number {
+  return HOOK_SECONDS[platform || 'tiktok'] ?? HOOK_SECONDS.tiktok;
+}
+
 // ── HookDimOverlay ────────────────────────────────────────────────────────
 // Top-Level Komponente (PFLICHT: useCurrentFrame darf nicht in inneren Funktionen stehen)
 // Gleichmäßige Abdunkelung des Bildes während des Hook-Slides (0-hookFrames).
@@ -151,9 +169,10 @@ export function calculateDuration(
   fps: number,
   secondsPerImage: number,
   perSlideArray?: number[],
-  showRouteMap?: boolean
+  showRouteMap?: boolean,
+  platform?: string
 ): { totalFrames: number; hookFrames: number; ctaFrames: number; slideshowFrames: number } {
-  const hookFrames      = 5 * fps;  // 5s Hook: mehr Zeit für Stop-the-Scroll (war 4s)
+  const hookFrames      = getHookSeconds(platform) * fps;  // plattformabhängig: TikTok 3s, Reels 4s, YouTube 5s
   const ctaFrames       = 6 * fps;
   const totalSlideCount = showRouteMap && imageCount >= 2 ? imageCount + 1 : imageCount;
   // Wenn perSlideArray übergeben: dynamische Summe, sonst fix
@@ -230,7 +249,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
     : new Array(totalSlideCount).fill(secondsPerImage);
   const slidesFrames = slidesSec.map(s => Math.round(s * fps));
 
-  const hookFrames = 5 * fps;  // 5s Hook (muss mit calculateDuration übereinstimmen)
+  const hookFrames = getHookSeconds(platform) * fps;  // plattformabhängig (muss mit calculateDuration übereinstimmen)
   const ctaFrames  = 6 * fps;
 
   // routeDurFrames aus slidesFrames (enthält bereits RouteMap-Eintrag an routeSlideIndex)
@@ -289,10 +308,9 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
   // Transition: 20 Frames (0.67s bei 30fps) — sanftes Überblenden
   const TRANSITION_FRAMES = Math.round(fps * 0.67); // ~20 Frames @ 30fps
 
-  const hookEmoji = ({
-    mojobus: '🚌', vanlife: '🚐', rvlife: '🏕️',
-    beachlife: '🌊', wohnmobil: '🏠', 'perpetual-travelers': '🌍',
-  } as Record<string, string>)[lifestyle] ?? '🌍';
+  // Emoji standardmäßig AUS – roher Foster-Look. Das Bild + der Text sind der Hook,
+  // ein Emoji darüber wirkt wie Template-Content und bricht die Authentizität.
+  const hookEmoji = '';
 
   const hasCaptions = captionStyle !== 'off' && captions.length > 0;
 
@@ -390,19 +408,22 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
 
       {/* ══ SCHICHT 3: Hook Abdunkelung (nur während Hook-Slide) ══════════════
            Gleichmäßiges dunkles Overlay damit der Hook-Text auf jedem Bild
-           gut lesbar ist. Opacity 0.55 = Bild erkennbar aber Text klar.        */}
+           gut lesbar ist. Opacity 0.40 = Bild bleibt als visueller Hook wirksam,
+           Text-Kontrast kommt zusätzlich vom radialen Gradient im HookTitle. */}
       <Sequence from={0} durationInFrames={hookFrames}>
-        <HookDimOverlay opacity={0.55} fps={fps} hookFrames={hookFrames} />
+        <HookDimOverlay opacity={0.40} fps={fps} hookFrames={hookFrames} />
       </Sequence>
 
-      {/* ══ SCHICHT 4: Hook Titel (erste 5s) ════════════════════════════════ */}
+      {/* ══ SCHICHT 4: Hook Titel (plattformabhängige Dauer) ═══════════════════
+           fromFrame=0: Text muss SOFORT lesbar sein – die erste halbe Sekunde
+           entscheidet ob der Zuschauer bleibt (Hook-Fenster TikTok: 0,8-1,2s). */}
       <Sequence from={0} durationInFrames={hookFrames}>
         <HookTitle
           title={title}
           subtitle={location || lifestyle.toUpperCase()}
           caption={hookCaption}
           emoji={hookEmoji}
-          fromFrame={5}
+          fromFrame={0}
           toFrame={hookFrames - 5}
           accentColor={accentColor}
         />

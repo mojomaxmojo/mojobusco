@@ -1144,4 +1144,60 @@ Foster-Stil (poetisch, roh, Innenleben) bleibt erhalten. Neu: das Bild-Detail wi
 |------|-------------|
 | `894ebe1` | Audio: Musik fadeInSec 0.3s, Atmo 0.5s |
 | `1000d81` | Hybrid-Prompt: Bild-Detail als Anker + Innenleben als Stimme |
+
+---
+
+## 📋 Changelog – TikTok Prompt-Überarbeitung + Retention-Template (aktuelle Session)
+
+### Paket A – Prompt-Feinschliff + Bugfixes (tiktok.js + server.js)
+
+| # | Fix | Datei |
+|---|-----|-------|
+| A1 | **Fragment vs. Splitter-Bug**: Server-Splitter verschont jetzt die LETZTE bodyLine (Foster-Fragment erlaubt). Prompt + Server widersprechen sich nicht mehr | `server.js`, `tiktok.js` |
+| A2 | System-Prompt-Doppelsignal aufgelöst: Fragmente nur in Hook/Thumbnail/letzter bodyLine | `tiktok.js` |
+| A3 | `bodyMaxChars` (80/100/120) jetzt im User-Prompt aktiv, LANG-Satz auf 12-14 Wörter gedeckelt | `tiktok.js` |
+| A4 | Floskel-Blacklist (Wanderlust, Freiheit, Abenteuer, POV:, ...) + "Beispiele nie kopieren" | `tiktok.js` |
+| A5 | Hook↔Bild-1-Bezug: Vision-Kontext von Bild 1 wird dem Hook-Block mitgegeben | `tiktok.js` |
+| A6 | Thumbnail ≠ Hook Pflichtregel | `tiktok.js` |
+| A7 | Foster-Rhythmus dynamisch: `buildFosterRhythm(imageCount, bodyMaxChars)` – 1 langer Satz pro 3-4 Slides | `tiktok.js` |
+| A8 | Wiederholungs-Fallback → leere Captions (Foster-Stille statt sichtbarer Dopplung) | `server.js` |
+| A9 | **Multi-Source-Bilder**: Prompt verbietet erfundene zeitliche/örtliche Kontinuität (Bilder aus /bilder, /map/trips, /artikel, /plaetze gemischt) | `tiktok.js` |
+| A10 | Voiceover: keine Anglizismen außer Eigennamen (TTS-Stolperfallen) | `tiktok.js` |
+
+### Paket B – Hook-Rendering (Remotion) ⚠️ Deploy + Bundle-Invalidate nötig!
+
+| # | Änderung | Datei |
+|---|----------|-------|
+| B1 | **`HOOK_SECONDS` plattformabhängig**: TikTok 3s, Reels 4s, YouTube 5s. Einzige Quelle: `getHookSeconds(platform)` in MojoBusVideo.tsx. `calculateDuration()` hat neuen Parameter `platform` – alle 3 `calculateMetadata` in index.tsx übergeben `props.platform` | `MojoBusVideo.tsx`, `index.tsx` |
+| B2 | HookTitle Spring schneller (stiffness 380, mass 0.4) – Text bei ~0,3s voll lesbar, `fromFrame=0` | `HookTitle.tsx`, `MojoBusVideo.tsx` |
+| B3 | HookDimOverlay 0.55 → **0.40** | `MojoBusVideo.tsx` |
+| B4 | Hook-Emoji standardmäßig AUS (roher Foster-Look) | `MojoBusVideo.tsx` |
+
+### Paket C – "Retention Foster" Template (neu)
+
+- Neues Template `retention` (🔁) in `TEMPLATE_CONFIG` (tiktok.js) + `TEMPLATES` (TikTokPromotion.tsx)
+- 3 Retention-Mechaniken (nur bei template='retention' im Prompt aktiv):
+  1. **PAYOFF** – Hook öffnet Frage, letzte bodyLine schließt sie
+  2. **LOOP** – letzte Zeile referenziert den Hook (Rewatch = Kreis)
+  3. **KÖDER** – genau 1 leise polarisierende Zeile (Kommentar-Anlass)
+- Selbstcheck erweitert (Punkt 9 nur bei retention)
+- Template-Grid: `sm:grid-cols-4` → `sm:grid-cols-3` (5 Templates)
+- **A/B-Test möglich**: gleiches Material als `story` vs `retention` rendern
+
+### Leere-Caption-Pipeline (Sync-sicher durch alle Ebenen)
+
+```
+KI liefert zu wenige Sätze
+  → server.js: cleanBodyLines mit '' aufgefüllt (nicht wiederholt)
+  → TikTokPromotion.tsx: bodyLines/voBodyLines behalten innere '' (kein .filter mehr!)
+  → render.js: generateVoiceoverSegments pusht {filename:null} für ''
+  → concatVoiceoverSegments: filename=null → slide_N.mp3 = reine Stille (targetDur)
+  → PerSlideCaption: leere Caption → return null (kein Pill)
+```
+
+**⚠️ Nach Deploy:**
+1. `bash deploy-main.sh --force`
+2. Bundle-Cache: `curl -X POST http://localhost:3002/api/render-remotion/invalidate-bundle`
+3. **Test-Render mit Voiceover + RouteMap** (Sync-Stress-Test): `journalctl -u ai-api -f | grep -i "📐\|perSlideArray\|Frames"`
+4. Erwartung: TikTok-Video jetzt 2s kürzer (Hook 3s statt 5s)
 | `51c562c` | ContentSelector: Medien Default, Notizen 2. Stelle |

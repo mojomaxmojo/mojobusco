@@ -33,10 +33,13 @@ export const HookTitle: React.FC<HookTitleProps> = ({
   const { durationInFrames, fps } = useVideoConfig();
   const end = toFrame ?? durationInFrames;
 
+  // Schneller Spring: Text bei ~0,3s voll lesbar (war ~1s).
+  // Die erste halbe Sekunde entscheidet ob der Zuschauer bleibt –
+  // ein langsam einfliegender Hook verschenkt das TikTok-Hook-Fenster (0,8-1,2s).
   const enter = spring({
     frame: frame - fromFrame,
     fps,
-    config: { damping: 15, stiffness: 120, mass: 0.8 },
+    config: { damping: 18, stiffness: 380, mass: 0.4 },
   });
 
   const fadeOut = interpolate(frame, [end - 10, end], [1, 0], {

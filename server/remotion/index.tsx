@@ -59,7 +59,8 @@ const RemotionRoot: React.FC = () => {
             FPS,
             props.secondsPerImage ?? 5,
             (props as any).perSlideArray,
-            props.showRouteMap
+            props.showRouteMap,
+            props.platform
           );
           return { durationInFrames: totalFrames };
         }}
@@ -86,7 +87,8 @@ const RemotionRoot: React.FC = () => {
             FPS,
             props.secondsPerImage ?? 5,
             (props as any).perSlideArray,
-            props.showRouteMap
+            props.showRouteMap,
+            props.platform
           );
           return { durationInFrames: totalFrames };
         }}
@@ -113,7 +115,8 @@ const RemotionRoot: React.FC = () => {
             FPS,
             props.secondsPerImage ?? 5,
             (props as any).perSlideArray,
-            props.showRouteMap
+            props.showRouteMap,
+            props.platform
           );
           return { durationInFrames: totalFrames };
         }}

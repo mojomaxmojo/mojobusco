@@ -92,7 +92,7 @@ import { GripVertical, X } from 'lucide-react'
 // TYPES
 // ═══════════════════════════════════════════════════════════
 
-type TikTokTemplate = 'story' | 'listicle' | 'reveal' | 'movie'
+type TikTokTemplate = 'story' | 'listicle' | 'reveal' | 'movie' | 'retention'
 
 interface TikTokTemplateInfo {
   id: TikTokTemplate
@@ -124,6 +124,14 @@ const TEMPLATES: TikTokTemplateInfo[] = [
     emoji: '🌅',
     desc: 'Ken-Burns Diashow – minimaler Text, maximale Atmosphäre',
     duration: '15-25s',
+    minImages: 3,
+  },
+  {
+    id: 'retention',
+    label: 'Retention',
+    emoji: '🔁',
+    desc: 'Hook öffnet, Ende schließt – Loop-fähig, für kaltes TikTok-Publikum',
+    duration: '15-30s',
     minImages: 3,
   },
   {
@@ -582,10 +590,14 @@ export function TikTokPromotion() {
     setDownloadedMp4(false)
 
     // Body-Text in Captions aufteilen
+    // KEIN .filter(): INNERE Leerzeilen sind bewusste Platzhalter (Slide ohne Text).
+    // Positionen müssen erhalten bleiben, sonst verrutscht die Bild-Zuordnung.
+    // Nur führende/abschließende Leerzeilen (versehentliche Enter) entfernen.
     const bodyLines = bodyText
       .split('\n')
-      .filter(l => l.trim())
       .map(l => l.trim())
+    while (bodyLines.length > 0 && !bodyLines[0]) bodyLines.shift()
+    while (bodyLines.length > 0 && !bodyLines[bodyLines.length - 1]) bodyLines.pop()
 
     // Wenn mehr Zeilen als Bilder: Überlauf an vorherige Zeile anhängen
     // (KI ignoriert manchmal den Prompt und macht 3 Zeilen für 1 Bild)
@@ -596,12 +608,21 @@ export function TikTokPromotion() {
       }
     }
 
+    // Wenn WENIGER Zeilen als Bilder: mit leeren Captions auffüllen.
+    // Verhindert dass bridgeText auf einem Bild-Slide landet (Index-Verschiebung).
+    // Slide ohne Text = Foster-Stille, kein Bug.
+    while (bodyLines.length < articleImages.length) {
+      bodyLines.push('')
+    }
+
     // Captions: HookCaption wird separat übergeben, Body/Bridge/CTA als Array
+    // WICHTIG: bodyLines NICHT filtern – leere Einträge sind bewusste Platzhalter
+    // (Slide ohne Text). Nur Bridge/CTA weglassen wenn leer.
     const captions = [
       ...bodyLines,
-      bridgeText,
-      ctaText,
-    ].filter(c => c)
+      ...(bridgeText ? [bridgeText] : []),
+      ...(ctaText ? [ctaText] : []),
+    ]
 
     // hookCaption = kurze Unterzeile im HookTitle (Location oder leer)
     // NICHT hookText – der ist bereits als title= im HookTitle, Dopplung vermeiden
@@ -1101,21 +1122,30 @@ export function TikTokPromotion() {
   // ── VOICEOVER SEGMENTS (pro Slide) ════════════════════
   // bodyLinesWithOverflow: gleiche Logik wie in startRender – Überlauf wird angehängt
   // Bridge absichtlich NICHT enthalten – wird als Text-Overlay gezeigt, nicht gesprochen
+  // KEIN .filter(): Leere Zeilen bleiben als Platzhalter erhalten (Slide ohne
+  // Voiceover = Stille). Positionen müssen 1:1 den Slides entsprechen – sonst
+  // verschiebt sich der Audio-Sync (render.js generiert für '' reine Stille).
   const voBodyLines = voiceoverEnabled
-    ? bodyText.split('\n').filter(l => l.trim()).map(l => l.trim())
+    ? bodyText.split('\n').map(l => l.trim())
     : []
+  // Führende/abschließende Leerzeilen entfernen (innere bleiben = Stille-Slides)
+  while (voBodyLines.length > 0 && !voBodyLines[0]) voBodyLines.shift()
+  while (voBodyLines.length > 0 && !voBodyLines[voBodyLines.length - 1]) voBodyLines.pop()
   while (voBodyLines.length > Math.max(1, articleImages.length)) {
     const overflow = voBodyLines.pop()
     if (voBodyLines.length > 0 && overflow) {
       voBodyLines[voBodyLines.length - 1] += ' ' + overflow
     }
   }
+  // Auf exakt articleImages.length auffüllen: fehlende Segmente = Stille-Slides.
+  // render.js generiert für '' reine Stille → perSlideArray bleibt synchron.
+  if (voiceoverEnabled) {
+    while (voBodyLines.length < articleImages.length) voBodyLines.push('')
+  }
   // Hook-Text NICHT im Voiceover: HookTitle ist bereits sichtbar auf dem Screen.
   // Hook-Voiceover erzeugt wahrnehmbare Stille (Satz endet, 1s+ Stille bis Slideshow startet).
   // Voiceover startet direkt mit body1 – AudioLayer bekommt startFrom=hookFrames.
-  const voiceoverSegmentsArray = voiceoverEnabled
-    ? voBodyLines.filter(s => s.trim())
-    : []
+  const voiceoverSegmentsArray = voiceoverEnabled ? voBodyLines : []
 
   // ── BILDER FILTERN ═════════════════════════════════════
 
@@ -1300,7 +1330,7 @@ export function TikTokPromotion() {
               {/* Template Grid */}
               <div>
                 <Label className="mb-2 block text-sm">Video-Template</Label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {TEMPLATES.map(tpl => (
                     <button
                       key={tpl.id}
@@ -1405,9 +1435,9 @@ export function TikTokPromotion() {
                   ))}
                 </div>
                 <p className="text-[10px] text-muted-foreground">
-                  {platform === 'tiktok' && 'Hook 1-2s · 3-4 Hashtags · Caption max 80 Zeichen'}
-                  {platform === 'reels' && 'Hook 2-3s · 5-8 Hashtags · Caption max 100 Zeichen'}
-                  {platform === 'youtube' && 'Hook 3-5s · 2-3 Hashtags · Caption max 120 Zeichen'}
+                  {platform === 'tiktok' && 'Hook-Slide 3s · 3-4 Hashtags · Caption max 80 Zeichen'}
+                  {platform === 'reels' && 'Hook-Slide 4s · 5-8 Hashtags · Caption max 100 Zeichen'}
+                  {platform === 'youtube' && 'Hook-Slide 5s · 2-3 Hashtags · Caption max 120 Zeichen'}
                 </p>
               </div>
 

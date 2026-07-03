@@ -24,12 +24,22 @@ export const FOSTER_HUNTINGTON_SYSTEM_PROMPT = `Du schreibst im Stil von Foster 
 
 STIL-KERN:
 - Poetisch, roh, direkt \u2013 keine Werbesprache, kein Instagram-Vokabular
-- Fragmente sind Stil: "Motor aus. Stille." \u2013 das ist Foster. Nicht falsch.
+- Fragmente ("Motor aus. Stille.") sind Foster-Stil \u2013 aber NUR erlaubt in:
+  Hook, Thumbnail und der LETZTEN bodyLine. In allen anderen bodyLines: tabu.
 - Zeige das Leben dazwischen \u2013 kleine Momente, nicht die Ziele
 - Erste Person (ich/wir). Praesens. Direkt rein. Keine Einleitung.
 - Sinne statt Ansicht: was riecht, klingt, fuehlt sich an \u2013 nicht was sichtbar ist
 - Kein Ausrufezeichen. Keine Leseransprache. Keine Tipps.
 - Schreibe auf DEUTSCH
+
+VERBOTENE WOERTER UND PHRASEN (killen den Foster-Ton \u2013 niemals verwenden):
+Wanderlust, Freiheit, Abenteuer, atemberaubend, Paradies, magisch, unbezahlbar,
+Fernweh, Traum leben, "Stell dir vor", "POV:", "Warte bis zum Ende",
+"Du wirst nicht glauben", einfach nur, pure(s) Glueck.
+
+BEISPIEL-REGEL: Die Beispiele in diesem Prompt sind MUSTER, keine Vorlagen.
+Niemals ein Beispiel woertlich oder leicht abgewandelt uebernehmen \u2013
+immer aus dem konkreten INHALT neu schreiben.
 
 ANTWORT-FORMAT (NUR JSON, kein Text davor/danach):
 {
@@ -37,7 +47,7 @@ ANTWORT-FORMAT (NUR JSON, kein Text davor/danach):
   "bodyLines": ["Gedanke fuer Bild 1", "Gedanke fuer Bild 2", "..."],
   "bridge": "Ueberleitung zum Blog \u2013 max 60 Zeichen",
   "cta": "Handlungsaufforderung \u2013 max 40 Zeichen",
-  "thumbnail": "Cover-Text max 5 Woerter",
+  "thumbnail": "Cover-Text max 5 Woerter \u2013 NICHT identisch mit dem Hook",
   "hashtags": ["#vanlife", "#perpetualtraveler", "#mojobus"]
 }
 
@@ -46,7 +56,9 @@ KRITISCHE REGEL fuer bodyLines:
 - Pro Eintrag: ein Gedanke, ein Punkt am Ende, kein weiterer Satz dahinter
 - "Motor aus. Stille." in EINEM bodyLine-Eintrag ist VERBOTEN \u2013 das sind zwei Gedanken
 - "Motor aus, dann Stille." \u2192 ein Gedanke mit Komma \u2192 ERLAUBT
-- "Der Motor kuehlt ab." \u2192 perfekt`
+- "Der Motor kuehlt ab." \u2192 perfekt
+- EINZIGE AUSNAHME: die LETZTE bodyLine darf ein Foster-Fragment sein
+  ("Schotter und Wind. Das reicht.") \u2013 nur dort.`
 
 // ================================================================================
 // HOOK-MECHANIKEN
@@ -100,32 +112,35 @@ HOOK-TYP \u2013 waehle den zum Inhalt passendsten:
  * Foster schreibt organisch \u2013 aber mit Rhythmus.
  *
  * Das einzige Gesetz: nicht alle Slides gleich schwer.
- * Ein Slide schlaegt schwerer als die anderen. Der Rest traegt ihn.
+ * Skaliert dynamisch: 1 LANGER Satz pro 3-4 Slides.
+ *
+ * @param {number} imageCount - Anzahl Bilder/Slides
+ * @param {number} bodyMaxChars - Plattform-Zeichenlimit pro bodyLine
+ * @returns {string} Rhythmus-Block fuer den User-Prompt
  */
-const FOSTER_RHYTHM = `
+function buildFosterRhythm(imageCount, bodyMaxChars) {
+  const longCount = Math.max(1, Math.round(imageCount / 3.5))
+  return `
 FOSTER-RHYTHMUS fuer die bodyLines:
 
 Kein Schema. Kein Spannungsbogen mit Etiketten.
-Ein einziges Gesetz: kurz. kurz. LANG. kurz.
+Ein einziges Gesetz: nicht alle Slides gleich schwer.
 
-Der LANGE Satz ist der emotionale Traeger \u2013 er darf 15-20 Woerter haben.
-Die KURZEN Saetze davor und danach geben ihm Luft.
-Nicht jeder Slide gleich gewichtig \u2013 das klingt wie Aufzaehlung, nicht wie Foster.
+Bei ${imageCount} Bildern: genau ${longCount} LANGE${longCount > 1 ? '' : 'R'} Satz${longCount > 1 ? 'e' : ''} (emotionale Traeger, 12-14 Woerter).
+Alle anderen Saetze KURZ (3-7 Woerter). Position der langen Saetze frei \u2013
+aber nie zwei lange direkt hintereinander.
+MAXIMUM pro bodyLine: ${bodyMaxChars} Zeichen \u2013 sonst passt der Text nicht ins Video.
 
-Beispiel (4 Bilder):
-  "Der Mojobus steht."                    <- kurz, setzt die Szene
-  "Susanne macht Kaffee."                 <- kurz, kleines Detail
-  "Leons Platz ist leer, aber der Geruch von ihm bleibt im Stoff."  <- LANG, traegt alles
-  "Wir fahren morgen weiter."             <- kurz, offen
+Beispiel-MUSTER (4 Bilder, 1 langer Satz \u2013 nicht kopieren, nur Rhythmus zeigen):
+  kurz  <- setzt die Szene
+  kurz  <- kleines Detail
+  LANG  <- traegt alles, 12-14 Woerter
+  kurz  <- offen, laesst nach
 
-Beispiel (3 Bilder):
-  "Kein Empfang."                         <- kurz
-  "Drei Tage niemanden getroffen, und ich merke erst jetzt wie gut das ist."  <- LANG
-  "Schotter und Wind. Das reicht."        <- kurz, Foster-Fragment als letzter Slide erlaubt
-
-FRAGMENT-REGEL: Das letzte bodyLine darf ein Foster-Fragment sein.
-  ("Schotter und Wind. Das reicht." ist als LETZTER Eintrag erlaubt \u2013
-   ein Punkt gefolgt von weiterem Text, weil es der Abschluss ist, nicht ein Sync-Problem)`
+FRAGMENT-REGEL: NUR die letzte bodyLine darf ein Foster-Fragment sein
+  (Punkt gefolgt von weiterem Text, z.B. zwei kurze Gedanken als Abschluss).
+  In allen anderen bodyLines: ein Gedanke, ein Punkt, nichts danach.`
+}
 
 // ================================================================================
 // PLATTFORM-KONFIGURATION
@@ -205,7 +220,9 @@ VOICEOVER-MODUS (Edge TTS spricht diese Saetze laut):
   NICHT ausschreiben: "sechsunddreissig" klingt wie Nachrichtensprecherin, nicht wie Foster.
 - Kein Punkt gefolgt von weiterem Text im selben Eintrag.
 - NICHT: "Motor aus. Stille." -> zwei Saetze -> Sync bricht
-- RICHTIG: "Motor aus \u2013 dann Stille." -> ein Satz, natuerlich gesprochen`
+- RICHTIG: "Motor aus \u2013 dann Stille." -> ein Satz, natuerlich gesprochen
+- Keine englischen Woerter ausser Eigennamen (Mojobus) \u2013 die TTS-Stimme
+  stolpert ueber Denglisch ("Roadtrip-Feeling", "Spot", "Vibe").`
 }
 
 // ================================================================================
@@ -236,8 +253,47 @@ const TEMPLATE_CONFIG = {
     description: 'Vorhandenes Video + Captions + Overlays.',
     hookGuidance: 'SZENE-HOOK \u2013 greift den ersten Frame des Videos auf.',
     bodyGuidance: 'Captions beschreiben nicht das Video \u2013 sie fuegen eine zweite Ebene hinzu.'
+  },
+  retention: {
+    label: 'Retention',
+    description: 'Hook oeffnet eine Frage, die letzte Zeile schliesst sie \u2013 Loop-faehig, fuer kaltes TikTok-Publikum.',
+    hookGuidance: 'SZENE-HOOK oder SUBTEXT-HOOK \u2013 muss eine konkrete Frage OEFFNEN die erst am Ende beantwortet wird.',
+    bodyGuidance: 'Jede Zeile haelt die offene Frage am Leben ohne sie zu erklaeren. Die letzte Zeile liefert den Payoff.'
   }
 }
+
+// ================================================================================
+// RETENTION-REGELN (nur fuer template='retention')
+// ================================================================================
+
+/**
+ * Drei Mechaniken die 2025/2026 nachweislich Watch-Time bringen \u2013
+ * in Foster-Sprache gegossen, ohne Growth-Hack-Aesthetik:
+ *
+ * 1. PAYOFF   \u2013 Hook oeffnet, letzte bodyLine schliesst (oder laesst bewusst offen)
+ * 2. LOOP     \u2013 Ende referenziert den Anfang \u2192 Rewatch fuehlt sich wie ein Kreis an
+ * 3. KOEDER   \u2013 genau 1 leise polarisierende Zeile \u2192 Kommentare, ohne Leseransprache
+ */
+const RETENTION_RULES = `
+RETENTION-MECHANIKEN (Pflicht fuer dieses Template):
+
+\u2460 PAYOFF \u2013 Der Hook oeffnet eine konkrete Frage.
+   Die LETZTE bodyLine beantwortet sie \u2013 oder laesst sie BEWUSST offen.
+   Dazwischen darf die Frage einmal anklingen, nie erklaert werden.
+   Muster: Hook "Der Motor macht seit Tagen ein Geraeusch." \u2192
+   letzte Zeile loest auf (lakonisch, nicht dramatisch).
+
+\u2461 LOOP \u2013 Die letzte bodyLine referenziert den Hook \u2013
+   woertlich oder im Motiv. Beim erneuten Abspielen muss sich das Video
+   wie ein Kreis anfuehlen, nicht wie ein Ende.
+   Muster: Hook "Kein Empfang." \u2192 letzte Zeile "Immer noch kein Empfang \u2013 gut so."
+
+\u2462 KOEDER \u2013 Genau EINE bodyLine (nicht die erste, nicht die letzte)
+   enthaelt eine leise polarisierende Aussage \u2013 eine Behauptung der man
+   widersprechen kann. Kein Fragezeichen. Keine Leseransprache.
+   Muster: "10 Meter sind zu gross, sagen alle \u2013 alle haben eine Wohnung."
+
+Alle drei Mechaniken in Foster-Ton: lakonisch, roh, nie nach Trick klingend.`
 
 // ================================================================================
 // USER-PROMPT GENERATOR
@@ -257,7 +313,7 @@ const TEMPLATE_CONFIG = {
  * @param {string}   params.title        - Artikel-Titel
  * @param {string}   params.summary      - Artikel-Zusammenfassung
  * @param {string}   params.text         - Artikel-Text-Auszug (max 2000 Zeichen)
- * @param {string}   params.template     - 'story' | 'listicle' | 'reveal' | 'movie'
+ * @param {string}   params.template     - 'story' | 'listicle' | 'reveal' | 'movie' | 'retention'
  * @param {number}   params.imageCount   - Anzahl Bilder/Slides
  * @param {string[]} params.locations    - Locations pro Bild (optional, Fallback)
  * @param {string[]} params.imageContexts - Vision-KI Beschreibungen pro Bild (bevorzugt)
@@ -280,12 +336,20 @@ export function generateTikTokUserPrompt({
   const tmpl = TEMPLATE_CONFIG[template] || TEMPLATE_CONFIG.story
   const plat = PLATFORM_CONFIG[platform] || PLATFORM_CONFIG.tiktok
   const voRules = voiceoverMode ? VOICEOVER_RULES.on : VOICEOVER_RULES.off
+  const isRetention = template === 'retention'
 
   const contextSource = Array.isArray(imageContexts) && imageContexts.some(function(c) { return c && c.trim() })
     ? imageContexts
     : Array.isArray(locations) && locations.length > 0 ? locations : []
 
+  // Kontext von Bild 1 \u2013 der Hook liegt visuell UEBER Bild 1
+  const firstImageContext = contextSource.length > 0 && contextSource[0] && contextSource[0].trim()
+    ? contextSource[0].trim()
+    : ''
+
   // Bild-Orientierung: Vision-Beschreibungen als Anker, Innenleben als Stimme
+  // WICHTIG: Bilder koennen aus VERSCHIEDENEN Quellen stammen (Artikel, Notes,
+  // Plaetze, Trips) \u2013 keine erzaehlerische Kontinuitaet zwischen Bildern erfinden.
   const bildOrientierung = contextSource.length > 0
     ? '\nBILDER IN REIHENFOLGE (von Vision-KI analysiert \u2013 das sind Fakten):\n' +
       contextSource.map(function(ctx, i) {
@@ -294,6 +358,10 @@ export function generateTikTokUserPrompt({
       '\n\n' +
       'PFLICHT: bodyLines[0] = Gedanke zu Bild 1, bodyLines[1] = Gedanke zu Bild 2, usw.\n' +
       'Reihenfolge absolut. Nicht tauschen.\n' +
+      'WICHTIG: Die Bilder koennen aus verschiedenen Momenten, Orten und Reisen stammen.\n' +
+      'Erfinde KEINE zeitliche oder oertliche Verbindung zwischen den Bildern\n' +
+      '("dann", "danach", "am selben Tag") \u2013 ausser der Kontext belegt sie.\n' +
+      'Jeder Gedanke steht fuer sich. Der rote Faden ist das GEFUEHL, nicht die Route.\n' +
       'Schreibe aus dem INNENLEBEN (was denkt/fuehlt/riecht Mojo oder Susanne) \u2013\n' +
       'nimm das Bild-Detail als Anker, nicht als Thema.\n' +
       'NICHT: Bildbeschreibung ("Die Sonne geht unter.")\n' +
@@ -337,24 +405,32 @@ export function generateTikTokUserPrompt({
     'HOOK-MECHANIKEN\n' +
     HOOK_MECHANICS + '\n\n' +
     'FUER DIESEN ARTIKEL waehle: ' + tmpl.hookGuidance + '\n\n' +
+    (firstImageContext
+      ? 'HOOK LIEGT AUF BILD 1: Der Hook erscheint als Text UEBER Bild 1.\n' +
+        'Bild 1 zeigt: "' + firstImageContext + '"\n' +
+        'Der Hook muss zur Stimmung von Bild 1 passen ODER bewusst kontrastieren \u2013\n' +
+        'er darf ihr nie zufaellig widersprechen.\n\n'
+      : '') +
     'FOSTER-REGELN FUER DEN HOOK:\n' +
     '- Kein Ausrufezeichen. Kein "Du". Kein Motivations-Satz.\n' +
     '- Kein "Van" \u2013 Mojobus, Oldtimer, oder "er".\n' +
     '- Unvollstaendig schlaegt vollstaendig. Kurz schlaegt lang.\n' +
-    '- "36 Jahre. Rostet nicht." > "Unser 36 Jahre alter Bus ist unser Zuhause."\n' +
+    '- Fragment-Muster ("Zahl. Behauptung.") schlaegt ganze Saetze.\n' +
     '- Zahlen als Ziffern: "36 Jahre", "10 Meter" \u2013 nie ausschreiben.\n\n' +
 
     // ---- BODY --------------------------------------------------------------
     '==============================================\n' +
     'DER BODY \u2013 ' + imageCount + ' Bilder, ' + imageCount + ' Gedanken\n' +
     '==============================================\n\n' +
-    'ANZAHL: bodyLines hat EXAKT ' + imageCount + ' Eintraege. Einer pro Bild. Nicht mehr, nicht weniger.\n\n' +
+    'ANZAHL: bodyLines hat EXAKT ' + imageCount + ' Eintraege. Einer pro Bild. Nicht mehr, nicht weniger.\n' +
+    'MAX-LAENGE pro bodyLine: ' + plat.bodyMaxChars + ' Zeichen (' + plat.label + ').\n\n' +
     'HOOK != bodyLines[0]:\n' +
     'Der Hook ist auf dem ersten Bild BEVOR das Video laeuft.\n' +
     'bodyLines[0] ist ein NEUER, EIGENER Gedanke zu Bild 1 \u2013 unabhaengig vom Hook.\n' +
     'FALSCH: Hook beschreibt Bild 1 => bodyLines hat nur ' + (imageCount - 1) + ' Eintraege\n' +
     'RICHTIG: bodyLines[0] ist frisch, aus dem Innenleben, Bild 1 als Anker\n\n' +
-    FOSTER_RHYTHM + '\n\n' +
+    buildFosterRhythm(imageCount, plat.bodyMaxChars) + '\n\n' +
+    (isRetention ? RETENTION_RULES + '\n\n' : '') +
     voRules + '\n\n' +
     (bildOrientierung ? bildOrientierung + '\n\n' : '') +
 
@@ -362,17 +438,24 @@ export function generateTikTokUserPrompt({
     'SELBSTCHECK vor der Antwort:\n' +
     '  1. Hook: Wuerde jemand beim Scrollen AUFHOEREN? Ja / Nein?\n' +
     '  2. Hook: Unvollstaendig, oeffnet etwas, max ' + plat.hookMaxChars + ' Zeichen?\n' +
-    '  3. bodyLines: exakt ' + imageCount + ' Eintraege?\n' +
-    '  4. bodyLines: jeder Eintrag = ein Gedanke, ein Punkt am Ende?\n' +
-    '  5. Foster-Rhythmus: kurz\u2013kurz\u2013LANG\u2013kurz? Nicht alle gleich schwer?\n' +
-    '  6. Leon als lebender Begleiter? => sofort entfernen.\n\n' +
+    '  3. bodyLines: exakt ' + imageCount + ' Eintraege? Jeder max ' + plat.bodyMaxChars + ' Zeichen?\n' +
+    '  4. bodyLines: jeder Eintrag = ein Gedanke, ein Punkt am Ende (Fragment nur in der letzten)?\n' +
+    '  5. Foster-Rhythmus: lange und kurze Saetze gemischt? Nicht alle gleich schwer?\n' +
+    '  6. Verbotene Woerter (Wanderlust, Freiheit, Abenteuer...) benutzt? => ersetzen.\n' +
+    '  7. Beispiel aus dem Prompt kopiert? => neu schreiben.\n' +
+    '  8. Leon als lebender Begleiter? => sofort entfernen.\n' +
+    (isRetention
+      ? '  9. RETENTION: Payoff in der letzten Zeile? Loop zum Hook? Genau 1 Koeder-Zeile?\n'
+      : '') +
+    '\n' +
 
     // ---- BRIDGE + CTA + THUMBNAIL ------------------------------------------
     'BRIDGE + CTA + THUMBNAIL\n' +
     '- BRIDGE: Ueberleitung zu mojobus.co. Max 60 Zeichen. Kein Werbesprech.\n' +
     '- CTA: ' + plat.ctaStyle + '. Max 40 Zeichen.\n' +
     '- THUMBNAIL: Max 5 Woerter. Konkret oder lakonisch.\n' +
-    '  Beispiele: "Kein Heimweg seit Jahren" | "36 Jahre. Rostet nicht." | "Soul Leon faehrt mit"\n\n' +
+    '  PFLICHT: Thumbnail und Hook muessen VERSCHIEDEN sein \u2013 der Zuschauer\n' +
+    '  sieht beide direkt nacheinander (Cover, dann erste Sekunde).\n\n' +
 
     // ---- HASHTAGS ----------------------------------------------------------
     'HASHTAGS: ' + plat.hashtagCount + ' Tags \u2013 ' + plat.hashtagStrategy + '\n' +

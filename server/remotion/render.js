@@ -53,8 +53,16 @@ async function generateVoiceoverSegments(segments, voiceoverModel, voiceoverSpee
   const result = []; // [{ filename: 'voiceover_0.mp3', durationSec: 2.1 }, ...]
 
   for (let i = 0; i < segments.length; i++) {
-    const text = segments[i].trim();
-    if (!text) continue;
+    const text = (segments[i] || '').trim();
+
+    // Leeres Segment = bewusster Platzhalter (Slide ohne Voiceover).
+    // NICHT überspringen – sonst verschiebt sich die Slide-Zuordnung.
+    // filename=null → concatVoiceoverSegments generiert reine Stille.
+    if (!text) {
+      console.log(`[Remotion] 🔇 Segment ${i + 1}/${segments.length}: leer → Stille-Slide`);
+      result.push({ filename: null, durationSec: 0, textLen: 0 });
+      continue;
+    }
 
     console.log(`[Remotion] 🎙️ Voiceover Segment ${i + 1}/${segments.length}: "${text.slice(0, 50)}..."`);
 
@@ -176,10 +184,30 @@ async function concatVoiceoverSegments(segments, sessionDir, hookDurationSec, se
     const audioDur = seg.durationSec || 0;
     const silenceDur = Math.max(0.05, targetDur - audioDur); // min 50ms Stille
 
-    const audioPath   = path.join(sessionDir, seg.filename);
     const silPath     = path.join(sessionDir, `sil_${i}.mp3`);
     const slidePath   = path.join(sessionDir, `slide_${i}.mp3`);
     const slideTxt    = path.join(sessionDir, `slide_${i}.txt`);
+
+    // ── Leeres Segment (filename=null): Slide besteht aus reiner Stille ──
+    // Platzhalter aus Frontend/KI (Slide ohne Voiceover-Text)
+    if (!seg.filename) {
+      // targetDur = max(secondsPerImage, Lesezeit) – konsistent mit Slides mit Audio
+      const emptyDur = targetDur;
+      try {
+        execSync(
+          `${FFMPEG_PATH} -f lavfi -i anullsrc=r=24000:cl=mono -t ${emptyDur.toFixed(3)} -ar 24000 -ac 1 -q:a 9 -y "${slidePath}"`,
+          { timeout: 10000 }
+        );
+        console.log(`[Remotion] 🔇 Slide ${i + 1}: reine Stille (${emptyDur.toFixed(1)}s)`);
+      } catch (e) {
+        console.warn(`[Remotion] ⚠️ Stille-Slide ${i} fehlgeschlagen: ${e.message}`);
+        fs.writeFileSync(slidePath, Buffer.alloc(0));
+      }
+      slideFiles.push(slidePath);
+      continue;
+    }
+
+    const audioPath = path.join(sessionDir, seg.filename);
 
     // Stille mit exakter Länge generieren
     try {
@@ -804,12 +832,17 @@ export async function renderMojoBusVideo(params) {
 
     // ── Voiceover: Segmente generieren + concatten ─────────────────────────
     const effectiveEngine = voiceoverEngine || (voiceoverModel && voiceoverModel.startsWith('de-DE-') ? 'edge' : 'piper');
-    const hasSegments = voiceoverSegmentsInput && voiceoverSegmentsInput.length > 0;
+    // Mindestens EIN nicht-leeres Segment muss existieren – leere Einträge sind
+    // aber gültige Platzhalter (Slide ohne Voiceover) und dürfen NICHT
+    // rausgefiltert werden (Positions-Erhalt für den Slide-Sync!)
+    const hasSegments = voiceoverSegmentsInput
+      && voiceoverSegmentsInput.length > 0
+      && voiceoverSegmentsInput.some(s => s && s.trim());
     const hasText = voiceoverText && voiceoverText.trim();
 
     if (hasSegments || hasText) {
       const segments = hasSegments
-        ? voiceoverSegmentsInput.filter(s => s && s.trim())
+        ? voiceoverSegmentsInput.map(s => (s || '').trim())
         : [voiceoverText.trim()];
 
       console.log(`[Remotion] 🎙️ Generiere ${segments.length} Voiceover-Segmente (${effectiveEngine})`);
@@ -837,7 +870,9 @@ export async function renderMojoBusVideo(params) {
         // muteVoiceoverSlide vom Frontend wird hier NICHT mehr gebraucht und ignoriert.
         const concatResult = await concatVoiceoverSegments(
           rawSegments, sessionDir, 5, secondsPerImage, 6,
-          // hookDurationSec=5 (MojoBusVideo hookFrames = 5s, war 4s)
+          // hookDurationSec/bridgeDurationSec werden in der Funktion nicht mehr
+          // verwendet (Voiceover startet erst NACH dem Hook via <Sequence from={hookFrames}>,
+          // Hook-Dauer ist plattformabhängig: HOOK_SECONDS in MojoBusVideo.tsx)
           -1, // muteBodyIndex: immer -1
           routeIdx, routeDur
         );
