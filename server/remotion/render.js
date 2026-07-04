@@ -768,6 +768,10 @@ export async function renderMojoBusVideo(params) {
     mapImageUrl,
     // ── NEU: Lottie Bus ───────────────────────────────────────────────
     showLottieBus = true,
+    // ── NEU: Cinematic Effects (Zoom-Punch, WhipPan, FlashCut, LightLeak,
+    //          Letterbox, Match-Cut-Zoom) – Plattform-Matrix entscheidet
+    //          welche Effekte auf tiktok/reels/youtube aktiv sind ─────────
+    cinematicEffects = true,
     // ── NEU: Voiceover-Segmente ─────────────────────────────────────────
     /** Array von Text-Strings – jeder String wird einzeln als MP3 generiert und pro Slide abgespielt */
     voiceoverSegmentsInput,    // Array<string> – ein Satz pro Slide (optional, ersetzt voiceoverText)
@@ -975,6 +979,7 @@ export async function renderMojoBusVideo(params) {
       showRouteMap, routeCoords,
       mapImageUrl: httpMapImageUrl,         // ← Lokal gecacht!
       showLottieBus,
+      cinematicEffects,                     // ← Plattform-Matrix-Effekte
     };
 
     const composition = await selectComposition({

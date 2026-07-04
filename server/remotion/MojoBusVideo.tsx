@@ -46,6 +46,22 @@ import {
 } from './components/RouteMapLine';
 import { LottieBusIcon } from './components/LottieBusIcon';
 
+// ── NEU: Cinematic Effects (Zoom-Punch, WhipPan, FlashCut, LightLeak,
+//         Letterbox, Match-Cut-Zoom) + Plattform-Matrix ──────────────────
+import {
+  getPlatformEffects,
+  pickCutEffect,
+  buildMatchCutMap,
+  ZoomPunchWrapper,
+  WhipPanWrapper,
+  FlashCut,
+  flashCutDuration,
+  LightLeak,
+  lightLeakDuration,
+  CinematicLetterbox,
+  MatchCutZoomWrapper,
+} from './components/CinematicEffects';
+
 // ── Props Interface ────────────────────────────────────────────────────────
 
 export interface MojoBusVideoProps {
@@ -117,6 +133,14 @@ export interface MojoBusVideoProps {
    * Default: true
    */
   showLottieBus?: boolean;
+
+  // ── NEU: Cinematic Effects (Plattform-Matrix) ─────────────────────────
+  /**
+   * Zoom-Punch, WhipPan, FlashCut, LightLeak, Letterbox, Match-Cut-Zoom.
+   * Welche Effekte aktiv sind entscheidet die Plattform-Matrix
+   * (PLATFORM_EFFECTS in CinematicEffects.tsx). Default: true
+   */
+  cinematicEffects?: boolean;
 
 }
 
@@ -218,6 +242,9 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
 
   // Lottie Bus
   showLottieBus = true,
+
+  // Cinematic Effects
+  cinematicEffects = true,
 
   // Voiceover
   voiceoverUrl,
@@ -328,6 +355,18 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
     ? routeCoords
     : pickDemoRoute(country);
 
+  // ── Cinematic Effects: Plattform-Matrix + Cut-Plan ─────────────────────
+  // fx = was die Plattform erlaubt (TikTok: Punch+Flash, YouTube: Letterbox+Leak...)
+  // cutFx[i] = Effekt am Cut VOR Slide i (Cut 0 = Übergang Hook→Slide 0)
+  // matchCutMap = Slide-Paare mit durchgehender Zoom-Bewegung über den Schnitt
+  const fx = cinematicEffects
+    ? getPlatformEffects(platform)
+    : { zoomPunchScale: 0, whipPan: false, flashColor: '', lightLeaks: false, letterboxPct: 0, matchCutZoom: false };
+  const cutFx = slideDefs.map((_, i) => (cinematicEffects ? pickCutEffect(i, platform) : 'none'));
+  const matchCutMap = fx.matchCutZoom ? buildMatchCutMap(slideDefs) : {};
+  // WhipPan-Richtung pro Cut (deterministisch alternierend)
+  const whipDir = (i: number): 'left' | 'right' => (i % 2 === 0 ? 'left' : 'right');
+
   return (
     <AbsoluteFill style={{ background: '#000' }}>
 
@@ -358,6 +397,54 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
           const seqDuration = isLastSlide ? thisSlideFrames : thisSlideFrames + TRANSITION_FRAMES;
           const nextDef = !isLastSlide ? slideDefs[i + 1] : undefined;
 
+          // ── Cinematic Effects für diesen Slide ─────────────────────────
+          // Cut i = Übergang IN Slide i. WhipPan verbindet beide Seiten:
+          //   Slide i-1 reißt raus (whipOut, cutFx[i]), Slide i reißt rein (whipIn).
+          // Zoom-Punch nur wenn KEIN Whip auf dem Cut liegt (sonst doppelt).
+          // WhipIn nicht auf Cut 0 (Hook blendet weich aus – halber Whip sähe kaputt aus)
+          // und nicht nach einer Route-Slide (Karte whippt nicht raus → inkonsistent)
+          const prevDef = i > 0 ? slideDefs[i - 1] : undefined;
+          const hasWhipIn  = !isRoute && i > 0 && cutFx[i] === 'whip' && prevDef?.type !== 'route';
+          // Kein WhipOut in eine Route-Slide hinein (Karte whippt nicht rein → inkonsistent)
+          const hasWhipOut = !isRoute && !isLastSlide && cutFx[i + 1] === 'whip' && nextDef?.type !== 'route';
+          const punchHere  = !isRoute && fx.zoomPunchScale > 0 && cutFx[i] !== 'whip' && i > 0;
+          const matchCut   = !isRoute ? matchCutMap[i] : undefined;
+
+          // Effekt-Kette (innen → außen): Media → MatchCut → Punch → Whip → FadeOut
+          let slideContent: React.ReactNode = !isRoute ? (
+            <MediaRenderer src={images[def.imageIdx]} index={def.imageIdx + 1} />
+          ) : null;
+          if (matchCut) {
+            slideContent = (
+              <MatchCutZoomWrapper from={matchCut.from} to={matchCut.to}>
+                {slideContent}
+              </MatchCutZoomWrapper>
+            );
+          }
+          if (punchHere) {
+            slideContent = (
+              <ZoomPunchWrapper punchScale={fx.zoomPunchScale}>
+                {slideContent}
+              </ZoomPunchWrapper>
+            );
+          }
+          if (hasWhipIn || hasWhipOut) {
+            slideContent = (
+              <WhipPanWrapper
+                whipIn={hasWhipIn}
+                whipOut={hasWhipOut}
+                direction={hasWhipIn ? whipDir(i) : whipDir(i + 1)}
+                // WICHTIG: thisSlideFrames (nicht seqDuration) – der WhipOut muss
+                // AM CUT enden. seqDuration läuft TRANSITION_FRAMES darüber hinaus,
+                // dann würde der Raus-Schwenk erst NACH dem Rein-Schwenk des
+                // nächsten Slides laufen → kein durchgehender Kameraschwenk.
+                totalFrames={thisSlideFrames}
+              >
+                {slideContent}
+              </WhipPanWrapper>
+            );
+          }
+
           return (
             <Sequence key={`slide-${i}`} from={absoluteStart} durationInFrames={seqDuration}>
               {isRoute ? (
@@ -377,7 +464,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
                   durationFrames={TRANSITION_FRAMES}
                   totalFrames={seqDuration}
                 >
-                  <MediaRenderer src={images[def.imageIdx]} index={def.imageIdx + 1} />
+                  {slideContent}
                 </FadeOut>
               )}
               {/* Wipe-Edge-Glow nur bei wipe/auto und nicht auf Route */}
@@ -525,6 +612,18 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
         </Sequence>
       )}
 
+      {/* ══ NEU SCHICHT 9c: Cinematic Letterbox (Reels 6% / YouTube 8%) ══════
+           Balken fahren beim Hook rein (1s) und zur CTA raus (0.8s).
+           Liegt UNTER der ProgressBar – die Bar bleibt auf dem Balken sichtbar. */}
+      {fx.letterboxPct > 0 && (
+        <CinematicLetterbox
+          barPct={fx.letterboxPct}
+          enterFrames={Math.round(fps * 1.0)}
+          exitStartFrame={hookFrames + slideshowFrames}
+          exitFrames={Math.round(fps * 0.8)}
+        />
+      )}
+
       {/* ══ SCHICHT 10: Progress Bar ══════════════════════════════════════════ */}
       <ProgressBar
         color={accentColor}
@@ -595,6 +694,41 @@ fadeInSec={0.3}
           />
         </Sequence>
       )}
+
+      {/* ══ NEU SCHICHT 13: FlashCut + LightLeak auf den Cuts ═══════════════
+           FlashCut: 2 Frames Blitz AUF dem Cut-Frame (weiß TikTok / schwarz YouTube)
+           LightLeak: ~1s Overlay, Peak liegt AUF dem Cut (startet 0.5s davor)
+           Beide über ColorGrade + Captions – wie echtes Licht in der Linse. */}
+      {slideDefs.map((_, i) => {
+        const effect = cutFx[i];
+        if (effect !== 'flash' && effect !== 'leak') return null;
+        const cutFrame = slideStartFrame(i);
+
+        if (effect === 'flash' && fx.flashColor) {
+          return (
+            <Sequence
+              key={`cutfx-${i}`}
+              from={cutFrame}
+              durationInFrames={flashCutDuration(fps)}
+            >
+              <FlashCut color={fx.flashColor} />
+            </Sequence>
+          );
+        }
+        if (effect === 'leak' && fx.lightLeaks) {
+          const leakDur = lightLeakDuration(fps);
+          return (
+            <Sequence
+              key={`cutfx-${i}`}
+              from={Math.max(0, cutFrame - Math.round(leakDur / 2))}
+              durationInFrames={leakDur}
+            >
+              <LightLeak seed={i} />
+            </Sequence>
+          );
+        }
+        return null;
+      })}
 
     </AbsoluteFill>
   );

@@ -1332,3 +1332,66 @@ bekam trotzdem Caption-Stil-Texte (abgehackt gesprochen).
 curl -X POST http://localhost:3002/api/render-remotion/invalidate-bundle
 ```
 Test-Render mit RouteMap: Ziel-Label muss ab ~35% der Karten-Slide-Dauer voll sichtbar unter dem Zielpunkt stehen.
+
+---
+
+## 📋 Changelog – Cinematic Effects: 6 neue Effekte + Plattform-Matrix
+
+**Neue Datei:** `server/remotion/components/CinematicEffects.tsx`
+**Geändert:** `server/remotion/MojoBusVideo.tsx`, `server/remotion/render.js`, `server/server.js`
+
+### Die 6 Effekte
+
+| Effekt | Was passiert | Technik |
+|--------|-------------|---------|
+| **ZoomPunch** | Punch-In am Cut: Scale springt auf 1+X, federt in ~5 Frames zurück (ease-out-quart) + Blur-Stoß | CSS scale + blur |
+| **WhipPan** | Peitschenschwenk: Slide A reißt raus, Slide B reißt aus DERSELBEN Richtung rein (translateX ±100% + 24px Blur) – wirkt wie EIN Kameraschwenk | CSS translateX + blur |
+| **FlashCut** | Luma-Blitz am Cut: 2 Frames voll + 3 Frames Ausklang. Weiß (mix-blend screen) oder Schwarz | Opacity-Layer |
+| **LightLeak** | Warmes Licht brennt über den Schnitt (~1s, Peak AUF dem Cut). 3 deterministische Varianten (Blob rechts-oben / Streifen links / Doppel-Blob unten), driftet seitlich | CSS-Gradients + mix-blend screen, KEIN Asset nötig |
+| **CinematicLetterbox** | Schwarze Balken fahren beim Hook rein (1s ease-out), zur CTA raus (0.8s ease-in) | 2 absolute Divs |
+| **MatchCutZoom** | Scale-Kontinuität: Slide i zoomt 1.00→1.12, Slide i+1 startet bei 1.12→1.02 – Gehirn liest den Schnitt als eine Bewegung. Jedes 3. Bild-Paar | CSS scale Wrapper |
+
+### Plattform-Matrix (PLATFORM_EFFECTS in CinematicEffects.tsx)
+
+| Effekt | TikTok | Reels | YouTube |
+|--------|--------|-------|---------|
+| ZoomPunch | 0.12 (stark) | 0.07 (dezent) | 0 (aus) |
+| WhipPan | ✅ | ✅ | ✅ |
+| FlashCut | weiß | aus | schwarz |
+| LightLeaks | aus | ✅ | ✅ |
+| Letterbox | 0% (Caption-Safe-Zone!) | 6% | 8% |
+| MatchCutZoom | ✅ | ✅ | ✅ |
+
+### Cut-Rotation (deterministisch, `pickCutEffect`)
+
+```
+tiktok:  [flash, whip, none, whip, flash, none]
+reels:   [leak,  whip, none, leak, whip,  none]
+youtube: [none,  whip, flash, none, leak, whip]
+```
+`none` = normaler CrossFade – nicht jeder Cut hat einen Effekt (sonst Template-Look).
+Matrix-Gating: deaktivierte Effekte werden automatisch zu `none`.
+
+### Architektur / Regeln
+
+- **Effekt-Kette pro Slide** (innen→außen): `Media → MatchCutZoom → ZoomPunch → WhipPan → FadeOut`
+- **Zoom-Punch nur wenn KEIN Whip auf dem Cut** (sonst doppelte Bewegung)
+- **WhipPan-Sonderfälle**: kein WhipIn auf Cut 0 (Hook blendet weich aus), kein Whip in/aus Route-Slides
+- **WhipOut endet bei `thisSlideFrames`** (nicht seqDuration) – der Raus-Schwenk muss AM CUT enden, sonst kein durchgehender Schwenk
+- **FlashCut/LightLeak als eigene Sequences** über ColorGrade+Captions (SCHICHT 13); Leak startet 0.5s VOR dem Cut (Peak = Glockenkurve auf dem Cut)
+- **Letterbox = SCHICHT 9c** unter der ProgressBar
+- **Alles SwiftShader-safe**: nur CSS-Transforms/Gradients/Opacity, deterministisch, kein Math.random, kein WebGL, keine Assets
+
+### Steuerung
+
+- **Prop `cinematicEffects`** (default `true`) durch die ganze Kette: `server.js` (`req.body.cinematicEffects !== false`) → `render.js` → `inputProps` → `MojoBusVideo`
+- `cinematicEffects: false` im Render-Payload schaltet ALLE 6 Effekte ab (Verhalten wie vorher)
+- Welche Effekte laufen entscheidet sonst allein die **Plattform** (`platform`-Prop, bereits vorhanden)
+
+**⚠️ Deploy:** `server/remotion/` + `server/server.js` geändert →
+```bash
+bash deploy-main.sh --force
+systemctl restart ai-api
+curl -X POST http://localhost:3002/api/render-remotion/invalidate-bundle
+```
+**Test-Empfehlung:** Gleiches Material 1× als TikTok (Flash weiß + Punch), 1× als YouTube (Letterbox + Flash schwarz + Leak) rendern und vergleichen.

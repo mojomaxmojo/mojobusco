@@ -2354,6 +2354,8 @@ musicUrl,
         muteVoiceoverSlide,
         // ── Lottie Bus ─────────────────────────────────────────────
         showLottieBus: showLottieBus !== false,
+        // ── Cinematic Effects (Plattform-Matrix: Punch/Whip/Flash/Leak/Letterbox/MatchCut) ──
+        cinematicEffects: req.body.cinematicEffects !== false,
         // ── Voiceover (Per-Slide Segmente) ─────────────────────────────────────
         voiceoverSegmentsInput: voiceoverSegments || undefined,  // Array pro Slide
         voiceoverText: voiceoverText || undefined,              // Legacy-Fallback
