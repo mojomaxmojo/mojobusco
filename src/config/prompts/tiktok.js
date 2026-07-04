@@ -35,7 +35,9 @@ STIL-KERN:
 VERBOTENE WOERTER UND PHRASEN (killen den Foster-Ton \u2013 niemals verwenden):
 Wanderlust, Freiheit, Abenteuer, atemberaubend, Paradies, magisch, unbezahlbar,
 Fernweh, Traum leben, "Stell dir vor", "POV:", "Warte bis zum Ende",
-"Du wirst nicht glauben", einfach nur, pure(s) Glueck.
+"Du wirst nicht glauben", einfach nur, pure(s) Glueck,
+Idylle, Postkartenmotiv, Kraft tanken, Auszeit, dem Alltag entfliehen,
+Sehnsucht, "hier ist die Zeit stehen geblieben", kleines Juwel, Geheimtipp.
 
 BEISPIEL-REGEL: Die Beispiele in diesem Prompt sind MUSTER, keine Vorlagen.
 Niemals ein Beispiel woertlich oder leicht abgewandelt uebernehmen \u2013
@@ -65,7 +67,7 @@ KRITISCHE REGEL fuer bodyLines:
 // ================================================================================
 
 /**
- * Die 5 Hook-Typen die auf TikTok/Reels/YouTube Shorts stoppen.
+ * Die 6 Hook-Typen die auf TikTok/Reels/YouTube Shorts stoppen.
  *
  * Schluessel-Prinzip: Ein guter Hook ist UNVOLLSTAENDIG.
  * Er oeffnet etwas das der Zuschauer schliessen will \u2192 Watch-Time.
@@ -96,12 +98,19 @@ HOOK-TYP \u2013 waehle den zum Inhalt passendsten:
    Muster: "[Beobachtung oder Aussage die sofort fragt: warum?]"
    Beispiel: "Sie haben gefragt wann wir zurueckkommen."
    Beispiel: "Meine Mutter sagt sie versteht es nicht mehr."
-   Beispiel: "Der Platz neben dem Fahrersitz ist leer."
+   Beispiel: "Wir haben den Rueckweg nie geplant."
 
 \u2464 KONTRAST-HOOK \u2013 Vorher/Nachher ohne Erklaerung
    Muster: "[Kontext A]. [Kontext B]. [lakonische Reaktion]."
    Beispiel: "Buero. Atlantik. Ich weiss nicht mehr welches ich getraeumt habe."
-   Beispiel: "Letztes Jahr Wohnung. Jetzt Schotter. Passt besser."`
+   Beispiel: "Letztes Jahr Wohnung. Jetzt Schotter. Passt besser."
+
+\u2465 FEHLER/PREIS-HOOK \u2013 Verlust, Kosten oder Fehler ohne Aufloesung
+   (Loss Aversion + Geld stoppen kaltes Publikum am staerksten)
+   Muster: "[Betrag oder Fehler]. [lakonische Folge ohne Erklaerung]."
+   Beispiel: "400 Euro. Mehr braucht der Monat nicht."
+   Beispiel: "Der teuerste Fehler in 7 Jahren."
+   Beispiel: "Haette uns fast den Bus gekostet."`
 
 // ================================================================================
 // FOSTER-RHYTHMUS (ersetzt den Retention-Bogen)
@@ -143,6 +152,58 @@ FRAGMENT-REGEL: NUR die letzte bodyLine darf ein Foster-Fragment sein
 }
 
 // ================================================================================
+// WATCHTIME-REGELN (Koeder + Soft-Loop \u2013 fuer alle Templates ausser 'retention')
+// ================================================================================
+
+/**
+ * Zwei sanfte Watch-Time-Mechaniken fuer ALLE Templates.
+ * (Das 'retention'-Template hat eigene, haertere Regeln \u2013 dort NICHT anwenden,
+ * sonst doppeln sich Koeder/Loop.)
+ *
+ * 1. KOEDER (ab 5 Bildern): Der zweitgroesste Drop passiert bei 40-60% der
+ *    Laufzeit ("Mid-Video-Sag"). Genau EINE leise polarisierende oder
+ *    ueberraschende Zeile in der Mitte wirkt als Pattern-Interrupt.
+ *
+ * 2. SOFT-LOOP (nur TikTok): Rewatches sind auf TikTok eines der staerksten
+ *    Ranking-Signale. Die letzte Zeile darf sich nicht wie ein Ende anfuehlen.
+ *    Auf YouTube/Reels zaehlt Completion mehr als Rewatch \u2013 dort weglassen.
+ *
+ * @param {number} imageCount - Anzahl Bilder/Slides
+ * @param {string} platform   - 'tiktok' | 'reels' | 'youtube'
+ * @returns {string} Watchtime-Block fuer den User-Prompt ('' wenn nichts greift)
+ */
+function buildWatchtimeRules(imageCount, platform) {
+  const parts = []
+
+  if (imageCount >= 5) {
+    parts.push(
+      'KOEDER GEGEN DEN MITTEL-DROP (Pflicht bei ' + imageCount + ' Bildern):\n' +
+      'Die meisten Zuschauer springen in der MITTE des Videos ab.\n' +
+      'Genau EINE bodyLine (nicht die erste, nicht die letzte \u2013 am besten\n' +
+      'im mittleren Drittel) enthaelt eine leise polarisierende oder\n' +
+      'ueberraschende Aussage \u2013 eine Behauptung der man widersprechen kann.\n' +
+      'Kein Fragezeichen. Keine Leseransprache. Lakonisch, nie nach Trick klingend.\n' +
+      'Muster: "10 Meter sind zu gross, sagen alle \u2013 alle haben eine Wohnung."\n' +
+      'BILD-ANKER GILT AUCH FUER DEN KOEDER: die Aussage muss zu ihrem Bild passen.'
+    )
+  }
+
+  if (platform === 'tiktok') {
+    parts.push(
+      'SOFT-LOOP (TikTok belohnt Rewatches):\n' +
+      'Die LETZTE bodyLine darf sich nicht wie ein Ende anfuehlen.\n' +
+      'Entweder bewusst offen lassen \u2013 oder das Motiv des Hooks leise\n' +
+      'wieder anklingen lassen (im Wort oder im Bild-Motiv).\n' +
+      'Beim erneuten Abspielen soll sich das Video wie ein Kreis anfuehlen.\n' +
+      'Kein Fazit. Keine Zusammenfassung. Kein "und so leben wir eben".'
+    )
+  }
+
+  if (parts.length === 0) return ''
+  return 'WATCH-TIME-REGELN:\n\n' + parts.join('\n\n')
+}
+
+// ================================================================================
 // PLATTFORM-KONFIGURATION
 // ================================================================================
 
@@ -158,9 +219,9 @@ FRAGMENT-REGEL: NUR die letzte bodyLine darf ein Foster-Fragment sein
 const PLATFORM_CONFIG = {
   tiktok: {
     label: 'TikTok',
-    hookMaxChars: 55,
+    hookMaxChars: 40,
     hookWindow: '0,8\u20131,2 Sekunden',
-    hookNote: 'Max 5 Woerter wenn moeglich. Jedes Wort muss zaehlen. Unvollstaendig schlaegt vollstaendig.',
+    hookNote: 'Max 5 Woerter. Jedes Wort muss zaehlen. Unvollstaendig schlaegt vollstaendig. Ein-Blick-Regel: erfassbar wie ein Strassenschild, nicht wie ein Satz.',
     bodyMaxChars: 80,
     hashtagCount: '3\u20134',
     hashtagStrategy: '1 Nischen-Tag (#mojobus) + 1 Community-Tag (#buslife) + 1 Reichweiten-Tag (#vanlife)',
@@ -169,9 +230,9 @@ const PLATFORM_CONFIG = {
   },
   reels: {
     label: 'Instagram Reels',
-    hookMaxChars: 70,
+    hookMaxChars: 55,
     hookWindow: '1,0\u20131,8 Sekunden',
-    hookNote: 'Atmosphaerischer moeglich als TikTok, aber immer noch unvollstaendig. Lifestyle-Publikum.',
+    hookNote: 'Atmosphaerischer moeglich als TikTok, aber immer noch unvollstaendig und in einem Blick erfassbar. Lifestyle-Publikum.',
     bodyMaxChars: 100,
     hashtagCount: '5\u20138',
     hashtagStrategy: '2 Nischen-Tags + 2 Community-Tags (#vanlifegermany, #buslifegermany) + 2 Reichweiten-Tags',
@@ -180,7 +241,7 @@ const PLATFORM_CONFIG = {
   },
   youtube: {
     label: 'YouTube Shorts',
-    hookMaxChars: 90,
+    hookMaxChars: 80,
     hookWindow: '2,0\u20134,0 Sekunden',
     hookNote: 'Vollstaendige Aussage erlaubt die trotzdem eine Frage oeffnet. Konkreter als TikTok.',
     bodyMaxChars: 120,
@@ -239,13 +300,13 @@ const TEMPLATE_CONFIG = {
   listicle: {
     label: 'Listicle',
     description: '3-5 konkrete Punkte, Tipps, Erkenntnisse.',
-    hookGuidance: 'ZAHLEN-HOOK \u2013 kuendigt die Anzahl an, ohne sie zu erklaeren.',
+    hookGuidance: 'ZAHLEN-HOOK oder FEHLER/PREIS-HOOK \u2013 kuendigt etwas an, ohne es zu erklaeren.',
     bodyGuidance: 'Jede Zeile ist ein eigenstaendiger Punkt. Jeder muss ueberraschen.'
   },
   reveal: {
     label: 'Reveal',
     description: 'Ueberraschende Einsicht oder "Warum wir das anders machen".',
-    hookGuidance: 'PARADOX-HOOK oder KONTRAST-HOOK \u2013 der Widerspruch ist die Aussage.',
+    hookGuidance: 'PARADOX-HOOK, KONTRAST-HOOK oder FEHLER/PREIS-HOOK \u2013 der Widerspruch ist die Aussage.',
     bodyGuidance: 'Baue auf den Widerspruch im Hook auf. Loese ihn nicht auf \u2013 zeige ihn von verschiedenen Seiten.'
   },
   movie: {
@@ -344,6 +405,10 @@ export function generateTikTokUserPrompt({
   const voRules = voiceoverMode ? VOICEOVER_RULES.on : VOICEOVER_RULES.off
   const isRetention = template === 'retention'
 
+  // Koeder (ab 5 Bildern) + Soft-Loop (nur TikTok) \u2013 NICHT bei 'retention'
+  // (das Retention-Template hat eigene, haertere Koeder/Loop-Regeln)
+  const watchtimeRules = isRetention ? '' : buildWatchtimeRules(imageCount, platform)
+
   const contextSource = Array.isArray(imageContexts) && imageContexts.some(function(c) { return c && c.trim() })
     ? imageContexts
     : Array.isArray(locations) && locations.length > 0 ? locations : []
@@ -422,6 +487,11 @@ export function generateTikTokUserPrompt({
     'DIE EINZIGE FRAGE: Wuerde jemand der gerade scrollt bei diesem Text AUFHOEREN?\n' +
     'Nicht weil er schoen ist. Weil er hakt. Weil er nicht fertig ist.\n' +
     'Ein Hook der alles erklaert braucht kein Video mehr dahinter.\n\n' +
+    'FREMDEN-TEST (Pflicht): Der Zuschauer ist ein FREMDER.\n' +
+    'Er kennt uns nicht, kennt Leon nicht, kennt den Bus nicht.\n' +
+    'Der Hook muss OHNE Vorwissen in 1 Sekunde einen Grund zum Bleiben geben.\n' +
+    'Ein Insider-Hook ("Der Platz neben dem Fahrersitz ist leer.") ist fuer\n' +
+    'Follower stark \u2013 fuer Fremde ein Raetsel ohne Einsatz. Solche Hooks aussortieren.\n\n' +
     'PLATTFORM: ' + plat.label.toUpperCase() + '\n' +
     'Hook-Fenster: ' + plat.hookWindow + '\n' +
     'Max Zeichen: ' + plat.hookMaxChars + '\n' +
@@ -453,27 +523,41 @@ export function generateTikTokUserPrompt({
     'bodyLines[0] ist ein NEUER, EIGENER Gedanke zu Bild 1 \u2013 unabhaengig vom Hook.\n' +
     'FALSCH: Hook beschreibt Bild 1 => bodyLines hat nur ' + (imageCount - 1) + ' Eintraege\n' +
     'RICHTIG: bodyLines[0] ist frisch, aus dem Innenleben, Bild 1 als Anker\n\n' +
+    'bodyLines[0] IST DER ZWEITE HOOK:\n' +
+    'Der Zuschauer entscheidet in Sekunde 3\u20135 zum ZWEITEN Mal, ob er bleibt \u2013\n' +
+    'genau beim Uebergang vom Hook zur ersten bodyLine. Dort ist der groesste Drop.\n' +
+    'bodyLines[0] muss die im Hook geoeffnete Spannung VERSTAERKEN oder eine\n' +
+    'neue kleine Luecke oeffnen \u2013 niemals ruhig einsteigen, niemals nur Szene setzen.\n' +
+    'FALSCH: "Der Morgen ist still." (ruhig, nichts offen \u2013 Zuschauer weg)\n' +
+    'RICHTIG: ein Gedanke der weiterzieht, ohne den Hook zu erklaeren.\n\n' +
     buildFosterRhythm(imageCount, plat.bodyMaxChars) + '\n\n' +
     (isRetention ? RETENTION_RULES + '\n\n' : '') +
+    (!isRetention && watchtimeRules ? watchtimeRules + '\n\n' : '') +
     voRules + '\n\n' +
     (bildOrientierung ? bildOrientierung + '\n\n' : '') +
 
     // ---- SELBSTCHECK -------------------------------------------------------
-    'SELBSTCHECK vor der Antwort:\n' +
-    '  1. BILD-ANKER: Greift JEDE bodyLine ein sichtbares Detail aus IHREM Bild auf?\n' +
+    'SELBSTCHECK vor der Antwort (Reihenfolge = Wichtigkeit):\n' +
+    '  1. FREMDEN-TEST: Versteht ein Fremder (kennt uns nicht, kennt Leon nicht,\n' +
+    '     kennt den Bus nicht) in 1 Sekunde, warum er beim Hook bleiben soll?\n' +
+    '  2. BILD-ANKER: Greift JEDE bodyLine ein sichtbares Detail aus IHREM Bild auf?\n' +
     '     (Zeile 1 <-> Bild 1, Zeile 2 <-> Bild 2 ... einzeln pruefen!)\n' +
-    '  2. Hook: Wuerde jemand beim Scrollen AUFHOEREN? Ja / Nein?\n' +
-    '  3. Hook: Unvollstaendig, oeffnet etwas, max ' + plat.hookMaxChars + ' Zeichen?\n' +
-    '  4. bodyLines: exakt ' + imageCount + ' Eintraege? Jeder max ' + plat.bodyMaxChars + ' Zeichen?\n' +
-    '  5. bodyLines: jeder Eintrag = ein Gedanke, ein Punkt am Ende (Fragment nur in der letzten)?\n' +
-    '  6. Foster-Rhythmus: lange und kurze Saetze gemischt? Nicht alle gleich schwer?\n' +
-    '  7. Verbotene Woerter (Wanderlust, Freiheit, Abenteuer...) benutzt? => ersetzen.\n' +
-    '  8. Beispiel aus dem Prompt kopiert? => neu schreiben.\n' +
-    '  9. Leon als lebender Begleiter? => sofort entfernen.\n' +
+    '  3. Hook: Wuerde jemand beim Scrollen AUFHOEREN? Unvollstaendig? Ein Blick?\n' +
+    '  4. ZWEITER HOOK: Verstaerkt bodyLines[0] die Spannung \u2013 oder steigt sie ruhig ein?\n' +
+    '     Ruhig => neu schreiben.\n' +
     (isRetention
-      ? ' 10. RETENTION: Payoff in der letzten Zeile? Loop zum Hook? Genau 1 Koeder-Zeile?\n' +
+      ? '  5. RETENTION: Payoff in der letzten Zeile? Loop zum Hook? Genau 1 Koeder-Zeile?\n' +
         '     Und: haben Payoff/Loop/Koeder trotzdem ihren Bild-Anker behalten?\n'
-      : '') +
+      : '  5. WATCH-TIME: ' +
+        (imageCount >= 5 ? 'Genau 1 Koeder-Zeile im mittleren Drittel (mit Bild-Anker)? ' : '') +
+        (platform === 'tiktok' ? 'Letzte Zeile offen / Loop-faehig, kein Fazit?' : 'Letzte Zeile ohne Fazit-Ton?') + '\n') +
+    '  6. Foster-Rhythmus: lange und kurze Saetze gemischt? Nicht alle gleich schwer?\n' +
+    '  7. Leon als lebender Begleiter? => sofort entfernen.\n' +
+    '  8. Verbotene Woerter (Wanderlust, Freiheit, Idylle, Geheimtipp...) benutzt? => ersetzen.\n' +
+    '  9. Beispiel aus dem Prompt kopiert? => neu schreiben.\n' +
+    ' 10. Formalia: exakt ' + imageCount + ' bodyLines? Hook max ' + plat.hookMaxChars + ' Zeichen?\n' +
+    '     Jede bodyLine max ' + plat.bodyMaxChars + ' Zeichen? Ein Gedanke, ein Punkt\n' +
+    '     (Fragment nur in der letzten)?\n' +
     '\n' +
 
     // ---- BRIDGE + CTA + THUMBNAIL ------------------------------------------

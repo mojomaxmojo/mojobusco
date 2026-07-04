@@ -1264,3 +1264,29 @@ bekam trotzdem Caption-Stil-Texte (abgehackt gesprochen).
 - Erklärtext: AN = "KI schreibt sprechbare Sätze", AUS = "Caption-Texte"
 - Schritt 3: Tipp-Hinweis wenn Voiceover nachträglich aktiviert wird
 | `51c562c` | ContentSelector: Medien Default, Notizen 2. Stelle |
+
+---
+
+## 📋 Changelog – TikTok-Prompt Watchtime-Update (tiktok.js, 7 Punkte)
+
+**Nur `src/config/prompts/tiktok.js` geändert – keine server.js/UI-Änderung nötig.**
+
+| # | Maßnahme | Ziel |
+|---|----------|------|
+| 1 | Hook-Limits gesenkt: TikTok 55→**40**, Reels 70→**55**, YouTube 90→**80** Zeichen + "Ein-Blick-Regel" (Straßenschild, nicht Satz) in hookNote | Erste 2 Sekunden |
+| 2 | **bodyLines[0] = zweiter Hook**: neuer Block im Body-Teil – muss Hook-Spannung verstärken oder neue Lücke öffnen, nie ruhig einsteigen (größter Drop bei Sek. 3–5) | Drop bei Sek. 3–5 |
+| 3 | **Fremden-Test**: eigener Pflicht-Block im Hook-Teil + Selbstcheck-Punkt 1. Insider-Hooks (Leon, Fahrersitz) aussortieren. SUBTEXT-Beispiel "Der Platz neben dem Fahrersitz ist leer" ersetzt durch "Wir haben den Rückweg nie geplant" | Kaltes Publikum |
+| 4 | **Köder für ALLE Templates** (`buildWatchtimeRules()`): ab 5 Bildern genau 1 leise polarisierende Zeile im mittleren Drittel (Pattern-Interrupt gegen Mid-Video-Sag). Mit Bild-Anker-Pflicht | Mid-Video-Watchtime |
+| 5 | **Soft-Loop nur bei platform='tiktok'**: letzte Zeile nie wie ein Ende, kein Fazit – offen oder Hook-Motiv anklingen lassen. Bei YouTube/Reels bewusst weggelassen (Completion > Rewatch) | Rewatches/Ranking |
+| 6 | **6. Hook-Mechanik ⑥ FEHLER/PREIS-HOOK** (Loss Aversion + Geld). In hookGuidance von `listicle` + `reveal` aufgenommen | Stop-Rate |
+| 7 | **Blacklist erweitert**: Idylle, Postkartenmotiv, Kraft tanken, Auszeit, dem Alltag entfliehen, Sehnsucht, "hier ist die Zeit stehen geblieben", kleines Juwel, Geheimtipp | Foster-Ton |
+
+**Selbstcheck neu sortiert (Reihenfolge = Wichtigkeit):**
+1. Fremden-Test → 2. Bild-Anker → 3. Hook-Stop → 4. Zweiter Hook (bodyLines[0]) →
+5. Retention ODER Watch-Time (Köder/Loop, dynamisch je nach Template/Plattform/Bildanzahl) →
+6. Foster-Rhythmus → 7. Leon → 8. Verbotene Wörter → 9. Beispiel-Kopie → 10. Formalia (Zeichenlimits ans Ende)
+
+**Wichtig:**
+- `buildWatchtimeRules(imageCount, platform)` wird bei `template='retention'` NICHT angewendet (Retention hat eigene, härtere Köder/Loop-Regeln – sonst Dopplung)
+- Köder greift erst ab `imageCount >= 5`
+- Nach Deploy: kein Bundle-Invalidate nötig (nur Prompt, kein Remotion-Code) – aber `systemctl restart ai-api` damit server.js die neue tiktok.js lädt
