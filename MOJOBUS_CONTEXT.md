@@ -1310,3 +1310,25 @@ bekam trotzdem Caption-Stil-Texte (abgehackt gesprochen).
 - Der gewählte Hook fließt wie bisher über `hookText` in den Render – keine Änderung an render.js/Remotion nötig
 
 **⚠️ Deploy:** `server/server.js` geändert → auf VPS `bash deploy-main.sh --force` + `systemctl restart ai-api`. Kein Bundle-Invalidate nötig (kein Remotion-Code).
+
+---
+
+## 📋 Changelog – RouteMap-Fix: letzter Ort (Ziel) schlecht sichtbar
+
+**Betroffene Datei:** `server/remotion/components/RouteMapLine.tsx`
+
+**Problem:** Der letzte Ort (Ziel) auf der animierten Routen-Karte war nicht oder nur sehr schlecht sichtbar. Drei Ursachen:
+
+| # | Bug | Fix |
+|---|-----|-----|
+| 1 | **Label-Fade unerreichbar**: Ziel-Label hatte `coordProgress = 1.0` → Fade-Fenster `[0.95, 1.1]`, aber `drawEased` erreicht max 1.0 → Label blieb bei ~33% Opacity hängen | Fade-Fenster geklemmt auf `[min(p−0.05, 0.88), min(p+0.1, 0.97)]` → volle Opacity BEVOR die Linie fertig ist |
+| 2 | **Label vom Bus-Marker verdeckt**: Bus-Marker (`translate(-50%, -100%)`), Ziel-Punkt und Puls-Ring sitzen alle ÜBER dem Endpunkt – exakt dort saß auch das Label | Ziel-Label sitzt jetzt UNTER dem Punkt (`translate(-50%, 20px)`), Verbindungslinie oben statt unten, `zIndex: 2` |
+| 3 | **Puls-Ring erst am Sequenz-Ende sichtbar**: Opacity interpolierte über `frame [0.9×dur, dur]` → volle Sichtbarkeit erst im letzten Frame | Opacity an `drawEased [0.9, 0.98]` gekoppelt + sanfter Sinus-Puls auf dem Radius |
+
+**Ziel-Label zusätzlich hervorgehoben:** größere Schrift (0.7–0.95rem statt 0.55–0.75rem), bold, dunklerer Hintergrund (0.85), 2px-Akzent-Border, Glow-Schatten.
+
+**⚠️ Deploy:** `server/remotion/` geändert → nach `bash deploy-main.sh --force` Bundle-Cache invalidieren:
+```bash
+curl -X POST http://localhost:3002/api/render-remotion/invalidate-bundle
+```
+Test-Render mit RouteMap: Ziel-Label muss ab ~35% der Karten-Slide-Dauer voll sichtbar unter dem Zielpunkt stehen.

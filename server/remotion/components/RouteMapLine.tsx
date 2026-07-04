@@ -414,19 +414,18 @@ export const RouteMapLine: React.FC<RouteMapLineProps> = ({
           {/* End-Marker (Ziel-Marker erscheint wenn Linie fast fertig) */}
           {drawEased > 0.9 && (
             <>
-              {/* Pulsierender Ring */}
+              {/* Pulsierender Ring – voll sichtbar sobald die Linie ankommt,
+                  nicht erst im letzten Frame (Bug: [0.9×dur, dur] erreichte
+                  volle Opacity erst am Sequenz-Ende) */}
               <circle
                 cx={(endCoord.x / 100) * svgW}
                 cy={(endCoord.y / 100) * svgH}
-                r={strokeWidth * 5}
+                r={strokeWidth * 5 * (1 + Math.sin((frame / fps) * Math.PI * 2 * 1.2) * 0.12)}
                 fill="none"
                 stroke={accentColor}
-                strokeWidth={2}
+                strokeWidth={2.5}
                 opacity={
-                  interpolate(frame, [
-                    Math.round(durationInFrames * 0.9),
-                    durationInFrames,
-                  ], [0, 0.7], {
+                  interpolate(drawEased, [0.9, 0.98], [0, 0.8], {
                     extrapolateLeft: 'clamp',
                     extrapolateRight: 'clamp',
                   })
@@ -485,17 +484,28 @@ export const RouteMapLine: React.FC<RouteMapLineProps> = ({
           {coords.map((coord, i) => {
             if (!coord.label) return null;
 
-            // Label erscheint wenn die Linie diesen Punkt erreicht
+            const isLast = i === coords.length - 1;
+
+            // Label erscheint wenn die Linie diesen Punkt erreicht.
+            // ⚠️ BUGFIX letzter Ort: coordProgress ist beim letzten Punkt 1.0 –
+            // die alte Range [0.95, 1.1] konnte drawEased (max 1.0) nie
+            // ausfüllen → Ziel-Label blieb bei ~33% Opacity haengen.
+            // Fix: Fade-Fenster so klemmen dass es VOR drawEased=1.0 endet.
             const coordProgress = i / (coords.length - 1);
+            const fadeStart = Math.min(coordProgress - 0.05, 0.88);
+            const fadeEnd = Math.min(coordProgress + 0.1, 0.97);
             const labelOpacity = interpolate(
               drawEased,
-              [coordProgress - 0.05, coordProgress + 0.1],
+              [fadeStart, fadeEnd],
               [0, 1],
               { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
             );
 
             if (labelOpacity < 0.05) return null;
 
+            // ⚠️ BUGFIX letzter Ort: Bus-Marker + Ziel-Punkt + Puls-Ring sitzen
+            // alle UEBER dem Endpunkt – genau dort sass auch das Label und wurde
+            // verdeckt. Fix: Ziel-Label UNTER den Punkt legen + groesser/kraeftiger.
             return (
               <div
                 key={i}
@@ -503,40 +513,62 @@ export const RouteMapLine: React.FC<RouteMapLineProps> = ({
                   position: 'absolute',
                   left: `${coord.x}%`,
                   top: `${coord.y}%`,
-                  transform: 'translate(-50%, calc(-100% - 12px))',
+                  transform: isLast
+                    ? 'translate(-50%, 20px)'
+                    : 'translate(-50%, calc(-100% - 12px))',
                   opacity: labelOpacity,
                   pointerEvents: 'none',
+                  zIndex: isLast ? 2 : 1,
                 }}
               >
+                {/* Verbindungs-Linie zum Punkt (beim Ziel OBEN am Label) */}
+                {isLast && (
+                  <div
+                    style={{
+                      width: '1px',
+                      height: '8px',
+                      background: accentColor,
+                      margin: '0 auto',
+                    }}
+                  />
+                )}
                 {/* Label-Box */}
                 <div
                   style={{
-                    background: 'rgba(0,0,0,0.72)',
+                    background: isLast ? 'rgba(0,0,0,0.85)' : 'rgba(0,0,0,0.72)',
                     color: '#FFFFFF',
                     fontFamily: FONT_FAMILY_REGULAR,
-                    fontWeight: FONT_WEIGHT.semibold,
-                    fontSize: 'clamp(0.55rem, 1.5vw, 0.75rem)',
-                    padding: '0.25rem 0.6rem',
+                    fontWeight: isLast ? FONT_WEIGHT.bold : FONT_WEIGHT.semibold,
+                    fontSize: isLast
+                      ? 'clamp(0.7rem, 2vw, 0.95rem)'
+                      : 'clamp(0.55rem, 1.5vw, 0.75rem)',
+                    padding: isLast ? '0.35rem 0.8rem' : '0.25rem 0.6rem',
                     borderRadius: '100px',
-                    border: `1px solid ${accentColor}66`,
+                    border: isLast
+                      ? `2px solid ${accentColor}`
+                      : `1px solid ${accentColor}66`,
                     whiteSpace: 'nowrap',
                     textAlign: 'center',
                     backdropFilter: 'blur(8px)',
-                    boxShadow: '0 2px 12px rgba(0,0,0,0.5)',
+                    boxShadow: isLast
+                      ? `0 2px 16px rgba(0,0,0,0.7), 0 0 12px ${accentColor}55`
+                      : '0 2px 12px rgba(0,0,0,0.5)',
                   }}
                 >
-                  {i === 0 ? '🚌 ' : i === coords.length - 1 ? '📍 ' : '· '}
+                  {i === 0 ? '🚌 ' : isLast ? '📍 ' : '· '}
                   {coord.label}
                 </div>
-                {/* Verbindungs-Linie zum Punkt */}
-                <div
-                  style={{
-                    width: '1px',
-                    height: '8px',
-                    background: accentColor,
-                    margin: '0 auto',
-                  }}
-                />
+                {/* Verbindungs-Linie zum Punkt (bei Zwischenstopps UNTEN am Label) */}
+                {!isLast && (
+                  <div
+                    style={{
+                      width: '1px',
+                      height: '8px',
+                      background: accentColor,
+                      margin: '0 auto',
+                    }}
+                  />
+                )}
               </div>
             );
           })}
