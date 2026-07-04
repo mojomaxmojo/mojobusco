@@ -46,12 +46,19 @@ immer aus dem konkreten INHALT neu schreiben.
 ANTWORT-FORMAT (NUR JSON, kein Text davor/danach):
 {
   "hook": "Zuendet in unter 1 Sekunde \u2013 unvollstaendig, offen, hakt",
+  "hookAlternatives": ["Alternative mit ANDERER Hook-Mechanik", "zweite Alternative, dritte Mechanik"],
   "bodyLines": ["Gedanke fuer Bild 1", "Gedanke fuer Bild 2", "..."],
   "bridge": "Ueberleitung zum Blog \u2013 max 60 Zeichen",
   "cta": "Handlungsaufforderung \u2013 max 40 Zeichen",
   "thumbnail": "Cover-Text max 5 Woerter \u2013 NICHT identisch mit dem Hook",
   "hashtags": ["#vanlife", "#perpetualtraveler", "#mojobus"]
 }
+
+REGEL fuer hookAlternatives:
+- Genau 2 Eintraege. Beide gleichwertig stark \u2013 keine Resterampe.
+- Jede Alternative nutzt eine ANDERE Hook-Mechanik als "hook" und als die
+  jeweils andere Alternative (3 Hooks = 3 verschiedene Mechaniken).
+- Gleiche Regeln wie der Haupt-Hook: Zeichenlimit, Fremden-Test, Bild-1-Bezug.
 
 KRITISCHE REGEL fuer bodyLines:
 - Anzahl = exakt so viele wie Bilder (steht im User-Prompt)
@@ -511,6 +518,12 @@ export function generateTikTokUserPrompt({
     '- Unvollstaendig schlaegt vollstaendig. Kurz schlaegt lang.\n' +
     '- Fragment-Muster ("Zahl. Behauptung.") schlaegt ganze Saetze.\n' +
     '- Zahlen als Ziffern: "36 Jahre", "10 Meter" \u2013 nie ausschreiben.\n\n' +
+    'HOOK-ALTERNATIVEN (Pflicht):\n' +
+    'Liefere in "hookAlternatives" genau 2 zusaetzliche Hooks \u2013\n' +
+    'jeder mit einer ANDEREN Mechanik als der Haupt-Hook (3 Hooks = 3 Mechaniken).\n' +
+    'Beide muessen eigenstaendig stark sein: gleiche Regeln, gleiches Zeichenlimit\n' +
+    '(' + plat.hookMaxChars + '), gleicher Fremden-Test, gleicher Bild-1-Bezug.\n' +
+    'Keine Umformulierung des Haupt-Hooks \u2013 ein anderer ANGRIFFSWINKEL.\n\n' +
 
     // ---- BODY --------------------------------------------------------------
     '==============================================\n' +

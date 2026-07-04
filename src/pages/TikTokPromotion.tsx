@@ -283,6 +283,8 @@ export function TikTokPromotion() {
 
   // ── TIKTOK TEXT ══════════════════════════════════════════
   const [hookText, setHookText] = useState('')
+  // Hook-Alternativen der KI (A/B-Auswahl): [Haupt-Hook, Alt 1, Alt 2]
+  const [hookAlternatives, setHookAlternatives] = useState<string[]>([])
   const [bodyText, setBodyText] = useState('')
   const [bridgeText, setBridgeText] = useState('')
   const [ctaText, setCtaText] = useState('')
@@ -530,6 +532,9 @@ export function TikTokPromotion() {
       }
 
       setHookText(data.hook || articleTitle)
+      // A/B-Auswahl: Haupt-Hook + Alternativen als klickbare Optionen
+      const alts: string[] = Array.isArray(data.hookAlternatives) ? data.hookAlternatives : []
+      setHookAlternatives(alts.length > 0 ? [data.hook || articleTitle, ...alts] : [])
       setBodyText((data.bodyLines || []).join('\n') || articleSummary)
       setBridgeText(data.bridge || 'Mehr auf mojobus.co')
       setCtaText(data.cta || 'Link in Bio 📌')
@@ -552,6 +557,7 @@ export function TikTokPromotion() {
       // sonst landen 18 Artikel-Sätze als Captions auf 12 Bildern.
       const shortTitle = articleTitle.split('·')[0].trim()
       setHookText(shortTitle)
+      setHookAlternatives([])
       setBodyText('')
       setBridgeText('Mehr auf mojobus.co')
       setCtaText('Link in Bio 📌')
@@ -1517,7 +1523,35 @@ export function TikTokPromotion() {
                 <div>
                   <Label className="text-xs sm:text-sm flex items-center gap-1">
                     <span className="text-primary font-bold">0-3s</span> Hook
+                    {hookAlternatives.length > 1 && (
+                      <span className="text-xs font-normal text-muted-foreground ml-auto">
+                        {hookAlternatives.length} KI-Vorschläge – antippen zum Übernehmen
+                      </span>
+                    )}
                   </Label>
+                  {/* A/B-Auswahl: KI liefert Haupt-Hook + 2 Alternativen (andere Mechaniken) */}
+                  {hookAlternatives.length > 1 && (
+                    <div className="flex flex-col gap-1.5 mt-1.5 mb-1">
+                      {hookAlternatives.map((alt, i) => {
+                        const isActive = alt === hookText
+                        return (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => setHookText(alt)}
+                            className={`text-left text-xs sm:text-sm rounded-md border px-2.5 py-1.5 transition-colors ${
+                              isActive
+                                ? 'border-primary bg-primary/10 font-semibold'
+                                : 'border-border bg-muted/30 hover:bg-muted/60'
+                            }`}
+                          >
+                            <span className="text-muted-foreground mr-1.5">{i === 0 ? '★' : `${i + 1}.`}</span>
+                            {alt}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
                   <Input
                     value={hookText}
                     onChange={e => setHookText(e.target.value)}

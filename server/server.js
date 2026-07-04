@@ -2855,9 +2855,24 @@ app.post('/api/tiktok/generate-text', async (req, res) => {
       console.log(`[TikTok] bodyLines final: ${cleanBodyLines.map(l => `"${l.substring(0, 35)}"`).join(' | ')}`)
     }
 
+    // ── hookAlternatives bereinigen (A/B-Auswahl im Dashboard) ──────────
+    // Erwartung: genau 2 Alternativen mit anderen Mechaniken als der Haupt-Hook.
+    // Robust gegen KI-Fehler: Duplikate des Haupt-Hooks + Leereintraege raus,
+    // auf max 2 kuerzen. Fehlen sie komplett → leeres Array (UI blendet aus).
+    const mainHook = (result.hook || '').trim().toLowerCase()
+    const hookAlternatives = (Array.isArray(result.hookAlternatives) ? result.hookAlternatives : [])
+      .map(h => (typeof h === 'string' ? h.trim() : ''))
+      .filter(h => h && h.toLowerCase() !== mainHook)
+      .filter((h, i, arr) => arr.findIndex(x => x.toLowerCase() === h.toLowerCase()) === i) // Duplikate raus
+      .slice(0, 2)
+    if (hookAlternatives.length > 0) {
+      console.log(`[TikTok] Hook-Alternativen: ${hookAlternatives.map(h => `"${h.substring(0, 40)}"`).join(' | ')}`)
+    }
+
     res.json({
       success: true,
       hook: result.hook || title,
+      hookAlternatives,
       bodyLines: cleanBodyLines,
       bridge: result.bridge || 'Mehr auf mojobus.co',
       cta: result.cta || 'Link in Bio 📌',

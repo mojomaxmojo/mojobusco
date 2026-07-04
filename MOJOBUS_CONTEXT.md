@@ -1290,3 +1290,23 @@ bekam trotzdem Caption-Stil-Texte (abgehackt gesprochen).
 - `buildWatchtimeRules(imageCount, platform)` wird bei `template='retention'` NICHT angewendet (Retention hat eigene, härtere Köder/Loop-Regeln – sonst Dopplung)
 - Köder greift erst ab `imageCount >= 5`
 - Nach Deploy: kein Bundle-Invalidate nötig (nur Prompt, kein Remotion-Code) – aber `systemctl restart ai-api` damit server.js die neue tiktok.js lädt
+
+---
+
+## 📋 Changelog – Punkt 8: hookAlternatives (A/B-Hook-Auswahl)
+
+**Betroffene Dateien:** `src/config/prompts/tiktok.js`, `server/server.js`, `src/pages/TikTokPromotion.tsx`
+
+| Ebene | Änderung |
+|-------|----------|
+| **tiktok.js** (System-Prompt) | JSON-Format um `"hookAlternatives": [Alt1, Alt2]` erweitert + Regel: genau 2 Einträge, jede mit ANDERER Hook-Mechanik (3 Hooks = 3 Mechaniken), gleiche Regeln wie Haupt-Hook |
+| **tiktok.js** (User-Prompt) | Block "HOOK-ALTERNATIVEN (Pflicht)" im Hook-Teil: anderer Angriffswinkel, kein Umformulieren, gleiches Zeichenlimit + Fremden-Test + Bild-1-Bezug |
+| **server.js** (`/api/tiktok/generate-text`) | Bereinigung: Duplikate des Haupt-Hooks raus, Leereinträge raus, case-insensitive Dedupe, max 2. Response enthält `hookAlternatives: string[]` (leer = UI blendet aus) |
+| **TikTokPromotion.tsx** | Neuer State `hookAlternatives` (Array: [Haupt-Hook, Alt1, Alt2]). In Schritt 3 über dem Hook-Input: klickbare Buttons (★ = KI-Favorit), Antippen übernimmt in `hookText`. Aktiver Hook hervorgehoben. Manuelles Editieren im Input weiterhin möglich. Fehler-Fallback setzt Alternativen zurück |
+
+**Verhalten:**
+- KI liefert 3 Hooks mit 3 verschiedenen Mechaniken → de facto eingebauter A/B-Test pro Render
+- Liefert die KI keine/kaputte Alternativen → `hookAlternatives: []` → UI zeigt nur das normale Input-Feld (kein Bruch)
+- Der gewählte Hook fließt wie bisher über `hookText` in den Render – keine Änderung an render.js/Remotion nötig
+
+**⚠️ Deploy:** `server/server.js` geändert → auf VPS `bash deploy-main.sh --force` + `systemctl restart ai-api`. Kein Bundle-Invalidate nötig (kein Remotion-Code).
