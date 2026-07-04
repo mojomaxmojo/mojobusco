@@ -1251,4 +1251,16 @@ KI schrieb die Artikel-Story chronologisch runter statt pro Bild. Retention-Mech
 **Fix 3 (server.js Vision):** Zeilenumbrüche in Vision-Beschreibungen werden zu
 Leerzeichen (mehrzeilige Antworten zerschossen die "Bild N:"-Struktur im Prompt –
 im Log sichtbar bei Bild 10).
+
+### UI-Fix: Voiceover-Toggle in Schritt 2 (vor KI-Generierung)
+
+**Problem:** `voiceoverEnabled` steuert den Prompt-Modus (TTS-Sätze vs Caption-Stil),
+aber der Toggle war NUR in Schritt 3 – NACH der KI-Generierung. Wer Voiceover wollte,
+bekam trotzdem Caption-Stil-Texte (abgehackt gesprochen).
+
+**Fix (TikTokPromotion.tsx):**
+- Zweiter Voiceover-Toggle in Schritt 2 (unter Ziel-Plattform, vor Generieren-Button)
+- Gleicher State → beide Toggles bleiben synchron
+- Erklärtext: AN = "KI schreibt sprechbare Sätze", AUS = "Caption-Texte"
+- Schritt 3: Tipp-Hinweis wenn Voiceover nachträglich aktiviert wird
 | `51c562c` | ContentSelector: Medien Default, Notizen 2. Stelle |

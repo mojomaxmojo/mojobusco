@@ -1447,6 +1447,34 @@ export function TikTokPromotion() {
                 </p>
               </div>
 
+              {/* Voiceover-Toggle – MUSS vor der KI-Generierung gesetzt sein!
+                   voiceoverEnabled steuert den Prompt-Modus:
+                   AN  = TTS-optimierte Sätze (sprechbar, Gedankenstriche, kein Denglisch)
+                   AUS = Caption-Stil (knapper, Fragmente erlaubt)
+                   Gleicher State wie der Toggle in Schritt 3 – bleibt synchron. */}
+              <div className="p-3 bg-muted/30 rounded-lg space-y-1">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs sm:text-sm font-medium flex items-center gap-1">
+                    <Volume2 className="w-3 h-3" /> Voiceover geplant?
+                  </Label>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={voiceoverEnabled}
+                      onChange={e => setVoiceoverEnabled(e.target.checked)}
+                      disabled={!edgeTtsAvailable && !piperAvailable}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-muted-foreground/30 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary" />
+                  </label>
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  {voiceoverEnabled
+                    ? '🎙️ KI schreibt sprechbare Sätze für die TTS-Stimme (Atemfluss, keine Fragmente)'
+                    : '📝 KI schreibt Caption-Texte (knapper, nur zum Lesen) – Stimme kann in Schritt 3 trotzdem aktiviert werden, klingt dann aber abgehackter'}
+                </p>
+              </div>
+
               <div className="flex gap-2 pt-2">
                 <Button variant="outline" onClick={() => setStep(1)} className="shrink-0">
                   ← Zurück
@@ -1609,6 +1637,12 @@ export function TikTokPromotion() {
                   )}
                   {voiceoverEnabled && (edgeTtsAvailable || piperAvailable) && (
                     <div className="space-y-2">
+                      {/* Hinweis: Toggle wurde evtl. NACH der KI-Generierung aktiviert */}
+                      <p className="text-[10px] text-amber-500/90">
+                        💡 Tipp: Für optimale Sprech-Texte den Voiceover-Schalter schon in
+                        Schritt 2 (vor der KI-Generierung) aktivieren – sonst wurden die
+                        Texte im Caption-Stil geschrieben und klingen gesprochen abgehackter.
+                      </p>
                       <div className="flex gap-2">
                         <Select value={voiceoverModel} onValueChange={setVoiceoverModel}>
                           <SelectTrigger className="flex-1 text-sm">
