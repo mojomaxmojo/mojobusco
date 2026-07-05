@@ -10,6 +10,10 @@
  * um und holt fehlende Labels via Reverse-Geocoding (Nominatim).
  *
  * GPS-Tag-Strukturen in den Events:
+ *  - TripPublishForm (kind 30025):
+ *               ['waypoint', index, lat, lon, name, date, image, description]
+ *               → beste Quelle: GPS + Label pro Station! Zusätzlich
+ *               ['image', url, lat, lon, date] (erweiterte image-Tags)
  *  - NoteForm:  ['image', url] gefolgt von ['gps_lat', ...], ['gps_lon', ...]
  *               → GPS gehört zum davor stehenden Bild (pro Bild!)
  *  - MediaUploadForm / PlaceForm / ArticleForm:
@@ -63,8 +67,6 @@ interface ContentItemLike {
 
 // ── Konstanten ────────────────────────────────────────────────────────────
 
-/** Punkte näher als X km werden zu einer Station zusammengefasst */
-const DEDUPE_KM = 2;
 /** Max. Stationen auf der Karte (Lesbarkeit + Label-Platz) */
 const MAX_POINTS = 6;
 /** Innenabstand der Route vom Videorand (Prozent) */
@@ -73,9 +75,20 @@ const PAD_Y = 22; // oben/unten – Platz für Labels + Caption-Safe-Zone
 
 // ── GPS-Extraktion aus Event-Tags ─────────────────────────────────────────
 
+/** Prüft ob ein lat/lon-Paar gültig ist ((0,0) = kaputte EXIF → verwerfen) */
+function isValidCoord(lat: number, lon: number): boolean {
+  return (
+    Number.isFinite(lat) &&
+    Number.isFinite(lon) &&
+    Math.abs(lat) <= 90 &&
+    Math.abs(lon) <= 180 &&
+    (lat !== 0 || lon !== 0)
+  );
+}
+
 /**
  * Extrahiert alle GPS-Punkte aus einem Event.
- * Behandelt beide Tag-Strukturen (pro Bild + pro Event).
+ * Behandelt alle drei Tag-Strukturen (Trip-Waypoints, pro Bild, pro Event).
  */
 function extractGpsFromEvent(event: { tags?: string[][]; created_at?: number }, createdAt: number): GpsPoint[] {
   const tags = event?.tags;
@@ -84,10 +97,49 @@ function extractGpsFromEvent(event: { tags?: string[][]; created_at?: number }, 
   const locationLabel = tags.find(t => t[0] === 'location')?.[1]?.trim() || undefined;
   const points: GpsPoint[] = [];
 
-  // Tag-Liste sequenziell durchgehen: gps_lat/gps_lon-Paare einsammeln.
-  // (Bei NoteForm folgen sie jeweils auf ein 'image'-Tag → Reihenfolge der
-  //  Tags entspricht der Bild-Reihenfolge. Bei den anderen Formularen gibt
-  //  es genau ein Paar pro Event.)
+  // ── Quelle 1: Trip-Waypoints (kind 30025, TripPublishForm) ──────────────
+  // ['waypoint', index, lat, lon, name, date, image, description]
+  // Beste Quelle: GPS + Label pro Station, bereits in Reihenfolge.
+  const waypointTags = tags.filter(t => t[0] === 'waypoint' && t.length >= 4);
+  if (waypointTags.length > 0) {
+    // Nach Index sortieren (Tag[1] = "1", "2", ...)
+    const sorted = [...waypointTags].sort(
+      (a, b) => (parseInt(a[1], 10) || 0) - (parseInt(b[1], 10) || 0)
+    );
+    for (const wp of sorted) {
+      const lat = parseFloat(wp[2]);
+      const lon = parseFloat(wp[3]);
+      if (isValidCoord(lat, lon)) {
+        const name = (wp[4] || '').trim();
+        // Generische Auto-Namen ("Station 3") nicht als Label verwenden –
+        // Reverse-Geocoding liefert dann echte Ortsnamen
+        const label = name && !/^Station \d+$/i.test(name) ? name : undefined;
+        points.push({ lat, lon, label, createdAt });
+      }
+    }
+    if (points.length >= 2) return points; // Waypoints reichen – fertig
+  }
+
+  // ── Quelle 2: erweiterte image-Tags (Trip-Format) ────────────────────────
+  // ['image', url, lat, lon, date] – GPS direkt im image-Tag
+  const imageGpsTags = tags.filter(t => t[0] === 'image' && t.length >= 4);
+  if (points.length < 2 && imageGpsTags.length > 0) {
+    for (const img of imageGpsTags) {
+      const lat = parseFloat(img[2]);
+      const lon = parseFloat(img[3]);
+      if (isValidCoord(lat, lon)) {
+        points.push({ lat, lon, label: undefined, createdAt });
+      }
+    }
+    if (points.length >= 2) {
+      if (locationLabel) points[0].label = locationLabel;
+      return points;
+    }
+  }
+
+  // ── Quelle 3: gps_lat/gps_lon-Paare (Note/Media/Place/Article) ──────────
+  // Sequenzielles Paar-Parsing: bei NoteForm folgen sie auf 'image'-Tags
+  // (Reihenfolge = Bild-Reihenfolge), sonst ein Paar pro Event.
   let pendingLat: number | null = null;
 
   for (const tag of tags) {
@@ -96,11 +148,8 @@ function extractGpsFromEvent(event: { tags?: string[][]; created_at?: number }, 
       pendingLat = Number.isFinite(v) ? v : null;
     } else if (tag[0] === 'gps_lon' && pendingLat !== null) {
       const lon = parseFloat(tag[1]);
-      if (Number.isFinite(lon) && Math.abs(pendingLat) <= 90 && Math.abs(lon) <= 180) {
-        // (0,0) = fehlerhafte EXIF-Daten → überspringen
-        if (pendingLat !== 0 || lon !== 0) {
-          points.push({ lat: pendingLat, lon, label: undefined, createdAt });
-        }
+      if (isValidCoord(pendingLat, lon)) {
+        points.push({ lat: pendingLat, lon, label: undefined, createdAt });
       }
       pendingLat = null;
     }
@@ -108,7 +157,7 @@ function extractGpsFromEvent(event: { tags?: string[][]; created_at?: number }, 
 
   // Event-Level location-Label dem ERSTEN Punkt geben (beste Heuristik:
   // das location-Tag beschreibt den Haupt-Ort des Events)
-  if (points.length > 0 && locationLabel) {
+  if (points.length > 0 && locationLabel && !points[0].label) {
     points[0].label = locationLabel;
   }
 
@@ -128,12 +177,32 @@ function distanceKm(a: GpsPoint, b: GpsPoint): number {
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-// ── Dedupe: nahe Punkte zusammenfassen ────────────────────────────────────
+// ── Dedupe: nahe Punkte zusammenfassen (ADAPTIV zur Routen-Größe) ─────────
+// Wichtig: Ein Spaziergang (alle Punkte < 3km) darf NICHT auf 1 Station
+// kollabieren – deshalb skaliert die Dedupe-Distanz mit der Gesamt-Spanne:
+//   Spaziergang (2km Spanne)  → Dedupe ~0.08km  → alle Foto-Stopps bleiben
+//   Roadtrip (500km Spanne)   → Dedupe ~20km    → Cluster werden zusammengefasst
+
+function routeSpanKm(points: GpsPoint[]): number {
+  let maxDist = 0;
+  for (let i = 0; i < points.length; i++) {
+    for (let j = i + 1; j < points.length; j++) {
+      const d = distanceKm(points[i], points[j]);
+      if (d > maxDist) maxDist = d;
+    }
+  }
+  return maxDist;
+}
 
 function dedupePoints(points: GpsPoint[]): GpsPoint[] {
+  if (points.length <= 1) return [...points];
+  // Adaptive Distanz: 4% der Gesamt-Spanne, min 30m, max 20km
+  const span = routeSpanKm(points);
+  const dedupeKm = Math.min(20, Math.max(0.03, span * 0.04));
+
   const result: GpsPoint[] = [];
   for (const p of points) {
-    const near = result.find(r => distanceKm(r, p) < DEDUPE_KM);
+    const near = result.find(r => distanceKm(r, p) < dedupeKm);
     if (near) {
       // Label übernehmen falls der bestehende Punkt keins hat
       if (!near.label && p.label) near.label = p.label;
@@ -211,19 +280,50 @@ function gpsToPercent(points: GpsPoint[]): RouteCoord[] {
 // ── Labels via Reverse-Geocoding auffüllen ────────────────────────────────
 
 /**
- * Holt Stadt-Namen für Punkte ohne Label (Nominatim, 1 req/s Rate-Limit,
+ * Holt Orts-Namen für Punkte ohne Label (Nominatim, 1 req/s Rate-Limit,
  * gecacht in gpsExtraction). Fehler → Punkt bleibt ohne Label (kein Abbruch).
+ *
+ * Kleine Routen (Spaziergang): alle Punkte liegen im selben Ort → bei kurzen
+ * Distanzen wird der SPEZIFISCHE Name bevorzugt (Strand/Straße/Viertel statt
+ * Stadt) und doppelte Labels werden unterdrückt (nur der erste behält ihn).
  */
 async function fillLabels(points: GpsPoint[]): Promise<void> {
+  const span = routeSpanKm(points);
+  const preferSpecific = span < 10; // Spaziergang/Tagestour → Viertel/Strand statt Stadt
+
   for (const p of points) {
     if (p.label) continue;
     try {
       const loc = await reverseGeocode(p.lat, p.lon);
-      p.label = loc?.city || loc?.county || loc?.country || undefined;
+      p.label = preferSpecific
+        ? loc?.neighbourhood || loc?.suburb || loc?.specificLocation?.split(',')[0]?.trim() || loc?.city || undefined
+        : loc?.city || loc?.county || loc?.country || undefined;
       // Nominatim Rate-Limit: 1 Request/Sekunde (Cache-Hits zählen nicht)
       await new Promise(r => setTimeout(r, 1100));
     } catch {
       // still ok – Punkt ohne Label
+    }
+  }
+
+  // Doppelte Labels unterdrücken: gleicher Name mehrfach → Start und Ziel
+  // haben Vorrang, Zwischenstationen verlieren ihr Duplikat.
+  // (RouteMapLine zeigt Punkte ohne Label einfach ohne Pill – kein Bruch)
+  const lastIdx = points.length - 1;
+  const priority = (idx: number) => (idx === 0 || idx === lastIdx ? 0 : 1);
+  const byLabel = new Map<string, number>(); // label → Punkt-Index der ihn behält
+  for (let i = 0; i < points.length; i++) {
+    const label = points[i].label;
+    if (!label) continue;
+    const key = label.toLowerCase();
+    const existing = byLabel.get(key);
+    if (existing === undefined) {
+      byLabel.set(key, i);
+    } else if (priority(i) < priority(existing)) {
+      // Neuer Punkt hat Vorrang (Start/Ziel) → alter verliert das Label
+      points[existing].label = undefined;
+      byLabel.set(key, i);
+    } else {
+      points[i].label = undefined;
     }
   }
 }
