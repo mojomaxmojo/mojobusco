@@ -517,6 +517,90 @@ export async function reverseGeocode(latitude: number, longitude: number): Promi
 }
 
 /**
+ * Forward-Geocoding: Text-Standort (z.B. "Lissabon" oder "Lissabon, Portugal")
+ * in GPS-Koordinaten umwandeln. Nutzt OpenStreetMap Nominatim (free, kein API-Key).
+ *
+ * Wird verwendet, wenn ein Event keine gps_lat/gps_lon-Tags hat, aber einen
+ * location-Text (oder Land-Tag) – z.B. weil das Bild ohne EXIF-GPS hochgeladen
+ * und der Standort nur manuell eingetragen wurde.
+ *
+ * @param query - Freitext-Standort, z.B. "Lissabon, Portugal"
+ * @returns Koordinaten + Nominatim-Anzeigename, oder null wenn nichts gefunden
+ */
+export interface ForwardGeocodeResult {
+  lat: number;
+  lon: number;
+  displayName?: string;
+}
+
+// Eigener Cache für Forward-Geocoding (Text → Koordinaten), getrennt vom
+// Reverse-Geocoding-Cache (Koordinaten → Text) oben.
+const forwardGeocodeCache = new Map<string, ForwardGeocodeResult | null>();
+const FORWARD_CACHE_MAX_SIZE = 100;
+
+function cleanupForwardCache() {
+  if (forwardGeocodeCache.size > FORWARD_CACHE_MAX_SIZE) {
+    const entries = Array.from(forwardGeocodeCache.entries());
+    for (let i = 0; i < entries.length / 2; i++) {
+      forwardGeocodeCache.delete(entries[i][0]);
+    }
+  }
+}
+
+export async function forwardGeocode(query: string): Promise<ForwardGeocodeResult | null> {
+  const trimmed = query.trim();
+  if (!trimmed) return null;
+
+  const cacheKey = trimmed.toLowerCase();
+  if (forwardGeocodeCache.has(cacheKey)) {
+    console.log('[Forward Geocode Cache] Cache hit for:', cacheKey);
+    return forwardGeocodeCache.get(cacheKey) ?? null;
+  }
+
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(trimmed)}&limit=1&addressdetails=0`,
+      {
+        headers: {
+          'User-Agent': 'MojoBus/1.0 (nostr:npub1f4vym2mu3q9fsz08muz8d469hl568l5358qx90qlaspyuz67ru0sfxvupf)'
+        }
+      }
+    );
+
+    if (!response.ok) {
+      console.warn('[Forward Geocoding] API request failed:', response.status, response.statusText);
+      forwardGeocodeCache.set(cacheKey, null);
+      return null;
+    }
+
+    const data = await response.json();
+    if (!Array.isArray(data) || data.length === 0) {
+      console.log('[Forward Geocoding] Kein Treffer für:', trimmed);
+      forwardGeocodeCache.set(cacheKey, null);
+      return null;
+    }
+
+    const lat = parseFloat(data[0].lat);
+    const lon = parseFloat(data[0].lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+      forwardGeocodeCache.set(cacheKey, null);
+      return null;
+    }
+
+    const result: ForwardGeocodeResult = { lat, lon, displayName: data[0].display_name };
+    console.log('[Forward Geocoding] Gefunden:', trimmed, '→', result);
+
+    forwardGeocodeCache.set(cacheKey, result);
+    cleanupForwardCache();
+
+    return result;
+  } catch (error) {
+    console.error('[Forward Geocoding] Error:', error);
+    return null;
+  }
+}
+
+/**
  * Extract country code from location data and map to our internal country codes
  *
  * @param location - Location data from reverse geocoding

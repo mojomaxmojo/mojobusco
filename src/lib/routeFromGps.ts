@@ -20,12 +20,18 @@
  *               ['gps_lat', ...], ['gps_lon', ...] einmal pro Event
  *               → GPS gilt für das ganze Event
  *
+ * Zusatz-Fallback: Events OHNE gps_lat/gps_lon (z.B. Bild ohne EXIF-GPS
+ * hochgeladen, Standort nur als Text eingetragen) werden per Forward-
+ * Geocoding aus ihrem 'location'-Text-Tag (+ Land) aufgelöst, statt
+ * komplett zu fehlen → siehe extractTextLocationQuery() + forwardGeocode().
+ *
  * Verwendung: TikTokPromotion.tsx → buildRouteFromContent(selectedContent)
  * → routeCoords in den Render-Payload → MojoBusVideo nutzt echte Route
  * statt pickDemoRoute-Fallback.
  */
 
-import { reverseGeocode } from './gpsExtraction';
+import { reverseGeocode, forwardGeocode } from './gpsExtraction';
+import { COUNTRIES } from '@/config/countries';
 
 // ── Typen ─────────────────────────────────────────────────────────────────
 
@@ -162,6 +168,49 @@ function extractGpsFromEvent(event: { tags?: string[][]; created_at?: number }, 
   }
 
   return points;
+}
+
+/**
+ * Ermittelt den Ländernamen aus Event-Tags (für Forward-Geocoding-Queries).
+ * Prüft: 't'-Tags mit bekanntem Länder-Code, dann ein eigenständiges
+ * 'country'-Tag (z.B. aus TripPublishForm).
+ */
+function getCountryNameFromTags(tags: string[][]): string | undefined {
+  const tTagCode = tags.find(t => t[0] === 't' && COUNTRIES[t[1]])?.[1];
+  if (tTagCode) return COUNTRIES[tTagCode].name;
+
+  const countryTagVal = tags.find(t => t[0] === 'country')?.[1]?.trim();
+  if (countryTagVal) {
+    return COUNTRIES[countryTagVal.toLowerCase()]?.name || countryTagVal;
+  }
+
+  return undefined;
+}
+
+/**
+ * Baut eine Forward-Geocoding-Suchanfrage aus dem 'location'-Text-Tag
+ * (+ Land, falls bekannt) eines Events OHNE GPS-Koordinaten.
+ *
+ * Fall: Beitrag wurde ohne EXIF-GPS hochgeladen, Standort nur als Text
+ * eingetragen (z.B. "Lissabon") → hier wird daraus "Lissabon, Portugal"
+ * für die Nominatim-Suche gebaut.
+ */
+function extractTextLocationQuery(event: { tags?: string[][] } | null | undefined): string | undefined {
+  const tags = event?.tags;
+  if (!Array.isArray(tags)) return undefined;
+
+  const locationLabel = tags.find(t => t[0] === 'location')?.[1]?.trim();
+  const countryName = getCountryNameFromTags(tags);
+
+  if (locationLabel) {
+    if (countryName && !locationLabel.toLowerCase().includes(countryName.toLowerCase())) {
+      return `${locationLabel}, ${countryName}`;
+    }
+    return locationLabel;
+  }
+
+  // Letzter Ausweg: nur das Land (ungenau, aber besser als Demo-Fallback)
+  return countryName;
 }
 
 // ── Distanz (Haversine, km) ───────────────────────────────────────────────
@@ -336,19 +385,55 @@ async function fillLabels(points: GpsPoint[]): Promise<void> {
  * @param items - selectedContent aus dem TikTok-Dashboard (mit .event)
  * @param withLabels - true = fehlende Labels via Nominatim holen (dauert
  *                     ~1s pro Punkt ohne location-Tag). false = nur Tags.
+ * @param withTextLocationFallback - true = Events OHNE GPS-Koordinaten per
+ *                     Forward-Geocoding aus ihrem location-Text auflösen
+ *                     (dauert ~1s pro Event ohne GPS, Nominatim Rate-Limit).
+ *                     false = nur echte gps_lat/gps_lon/waypoint-Tags (schnell).
  * @returns RouteResult – coords ist null wenn < 2 nutzbare Stationen
  *          (dann greift im Video der Demo-Routen-Fallback)
  */
 export async function buildRouteFromContent(
   items: ContentItemLike[],
-  withLabels = true
+  withLabels = true,
+  withTextLocationFallback = false
 ): Promise<RouteResult> {
   // 1. GPS-Punkte aus allen Events einsammeln (chronologisch = Reise-Reihenfolge)
   const sorted = [...items].sort((a, b) => a.createdAt - b.createdAt);
   const raw: GpsPoint[] = [];
+  // Events ohne echte GPS-Koordinaten merken (für Text-Fallback in Schritt 1b)
+  const eventsWithoutGps: { event: { tags?: string[][] } | null | undefined; createdAt: number }[] = [];
+
   for (const item of sorted) {
     if (!item.event) continue;
-    raw.push(...extractGpsFromEvent(item.event, item.createdAt));
+    const pts = extractGpsFromEvent(item.event, item.createdAt);
+    if (pts.length > 0) {
+      raw.push(...pts);
+    } else {
+      eventsWithoutGps.push({ event: item.event, createdAt: item.createdAt });
+    }
+  }
+
+  // 1b. Forward-Geocoding-Fallback: Events ohne GPS, aber mit Text-Standort
+  // (z.B. "Lissabon" ohne EXIF-GPS beim Upload) → Nominatim-Suche.
+  // Nur aktiv wenn explizit angefordert (kostet Zeit durch Rate-Limit)
+  // UND es insgesamt zu wenige echte GPS-Punkte für eine Route gibt.
+  if (withTextLocationFallback && eventsWithoutGps.length > 0 && raw.length < MAX_POINTS) {
+    for (const { event, createdAt } of eventsWithoutGps) {
+      const query = extractTextLocationQuery(event);
+      if (!query) continue;
+      try {
+        const geo = await forwardGeocode(query);
+        if (geo && isValidCoord(geo.lat, geo.lon)) {
+          raw.push({ lat: geo.lat, lon: geo.lon, label: undefined, createdAt });
+          console.log(`[RouteMap] Text-Standort "${query}" → GPS via Forward-Geocoding:`, geo);
+        }
+        // Nominatim Rate-Limit: 1 Request/Sekunde (Cache-Hits zählen nicht)
+        await new Promise(r => setTimeout(r, 1100));
+      } catch {
+        // still ok – Event bleibt ohne Koordinaten
+      }
+      if (raw.length >= MAX_POINTS) break;
+    }
   }
 
   if (raw.length === 0) {

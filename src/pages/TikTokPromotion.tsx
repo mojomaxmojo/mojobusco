@@ -420,11 +420,13 @@ export function TikTokPromotion() {
     })
 
     // ── Echte Route aus GPS-Tags der Events berechnen (async, non-blocking) ──
-    // Schnell-Pass ohne Reverse-Geocoding → sofortiges UI-Feedback.
-    // Labels werden erst beim Rendern nachgeholt (spart Nominatim-Calls).
+    // Schnell-Pass ohne Reverse-Geocoding-Labels → schnelleres UI-Feedback,
+    // ABER mit Text-Standort-Fallback (Forward-Geocoding), damit Events ohne
+    // EXIF-GPS (nur Text-Standort wie "Lissabon") nicht in den Demo-Fallback
+    // fallen, obwohl beim finalen Rendern eine echte Route gefunden wird.
     setGpsRoute(null)
     setGpsRouteLoading(true)
-    buildRouteFromContent(items, false)
+    buildRouteFromContent(items, false, true)
       .then(route => {
         setGpsRoute(route)
         console.log(`[RouteMap] GPS-Route: ${route.source === 'gps' ? `${route.points.length} Stationen aus ${route.rawPointCount} GPS-Punkten` : 'keine GPS-Daten → Demo-Fallback'}`)
@@ -711,7 +713,7 @@ export function TikTokPromotion() {
           title: '🗺️ Route wird berechnet...',
           description: `${gpsRoute.points.length} Stationen aus GPS-Daten der Bilder`,
         })
-        const finalRoute = await buildRouteFromContent(selectedContent, true)
+        const finalRoute = await buildRouteFromContent(selectedContent, true, true)
         if (finalRoute.coords && finalRoute.coords.length >= 2) {
           payload.routeCoords = finalRoute.coords
           console.log('[RouteMap] Echte GPS-Route:', finalRoute.coords.map(c => `${c.label || '?'} (${c.x},${c.y})`).join(' → '))
