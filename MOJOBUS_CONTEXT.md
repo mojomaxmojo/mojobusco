@@ -1395,3 +1395,31 @@ systemctl restart ai-api
 curl -X POST http://localhost:3002/api/render-remotion/invalidate-bundle
 ```
 **Test-Empfehlung:** Gleiches Material 1× als TikTok (Flash weiß + Punch), 1× als YouTube (Letterbox + Flash schwarz + Leak) rendern und vergleichen.
+
+---
+
+## 📋 Changelog – RouteMap: Echte Route aus GPS-Daten der Bilder
+
+**Problem:** Die animierte Routen-Karte zeigte IMMER hartcodierte Demo-Routen (`pickDemoRoute` nach country-Tag: Portugal = fest Porto→Sagres, unbekanntes Land = "Etappe 1/2/3") – obwohl die Events echte GPS-Daten haben. `routeCoords` wurde vom Dashboard nie gesendet.
+
+**Neue Datei:** `src/lib/routeFromGps.ts`
+**Geändert:** `src/pages/TikTokPromotion.tsx` (Frontend-only – Server/Remotion unverändert, `routeCoords` floss bereits durch!)
+
+### Ablauf (`buildRouteFromContent(items, withLabels)`)
+
+| Schritt | Beschreibung |
+|---------|-------------|
+| 1. GPS-Extraktion | `gps_lat`/`gps_lon`-Tags aus allen Events. Sequenzielles Paar-Parsing → funktioniert für NoteForm (GPS pro Bild) UND Media/Place/ArticleForm (GPS pro Event). (0,0) wird verworfen. Events chronologisch sortiert = Reise-Reihenfolge |
+| 2. Dedupe | Punkte < 2 km (Haversine) = eine Station. Bei > 6 Stationen: gleichmäßig ausdünnen (Start+Ziel bleiben) |
+| 3. Labels | `location`-Tag des Events → erster Punkt. Fehlende Labels via `reverseGeocode()` (Nominatim, gecacht, 1.1s Rate-Limit) – nur beim Rendern, nicht bei der Auswahl |
+| 4. GPS→Prozent | Bounding Box + Padding (x18%/y22% für Labels + Caption-Safe-Zone), Latitude invertiert (Norden=oben), **aspekt-erhaltend** eingepasst (cos(lat)-Korrektur, 9:16-Video-Verhältnis) – Route wird nicht verzerrt |
+| 5. Fallback | < 2 nutzbare Stationen → `coords: null` → Video nutzt wie bisher `pickDemoRoute(country)` |
+
+### Dashboard-Integration
+
+- **Bei Content-Auswahl** (selectContent): Schnell-Pass OHNE Geocoding → sofortiges UI-Feedback
+- **UI unter der RouteMap-Checkbox**: ✓ grün "Echte Route aus GPS-Daten: N Stationen (A → B → C)" ODER ⚠ amber "Keine GPS-Daten – Demo-Route wird angezeigt (passt evtl. nicht zu den Bildern)"
+- **Beim Rendern** (startRender): finaler Pass MIT Reverse-Geocoding-Labels → `payload.routeCoords`
+- Toast "🗺️ Route wird berechnet..." während des Geocodings (~1s pro Punkt ohne location-Tag)
+
+**Kein Deploy-Sonderfall:** Nur Frontend geändert → normales `bash deploy-main.sh --force` reicht (kein ai-api-Restart, kein Bundle-Invalidate nötig).

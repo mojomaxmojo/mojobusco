@@ -24,6 +24,7 @@ import { useUploadFile } from '@/hooks/useUploadFile'
 import { useNostrPublish } from '@/hooks/useNostrPublish'
 import { useNostrDelete } from '@/hooks/useNostrDelete'
 import { useNostr } from '@/hooks/useNostr'
+import { buildRouteFromContent, type RouteResult } from '@/lib/routeFromGps'
 
 // UI Components
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -320,6 +321,9 @@ export function TikTokPromotion() {
 
   // ── ROUTEMAP ═════════════════════════════════════════════
   const [showRouteMap, setShowRouteMap] = useState(false)
+  // Echte Route aus GPS-Tags der Events (null = keine GPS-Daten → Demo-Fallback)
+  const [gpsRoute, setGpsRoute] = useState<RouteResult | null>(null)
+  const [gpsRouteLoading, setGpsRouteLoading] = useState(false)
 
   // ── LOCATION (aus Content extrahiert) ════════════════════
   const [location, setLocation] = useState('')
@@ -414,6 +418,19 @@ export function TikTokPromotion() {
       title: `${items.length} ${items.length === 1 ? 'Inhalt' : 'Inhalte'} ausgewählt`,
       description: `${mediaCount} Medien aus ${items.length} ${labels}`,
     })
+
+    // ── Echte Route aus GPS-Tags der Events berechnen (async, non-blocking) ──
+    // Schnell-Pass ohne Reverse-Geocoding → sofortiges UI-Feedback.
+    // Labels werden erst beim Rendern nachgeholt (spart Nominatim-Calls).
+    setGpsRoute(null)
+    setGpsRouteLoading(true)
+    buildRouteFromContent(items, false)
+      .then(route => {
+        setGpsRoute(route)
+        console.log(`[RouteMap] GPS-Route: ${route.source === 'gps' ? `${route.points.length} Stationen aus ${route.rawPointCount} GPS-Punkten` : 'keine GPS-Daten → Demo-Fallback'}`)
+      })
+      .catch(() => setGpsRoute(null))
+      .finally(() => setGpsRouteLoading(false))
   }
 
   // ── KI-GENERIERUNG ═══════════════════════════════════════
@@ -682,6 +699,26 @@ export function TikTokPromotion() {
       showRouteMap,
       muteVoiceoverSlide: showRouteMap ? Math.floor(articleImages.length / 2) : -1,
       ambientType: ambientType !== '__none__' ? ambientType : undefined,
+    }
+
+    // ── Echte GPS-Route statt Demo-Route ─────────────────────────────────
+    // Wenn die Events GPS-Tags haben: Route mit Labels (Reverse-Geocoding)
+    // final berechnen und als routeCoords mitschicken. Ohne routeCoords
+    // greift im Video der pickDemoRoute-Fallback (hartcodierte Demo-Routen).
+    if (showRouteMap && gpsRoute?.source === 'gps') {
+      try {
+        toast({
+          title: '🗺️ Route wird berechnet...',
+          description: `${gpsRoute.points.length} Stationen aus GPS-Daten der Bilder`,
+        })
+        const finalRoute = await buildRouteFromContent(selectedContent, true)
+        if (finalRoute.coords && finalRoute.coords.length >= 2) {
+          payload.routeCoords = finalRoute.coords
+          console.log('[RouteMap] Echte GPS-Route:', finalRoute.coords.map(c => `${c.label || '?'} (${c.x},${c.y})`).join(' → '))
+        }
+      } catch (e) {
+        console.warn('[RouteMap] GPS-Route fehlgeschlagen, Demo-Fallback:', e)
+      }
     }
 
     // Voiceover nur wenn aktiviert
@@ -1932,20 +1969,42 @@ export function TikTokPromotion() {
                 </div>
 
                 {/* RouteMap */}
-                <div className="flex items-center justify-between p-2 bg-muted/20 rounded-lg">
-                  <Label className="text-xs sm:text-sm cursor-pointer flex items-center gap-2">
-                    🗺️ Animierte Routen-Karte einblenden
-                    <span className="text-[10px] text-muted-foreground">(Mitte der Slideshow)</span>
-                  </Label>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={showRouteMap}
-                      onChange={e => setShowRouteMap(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-9 h-5 bg-muted-foreground/30 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary" />
-                  </label>
+                <div className="p-2 bg-muted/20 rounded-lg space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs sm:text-sm cursor-pointer flex items-center gap-2">
+                      🗺️ Animierte Routen-Karte einblenden
+                      <span className="text-[10px] text-muted-foreground">(Mitte der Slideshow)</span>
+                    </Label>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={showRouteMap}
+                        onChange={e => setShowRouteMap(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-muted-foreground/30 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary" />
+                    </label>
+                  </div>
+                  {/* Routen-Quelle: echte GPS-Daten oder Demo-Fallback */}
+                  {showRouteMap && (
+                    <p className="text-[10px] leading-relaxed">
+                      {gpsRouteLoading ? (
+                        <span className="text-muted-foreground">GPS-Daten werden geprüft...</span>
+                      ) : gpsRoute?.source === 'gps' ? (
+                        <span className="text-green-500">
+                          ✓ Echte Route aus GPS-Daten: {gpsRoute.points.length} Stationen
+                          {gpsRoute.points.some(p => p.label) && (
+                            <> ({gpsRoute.points.map(p => p.label).filter(Boolean).join(' → ')})</>
+                          )}
+                        </span>
+                      ) : (
+                        <span className="text-amber-500">
+                          ⚠ Keine GPS-Daten in den Events – es wird eine Demo-Route
+                          {country ? ` für "${country}"` : ''} angezeigt (passt evtl. nicht zu den Bildern)
+                        </span>
+                      )}
+                    </p>
+                  )}
                 </div>
 
                 {/* Location Anzeige */}
