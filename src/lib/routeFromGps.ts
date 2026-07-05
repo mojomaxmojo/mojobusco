@@ -32,6 +32,7 @@
 
 import { reverseGeocode, forwardGeocode } from './gpsExtraction';
 import { COUNTRIES } from '@/config/countries';
+import { findKnownPlace } from '@/config/knownPlaces';
 
 // ── Typen ─────────────────────────────────────────────────────────────────
 
@@ -67,7 +68,7 @@ export interface RouteResult {
 
 // Minimal-Interface der ContentItems aus ContentSelector
 interface ContentItemLike {
-  event: { tags?: string[][]; created_at?: number } | null | undefined;
+  event: { tags?: string[][]; created_at?: number; content?: string } | null | undefined;
   createdAt: number;
 }
 
@@ -188,14 +189,20 @@ function getCountryNameFromTags(tags: string[][]): string | undefined {
 }
 
 /**
- * Baut eine Forward-Geocoding-Suchanfrage aus dem 'location'-Text-Tag
- * (+ Land, falls bekannt) eines Events OHNE GPS-Koordinaten.
+ * Baut eine Forward-Geocoding-Suchanfrage für ein Event OHNE echte
+ * GPS-Koordinaten. Reihenfolge (spezifischste Quelle zuerst):
  *
- * Fall: Beitrag wurde ohne EXIF-GPS hochgeladen, Standort nur als Text
- * eingetragen (z.B. "Lissabon") → hier wird daraus "Lissabon, Portugal"
- * für die Nominatim-Suche gebaut.
+ *  1. 'location'-Text-Tag (+ Land, falls bekannt) – z.B. "Lissabon" →
+ *     "Lissabon, Portugal" für die Nominatim-Suche.
+ *  2. Bekannter Ortsname aus Hashtags ODER Content (KNOWN_PLACES) – viele
+ *     MojoBus-Beiträge haben KEIN location-Tag, aber einen konkreten
+ *     Ortsnamen in Hashtags (#Vilamoura) oder im Fließtext ("...Manta
+ *     Rota..."). Ohne diesen Schritt würden alle Beiträge nur auf das
+ *     generische Land-Tag (z.B. #portugal) zurückfallen und nach dem
+ *     Dedupe zu EINER identischen Koordinate kollabieren.
+ *  3. Nur das Land (ungenau, aber besser als der komplette Demo-Fallback).
  */
-function extractTextLocationQuery(event: { tags?: string[][] } | null | undefined): string | undefined {
+function extractTextLocationQuery(event: { tags?: string[][]; content?: string } | null | undefined): string | undefined {
   const tags = event?.tags;
   if (!Array.isArray(tags)) return undefined;
 
@@ -208,6 +215,13 @@ function extractTextLocationQuery(event: { tags?: string[][] } | null | undefine
     }
     return locationLabel;
   }
+
+  // Bekannten spezifischen Ort aus Hashtags + Content erkennen (Hashtags
+  // zuerst durchsuchen, da präziser als Fließtext-Erwähnungen).
+  const tagText = tags.filter(t => t[0] === 't').map(t => t[1]).join(' ');
+  const searchText = `${tagText} ${event?.content || ''}`;
+  const knownPlace = findKnownPlace(searchText);
+  if (knownPlace) return knownPlace;
 
   // Letzter Ausweg: nur das Land (ungenau, aber besser als Demo-Fallback)
   return countryName;
@@ -401,7 +415,7 @@ export async function buildRouteFromContent(
   const sorted = [...items].sort((a, b) => a.createdAt - b.createdAt);
   const raw: GpsPoint[] = [];
   // Events ohne echte GPS-Koordinaten merken (für Text-Fallback in Schritt 1b)
-  const eventsWithoutGps: { event: { tags?: string[][] } | null | undefined; createdAt: number }[] = [];
+  const eventsWithoutGps: { event: { tags?: string[][]; content?: string } | null | undefined; createdAt: number }[] = [];
 
   for (const item of sorted) {
     if (!item.event) continue;
