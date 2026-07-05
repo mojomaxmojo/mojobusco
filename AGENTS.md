@@ -1,9 +1,12 @@
 # MojoBus – AGENTS.md
 
-> Vollständiger Archiv-Kontext (Architektur, Deploy, GPS-Fix, Changelogs) liegt in:
-> **`MOJOBUS_CONTEXT.md`** – zu Beginn jeder Session einlesen!
-> Generisches Nostr-Framework-Referenzwissen liegt in:
-> **`AGENTS_NOSTR_REF.md`** – nur bei Bedarf nachlesen (Hooks, NIPs, UI-Patterns).
+> ## ⚠️ PFLICHT – SOFORT AUSFÜHREN BEVOR DU ANTWORTEST
+> **Lese jetzt als erstes diese Datei komplett:** `MOJOBUS_CONTEXT.md`
+> Sie enthält die gesamte Projekt-Architektur, Deploy-Regeln, API-Endpunkte und aktuelle Implementierungsdetails.
+> Ohne diese Datei fehlen dir kritische Informationen für jede Antwort.
+>
+> Bei Nostr-/Hook-/NIP-Fragen zusätzlich lesen: `AGENTS_NOSTR_REF.md`
+> Bei Debugging oder Änderungshistorie: `MOJOBUS_CHANGELOG.md`
 
 ---
 
