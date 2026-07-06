@@ -17,7 +17,7 @@
  */
 
 import { spawn, execSync } from 'child_process';
-import { existsSync } from 'fs';
+import { existsSync, copyFileSync, chmodSync, statSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -96,32 +96,17 @@ export async function generateAmbient(type, outputPath, duration) {
   // ── Prio 1: Echte MP3 aus ambient-sounds/ ────────────────────────────
   var realMp3 = path.join(AMBIENT_SOUNDS_DIR, type + '.mp3');
   if (existsSync(realMp3)) {
-    console.log('[Ambient] ✅ Echte MP3 gefunden: ' + realMp3 + ' → WAV konvertieren');
-    return new Promise(function (resolve, reject) {
-      var args = [
-        '-y',
-        '-i', realMp3,
-        '-t', String(duration),
-        '-ar', '44100',
-        '-ac', '2',
-        outputPath,
-      ];
-      var proc = spawn(findFfmpeg(), args);
-      var stderr = '';
-      proc.stderr.on('data', function (chunk) { stderr += chunk.toString(); });
-      proc.on('close', function (code) {
-        if (code === 0) {
-          console.log('[Ambient] ✅ MP3→WAV konvertiert: ' + outputPath);
-          resolve();
-        } else {
-          console.warn('[Ambient] ⚠️ MP3→WAV Fehler (exit ' + code + '), Fallback auf FFmpeg');
-          resolveFallback(type, outputPath, duration).then(resolve).catch(reject);
-        }
-      });
-      proc.on('error', function () {
-        resolveFallback(type, outputPath, duration).then(resolve).catch(reject);
-      });
-    });
+    console.log('[Ambient] ✅ Echte MP3 gefunden: ' + realMp3 + ' → kopieren');
+    try {
+      copyFileSync(realMp3, outputPath);
+      chmodSync(outputPath, 0o644);
+      var sizeKB = (statSync(outputPath).size / 1024).toFixed(0);
+      console.log('[Ambient] ✅ MP3 als ambient.wav kopiert (' + sizeKB + 'KB)');
+      return Promise.resolve();
+    } catch (err) {
+      console.warn('[Ambient] ⚠️ MP3-Kopie fehlgeschlagen: ' + err.message + ', Fallback auf FFmpeg');
+      return resolveFallback(type, outputPath, duration);
+    }
   }
 
   // ── Prio 2: FFmpeg-lavfi Fallback ────────────────────────────────────
