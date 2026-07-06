@@ -8,14 +8,32 @@
  *   type:      'ocean' | 'rain' | 'wind' | 'fire' | 'forest'
  *   outputPath: Ziel-Pfad für WAV-Datei
  *
- * FFmpeg muss installiert sein (/opt/bin/ffmpeg).
+ * FFmpeg-Pfad wird automatisch erkannt (siehe findBinary() unten) – NIEMALS
+ * /opt/bin/ffmpeg hartcodieren! Auf dem Produktions-VPS (AlmaLinux/CentminMod)
+ * liegt FFmpeg unter /usr/local/bin/ffmpeg (CentminMod-Symlink). Der alte
+ * hartcodierte Fallback auf /opt/bin/ffmpeg existierte dort nicht → jeder
+ * generateAmbient()-Call schlug mit "FFmpeg nicht gefunden" fehl und wurde
+ * in render.js NUR als Warnung geloggt ("Atmo fehlgeschlagen – fahre ohne
+ * fort") → das Atmo-Geräusch fehlte im Video, ohne dass ein Fehler auffiel.
  * Standard: AUS – nur wenn explizit gewählt.
  */
 
-import { spawn } from 'child_process';
+import { spawn, execSync } from 'child_process';
 import { existsSync } from 'fs';
 
-const FFMPEG = process.env.FFMPEG_PATH || '/opt/bin/ffmpeg';
+// ── Binary-Pfad automatisch erkennen (identische Logik wie render.js) ─────
+// sucht zuerst via command -v (POSIX PATH), dann /usr/bin/, dann /usr/local/bin/
+function findFfmpeg() {
+  try {
+    const found = execSync('command -v ffmpeg 2>/dev/null').toString().trim();
+    if (found) return found;
+  } catch {}
+  if (existsSync('/usr/bin/ffmpeg')) return '/usr/bin/ffmpeg';
+  if (existsSync('/usr/local/bin/ffmpeg')) return '/usr/local/bin/ffmpeg';
+  return '/usr/bin/ffmpeg'; // letzter Fallback
+}
+
+const FFMPEG = process.env.FFMPEG_PATH || findFfmpeg();
 
 /**
  * FFmpeg lavfi-Filter für verschiedene Atmo-Typen.

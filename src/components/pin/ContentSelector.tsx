@@ -89,11 +89,23 @@ import { extractImagesFromEvent, extractTitle, extractSummary } from '@/lib/nost
 
 interface ContentSelectorProps {
   onSelect: (items: ContentItem[]) => void
-  selected?: ContentItem[]
+  // Erlaubt auch null/undefined – manche Callsites (z.B. PromotionDashboard.tsx)
+  // verwalten ihre Auswahl als Einzel-Item (ContentItem | null) statt Array.
+  selected?: ContentItem[] | ContentItem | null
 }
 
-export function ContentSelector({ onSelect, selected = [] }: ContentSelectorProps) {
+export function ContentSelector({ onSelect, selected: selectedProp }: ContentSelectorProps) {
   const { nostr } = useNostr()
+
+  // Normalisiert die selected-Prop auf ein Array: unterstützt Array, einzelnes
+  // ContentItem, null und undefined. Ohne diese Normalisierung crasht
+  // selected.map(...) unten, wenn eine Callsite explizit null übergibt
+  // (der Default-Parameter `= []` greift NUR bei undefined, nicht bei null).
+  const selected: ContentItem[] = Array.isArray(selectedProp)
+    ? selectedProp
+    : selectedProp
+    ? [selectedProp]
+    : []
 
   const [loading, setLoading] = useState(true)
 

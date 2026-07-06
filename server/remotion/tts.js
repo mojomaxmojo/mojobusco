@@ -14,7 +14,7 @@
  * Ergebnis:    /tmp/piper-XXXXXX/voiceover.wav
  */
 
-import { spawn } from 'child_process';
+import { spawn, execSync } from 'child_process';
 import { mkdtempSync, existsSync } from 'fs';
 import { join } from 'path';
 import os from 'os';
@@ -22,6 +22,20 @@ import os from 'os';
 // ── Piper Pfade ────────────────────────────────────────────────────────────
 const PIPER_BINARY = process.env.PIPER_PATH || '/opt/piper/piper';
 const PIPER_VOICES_DIR = process.env.PIPER_VOICES_DIR || '/opt/piper/voices';
+
+// ── FFmpeg-Pfad automatisch erkennen (identisch zu render.js/ambient.js) ──
+// NIEMALS /opt/bin/ffmpeg hartcodieren – existiert auf dem Produktions-VPS
+// (CentminMod AlmaLinux) nicht direkt, ffmpeg liegt unter /usr/local/bin/.
+const findFfmpeg = () => {
+  try {
+    const found = execSync('command -v ffmpeg 2>/dev/null').toString().trim();
+    if (found) return found;
+  } catch {}
+  if (existsSync('/usr/bin/ffmpeg')) return '/usr/bin/ffmpeg';
+  if (existsSync('/usr/local/bin/ffmpeg')) return '/usr/local/bin/ffmpeg';
+  return '/usr/bin/ffmpeg';
+};
+const FFMPEG_PATH = process.env.FFMPEG_PATH || findFfmpeg();
 
 // ── Verfügbare Stimmen ────────────────────────────────────────────────────
 export const AVAILABLE_VOICES = {
@@ -102,7 +116,7 @@ export async function generateVoiceover(text, voiceModel = 'de_DE-thorsten-mediu
     }
     ffmpegArgs.push('-ar', '44100', '-ac', '2', '-y', wavPath);
 
-    const ffmpeg = spawn('/opt/bin/ffmpeg', ffmpegArgs);
+    const ffmpeg = spawn(FFMPEG_PATH, ffmpegArgs);
 
     let stderrBuffer = '';
 
