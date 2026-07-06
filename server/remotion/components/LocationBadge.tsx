@@ -11,7 +11,14 @@ interface LocationBadgeProps {
   countryFlag?: string;
   fromFrame?: number;
   toFrame?: number;
-  position?: 'top-left' | 'bottom-left' | 'bottom-right';
+  position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  /**
+   * Abstand vom oberen Rand in % für 'top-left'/'top-right' (Default 10%).
+   * Wird von MojoBusVideo dynamisch übergeben, damit das Badge NIE mit dem
+   * Cinematic-Letterbox-Balken (Reels 6% / YouTube 8%) kollidiert – die
+   * ProgressBar (3px, ganz oben) ist so dünn, dass sie ignoriert werden kann.
+   */
+  topOffsetPct?: number;
 }
 
 const FLAG_MAP: Record<string, string> = {
@@ -31,7 +38,8 @@ export const LocationBadge: React.FC<LocationBadgeProps> = ({
   countryFlag,
   fromFrame = 0,
   toFrame,
-  position = 'bottom-left',
+  position = 'top-left',
+  topOffsetPct = 10,
 }) => {
   const frame = useCurrentFrame();
   const { durationInFrames, fps } = useVideoConfig();
@@ -58,12 +66,18 @@ export const LocationBadge: React.FC<LocationBadgeProps> = ({
     (country ? FLAG_MAP[country.toLowerCase()] : undefined) ||
     '📍';
 
+  // Standard: OBEN im Video (Safe-Zone gegenüber TikTok/Reels/YouTube-UI-
+  // Elementen wie Sound-Titel, Follow-Button, Kommentare unten). Die
+  // Caption + LocationBadge dürfen sich NIE überlappen – deshalb liegt
+  // das Badge standardmäßig oben, unabhängig von der Caption-Position.
   const posStyles: React.CSSProperties =
-    position === 'top-left'
-      ? { top: '8%', left: '5%' }
+    position === 'top-right'
+      ? { top: `${topOffsetPct}%`, right: '5%' }
       : position === 'bottom-right'
       ? { bottom: '14%', right: '5%' }
-      : { bottom: '20%', left: '5%' };
+      : position === 'bottom-left'
+      ? { bottom: '20%', left: '5%' }
+      : { top: `${topOffsetPct}%`, left: '5%' };
 
   return (
     <AbsoluteFill style={{ pointerEvents: 'none' }}>

@@ -367,6 +367,12 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
   // WhipPan-Richtung pro Cut (deterministisch alternierend)
   const whipDir = (i: number): 'left' | 'right' => (i % 2 === 0 ? 'left' : 'right');
 
+  // ── LocationBadge Top-Offset: unterhalb Letterbox-Balken (Reels 6% /
+  // YouTube 8%) + Sicherheitsabstand, damit das Badge NIE mit dem
+  // Cinematic-Letterbox oder der Hook-Titel-Zone kollidiert. TikTok hat
+  // keine Letterbox → Standard-Abstand von der oberen Videokante.
+  const locationBadgeTopPct = fx.letterboxPct > 0 ? fx.letterboxPct + 5 : 10;
+
   return (
     <AbsoluteFill style={{ background: '#000' }}>
 
@@ -516,7 +522,11 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
         />
       </Sequence>
 
-      {/* ══ SCHICHT 5: Location Badge ════════════════════════════════════════ */}
+      {/* ══ SCHICHT 5: Location Badge ════════════════════════════════════════
+           Liegt OBEN im Bild (top-left) statt unten – dort überlappt es sich
+           NIE mit der PerSlideCaption (liegt bei bottom: 18-25%, je Plattform)
+           und bleibt auch bei aktivem Cinematic-Letterbox (Reels/YouTube)
+           unterhalb des Balkens gut lesbar. */}
       {location && imageCount >= 2 && (
         <Sequence from={slideStartFrame(1)} durationInFrames={slideDefs.slice(1, 3).reduce((a, b) => a + b.frames, 0) || perSlide * 2}>
           <LocationBadge
@@ -524,7 +534,8 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
             country={country}
             fromFrame={10}
             toFrame={(slidesFrames[1] + slidesFrames[2] || perSlide * 2) - 10}
-            position="bottom-left"
+            position="top-left"
+            topOffsetPct={locationBadgeTopPct}
           />
         </Sequence>
       )}
