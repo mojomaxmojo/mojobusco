@@ -1,29 +1,34 @@
 /**
  * ambient.js – Atmo-Geräusche Generator
  *
- * Erzeugt Umgebungsgeräusche via FFmpeg (lavfi).
- * Keine externen Dateien nötig – FFmpeg generiert alles live.
+ * Hybrid-Modus:
+ *   1) Echte MP3-Datei aus ambient-sounds/ wird bevorzugt (realistischer)
+ *   2) Fallback: FFmpeg-lavfi (synthetisch)
  *
- * Nutzung:     generateAmbient(type, outputPath)
- *   type:      'ocean' | 'rain' | 'wind' | 'fire' | 'forest'
- *   outputPath: Ziel-Pfad für WAV-Datei
+ * Ablage: server/remotion/ambient-sounds/{type}.mp3
+ *
+ * Quellen (alle CC0 / Public Domain):
+ *   - BigSoundBank (https://bigsoundbank.com) von Joseph SARDIN
+ *   - Weitere CC0-Sounds bei Bedarf
  *
  * FFmpeg-Pfad wird automatisch erkannt (siehe findBinary() unten) – NIEMALS
  * /opt/bin/ffmpeg hartcodieren! Auf dem Produktions-VPS (AlmaLinux/CentminMod)
- * liegt FFmpeg unter /usr/local/bin/ffmpeg (CentminMod-Symlink). Der alte
- * hartcodierte Fallback auf /opt/bin/ffmpeg existierte dort nicht → jeder
- * generateAmbient()-Call schlug mit "FFmpeg nicht gefunden" fehl und wurde
- * in render.js NUR als Warnung geloggt ("Atmo fehlgeschlagen – fahre ohne
- * fort") → das Atmo-Geräusch fehlte im Video, ohne dass ein Fehler auffiel.
- * Standard: AUS – nur wenn explizit gewählt.
+ * liegt FFmpeg unter /usr/local/bin/ffmpeg (CentminMod-Symlink).
  */
 
 import { spawn, execSync } from 'child_process';
 import { existsSync } from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const AMBIENT_SOUNDS_DIR = path.join(__dirname, 'ambient-sounds');
 
 // ── Binary-Pfad automatisch erkennen (identische Logik wie render.js) ─────
-// sucht zuerst via command -v (POSIX PATH), dann /usr/bin/, dann /usr/local/bin/
+// sucht zuerst FFMPEG_PATH env var, dann via command -v (POSIX PATH),
+// dann /usr/bin/, dann /usr/local/bin/
 function findFfmpeg() {
+  if (process.env.FFMPEG_PATH) return process.env.FFMPEG_PATH;
   try {
     const found = execSync('command -v ffmpeg 2>/dev/null').toString().trim();
     if (found) return found;
@@ -33,17 +38,14 @@ function findFfmpeg() {
   return '/usr/bin/ffmpeg'; // letzter Fallback
 }
 
-const FFMPEG = process.env.FFMPEG_PATH || findFfmpeg();
-
 /**
- * FFmpeg lavfi-Filter für verschiedene Atmo-Typen.
- * Jeder Filter generiert eine ~60s WAV-Datei.
+ * FFmpeg lavfi-Filter für verschiedene Atmo-Typen (Fallback, wenn keine
+ * echte MP3 in ambient-sounds/ existiert).
  */
 const AMBIENT_FILTERS = {
   ocean: {
     desc: 'Meeresrauschen',
-    // Pink noise + lowpass → sanftes Rauschen wie Wellen
-    filter: 'anoisesrc=d=60:color=pink:seed=123:a=0.35,lowpass=f=400',
+    filter: 'anoisesrc=d=60:color=pink:seed=123:a=0.5,lowpass=f=400',
   },
   rain: {
     desc: 'Regen',
@@ -51,17 +53,15 @@ const AMBIENT_FILTERS = {
   },
   wind: {
     desc: 'Wind',
-    filter: 'anoisesrc=d=60:color=brown:seed=7:a=0.6,lowpass=f=500',
+    filter: 'anoisesrc=d=60:color=brown:seed=7:a=0.5,lowpass=f=500',
   },
   fire: {
     desc: 'Lagerfeuer',
-    // Crackling: brown noise + bandpass
-    filter: 'anoisesrc=d=60:color=brown:seed=13:a=0.3,bandpass=f=300:w=800',
+    filter: 'anoisesrc=d=60:color=brown:seed=13:a=0.4,bandpass=f=300:w=800',
   },
   forest: {
     desc: 'Vogelgezwitscher',
-    // High-frequency pink noise → Vogelgezwitscher-ähnlich
-    filter: 'anoisesrc=d=60:color=pink:seed=99:a=0.6,bandpass=f=3000:w=2000,aresample=44100,asetpts=N/SR/TB,highpass=f=2000,lowpass=f=8000',
+    filter: 'anoisesrc=d=60:color=pink:seed=99:a=0.5,bandpass=f=3000:w=2000',
   },
 };
 
@@ -74,11 +74,17 @@ export const AMBIENT_TYPES = Object.keys(AMBIENT_FILTERS);
  * @returns {object|null}
  */
 export function getAmbientInfo(type) {
-  return AMBIENT_FILTERS[type] || null;
+  var info = AMBIENT_FILTERS[type];
+  if (!info) return null;
+  var hasRealFile = existsSync(path.join(AMBIENT_SOUNDS_DIR, type + '.mp3'));
+  return { desc: info.desc, hasRealFile: hasRealFile };
 }
 
 /**
- * Generiert eine Atmo-WAV-Datei via FFmpeg.
+ * Generiert eine Atmo-WAV-Datei.
+ *
+ * Prio 1: Echte MP3 aus ambient-sounds/ wird verwendet (wenn vorhanden)
+ * Prio 2: FFmpeg-lavfi Fallback (bisherige synthetische Generierung)
  *
  * @param {string} type       – Atmo-Typ: 'ocean' | 'rain' | 'wind' | 'fire' | 'forest'
  * @param {string} outputPath – Zieldatei (z.B. /tmp/.../ambient.wav)
@@ -87,18 +93,56 @@ export function getAmbientInfo(type) {
 export async function generateAmbient(type, outputPath, duration) {
   if (!duration) duration = 60;
 
-  if (!existsSync(FFMPEG)) {
-    throw new Error('FFmpeg nicht gefunden: ' + FFMPEG);
+  // ── Prio 1: Echte MP3 aus ambient-sounds/ ────────────────────────────
+  var realMp3 = path.join(AMBIENT_SOUNDS_DIR, type + '.mp3');
+  if (existsSync(realMp3)) {
+    console.log('[Ambient] ✅ Echte MP3 gefunden: ' + realMp3 + ' → WAV konvertieren');
+    return new Promise(function (resolve, reject) {
+      var args = [
+        '-y',
+        '-i', realMp3,
+        '-t', String(duration),
+        '-ar', '44100',
+        '-ac', '2',
+        outputPath,
+      ];
+      var proc = spawn(findFfmpeg(), args);
+      var stderr = '';
+      proc.stderr.on('data', function (chunk) { stderr += chunk.toString(); });
+      proc.on('close', function (code) {
+        if (code === 0) {
+          console.log('[Ambient] ✅ MP3→WAV konvertiert: ' + outputPath);
+          resolve();
+        } else {
+          console.warn('[Ambient] ⚠️ MP3→WAV Fehler (exit ' + code + '), Fallback auf FFmpeg');
+          resolveFallback(type, outputPath, duration).then(resolve).catch(reject);
+        }
+      });
+      proc.on('error', function () {
+        resolveFallback(type, outputPath, duration).then(resolve).catch(reject);
+      });
+    });
   }
 
-  var config = AMBIENT_FILTERS[type];
-  if (!config) {
-    throw new Error(
-      'Unbekannter Atmo-Typ: ' + type + '. Verfügbar: ' + Object.keys(AMBIENT_FILTERS).join(', ')
-    );
-  }
+  // ── Prio 2: FFmpeg-lavfi Fallback ────────────────────────────────────
+  return resolveFallback(type, outputPath, duration);
+}
 
-  return new Promise(function(resolve, reject) {
+/**
+ * FFmpeg-lavfi Fallback: synthetische Geräusche via anoisesrc
+ */
+function resolveFallback(type, outputPath, duration) {
+  if (!existsSync(findFfmpeg())) {
+    throw new Error('FFmpeg nicht gefunden: ' + findFfmpeg());
+  }
+  return new Promise(function (resolve, reject) {
+    var config = AMBIENT_FILTERS[type];
+    if (!config) {
+      throw new Error(
+        'Unbekannter Atmo-Typ: ' + type + '. Verfügbar: ' + Object.keys(AMBIENT_FILTERS).join(', ')
+      );
+    }
+    console.log('[Ambient] 🔉 FFmpeg-Fallback: ' + config.desc);
     var args = [
       '-f', 'lavfi',
       '-i', config.filter,
@@ -108,16 +152,14 @@ export async function generateAmbient(type, outputPath, duration) {
       '-y',
       outputPath,
     ];
-
-    var proc = spawn(FFMPEG, args);
+    var proc = spawn(findFfmpeg(), args);
     var stderr = '';
-
-    proc.stderr.on('data', function(chunk) { stderr += chunk.toString(); });
-    proc.on('close', function(code) {
+    proc.stderr.on('data', function (chunk) { stderr += chunk.toString(); });
+    proc.on('close', function (code) {
       if (code === 0) resolve();
       else reject(new Error('FFmpeg exit ' + code + ': ' + stderr.slice(-200)));
     });
-    proc.on('error', function(err) {
+    proc.on('error', function (err) {
       reject(new Error('FFmpeg Fehler: ' + err.message));
     });
   });
