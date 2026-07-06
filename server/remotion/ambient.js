@@ -61,7 +61,7 @@ const AMBIENT_FILTERS = {
   forest: {
     desc: 'Vogelgezwitscher',
     // High-frequency pink noise → Vogelgezwitscher-ähnlich
-    filter: 'anoisesrc=d=60:color=pink:seed=99:a=0.25,bandpass=f=3000:w=2000',
+    filter: 'anoisesrc=d=60:color=pink:seed=99:a=0.6,bandpass=f=3000:w=2000,aresample=44100,asetpts=N/SR/TB,highpass=f=2000,lowpass=f=8000',
   },
 };
 
