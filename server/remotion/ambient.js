@@ -24,18 +24,20 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const AMBIENT_SOUNDS_DIR = path.join(__dirname, 'ambient-sounds');
 
 // ── Binary-Pfad automatisch erkennen (identische Logik wie render.js) ─────
-// sucht zuerst FFMPEG_PATH env var, dann via command -v (POSIX PATH),
-// dann /usr/bin/, dann /usr/local/bin/, zuletzt /opt/bin/ (CentminMod)
+// sucht zuerst FFMPEG_PATH env var, dann statische Pfade (CentminMod),
+// dann via command -v (POSIX PATH)
 function findFfmpeg() {
   if (process.env.FFMPEG_PATH) return process.env.FFMPEG_PATH;
+  // Statische Pfade zuerst (CentminMod: /opt/bin/ hat libmp3lame)
+  if (existsSync('/opt/bin/ffmpeg')) return '/opt/bin/ffmpeg';
+  if (existsSync('/usr/local/bin/ffmpeg')) return '/usr/local/bin/ffmpeg';
+  if (existsSync('/usr/bin/ffmpeg')) return '/usr/bin/ffmpeg';
+  // PATH-Fallback
   try {
     const found = execSync('command -v ffmpeg 2>/dev/null').toString().trim();
     if (found) return found;
   } catch {}
-  if (existsSync('/usr/bin/ffmpeg')) return '/usr/bin/ffmpeg';
-  if (existsSync('/usr/local/bin/ffmpeg')) return '/usr/local/bin/ffmpeg';
-  if (existsSync('/opt/bin/ffmpeg')) return '/opt/bin/ffmpeg';
-  return '/usr/bin/ffmpeg'; // letzter Fallback
+  return '/usr/bin/ffmpeg';
 }
 
 /**
