@@ -1,14 +1,15 @@
 /**
  * ambient.js – Atmo-Geräusche Generator
  *
- * Hybrid-Modus:
- *   1) Echte MP3-Datei aus ambient-sounds/ wird bevorzugt (realistischer)
- *   2) Fallback: FFmpeg-lavfi (synthetisch) – optimiert für CentminMod FFmpeg
+ * Hybrid-Modus (3 Stufen):
+ *   1) ⭐ WAV-Datei aus ambient-sounds/ → direkt kopieren (kein Decoding!)
+ *   2) MP3-Datei → FFmpeg-WAV-Konvertierung (exit 69 auf CentminMod FFmpeg)
+ *   3) FFmpeg-lavfi synthetischer Fallback (optimierte Filter)
  *
- * Ablage optional: server/remotion/ambient-sounds/{type}.mp3
- * (CentminMod FFmpeg-Build hat defekten mp3float-Decoder – exit 69.
- *  Falls MP3-Dateien vorhanden, schlägt Schritt 1 still fehl und
- *  Schritt 2 greift mit verbesserten synthetischen Filtern.)
+ * Ablage: server/remotion/ambient-sounds/{type}.wav (priorisiert) oder .mp3
+ *
+ * CentminMod FFmpeg git-Build hat defekten mp3float-Decoder (exit 69).
+ * WAV-Dateien werden direkt kopiert – keine Dekodierung nötig.
  *
  * Quellen (alle CC0 / Public Domain / Pixabay License):
  *   - Pixabay Sound Effects: https://pixabay.com/sound-effects/
@@ -19,7 +20,7 @@
  */
 
 import { spawn, execSync } from 'child_process';
-import { existsSync } from 'fs';
+import { existsSync, copyFileSync, chmodSync, statSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -89,15 +90,17 @@ export const AMBIENT_TYPES = Object.keys(AMBIENT_FILTERS);
 export function getAmbientInfo(type) {
   var info = AMBIENT_FILTERS[type];
   if (!info) return null;
-  var hasRealFile = existsSync(path.join(AMBIENT_SOUNDS_DIR, type + '.mp3'));
-  return { desc: info.desc, hasRealFile: hasRealFile };
+  var hasWav = existsSync(path.join(AMBIENT_SOUNDS_DIR, type + '.wav'));
+  var hasMp3 = existsSync(path.join(AMBIENT_SOUNDS_DIR, type + '.mp3'));
+  return { desc: info.desc, hasRealFile: hasWav || hasMp3, hasWav: hasWav };
 }
 
 /**
  * Generiert eine Atmo-WAV-Datei.
  *
- * Prio 1: Echte MP3 aus ambient-sounds/ wird verwendet (wenn vorhanden)
- * Prio 2: FFmpeg-lavfi Fallback (bisherige synthetische Generierung)
+ * Prio 1: WAV-Datei aus ambient-sounds/ → direkt kopieren (kein Decoding)
+ * Prio 2: MP3-Datei → FFmpeg-WAV-Konvertierung
+ * Prio 3: FFmpeg-lavfi synthetischer Fallback
  *
  * @param {string} type       – Atmo-Typ: 'ocean' | 'rain' | 'wind' | 'fire' | 'forest'
  * @param {string} outputPath – Zieldatei (z.B. /tmp/.../ambient.wav)
@@ -106,10 +109,25 @@ export function getAmbientInfo(type) {
 export async function generateAmbient(type, outputPath, duration) {
   if (!duration) duration = 60;
 
-  // ── Prio 1: Echte MP3 aus ambient-sounds/ → WAV konvertieren ─────────
+  // ── Prio 1: WAV-Datei → direkt kopieren ────────────────────────────
+  var realWav = path.join(AMBIENT_SOUNDS_DIR, type + '.wav');
+  if (existsSync(realWav)) {
+    console.log('[Ambient] ✅ WAV gefunden: ' + realWav + ' → kopieren');
+    try {
+      copyFileSync(realWav, outputPath);
+      chmodSync(outputPath, 0o644);
+      var sizeKB = (statSync(outputPath).size / 1024).toFixed(0);
+      console.log('[Ambient] ✅ WAV kopiert (' + sizeKB + 'KB)');
+      return Promise.resolve();
+    } catch (err) {
+      console.warn('[Ambient] ⚠️ WAV-Kopie fehlgeschlagen: ' + err.message + ', Fallback');
+    }
+  }
+
+  // ── Prio 2: MP3 → WAV-Konvertierung ────────────────────────────────
   var realMp3 = path.join(AMBIENT_SOUNDS_DIR, type + '.mp3');
   if (existsSync(realMp3)) {
-    console.log('[Ambient] ✅ Echte MP3 gefunden: ' + realMp3 + ' → WAV konvertieren');
+    console.log('[Ambient] ✅ MP3 gefunden: ' + realMp3 + ' → WAV konvertieren');
     return new Promise(function (resolve, reject) {
       var args = [
         '-y',
@@ -137,7 +155,7 @@ export async function generateAmbient(type, outputPath, duration) {
     });
   }
 
-  // ── Prio 2: FFmpeg-lavfi Fallback ────────────────────────────────────
+  // ── Prio 3: FFmpeg-lavfi synthetischer Fallback ────────────────────
   return resolveFallback(type, outputPath, duration);
 }
 
