@@ -24,7 +24,7 @@ const execFileAsync = promisify(execFile);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // ── Binary-Pfade (ffmpeg/ffprobe) automatisch erkennen ────────────────────
-// sucht zuerst via command -v (POSIX), dann /usr/bin/, zuletzt /usr/local/bin/
+// sucht zuerst via command -v (POSIX), dann /usr/bin/, /usr/local/bin/, /opt/bin/
 const findBinary = (name) => {
   try {
     const found = execSync(`command -v ${name} 2>/dev/null`).toString().trim();
@@ -33,6 +33,7 @@ const findBinary = (name) => {
   // Fallback-Pfade
   if (fs.existsSync(`/usr/bin/${name}`)) return `/usr/bin/${name}`;
   if (fs.existsSync(`/usr/local/bin/${name}`)) return `/usr/local/bin/${name}`;
+  if (fs.existsSync(`/opt/bin/${name}`)) return `/opt/bin/${name}`;
   return `/usr/bin/${name}`; // letzter Fallback
 };
 const FFMPEG_PATH  = process.env.FFMPEG_PATH  || findBinary('ffmpeg');

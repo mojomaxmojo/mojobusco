@@ -11,13 +11,12 @@
  *   - BigSoundBank (https://bigsoundbank.com) von Joseph SARDIN
  *   - Weitere CC0-Sounds bei Bedarf
  *
- * FFmpeg-Pfad wird automatisch erkannt (siehe findBinary() unten) – NIEMALS
- * /opt/bin/ffmpeg hartcodieren! Auf dem Produktions-VPS (AlmaLinux/CentminMod)
- * liegt FFmpeg unter /usr/local/bin/ffmpeg (CentminMod-Symlink).
+ * FFmpeg-Pfad wird automatisch erkannt (siehe findBinary() unten) –
+ * env var FFMPEG_PATH > command -v > /usr/bin/ > /usr/local/bin/ > /opt/bin/
  */
 
 import { spawn, execSync } from 'child_process';
-import { existsSync, copyFileSync, chmodSync, statSync } from 'fs';
+import { existsSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -26,7 +25,7 @@ const AMBIENT_SOUNDS_DIR = path.join(__dirname, 'ambient-sounds');
 
 // ── Binary-Pfad automatisch erkennen (identische Logik wie render.js) ─────
 // sucht zuerst FFMPEG_PATH env var, dann via command -v (POSIX PATH),
-// dann /usr/bin/, dann /usr/local/bin/
+// dann /usr/bin/, dann /usr/local/bin/, zuletzt /opt/bin/ (CentminMod)
 function findFfmpeg() {
   if (process.env.FFMPEG_PATH) return process.env.FFMPEG_PATH;
   try {
@@ -35,6 +34,7 @@ function findFfmpeg() {
   } catch {}
   if (existsSync('/usr/bin/ffmpeg')) return '/usr/bin/ffmpeg';
   if (existsSync('/usr/local/bin/ffmpeg')) return '/usr/local/bin/ffmpeg';
+  if (existsSync('/opt/bin/ffmpeg')) return '/opt/bin/ffmpeg';
   return '/usr/bin/ffmpeg'; // letzter Fallback
 }
 
@@ -93,20 +93,35 @@ export function getAmbientInfo(type) {
 export async function generateAmbient(type, outputPath, duration) {
   if (!duration) duration = 60;
 
-  // ── Prio 1: Echte MP3 aus ambient-sounds/ ────────────────────────────
+  // ── Prio 1: Echte MP3 aus ambient-sounds/ → WAV konvertieren ─────────
   var realMp3 = path.join(AMBIENT_SOUNDS_DIR, type + '.mp3');
   if (existsSync(realMp3)) {
-    console.log('[Ambient] ✅ Echte MP3 gefunden: ' + realMp3 + ' → kopieren');
-    try {
-      copyFileSync(realMp3, outputPath);
-      chmodSync(outputPath, 0o644);
-      var sizeKB = (statSync(outputPath).size / 1024).toFixed(0);
-      console.log('[Ambient] ✅ MP3 als ambient.wav kopiert (' + sizeKB + 'KB)');
-      return Promise.resolve();
-    } catch (err) {
-      console.warn('[Ambient] ⚠️ MP3-Kopie fehlgeschlagen: ' + err.message + ', Fallback auf FFmpeg');
-      return resolveFallback(type, outputPath, duration);
-    }
+    console.log('[Ambient] ✅ Echte MP3 gefunden: ' + realMp3 + ' → WAV konvertieren');
+    return new Promise(function (resolve, reject) {
+      var args = [
+        '-y',
+        '-i', realMp3,
+        '-t', String(duration),
+        '-ar', '44100',
+        '-ac', '2',
+        outputPath,
+      ];
+      var proc = spawn(findFfmpeg(), args);
+      var stderr = '';
+      proc.stderr.on('data', function (chunk) { stderr += chunk.toString(); });
+      proc.on('close', function (code) {
+        if (code === 0) {
+          console.log('[Ambient] ✅ MP3→WAV konvertiert: ' + outputPath);
+          resolve();
+        } else {
+          console.warn('[Ambient] ⚠️ MP3→WAV Fehler (exit ' + code + '), Fallback auf FFmpeg-lavfi');
+          resolveFallback(type, outputPath, duration).then(resolve).catch(reject);
+        }
+      });
+      proc.on('error', function () {
+        resolveFallback(type, outputPath, duration).then(resolve).catch(reject);
+      });
+    });
   }
 
   // ── Prio 2: FFmpeg-lavfi Fallback ────────────────────────────────────
