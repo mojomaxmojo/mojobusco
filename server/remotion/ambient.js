@@ -3,16 +3,19 @@
  *
  * Hybrid-Modus:
  *   1) Echte MP3-Datei aus ambient-sounds/ wird bevorzugt (realistischer)
- *   2) Fallback: FFmpeg-lavfi (synthetisch)
+ *   2) Fallback: FFmpeg-lavfi (synthetisch) – optimiert für CentminMod FFmpeg
  *
- * Ablage: server/remotion/ambient-sounds/{type}.mp3
+ * Ablage optional: server/remotion/ambient-sounds/{type}.mp3
+ * (CentminMod FFmpeg-Build hat defekten mp3float-Decoder – exit 69.
+ *  Falls MP3-Dateien vorhanden, schlägt Schritt 1 still fehl und
+ *  Schritt 2 greift mit verbesserten synthetischen Filtern.)
  *
- * Quellen (alle CC0 / Public Domain):
- *   - BigSoundBank (https://bigsoundbank.com) von Joseph SARDIN
- *   - Weitere CC0-Sounds bei Bedarf
+ * Quellen (alle CC0 / Public Domain / Pixabay License):
+ *   - Pixabay Sound Effects: https://pixabay.com/sound-effects/
+ *   - BigSoundBank: https://bigsoundbank.com (Joseph SARDIN)
  *
- * FFmpeg-Pfad wird automatisch erkannt (siehe findBinary() unten) –
- * env var FFMPEG_PATH > command -v > /usr/bin/ > /usr/local/bin/ > /opt/bin/
+ * FFmpeg-Pfad wird automatisch erkannt (siehe findFfmpeg() unten) –
+ * Priorität: FFMPEG_PATH > /opt/bin/ > /usr/local/bin/ > /usr/bin/ > command -v
  */
 
 import { spawn, execSync } from 'child_process';
@@ -42,28 +45,36 @@ function findFfmpeg() {
 
 /**
  * FFmpeg lavfi-Filter für verschiedene Atmo-Typen (Fallback, wenn keine
- * echte MP3 in ambient-sounds/ existiert).
+ * echte MP3 in ambient-sounds/ existiert oder Dekodierung fehlschlägt).
+ *
+ * Optimiert für CentminMod FFmpeg (mp3float-Decoder defekt).
+ * Höhere Amplituden + Volume-Boost + Equalizer für realistischeren Klang.
  */
 const AMBIENT_FILTERS = {
   ocean: {
     desc: 'Meeresrauschen',
-    filter: 'anoisesrc=d=60:color=pink:seed=123:a=0.5,lowpass=f=400',
+    // Pink noise + lowpass → tiefes Wellenrauschen, + EQ für Tiefenbetonung
+    filter: 'anoisesrc=d=60:color=pink:seed=123:a=0.9,lowpass=f=400,equalizer=f=100:width_type=o:width=1:g=4,volume=4dB',
   },
   rain: {
     desc: 'Regen',
-    filter: 'anoisesrc=d=60:color=pink:seed=42:a=0.5,lowpass=f=2000',
+    // Pink noise + high-frequency boost + moderate lowpass
+    filter: 'anoisesrc=d=60:color=pink:seed=42:a=0.9,lowpass=f=5000,equalizer=f=3000:width_type=o:width=1.5:g=3,volume=3dB',
   },
   wind: {
     desc: 'Wind',
-    filter: 'anoisesrc=d=60:color=brown:seed=7:a=0.5,lowpass=f=500',
+    // Brown noise + tiefes lowpass für Windböen-Charakter
+    filter: 'anoisesrc=d=60:color=brown:seed=7:a=0.9,lowpass=f=600,equalizer=f=150:width_type=o:width=1:g=5,volume=4dB',
   },
   fire: {
     desc: 'Lagerfeuer',
-    filter: 'anoisesrc=d=60:color=brown:seed=13:a=0.4,bandpass=f=300:w=800',
+    // Brown noise + bandpass (mittlere Frequenzen = Knistern) + Höhen-Boost
+    filter: 'anoisesrc=d=60:color=brown:seed=13:a=0.8,bandpass=f=250:w=600,equalizer=f=1500:width_type=o:width=2:g=2,volume=4dB',
   },
   forest: {
     desc: 'Vogelgezwitscher',
-    filter: 'anoisesrc=d=60:color=pink:seed=99:a=0.5,bandpass=f=3000:w=2000',
+    // Pink noise + bandpass (Vogel-Frequenzen) + tremolo für Zwitscher-Effekt
+    filter: 'anoisesrc=d=60:color=pink:seed=99:a=0.9,bandpass=f=3000:w=2500,equalizer=f=4000:width_type=o:width=2:g=2,tremolo=f=5:d=0.5,volume=4dB',
   },
 };
 
