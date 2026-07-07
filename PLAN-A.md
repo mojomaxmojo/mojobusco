@@ -481,7 +481,7 @@ hinten durchklicken:
 
 ## Checkliste
 
-- [ ] Schritt 1 — `server/config/media-paths.js` (FFMPEG/FFPROBE/MUSIC_DIR/TMP_DIR)
+- [x] Schritt 1 — `server/config/media-paths.js` (FFMPEG/FFPROBE/MUSIC_DIR/TMP_DIR)
 - [ ] Schritt 2 — `server/config/music-prompts.js` (ZOOM_PAN_EFFECTS/ASPECT_SIZES/LIFESTYLE_MUSIC_PROMPTS)
 - [ ] Schritt 3 — `server/utils/http-helpers.js` (handleMulterError/sanitizeInput/validateApiKey/safelyParseJSON)
 - [ ] Schritt 4 — `server/utils/image-ffmpeg.js` (getLocalMusicFile/downloadImage/generateElevenLabsMusic/buildFilterComplex/readJpegDimensions/runFfmpeg)

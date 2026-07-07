@@ -11,27 +11,7 @@ import crypto from 'crypto'
 import os from 'os'
 const execFileAsync = promisify(execFile)
 
-// ── ffmpeg/ffprobe Pfade automatisch erkennen ──────────────────────────────
-// sucht zuerst Umgebungsvariable, dann typische Installationspfade
-const findBinary = (name) => {
-  const candidates = [
-    `/usr/bin/${name}`,
-    `/usr/local/bin/${name}`,
-    `/opt/bin/${name}`,
-    `/opt/homebrew/bin/${name}`,
-  ];
-  for (const p of candidates) {
-    if (fs.existsSync(p)) return p;
-  }
-  return `/usr/bin/${name}`; // letzter Fallback
-};
-const FFMPEG  = process.env.FFMPEG_PATH  || findBinary('ffmpeg')
-const FFPROBE = process.env.FFPROBE_PATH || findBinary('ffprobe')
-const MUSIC_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 'music')
-const TMP_DIR   = path.join(os.tmpdir(), 'slideshow')
-
-// Temp-Ordner beim Start anlegen
-if (!fs.existsSync(TMP_DIR)) fs.mkdirSync(TMP_DIR, { recursive: true })
+import { FFMPEG, FFPROBE, MUSIC_DIR, TMP_DIR } from './config/media-paths.js'
 
 // In-Memory Job-Store für Slideshow-Jobs (FFmpeg Legacy)
 const slideshowJobs = new Map()
