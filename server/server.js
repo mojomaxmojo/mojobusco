@@ -199,7 +199,7 @@ const generateWithModel = async (prompt, model = 'llama4', lifestyle = 'mojobus'
       }
 
       const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
-        model: '~anthropic/claude-sonnet-latest',
+        model: 'anthropic/claude-sonnet-5',
         max_tokens: maxTokens,
         temperature,
         messages: [
@@ -2583,7 +2583,7 @@ async function analyzeOneImage(imageUrl, preferredModel = 'groq') {
   if (process.env.OPENROUTER_API_KEY) {
     try {
       const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
-        model: '~anthropic/claude-sonnet-latest',
+        model: 'anthropic/claude-sonnet-5',
         messages: [{
           role: 'user',
           content: [
@@ -2705,7 +2705,7 @@ app.post('/api/tiktok/generate-text', async (req, res) => {
     if (model === 'claude' && process.env.OPENROUTER_API_KEY) {
       apiKey = process.env.OPENROUTER_API_KEY
       apiUrl = 'https://openrouter.ai/api/v1/chat/completions'
-      apiModel = '~anthropic/claude-sonnet-latest'
+      apiModel = 'anthropic/claude-sonnet-5'
     } else if (process.env.GROQ_API_KEY) {
       apiKey = process.env.GROQ_API_KEY
       apiUrl = 'https://api.groq.com/openai/v1/chat/completions'
@@ -2716,7 +2716,7 @@ app.post('/api/tiktok/generate-text', async (req, res) => {
 
     // ── KI-Call mit Retry-Kette ──────────────────────────────────────────
     //
-    // Problem (03.07.2026): OpenRouter löst '~anthropic/claude-sonnet-latest'
+    // Problem (03.07.2026): OpenRouter löst 'anthropic/claude-sonnet-5'
     // inzwischen auf ein REASONING-Modell auf (claude-sonnet-5). Das Modell
     // verbraucht das komplette max_tokens-Budget fürs interne Nachdenken
     // (reasoning_details), content bleibt null, finish_reason='length'.
