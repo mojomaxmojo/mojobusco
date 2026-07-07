@@ -323,7 +323,6 @@ import { generateAmbient } from './ambient.js';
 
 // ── Audio Loudness-Normalisierung ─────────────────────────────────────────
 import { normalizeRenderedVideo } from './audioNormalize.js';
-import { AUDIO_LOUDNESS_CONFIG } from '../../src/config/audio.js';
 
 const OUTPUT_DIR = path.join(os.tmpdir(), 'remotion-renders');
 const IMAGES_DIR = path.join(os.tmpdir(), 'remotion-images');

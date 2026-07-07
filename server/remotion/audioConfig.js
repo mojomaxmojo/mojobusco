@@ -1,0 +1,53 @@
+/**
+ * audioConfig.js – Lokale Loudness-Zielwerte für server/remotion/
+ *
+ * Wird von audioNormalize.js importiert (direkter Node-ESM-Import).
+ * Ist bewusst DUPLIKAT von src/config/audio.js – server/remotion/ darf nicht
+ * aus src/ importieren (unterschiedliche Deploy-Pfade: /home/nginx/domains/.../public/ vs. src/).
+ *
+ * Änderungen immer in BEIDEN Dateien synchron halten:
+ *   - server/remotion/audioConfig.js (Laufzeit auf dem Server)
+ *   - src/config/audio.js         (Frontend-Konfiguration, falls benötigt)
+ */
+
+// ── Primäre Zielwerte ───────────────────────────────────────────────────────
+
+/** Loudness-Ziel in LUFS integrated (Mitte des Korridors −14 … −15) */
+export const LOUDNESS_TARGET_I = -14.5;
+
+/** True-Peak-Limit in dBTP */
+export const LOUDNESS_TARGET_TP = -1.0;
+
+/** Loudness Range – ffmpeg-loudnorm-Standard, geeignet für Voiceover+Musik-Mix */
+export const LOUDNESS_TARGET_LRA = 11;
+
+// ── Output-Format ───────────────────────────────────────────────────────────
+
+/** Sample-Rate des normalisierten Audio-Streams (Hz) */
+export const LOUDNESS_OUTPUT_SAMPLE_RATE = 48000;
+
+/** Audio-Codec für das normalisierte MP4 */
+export const LOUDNESS_OUTPUT_AUDIO_CODEC = 'aac';
+
+/** Audio-Bitrate in kbps */
+export const LOUDNESS_OUTPUT_AUDIO_BITRATE_KBPS = 192;
+
+// ── Timeout ─────────────────────────────────────────────────────────────────
+
+/**
+ * Timeout-Faktor pro ffmpeg-Pass (ms pro Sekunde Video).
+ * Formel: timeout = max(30000, videoDurationSec * LOUDNESS_PASS_TIMEOUT_MS_PER_SEC)
+ */
+export const LOUDNESS_PASS_TIMEOUT_MS_PER_SEC = 4000;
+
+// ── Gebündelter Export ──────────────────────────────────────────────────────
+
+export const AUDIO_LOUDNESS_CONFIG = {
+  targetI: LOUDNESS_TARGET_I,
+  targetTP: LOUDNESS_TARGET_TP,
+  targetLRA: LOUDNESS_TARGET_LRA,
+  outputSampleRate: LOUDNESS_OUTPUT_SAMPLE_RATE,
+  outputAudioCodec: LOUDNESS_OUTPUT_AUDIO_CODEC,
+  outputAudioBitrateKbps: LOUDNESS_OUTPUT_AUDIO_BITRATE_KBPS,
+  passTimeoutMsPerSec: LOUDNESS_PASS_TIMEOUT_MS_PER_SEC,
+};

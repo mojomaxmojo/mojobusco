@@ -2,7 +2,7 @@
  * audioNormalize.js – Zwei-Pass ffmpeg-loudnorm Audio-Normalisierung
  *
  * Normalisiert die Lautstärke eines fertig gerenderten MP4-Videos auf
- * −14,5 LUFS integrated / −1 dBTP True Peak (konfigurierbar über src/config/audio.js).
+ * −14,5 LUFS integrated / −1 dBTP True Peak (konfigurierbar über audioConfig.js).
  *
  * Ablauf:
  *   1️⃣ measureLoudness()  – Pass 1: Analyse der aktuellen Loudness (ffmpeg loudnorm print_format=json)
@@ -27,7 +27,7 @@ import {
   LOUDNESS_OUTPUT_AUDIO_CODEC,
   LOUDNESS_OUTPUT_AUDIO_BITRATE_KBPS,
   LOUDNESS_PASS_TIMEOUT_MS_PER_SEC,
-} from '../../src/config/audio.js';
+} from './audioConfig.js';
 
 // ── Pass 1: Loudness messen ──────────────────────────────────────────────
 
