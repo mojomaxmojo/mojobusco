@@ -488,5 +488,5 @@ hinten durchklicken:
 - [x] Schritt 5 — `server/services/ai-content.js` (generateWithModel)
 - [x] Schritt 6 — `server/routes/content.js` (5 Content-Generierungs-Routen)
 - [x] Schritt 7 — `server/routes/video.js` (Grok-Video, Slideshow, Remotion-Routen + Job-Stores)
-- [ ] Schritt 8 — `server/routes/tiktok.js` (Vision-Analyse + TikTok-Text-Generator)
+- [x] Schritt 8 — `server/routes/tiktok.js` (Vision-Analyse + TikTok-Text-Generator)
 - [ ] Abschließender Gesamttest durchgeführt
