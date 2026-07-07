@@ -26,6 +26,55 @@ import { generateWithModel } from './services/ai-content.js'
 import contentRouter from './routes/content.js'
 import createVideoRouter from './routes/video.js'
 
+// ===== PROMPTS AUS src/config/prompts/ IMPORTIEREN =====
+// Alle Prompts sind zentral in src/config/prompts/ definiert
+// Bei Änderungen: NUR dort ändern, nicht hier!
+import {
+  getLifestyleConfig,
+  getGenderPromptAddition,
+  generateMediaPrompt,
+  generateTripPrompt,
+  generateTripCaptionPrompt,
+  generateArticlePrompt,
+  generateArticleSummaryPrompt,
+  generateArticleTitlesPrompt,
+  generateNotePrompt,
+  generatePlacePrompt,
+  getMediaImageAnalysisPrompt,
+  getMediaVideoAnalysisPrompt,
+  getTripImageAnalysisPrompt,
+  getArticleImageAnalysisPrompt,
+  getNoteImageAnalysisPrompt,
+  getPlaceImageAnalysisPrompt,
+  FOSTER_HUNTINGTON_SYSTEM_PROMPT,
+  generateTikTokUserPrompt
+} from '../src/config/prompts/index.js'
+
+// ── Bot Meta-Tag Middleware ────────────────────────────────
+import { botMiddleware, getBotCacheStats, clearBotCache } from './bot-middleware.js'
+
+// ── Pinterest Promotion API ────────────────────────────────
+import promotionRouter from './promotion-api.js'
+
+const app = express()
+const PORT = process.env.PORT || 3002
+
+app.use(cors())
+app.use(express.json())
+
+// ============================================================
+// BOT META-TAG MIDDLEWARE
+// Muss VOR allen anderen Routen stehen!
+// Erkennt Crawler (Pinterest, Google, Facebook, WhatsApp etc.)
+// und liefert statisches HTML mit OG/Twitter/Pinterest Meta-Tags.
+// Normale Nutzer werden NICHT betroffen — sie bekommen next()
+// ============================================================
+app.use(botMiddleware)
+
+// ===== CONTENT GENERIERUNG ROUTEN =====
+// Alle Content-Generierungs-Routen aus server/routes/content.js
+app.use(contentRouter)
+
 if (!fs.existsSync('uploads')) {
   fs.mkdirSync('uploads')
 }
@@ -411,6 +460,33 @@ app.post('/api/tiktok/generate-text', async (req, res) => {
     res.status(500).json({ error: err.message || 'Generierung fehlgeschlagen' })
   }
 })
+
+// Health Check
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    groqApiKey: process.env.GROQ_API_KEY ? 'configured' : 'missing',
+    anthropicApiKey: process.env.ANTHROPIC_API_KEY ? 'configured' : 'missing',
+    openrouterApiKey: process.env.OPENROUTER_API_KEY ? 'configured' : 'missing',
+    xaiApiKey: process.env.XAI_API_KEY ? 'configured' : 'missing',
+    botMiddleware: {
+      status: 'active',
+      cache: getBotCacheStats(),
+    },
+    timestamp: new Date().toISOString()
+  })
+})
+
+// Bot-Cache leeren (nach Deployment aufrufen)
+// POST /api/bot-cache/clear
+app.post('/api/bot-cache/clear', (req, res) => {
+  const cleared = clearBotCache()
+  res.json({ ok: true, cleared, message: `${cleared} Cache-Einträge geleert` })
+})
+
+// ── Pinterest Promotion API ────────────────────────────────
+// Alle Routen: /api/promotion/*
+app.use(promotionRouter)
 
 app.listen(PORT, () => {
   console.log(`[Server] Backend läuft auf Port ${PORT}`)
