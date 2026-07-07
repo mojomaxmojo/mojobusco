@@ -606,7 +606,7 @@ app.get('/api/video-status/:jobId', async (req, res) => {
 // Musik: lokal (server/music/) oder ElevenLabs via ppq.ai
 // ffmpeg: /opt/bin/ffmpeg
 
-[Removed in Schritt 4 — moved to server/utils/image-ffmpeg.js]
+// Removed in Schritt 4 — moved to server/utils/image-ffmpeg.js
 
 async function runSlideshowJob(jobId, params) {
   const { imageUrls, musicMode, lifestyle, aspectRatio, imageDuration, ppqKey } = params
