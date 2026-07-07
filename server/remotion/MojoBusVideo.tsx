@@ -686,7 +686,7 @@ fadeInSec={0.3}
       {ambientUrl && (
         <AudioLayer
           src={ambientUrl}
-          volume={0.50}
+          volume={0.40}
           fadeInSec={0.5}
           fadeOutSec={3}
         />
