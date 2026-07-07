@@ -485,7 +485,7 @@ hinten durchklicken:
 - [x] Schritt 2 — `server/config/music-prompts.js` (ZOOM_PAN_EFFECTS/ASPECT_SIZES/LIFESTYLE_MUSIC_PROMPTS)
 - [x] Schritt 3 — `server/utils/http-helpers.js` (handleMulterError/sanitizeInput/validateApiKey/safelyParseJSON)
 - [x] Schritt 4 — `server/utils/image-ffmpeg.js` (getLocalMusicFile/downloadImage/generateElevenLabsMusic/buildFilterComplex/readJpegDimensions/runFfmpeg)
-- [ ] Schritt 5 — `server/services/ai-content.js` (generateWithModel)
+- [x] Schritt 5 — `server/services/ai-content.js` (generateWithModel)
 - [ ] Schritt 6 — `server/routes/content.js` (5 Content-Generierungs-Routen)
 - [ ] Schritt 7 — `server/routes/video.js` (Grok-Video, Slideshow, Remotion-Routen + Job-Stores)
 - [ ] Schritt 8 — `server/routes/tiktok.js` (Vision-Analyse + TikTok-Text-Generator)
