@@ -486,7 +486,7 @@ hinten durchklicken:
 - [x] Schritt 3 — `server/utils/http-helpers.js` (handleMulterError/sanitizeInput/validateApiKey/safelyParseJSON)
 - [x] Schritt 4 — `server/utils/image-ffmpeg.js` (getLocalMusicFile/downloadImage/generateElevenLabsMusic/buildFilterComplex/readJpegDimensions/runFfmpeg)
 - [x] Schritt 5 — `server/services/ai-content.js` (generateWithModel)
-- [ ] Schritt 6 — `server/routes/content.js` (5 Content-Generierungs-Routen)
-- [ ] Schritt 7 — `server/routes/video.js` (Grok-Video, Slideshow, Remotion-Routen + Job-Stores)
+- [x] Schritt 6 — `server/routes/content.js` (5 Content-Generierungs-Routen)
+- [x] Schritt 7 — `server/routes/video.js` (Grok-Video, Slideshow, Remotion-Routen + Job-Stores)
 - [ ] Schritt 8 — `server/routes/tiktok.js` (Vision-Analyse + TikTok-Text-Generator)
 - [ ] Abschließender Gesamttest durchgeführt
