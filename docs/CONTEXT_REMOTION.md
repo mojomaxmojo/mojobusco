@@ -15,6 +15,7 @@
 | `server/remotion/components/KenBurnsImage.tsx` | noise/breathing/focus-in/handheld + GammaFade |
 | `server/remotion/components/RouteMapLine.tsx` | Animierte Routen-Karte mit Puls-Ring + Labels |
 | `server/remotion/edge.js` | Edge TTS (Seraphina ⭐, Fallback: Piper) |
+| `server/remotion/audioNormalize.js` | Zwei-Pass ffmpeg-loudnorm: −14,5 LUFS integrated / −1 dBTP True Peak (Post-Render) |
 | `src/lib/routeFromGps.ts` | GPS→Route: Haversine-Dedupe, Nominatim-Geocoding, 9:16-Aspect |
 
 Stack: Remotion v4, Edge TTS, FFmpeg.
@@ -79,6 +80,21 @@ curl -X POST http://localhost:3002/api/render-remotion/invalidate-bundle
 
 (Bundle-Cache wird zusätzlich automatisch durch deploy-main.sh geleert.)
 
+## Audio-Loudness-Normalisierung
+
+Nach dem Remotion-Render wird die Audiospur mittels Zwei-Pass-ffmpeg-loudnorm auf
+**−14,5 LUFS integrated** (Zielkorridor −14 bis −15) und **−1 dBTP True Peak** normalisiert.
+
+**Ablauf**:
+1. **Pass 1** – `measureLoudness()`: ffmpeg analayst die aktuelle Loudness (`print_format=json`)
+2. **Pass 2** – `applyLoudnorm()`: ffmpeg wendet die gemessenen Werte an (`linear=true`, `-c:v copy`)
+3. **Ergebnis**: `{ normalized: true/false, targetI, targetTP, measuredI?, measuredTP?, reason? }`
+
+**Wichtig**:
+- Video-Stream bleibt bit-identisch (`-c:v copy`) – keine Qualitätsverluste
+- Bei Fehlern bleibt das Originalvideo unverändert (graceful degradation)
+- Konfiguration in `src/config/audio.js` (Single Source of Truth)
+
 ## Debug
 
 ```bash
@@ -90,4 +106,6 @@ journalctl -u ai-api -f | grep -i "Route\|🗺️"
 
 # ffprobe Pfad:
 which ffprobe  # → /usr/local/bin/ffprobe
-```
+
+# Loudness-Normalisierung prüfen:
+journalctl -u ai-api -f | grep -i "loudnorm\|LUFS\|dBTP"

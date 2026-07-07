@@ -112,6 +112,14 @@ interface RenderStatus {
   fileSizeMB: number | null
   videoDurationSec: number | null
   error: string | null
+  loudness?: {
+    normalized: boolean
+    targetI?: number
+    targetTP?: number
+    measuredI?: number
+    measuredTP?: number
+    reason?: string
+  } | null
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -797,7 +805,7 @@ export function TikTokPromotion() {
             setStep(4)
             toast({
               title: '✅ Video fertig!',
-              description: `${data.fileSizeMB}MB · ${data.videoDurationSec}s`,
+              description: `${data.fileSizeMB}MB · ${data.videoDurationSec}s${data.loudness?.normalized ? ` · 🔊 ${data.loudness.targetI} LUFS` : ''}`,
             })
           } else {
             setRendering(false)
@@ -2062,6 +2070,7 @@ export function TikTokPromotion() {
                 <CardDescription className="text-sm">
                   {renderStatus?.fileSizeMB && `${renderStatus.fileSizeMB} MB`}
                   {renderStatus?.videoDurationSec && ` · ${renderStatus.videoDurationSec}s`}
+                  {renderStatus?.loudness?.normalized && ` · 🔊 ${renderStatus.loudness.targetI} LUFS`}
                   {blossomUrl && ` · ☁️ Auf Blossom`}
                 </CardDescription>
               </CardContent>

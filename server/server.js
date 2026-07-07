@@ -2379,6 +2379,7 @@ musicUrl,
       job.fileSizeMB = result.fileSizeMB
       job.videoDurationSec = result.videoDurationSec
       job.frames = result.frames
+      job.loudness = result.loudness || null
 
       console.log(`[Remotion] Job ${jobId} ✓ fertig: ${result.fileSizeMB}MB, ${result.videoDurationSec}s`)
 
@@ -2408,6 +2409,7 @@ app.get('/api/render-remotion/status/:jobId', (req, res) => {
     fileSizeMB: job.fileSizeMB,
     videoDurationSec: job.videoDurationSec,
     error: job.error,
+    loudness: job.loudness || null,
   })
 })
 
@@ -2493,6 +2495,7 @@ app.get('/api/render-remotion/history', (req, res) => {
       progress: job.progress,
       fileSizeMB: job.fileSizeMB,
       videoDurationSec: job.videoDurationSec,
+      loudness: job.loudness || null,
       created: job.created,
       // Metadaten (vom POST übernommen)
       title: job.title || 'MojoBus Video',

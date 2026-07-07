@@ -321,6 +321,10 @@ async function concatVoiceoverSegments(segments, sessionDir, hookDurationSec, se
 // ── Ambient Sounds (optional) ──────────────────────────────────────────────
 import { generateAmbient } from './ambient.js';
 
+// ── Audio Loudness-Normalisierung ─────────────────────────────────────────
+import { normalizeRenderedVideo } from './audioNormalize.js';
+import { AUDIO_LOUDNESS_CONFIG } from '../../src/config/audio.js';
+
 const OUTPUT_DIR = path.join(os.tmpdir(), 'remotion-renders');
 const IMAGES_DIR = path.join(os.tmpdir(), 'remotion-images');
 
@@ -1035,13 +1039,33 @@ export async function renderMojoBusVideo(params) {
     });
 
     const dur = ((Date.now() - startTime) / 1000).toFixed(1);
+    console.log(`[Remotion] ✅ Remotion-Render: ${dur}s`);
+
+    // ── Audio Loudness-Normalisierung (nach renderMedia, vor renderResult) ──
+    let loudnessInfo = null;
+    const videoDurSec = composition.durationInFrames / composition.fps;
+    try {
+      loudnessInfo = await normalizeRenderedVideo(
+        outputPath,
+        sessionDir,
+        FFMPEG_PATH,
+        FFPROBE_PATH,
+        videoDurSec,
+      );
+    } catch (err) {
+      // Äußerster Schutz: selbst ein unerwarteter Fehler darf den Job nicht killen
+      console.warn(`[Remotion] ⚠️ Loudness-Normalisierung unerwarteter Fehler: ${err.message}`);
+      loudnessInfo = { normalized: false, reason: err.message };
+    }
+
+    // Dateigröße NACH Normalisierung messen (AAC-Re-Encoding ändert sie minimal)
     const sizeMB = (fs.statSync(outputPath).size / 1024 / 1024).toFixed(2);
-    console.log(`[Remotion] ✅ Fertig: ${sizeMB}MB in ${dur}s`);
 
     renderResult = {
       outputPath, fileSizeMB: sizeMB, renderDurationSec: dur,
       frames: composition.durationInFrames, fps: composition.fps,
-      videoDurationSec: (composition.durationInFrames / composition.fps).toFixed(1),
+      videoDurationSec: videoDurSec.toFixed(1),
+      loudness: loudnessInfo,
     };
 
   } catch (err) {

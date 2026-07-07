@@ -185,6 +185,7 @@ export function RemotionVideoBlock({
     sizeMB: string;
     duration: string;
     frames?: number;
+    loudness?: { normalized: boolean; targetI?: number; targetTP?: number } | null;
   } | null>(null);
   const [uploadedLocalUrls, setUploadedLocalUrls] = useState<string[]>([]);
 
@@ -388,6 +389,7 @@ export function RemotionVideoBlock({
             sizeMB: pollData.fileSizeMB,
             duration: pollData.videoDurationSec,
             frames: pollData.frames,
+            loudness: pollData.loudness ?? null,
           });
           setStatus('completed');
           setProgress(100);
@@ -829,6 +831,7 @@ export function RemotionVideoBlock({
                 <CheckCircle className="h-4 w-4" />
                 <span className="font-medium text-sm">
                   ✅ Blossom · {videoInfo?.duration}s · {videoInfo?.sizeMB}MB · {resolvedGrade}
+                  {videoInfo?.loudness?.normalized && ` · 🔊 ${videoInfo.loudness.targetI} LUFS`}
                 </span>
               </div>
               <video
