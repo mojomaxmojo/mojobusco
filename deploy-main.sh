@@ -211,6 +211,14 @@ deploy_files() {
         info_msg "✓ Musik-Dateien gesichert ($(ls "$MUSIC_BACKUP_DIR" | wc -l) Dateien)"
     fi
 
+    # ── Ambient-Sounds VOR dem Löschen sichern ──────────────────────────────
+    AMBIENT_BACKUP_DIR=""
+    if [ -d "$DEPLOY_DIR/server/remotion/ambient-sounds" ] && [ "$(ls -A "$DEPLOY_DIR/server/remotion/ambient-sounds" 2>/dev/null)" ]; then
+        AMBIENT_BACKUP_DIR="$(mktemp -d)"
+        cp -r "$DEPLOY_DIR/server/remotion/ambient-sounds/." "$AMBIENT_BACKUP_DIR/"
+        info_msg "✓ Ambient-Sounds gesichert ($(ls "$AMBIENT_BACKUP_DIR" | wc -l) Dateien)"
+    fi
+
     # ── server/node_modules sichern (Remotion = ~1GB, nicht jedes Mal neu laden!) ──
     NODE_MODULES_BACKUP=""
     if [ -d "$DEPLOY_DIR/server/node_modules" ]; then
@@ -242,6 +250,14 @@ deploy_files() {
             success_msg "✓ Musik-Dateien wiederhergestellt ($(ls "$DEPLOY_DIR/server/music" | wc -l) Dateien)"
         else
             info_msg "server/music/ angelegt (noch keine Musik-Dateien vorhanden)"
+        fi
+
+        # ── Ambient-Sounds wiederherstellen ──────────────────────────────────
+        mkdir -p "$DEPLOY_DIR/server/remotion/ambient-sounds"
+        if [ -n "$AMBIENT_BACKUP_DIR" ]; then
+            cp -r "$AMBIENT_BACKUP_DIR/." "$DEPLOY_DIR/server/remotion/ambient-sounds/"
+            rm -rf "$AMBIENT_BACKUP_DIR"
+            success_msg "✓ Ambient-Sounds wiederhergestellt ($(ls "$DEPLOY_DIR/server/remotion/ambient-sounds" | wc -l) Dateien)"
         fi
 
         # ── node_modules wiederherstellen (spart 2-3 Min npm install) ────────
