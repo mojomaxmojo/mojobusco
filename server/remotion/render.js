@@ -346,6 +346,11 @@ const MIME_TYPES = {
   '.gif': 'image/gif',  '.avif': 'image/avif',
   '.wav': 'audio/wav',  '.mp3': 'audio/mpeg',
   '.m4a': 'audio/mp4',  '.ogg': 'audio/ogg',
+  // Video-Types für Direkt-Video-Template
+  '.mp4': 'video/mp4',  '.webm': 'video/webm',
+  '.mov': 'video/quicktime',
+  '.avi': 'video/x-msvideo',
+  '.mkv': 'video/x-matroska',
 };
 
 /**
@@ -530,10 +535,16 @@ function getImageExtension(url, contentType) {
       'image/png': '.png',  'image/webp': '.webp',
       'image/gif': '.gif',  'image/avif': '.avif',
       'image/heic': '.jpg', 'image/tiff': '.jpg',
+      // Video-MIME-Types
+      'video/mp4': '.mp4',  'video/webm': '.webm',
+      'video/quicktime': '.mov',
+      'video/x-msvideo': '.avi',
+      'video/x-matroska': '.mkv',
     };
     if (map[ct]) return map[ct];
   }
-  const m = url.split('?')[0].split('#')[0].match(/\.(jpe?g|jpg|png|webp|gif|avif)$/i);
+  // Extension direkt aus URL ermitteln (Bild + Video)
+  const m = url.split('?')[0].split('#')[0].match(/\.(jpe?g|jpg|png|webp|gif|avif|mp4|webm|mov|avi|mkv)$/i);
   if (m) return '.' + m[1].toLowerCase().replace('jpeg', 'jpg');
   return '.jpg';
 }
@@ -545,7 +556,7 @@ function downloadFileWithType(url, destPath, attempt = 1) {
       timeout: 45000,
       headers: {
         'User-Agent': 'MojoBus-Remotion/1.0',
-        'Accept': 'image/webp,image/jpeg,image/png,image/*,*/*',
+        'Accept': 'image/webp,image/jpeg,image/png,image/*,video/mp4,video/webm,video/quicktime,video/*,*/*',
       },
     }, (res) => {
       if ([301, 302, 303, 307, 308].includes(res.statusCode)) {
