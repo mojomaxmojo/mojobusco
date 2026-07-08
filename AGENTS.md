@@ -33,6 +33,9 @@
     Umbenennungen oder "Verbesserungen" an fremdem Code.
 12. **Doku-Pflege**: Wenn eine Änderung Fakten aus MOJOBUS_CONTEXT.md oder
     einer docs/CONTEXT_*.md betrifft, die Datei mit aktualisieren.
+13 **Video-Codec**: Ausgabe IMMER libx264 + aac + -movflags +faststart.
+  NIEMALS HEVC/H.265/VP9 – Chromium headless (Remotion) und Teile der
+  Browser können es nicht decodieren.
 ---
 
 ## 🗂️ Kontext nach Aufgabe (nur die relevante Datei lesen!)
