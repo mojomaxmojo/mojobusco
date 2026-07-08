@@ -23,7 +23,7 @@ const ContentCard = lazy(() => import('@/components/ContentCard').then(m => ({ d
 
 /** Simple Bild-URL-Extraktion (lokal, kein schwerer Import nötig) */
 function extractFirstImageUrl(content: string): string | null {
-  const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp))/gi;
+  const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|mp4|webm|mov|avi|mkv))/gi;
   const matches = content.match(urlRegex);
   return matches && matches.length > 0 ? matches[0] : null;
 }
@@ -150,6 +150,9 @@ export function Home() {
                content.includes('.png') ||
                content.includes('.gif') ||
                content.includes('.webp') ||
+               content.includes('.mp4') ||
+               content.includes('.webm') ||
+               content.includes('.mov') ||
                content.includes('imgur.com') ||
                content.includes('i.imgur.com') ||
                content.includes('cdn.blossom') ||

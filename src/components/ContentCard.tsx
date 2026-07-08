@@ -8,7 +8,7 @@ import { genUserName } from '@/lib/genUserName';
 import { nip19 } from 'nostr-tools';
 import { getGalleryThumbnailUrl, getImagePlaceholder, generateSrcset, generateSizes } from '@/lib/imageUtils';
 import { SocialBar } from '@/components/SocialBar';
-import { MapPin } from 'lucide-react';
+import { MapPin, Play } from 'lucide-react';
 import type { NostrEvent } from '@nostrify/nostrify';
 import type { Trip } from '@/hooks/useTrips';
 
@@ -21,9 +21,18 @@ export type ContentItem = {
 };
 
 function extractFirstImageUrl(content: string): string | null {
-  const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp))/gi;
+  const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|mp4|webm|mov|avi|mkv))/gi;
   const matches = content.match(urlRegex);
   return matches && matches.length > 0 ? matches[0] : null;
+}
+
+function isVideoUrl(url: string): boolean {
+  const lower = url.toLowerCase();
+  return lower.includes('.mp4') ||
+         lower.includes('.webm') ||
+         lower.includes('.mov') ||
+         lower.includes('.avi') ||
+         lower.includes('.mkv');
 }
 
 export const ContentCard = memo(function ContentCard({ item }: { item: ContentItem }) {
@@ -70,21 +79,32 @@ export const ContentCard = memo(function ContentCard({ item }: { item: ContentIt
       <Link to={link} className="flex flex-col h-full">
         {thumbnailUrl ? (
           <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-            <img
-              src={thumbnailUrl}
-              srcSet={srcset}
-              sizes={sizes}
-              alt={title}
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
-              loading="lazy"
-              decoding="async"
-            />
-            {/* Overlay gradient */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            {isVideoUrl(thumbnailUrl) ? (
+              <video
+                src={thumbnailUrl}
+                className="w-full h-full object-cover"
+                controls
+                loading="lazy"
+              />
+            ) : (
+              <img
+                src={thumbnailUrl}
+                srcSet={srcset}
+                sizes={sizes}
+                alt={title}
+                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+                loading="lazy"
+                decoding="async"
+              />
+            )}
+            {/* Overlay gradient – nur bei Bildern */}
+            {!isVideoUrl(thumbnailUrl) && (
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            )}
             {/* Type badge */}
             <div className="absolute top-4 left-4">
               <span className="px-3 py-1.5 bg-primary/90 text-white text-xs font-semibold rounded-full backdrop-blur-sm shadow-lg">
-                {item.type === 'trip' ? '🗺️ Trip' : item.type === 'place' ? '📍 Ort' : item.type === 'image' ? '📷 Bild' : '📝 Beitrag'}
+                {isVideoUrl(thumbnailUrl) ? '🎬 Video' : item.type === 'trip' ? '🗺️ Trip' : item.type === 'place' ? '📍 Ort' : item.type === 'image' ? '📷 Bild' : '📝 Beitrag'}
               </span>
             </div>
           </div>
