@@ -1,4 +1,5 @@
 import express from 'express'
+import multer from 'multer'
 import axios from 'axios'
 import fs from 'fs'
 import path from 'path'
