@@ -28,6 +28,15 @@ function extractFirstImageUrl(content: string): string | null {
   return matches && matches.length > 0 ? matches[0] : null;
 }
 
+function isVideoUrl(url: string): boolean {
+  const lower = url.toLowerCase();
+  return lower.includes('.mp4') ||
+         lower.includes('.webm') ||
+         lower.includes('.mov') ||
+         lower.includes('.avi') ||
+         lower.includes('.mkv');
+}
+
 export function Home() {
   const { nostr } = useNostr();
   const queryClient = useQueryClient();
@@ -200,7 +209,7 @@ export function Home() {
         type: 'note',
         event,
         date: event.created_at,
-        thumbnailUrl: imageUrl ? getGalleryThumbnailUrl(imageUrl) : undefined
+        thumbnailUrl: imageUrl ? (isVideoUrl(imageUrl) ? imageUrl : getGalleryThumbnailUrl(imageUrl)) : undefined
       });
     });
   }
@@ -224,7 +233,7 @@ export function Home() {
         type: 'image',
         event,
         date: event.created_at,
-        thumbnailUrl: imageUrl ? getGalleryThumbnailUrl(imageUrl) : undefined
+        thumbnailUrl: imageUrl ? (isVideoUrl(imageUrl) ? imageUrl : getGalleryThumbnailUrl(imageUrl)) : undefined
       });
     });
   }

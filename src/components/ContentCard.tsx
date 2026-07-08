@@ -70,9 +70,10 @@ export const ContentCard = memo(function ContentCard({ item }: { item: ContentIt
   }
 
   const thumbnailUrl = item.thumbnailUrl;
-  const srcset = thumbnailUrl ? generateSrcset(thumbnailUrl) : undefined;
-  const sizes = generateSizes('card');
-  const placeholderColor = thumbnailUrl ? getImagePlaceholder(thumbnailUrl) : undefined;
+  const isVideo = thumbnailUrl ? isVideoUrl(thumbnailUrl) : false;
+  const srcset = thumbnailUrl && !isVideo ? generateSrcset(thumbnailUrl) : undefined;
+  const sizes = !isVideo ? generateSizes('card') : undefined;
+  const placeholderColor = thumbnailUrl && !isVideo ? getImagePlaceholder(thumbnailUrl) : undefined;
 
   return (
     <Card className="group overflow-hidden hover:shadow-2xl transition-all duration-500 flex flex-col border-2 border-primary/20 hover:border-primary/60 rounded-2xl">
