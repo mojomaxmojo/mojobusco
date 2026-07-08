@@ -39,8 +39,8 @@ export function extractImagesFromEvent(event: { tags?: string[][]; content?: str
       });
     }
 
-    // Direkte Bild-URLs (jpg, jpeg, png, gif, webp)
-    const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp))/gi;
+    // Direkte Bild- & Video-URLs (jpg, jpeg, png, gif, webp, mp4, webm, mov, avi, mkv)
+    const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|mp4|webm|mov|avi|mkv))/gi;
     const directMatches = event.content.match(urlRegex);
     if (directMatches) {
       directMatches.forEach((url: string) => {

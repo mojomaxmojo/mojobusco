@@ -27,7 +27,12 @@
 7. **Validierung**: Nach jeder Änderung müssen `tsc --noEmit` + `npm run build` fehlerfrei durchlaufen.
 8. **Commits**: Nach jeder abgeschlossenen Änderung committen.
 9. **Sprache**: Antworten auf Deutsch.
-
+10. **Dateigröße**: Dateien unter ~500 Zeilen halten. Neue Features in
+    passende Module oder neue Dateien – nicht in bestehende große Dateien stopfen.
+11. **Scope**: Nur das Angefragte umsetzen. Keine ungefragten Refactorings,
+    Umbenennungen oder "Verbesserungen" an fremdem Code.
+12. **Doku-Pflege**: Wenn eine Änderung Fakten aus MOJOBUS_CONTEXT.md oder
+    einer docs/CONTEXT_*.md betrifft, die Datei mit aktualisieren.
 ---
 
 ## 🗂️ Kontext nach Aufgabe (nur die relevante Datei lesen!)
