@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,7 @@ import { Switch } from "@/components/ui/switch";
 import { CountrySelector, getCountryTag } from "@/components/CountrySelector";
 import { MAIN_MENU } from "@/config/menu";
 import { TRIP_TYPES, type TripType } from "@/config/tags";
-import { RemotionVideoBlock } from "@/components/RemotionVideoBlock";
+import { CreateVideoDialog } from "@/components/CreateVideoDialog";
 import { Progress } from "@/components/ui/progress";
 import { Upload, UploadCloud, ImageIcon, Video, Music, File as FileIcon, Camera, MapPin, Calendar, Tag, Battery, Sun, Wrench, Hammer, Cpu, Mountain, Lightbulb, Dog, Trees, Droplets, Waves, Eye, Loader2, CheckCircle, Route, Sparkles, FileText, MessageSquare, Map } from "@/lib/icons";
 import { extractGpsFromImage, formatCoordinatesSimple, reverseGeocode, mapCountryCode, type GpsData, type GpsStatus, type LocationData } from "@/lib/gpsExtraction";
@@ -48,10 +48,7 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
   const [lifestyle, setLifestyle] = useState<'mojobus' | 'vanlife' | 'rvlife' | 'beachlife' | 'wohnmobil' | 'perpetual-travelers'>('mojobus');
   const [tripType, setTripType] = useState<TripType | ''>('');
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0, stage: '', status: '' });
-  // Video-Transcoding (ffmpeg Server)
-  const [isTranscoding, setIsTranscoding] = useState(false);
-  const [transcodeProgress, setTranscodeProgress] = useState<{ jobId: string; progress: number; status: string; fileName: string } | null>(null);
-  const transcodePollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [createVideoOpen, setCreateVideoOpen] = useState(false);
 
   // Status-Text für nativen Dateipicker (sichtbar im UI, keine Toasts)
   const [nativePickStatus, setNativePickStatus] = useState<string | null>(null);
@@ -873,119 +870,9 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
     }
   };
 
-  // ── Video-Transcoding: Video → Server → ffmpeg → zurück → files-State ──
-  const handleTranscodeVideo = async (file: File) => {
-    setIsTranscoding(true);
-    setTranscodeProgress({ jobId: '', progress: 0, status: '📤 Lade Video zum Server hoch...', fileName: file.name });
-
-    try {
-      // 1. Video zum Server hochladen
-      const formData = new FormData();
-      formData.append('video', file);
-
-      const uploadRes = await fetch('/api/transcode-video', {
-        method: 'POST',
-        body: formData
-      });
-
-      if (!uploadRes.ok) {
-        const errData = await uploadRes.json().catch(() => ({}));
-        throw new Error(errData.error || `Server-Fehler (HTTP ${uploadRes.status})`);
-      }
-
-      const { jobId } = await uploadRes.json();
-      if (!jobId) throw new Error('Keine Job-ID vom Server erhalten');
-
-      // 2. Job-Status pollern
-      await new Promise<{ status: string; progress: number; error?: string }>((resolve, reject) => {
-        const interval = setInterval(async () => {
-          try {
-            const statusRes = await fetch(`/api/transcode-video/status/${jobId}`);
-            if (!statusRes.ok) {
-              clearInterval(interval);
-              reject(new Error('Status-Abfrage fehlgeschlagen'));
-              return;
-            }
-            const data = await statusRes.json();
-
-            setTranscodeProgress(prev => prev ? {
-              ...prev,
-              progress: data.progress || 0,
-              status: data.status === 'transcoding' ? `🎬 ffmpeg verarbeitet... (${data.progress || 0}%)` : data.status === 'pending' ? '⏳ Warteschlange...' : prev.status
-            } : prev);
-
-            if (data.status === 'completed') {
-              clearInterval(interval);
-              resolve(data);
-            } else if (data.status === 'failed') {
-              clearInterval(interval);
-              reject(new Error(data.error || 'Transcoding fehlgeschlagen'));
-            }
-          } catch (err) {
-            clearInterval(interval);
-            reject(err);
-          }
-        }, 1000);
-        transcodePollRef.current = interval;
-      });
-
-      // 3. Fertiges Video herunterladen
-      setTranscodeProgress(prev => prev ? { ...prev, progress: 99, status: '⬇️ Lade verarbeitetes Video herunter...' } : prev);
-
-      const downloadRes = await fetch(`/api/transcode-video/download/${jobId}`);
-      if (!downloadRes.ok) throw new Error('Download fehlgeschlagen');
-
-      const blob = await downloadRes.blob();
-      const contentDisposition = downloadRes.headers.get('Content-Disposition') || '';
-      const nameMatch = contentDisposition.match(/filename="(.+)"/);
-      const newFileName = nameMatch ? nameMatch[1] : `optimiert_${file.name.replace(/\.[^.]+$/, '.mp4')}`;
-      const newFile = new File([blob], newFileName, { type: 'video/mp4' });
-
-      // 4. Ins files-State aufnehmen
-      const preview = URL.createObjectURL(newFile);
-      const newMediaFile: MediaFile = {
-        id: Math.random().toString(36).substr(2, 9),
-        file: newFile,
-        name: newFileName,
-        type: 'video',
-        size: newFile.size,
-        preview,
-        sortDate: Date.now(),
-      };
-
-      setFiles(prev => [...prev, newMediaFile]);
-
-      setTranscodeProgress({ jobId: '', progress: 100, status: `✅ ${file.name} optimiert (${(newFile.size / 1024 / 1024).toFixed(1)} MB)`, fileName: newFileName });
-
-      toast({
-        title: '🎬 Video optimiert',
-        description: `${file.name} wurde mit ffmpeg verarbeitet und in die Liste aufgenommen.`,
-      });
-
-    } catch (error: any) {
-      console.error('[Transcode] Fehler:', error);
-      setTranscodeProgress(prev => prev ? { ...prev, progress: 0, status: `❌ ${error.message || 'Fehler'}` } : prev);
-      toast({ title: 'Fehler', description: `Video-Verarbeitung fehlgeschlagen: ${error.message || 'Unbekannter Fehler'}`, variant: 'destructive' });
-    } finally {
-      setIsTranscoding(false);
-      if (transcodePollRef.current) {
-        clearInterval(transcodePollRef.current);
-        transcodePollRef.current = null;
-      }
-    }
-  };
-
-  const handleStartTranscode = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'video/*';
-    input.onchange = async (e) => {
-      const target = e.target as HTMLInputElement;
-      const selectedFile = target.files?.[0];
-      if (!selectedFile) return;
-      await handleTranscodeVideo(selectedFile);
-    };
-    input.click();
+  const handleVideoCreated = (mediaFile: MediaFile) => {
+    setFiles(prev => [...prev, mediaFile]);
+    setCreateVideoOpen(false);
   };
 
 
@@ -1034,6 +921,15 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
                 <span>Bilder GPS</span>
               </Button>
 
+              <Button
+                onClick={() => setCreateVideoOpen(true)}
+                variant="outline"
+                className="flex items-center gap-1 max-sm:flex-col max-sm:aspect-square max-sm:h-24 max-sm:w-24 max-sm:p-1 max-sm:gap-0.5 text-sm max-sm:text-[10px]"
+              >
+                <Video className="h-4 w-4 max-sm:h-5 max-sm:w-5 shrink-0" />
+                <span>Video erstellen</span>
+              </Button>
+
               {nativePickStatus && (
                 <div className="w-full text-xs bg-muted/50 rounded p-2 border text-center">
                   {nativePickStatus}
@@ -1044,68 +940,11 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
         </CardContent>
        </Card>
 
-      {/* ── Video Transcoding (ffmpeg Server) ── */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Video className="h-5 w-5" />
-            Videos erstellen
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Wähle ein Video aus – es wird automatisch mit ffmpeg auf 1920p optimiert (H.264, AAC) und in die Medien-Liste aufgenommen.
-          </p>
-          <Button
-            onClick={handleStartTranscode}
-            disabled={isTranscoding}
-            variant="default"
-            className="w-full"
-          >
-            {isTranscoding ? (
-              <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Verarbeite...</>
-            ) : (
-              <><Video className="h-4 w-4 mr-2" /> Videos erstellen / optimieren</>
-            )}
-          </Button>
-
-          {/* Transcode-Progress */}
-          {transcodeProgress && (transcodeProgress.status || transcodeProgress.progress > 0) && (
-            <div className={`border-2 rounded-lg p-4 space-y-2 ${
-              transcodeProgress.status?.startsWith('❌')
-                ? 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950'
-                : transcodeProgress.progress >= 100
-                  ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950'
-                  : 'border-ocean-200 bg-ocean-50 dark:border-ocean-800 dark:bg-ocean-950'
-            }`}>
-              <div className="flex items-center gap-2 text-sm">
-                {!transcodeProgress.status?.startsWith('❌') && transcodeProgress.progress < 100 && (
-                  <Loader2 className="h-4 w-4 animate-spin text-ocean-600" />
-                )}
-                {transcodeProgress.progress >= 100 && !transcodeProgress.status?.startsWith('❌') && (
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                )}
-                {transcodeProgress.status?.startsWith('❌') && (
-                  <span className="text-red-500 text-lg">⚠️</span>
-                )}
-                <span className="font-medium text-sm">{transcodeProgress.status}</span>
-              </div>
-              {transcodeProgress.progress > 0 && transcodeProgress.progress < 100 && (
-                <div className="space-y-1">
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>ffmpeg</span>
-                    <span>{transcodeProgress.progress}%</span>
-                  </div>
-                  <Progress value={transcodeProgress.progress} className="h-2" />
-                </div>
-              )}
-              {transcodeProgress.fileName && (
-                <p className="text-xs text-muted-foreground">Datei: {transcodeProgress.fileName}</p>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <CreateVideoDialog
+        open={createVideoOpen}
+        onOpenChange={setCreateVideoOpen}
+        onVideoCreated={handleVideoCreated}
+      />
 
       {/* Media Preview */}
        {files.length > 0 && (
