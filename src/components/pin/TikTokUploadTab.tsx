@@ -106,7 +106,10 @@ export function TikTokUploadTab({ onUploaded }: TikTokUploadTabProps) {
       setUploadProgress(100)
       setUploadedMedia(data)
 
-      const item = buildContentItemFromUpload(data, contentLine)
+      // Absolute URL für Remotion (Server braucht http(s)://, kein relativer Pfad)
+      const apiBase = base || window.location.origin
+      const absoluteMedia = { ...data, url: `${apiBase}${data.url}` }
+      const item = buildContentItemFromUpload(absoluteMedia, contentLine)
       onUploaded(item)
 
       toast({
