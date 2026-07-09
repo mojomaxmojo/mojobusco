@@ -14,6 +14,10 @@
 | `src/pages/Videos.tsx` | Video-Feed (kind 34236 NIP-71, 9:16 + 16:9) |
 | `src/hooks/useVideos.ts` | Lädt kind 34236+34235, Hybrid-Hook, Capacitor-kompatibel |
 | `server/server.js` | Express-Backend: KI-API, Remotion, Bot-Middleware (⛔ nur mit Auftrag ändern) |
+| `server/routes/tiktokUpload.js` | Upload-Route + Auslieferung + Auto-Löschung nach 1h |
+| `server/config/tiktok-upload-paths.js` | Pfade & Konstanten für TikTok-Uploads |
+| `src/config/tiktokUpload.ts` | Frontend-Konstanten & Hilfsfunktion für TikTok-Uploads |
+| `src/components/pin/TikTokUploadTab.tsx` | Upload-Reiter-Komponente (Bild/Video + Content-Zeile) |
 
 ---
 
@@ -58,6 +62,8 @@
 | `/api/music/list` | GET | Musik-Tracks |
 | `/api/tiktok/generate-text` | POST | Foster-Texte (model: llama4/claude) |
 | `/api/tiktok/analyze-images` | POST | Vision-KI pro Bild |
+| `/api/tiktok/upload-media` | POST | Bild/Video-Upload + Content-Zeile für den Upload-Reiter in Schritt 1 |
+| `/api/tiktok/uploads/:filename` | GET | Ausgeliefertes Upload-File (wird nach 1h automatisch gelöscht) |
 
 ---
 

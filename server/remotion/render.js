@@ -356,6 +356,14 @@ const MIME_TYPES = {
 /**
  * Startet einen temporären HTTP-Server der ein Verzeichnis ausliefert.
  * Gibt { port, close } zurück.
+ *
+ * WICHTIG: Unterstützt HTTP Range-Requests (206 Partial Content).
+ * Ohne Range-Support kann Chrome's nativer <video>-Tag (Html5Video/<Video>)
+ * NICHT innerhalb einer MP4-Datei seeken — jeder delayRender()-Seek-Versuch
+ * hängt dann bei größeren Videos (>~5-10MB) und läuft nach 28000ms in den
+ * "was called but not cleared"-Timeout. Bilder sind davon nicht betroffen,
+ * weil <Img> die Datei nur einmal komplett lädt (kein Seeking nötig) —
+ * das erklärt, warum der Fehler ausschließlich bei Video-Clips auftritt.
  */
 function startImageServer(serveDir) {
   return new Promise((resolve, reject) => {
@@ -373,12 +381,45 @@ function startImageServer(serveDir) {
       const ext = path.extname(filename).toLowerCase();
       const mime = MIME_TYPES[ext] || 'application/octet-stream';
       const stat = fs.statSync(filePath);
+      const fileSize = stat.size;
 
-      res.writeHead(200, {
+      const baseHeaders = {
         'Content-Type': mime,
-        'Content-Length': stat.size,
         'Cache-Control': 'public, max-age=3600',
         'Access-Control-Allow-Origin': '*',
+        'Accept-Ranges': 'bytes',
+      };
+
+      const range = req.headers.range;
+
+      // ── Range-Request (Partial Content) — PFLICHT für Video-Seeking ──────
+      if (range) {
+        const match = /bytes=(\d*)-(\d*)/.exec(range);
+        let start = match && match[1] !== '' ? parseInt(match[1], 10) : 0;
+        let end = match && match[2] !== '' ? parseInt(match[2], 10) : fileSize - 1;
+
+        // Ungültige/verrückte Ranges abfangen
+        if (Number.isNaN(start) || Number.isNaN(end) || start > end || start < 0) {
+          res.writeHead(416, { 'Content-Range': `bytes */${fileSize}` });
+          res.end();
+          return;
+        }
+        end = Math.min(end, fileSize - 1);
+
+        res.writeHead(206, {
+          ...baseHeaders,
+          'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+          'Content-Length': end - start + 1,
+        });
+
+        fs.createReadStream(filePath, { start, end }).pipe(res);
+        return;
+      }
+
+      // ── Vollständige Datei (kein Range-Header) ────────────────────────────
+      res.writeHead(200, {
+        ...baseHeaders,
+        'Content-Length': fileSize,
       });
 
       fs.createReadStream(filePath).pipe(res);
@@ -1027,6 +1068,15 @@ export async function renderMojoBusVideo(params) {
       x264Preset: 'medium',
       // 4-Core VPS: 3 parallele Tabs = gutes Verhältnis Speed/RAM
       concurrency: 3,
+      // Globaler Sicherheitsnetz-Timeout für delayRender()-Aufrufe (Default 30000ms).
+      // Etwas großzügiger als Default, da OffthreadVideo bei großen MP4s (>20MB)
+      // auf einer VPS mit Software-Rendering (SwiftShader) mehr Zeit zum Extrahieren
+      // des Frames braucht als bei reinen Bildern.
+      timeoutInMilliseconds: 60000,
+      // OffthreadVideo cached extrahierte Frames zwischen Aufrufen — bei mehreren
+      // Video-Clips (mehrere MB pro Clip) reicht der Remotion-Default (~512MB)
+      // ggf. nicht aus. 2GB Puffer für Video-Slideshows mit mehreren Clips.
+      offthreadVideoCacheSizeInBytes: 2 * 1024 * 1024 * 1024,
       // numberOfSharedAudioTags: verhindert Audio-Glitches bei Sequence-Wechseln.
       // Remotion alloziert Audio-Tags vorab statt sie bei jedem Wechsel neu zu erstellen.
       // Wir haben 1 Musik-Track + ggf. BeatSync-Analyse → 3 reicht.
