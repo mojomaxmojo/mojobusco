@@ -190,6 +190,6 @@ und Doku-Pflege (Pflicht laut `AGENTS.md` Punkt 12).
 
 - [x] Schritt 1: `src/config/tiktokUpload.ts` + `server/config/tiktok-upload-paths.js` erstellt, `build_project` läuft fehlerfrei
 - [x] Schritt 2: `server/routes/tiktokUpload.js` mit Upload- und Auslieferungs-Route erstellt (noch nicht registriert)
-- [ ] Schritt 3: Route in `server.js` registriert (2 neue Zeilen) + automatische Löschung nach 1h eingebaut, per `curl` auf dem VPS getestet
+- [x] Schritt 3: Route in `server.js` registriert (2 neue Zeilen) + automatische Löschung nach 1h eingebaut, per `curl` auf dem VPS getestet
 - [ ] Schritt 4: `TikTokUploadTab.tsx` erstellt und als neuer Reiter "Upload" in Schritt 1 von `TikTokPromotion.tsx` eingebunden, im Browser getestet
 - [ ] Schritt 5: Gesamter Ablauf (Upload → KI-Text → Render) durchgespielt, `docs/CONTEXT_TIKTOK.md` aktualisiert
