@@ -14,7 +14,7 @@
  */
 
 import React from 'react';
-import { AbsoluteFill, Sequence, useVideoConfig, useCurrentFrame, OffthreadVideo } from 'remotion';
+import { AbsoluteFill, Sequence, useVideoConfig, useCurrentFrame, Video } from 'remotion';
 
 import { KenBurnsImage, pickDirection, type GammaFade } from './components/KenBurnsImage';
 import { ColorGradeOverlay, ColorGradeWrapper, lifestyleToGrade, type ColorGrade } from './components/ColorGradeOverlay';
@@ -310,33 +310,38 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
 
   // ── MediaRenderer: wählt je nach URL-Typ KenBurnsImage oder Video ──────
   //
-  // WICHTIG: <OffthreadVideo> statt <Video> (=Html5Video)!
-  // <Video> nutzt den nativen Browser-<video>-Tag und muss beim Rendern per
-  // delayRender() auf JEDEN Frame exakt seeken (currentTime = frame/fps).
-  // Bei größeren MP4s (>~5-10MB) hängt dieser Seek auf der VPS (SwiftShader/
-  // Software-Rendering, --single-process) oft für >28s → Timeout-Crash:
-  //   "A delayRender() ... was called but not cleared after 28000ms"
-  // Bilder sind NIE betroffen, weil <Img> nur einmal komplett lädt.
+  // WICHTIG: <Video> (=Html5Video), NICHT <OffthreadVideo>!
+  // <OffthreadVideo> nutzt einen nativen Rust-"Compositor"-Binary
+  // (@remotion/compositor-linux-x64-gnu), der gegen glibc 2.35 gelinkt ist.
+  // AlmaLinux 9 / RHEL 9 (auch 9.7) haben nur glibc 2.34 → der Compositor
+  // crasht sofort mit "version `GLIBC_2.35' not found" (glibc ist NICHT
+  // abwärtskompatibel). Deshalb bleiben wir bei <Video>.
   //
-  // <OffthreadVideo> extrahiert den Frame stattdessen server-seitig per
-  // ffmpeg (kein Browser-Video-Seek) → deutlich robuster und schneller,
-  // genau der von Remotion empfohlene Weg für Server-Side-Rendering.
+  // Das eigentliche Timeout-Problem bei großen MP4s ("A delayRender() ...
+  // was called but not cleared after 28000ms") kam NICHT von <Video>
+  // selbst, sondern davon, dass der lokale Bild/Video-HTTP-Server
+  // (startImageServer in render.js) keine Range-Requests (206 Partial
+  // Content) unterstützt hat. Ohne Range-Support kann Chromes nativer
+  // <video>-Tag bei größeren Dateien (>~10MB) nicht effizient innerhalb
+  // der Datei seeken → der Seek hängt und läuft in den Timeout.
+  // → Fix liegt in render.js (Accept-Ranges + 206-Handling), nicht hier.
   //
   // muted: Video-Clips liefern hier nur das Bild — Ton kommt ohnehin aus
   // Musik/Voiceover/Ambient (eigene AudioLayer). muted=true erspart das
-  // Downloaden/Dekodieren der Audiospur zusätzlich Zeit.
+  // Downloaden/Dekodieren der Audiospur zusätzlich Zeit UND verhindert,
+  // dass Remotion die komplette Videodatei für die Audiospur laden muss.
   const MediaRenderer: React.FC<{ src: string; index: number }> = ({ src, index }) => {
     if (isVideo(src)) {
       return (
         <AbsoluteFill style={{ overflow: 'hidden' }}>
-          <OffthreadVideo
+          <Video
             src={src}
             muted
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             delayRenderTimeoutInMilliseconds={45000}
             delayRenderRetries={3}
             onError={(err) => {
-              console.warn(`[MojoBusVideo] OffthreadVideo Fehler bei ${src}:`, err);
+              console.warn(`[MojoBusVideo] Video Fehler bei ${src}:`, err);
             }}
           />
         </AbsoluteFill>
