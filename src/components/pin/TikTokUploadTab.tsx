@@ -126,8 +126,12 @@ export function TikTokUploadTab({ onUploaded }: TikTokUploadTabProps) {
   }
 
   /** Vorschaubild / Video */
-  const previewUrl = uploadedMedia?.url
-  const isVideo = file?.type.startsWith('video/')
+  const previewUrl = uploadedMedia
+    ? `${getApiBaseUrl()}${uploadedMedia.url}`
+    : undefined
+  const isVideo = uploadedMedia
+    ? uploadedMedia.mimeType.startsWith('video/')
+    : file?.type.startsWith('video/')
 
   return (
     <div className="space-y-4">
