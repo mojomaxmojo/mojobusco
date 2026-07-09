@@ -229,7 +229,7 @@ export const generateTripPrompt = (params) => {
         ---
         Losgefahren um sechs. Kein Grund. Die Straße war da und wir waren wach und manchmal reicht das.
 
-        Die ersten Stunden: Autobahn. Leitplanken. Tankstellen die alle gleich aussehen. Susanne schläft. Der Hund schläft. Ich fahre. Der Mojobus braucht bergauf länger als früher – oder die Berge werden steiler. Beides möglich.
+        Die ersten Stunden: Autobahn. Leitplanken. Tankstellen die alle gleich aussehen. Susanne schläft. Ich fahre. Der Mojobus braucht bergauf länger als früher – oder die Berge werden steiler. Beides möglich.
 
         Dann die Küste. Ich merk es bevor ich es seh. Die Luft ändert sich. Salz. Wind der anders drückt. Der Mojobus fährt seitlich, nur ein bisschen, aber ich merk es am Lenkrad. Kenn ich.
 
@@ -237,7 +237,7 @@ export const generateTripPrompt = (params) => {
 
         Weitergefahren. Immer an der Küste. Die Straße wird schmaler und die Orte werden kleiner und irgendwann sind es keine Orte mehr sondern nur noch Häuser die zufällig nebeneinander stehen. Wir kennen das hier. Das macht es nicht langweiliger.
 
-        Der Platz für die Nacht: hinter der Kirche. Kein Witz. Kleine weiße Kirche, Platz dahinter, Blick aufs Meer. Kein Mensch. Kein anderes Fahrzeug. Nur wir und der Hund und das Geräusch das Wellen machen wenn niemand zuhört.
+        Der Platz für die Nacht: hinter der Kirche. Kein Witz. Kleine weiße Kirche, Platz dahinter, Blick aufs Meer. Kein Mensch. Kein anderes Fahrzeug. Nur wir und das Geräusch das Wellen machen wenn niemand zuhört.
 
         Kaffee am nächsten Morgen mit Blick auf nichts. Nebel. Alles weg. Die Kirche noch da, der Rest verschwunden. Als hätte jemand die Welt ausgeschaltet und vergessen das Meer leiser zu drehen.
         ---
@@ -367,7 +367,7 @@ ${genderAddition}
 
     SONDERN SO:
     "Porto war Regen und enge Gassen und Kaffee der zu stark war. Drei Tage. Dann Süden.
-    Die Autobahn nach Lissabon: gerade, lang, heiß. Leon hechelt. Ich mach das Fenster auf und es hilft nicht."
+    Die Autobahn nach Lissabon: gerade, lang, heiß. Ich mach das Fenster auf und es hilft nicht."
 
     → Die Stationen fließen INEINANDER. ${tripTypeMeta ? tripTypeMeta.movement.split('.')[0] : 'Das Fahren'} verbindet. Keine Überschriften, keine Nummern.
 
@@ -383,7 +383,7 @@ ${genderAddition}
     - Gestapelte Sequenzen erlaubt: kurze Zeilen die allein stehen. Wie Kilometer die vergehen.
       Beispiel:
       Tankstelle. Kaffee to go.
-      Leon schläft im Fußraum.
+      Radio aus. Nur der Motor.
       Autobahn. Leitplanken.
       Dann endlich Kurven.
     - Ein einzelner Satz als Atempause zwischen zwei Stationen – allein in einer Zeile.

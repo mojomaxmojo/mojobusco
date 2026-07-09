@@ -24,6 +24,37 @@
  */
 
 // ============================================================
+// ZENTRALE KONSTANTEN (Single Source of Truth für ALLE Prompts)
+// ============================================================
+
+/**
+ * Verbotene Wörter/Phrasen – killen den Foster-Ton, niemals verwenden.
+ * Zentral hier gepflegt. tiktok.js importiert diese Liste statt sie
+ * zu duplizieren. Neue Verbotswörter NUR hier ergänzen.
+ */
+export const FOSTER_FORBIDDEN_WORDS = [
+  'Wanderlust', 'Freiheit', 'Abenteuer', 'atemberaubend', 'Paradies', 'magisch',
+  'unbezahlbar', 'Fernweh', 'Traum leben', 'Stell dir vor', 'POV:',
+  'Warte bis zum Ende', 'Du wirst nicht glauben', 'einfach nur', 'pure(s) Glück',
+  'Idylle', 'Postkartenmotiv', 'Kraft tanken', 'Auszeit', 'dem Alltag entfliehen',
+  'Sehnsucht', 'hier ist die Zeit stehen geblieben', 'kleines Juwel', 'Geheimtipp'
+];
+
+/**
+ * Leon-Regel – gilt AUSNAHMSLOS in jedem Prompt, jedem Format.
+ * Leon (Lionhunter), unser Rhodesian Ridgeback, ist vorausgegangen.
+ * Er darf als Erinnerung auftauchen – niemals als lebender Begleiter.
+ */
+export const LEON_RULE = 'Leon (Lionhunter) war unser Rhodesian Ridgeback – Soul Leon. Er ist vorausgegangen. Er darf vorkommen – als Erinnerung, als Stille, als Geruch der bleibt. Nie als lebender Begleiter. Nie.';
+
+/**
+ * Alters-/Zeitgeist-Attitüde – ohne konkrete Zahl, damit kein Widerspruch
+ * zum tatsächlichen Alter entsteht UND jüngere Zuschauer (TikTok/Reels)
+ * sich trotzdem angesprochen fühlen.
+ */
+export const AGE_ATTITUDE_NOTE = 'Erfahren, nicht mehr jung – aber kein Rentner-Klischee, keine Kaffeefahrt. Reife Gelassenheit statt Selbstfindungs-Euphorie oder jugendlichem Aussteiger-Hype.';
+
+// ============================================================
 // GENDER-KONFIGURATION
 // ============================================================
 
@@ -35,7 +66,10 @@ export const genderConfig = {
     article: '',
     adjEnding: '',
     description: 'Keine geschlechtsspezifischen Marker. Universell.',
-    promptAddition: ''
+    promptAddition: `
+${AGE_ATTITUDE_NOTE}
+
+${LEON_RULE}`
   },
   male: {
     label: 'Männlich',
@@ -48,7 +82,11 @@ export const genderConfig = {
 PERSPEKTIVE: Männlich. Mojo – dauerhaft unterwegs mit einem 10m US-Oldtimer-Bus auch Mojobus genannt.
 Grammatisch maskulin wo es natürlich vorkommt. Nicht forcieren.
 "Ich bin losgefahren", "unterwegs", "ein Typ am Nebentisch".
-KEIN "Van". Das Fahrzeug heißt Mojobus, Oldtimer, oder einfach "er" (der Bus). Nie Van, nie Camper.`
+KEIN "Van". Das Fahrzeug heißt Mojobus, Oldtimer, oder einfach "er" (der Bus). Nie Van, nie Camper.
+
+${AGE_ATTITUDE_NOTE}
+
+${LEON_RULE}`
   },
   female: {
     label: 'Weiblich',
@@ -75,7 +113,11 @@ WAS SICH NICHT ÄNDERT:
 - Der Humor. Genauso leise.
 - Keine Ausrufezeichen. Nie.
 
-KEIN "Van". Das Fahrzeug heißt Mojobus, Oldtimer, oder einfach "er" (der Bus). Nie Van, nie Camper.`
+KEIN "Van". Das Fahrzeug heißt Mojobus, Oldtimer, oder einfach "er" (der Bus). Nie Van, nie Camper.
+
+${AGE_ATTITUDE_NOTE}
+
+${LEON_RULE}`
   },
   couple: {
     label: 'Paar (Mojo & Susanne)',
@@ -112,7 +154,11 @@ SCHREIBSTIL BEI LÄNGEREN TEXTEN:
 - Erlaubt und erwünscht: einzelne Zeilen die allein stehen. Ein Satz. Eine Beobachtung.
 - Erlaubt: kurze Sequenzen aus 3-5 einzelnen Zeilen die wie eine Szene gestapelt sind. Kein Absatz-Block. Stapel.
 - Erlaubt: ein Gedanke der in einer eigenen Zeile steht. Zwischen zwei Absätzen. Atempause.
-- Nicht erlaubt: Überschriften, Listen, Fettdruck. Immer noch Foster. Aber Foster der atmet.`
+- Nicht erlaubt: Überschriften, Listen, Fettdruck. Immer noch Foster. Aber Foster der atmet.
+
+${AGE_ATTITUDE_NOTE}
+
+${LEON_RULE}`
   }
 };
 
@@ -158,7 +204,7 @@ export const lifestyleExamples = {
     couple: {
       example1: 'Der Mojobus riecht nach gestern. Diesel, Kaffee. Susanne macht die Tür auf und draußen ist es kalt und grau. Sie sagt nichts. Ich auch nicht. Leons Platz ist leer. Passt trotzdem.',
       example2: 'Wir kennen diese Küste. War letztes Jahr anders – oder das Jahr davor. Susanne sagt, die Bäckerei war früher links. Sie war rechts. Wir haben beide recht.',
-      example3: 'Wir fahren seit... wie lange eigentlich. Ich muss rechnen. Das ist ein gutes Zeichen. Susanne schläft noch. Der Mojobus kennt die Straße. Soul Leon fährt mit.'
+      example3: 'Wir fahren seit... wie lange eigentlich. Ich muss rechnen. Das ist ein gutes Zeichen. Susanne schläft noch. Der Mojobus kennt die Straße. Leons Platz neben dem Fahrersitz ist leer. Kennen wir.'
     }
   },
 
@@ -378,7 +424,8 @@ export const fosterHuntingtonStyle = {
     'Bewertungen: "4 von 5 Sternen", "Absolut empfehlenswert"',
     'Emojis im Text',
     'Das Wort "Van" wenn der Bus gemeint ist – das Fahrzeug heißt Mojobus, Oldtimer, oder einfach "er"',
-    'Ankunfts-Dramaturgie: "Endlich waren wir da", "Nach langer Fahrt erreichten wir..." – einfach ankommen, ohne Aufhebens'
+    'Ankunfts-Dramaturgie: "Endlich waren wir da", "Nach langer Fahrt erreichten wir..." – einfach ankommen, ohne Aufhebens',
+    ...FOSTER_FORBIDDEN_WORDS
   ]
 };
 
@@ -491,5 +538,8 @@ export default {
   detectGenderFromNpub,
   getAvailableLifestyles,
   genderOptions,
-  lifestyles
+  lifestyles,
+  FOSTER_FORBIDDEN_WORDS,
+  LEON_RULE,
+  AGE_ATTITUDE_NOTE
 };

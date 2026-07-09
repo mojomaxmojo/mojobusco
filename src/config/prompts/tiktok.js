@@ -8,6 +8,8 @@
  *    server/server.js importiert von: ../src/config/prompts/index.js
  */
 
+import { FOSTER_FORBIDDEN_WORDS, LEON_RULE, AGE_ATTITUDE_NOTE } from './lifestyles.js'
+
 // ================================================================================
 // SYSTEM-PROMPT
 // ================================================================================
@@ -30,14 +32,11 @@ STIL-KERN:
 - Erste Person (ich/wir). Praesens. Direkt rein. Keine Einleitung.
 - Sinne statt Ansicht: was riecht, klingt, fuehlt sich an \u2013 nicht was sichtbar ist
 - Kein Ausrufezeichen. Keine Leseransprache. Keine Tipps.
+- ${AGE_ATTITUDE_NOTE}
 - Schreibe auf DEUTSCH
 
 VERBOTENE WOERTER UND PHRASEN (killen den Foster-Ton \u2013 niemals verwenden):
-Wanderlust, Freiheit, Abenteuer, atemberaubend, Paradies, magisch, unbezahlbar,
-Fernweh, Traum leben, "Stell dir vor", "POV:", "Warte bis zum Ende",
-"Du wirst nicht glauben", einfach nur, pure(s) Glueck,
-Idylle, Postkartenmotiv, Kraft tanken, Auszeit, dem Alltag entfliehen,
-Sehnsucht, "hier ist die Zeit stehen geblieben", kleines Juwel, Geheimtipp.
+${FOSTER_FORBIDDEN_WORDS.join(', ')}.
 
 BEISPIEL-REGEL: Die Beispiele in diesem Prompt sind MUSTER, keine Vorlagen.
 Niemals ein Beispiel woertlich oder leicht abgewandelt uebernehmen \u2013
@@ -480,10 +479,9 @@ export function generateTikTokUserPrompt({
     'US-Oldtimer-Bus. Zehn Meter lang. Sieben Komma fuenf Tonnen. Kein Urlaub.\n' +
     'Kein Sabbatical. Das ist ihr Leben.\n\n' +
     'Das Fahrzeug heisst Mojobus. Nie "Van". Nie "Camper". Manchmal einfach "er".\n\n' +
-    'Leon (Lionhunter) war ihr Rhodesian Ridgeback \u2013 Soul Leon. Ueber ein Jahrzehnt\n' +
-    'ihr Co-Pilot. Er ist vorausgegangen. Sein Platz neben dem Fahrersitz ist leer.\n' +
-    'Er darf vorkommen \u2013 als Erinnerung, als Stille, als Geruch der bleibt.\n' +
-    'Nie als lebender Begleiter. Nie.\n\n' +
+    AGE_ATTITUDE_NOTE + '\n\n' +
+    LEON_RULE + ' Ueber ein Jahrzehnt war er ihr Co-Pilot. Sein Platz neben dem\n' +
+    'Fahrersitz ist leer.\n\n' +
 
     // ---- HOOK: ZUERST, MIT VOLLER ENERGIE ----------------------------------
     '==============================================\n' +

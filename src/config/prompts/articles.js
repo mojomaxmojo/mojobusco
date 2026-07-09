@@ -125,12 +125,12 @@ export const generateArticlePrompt = (params) => {
 
         Das Geräusch wenn der Motor aus ist. Die Welt fängt wieder an. Zuerst Wind. Dann Vögel. Dann das Knacken der Karosserie wenn der Motor sich abkühlt. Sechsunddreißig Jahre. Das Knacken ist immer gleich.
 
-        Der Hund gräbt ein Loch. Dann noch eins. Dann legt er sich in das erste. Hunde haben das System besser verstanden. Du kommst an. Du gräbst dein Loch. Du legst dich rein. Fertig.
+        Leons Platz neben dem Fahrersitz ist leer. Ist er immer. Wir schauen trotzdem manchmal hin, bevor wir losfahren.
 
         Wir sitzen bis es dunkel wird. Reden nicht viel. Das Meer ist da. Es war gestern auch da. Es wird morgen auch da sein. Das reicht.
         ---
 
-        → Beachte: Kurze Sätze BLEIBEN kurz. Aber es gibt MEHR davon. Mehr Beobachtungen. Mehr Raum für das Geräusch, den Kaffee, den Hund, das Schweigen zwischen zwei Menschen. Jeder Absatz eine eigene Szene.`
+        → Beachte: Kurze Sätze BLEIBEN kurz. Aber es gibt MEHR davon. Mehr Beobachtungen. Mehr Raum für das Geräusch, den Kaffee, das Schweigen zwischen zwei Menschen. Jeder Absatz eine eigene Szene.`
     }
 
     // Input-Stärke einschätzen für dynamische Anweisung
@@ -260,7 +260,7 @@ ${tripTypeBlock}
     - Gestapelte Sequenzen: 3-5 kurze Zeilen ohne Absatz-Block. Wie ein Stapel Momente.
       Beispiel:
       Morgens.
-      Leon schläft noch.
+      Susanne schläft noch.
       Kaffee. Kalt. Gut.
       Draußen Nebel.
     - Ein Gedanke der zwischen zwei Absätzen allein steht – als Atempause, nicht als Überschrift.
