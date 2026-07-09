@@ -704,6 +704,7 @@ export function TikTokPromotion() {
       websiteUrl: 'mojobus.co',
       handle: '@mojobus',
       noMusic,                     // true = kein Musik-Track
+      musicUrl,                    // ausgewählter Track oder undefined → Server wählt zufällig
       accentColor: '#F59E0B',
       beatSyncStrength: beatSyncVal,
       transitionType: transitionType || 'auto',
