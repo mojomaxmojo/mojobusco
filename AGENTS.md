@@ -24,7 +24,7 @@
 4. **TypeScript**: Niemals `any`. Immer korrekte Typen.
 5. **Loading-States**: Skeleton für strukturierten Content (Feeds, Profile). Spinner nur für Buttons/kurze Operationen.
 6. **Tests**: Nur schreiben wenn der User es explizit anfordert.
-7. **Validierung**: Nach jeder Änderung müssen `tsc --noEmit` + `npm run build` fehlerfrei durchlaufen.
+7. **Validierung**: Nach jeder Änderung müssen `build_project` fehlerfrei durchlaufen.
 8. **Commits**: Nach jeder abgeschlossenen Änderung committen.
 9. **Sprache**: Antworten auf Deutsch.
 10. **Dateigröße**: Dateien unter ~500 Zeilen halten. Neue Features in
