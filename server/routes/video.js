@@ -861,18 +861,26 @@ export default function createVideoRouter(PORT) {
       try {
         const renderer = await getRemotionRenderer()
 
-        let resolvedMusicUrl = noMusic ? null : (musicUrl || null)
-        if (!noMusic && !resolvedMusicUrl) {
-          try {
-            const musicFiles = fs.readdirSync(MUSIC_DIR).filter(f =>
-              ['.mp3', '.m4a', '.ogg', '.wav'].includes(path.extname(f).toLowerCase())
-            )
-            if (musicFiles.length > 0) {
-              const randomTrack = musicFiles[Math.floor(Math.random() * musicFiles.length)]
-              resolvedMusicUrl = `http://localhost:${PORT}/api/music/${encodeURIComponent(randomTrack)}`
+        let resolvedMusicUrl = null
+        if (!noMusic) {
+          if (musicUrl) {
+            // Vom Frontend ausgewählter Track – relative URL in absolute umwandeln
+            resolvedMusicUrl = musicUrl.startsWith('/')
+              ? `http://localhost:${PORT}${musicUrl}`
+              : musicUrl
+          } else {
+            // Kein Track ausgewählt → Zufalls-Track
+            try {
+              const musicFiles = fs.readdirSync(MUSIC_DIR).filter(f =>
+                ['.mp3', '.m4a', '.ogg', '.wav'].includes(path.extname(f).toLowerCase())
+              )
+              if (musicFiles.length > 0) {
+                const randomTrack = musicFiles[Math.floor(Math.random() * musicFiles.length)]
+                resolvedMusicUrl = `http://localhost:${PORT}/api/music/${encodeURIComponent(randomTrack)}`
+              }
+            } catch (e) {
+              // Kein Musik-Ordner → kein Musik
             }
-          } catch (e) {
-            // Kein Musik-Ordner → kein Musik
           }
         }
 

@@ -739,6 +739,23 @@ async function downloadAudioFile(url, sessionDir, localMusicDir) {
     return null;
   }
 
+  // Fall 1.5: /api/music/ relativer Pfad → aus localMusicDir kopieren
+  const apiMusicMatch = url.match(/^\/api\/music\/([^?#]+)/);
+  if (apiMusicMatch && localMusicDir) {
+    const filename = decodeURIComponent(apiMusicMatch[1]);
+    const localPath = path.join(localMusicDir, filename);
+    if (fs.existsSync(localPath)) {
+      const ext = path.extname(filename) || guessExt;
+      const destPath = path.join(sessionDir, `audio${ext}`);
+      fs.copyFileSync(localPath, destPath);
+      try { fs.chmodSync(destPath, 0o644); } catch (e) {}
+      const sizeKB = (fs.statSync(destPath).size / 1024).toFixed(0);
+      console.log(`[Remotion] ✓ Audio (api/music→lokal): audio${ext} ${sizeKB}KB`);
+      return `audio${ext}`;
+    }
+    console.warn(`[Remotion] ✗ Musik-Datei im music/-Ordner nicht gefunden: ${filename}`);
+  }
+
   // Fall 2: localhost-URL → Dateiname extrahieren + aus localMusicDir kopieren
   const localhostMatch = url.match(/localhost:[0-9]+\/api\/music\/([^?#]+)/);
   if (localhostMatch && localMusicDir) {
