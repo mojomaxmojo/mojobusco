@@ -26,6 +26,7 @@ import { generateWithModel } from './services/ai-content.js'
 import contentRouter from './routes/content.js'
 import createVideoRouter from './routes/video.js'
 import tiktokRouter from './routes/tiktok.js'
+import tiktokUploadRouter from './routes/tiktokUpload.js'
 
 // ===== PROMPTS AUS src/config/prompts/ IMPORTIEREN =====
 // Alle Prompts sind zentral in src/config/prompts/ definiert
@@ -85,6 +86,10 @@ app.use(createVideoRouter(PORT))
 // ===== TIKTOK TEXT GENERATOR ROUTEN =====
 // TikTok-Routen aus server/routes/tiktok.js
 app.use(tiktokRouter)
+
+// ===== TIKTOK UPLOAD ROUTE =====
+// Bild/Video-Upload für den Upload-Reiter in Schritt "Inhalt"
+app.use(tiktokUploadRouter)
 
 // ===== GLOBALER ERROR-HANDLER =====
 // Fängt alle unbehandelten Fehler ab und gibt immer JSON zurück (nie HTML)
