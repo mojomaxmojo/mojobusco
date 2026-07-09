@@ -47,6 +47,8 @@ import {
 
 // ContentSelector (wiederverwendet aus Pinterest)
 import { ContentSelector, type ContentItem } from '@/components/pin/ContentSelector'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { TikTokUploadTab } from '@/components/pin/TikTokUploadTab'
 import { extractImagesFromEvent, extractTitle, extractSummary } from '@/lib/nostrEventUtils'
 
 // ── Capacitor-Fix: absolute API-URL ──────────────────────────────────────────
@@ -1311,10 +1313,23 @@ export function TikTokPromotion() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <ContentSelector
-                  onSelect={selectContent}
-                  selected={selectedContent}
-                />
+                <Tabs defaultValue="nostr" className="w-full">
+                  <TabsList className="w-full mb-3">
+                    <TabsTrigger value="nostr" className="flex-1">Nostr-Inhalt</TabsTrigger>
+                    <TabsTrigger value="upload" className="flex-1">Upload</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="nostr">
+                    <ContentSelector
+                      onSelect={selectContent}
+                      selected={selectedContent}
+                    />
+                  </TabsContent>
+                  <TabsContent value="upload">
+                    <TikTokUploadTab
+                      onUploaded={(item) => selectContent([...selectedContent, item])}
+                    />
+                  </TabsContent>
+                </Tabs>
               </CardContent>
             </Card>
 
