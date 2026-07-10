@@ -663,36 +663,75 @@ function downloadFileWithType(url, destPath, attempt = 1) {
 const FASTSTART_EXTENSIONS = new Set(['.mp4', '.mov']);
 
 /**
- * Remuxt eine MP4/MOV-Datei mit `-movflags +faststart`, damit das moov-Atom
- * (Metadaten: Dauer, Spuren, Keyframe-Index) am Dateianfang statt am Ende
- * liegt. Ohne Faststart muss Chrome beim Laden von <Video> erst einen
- * Suffix-Range-Request (die letzten Bytes) an unseren lokalen Bild-Server
- * schicken, um das moov-Atom zu finden — bei großen Uploads (>~25MB) führte
- * das (kombiniert mit dem Range-Parser-Bug) zum delayRender()-Timeout.
+ * Bereitet eine MP4/MOV-Datei für Chrome-Headless-Rendering vor:
  *
- * `-c copy` = kein Re-Encoding, nur Header-Umsortierung → dauert auch bei
- * 100MB nur Sekundenbruchteile und verändert die Bildqualität nicht.
- * Schlägt der Remux fehl, bleibt die Originaldatei unverändert (graceful
- * degradation) — der Suffix-Range-Fix im HTTP-Server greift dann als Netz.
+ * 1️⃣ Codec-Check via ffprobe: Handy-Uploads (v.a. Android/iOS) sind oft
+ *    HEVC/H.265 (evtl. mit Rotations-Metadaten für Hochkant-Aufnahmen).
+ *    Chrome-Headless (SwiftShader-Software-Rendering) kann HEVC NICHT
+ *    decodieren — und wirft dabei WEDER einen Error NOCH ein 'loadeddata'-
+ *    Event, wodurch <Video> im delayRender() für immer hängt (AGENTS.md #13:
+ *    niemals HEVC/H.265/VP9 ausliefern, Chromium kann es nicht decodieren).
+ *    → nicht-H.264-Videos werden mit libx264/aac re-encoded (ffmpeg wendet
+ *    die Rotations-Metadaten dabei automatisch an, Hochkant bleibt korrekt).
+ *
+ * 2️⃣ Ist der Codec bereits H.264: nur `-c copy` + `-movflags +faststart`,
+ *    damit das moov-Atom (Metadaten: Dauer, Spuren, Keyframe-Index) am
+ *    Dateianfang statt am Ende liegt. Ohne Faststart muss Chrome beim Laden
+ *    von <Video> erst einen Suffix-Range-Request (die letzten Bytes) an
+ *    unseren lokalen Bild-Server schicken, um das moov-Atom zu finden — bei
+ *    großen Uploads (>~25MB) führte das (kombiniert mit dem Range-Parser-
+ *    Bug) zum delayRender()-Timeout. `-c copy` dauert auch bei 100MB nur
+ *    Sekundenbruchteile und verändert die Bildqualität nicht.
+ *
+ * Schlägt die Verarbeitung fehl, bleibt die Originaldatei unverändert
+ * (graceful degradation) — der Suffix-Range-Fix im HTTP-Server greift dann
+ * zumindest bei H.264-Videos als Netz.
  */
 async function ensureFaststart(filePath) {
   const ext = path.extname(filePath).toLowerCase();
   if (!FASTSTART_EXTENSIONS.has(ext)) return;
 
-  const remuxedPath = filePath + '.faststart.tmp';
+  let codec = null;
   try {
-    await execFileAsync(FFMPEG_PATH, [
-      '-y', '-i', filePath,
-      '-c', 'copy',
-      '-movflags', '+faststart',
-      remuxedPath,
-    ], { timeout: 120000 });
-
-    fs.renameSync(remuxedPath, filePath);
-    console.log(`[Remotion] ✓ Faststart-Remux: ${path.basename(filePath)}`);
+    const { stdout } = await execFileAsync(FFPROBE_PATH, [
+      '-v', 'error', '-select_streams', 'v:0',
+      '-show_entries', 'stream=codec_name',
+      '-of', 'csv=p=0', filePath,
+    ], { timeout: 15000 });
+    codec = stdout.trim();
   } catch (err) {
-    try { if (fs.existsSync(remuxedPath)) fs.unlinkSync(remuxedPath); } catch (e) {}
-    console.warn(`[Remotion] ⚠️ Faststart-Remux fehlgeschlagen (${path.basename(filePath)}): ${err.message}`);
+    console.warn(`[Remotion] ⚠️ ffprobe-Codec-Check fehlgeschlagen (${path.basename(filePath)}): ${err.message}`);
+  }
+
+  const isH264 = codec === 'h264';
+  // WICHTIG: Ausgabedatei muss auf eine von ffmpeg erkennbare Endung enden
+  // (mov,mp4,m4a Muxer wird über die Extension erkannt) — sonst schlägt
+  // ffmpeg mit "Unable to choose an output format" fehl.
+  const outPath = filePath + '.tmp' + ext;
+
+  const ffmpegArgs = isH264
+    ? ['-y', '-i', filePath, '-c', 'copy', '-movflags', '+faststart', outPath]
+    : [
+        '-y', '-i', filePath,
+        '-c:v', 'libx264', '-preset', 'medium', '-crf', '20',
+        '-c:a', 'aac', '-b:a', '128k',
+        '-pix_fmt', 'yuv420p',
+        '-movflags', '+faststart',
+        outPath,
+      ];
+
+  try {
+    // Re-Encoding (HEVC→H.264) braucht deutlich mehr Zeit als reiner Remux.
+    await execFileAsync(FFMPEG_PATH, ffmpegArgs, { timeout: isH264 ? 120000 : 300000 });
+    fs.renameSync(outPath, filePath);
+    if (isH264) {
+      console.log(`[Remotion] ✓ Faststart-Remux: ${path.basename(filePath)}`);
+    } else {
+      console.log(`[Remotion] ✓ ${codec || 'unbekannt'}→H.264 Re-Encode (Chrome kann HEVC/VP9 nicht decodieren): ${path.basename(filePath)}`);
+    }
+  } catch (err) {
+    try { if (fs.existsSync(outPath)) fs.unlinkSync(outPath); } catch (e) {}
+    console.warn(`[Remotion] ⚠️ ${isH264 ? 'Faststart-Remux' : 'H.264-Re-Encode'} fehlgeschlagen (${path.basename(filePath)}): ${err.message}`);
   }
 }
 
