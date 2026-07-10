@@ -395,8 +395,23 @@ function startImageServer(serveDir) {
       // ── Range-Request (Partial Content) — PFLICHT für Video-Seeking ──────
       if (range) {
         const match = /bytes=(\d*)-(\d*)/.exec(range);
-        let start = match && match[1] !== '' ? parseInt(match[1], 10) : 0;
-        let end = match && match[2] !== '' ? parseInt(match[2], 10) : fileSize - 1;
+        const hasStart = match && match[1] !== '';
+        const hasEnd   = match && match[2] !== '';
+
+        let start, end;
+        if (!hasStart && hasEnd) {
+          // Suffix-Range "bytes=-N" = "die letzten N Bytes" (Chrome nutzt das,
+          // um bei Nicht-Faststart-MP4s das moov-Atom am Dateiende zu finden).
+          // Ohne diese Sonderbehandlung würde start fälschlich auf 0 fallen →
+          // Chrome erhält den Dateianfang statt des Endes, findet die Metadaten
+          // nicht und der delayRender() beim Laden von <Video> hängt für immer.
+          const suffixLength = parseInt(match[2], 10);
+          start = Math.max(0, fileSize - suffixLength);
+          end = fileSize - 1;
+        } else {
+          start = hasStart ? parseInt(match[1], 10) : 0;
+          end = hasEnd ? parseInt(match[2], 10) : fileSize - 1;
+        }
 
         // Ungültige/verrückte Ranges abfangen
         if (Number.isNaN(start) || Number.isNaN(end) || start > end || start < 0) {
@@ -642,6 +657,45 @@ function downloadFileWithType(url, destPath, attempt = 1) {
   });
 }
 
+// Extensions, deren Container ein moov/mdat-Atom nutzt (MP4/MOV) und somit
+// von einem Faststart-Remux profitieren. WebM/MKV/AVI nutzen andere Container
+// und brauchen das nicht.
+const FASTSTART_EXTENSIONS = new Set(['.mp4', '.mov']);
+
+/**
+ * Remuxt eine MP4/MOV-Datei mit `-movflags +faststart`, damit das moov-Atom
+ * (Metadaten: Dauer, Spuren, Keyframe-Index) am Dateianfang statt am Ende
+ * liegt. Ohne Faststart muss Chrome beim Laden von <Video> erst einen
+ * Suffix-Range-Request (die letzten Bytes) an unseren lokalen Bild-Server
+ * schicken, um das moov-Atom zu finden — bei großen Uploads (>~25MB) führte
+ * das (kombiniert mit dem Range-Parser-Bug) zum delayRender()-Timeout.
+ *
+ * `-c copy` = kein Re-Encoding, nur Header-Umsortierung → dauert auch bei
+ * 100MB nur Sekundenbruchteile und verändert die Bildqualität nicht.
+ * Schlägt der Remux fehl, bleibt die Originaldatei unverändert (graceful
+ * degradation) — der Suffix-Range-Fix im HTTP-Server greift dann als Netz.
+ */
+async function ensureFaststart(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  if (!FASTSTART_EXTENSIONS.has(ext)) return;
+
+  const remuxedPath = filePath + '.faststart.tmp';
+  try {
+    await execFileAsync(FFMPEG_PATH, [
+      '-y', '-i', filePath,
+      '-c', 'copy',
+      '-movflags', '+faststart',
+      remuxedPath,
+    ], { timeout: 120000 });
+
+    fs.renameSync(remuxedPath, filePath);
+    console.log(`[Remotion] ✓ Faststart-Remux: ${path.basename(filePath)}`);
+  } catch (err) {
+    try { if (fs.existsSync(remuxedPath)) fs.unlinkSync(remuxedPath); } catch (e) {}
+    console.warn(`[Remotion] ⚠️ Faststart-Remux fehlgeschlagen (${path.basename(filePath)}): ${err.message}`);
+  }
+}
+
 async function downloadAllImages(imageUrls, sessionDir) {
   fs.mkdirSync(sessionDir, { recursive: true });
   try { fs.chmodSync(sessionDir, 0o755); } catch (e) {}
@@ -661,6 +715,9 @@ async function downloadAllImages(imageUrls, sessionDir) {
       const finalPath = path.join(sessionDir, filename);
 
       fs.renameSync(filePath, finalPath);
+      try { fs.chmodSync(finalPath, 0o644); } catch (e) {}
+
+      await ensureFaststart(finalPath);
       try { fs.chmodSync(finalPath, 0o644); } catch (e) {}
 
       const sizeKB = (fs.statSync(finalPath).size / 1024).toFixed(0);
