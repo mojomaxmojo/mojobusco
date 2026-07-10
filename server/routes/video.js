@@ -821,6 +821,9 @@ export default function createVideoRouter(PORT) {
       ambientType,
       hookText,
       platform = 'tiktok',
+      // Video-Clip-Länge pro Slide (Sekunden-Override). Ohne Angabe/0 → volle
+      // Clip-Länge wird verwendet (Voreinstellung). Nur für Video-Slides relevant.
+      videoSeconds,
     } = req.body
 
     if (!imageUrls || !Array.isArray(imageUrls) || imageUrls.length === 0) {
@@ -922,6 +925,7 @@ export default function createVideoRouter(PORT) {
           voiceoverEngine: voiceoverEngine || undefined,
           voiceoverVolume: parseFloat(voiceoverVolume) || 1.0,
           ambientType: ambientType || undefined,
+          videoSeconds: Array.isArray(videoSeconds) ? videoSeconds : undefined,
           localMusicDir: MUSIC_DIR,
           onProgress: (percent) => {
             const j = remotionJobs.get(jobId)

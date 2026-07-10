@@ -250,6 +250,9 @@ export function TikTokPromotion() {
   // ── DRAG&DROP SORTIERUNG ═════════════════════════════════
   const [sortedImages, setSortedImages] = useState<string[]>([])
 
+  // ── VIDEO-CLIP-LÄNGE (Sekunden-Override pro Clip, leer = volle Länge) ────
+  const [videoSecondsMap, setVideoSecondsMap] = useState<Record<string, string>>({})
+
   // Sync sortedImages mit selectedContent
   useEffect(() => {
     const allImages: string[] = []
@@ -712,6 +715,12 @@ export function TikTokPromotion() {
       showRouteMap,
       muteVoiceoverSlide: showRouteMap ? Math.floor(articleImages.length / 2) : -1,
       ambientType: ambientType !== '__none__' ? ambientType : undefined,
+      // Video-Clip-Länge pro Slide (leer = volle Länge, Voreinstellung).
+      // 0/undefined an einer Position → Server nutzt die volle Clip-Länge.
+      videoSeconds: articleImages.map(url => {
+        const v = parseFloat(videoSecondsMap[url] || '')
+        return v > 0 ? v : undefined
+      }),
     }
 
     // ── Echte GPS-Route statt Demo-Route ─────────────────────────────────
@@ -1481,6 +1490,8 @@ export function TikTokPromotion() {
                             url={url}
                             index={i}
                             onRemove={removeImage}
+                            videoSecondsValue={videoSecondsMap[url] || ''}
+                            onVideoSecondsChange={(v) => setVideoSecondsMap(prev => ({ ...prev, [url]: v }))}
                           />
                         ))}
                       </div>
@@ -1847,7 +1858,7 @@ export function TikTokPromotion() {
                   </div>
                   {hasVideo && (
                     <p className="text-[10px] text-muted-foreground mt-1">
-                      🎥 Videos werden als Clip abgespielt · 🖼️ Bilder mit Ken-Burns-Effekt
+                      🎥 Videos laufen in voller Länge (Sekunden-Feld unter dem Clip zum Kürzen) · 🖼️ Bilder mit Ken-Burns-Effekt
                     </p>
                   )}
                 </div>
@@ -2353,11 +2364,14 @@ export function TikTokPromotion() {
 // SortableThumb – Drag&Drop-fähige Miniatur
 // ═══════════════════════════════════════════════════════════
 
-function SortableThumb({ id, url, index, onRemove }: {
+function SortableThumb({ id, url, index, onRemove, videoSecondsValue, onVideoSecondsChange }: {
   id: string
   url: string
   index: number
   onRemove: (url: string) => void
+  /** Sekunden-Override für Video-Clips (leer = volle Länge, Voreinstellung) */
+  videoSecondsValue: string
+  onVideoSecondsChange: (value: string) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
 
@@ -2408,6 +2422,21 @@ function SortableThumb({ id, url, index, onRemove }: {
         </span>
         {isVid && <span className="text-[9px] text-white/80 ml-1">🎥</span>}
       </div>
+      {/* Video-Clip-Länge in Sekunden (leer = volle Länge) */}
+      {isVid && (
+        <input
+          type="number"
+          min={1}
+          step={1}
+          placeholder="voll"
+          value={videoSecondsValue}
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+          onChange={(e) => onVideoSecondsChange(e.target.value)}
+          title="Clip-Länge in Sekunden (leer = volle Länge)"
+          className="relative z-20 mt-0.5 w-full text-[9px] text-center bg-background/90 border border-border rounded px-0.5 py-0.5 outline-none"
+        />
+      )}
     </div>
   )
 }

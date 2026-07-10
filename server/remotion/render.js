@@ -143,7 +143,7 @@ async function generateVoiceoverSegments(segments, voiceoverModel, voiceoverSpee
 // seinem Slide-Offset startet. Dazwischen wird Stille (silence) eingefügt.
 // Returnt { voiceoverFilename, perSlideArray }.
 
-async function concatVoiceoverSegments(segments, sessionDir, hookDurationSec, secondsPerImage, bridgeDurationSec, muteBodyIndex, routeSlideIndex = -1, routeDuration = 0) {
+async function concatVoiceoverSegments(segments, sessionDir, hookDurationSec, secondsPerImage, bridgeDurationSec, muteBodyIndex, routeSlideIndex = -1, routeDuration = 0, videoDurations = null) {
   if (!segments || segments.length === 0) return null;
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -169,13 +169,15 @@ async function concatVoiceoverSegments(segments, sessionDir, hookDurationSec, se
   const estimateReadingTime = (textLen) => Math.max(3.5, textLen / 14 + 0.5);
 
   // ── Schritt 1: Ziel-Dauer pro Slide berechnen ─────────────────────────
-  const targetDurations = bodySegments.map(seg => {
+  // Video-Clip-Slide: Mindest-Dauer = volle Clip-Länge (videoDurations[i]),
+  // damit ein 22s-Clip nicht auf die kurze Caption-Lesezeit gekürzt wird.
+  const targetDurations = bodySegments.map((seg, i) => {
     const readingTime = estimateReadingTime(seg.textLen || 0);
     const audioTime = seg.durationSec || 0;
     // +1s Puffer nach dem Voiceover, min secondsPerImage
     const raw = Math.max(readingTime, audioTime + 1.0);
-    // Auf 2 Dezimalstellen runden (MP3-Frame-sicher)
-    return Math.max(secondsPerImage, Math.round(raw * 100) / 100);
+    const videoMin = videoDurations && videoDurations[i] ? videoDurations[i] : 0;
+    return Math.max(secondsPerImage, videoMin, Math.round(raw * 100) / 100);
   });
 
   // ── Schritt 2: Pro Slide Audio + exakte Stille → slide_N.mp3 ──────────
@@ -318,6 +320,9 @@ async function concatVoiceoverSegments(segments, sessionDir, hookDurationSec, se
     return null;
   }
 }
+// ── Video-Clip-Dauer (echte Länge statt Caption-Lesezeit) ──────────────────
+import { measureSlideVideoDurations } from './videoDuration.js';
+
 // ── Ambient Sounds (optional) ──────────────────────────────────────────────
 import { generateAmbient } from './ambient.js';
 
@@ -957,6 +962,14 @@ export async function renderMojoBusVideo(params) {
     onProgress,
     // ── Interner Parameter: lokaler Musik-Ordner (übergeben von server.js) ──
     localMusicDir,
+    // ── NEU: Video-Clip-Länge pro Slide ───────────────────────────────────
+    /**
+     * Array (ein Eintrag pro imageUrls-Index). Nur für Video-Clips relevant:
+     *  - undefined/null/0  → volle Clip-Länge verwenden (Default, Voreinstellung)
+     *  - Zahl > 0           → Clip auf diese Sekundenanzahl begrenzen
+     * Bilder ignorieren diesen Wert (nutzen weiterhin secondsPerImage/Lesezeit).
+     */
+    videoSeconds,
   } = params;
 
   if (!imageUrls || imageUrls.length === 0) {
@@ -985,15 +998,28 @@ export async function renderMojoBusVideo(params) {
       mapImageUrl ? downloadMapImage(mapImageUrl, sessionDir) : Promise.resolve(null),
     ]);
 
+    // ── Echte Video-Clip-Längen messen (Voreinstellung: volle Länge) ──────
+    // videoSeconds[i] überschreibt (falls > 0) die gemessene Länge (manueller
+    // Sekunden-Wert vom Frontend). Bilder liefern null und werden ignoriert.
+    const measuredVideoDurations = await measureSlideVideoDurations(imageFilenames, sessionDir, FFPROBE_PATH);
+    const effectiveVideoDurations = measuredVideoDurations.map((measured, i) => {
+      if (measured == null) return null;
+      const override = Array.isArray(videoSeconds) ? parseFloat(videoSeconds[i]) : NaN;
+      return override > 0 ? Math.min(override, measured) : measured;
+    });
+
     // ── perSlideArray IMMER berechnen (auch ohne Voiceover) ──────────────
-    // Lesezeit aus Captions, min = secondsPerImage, +1s Transition
+    // Lesezeit aus Captions, min = secondsPerImage, +1s Transition.
+    // Video-Clip-Slide: Mindest-Dauer = volle (bzw. manuell begrenzte) Clip-Länge,
+    // damit ein z.B. 22s-Clip nicht auf die kurze Caption-Lesezeit gekürzt wird.
     const estimateReadingTime = (textLen) => Math.max(3.5, textLen / 14 + 0.5);
     const bodyTexts = Array.isArray(captions) ? captions : [];
     perSlideArray = [];
     for (let i = 0; i < imageUrls.length; i++) {
       const text = bodyTexts[i] || '';
       const readingTime = estimateReadingTime(text.length);
-      perSlideArray.push(Math.max(secondsPerImage, Math.round((readingTime + 1) * 10) / 10));
+      const videoMin = effectiveVideoDurations[i] || 0;
+      perSlideArray.push(Math.max(secondsPerImage, videoMin, Math.round((readingTime + 1) * 10) / 10));
     }
 
     // RouteMap als extra Slide in der Mitte einfügen
@@ -1048,7 +1074,8 @@ export async function renderMojoBusVideo(params) {
           // verwendet (Voiceover startet erst NACH dem Hook via <Sequence from={hookFrames}>,
           // Hook-Dauer ist plattformabhängig: HOOK_SECONDS in MojoBusVideo.tsx)
           -1, // muteBodyIndex: immer -1
-          routeIdx, routeDur
+          routeIdx, routeDur,
+          effectiveVideoDurations // ← Video-Clip-Mindestdauer pro Slide (volle Länge)
         );
 
         if (concatResult) {
