@@ -142,6 +142,9 @@ export interface MojoBusVideoProps {
    */
   cinematicEffects?: boolean;
 
+  /** Original-Ton des Videos im Haupt-Slide freigeben (Musik/Atmo ducken) */
+  keepOriginalAudio?: boolean;
+
 }
 
 // ── Hook-Dauer pro Plattform ─────────────────────────────────────────────
@@ -257,6 +260,9 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
   hookCaption,
   ctaText,
 
+  // Original-Ton behalten
+  keepOriginalAudio = false,
+
 }) => {
   const { fps, durationInFrames } = useVideoConfig();
 
@@ -330,13 +336,13 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
   // Musik/Voiceover/Ambient (eigene AudioLayer). muted=true erspart das
   // Downloaden/Dekodieren der Audiospur zusätzlich Zeit UND verhindert,
   // dass Remotion die komplette Videodatei für die Audiospur laden muss.
-  const MediaRenderer: React.FC<{ src: string; index: number }> = ({ src, index }) => {
+  const MediaRenderer: React.FC<{ src: string; index: number; allowAudio?: boolean }> = ({ src, index, allowAudio = false }) => {
     if (isVideo(src)) {
       return (
         <AbsoluteFill style={{ overflow: 'hidden' }}>
           <Video
             src={src}
-            muted
+            muted={!allowAudio}
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             delayRenderTimeoutInMilliseconds={45000}
             delayRenderRetries={3}
@@ -400,6 +406,21 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
   // keine Letterbox → Standard-Abstand von der oberen Videokante.
   const locationBadgeTopPct = fx.letterboxPct > 0 ? fx.letterboxPct + 5 : 10;
 
+  // ── Duck-Fenster für Musik/Atmo während Video-Slides ─────────────────
+  // Nur aktiv wenn keepOriginalAudio=true: Für jeden Slide, der ein
+  // Video-Clip ist, wird ein Duck-Fenster berechnet, in dem Musik und
+  // Atmo auf 0 ausblenden. Hook-Vorschau (images[0]) und CTA-Hintergrund
+  // (images[last]) werden NICHT geduckt — deren MediaRenderer-Aufrufe
+  // bleiben stumm (kein allowAudio).
+  const videoDuckWindows = keepOriginalAudio
+    ? slideDefs
+        .filter((d): d is typeof d & { type: 'image' } => d.type === 'image' && isVideo(images[d.imageIdx]))
+        .map((d) => {
+          const sf = slideStartFrame(slideDefs.indexOf(d));
+          return { startFrame: sf, endFrame: sf + d.frames };
+        })
+    : [];
+
   return (
     <AbsoluteFill style={{ background: '#000' }}>
 
@@ -445,7 +466,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
 
           // Effekt-Kette (innen → außen): Media → MatchCut → Punch → Whip → FadeOut
           let slideContent: React.ReactNode = !isRoute ? (
-            <MediaRenderer src={images[def.imageIdx]} index={def.imageIdx + 1} />
+            <MediaRenderer src={images[def.imageIdx]} index={def.imageIdx + 1} allowAudio={keepOriginalAudio} />
           ) : null;
           if (matchCut) {
             slideContent = (
@@ -691,6 +712,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
           src={musicUrl}
           volume={0.34}
 fadeInSec={0.3}
+          duckWindows={videoDuckWindows}
         />
       )}
 
@@ -716,6 +738,7 @@ fadeInSec={0.3}
           volume={0.15}
           fadeInSec={0.5}
           fadeOutSec={3}
+          duckWindows={videoDuckWindows}
         />
       )}
 
