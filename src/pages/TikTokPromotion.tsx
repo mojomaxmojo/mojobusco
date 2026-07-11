@@ -50,6 +50,7 @@ import { ContentSelector, type ContentItem } from '@/components/pin/ContentSelec
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { TikTokUploadTab } from '@/components/pin/TikTokUploadTab'
 import { extractImagesFromEvent, extractTitle, extractSummary } from '@/lib/nostrEventUtils'
+import { KEEP_ORIGINAL_AUDIO_LABEL, KEEP_ORIGINAL_AUDIO_HINT, DEFAULT_KEEP_ORIGINAL_AUDIO } from '@/config/videoAudio'
 
 // ── Capacitor-Fix: absolute API-URL ──────────────────────────────────────────
 // In der nativen App (Capacitor WebView) läuft die Seite im file:// Kontext.
@@ -252,6 +253,9 @@ export function TikTokPromotion() {
 
   // ── VIDEO-CLIP-LÄNGE (Sekunden-Override pro Clip, leer = volle Länge) ────
   const [videoSecondsMap, setVideoSecondsMap] = useState<Record<string, string>>({})
+
+  // ── ORIGINAL-TON (Schritt 2) ──────────────────────────────────
+  const [keepOriginalAudio, setKeepOriginalAudio] = useState(DEFAULT_KEEP_ORIGINAL_AUDIO)
 
   // Sync sortedImages mit selectedContent
   useEffect(() => {
@@ -1497,6 +1501,27 @@ export function TikTokPromotion() {
                       </div>
                     </SortableContext>
                   </DndContext>
+
+                  {/* ── NEU: Original-Ton behalten (nur bei Video) ────── */}
+                  {hasVideo && (
+                    <div className="p-3 bg-muted/30 rounded-lg space-y-1 mt-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs sm:text-sm font-medium flex items-center gap-1">
+                          {KEEP_ORIGINAL_AUDIO_LABEL}
+                        </Label>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={keepOriginalAudio}
+                            onChange={e => setKeepOriginalAudio(e.target.checked)}
+                            className="sr-only peer"
+                          />
+                          <div className="w-9 h-5 bg-muted-foreground/30 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary" />
+                        </label>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">{KEEP_ORIGINAL_AUDIO_HINT}</p>
+                    </div>
+                  )}
                 </div>
               )}
 
