@@ -2405,15 +2405,26 @@ function SortableThumb({ id, url, index, onRemove, videoSecondsValue, onVideoSec
       >
         <X className="w-2.5 h-2.5" />
       </button>
-      {/* Bild */}
+      {/* Bild/Video */}
       <div className="w-full aspect-[3/4]">
-        <img
-          src={url}
-          alt=""
-          className="w-full h-full object-cover"
-          loading="lazy"
-          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-        />
+        {isVid ? (
+          <video
+            src={url}
+            className="w-full h-full object-cover"
+            muted
+            playsInline
+            preload="metadata"
+            onError={(e) => { (e.target as HTMLVideoElement).style.display = 'none' }}
+          />
+        ) : (
+          <img
+            src={url}
+            alt=""
+            className="w-full h-full object-cover"
+            loading="lazy"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+          />
+        )}
       </div>
       {/* Nummer */}
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-1 pb-0.5 pt-3">

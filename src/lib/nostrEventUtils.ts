@@ -9,6 +9,13 @@
  * Extrahiert alle Bild-URLs aus einem Nostr-Event.
  * Durchsucht image-Tags, Markdown-Bilder, HTML-img-Tags und direkte Bild-URLs im Content.
  */
+/**
+ * Prüft, ob eine URL auf eine Videodatei verweist.
+ */
+export function isVideoUrl(url: string): boolean {
+  return /\.(mp4|webm|mov|avi|mkv)(\?|#|$)/i.test(url);
+}
+
 export function extractImagesFromEvent(event: { tags?: string[][]; content?: string }): string[] {
   const images: string[] = [];
 

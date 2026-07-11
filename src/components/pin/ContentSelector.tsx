@@ -79,7 +79,7 @@ function isMediaEvent(e: any): boolean {
   return hasMediaTag || hasMediaType || hasImageUrls
 }
 
-import { extractImagesFromEvent, extractTitle, extractSummary } from '@/lib/nostrEventUtils';
+import { extractImagesFromEvent, extractTitle, extractSummary, isVideoUrl } from '@/lib/nostrEventUtils';
 
 // ═══════════════════════════════════════════════════════════
 
@@ -685,15 +685,28 @@ function ContentCard({ item, isChecked, onToggle }: ContentCardProps) {
         {/* Thumbnail */}
         <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted shrink-0">
           {item.mainImage ? (
-            <img
-              src={item.mainImage}
-              alt=""
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = 'none'
-              }}
-              loading="lazy"
-            />
+            isVideoUrl(item.mainImage) ? (
+              <video
+                src={item.mainImage}
+                className="w-full h-full object-cover"
+                muted
+                playsInline
+                preload="metadata"
+                onError={(e) => {
+                  (e.target as HTMLVideoElement).style.display = 'none'
+                }}
+              />
+            ) : (
+              <img
+                src={item.mainImage}
+                alt=""
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none'
+                }}
+                loading="lazy"
+              />
+            )
           ) : (
             <div className="flex items-center justify-center h-full">
               {item.subType === 'note' && <MessageSquare className="w-5 h-5 text-muted-foreground/50" />}
