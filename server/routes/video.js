@@ -824,6 +824,7 @@ export default function createVideoRouter(PORT) {
       // Video-Clip-Länge pro Slide (Sekunden-Override). Ohne Angabe/0 → volle
       // Clip-Länge wird verwendet (Voreinstellung). Nur für Video-Slides relevant.
       videoSeconds,
+      keepOriginalAudio = false,
     } = req.body
 
     if (!imageUrls || !Array.isArray(imageUrls) || imageUrls.length === 0) {
@@ -851,7 +852,7 @@ export default function createVideoRouter(PORT) {
       hashtags: [],
     })
 
-    console.log(`[Remotion] Job ${jobId} erstellt: ${imageUrls.length} Bilder, ${aspectRatio}, platform=${platform}, voiceover=${!!(voiceoverSegments || voiceoverText)}`)
+    console.log(`[Remotion] Job ${jobId} erstellt: ${imageUrls.length} Bilder, ${aspectRatio}, platform=${platform}, voiceover=${!!(voiceoverSegments || voiceoverText)}, keepOriginalAudio=${!!keepOriginalAudio}`)
     res.json({ jobId, imageCount: imageUrls.length, aspectRatio })
 
     ;(async () => {
@@ -926,6 +927,7 @@ export default function createVideoRouter(PORT) {
           voiceoverVolume: parseFloat(voiceoverVolume) || 1.0,
           ambientType: ambientType || undefined,
           videoSeconds: Array.isArray(videoSeconds) ? videoSeconds : undefined,
+          keepOriginalAudio: !!keepOriginalAudio,
           localMusicDir: MUSIC_DIR,
           onProgress: (percent) => {
             const j = remotionJobs.get(jobId)
