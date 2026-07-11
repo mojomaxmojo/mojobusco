@@ -290,8 +290,8 @@ Zeilen/Absätze lesen.
 ## ✅ Checkliste
 
 - [x] Schritt 1: `src/config/videoAudio.ts` erstellt (Konstanten, kein Import)
-- [ ] Schritt 2: Schalter „Original-Ton behalten" in „Medien-Reihenfolge" sichtbar (nur bei Video)
-- [ ] Schritt 3: Payload enthält `keepOriginalAudio`, Musik/Atmo bleiben unangetastet frei wählbar
+- [x] Schritt 2: Schalter „Original-Ton behalten" in „Medien-Reihenfolge" sichtbar (nur bei Video)
+- [x] Schritt 3: Payload enthält `keepOriginalAudio`, Musik/Atmo bleiben unangetastet frei wählbar
 - [ ] Schritt 4: `server/routes/video.js` nimmt Parameter entgegen (Deploy + Log-Check)
 - [ ] Schritt 5: `server/remotion/render.js` reicht Parameter an Remotion weiter (Deploy)
 - [ ] Schritt 6: `AudioLayer.tsx` unterstützt `duckWindows` (wirkungslos ohne Aktivierung)

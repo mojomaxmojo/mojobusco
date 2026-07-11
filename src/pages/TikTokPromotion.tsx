@@ -725,6 +725,7 @@ export function TikTokPromotion() {
         const v = parseFloat(videoSecondsMap[url] || '')
         return v > 0 ? v : undefined
       }),
+      keepOriginalAudio,
     }
 
     // ── Echte GPS-Route statt Demo-Route ─────────────────────────────────
