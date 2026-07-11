@@ -70,6 +70,13 @@ Video-Slide-Frames = Math.round(echte_dauer × fps)
 
 ---
 
+## Original-Ton + Musik-Ducking
+
+Video-Slides können optional mit Original-Ton statt stumm gerendert werden
+(`keepOriginalAudio`). Musik/Atmo werden dafür in `AudioLayer.tsx` per
+`duckWindows` nur während dieser Slides automatisch aus- und wieder
+eingeblendet, Hook-Vorschau/CTA-Hintergrund bleiben immer stumm.
+
 ## Nach Remotion-Änderungen deployen
 
 ```bash

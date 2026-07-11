@@ -16,6 +16,7 @@
 | `server/server.js` | Express-Backend: KI-API, Remotion, Bot-Middleware (⛔ nur mit Auftrag ändern) |
 | `server/routes/tiktokUpload.js` | Upload-Route + Auslieferung + Auto-Löschung nach 1h |
 | `server/config/tiktok-upload-paths.js` | Pfade & Konstanten für TikTok-Uploads |
+| `src/config/videoAudio.ts` | Original-Ton-Schalter: Labels/Default für „Original-Ton behalten" bei Video-Clips |
 | `src/config/tiktokUpload.ts` | Frontend-Konstanten & Hilfsfunktion für TikTok-Uploads |
 | `src/components/pin/TikTokUploadTab.tsx` | Upload-Reiter-Komponente (Bild/Video + Content-Zeile) |
 
