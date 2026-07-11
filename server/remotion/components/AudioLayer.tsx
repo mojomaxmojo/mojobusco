@@ -19,6 +19,8 @@ interface AudioLayerProps {
   volume?: number;
   fadeInSec?: number;
   fadeOutSec?: number;
+  duckWindows?: { startFrame: number; endFrame: number }[];
+  duckFadeFrames?: number;
 }
 
 export const AudioLayer: React.FC<AudioLayerProps> = ({
@@ -26,27 +28,62 @@ export const AudioLayer: React.FC<AudioLayerProps> = ({
   volume = 0.75,
   fadeInSec = 2,
   fadeOutSec = 3,
+  duckWindows,
+  duckFadeFrames,
 }) => {
   const { durationInFrames, fps } = useVideoConfig();
 
   const fadeInFrames  = Math.round(fadeInSec  * fps);
   const fadeOutFrames = Math.round(fadeOutSec * fps);
+  const duckFadeFramesActual = duckFadeFrames ?? Math.round(fps * 0.4);
+
+  const getDuckFactor = (frame: number): number => {
+    if (!duckWindows || duckWindows.length === 0) return 1;
+
+    for (const w of duckWindows) {
+      const rampStart = w.startFrame - duckFadeFramesActual;
+      const rampEnd   = w.endFrame   + duckFadeFramesActual;
+
+      if (frame < rampStart) continue;
+
+      // Ramp-in (1 → 0) vor dem Duck-Fenster
+      if (frame < w.startFrame) {
+        const t = (frame - rampStart) / duckFadeFramesActual;
+        return 1 - (t * t * t);
+      }
+
+      // Innerhalb des Duck-Fensters → stumm
+      if (frame <= w.endFrame) {
+        return 0;
+      }
+
+      // Ramp-out (0 → 1) nach dem Duck-Fenster
+      if (frame <= rampEnd) {
+        const t = (frame - w.endFrame) / duckFadeFramesActual;
+        return t * t * t;
+      }
+    }
+
+    return 1;
+  };
 
   const volumeFn = (frame: number): number => {
+    const duck = getDuckFactor(frame);
+
     // Fade-In
     if (frame < fadeInFrames) {
       // Cubic ease-in für sanfteres Einblenden
       const t = frame / fadeInFrames;
-      return volume * (t * t * t);
+      return volume * (t * t * t) * duck;
     }
     // Fade-Out
     const fadeOutStart = durationInFrames - fadeOutFrames;
     if (frame >= fadeOutStart) {
       const t = (frame - fadeOutStart) / fadeOutFrames;
       // Cubic ease-out für sanfteres Ausblenden
-      return volume * Math.max(0, 1 - (t * t * t));
+      return volume * Math.max(0, 1 - (t * t * t)) * duck;
     }
-    return volume;
+    return volume * duck;
   };
 
   return (
