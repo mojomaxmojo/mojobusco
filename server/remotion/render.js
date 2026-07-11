@@ -970,6 +970,7 @@ export async function renderMojoBusVideo(params) {
      * Bilder ignorieren diesen Wert (nutzen weiterhin secondsPerImage/Lesezeit).
      */
     videoSeconds,
+    keepOriginalAudio = false,
   } = params;
 
   if (!imageUrls || imageUrls.length === 0) {
@@ -1177,6 +1178,7 @@ export async function renderMojoBusVideo(params) {
       mapImageUrl: httpMapImageUrl,         // ← Lokal gecacht!
       showLottieBus,
       cinematicEffects,                     // ← Plattform-Matrix-Effekte
+      keepOriginalAudio,
     };
 
     const composition = await selectComposition({

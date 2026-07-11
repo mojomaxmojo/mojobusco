@@ -293,7 +293,7 @@ Zeilen/Absätze lesen.
 - [x] Schritt 2: Schalter „Original-Ton behalten" in „Medien-Reihenfolge" sichtbar (nur bei Video)
 - [x] Schritt 3: Payload enthält `keepOriginalAudio`, Musik/Atmo bleiben unangetastet frei wählbar
 - [x] Schritt 4: `server/routes/video.js` nimmt Parameter entgegen (Deploy + Log-Check)
-- [ ] Schritt 5: `server/remotion/render.js` reicht Parameter an Remotion weiter (Deploy)
+- [x] Schritt 5: `server/remotion/render.js` reicht Parameter an Remotion weiter (Deploy)
 - [ ] Schritt 6: `AudioLayer.tsx` unterstützt `duckWindows` (wirkungslos ohne Aktivierung)
 - [ ] Schritt 7: `MojoBusVideo.tsx` gibt Original-Ton nur im Haupt-Slide frei, duckt Musik/Atmo nur während Video-Slides, Voiceover bleibt durchgehend (Deploy + Bundle-Invalidierung + Video-Test mit gemischten Medien)
 - [ ] Schritt 8: `docs/CONTEXT_TIKTOK.md` + `docs/CONTEXT_REMOTION.md` aktualisiert
