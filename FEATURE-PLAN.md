@@ -389,7 +389,7 @@ aufeinanderfolgende Video-Ausschnitte mit je einer festen Rate** nachgebaut
 ## ✅ Checkliste
 
 - [x] Schritt 1: 3 neue Fundament-Dateien (`effectPresets.ts`, `CaptionHeroWord.ts`, `sfx.js`) – keine Wirkung
-- [ ] Schritt 2: Trendy Filter-Presets (VHS/Glitch/Duotone) – neue Grades + Frontend-Select
+- [x] Schritt 2: Trendy Filter-Presets (VHS/Glitch/Duotone) – neue Grades + Frontend-Select
 - [ ] Schritt 3: Sticker/Emoji-Pops an Cuts (Beta-Toggle, default aus)
 - [ ] Schritt 4: Sound-SFX-Layer (Whoosh/Ding/Impact, Beta-Toggle, default aus)
 - [ ] Schritt 5: Hook-Wort-Zoom (KI markiert Schlüsselwort, Zusatz-Zoom darauf)
