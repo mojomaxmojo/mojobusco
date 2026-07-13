@@ -62,6 +62,9 @@ import {
   MatchCutZoomWrapper,
 } from './components/CinematicEffects';
 
+// ── NEU: Sticker-Pops ──────────────────────────────────────────────────
+import { pickStickerForCut, StickerPop, stickerPopDuration } from './components/StickerPops';
+
 // ── Props Interface ────────────────────────────────────────────────────────
 
 export interface MojoBusVideoProps {
@@ -141,6 +144,9 @@ export interface MojoBusVideoProps {
    * (PLATFORM_EFFECTS in CinematicEffects.tsx). Default: true
    */
   cinematicEffects?: boolean;
+
+  /** Animierte Sticker/Emoji-Pops an Cut-Punkten (Beta, default aus) */
+  stickersEnabled?: boolean;
 
   /** Original-Ton des Videos im Haupt-Slide freigeben (Musik/Atmo ducken) */
   keepOriginalAudio?: boolean;
@@ -248,6 +254,9 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
 
   // Cinematic Effects
   cinematicEffects = true,
+
+  // Sticker-Pops
+  stickersEnabled = false,
 
   // Voiceover
   voiceoverUrl,
@@ -789,6 +798,26 @@ fadeInSec={0.3}
           );
         }
         return null;
+      })}
+
+      {/* ══ NEU SCHICHT 14: Sticker-Pops auf Cuts ════════════════════════════
+           Zeigt animierte Emojis an Cut-Punkten (nur wenn stickersEnabled und
+           der Cut einen sichtbaren Effekt hat – flash/leak/whip etc.). */}
+      {stickersEnabled && slideDefs.map((_, i) => {
+        const effect = cutFx[i];
+        if (effect === 'none') return null;
+        const cutFrame = slideStartFrame(i);
+        const emoji = pickStickerForCut(i);
+        const duration = stickerPopDuration(fps);
+        return (
+          <Sequence
+            key={`sticker-${i}`}
+            from={cutFrame}
+            durationInFrames={duration}
+          >
+            <StickerPop emoji={emoji} />
+          </Sequence>
+        );
       })}
 
     </AbsoluteFill>
