@@ -7,7 +7,7 @@
  */
 
 import React from 'react';
-import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
+import { interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 
 /** Emoji-Liste für deterministische Rotation */
 const STICKER_EMOJIS = ['📍', '🔥', '❤️', '✨'];
@@ -38,7 +38,6 @@ export const StickerPop: React.FC<{ emoji: string }> = ({ emoji }) => {
   const duration = stickerPopDuration(fps);
 
   // Spring-Animation: 0 → 1.2 → 1 in den ersten ~40% der Dauer
-  const popProgress = Math.min(1, frame / (duration * 0.4));
   const scale = spring({
     frame: frame,
     fps,
@@ -65,20 +64,20 @@ export const StickerPop: React.FC<{ emoji: string }> = ({ emoji }) => {
   const pos = offsets[Math.floor(frame / duration * offsets.length) % offsets.length];
 
   return (
-    <AbsoluteFill
+    <div
       style={{
+        position: 'absolute',
         pointerEvents: 'none',
         opacity,
         transform: `scale(${scale})`,
         top: pos.top,
         left: pos.left,
-        width: 'auto',
-        height: 'auto',
-        fontSize: Math.round(fps * 0.5) + 20,
+        fontSize: 48,
         zIndex: 10,
+        lineHeight: 1,
       }}
     >
       {emoji}
-    </AbsoluteFill>
+    </div>
   );
 };
