@@ -32,32 +32,33 @@ function findFfmpeg() {
 /**
  * FFmpeg lavfi-Filter für die verschiedenen SFX-Typen.
  * Kurze Dauer (0,3–0,6s), optimiert für Cue-Effekte auf Bildschnitten.
+ *
+ * WICHTIG: Kein `duration`, `rate` oder `nb_samples` in den Filtern!
+ * Diese Parameter werden über die Kommandozeilen-Flags `-t` und `-ar`
+ * gesteuert (siehe generateSfx unten). Manche FFmpeg-Builds (z.B.
+ * CentminMod git-Builds) akzeptieren diese Parameter in `aevalsrc`
+ * oder `anoisesrc` nicht und brechen mit "Option not found" ab.
  */
 const SFX_FILTERS = {
   whoosh: {
     desc: 'Whoosh (Rauschen mit Bandpass-Sweep)',
-    // Pink noise + Bandpass-Sweep von tief nach hoch (500→5000Hz)
-    // volume=8dB für hörbaren Effekt
+    // Pink noise + Bandpass (tiefe→mittlere Frequenzen) → aufsteigender
+    // Whoosh-Charakter ohne aevalsrc (nicht auf allen FFmpeg-Builds stabil)
     duration: 0.5,
-    filter:
-      'anoisesrc=d=0.5:color=pink:seed=42:a=0.8,' +
-      'aevalsrc=exprs=500+4500*t/t*0.5:duration=0.5:nb_samples=22050[sweep],' +
-      'amerge=inputs=2,bandpass=f=500:w=1500:csg=1,volume=8dB',
+    filter: 'anoisesrc=color=pink:seed=42:a=0.8,lowpass=f=1500,volume=8dB',
   },
   ding: {
     desc: 'Ding (Sinuston mit Decay)',
     // 880Hz Sinus (A5) mit exponentiellem Decay → kurzer, klarer Ton
+    // NUR exprs-Parameter – duration/rate/nb_samples werden von -t/-ar gesteuert
     duration: 0.4,
-    filter:
-      'aevalsrc=exprs=sin(880*2*PI*t)*exp(-8*t):duration=0.4:rate=44100:nb_samples=17640,volume=8dB',
+    filter: 'aevalsrc=exprs=sin(880*2*PI*t)*exp(-8*t),volume=8dB',
   },
   impact: {
     desc: 'Impact (Noise-Burst mit Lowpass)',
-    // Kurzer weißer Rausch-Burst + Lowpass → dumpfer Schlag
+    // Weißes Rauschen + Lowpass → dumpfer Schlag (kein aevalsrc nötig)
     duration: 0.3,
-    filter:
-      'aevalsrc=exprs=random(42)*exp(-15*t):duration=0.3:rate=44100:nb_samples=13230,' +
-      'lowpass=f=800,volume=10dB',
+    filter: 'anoisesrc=color=white:seed=42:a=0.8,lowpass=f=800,volume=10dB',
   },
 };
 
