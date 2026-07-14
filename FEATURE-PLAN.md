@@ -395,5 +395,5 @@ aufeinanderfolgende Video-Ausschnitte mit je einer festen Rate** nachgebaut
 - [x] Schritt 5: Hook-Wort-Zoom (KI markiert Schlüsselwort, Zusatz-Zoom darauf)
 - [x] Schritt 6: Effekt-Presets im UI (1-Klick-Kombi aus Grade+Übergang+Captions+SFX+Sticker)
 - [x] Schritt 7: Echte Beat-Sync via `@remotion/media-utils` (mit Fallback-Sicherheitsnetz)
-- [x] Schritt 8: Speed-Ramping für Video-Slides (2-stufig, Beta-Toggle, default aus)
+- [8] Schritt 8: Speed-Ramping für Video-Slides (2-stufig, Beta-Toggle, default aus)
 - [ ] **Nicht Teil dieses Plans:** #8 Multi-Format-Export – eigener FEATURE-PLAN nötig

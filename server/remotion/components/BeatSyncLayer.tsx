@@ -134,7 +134,7 @@ export const BeatSyncLayer: React.FC<{
   const { fps, durationInFrames } = useVideoConfig();
 
   // Echte Beat-Erkennung via @remotion/media-utils, falls Musik geladen
-  const audioData = useAudioData(musicUrl);
+  const audioData = useAudioData(musicUrl ?? null);
   let beats = fallbackBeats;
 
   if (audioData && musicUrl) {
