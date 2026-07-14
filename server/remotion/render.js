@@ -1133,6 +1133,7 @@ export async function renderMojoBusVideo(params) {
   let httpMapImageUrl;
   let httpVoiceoverUrl = null;  // Single voiceover_sync.mp3 (concat)
   let httpAmbientUrl = null;
+  let httpSfxUrls = null;
 
   try {
     imageServer = await startImageServer(sessionDir);
@@ -1161,7 +1162,6 @@ export async function renderMojoBusVideo(params) {
     }
 
     // SFX-URLs: lokal wenn generiert (sfx-{type}.wav)
-    let httpSfxUrls = null;
     if (sfxEnabled) {
       const urls = {};
       for (const type of SFX_TYPES) {
