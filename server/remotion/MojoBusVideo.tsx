@@ -65,6 +65,9 @@ import {
 // ── NEU: Sticker-Pops ──────────────────────────────────────────────────
 import { pickStickerForCut, StickerPop, stickerPopDuration } from './components/StickerPops';
 
+// ── NEU: Sound-SFX-Layer ───────────────────────────────────────────────
+import { buildSfxCues, SfxLayer } from './components/SfxLayer';
+
 // ── Props Interface ────────────────────────────────────────────────────────
 
 export interface MojoBusVideoProps {
@@ -147,6 +150,11 @@ export interface MojoBusVideoProps {
 
   /** Animierte Sticker/Emoji-Pops an Cut-Punkten (Beta, default aus) */
   stickersEnabled?: boolean;
+
+  /** Sound-SFX-Layer (Whoosh/Ding/Impact auf Cuts, Beta, default aus) */
+  sfxEnabled?: boolean;
+  /** URLs der generierten SFX-WAV-Dateien (whoosh/ding/impact) */
+  sfxUrls?: Record<string, string>;
 
   /** Original-Ton des Videos im Haupt-Slide freigeben (Musik/Atmo ducken) */
   keepOriginalAudio?: boolean;
@@ -257,6 +265,10 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
 
   // Sticker-Pops
   stickersEnabled = false,
+
+  // Sound-SFX
+  sfxEnabled = false,
+  sfxUrls,
 
   // Voiceover
   voiceoverUrl,
@@ -676,7 +688,20 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
               driveInPath="curve-down"
               position="bottom-center"
             />
-          </AbsoluteFill>
+{/* ══ NEU SCHICHT 15: Sound-SFX-Layer auf Cuts ═════════════════════════
+           Kurze One-Shot-Sounds (Whoosh/Ding/Impact) an den Cut-Punkten.
+           Nur aktiv wenn sfxEnabled und sfxUrls vorhanden sind. */}
+      {sfxEnabled && sfxUrls && (() => {
+        const sfxCues = buildSfxCues(
+          cutFx,
+          slideDefs.map((_, i) => slideStartFrame(i))
+        );
+        return (
+          <SfxLayer cues={sfxCues} sfxUrls={sfxUrls} volume={0.5} />
+        );
+      })()}
+
+    </AbsoluteFill>
         </Sequence>
       )}
 

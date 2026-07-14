@@ -826,6 +826,7 @@ export default function createVideoRouter(PORT) {
       videoSeconds,
       keepOriginalAudio = false,
       stickersEnabled = false,
+      sfxEnabled = false,
     } = req.body
 
     if (!imageUrls || !Array.isArray(imageUrls) || imageUrls.length === 0) {
@@ -930,6 +931,7 @@ export default function createVideoRouter(PORT) {
           videoSeconds: Array.isArray(videoSeconds) ? videoSeconds : undefined,
           keepOriginalAudio: !!keepOriginalAudio,
           stickersEnabled: !!stickersEnabled,
+          sfxEnabled: !!sfxEnabled,
           localMusicDir: MUSIC_DIR,
           onProgress: (percent) => {
             const j = remotionJobs.get(jobId)
