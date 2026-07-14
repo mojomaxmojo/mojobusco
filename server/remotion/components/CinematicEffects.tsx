@@ -124,17 +124,14 @@ export function pickCutEffect(cutIndex: number, platform?: string): CutEffect {
 export const ZoomPunchWrapper: React.FC<{
   punchScale: number;
   children: React.ReactNode;
-  punchDelay?: number;
-}> = ({ punchScale, children, punchDelay = 0 }) => {
+}> = ({ punchScale, children }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  if (punchScale <= 0) return <>{children}>;
+  if (punchScale <= 0) return <>{children}</>;
 
-  // punchDelay: Zoom verzögert ab Sequence-Start (z.B. für Hero-Wort mitten im Slide)
-  const localFrame = Math.max(0, frame - punchDelay);
   const punchFrames = Math.max(3, Math.round(fps * 0.16)); // ~5 Frames @ 30fps
-  const t = interpolate(localFrame, [0, punchFrames], [1, 0], {
+  const t = interpolate(frame, [0, punchFrames], [1, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
