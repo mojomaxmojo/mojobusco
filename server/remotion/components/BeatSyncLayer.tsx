@@ -1,13 +1,14 @@
 /**
  * BeatSyncLayer — Beat-Sync Flash-Effekt
  *
- * Kein require(), kein import() von optionalen Packages in dieser Datei.
- * useAudioData + visualizeAudio kommen als Props rein (aus render.js injiziert).
- * Fallback: synthetische Beats auf Bild-Wechseln — kein Package nötig.
+ * Nutzt @remotion/media-utils (useAudioData + visualizeAudio) zur echten
+ * Beat-Erkennung aus der Musikdatei. Fallback: synthetische Beats auf
+ * Bild-Wechseln, falls keine Musik geladen werden kann.
  */
 
 import React from 'react';
 import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
+import { useAudioData, visualizeAudio } from '@remotion/media-utils';
 
 // ── Typen ─────────────────────────────────────────────────────────────────
 
@@ -35,6 +36,33 @@ export function generateFallbackBeats(
       if (mid < totalFrames) beats.push({ frame: mid, intensity: 0.45 });
     }
   }
+  return beats;
+}
+
+// ── Echte Beat-Erkennung via visualizeAudio ────────────────────────────────
+
+export function computeAudioBeats(
+  audioData: { channelData: Float32Array[]; sampleRate: number; durationInSeconds: number },
+  fps: number,
+  durationInFrames: number,
+  threshold: number = 0.15
+): BeatInfo[] {
+  const beats: BeatInfo[] = [];
+  const step = 2; // Alle 2 Frames prüfen
+  const stepSec = step / fps;
+
+  let prevSum = 0;
+  for (let f = 0; f < durationInFrames; f += step) {
+    const samples = visualizeAudio(audioData, { fps, frame: f });
+    const sum = samples.reduce((a, b) => a + b, 0) / samples.length;
+    const delta = sum - prevSum;
+    // Lautstärke-Anstieg (Onset) über Threshold → Beat
+    if (delta > threshold && sum > 0.08) {
+      beats.push({ frame: f, intensity: Math.min(1, delta * 2.5) });
+    }
+    prevSum = sum;
+  }
+
   return beats;
 }
 
@@ -94,15 +122,31 @@ export const BeatSyncLayer: React.FC<{
   strength?: number;
   fallbackBeats?: BeatInfo[];
 }> = ({
-  strength = 1,
+  musicUrl,
+  beatThreshold = 0.15,
   flashColor = 'rgba(255,255,255,1)',
   flashOpacity = 0.18,
   accentColor = '#F59E0B',
+  strength = 1,
   fallbackBeats = [],
 }) => {
   const frame = useCurrentFrame();
-  if (strength <= 0 || fallbackBeats.length === 0) return null;
-  return <BeatFlash beats={fallbackBeats} currentFrame={frame}
+  const { fps, durationInFrames } = useVideoConfig();
+
+  // Echte Beat-Erkennung via @remotion/media-utils, falls Musik geladen
+  const audioData = useAudioData(musicUrl);
+  let beats = fallbackBeats;
+
+  if (audioData && musicUrl) {
+    const realBeats = computeAudioBeats(audioData, fps, durationInFrames, beatThreshold);
+    if (realBeats.length > 0) {
+      beats = realBeats;
+    }
+  }
+
+  if (strength <= 0 || beats.length === 0) return null;
+
+  return <BeatFlash beats={beats} currentFrame={frame}
     flashColor={flashColor} flashOpacity={flashOpacity}
     accentColor={accentColor} strength={strength} />;
 };
