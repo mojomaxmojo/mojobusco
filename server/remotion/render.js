@@ -55,7 +55,7 @@ async function generateVoiceoverSegments(segments, voiceoverModel, voiceoverSpee
   const result = []; // [{ filename: 'voiceover_0.mp3', durationSec: 2.1 }, ...]
 
   for (let i = 0; i < segments.length; i++) {
-    const text = (segments[i] || '').trim();
+    const text = (segments[i] || '').trim().replace(/\*\*(.+?)\*\*/g, '$1');
 
     // Leeres Segment = bewusster Platzhalter (Slide ohne Voiceover).
     // NICHT überspringen – sonst verschiebt sich die Slide-Zuordnung.
