@@ -500,8 +500,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
           const hasWhipIn  = !isRoute && i > 0 && cutFx[i] === 'whip' && prevDef?.type !== 'route';
           // Kein WhipOut in eine Route-Slide hinein (Karte whippt nicht rein → inkonsistent)
           const hasWhipOut = !isRoute && !isLastSlide && cutFx[i + 1] === 'whip' && nextDef?.type !== 'route';
-          const hasHeroWord = heroWordWindows.some(w => w.slideIndex === i);
-          const punchHere  = (!isRoute && fx.zoomPunchScale > 0 && cutFx[i] !== 'whip' && i > 0) || hasHeroWord;
+          const punchHere  = !isRoute && fx.zoomPunchScale > 0 && cutFx[i] !== 'whip' && i > 0;
           const matchCut   = !isRoute ? matchCutMap[i] : undefined;
 
           // Effekt-Kette (innen → außen): Media → MatchCut → Punch → Whip → FadeOut
@@ -842,6 +841,29 @@ fadeInSec={0.3}
           );
         }
         return null;
+      })}
+
+      {/* ══ NEU SCHICHT 15: Hook-Wort-Zoom (Schritt 5) ═════════════════════════
+           Für jedes von der KI mit **Schlüsselwort** markierte Wort wird ein
+           separater ZoomPunch auf das BILD gelegt, synchron zum Wort-Timing.
+           Der Overlay mit mixBlendMode:screen + geringer Opacity sorgt für
+           einen subtilen Helligkeits-Punch ohne Doppelbild-Effekt. */}
+      {heroWordWindows.map((w, i) => {
+        const def = slideDefs[w.slideIndex];
+        if (def.type !== 'image') return null;
+        return (
+          <Sequence
+            key={`herozoom-${i}`}
+            from={w.startFrame}
+            durationInFrames={w.endFrame - w.startFrame}
+          >
+            <AbsoluteFill style={{ mixBlendMode: 'screen', opacity: 0.20 }}>
+              <ZoomPunchWrapper punchScale={0.08}>
+                <MediaRenderer src={images[def.imageIdx]} index={-1} />
+              </ZoomPunchWrapper>
+            </AbsoluteFill>
+          </Sequence>
+        );
       })}
 
       {/* ══ NEU SCHICHT 14: Sticker-Pops auf Cuts ════════════════════════════
