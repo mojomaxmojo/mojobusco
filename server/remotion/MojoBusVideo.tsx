@@ -539,7 +539,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
           const hasWhipIn  = !isRoute && i > 0 && cutFx[i] === 'whip' && prevDef?.type !== 'route';
           // Kein WhipOut in eine Route-Slide hinein (Karte whippt nicht rein → inkonsistent)
           const hasWhipOut = !isRoute && !isLastSlide && cutFx[i + 1] === 'whip' && nextDef?.type !== 'route';
-          const punchHere  = !isRoute && fx.zoomPunchScale > 0 && cutFx[i] !== 'whip' && i > 0;
+          const punchHere  = (!isRoute && fx.zoomPunchScale > 0 && cutFx[i] !== 'whip' && i > 0) || heroWordWindows.some(w => w.slideIndex === i);
           const matchCut   = !isRoute ? matchCutMap[i] : undefined;
 
           // Effekt-Kette (innen → außen): Media → MatchCut → Punch → Whip → FadeOut
@@ -555,7 +555,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
           }
           if (punchHere) {
             slideContent = (
-              <ZoomPunchWrapper punchScale={fx.zoomPunchScale}>
+              <ZoomPunchWrapper punchScale={fx.zoomPunchScale > 0 ? fx.zoomPunchScale : 0.08}>
                 {slideContent}
               </ZoomPunchWrapper>
             );
@@ -745,7 +745,11 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
               driveInPath="curve-down"
               position="bottom-center"
             />
-{/* ══ NEU SCHICHT 15: Sound-SFX-Layer auf Cuts ═════════════════════════
+          </AbsoluteFill>
+        </Sequence>
+      )}
+
+      {/* ══ NEU SCHICHT 15: Sound-SFX-Layer auf Cuts ═════════════════════════
            Kurze One-Shot-Sounds (Whoosh/Ding/Impact) an den Cut-Punkten.
            Nur aktiv wenn sfxEnabled und sfxUrls vorhanden sind. */}
       {sfxEnabled && sfxUrls && (() => {
@@ -757,10 +761,6 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
           <SfxLayer cues={sfxCues} sfxUrls={sfxUrls} volume={0.5} />
         );
       })()}
-
-    </AbsoluteFill>
-        </Sequence>
-      )}
 
       {/* ══ NEU SCHICHT 9c: Cinematic Letterbox (Reels 6% / YouTube 8%) ══════
            Balken fahren beim Hook rein (1s) und zur CTA raus (0.8s).
@@ -880,29 +880,6 @@ fadeInSec={0.3}
           );
         }
         return null;
-      })}
-
-      {/* ══ NEU SCHICHT 15: Hook-Wort-Zoom (Schritt 5) ═════════════════════════
-           Für jedes von der KI mit **Schlüsselwort** markierte Wort wird ein
-           separater ZoomPunch auf das BILD gelegt, synchron zum Wort-Timing.
-           Der Overlay mit mixBlendMode:screen + geringer Opacity sorgt für
-           einen subtilen Helligkeits-Punch ohne Doppelbild-Effekt. */}
-      {heroWordWindows.map((w, i) => {
-        const def = slideDefs[w.slideIndex];
-        if (def.type !== 'image') return null;
-        return (
-          <Sequence
-            key={`herozoom-${i}`}
-            from={w.startFrame}
-            durationInFrames={w.endFrame - w.startFrame}
-          >
-            <AbsoluteFill style={{ mixBlendMode: 'screen', opacity: 0.20 }}>
-              <ZoomPunchWrapper punchScale={0.08}>
-                <MediaRenderer src={images[def.imageIdx]} index={-1} />
-              </ZoomPunchWrapper>
-            </AbsoluteFill>
-          </Sequence>
-        );
       })}
 
       {/* ══ NEU SCHICHT 14: Sticker-Pops auf Cuts ════════════════════════════
