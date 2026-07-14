@@ -68,6 +68,9 @@ import { pickStickerForCut, StickerPop, stickerPopDuration } from './components/
 // ── NEU: Sound-SFX-Layer ───────────────────────────────────────────────
 import { buildSfxCues, SfxLayer } from './components/SfxLayer';
 
+// ── NEU: Hook-Wort-Zoom ──────────────────────────────────────────────────
+import { findHeroWordWindow } from './components/CaptionHeroWord';
+
 // ── Props Interface ────────────────────────────────────────────────────────
 
 export interface MojoBusVideoProps {
@@ -442,6 +445,21 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
         })
     : [];
 
+  // ── Hero-Word-Zoom-Fenster (Schritt 5) ─────────────────────────────
+  // Für jeden Bild-Slide mit Caption prüfen, ob ein **Schlüsselwort**
+  // markiert ist, und das Frame-Fenster dafür berechnen.
+  const alignedCaptions = [...captions];
+  if (hasRouteMap) alignedCaptions.splice(routeSlideIndex, 0, '');
+  const heroWordWindows: { slideIndex: number; startFrame: number; endFrame: number }[] = [];
+  slideDefs.forEach((def, i) => {
+    if (def.type === 'image' && alignedCaptions[i] && alignedCaptions[i].trim()) {
+      const window = findHeroWordWindow(alignedCaptions[i], slideStartFrame(i), def.frames);
+      if (window) {
+        heroWordWindows.push({ slideIndex: i, ...window });
+      }
+    }
+  });
+
   return (
     <AbsoluteFill style={{ background: '#000' }}>
 
@@ -482,7 +500,8 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
           const hasWhipIn  = !isRoute && i > 0 && cutFx[i] === 'whip' && prevDef?.type !== 'route';
           // Kein WhipOut in eine Route-Slide hinein (Karte whippt nicht rein → inkonsistent)
           const hasWhipOut = !isRoute && !isLastSlide && cutFx[i + 1] === 'whip' && nextDef?.type !== 'route';
-          const punchHere  = !isRoute && fx.zoomPunchScale > 0 && cutFx[i] !== 'whip' && i > 0;
+          const hasHeroWord = heroWordWindows.some(w => w.slideIndex === i);
+          const punchHere  = (!isRoute && fx.zoomPunchScale > 0 && cutFx[i] !== 'whip' && i > 0) || hasHeroWord;
           const matchCut   = !isRoute ? matchCutMap[i] : undefined;
 
           // Effekt-Kette (innen → außen): Media → MatchCut → Punch → Whip → FadeOut

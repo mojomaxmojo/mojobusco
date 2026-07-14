@@ -542,6 +542,13 @@ export function generateTikTokUserPrompt({
     'FALSCH: "Der Morgen ist still." (ruhig, nichts offen \u2013 Zuschauer weg)\n' +
     'RICHTIG: ein Gedanke der weiterzieht, ohne den Hook zu erklaeren.\n\n' +
     buildFosterRhythm(imageCount, plat.bodyMaxChars) + '\n\n' +
+    'HERO-WORT-MARKIERUNG (Pflicht für jede bodyLine):\n' +
+    'Markiere in JEDER bodyLine genau EIN Schlüsselwort mit **doppelten Sternchen**.\n' +
+    'Beispiel: "**Wüste** wartet nicht." oder "Der **Motor** kühlt ab."\n' +
+    'Das markierte Wort wird im Video mit einem zusätzlichen Zoom-Effekt hervorgehoben.\n' +
+    'Wähle das Wort, das die meiste emotionale oder inhaltliche Bedeutung trägt.\n' +
+    'NIEMALS mehr als ein Wort pro Zeile markieren. NIEMALS das gesamte Wort in Grossbuchstaben.\n' +
+    'Die Sternchen werden im Video automatisch entfernt und sind nie sichtbar.\n\n' +
     (isRetention ? RETENTION_RULES + '\n\n' : '') +
     (!isRetention && watchtimeRules ? watchtimeRules + '\n\n' : '') +
     voRules + '\n\n' +
