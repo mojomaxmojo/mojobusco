@@ -42,7 +42,7 @@ export function generateFallbackBeats(
 // ── Echte Beat-Erkennung via visualizeAudio ────────────────────────────────
 
 export function computeAudioBeats(
-  audioData: { channelData: Float32Array[]; sampleRate: number; durationInSeconds: number },
+  audioData: { channelWaveforms: Float32Array[]; sampleRate: number; durationInSeconds: number; resultId: string; numberOfChannels: number; isRemote: boolean },
   fps: number,
   durationInFrames: number,
   threshold: number = 0.15
@@ -50,10 +50,11 @@ export function computeAudioBeats(
   const beats: BeatInfo[] = [];
   const step = 2; // Alle 2 Frames prüfen
   const stepSec = step / fps;
+  const NUMBER_OF_SAMPLES = 16; // Muss eine Zweierpotenz sein (siehe visualizeAudio-Doku)
 
   let prevSum = 0;
   for (let f = 0; f < durationInFrames; f += step) {
-    const samples = visualizeAudio(audioData, { fps, frame: f });
+    const samples = visualizeAudio({ audioData, fps, frame: f, numberOfSamples: NUMBER_OF_SAMPLES });
     const sum = samples.reduce((a, b) => a + b, 0) / samples.length;
     const delta = sum - prevSum;
     // Lautstärke-Anstieg (Onset) über Threshold → Beat
