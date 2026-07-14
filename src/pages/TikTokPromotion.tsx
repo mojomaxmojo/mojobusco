@@ -51,6 +51,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { TikTokUploadTab } from '@/components/pin/TikTokUploadTab'
 import { extractImagesFromEvent, extractTitle, extractSummary } from '@/lib/nostrEventUtils'
 import { KEEP_ORIGINAL_AUDIO_LABEL, KEEP_ORIGINAL_AUDIO_HINT, DEFAULT_KEEP_ORIGINAL_AUDIO } from '@/config/videoAudio'
+import { EffectPresetSelector } from '@/components/pin/EffectPresetSelector'
+import { EFFECT_PRESETS } from '@/config/effectPresets'
 
 // ── Capacitor-Fix: absolute API-URL ──────────────────────────────────────────
 // In der nativen App (Capacitor WebView) läuft die Seite im file:// Kontext.
@@ -348,6 +350,9 @@ export function TikTokPromotion() {
 
   // ── SOUND-SFX ══════════════════════════════════════════════
   const [sfxEnabled, setSfxEnabled] = useState(false)
+
+  // ── EFFEKT-PRESET ═══════════════════════════════════════════
+  const [selectedPreset, setSelectedPreset] = useState<EffectPresetId | null>(null)
 
   // ── AMBIENT ══════════════════════════════════════════════
   const [ambientType, setAmbientType] = useState('__none__')
@@ -1263,6 +1268,19 @@ stickersEnabled,
   // RENDER
   // ═════════════════════════════════════════════════════════
 
+  // ── EFFEKT-PRESET-ANWENDUNG ═════════════════════════════
+  const applyEffectPreset = (preset: EffectPreset) => {
+    setSelectedPreset(preset.id)
+    setColorGrade(preset.colorGrade)
+    setTransitionType(preset.transitionType)
+    setCaptionStyle(preset.captionStyle)
+    setStickersEnabled(preset.stickersEnabled)
+    setSfxEnabled(preset.sfxEnabled)
+    if (preset.ambientType) {
+      setAmbientType(preset.ambientType)
+    }
+  }
+
   if (remotionAvailable === null) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -1465,6 +1483,12 @@ stickersEnabled,
                   ))}
                 </div>
               </div>
+
+              {/* Effekt-Preset */}
+              <EffectPresetSelector
+                value={selectedPreset}
+                onApply={applyEffectPreset}
+              />
 
               {/* KI-Modell Auswahl */}
               <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
