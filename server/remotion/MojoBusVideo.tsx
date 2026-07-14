@@ -162,6 +162,9 @@ export interface MojoBusVideoProps {
   /** Original-Ton des Videos im Haupt-Slide freigeben (Musik/Atmo ducken) */
   keepOriginalAudio?: boolean;
 
+  /** Speed-Ramping für Video-Slides (Slow-Mo-Intro → Punch-Out, Beta, default aus) */
+  speedRampEnabled?: boolean;
+
 }
 
 // ── Hook-Dauer pro Plattform ─────────────────────────────────────────────
@@ -287,6 +290,9 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
   // Original-Ton behalten
   keepOriginalAudio = false,
 
+  // Speed-Ramping
+  speedRampEnabled = false,
+
 }) => {
   const { fps, durationInFrames } = useVideoConfig();
 
@@ -360,7 +366,40 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
   // Musik/Voiceover/Ambient (eigene AudioLayer). muted=true erspart das
   // Downloaden/Dekodieren der Audiospur zusätzlich Zeit UND verhindert,
   // dass Remotion die komplette Videodatei für die Audiospur laden muss.
-  const MediaRenderer: React.FC<{ src: string; index: number; allowAudio?: boolean }> = ({ src, index, allowAudio = false }) => {
+  const MediaRenderer: React.FC<{ src: string; index: number; allowAudio?: boolean; speedRamp?: boolean; durationInFrames?: number }> = ({ src, index, allowAudio = false, speedRamp = false, durationInFrames = 0 }) => {
+    if (isVideo(src) && speedRamp && durationInFrames > 0) {
+      const halfFrames = Math.floor(durationInFrames / 2);
+      return (
+        <AbsoluteFill style={{ overflow: 'hidden' }}>
+          <Sequence from={0} durationInFrames={halfFrames}>
+            <Video
+              src={src}
+              muted={!allowAudio}
+              playbackRate={0.6}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              delayRenderTimeoutInMilliseconds={45000}
+              delayRenderRetries={3}
+              onError={(err) => {
+                console.warn(`[MojoBusVideo] Video Fehler bei ${src}:`, err);
+              }}
+            />
+          </Sequence>
+          <Sequence from={halfFrames} durationInFrames={durationInFrames - halfFrames}>
+            <Video
+              src={src}
+              muted={!allowAudio}
+              playbackRate={1.4}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              delayRenderTimeoutInMilliseconds={45000}
+              delayRenderRetries={3}
+              onError={(err) => {
+                console.warn(`[MojoBusVideo] Video Fehler bei ${src}:`, err);
+              }}
+            />
+          </Sequence>
+        </AbsoluteFill>
+      );
+    }
     if (isVideo(src)) {
       return (
         <AbsoluteFill style={{ overflow: 'hidden' }}>
@@ -505,7 +544,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
 
           // Effekt-Kette (innen → außen): Media → MatchCut → Punch → Whip → FadeOut
           let slideContent: React.ReactNode = !isRoute ? (
-            <MediaRenderer src={images[def.imageIdx]} index={def.imageIdx + 1} allowAudio={keepOriginalAudio} />
+            <MediaRenderer src={images[def.imageIdx]} index={def.imageIdx + 1} allowAudio={keepOriginalAudio} speedRamp={speedRampEnabled} durationInFrames={thisSlideFrames} />
           ) : null;
           if (matchCut) {
             slideContent = (
