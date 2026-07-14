@@ -131,22 +131,65 @@ export const BeatSyncLayer: React.FC<{
   fallbackBeats = [],
 }) => {
   const frame = useCurrentFrame();
+
+  if (strength <= 0) return null;
+
+  // useAudioData() wirft eine Exception, wenn "src" leer/undefined ist
+  // ("useAudioData requires a 'src' parameter"). Da React-Hooks nicht
+  // bedingt aufgerufen werden dürfen, wird der Hook in eine eigene
+  // Kind-Komponente ausgelagert, die nur gemountet wird, wenn musicUrl
+  // tatsächlich vorhanden ist. Ohne Musik bleiben die Fallback-Beats
+  // die Grundlage (bestehendes Verhalten, kein Absturz).
+  if (musicUrl) {
+    return (
+      <BeatSyncLayerWithAudio
+        musicUrl={musicUrl}
+        currentFrame={frame}
+        beatThreshold={beatThreshold}
+        flashColor={flashColor}
+        flashOpacity={flashOpacity}
+        accentColor={accentColor}
+        strength={strength}
+        fallbackBeats={fallbackBeats}
+      />
+    );
+  }
+
+  if (fallbackBeats.length === 0) return null;
+
+  return <BeatFlash beats={fallbackBeats} currentFrame={frame}
+    flashColor={flashColor} flashOpacity={flashOpacity}
+    accentColor={accentColor} strength={strength} />;
+};
+
+// ── Interne Kind-Komponente: lädt echte Audiodaten nur, wenn musicUrl existiert ──
+
+const BeatSyncLayerWithAudio: React.FC<{
+  musicUrl: string;
+  currentFrame: number;
+  beatThreshold: number;
+  flashColor: string;
+  flashOpacity: number;
+  accentColor: string;
+  strength: number;
+  fallbackBeats: BeatInfo[];
+}> = ({ musicUrl, currentFrame, beatThreshold, flashColor, flashOpacity, accentColor, strength, fallbackBeats }) => {
   const { fps, durationInFrames } = useVideoConfig();
 
-  // Echte Beat-Erkennung via @remotion/media-utils, falls Musik geladen
-  const audioData = useAudioData(musicUrl ?? null);
+  // Echte Beat-Erkennung via @remotion/media-utils
+  const audioData = useAudioData(musicUrl);
   let beats = fallbackBeats;
 
-  if (audioData && musicUrl) {
+  if (audioData) {
     const realBeats = computeAudioBeats(audioData, fps, durationInFrames, beatThreshold);
     if (realBeats.length > 0) {
       beats = realBeats;
     }
   }
 
-  if (strength <= 0 || beats.length === 0) return null;
+  if (beats.length === 0) return null;
 
-  return <BeatFlash beats={beats} currentFrame={frame}
+  return <BeatFlash beats={beats} currentFrame={currentFrame}
     flashColor={flashColor} flashOpacity={flashOpacity}
     accentColor={accentColor} strength={strength} />;
 };
