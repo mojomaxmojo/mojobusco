@@ -14,7 +14,7 @@
  */
 
 import React from 'react';
-import { AbsoluteFill, Sequence, useVideoConfig, useCurrentFrame, Video } from 'remotion';
+import { AbsoluteFill, Sequence, useVideoConfig, useCurrentFrame, Video, interpolate } from 'remotion';
 
 import { KenBurnsImage, pickDirection, type GammaFade } from './components/KenBurnsImage';
 import { ColorGradeOverlay, ColorGradeWrapper, lifestyleToGrade, type ColorGrade } from './components/ColorGradeOverlay';
@@ -206,6 +206,46 @@ const HookDimOverlay: React.FC<{ opacity: number; fps: number; hookFrames: numbe
 
   return (
     <AbsoluteFill style={{ background: `rgba(0,0,0,${alpha.toFixed(3)})`, pointerEvents: 'none' }} />
+  );
+};
+
+// ── HeroWordZoomWrapper ────────────────────────────────────────────────────
+// Top-Level Komponente (PFLICHT: useCurrentFrame darf nicht in inneren Funktionen stehen)
+// Zusätzlicher, kurzer Zoom-Punch exakt im Frame-Fenster des von der KI mit
+// **Schlüsselwort** markierten Caption-Worts (Schritt 5, Hook-Wort-Zoom).
+// localFrom/localTo sind relativ zum Sequence-Start des jeweiligen Slides.
+const HeroWordZoomWrapper: React.FC<{
+  localFrom: number;
+  localTo: number;
+  punchScale: number;
+  children: React.ReactNode;
+}> = ({ localFrom, localTo, punchScale, children }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  const punchFrames = Math.max(3, Math.round(fps * 0.18));
+  const windowLen = Math.max(1, localTo - localFrom);
+  const t = interpolate(
+    frame,
+    [localFrom, Math.min(localFrom + punchFrames, localFrom + windowLen)],
+    [1, 0],
+    { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
+  );
+  const eased = t * t * t * t;
+  const scale = 1 + punchScale * eased;
+
+  if (scale <= 1.0001) return <>{children}</>;
+
+  return (
+    <AbsoluteFill
+      style={{
+        transform: `scale(${scale.toFixed(4)})`,
+        transformOrigin: 'center center',
+        willChange: 'transform',
+      }}
+    >
+      {children}
+    </AbsoluteFill>
   );
 };
 
@@ -539,7 +579,12 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
           const hasWhipIn  = !isRoute && i > 0 && cutFx[i] === 'whip' && prevDef?.type !== 'route';
           // Kein WhipOut in eine Route-Slide hinein (Karte whippt nicht rein → inkonsistent)
           const hasWhipOut = !isRoute && !isLastSlide && cutFx[i + 1] === 'whip' && nextDef?.type !== 'route';
-          const punchHere  = (!isRoute && fx.zoomPunchScale > 0 && cutFx[i] !== 'whip' && i > 0) || heroWordWindows.some(w => w.slideIndex === i);
+          const punchHere  = !isRoute && fx.zoomPunchScale > 0 && cutFx[i] !== 'whip' && i > 0;
+          // Hero-Wort-Zoom (Schritt 5): zusätzlicher, zeitlich exakt auf das
+          // markierte Caption-Wort synchronisierter Punch – unabhängig vom
+          // normalen Cut-Zoom, da dieser bereits am Slide-Start (Frame 0)
+          // feuert und damit NICHT mit dem Wort-Zeitpunkt zusammenfällt.
+          const heroWordHere = !isRoute ? heroWordWindows.find(w => w.slideIndex === i) : undefined;
           const matchCut   = !isRoute ? matchCutMap[i] : undefined;
 
           // Effekt-Kette (innen → außen): Media → MatchCut → Punch → Whip → FadeOut
@@ -555,9 +600,20 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
           }
           if (punchHere) {
             slideContent = (
-              <ZoomPunchWrapper punchScale={fx.zoomPunchScale > 0 ? fx.zoomPunchScale : 0.08}>
+              <ZoomPunchWrapper punchScale={fx.zoomPunchScale}>
                 {slideContent}
               </ZoomPunchWrapper>
+            );
+          }
+          if (heroWordHere) {
+            slideContent = (
+              <HeroWordZoomWrapper
+                localFrom={heroWordHere.startFrame - absoluteStart}
+                localTo={heroWordHere.endFrame - absoluteStart}
+                punchScale={0.08}
+              >
+                {slideContent}
+              </HeroWordZoomWrapper>
             );
           }
           if (hasWhipIn || hasWhipOut) {
