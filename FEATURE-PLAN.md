@@ -393,7 +393,7 @@ aufeinanderfolgende Video-Ausschnitte mit je einer festen Rate** nachgebaut
 - [x] Schritt 3: Sticker/Emoji-Pops an Cuts (Beta-Toggle, default aus)
 - [x] Schritt 4: Sound-SFX-Layer (Whoosh/Ding/Impact, Beta-Toggle, default aus)
 - [x] Schritt 5: Hook-Wort-Zoom (KI markiert Schlüsselwort, Zusatz-Zoom darauf)
-- [ ] Schritt 6: Effekt-Presets im UI (1-Klick-Kombi aus Grade+Übergang+Captions+SFX+Sticker)
+- [x] Schritt 6: Effekt-Presets im UI (1-Klick-Kombi aus Grade+Übergang+Captions+SFX+Sticker)
 - [ ] Schritt 7: Echte Beat-Sync via `@remotion/media-utils` (mit Fallback-Sicherheitsnetz)
 - [ ] Schritt 8: Speed-Ramping für Video-Slides (2-stufig, Beta-Toggle, default aus)
 - [ ] **Nicht Teil dieses Plans:** #8 Multi-Format-Export – eigener FEATURE-PLAN nötig

@@ -51,6 +51,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { TikTokUploadTab } from '@/components/pin/TikTokUploadTab'
 import { extractImagesFromEvent, extractTitle, extractSummary } from '@/lib/nostrEventUtils'
 import { KEEP_ORIGINAL_AUDIO_LABEL, KEEP_ORIGINAL_AUDIO_HINT, DEFAULT_KEEP_ORIGINAL_AUDIO } from '@/config/videoAudio'
+import { EffectPresetSelector } from '@/components/pin/EffectPresetSelector'
+import { EFFECT_PRESETS, type EffectPreset, type EffectPresetId } from '@/config/effectPresets'
 
 // ── Capacitor-Fix: absolute API-URL ──────────────────────────────────────────
 // In der nativen App (Capacitor WebView) läuft die Seite im file:// Kontext.
@@ -355,6 +357,7 @@ export function TikTokPromotion() {
   const [colorGrade, setColorGrade] = useState('auto')
   const [stickersEnabled, setStickersEnabled] = useState(false)
   const [sfxEnabled, setSfxEnabled] = useState(false)
+  const [activeEffectPreset, setActiveEffectPreset] = useState<EffectPresetId | null>(null)
 
   // ── AMBIENT ══════════════════════════════════════════════
   const [ambientType, setAmbientType] = useState('__none__')
@@ -1272,6 +1275,20 @@ export function TikTokPromotion() {
     )
   }
 
+  // ── EFFEKT-PRESETS (Schritt 6) ══════════════════════════════
+  // 1-Klick-Kombi aus Grade+Übergang+Captions+SFX+Sticker. Überschreibt NUR
+  // diese States – Musik-Auswahl, Hook-Text, Voiceover etc. bleiben
+  // unangetastet. Nutzer kann danach jeden Einzelregler frei ändern.
+  const applyEffectPreset = (preset: EffectPreset) => {
+    setActiveEffectPreset(preset.id)
+    setColorGrade(preset.colorGrade)
+    setTransitionType(preset.transitionType)
+    setCaptionStyle(preset.captionStyle)
+    setStickersEnabled(preset.stickersEnabled)
+    setSfxEnabled(preset.sfxEnabled)
+    setAmbientType(preset.ambientType ?? ambientType)
+  }
+
   // ═════════════════════════════════════════════════════════
   // RENDER
   // ═════════════════════════════════════════════════════════
@@ -1477,6 +1494,12 @@ export function TikTokPromotion() {
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Effekt-Presets (Schritt 6): 1-Klick-Kombi aus Grade+Übergang+Captions+SFX+Sticker */}
+              <div>
+                <Label className="mb-2 block text-sm">Effekt-Preset (optional)</Label>
+                <EffectPresetSelector value={activeEffectPreset} onApply={applyEffectPreset} />
               </div>
 
               {/* KI-Modell Auswahl */}
