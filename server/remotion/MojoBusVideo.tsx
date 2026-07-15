@@ -493,8 +493,18 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
           const hasWhipIn  = !isRoute && i > 0 && cutFx[i] === 'whip' && prevDef?.type !== 'route';
           // Kein WhipOut in eine Route-Slide hinein (Karte whippt nicht rein → inkonsistent)
           const hasWhipOut = !isRoute && !isLastSlide && cutFx[i + 1] === 'whip' && nextDef?.type !== 'route';
-          const punchHere  = (!isRoute && fx.zoomPunchScale > 0 && cutFx[i] !== 'whip' && i > 0) ||
-            heroWordWindows.some(w => w.slideIndex === i);
+          const cutPunchHere = !isRoute && fx.zoomPunchScale > 0 && cutFx[i] !== 'whip' && i > 0;
+          const heroWindow = heroWordWindows.find(w => w.slideIndex === i);
+          const punchHere  = cutPunchHere || !!heroWindow;
+          // Trigger-Frame für den Punch (lokal zur Sequence, die bei
+          // absoluteStart beginnt): Cut-Punch schlägt wie bisher bei
+          // Sequence-Start (0) ein. Reiner Hero-Wort-Punch (kein Cut-Punch
+          // auf diesem Slide) schlägt zum Zeitpunkt der Wort-Einblendung ein.
+          const punchTriggerFrame = cutPunchHere
+            ? 0
+            : heroWindow
+              ? Math.max(0, heroWindow.startFrame - absoluteStart)
+              : 0;
           const matchCut   = !isRoute ? matchCutMap[i] : undefined;
 
           // Effekt-Kette (innen → außen): Media → MatchCut → Punch → Whip → FadeOut
@@ -509,8 +519,14 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
             );
           }
           if (punchHere) {
+            // Hero-Wort-Punch (ohne Cut-Punch auf diesem Slide) nutzt eine
+            // feste, moderate Stärke (0.08, siehe FEATURE-PLAN.md Schritt 5),
+            // unabhängig von der Plattform-Matrix (die für diesen Slide ggf.
+            // 0 liefert, z.B. YouTube). Cut-Punch bleibt unverändert bei
+            // fx.zoomPunchScale.
+            const punchScaleHere = cutPunchHere ? fx.zoomPunchScale : 0.08;
             slideContent = (
-              <ZoomPunchWrapper punchScale={fx.zoomPunchScale}>
+              <ZoomPunchWrapper punchScale={punchScaleHere} triggerFrame={punchTriggerFrame}>
                 {slideContent}
               </ZoomPunchWrapper>
             );

@@ -1211,8 +1211,16 @@ export function TikTokPromotion() {
   // ── VOICEOVER TEXT ══════════════════════════════════════
   // Nur Body-Sätze – kein Hook (HookTitle ist sichtbar), kein Bridge (Werbetext)
   // AudioLayer startet mit startFrom=hookFrames → synchron mit Slideshow-Beginn
+  //
+  // WICHTIG (Hook-Wort-Zoom, siehe FEATURE-PLAN.md Schritt 5): bodyText kann
+  // **Wort**-Markup enthalten (KI markiert das Hero-Wort für den Zusatz-Zoom
+  // im Video). Dieses Markup ist NUR für die visuelle Caption gedacht –
+  // fürs Voiceover müssen die Sternchen entfernt werden, sonst spricht die
+  // TTS-Engine "Sternchen Sternchen Wort Sternchen Sternchen" mit.
+  const stripHeroMarkupForVoiceover = (text: string) => text.replace(/\*\*(.+?)\*\*/g, '$1')
+
   const voiceoverText = voiceoverEnabled
-    ? bodyText.split('\n').filter(l => l.trim()).join('. ')
+    ? stripHeroMarkupForVoiceover(bodyText.split('\n').filter(l => l.trim()).join('. '))
     : ''
 
   // ── VOICEOVER SEGMENTS (pro Slide) ════════════════════
@@ -1222,7 +1230,7 @@ export function TikTokPromotion() {
   // Voiceover = Stille). Positionen müssen 1:1 den Slides entsprechen – sonst
   // verschiebt sich der Audio-Sync (render.js generiert für '' reine Stille).
   const voBodyLines = voiceoverEnabled
-    ? bodyText.split('\n').map(l => l.trim())
+    ? bodyText.split('\n').map(l => stripHeroMarkupForVoiceover(l.trim()))
     : []
   // Führende/abschließende Leerzeilen entfernen (innere bleiben = Stille-Slides)
   while (voBodyLines.length > 0 && !voBodyLines[0]) voBodyLines.shift()

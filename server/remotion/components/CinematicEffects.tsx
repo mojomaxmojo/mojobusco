@@ -124,17 +124,33 @@ export function pickCutEffect(cutIndex: number, platform?: string): CutEffect {
 export const ZoomPunchWrapper: React.FC<{
   punchScale: number;
   children: React.ReactNode;
-}> = ({ punchScale, children }) => {
+  /**
+   * Lokaler Frame (relativ zum Start der umgebenden Sequence), an dem der
+   * Punch einschlägt. Default 0 = Punch direkt am Cut (bestehendes Verhalten,
+   * unverändert für alle bisherigen Aufrufer). Für den Hook-Wort-Zoom
+   * (Schritt 5) wird hier der lokale Frame des markierten Wortes übergeben,
+   * damit der Punch zum Zeitpunkt der Wort-Einblendung einschlägt statt am
+   * Slide-Anfang.
+   */
+  triggerFrame?: number;
+}> = ({ punchScale, children, triggerFrame = 0 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
   if (punchScale <= 0) return <>{children}</>;
 
   const punchFrames = Math.max(3, Math.round(fps * 0.16)); // ~5 Frames @ 30fps
-  const t = interpolate(frame, [0, punchFrames], [1, 0], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
+  // Lokaler Frame relativ zum Trigger. Außerhalb des Punch-Fensters (davor
+  // ODER danach) ist t=0 (kein Effekt) — WICHTIG: 'clamp' allein würde bei
+  // triggerFrame>0 vor dem Trigger fälschlich t=1 (Maximal-Zoom) liefern,
+  // da extrapolateLeft auf den Eingabewert an Position 0 clampt (=1).
+  const localFrame = frame - triggerFrame;
+  const t = localFrame < 0
+    ? 0
+    : interpolate(localFrame, [0, punchFrames], [1, 0], {
+        extrapolateLeft: 'clamp',
+        extrapolateRight: 'clamp',
+      });
   // Ease-out quart: schneller Einschlag, weiches Ausfedern
   const eased = t * t * t * t;
   const scale = 1 + punchScale * eased;
