@@ -186,14 +186,29 @@ const TEMPLATES: TikTokTemplateInfo[] = [
   },
 ]
 
-/** Verfügbare Stimmen (Edge TTS primär + Piper Fallback) */
+/** Verfügbare Stimmen (Edge TTS primär + Piper Fallback)
+ *
+ * ⚠️ "MultilingualNeural"-Stimmen (Seraphina, Florian) wechseln pro Wort
+ * automatisch die Sprache – dadurch werden Fremdwörter/Anglizismen im
+ * deutschen Text "denglisch" ausgesprochen und Umlaute manchmal falsch
+ * betont. Für sauberes, konsequentes Deutsch die klassischen (nicht
+ * multilingualen) Neural-Stimmen bevorzugen – Katja ist Standard.
+ */
 const VOICES = [
-  // Edge TTS (primär) – natürlich, keine API-Kosten
-  { id: 'de-DE-SeraphinaMultilingualNeural', label: 'Seraphina ⭐', desc: 'Edge · Weiblich, beste Qualität', engine: 'edge' },
-  { id: 'de-DE-FlorianMultilingualNeural',   label: 'Florian',       desc: 'Edge · Männlich, klar',        engine: 'edge' },
+  // Edge TTS – klassische, rein deutsche Stimmen (empfohlen, kein Denglisch)
+  { id: 'de-DE-KatjaNeural',                 label: 'Katja ⭐',      desc: 'Edge · Weiblich, klar & rein Deutsch', engine: 'edge' },
+  { id: 'de-DE-ConradNeural',                label: 'Conrad',        desc: 'Edge · Männlich, tief & rein Deutsch', engine: 'edge' },
   { id: 'de-DE-AmalaNeural',                 label: 'Amala',         desc: 'Edge · Weiblich, freundlich',  engine: 'edge' },
-  { id: 'de-DE-KatjaNeural',                 label: 'Katja',         desc: 'Edge · Weiblich, modern',     engine: 'edge' },
-  { id: 'de-DE-ConradNeural',                label: 'Conrad',        desc: 'Edge · Männlich, tief',       engine: 'edge' },
+  { id: 'de-DE-KillianNeural',               label: 'Killian',       desc: 'Edge · Männlich, jung',        engine: 'edge' },
+  { id: 'de-DE-GiselaNeural',                label: 'Gisela',        desc: 'Edge · Weiblich, sanft',        engine: 'edge' },
+  { id: 'de-DE-BerndNeural',                 label: 'Bernd',         desc: 'Edge · Männlich, ruhig',        engine: 'edge' },
+  { id: 'de-DE-ElkeNeural',                  label: 'Elke',          desc: 'Edge · Weiblich, warm',         engine: 'edge' },
+  { id: 'de-DE-RalfNeural',                  label: 'Ralf',          desc: 'Edge · Männlich, sachlich',     engine: 'edge' },
+  { id: 'de-DE-TanjaNeural',                 label: 'Tanja',         desc: 'Edge · Weiblich, energisch',    engine: 'edge' },
+  // Edge TTS – "Multilingual"-Stimmen (beste Klangqualität, aber neigen zu
+  // Denglisch-Aussprache bei Fremdwörtern und gelegentlichen Umlaut-Fehlern)
+  { id: 'de-DE-SeraphinaMultilingualNeural', label: 'Seraphina',     desc: 'Edge · Weiblich, sehr natürlich (kann denglisch klingen)', engine: 'edge' },
+  { id: 'de-DE-FlorianMultilingualNeural',   label: 'Florian',       desc: 'Edge · Männlich, sehr natürlich (kann denglisch klingen)', engine: 'edge' },
   // Piper TTS (Fallback) – lokal auf VPS
   { id: 'de_DE-thorsten-medium',             label: 'Thorsten',      desc: 'Piper · Männlich',            engine: 'piper' },
   { id: 'de_DE-ramona-low',                  label: 'Ramona',        desc: 'Piper · Weiblich',            engine: 'piper' },
@@ -342,7 +357,7 @@ export function TikTokPromotion() {
 
   // ── VOICEOVER ════════════════════════════════════════════
   const [voiceoverEnabled, setVoiceoverEnabled] = useState(false)
-  const [voiceoverModel, setVoiceoverModel] = useState('de-DE-SeraphinaMultilingualNeural')
+  const [voiceoverModel, setVoiceoverModel] = useState('de-DE-KatjaNeural')
   const [voiceoverSpeed, setVoiceoverSpeed] = useState('1.00')
   const [voiceoverVolume, setVoiceoverVolume] = useState('1.00')
 

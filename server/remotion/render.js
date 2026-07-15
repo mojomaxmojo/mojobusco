@@ -956,7 +956,7 @@ export async function renderMojoBusVideo(params) {
     muteVoiceoverSlide = -1, // Slide-Index für Stille (z.B. Routen-Karte)
     // ── ALT (deprecated): Einzel-Text ──────────────────────────────────────
     voiceoverText,             // Text für Sprachausgabe (optional, deprecated)
-    voiceoverModel = 'de-DE-SeraphinaMultilingualNeural', // Stimm-Modell
+    voiceoverModel = 'de-DE-KatjaNeural', // Stimm-Modell (rein Deutsch, kein Denglisch)
     voiceoverSpeed = 0.8,     // Sprechgeschwindigkeit (0.6-1.2)
     voiceoverEngine,           // 'edge' | 'piper' – wird automatisch aus Modell-Präfix abgeleitet
     voiceoverVolume = 1.0,    // Lautstärke 0-1 (0 = stumm, 1 = volle Lautstärke)
