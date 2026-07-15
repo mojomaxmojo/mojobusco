@@ -825,9 +825,6 @@ export default function createVideoRouter(PORT) {
       // Clip-Länge wird verwendet (Voreinstellung). Nur für Video-Slides relevant.
       videoSeconds,
       keepOriginalAudio = false,
-      stickersEnabled = false,
-      sfxEnabled = false,
-      speedRampEnabled = false,
     } = req.body
 
     if (!imageUrls || !Array.isArray(imageUrls) || imageUrls.length === 0) {
@@ -931,9 +928,6 @@ export default function createVideoRouter(PORT) {
           ambientType: ambientType || undefined,
           videoSeconds: Array.isArray(videoSeconds) ? videoSeconds : undefined,
           keepOriginalAudio: !!keepOriginalAudio,
-          stickersEnabled: !!stickersEnabled,
-          sfxEnabled: !!sfxEnabled,
-          speedRampEnabled: !!speedRampEnabled,
           localMusicDir: MUSIC_DIR,
           onProgress: (percent) => {
             const j = remotionJobs.get(jobId)

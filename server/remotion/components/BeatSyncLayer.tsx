@@ -1,14 +1,13 @@
 /**
  * BeatSyncLayer — Beat-Sync Flash-Effekt
  *
- * Nutzt @remotion/media-utils (useAudioData + visualizeAudio) zur echten
- * Beat-Erkennung aus der Musikdatei. Fallback: synthetische Beats auf
- * Bild-Wechseln, falls keine Musik geladen werden kann.
+ * Kein require(), kein import() von optionalen Packages in dieser Datei.
+ * useAudioData + visualizeAudio kommen als Props rein (aus render.js injiziert).
+ * Fallback: synthetische Beats auf Bild-Wechseln — kein Package nötig.
  */
 
 import React from 'react';
 import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
-import { useAudioData, visualizeAudio } from '@remotion/media-utils';
 
 // ── Typen ─────────────────────────────────────────────────────────────────
 
@@ -36,34 +35,6 @@ export function generateFallbackBeats(
       if (mid < totalFrames) beats.push({ frame: mid, intensity: 0.45 });
     }
   }
-  return beats;
-}
-
-// ── Echte Beat-Erkennung via visualizeAudio ────────────────────────────────
-
-export function computeAudioBeats(
-  audioData: { channelWaveforms: Float32Array[]; sampleRate: number; durationInSeconds: number; resultId: string; numberOfChannels: number; isRemote: boolean },
-  fps: number,
-  durationInFrames: number,
-  threshold: number = 0.15
-): BeatInfo[] {
-  const beats: BeatInfo[] = [];
-  const step = 2; // Alle 2 Frames prüfen
-  const stepSec = step / fps;
-  const NUMBER_OF_SAMPLES = 16; // Muss eine Zweierpotenz sein (siehe visualizeAudio-Doku)
-
-  let prevSum = 0;
-  for (let f = 0; f < durationInFrames; f += step) {
-    const samples = visualizeAudio({ audioData, fps, frame: f, numberOfSamples: NUMBER_OF_SAMPLES });
-    const sum = samples.reduce((a, b) => a + b, 0) / samples.length;
-    const delta = sum - prevSum;
-    // Lautstärke-Anstieg (Onset) über Threshold → Beat
-    if (delta > threshold && sum > 0.08) {
-      beats.push({ frame: f, intensity: Math.min(1, delta * 2.5) });
-    }
-    prevSum = sum;
-  }
-
   return beats;
 }
 
@@ -123,74 +94,15 @@ export const BeatSyncLayer: React.FC<{
   strength?: number;
   fallbackBeats?: BeatInfo[];
 }> = ({
-  musicUrl,
-  beatThreshold = 0.15,
+  strength = 1,
   flashColor = 'rgba(255,255,255,1)',
   flashOpacity = 0.18,
   accentColor = '#F59E0B',
-  strength = 1,
   fallbackBeats = [],
 }) => {
   const frame = useCurrentFrame();
-
-  if (strength <= 0) return null;
-
-  // useAudioData() wirft eine Exception, wenn "src" leer/undefined ist
-  // ("useAudioData requires a 'src' parameter"). Da React-Hooks nicht
-  // bedingt aufgerufen werden dürfen, wird der Hook in eine eigene
-  // Kind-Komponente ausgelagert, die nur gemountet wird, wenn musicUrl
-  // tatsächlich vorhanden ist. Ohne Musik bleiben die Fallback-Beats
-  // die Grundlage (bestehendes Verhalten, kein Absturz).
-  if (musicUrl) {
-    return (
-      <BeatSyncLayerWithAudio
-        musicUrl={musicUrl}
-        currentFrame={frame}
-        beatThreshold={beatThreshold}
-        flashColor={flashColor}
-        flashOpacity={flashOpacity}
-        accentColor={accentColor}
-        strength={strength}
-        fallbackBeats={fallbackBeats}
-      />
-    );
-  }
-
-  if (fallbackBeats.length === 0) return null;
-
+  if (strength <= 0 || fallbackBeats.length === 0) return null;
   return <BeatFlash beats={fallbackBeats} currentFrame={frame}
-    flashColor={flashColor} flashOpacity={flashOpacity}
-    accentColor={accentColor} strength={strength} />;
-};
-
-// ── Interne Kind-Komponente: lädt echte Audiodaten nur, wenn musicUrl existiert ──
-
-const BeatSyncLayerWithAudio: React.FC<{
-  musicUrl: string;
-  currentFrame: number;
-  beatThreshold: number;
-  flashColor: string;
-  flashOpacity: number;
-  accentColor: string;
-  strength: number;
-  fallbackBeats: BeatInfo[];
-}> = ({ musicUrl, currentFrame, beatThreshold, flashColor, flashOpacity, accentColor, strength, fallbackBeats }) => {
-  const { fps, durationInFrames } = useVideoConfig();
-
-  // Echte Beat-Erkennung via @remotion/media-utils
-  const audioData = useAudioData(musicUrl);
-  let beats = fallbackBeats;
-
-  if (audioData) {
-    const realBeats = computeAudioBeats(audioData, fps, durationInFrames, beatThreshold);
-    if (realBeats.length > 0) {
-      beats = realBeats;
-    }
-  }
-
-  if (beats.length === 0) return null;
-
-  return <BeatFlash beats={beats} currentFrame={currentFrame}
     flashColor={flashColor} flashOpacity={flashOpacity}
     accentColor={accentColor} strength={strength} />;
 };

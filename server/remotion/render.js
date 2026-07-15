@@ -55,7 +55,7 @@ async function generateVoiceoverSegments(segments, voiceoverModel, voiceoverSpee
   const result = []; // [{ filename: 'voiceover_0.mp3', durationSec: 2.1 }, ...]
 
   for (let i = 0; i < segments.length; i++) {
-    const text = (segments[i] || '').trim().replace(/\*\*(.+?)\*\*/g, '$1');
+    const text = (segments[i] || '').trim();
 
     // Leeres Segment = bewusster Platzhalter (Slide ohne Voiceover).
     // NICHT überspringen – sonst verschiebt sich die Slide-Zuordnung.
@@ -325,7 +325,6 @@ import { measureSlideVideoDurations } from './videoDuration.js';
 
 // ── Ambient Sounds (optional) ──────────────────────────────────────────────
 import { generateAmbient } from './ambient.js';
-import { generateSfx, SFX_TYPES } from './sfx.js';
 
 // ── Audio Loudness-Normalisierung ─────────────────────────────────────────
 import { normalizeRenderedVideo } from './audioNormalize.js';
@@ -972,9 +971,6 @@ export async function renderMojoBusVideo(params) {
      */
     videoSeconds,
     keepOriginalAudio = false,
-    stickersEnabled = false,
-    sfxEnabled = false,
-    speedRampEnabled = false,
   } = params;
 
   if (!imageUrls || imageUrls.length === 0) {
@@ -1105,23 +1101,6 @@ export async function renderMojoBusVideo(params) {
         console.warn(`[Remotion] ⚠️ Atmo fehlgeschlagen: ${atmoErr.message} – fahre ohne fort`);
       }
     }
-
-    // SFX (Sound-Effekte) – nur wenn sfxEnabled
-    if (sfxEnabled) {
-      for (const type of SFX_TYPES) {
-        try {
-          const sfxPath = path.join(sessionDir, `sfx-${type}.wav`);
-          console.log(`[Remotion] 🔉 SFX generieren: ${type} → sfx-${type}.wav`);
-          await generateSfx(type, sfxPath);
-          if (fs.existsSync(sfxPath)) {
-            try { fs.chmodSync(sfxPath, 0o644); } catch (e) {}
-            console.log(`[Remotion] ✅ SFX: sfx-${type}.wav`);
-          }
-        } catch (sfxErr) {
-          console.warn(`[Remotion] ⚠️ SFX ${type} fehlgeschlagen: ${sfxErr.message} – fahre ohne fort`);
-        }
-      }
-    }
   } catch (err) {
     try { fs.rmSync(sessionDir, { recursive: true, force: true }); } catch (e) {}
     throw new Error(`Download fehlgeschlagen: ${err.message}`);
@@ -1134,7 +1113,6 @@ export async function renderMojoBusVideo(params) {
   let httpMapImageUrl;
   let httpVoiceoverUrl = null;  // Single voiceover_sync.mp3 (concat)
   let httpAmbientUrl = null;
-  let httpSfxUrls = null;
 
   try {
     imageServer = await startImageServer(sessionDir);
@@ -1160,21 +1138,6 @@ export async function renderMojoBusVideo(params) {
     if (ambientType && fs.existsSync(path.join(sessionDir, 'ambient.wav'))) {
       httpAmbientUrl = `${base}/ambient.wav`;
       console.log(`[Remotion] Ambient-URL: ${httpAmbientUrl}`);
-    }
-
-    // SFX-URLs: lokal wenn generiert (sfx-{type}.wav)
-    if (sfxEnabled) {
-      const urls = {};
-      for (const type of SFX_TYPES) {
-        const sfxPath = path.join(sessionDir, `sfx-${type}.wav`);
-        if (fs.existsSync(sfxPath)) {
-          urls[type] = `${base}/sfx-${type}.wav`;
-        }
-      }
-      if (Object.keys(urls).length > 0) {
-        httpSfxUrls = urls;
-        console.log(`[Remotion] SFX-URLs: ${JSON.stringify(httpSfxUrls)}`);
-      }
     }
 
     // Karten-URL: lokal wenn Download OK, sonst Original-URL
@@ -1216,10 +1179,6 @@ export async function renderMojoBusVideo(params) {
       showLottieBus,
       cinematicEffects,                     // ← Plattform-Matrix-Effekte
       keepOriginalAudio,
-      stickersEnabled,
-      sfxEnabled,
-      sfxUrls: httpSfxUrls,
-      speedRampEnabled,
     };
 
     const composition = await selectComposition({

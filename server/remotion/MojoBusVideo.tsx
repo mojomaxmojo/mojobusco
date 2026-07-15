@@ -14,7 +14,7 @@
  */
 
 import React from 'react';
-import { AbsoluteFill, Sequence, useVideoConfig, useCurrentFrame, Video, interpolate } from 'remotion';
+import { AbsoluteFill, Sequence, useVideoConfig, useCurrentFrame, Video } from 'remotion';
 
 import { KenBurnsImage, pickDirection, type GammaFade } from './components/KenBurnsImage';
 import { ColorGradeOverlay, ColorGradeWrapper, lifestyleToGrade, type ColorGrade } from './components/ColorGradeOverlay';
@@ -61,15 +61,6 @@ import {
   CinematicLetterbox,
   MatchCutZoomWrapper,
 } from './components/CinematicEffects';
-
-// ── NEU: Sticker-Pops ──────────────────────────────────────────────────
-import { pickStickerForCut, StickerPop, stickerPopDuration } from './components/StickerPops';
-
-// ── NEU: Sound-SFX-Layer ───────────────────────────────────────────────
-import { buildSfxCues, SfxLayer } from './components/SfxLayer';
-
-// ── NEU: Hook-Wort-Zoom ──────────────────────────────────────────────────
-import { findHeroWordWindow } from './components/CaptionHeroWord';
 
 // ── Props Interface ────────────────────────────────────────────────────────
 
@@ -151,19 +142,8 @@ export interface MojoBusVideoProps {
    */
   cinematicEffects?: boolean;
 
-  /** Animierte Sticker/Emoji-Pops an Cut-Punkten (Beta, default aus) */
-  stickersEnabled?: boolean;
-
-  /** Sound-SFX-Layer (Whoosh/Ding/Impact auf Cuts, Beta, default aus) */
-  sfxEnabled?: boolean;
-  /** URLs der generierten SFX-WAV-Dateien (whoosh/ding/impact) */
-  sfxUrls?: Record<string, string>;
-
   /** Original-Ton des Videos im Haupt-Slide freigeben (Musik/Atmo ducken) */
   keepOriginalAudio?: boolean;
-
-  /** Speed-Ramping für Video-Slides (Slow-Mo-Intro → Punch-Out, Beta, default aus) */
-  speedRampEnabled?: boolean;
 
 }
 
@@ -206,46 +186,6 @@ const HookDimOverlay: React.FC<{ opacity: number; fps: number; hookFrames: numbe
 
   return (
     <AbsoluteFill style={{ background: `rgba(0,0,0,${alpha.toFixed(3)})`, pointerEvents: 'none' }} />
-  );
-};
-
-// ── HeroWordZoomWrapper ────────────────────────────────────────────────────
-// Top-Level Komponente (PFLICHT: useCurrentFrame darf nicht in inneren Funktionen stehen)
-// Zusätzlicher, kurzer Zoom-Punch exakt im Frame-Fenster des von der KI mit
-// **Schlüsselwort** markierten Caption-Worts (Schritt 5, Hook-Wort-Zoom).
-// localFrom/localTo sind relativ zum Sequence-Start des jeweiligen Slides.
-const HeroWordZoomWrapper: React.FC<{
-  localFrom: number;
-  localTo: number;
-  punchScale: number;
-  children: React.ReactNode;
-}> = ({ localFrom, localTo, punchScale, children }) => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-
-  const punchFrames = Math.max(3, Math.round(fps * 0.18));
-  const windowLen = Math.max(1, localTo - localFrom);
-  const t = interpolate(
-    frame,
-    [localFrom, Math.min(localFrom + punchFrames, localFrom + windowLen)],
-    [1, 0],
-    { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
-  );
-  const eased = t * t * t * t;
-  const scale = 1 + punchScale * eased;
-
-  if (scale <= 1.0001) return <>{children}</>;
-
-  return (
-    <AbsoluteFill
-      style={{
-        transform: `scale(${scale.toFixed(4)})`,
-        transformOrigin: 'center center',
-        willChange: 'transform',
-      }}
-    >
-      {children}
-    </AbsoluteFill>
   );
 };
 
@@ -309,13 +249,6 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
   // Cinematic Effects
   cinematicEffects = true,
 
-  // Sticker-Pops
-  stickersEnabled = false,
-
-  // Sound-SFX
-  sfxEnabled = false,
-  sfxUrls,
-
   // Voiceover
   voiceoverUrl,
   perSlideArray,
@@ -329,9 +262,6 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
 
   // Original-Ton behalten
   keepOriginalAudio = false,
-
-  // Speed-Ramping
-  speedRampEnabled = false,
 
 }) => {
   const { fps, durationInFrames } = useVideoConfig();
@@ -406,40 +336,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
   // Musik/Voiceover/Ambient (eigene AudioLayer). muted=true erspart das
   // Downloaden/Dekodieren der Audiospur zusätzlich Zeit UND verhindert,
   // dass Remotion die komplette Videodatei für die Audiospur laden muss.
-  const MediaRenderer: React.FC<{ src: string; index: number; allowAudio?: boolean; speedRamp?: boolean; durationInFrames?: number }> = ({ src, index, allowAudio = false, speedRamp = false, durationInFrames = 0 }) => {
-    if (isVideo(src) && speedRamp && durationInFrames > 0) {
-      const halfFrames = Math.floor(durationInFrames / 2);
-      return (
-        <AbsoluteFill style={{ overflow: 'hidden' }}>
-          <Sequence from={0} durationInFrames={halfFrames}>
-            <Video
-              src={src}
-              muted={!allowAudio}
-              playbackRate={0.6}
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              delayRenderTimeoutInMilliseconds={45000}
-              delayRenderRetries={3}
-              onError={(err) => {
-                console.warn(`[MojoBusVideo] Video Fehler bei ${src}:`, err);
-              }}
-            />
-          </Sequence>
-          <Sequence from={halfFrames} durationInFrames={durationInFrames - halfFrames}>
-            <Video
-              src={src}
-              muted={!allowAudio}
-              playbackRate={1.4}
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              delayRenderTimeoutInMilliseconds={45000}
-              delayRenderRetries={3}
-              onError={(err) => {
-                console.warn(`[MojoBusVideo] Video Fehler bei ${src}:`, err);
-              }}
-            />
-          </Sequence>
-        </AbsoluteFill>
-      );
-    }
+  const MediaRenderer: React.FC<{ src: string; index: number; allowAudio?: boolean }> = ({ src, index, allowAudio = false }) => {
     if (isVideo(src)) {
       return (
         <AbsoluteFill style={{ overflow: 'hidden' }}>
@@ -524,21 +421,6 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
         })
     : [];
 
-  // ── Hero-Word-Zoom-Fenster (Schritt 5) ─────────────────────────────
-  // Für jeden Bild-Slide mit Caption prüfen, ob ein **Schlüsselwort**
-  // markiert ist, und das Frame-Fenster dafür berechnen.
-  const alignedCaptions = [...captions];
-  if (hasRouteMap) alignedCaptions.splice(routeSlideIndex, 0, '');
-  const heroWordWindows: { slideIndex: number; startFrame: number; endFrame: number }[] = [];
-  slideDefs.forEach((def, i) => {
-    if (def.type === 'image' && alignedCaptions[i] && alignedCaptions[i].trim()) {
-      const window = findHeroWordWindow(alignedCaptions[i], slideStartFrame(i), def.frames);
-      if (window) {
-        heroWordWindows.push({ slideIndex: i, ...window });
-      }
-    }
-  });
-
   return (
     <AbsoluteFill style={{ background: '#000' }}>
 
@@ -580,16 +462,11 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
           // Kein WhipOut in eine Route-Slide hinein (Karte whippt nicht rein → inkonsistent)
           const hasWhipOut = !isRoute && !isLastSlide && cutFx[i + 1] === 'whip' && nextDef?.type !== 'route';
           const punchHere  = !isRoute && fx.zoomPunchScale > 0 && cutFx[i] !== 'whip' && i > 0;
-          // Hero-Wort-Zoom (Schritt 5): zusätzlicher, zeitlich exakt auf das
-          // markierte Caption-Wort synchronisierter Punch – unabhängig vom
-          // normalen Cut-Zoom, da dieser bereits am Slide-Start (Frame 0)
-          // feuert und damit NICHT mit dem Wort-Zeitpunkt zusammenfällt.
-          const heroWordHere = !isRoute ? heroWordWindows.find(w => w.slideIndex === i) : undefined;
           const matchCut   = !isRoute ? matchCutMap[i] : undefined;
 
           // Effekt-Kette (innen → außen): Media → MatchCut → Punch → Whip → FadeOut
           let slideContent: React.ReactNode = !isRoute ? (
-            <MediaRenderer src={images[def.imageIdx]} index={def.imageIdx + 1} allowAudio={keepOriginalAudio} speedRamp={speedRampEnabled} durationInFrames={thisSlideFrames} />
+            <MediaRenderer src={images[def.imageIdx]} index={def.imageIdx + 1} allowAudio={keepOriginalAudio} />
           ) : null;
           if (matchCut) {
             slideContent = (
@@ -603,17 +480,6 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
               <ZoomPunchWrapper punchScale={fx.zoomPunchScale}>
                 {slideContent}
               </ZoomPunchWrapper>
-            );
-          }
-          if (heroWordHere) {
-            slideContent = (
-              <HeroWordZoomWrapper
-                localFrom={heroWordHere.startFrame - absoluteStart}
-                localTo={heroWordHere.endFrame - absoluteStart}
-                punchScale={0.08}
-              >
-                {slideContent}
-              </HeroWordZoomWrapper>
             );
           }
           if (hasWhipIn || hasWhipOut) {
@@ -805,19 +671,6 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
         </Sequence>
       )}
 
-      {/* ══ NEU SCHICHT 15: Sound-SFX-Layer auf Cuts ═════════════════════════
-           Kurze One-Shot-Sounds (Whoosh/Ding/Impact) an den Cut-Punkten.
-           Nur aktiv wenn sfxEnabled und sfxUrls vorhanden sind. */}
-      {sfxEnabled && sfxUrls && (() => {
-        const sfxCues = buildSfxCues(
-          cutFx,
-          slideDefs.map((_, i) => slideStartFrame(i))
-        );
-        return (
-          <SfxLayer cues={sfxCues} sfxUrls={sfxUrls} volume={0.5} />
-        );
-      })()}
-
       {/* ══ NEU SCHICHT 9c: Cinematic Letterbox (Reels 6% / YouTube 8%) ══════
            Balken fahren beim Hook rein (1s) und zur CTA raus (0.8s).
            Liegt UNTER der ProgressBar – die Bar bleibt auf dem Balken sichtbar. */}
@@ -936,26 +789,6 @@ fadeInSec={0.3}
           );
         }
         return null;
-      })}
-
-      {/* ══ NEU SCHICHT 14: Sticker-Pops auf Cuts ════════════════════════════
-           Zeigt animierte Emojis an Cut-Punkten (nur wenn stickersEnabled und
-           der Cut einen sichtbaren Effekt hat – flash/leak/whip etc.). */}
-      {stickersEnabled && slideDefs.map((_, i) => {
-        const effect = cutFx[i];
-        if (effect === 'none') return null;
-        const cutFrame = slideStartFrame(i);
-        const emoji = pickStickerForCut(i);
-        const duration = stickerPopDuration(fps);
-        return (
-          <Sequence
-            key={`sticker-${i}`}
-            from={cutFrame}
-            durationInFrames={duration}
-          >
-            <StickerPop emoji={emoji} />
-          </Sequence>
-        );
       })}
 
     </AbsoluteFill>

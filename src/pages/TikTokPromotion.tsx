@@ -51,8 +51,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { TikTokUploadTab } from '@/components/pin/TikTokUploadTab'
 import { extractImagesFromEvent, extractTitle, extractSummary } from '@/lib/nostrEventUtils'
 import { KEEP_ORIGINAL_AUDIO_LABEL, KEEP_ORIGINAL_AUDIO_HINT, DEFAULT_KEEP_ORIGINAL_AUDIO } from '@/config/videoAudio'
-import { EffectPresetSelector } from '@/components/pin/EffectPresetSelector'
-import { EFFECT_PRESETS } from '@/config/effectPresets'
 
 // ── Capacitor-Fix: absolute API-URL ──────────────────────────────────────────
 // In der nativen App (Capacitor WebView) läuft die Seite im file:// Kontext.
@@ -212,19 +210,6 @@ const TRANSITION_OPTIONS = [
   { value: 'glitch', label: '📺 Glitch' },
 ]
 
-const COLOR_GRADE_OPTIONS = [
-  { value: 'auto', label: '🎨 Auto' },
-  { value: 'golden', label: '✨ Golden' },
-  { value: 'warm', label: '☀️ Warm' },
-  { value: 'moody', label: '🌧️ Moody' },
-  { value: 'blue', label: '💙 Blue' },
-  { value: 'teal-orange', label: '🌅 Teal-Orange' },
-  { value: 'vintage', label: '📽️ Vintage' },
-  { value: 'vhs', label: '📺 VHS' },
-  { value: 'glitch', label: '🌀 Glitch' },
-  { value: 'duotone', label: '🎨 Duotone' },
-]
-
 // ═══════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════
@@ -341,21 +326,6 @@ export function TikTokPromotion() {
   const [secondsPerImage, setSecondsPerImage] = useState(4)
   const [beatSync, setBeatSync] = useState('medium')
   const [captionStyle, setCaptionStyle] = useState<'chunked' | 'full-line'>('full-line')
-
-  // ── COLOR GRADE ═══════════════════════════════════════════
-  const [colorGrade, setColorGrade] = useState('auto')
-
-  // ── STICKER-POPS ═══════════════════════════════════════════
-  const [stickersEnabled, setStickersEnabled] = useState(false)
-
-  // ── SOUND-SFX ══════════════════════════════════════════════
-  const [sfxEnabled, setSfxEnabled] = useState(false)
-
-  // ── SPEED-RAMPING ═══════════════════════════════════════════
-  const [speedRampEnabled, setSpeedRampEnabled] = useState(false)
-
-  // ── EFFEKT-PRESET ═══════════════════════════════════════════
-  const [selectedPreset, setSelectedPreset] = useState<EffectPresetId | null>(null)
 
   // ── AMBIENT ══════════════════════════════════════════════
   const [ambientType, setAmbientType] = useState('__none__')
@@ -745,10 +715,6 @@ export function TikTokPromotion() {
       accentColor: '#F59E0B',
       beatSyncStrength: beatSyncVal,
       transitionType: transitionType || 'auto',
-      colorGrade: colorGrade !== 'auto' ? colorGrade : undefined,
-stickersEnabled,
-      sfxEnabled,
-      speedRampEnabled,
       showLottieBus: true,
       showRouteMap,
       muteVoiceoverSlide: showRouteMap ? Math.floor(articleImages.length / 2) : -1,
@@ -1272,19 +1238,6 @@ stickersEnabled,
   // RENDER
   // ═════════════════════════════════════════════════════════
 
-  // ── EFFEKT-PRESET-ANWENDUNG ═════════════════════════════
-  const applyEffectPreset = (preset: EffectPreset) => {
-    setSelectedPreset(preset.id)
-    setColorGrade(preset.colorGrade)
-    setTransitionType(preset.transitionType)
-    setCaptionStyle(preset.captionStyle)
-    setStickersEnabled(preset.stickersEnabled)
-    setSfxEnabled(preset.sfxEnabled)
-    if (preset.ambientType) {
-      setAmbientType(preset.ambientType)
-    }
-  }
-
   if (remotionAvailable === null) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -1488,12 +1441,6 @@ stickersEnabled,
                 </div>
               </div>
 
-              {/* Effekt-Preset */}
-              <EffectPresetSelector
-                value={selectedPreset}
-                onApply={applyEffectPreset}
-              />
-
               {/* KI-Modell Auswahl */}
               <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                 <div className="space-y-0.5">
@@ -1574,27 +1521,6 @@ stickersEnabled,
                         </label>
                       </div>
                       <p className="text-[10px] text-muted-foreground">{KEEP_ORIGINAL_AUDIO_HINT}</p>
-                    </div>
-                  )}
-
-                  {/* ── NEU: Speed-Ramping (nur bei Video) ──────────── */}
-                  {hasVideo && (
-                    <div className="p-3 bg-muted/30 rounded-lg space-y-1 mt-3">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-xs sm:text-sm font-medium flex items-center gap-1">
-                          ⚡ Speed-Ramp bei Video-Clips (Beta)
-                        </Label>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={speedRampEnabled}
-                            onChange={e => setSpeedRampEnabled(e.target.checked)}
-                            className="sr-only peer"
-                          />
-                          <div className="w-9 h-5 bg-muted-foreground/30 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary" />
-                        </label>
-                      </div>
-                      <p className="text-[10px] text-muted-foreground">Slow-Mo-Intro gefolgt von Punch-Out</p>
                     </div>
                   )}
                 </div>
@@ -1993,21 +1919,6 @@ stickersEnabled,
                   </Select>
                 </div>
 
-                {/* Farblook */}
-                <div>
-                  <Label className="text-xs sm:text-sm">Farblook</Label>
-                  <Select value={colorGrade} onValueChange={setColorGrade}>
-                    <SelectTrigger className="mt-1 text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {COLOR_GRADE_OPTIONS.map(o => (
-                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
                 {/* Caption-Stil */}
                 <div>
                   <Label className="text-xs sm:text-sm flex items-center gap-1">
@@ -2118,44 +2029,6 @@ stickersEnabled,
                   <p className="text-[10px] text-muted-foreground mt-1">
                     Via FFmpeg generiert · Lautstärke ~15%
                   </p>
-                </div>
-
-                {/* Sticker-Pops */}
-                <div className="p-2 bg-muted/20 rounded-lg space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs sm:text-sm cursor-pointer flex items-center gap-2">
-                      ✨ Sticker-Pops (Beta)
-                      <span className="text-[10px] text-muted-foreground">an Cuts</span>
-                    </Label>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={stickersEnabled}
-                        onChange={e => setStickersEnabled(e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-9 h-5 bg-muted-foreground/30 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary" />
-                    </label>
-                  </div>
-                </div>
-
-                {/* Sound-SFX */}
-                <div className="p-2 bg-muted/20 rounded-lg space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs sm:text-sm cursor-pointer flex items-center gap-2">
-                      🔊 Sound-Effekte auf Schnitte (Beta)
-                      <span className="text-[10px] text-muted-foreground">Whoosh/Ding/Impact</span>
-                    </Label>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={sfxEnabled}
-                        onChange={e => setSfxEnabled(e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-9 h-5 bg-muted-foreground/30 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary" />
-                    </label>
-                  </div>
                 </div>
 
                 {/* RouteMap */}
