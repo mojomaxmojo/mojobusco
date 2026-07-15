@@ -156,6 +156,13 @@ export interface MojoBusVideoProps {
   /** URLs der generierten SFX-WAV-Dateien, keyed nach Typ (whoosh/ding/impact) */
   sfxUrls?: Record<string, string>;
 
+  /**
+   * Speed-Ramping bei Video-Clips (Beta): erste Hälfte des Slides läuft
+   * langsamer (Slow-Mo-Intro), zweite Hälfte schneller (Punch-Out).
+   * Nur wirksam auf Video-Slides, Bild-Slides bleiben unberührt. Default: false
+   */
+  speedRampEnabled?: boolean;
+
 }
 
 // ── Hook-Dauer pro Plattform ─────────────────────────────────────────────
@@ -267,6 +274,9 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
   sfxEnabled = false,
   sfxUrls,
 
+  // Speed-Ramping
+  speedRampEnabled = false,
+
   // Voiceover
   voiceoverUrl,
   perSlideArray,
@@ -354,8 +364,48 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
   // Musik/Voiceover/Ambient (eigene AudioLayer). muted=true erspart das
   // Downloaden/Dekodieren der Audiospur zusätzlich Zeit UND verhindert,
   // dass Remotion die komplette Videodatei für die Audiospur laden muss.
-  const MediaRenderer: React.FC<{ src: string; index: number; allowAudio?: boolean }> = ({ src, index, allowAudio = false }) => {
+  // speedRamp: Slow-Mo-Intro (0.6x) → Punch-Out (1.4x), siehe FEATURE-PLAN.md
+  // Schritt 8. Remotion <Video> erlaubt nur einen STATISCHEN playbackRate pro
+  // Element (keine dynamische Rampe) → die "Rampe" wird über zwei aufeinander-
+  // folgende <Video>-Ausschnitte mit je fester Rate nachgebaut. slideFrames
+  // = Dauer dieses Slides (ohne Transitions-Überlappung), Mitte = Trim-Punkt.
+  const MediaRenderer: React.FC<{ src: string; index: number; allowAudio?: boolean; speedRamp?: boolean; slideFrames?: number }> = ({ src, index, allowAudio = false, speedRamp = false, slideFrames = 0 }) => {
     if (isVideo(src)) {
+      if (speedRamp && slideFrames > 0) {
+        const midFrame = Math.round(slideFrames / 2);
+        return (
+          <AbsoluteFill style={{ overflow: 'hidden' }}>
+            <Sequence from={0} durationInFrames={midFrame} layout="none">
+              <Video
+                src={src}
+                muted={!allowAudio}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                delayRenderTimeoutInMilliseconds={45000}
+                delayRenderRetries={3}
+                trimAfter={midFrame}
+                playbackRate={0.6}
+                onError={(err) => {
+                  console.warn(`[MojoBusVideo] Video Fehler (Speed-Ramp Slow-Mo) bei ${src}:`, err);
+                }}
+              />
+            </Sequence>
+            <Sequence from={midFrame} durationInFrames={slideFrames - midFrame} layout="none">
+              <Video
+                src={src}
+                muted={!allowAudio}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                delayRenderTimeoutInMilliseconds={45000}
+                delayRenderRetries={3}
+                trimBefore={midFrame}
+                playbackRate={1.4}
+                onError={(err) => {
+                  console.warn(`[MojoBusVideo] Video Fehler (Speed-Ramp Punch-Out) bei ${src}:`, err);
+                }}
+              />
+            </Sequence>
+          </AbsoluteFill>
+        );
+      }
       return (
         <AbsoluteFill style={{ overflow: 'hidden' }}>
           <Video
@@ -511,7 +561,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
 
           // Effekt-Kette (innen → außen): Media → MatchCut → Punch → Whip → FadeOut
           let slideContent: React.ReactNode = !isRoute ? (
-            <MediaRenderer src={images[def.imageIdx]} index={def.imageIdx + 1} allowAudio={keepOriginalAudio} />
+            <MediaRenderer src={images[def.imageIdx]} index={def.imageIdx + 1} allowAudio={keepOriginalAudio} speedRamp={speedRampEnabled} slideFrames={thisSlideFrames} />
           ) : null;
           if (matchCut) {
             slideContent = (

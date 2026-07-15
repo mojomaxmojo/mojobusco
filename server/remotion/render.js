@@ -976,6 +976,7 @@ export async function renderMojoBusVideo(params) {
     keepOriginalAudio = false,
     stickersEnabled = false,
     sfxEnabled = false,
+    speedRampEnabled = false,
   } = params;
 
   if (!imageUrls || imageUrls.length === 0) {
@@ -1216,6 +1217,7 @@ export async function renderMojoBusVideo(params) {
       keepOriginalAudio,
       stickersEnabled,
       sfxEnabled, sfxUrls: httpSfxUrls,
+      speedRampEnabled,
     };
 
     const composition = await selectComposition({

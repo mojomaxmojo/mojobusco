@@ -357,6 +357,7 @@ export function TikTokPromotion() {
   const [colorGrade, setColorGrade] = useState('auto')
   const [stickersEnabled, setStickersEnabled] = useState(false)
   const [sfxEnabled, setSfxEnabled] = useState(false)
+  const [speedRampEnabled, setSpeedRampEnabled] = useState(false)
   const [activeEffectPreset, setActiveEffectPreset] = useState<EffectPresetId | null>(null)
 
   // ── AMBIENT ══════════════════════════════════════════════
@@ -761,6 +762,7 @@ export function TikTokPromotion() {
         return v > 0 ? v : undefined
       }),
       keepOriginalAudio,
+      speedRampEnabled,
     }
 
     // ── Echte GPS-Route statt Demo-Route ─────────────────────────────────
@@ -1582,6 +1584,27 @@ export function TikTokPromotion() {
                         </label>
                       </div>
                       <p className="text-[10px] text-muted-foreground">{KEEP_ORIGINAL_AUDIO_HINT}</p>
+                    </div>
+                  )}
+
+                  {/* ── NEU: Speed-Ramp bei Video-Clips (Beta, nur bei Video) ── */}
+                  {hasVideo && (
+                    <div className="p-3 bg-muted/30 rounded-lg space-y-1 mt-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs sm:text-sm font-medium flex items-center gap-1">
+                          ⚡ Speed-Ramp bei Video-Clips (Beta)
+                        </Label>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={speedRampEnabled}
+                            onChange={e => setSpeedRampEnabled(e.target.checked)}
+                            className="sr-only peer"
+                          />
+                          <div className="w-9 h-5 bg-muted-foreground/30 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary" />
+                        </label>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">Erste Hälfte des Clips langsamer (Slow-Mo), zweite Hälfte schneller (Punch-Out).</p>
                     </div>
                   )}
                 </div>
