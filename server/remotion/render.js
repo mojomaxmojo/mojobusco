@@ -971,6 +971,7 @@ export async function renderMojoBusVideo(params) {
      */
     videoSeconds,
     keepOriginalAudio = false,
+    stickersEnabled = false,
   } = params;
 
   if (!imageUrls || imageUrls.length === 0) {
@@ -1179,6 +1180,7 @@ export async function renderMojoBusVideo(params) {
       showLottieBus,
       cinematicEffects,                     // ← Plattform-Matrix-Effekte
       keepOriginalAudio,
+      stickersEnabled,
     };
 
     const composition = await selectComposition({

@@ -96,7 +96,7 @@ und die 3 neuen Grade-Definitionen fehlten bisher.
 ## Schritt 3 – Animierte Sticker/Emoji-Pops an Cut-Punkten
 
 **Neue Datei: `server/remotion/components/StickerPops.tsx`**
-- `export function pickStickerForCut(cutIndex: number): string` — deterministische Rotation durch eine kleine Emoji-Liste (`📍`, `🔥`, `❤️`, `✨`), analog zu `pickCutEffect` in `CinematicEffects.tsx`, aber komplett unabhängig (keine Änderung an `CUT_ROTATION`)
+- `export function pickStickerForCut(cutIndex: number): string` — deterministische Rotation durch eine kleine Emoji-Liste (`📍`, `☀️`, `❤️`, `✨`), analog zu `pickCutEffect` in `CinematicEffects.tsx`, aber komplett unabhängig (keine Änderung an `CUT_ROTATION`)
 - `export const StickerPop: React.FC<{ emoji: string }>` — zeigt das Emoji zentriert/leicht versetzt, poppt mit `spring()` rein (Scale 0→1.2→1) und faded nach ~0,6s aus (gleiches Zeitfenster-Muster wie `FlashCut`)
 - `export function stickerPopDuration(fps: number): number` — Dauer der Sequence in Frames (analog `flashCutDuration`)
 
@@ -389,8 +389,8 @@ aufeinanderfolgende Video-Ausschnitte mit je einer festen Rate** nachgebaut
 ## ✅ Checkliste
 
 - [x] Schritt 1: 3 neue Fundament-Dateien (`effectPresets.ts`, `CaptionHeroWord.ts`, `sfx.js`) – keine Wirkung
-- [x] Schritt 2: Trendy Filter-Presets (VHS/Glitch/Duotone) – neue Grades + Frontend-Select
-- [ ] Schritt 3: Sticker/Emoji-Pops an Cuts (Beta-Toggle, default aus)
+- [ ] Schritt 2: Trendy Filter-Presets (VHS/Glitch/Duotone) – neue Grades + Frontend-Select
+- [x] Schritt 3: Sticker/Emoji-Pops an Cuts (Beta-Toggle, default aus)
 - [ ] Schritt 4: Sound-SFX-Layer (Whoosh/Ding/Impact, Beta-Toggle, default aus)
 - [ ] Schritt 5: Hook-Wort-Zoom (KI markiert Schlüsselwort, Zusatz-Zoom darauf)
 - [ ] Schritt 6: Effekt-Presets im UI (1-Klick-Kombi aus Grade+Übergang+Captions+SFX+Sticker)

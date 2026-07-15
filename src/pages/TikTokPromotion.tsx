@@ -341,6 +341,7 @@ export function TikTokPromotion() {
   const [beatSync, setBeatSync] = useState('medium')
   const [captionStyle, setCaptionStyle] = useState<'chunked' | 'full-line'>('full-line')
   const [colorGrade, setColorGrade] = useState('auto')
+  const [stickersEnabled, setStickersEnabled] = useState(false)
 
   // ── AMBIENT ══════════════════════════════════════════════
   const [ambientType, setAmbientType] = useState('__none__')
@@ -731,6 +732,7 @@ export function TikTokPromotion() {
       beatSyncStrength: beatSyncVal,
       transitionType: transitionType || 'auto',
       colorGrade: colorGrade !== 'auto' ? colorGrade : undefined,
+      stickersEnabled,
       showLottieBus: true,
       showRouteMap,
       muteVoiceoverSlide: showRouteMap ? Math.floor(articleImages.length / 2) : -1,
@@ -2060,6 +2062,24 @@ export function TikTokPromotion() {
                   <p className="text-[10px] text-muted-foreground mt-1">
                     Via FFmpeg generiert · Lautstärke ~15%
                   </p>
+                </div>
+
+                {/* Sticker-Pops */}
+                <div className="p-2 bg-muted/20 rounded-lg space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs sm:text-sm cursor-pointer flex items-center gap-2">
+                      ✨ Sticker-Pops (Beta)
+                    </Label>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={stickersEnabled}
+                        onChange={e => setStickersEnabled(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-muted-foreground/30 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary" />
+                    </label>
+                  </div>
                 </div>
 
                 {/* RouteMap */}
