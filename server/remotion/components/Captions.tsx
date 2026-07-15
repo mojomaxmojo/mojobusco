@@ -16,6 +16,7 @@
 import React from 'react';
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 import { FONT_FAMILY, FONT_FAMILY_REGULAR, FONT_WEIGHT, TEXT_STYLES } from './Fonts';
+import { stripHeroMarkup } from './CaptionHeroWord';
 
 // ── Typen ─────────────────────────────────────────────────────────────────
 
@@ -334,8 +335,9 @@ export const PerSlideCaption: React.FC<PerSlideCaptionProps> = ({
 
   const captionText = captions[slideIndex];
   if (!captionText || !captionText.trim()) return null;
+  const displayText = stripHeroMarkup(captionText);
 
-  const words = captionText.trim().split(/\s+/).filter(Boolean);
+  const words = displayText.trim().split(/\s+/).filter(Boolean);
   if (words.length === 0) return null;
 
   // Wort-Timing innerhalb dieses Slides

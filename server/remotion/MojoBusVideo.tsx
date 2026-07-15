@@ -63,6 +63,7 @@ import {
 } from './components/CinematicEffects';
 import { pickStickerForCut, StickerPop, stickerPopDuration } from './components/StickerPops';
 import { buildSfxCues, SfxLayer } from './components/SfxLayer';
+import { findHeroWordWindow } from './components/CaptionHeroWord';
 
 // ── Props Interface ────────────────────────────────────────────────────────
 
@@ -438,6 +439,20 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
         })
     : [];
 
+  // ── Hook-Wort-Zoom: Fenster des per **...** markierten Wortes pro Slide ─
+  // Reine Berechnung (keine Wirkung ohne den erweiterten punchHere-Check
+  // unten in der Slideshow-Schleife). Nur Bild-Slides mit vorhandener
+  // Caption werden geprüft; Route-Slides und fehlende Captions liefern null.
+  const heroWordWindows = slideDefs
+    .map((def, i) => {
+      if (def.type !== 'image') return null;
+      const captionText = captions[def.imageIdx];
+      if (!captionText) return null;
+      const win = findHeroWordWindow(captionText, slideStartFrame(i), def.frames);
+      return win ? { slideIndex: i, ...win } : null;
+    })
+    .filter((w): w is { slideIndex: number; startFrame: number; endFrame: number } => w !== null);
+
   return (
     <AbsoluteFill style={{ background: '#000' }}>
 
@@ -478,7 +493,8 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
           const hasWhipIn  = !isRoute && i > 0 && cutFx[i] === 'whip' && prevDef?.type !== 'route';
           // Kein WhipOut in eine Route-Slide hinein (Karte whippt nicht rein → inkonsistent)
           const hasWhipOut = !isRoute && !isLastSlide && cutFx[i + 1] === 'whip' && nextDef?.type !== 'route';
-          const punchHere  = !isRoute && fx.zoomPunchScale > 0 && cutFx[i] !== 'whip' && i > 0;
+          const punchHere  = (!isRoute && fx.zoomPunchScale > 0 && cutFx[i] !== 'whip' && i > 0) ||
+            heroWordWindows.some(w => w.slideIndex === i);
           const matchCut   = !isRoute ? matchCutMap[i] : undefined;
 
           // Effekt-Kette (innen → außen): Media → MatchCut → Punch → Whip → FadeOut

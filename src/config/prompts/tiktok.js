@@ -158,6 +158,27 @@ FRAGMENT-REGEL: NUR die letzte bodyLine darf ein Foster-Fragment sein
 }
 
 // ================================================================================
+// HERO-WORT-MARKIERUNG (fuer Schritt 5 Hook-Wort-Zoom, siehe FEATURE-PLAN.md)
+// ================================================================================
+
+/**
+ * Rein additive Formatvorgabe: die KI markiert pro bodyLine genau EIN
+ * Schluesselwort mit **doppelten Sternchen**. Wird spaeter im Video
+ * automatisch entfernt (Anzeige) und fuer einen kurzen Zusatz-Zoom auf
+ * genau diesem Wort genutzt. Aendert nichts an Foster-Rhythmus, Hook-
+ * Mechaniken oder sonstigen bestehenden Regeln.
+ */
+const HERO_WORD_RULE = `
+HERO-WORT-MARKIERUNG (Pflicht fuer jede bodyLine):
+Markiere in JEDER bodyLine genau EIN Schluesselwort mit doppelten Sternchen
+(z.B. "**Wueste** wartet nicht."). Waehle das Wort, das den staerksten
+visuellen oder emotionalen Ankerpunkt der Zeile traegt \u2013 meist ein Nomen
+oder eine Zahl, nie ein Fuellwort (Artikel, Pronomen, "und", "aber").
+Genau EIN markiertes Wort pro Zeile \u2013 nicht mehr, nicht weniger.
+Die Sternchen selbst werden spaeter automatisch entfernt und nur fuer ein
+kurzes visuelles Zoom-Highlight auf diesem Wort verwendet.`
+
+// ================================================================================
 // WATCHTIME-REGELN (Koeder + Soft-Loop \u2013 fuer alle Templates ausser 'retention')
 // ================================================================================
 
@@ -542,6 +563,7 @@ export function generateTikTokUserPrompt({
     'FALSCH: "Der Morgen ist still." (ruhig, nichts offen \u2013 Zuschauer weg)\n' +
     'RICHTIG: ein Gedanke der weiterzieht, ohne den Hook zu erklaeren.\n\n' +
     buildFosterRhythm(imageCount, plat.bodyMaxChars) + '\n\n' +
+    HERO_WORD_RULE + '\n\n' +
     (isRetention ? RETENTION_RULES + '\n\n' : '') +
     (!isRetention && watchtimeRules ? watchtimeRules + '\n\n' : '') +
     voRules + '\n\n' +
