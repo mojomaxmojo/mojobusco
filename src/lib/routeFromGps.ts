@@ -288,6 +288,38 @@ function thinPoints(points: GpsPoint[], max: number): GpsPoint[] {
   return result;
 }
 
+/**
+ * Baut aus GENAU EINEM echten GPS-Punkt eine minimale 2-Punkte-Route.
+ *
+ * Hintergrund (Bugfix): `buildRouteFromContent()` verlangt mindestens 2
+ * Stationen, um eine Route zu liefern. Bei nur einer ausgewählten Location
+ * gab es bisher `source: 'none'`, wodurch die Karte auf den hartcodierten
+ * Demo-Fallback (immer "Sagres" für Portugal) zurückfiel, statt die echte
+ * Location zu zeigen.
+ *
+ * Diese Funktion erzeugt einen unbeschrifteten "Anker"-Punkt ca. 5-6 km
+ * nördlich des echten Punkts (rein geometrisch, nur zur Linienbildung) und
+ * gibt den echten Punkt mit seinem echten Label als Ziel zurück. Damit hat
+ * `RouteMapLine` die nötigen ≥2 Punkte, zeigt aber als einzige Beschriftung
+ * die ECHTE Location.
+ *
+ * Reine Funktion, keine Seiteneffekte. Wird aktuell noch NICHT aufgerufen.
+ */
+function buildSingleLocationRoute(point: GpsPoint): GpsPoint[] {
+  const OFFSET_KM = 5.5;
+  const KM_PER_DEGREE_LAT = 111; // grobe Näherung, reicht für kurze Anker-Distanz
+  const deltaLat = OFFSET_KM / KM_PER_DEGREE_LAT;
+
+  const anchor: GpsPoint = {
+    lat: point.lat + deltaLat,
+    lon: point.lon,
+    createdAt: point.createdAt,
+    // bewusst kein label → einzige Beschriftung bleibt die echte Location
+  };
+
+  return [anchor, { ...point }];
+}
+
 // ── GPS → Prozent-Koordinaten (Videobild) ─────────────────────────────────
 
 /**
