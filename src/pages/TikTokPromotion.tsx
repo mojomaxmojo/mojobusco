@@ -69,6 +69,18 @@ function getApiBaseUrl(): string {
   return ''
 }
 
+// ── Hero-Wort-Markup ══════════════════════════════════════════
+// Die KI markiert pro bodyLine ein Schlüsselwort mit **Wort** (siehe
+// FEATURE-PLAN.md Schritt 5 – Hook-Wort-Zoom). Dieses Markup ist NUR für
+// die Video-Caption gedacht (steuert dort den Zusatz-Zoom). Überall sonst,
+// wo bodyText angezeigt, kopiert, exportiert oder gesprochen wird
+// (Voiceover, TikTok-Text-Kopie, Nostr-Publish-Beschreibung, Vorschau-Karten),
+// müssen die Sternchen entfernt werden.
+function stripHeroMarkup(text: string): string {
+  if (!text) return text
+  return text.replace(/\*\*(.+?)\*\*/g, '$1')
+}
+
 // ═══════════════════════════════════════════════════════════
 // Drag&Drop – @dnd-kit für Medien-Sortierung
 // ═══════════════════════════════════════════════════════════
@@ -904,7 +916,7 @@ export function TikTokPromotion() {
       // Beschreibungstext: Foster-Sätze als Alt/Content
       const descriptionLines = [
         hookText,
-        ...bodyText.split('\n').filter((l: string) => l.trim()),
+        ...bodyText.split('\n').filter((l: string) => l.trim()).map((l: string) => stripHeroMarkup(l)),
         bridgeText,
       ].filter(Boolean)
       const description = descriptionLines.join('\n')
@@ -1197,7 +1209,7 @@ export function TikTokPromotion() {
     const text = [
       hookText,
       '',
-      ...bodyText.split('\n').filter(l => l.trim()),
+      ...bodyText.split('\n').filter(l => l.trim()).map(l => stripHeroMarkup(l)),
       '',
       `${bridgeText} – ${ctaText}`,
       '',
@@ -1217,10 +1229,8 @@ export function TikTokPromotion() {
   // im Video). Dieses Markup ist NUR für die visuelle Caption gedacht –
   // fürs Voiceover müssen die Sternchen entfernt werden, sonst spricht die
   // TTS-Engine "Sternchen Sternchen Wort Sternchen Sternchen" mit.
-  const stripHeroMarkupForVoiceover = (text: string) => text.replace(/\*\*(.+?)\*\*/g, '$1')
-
   const voiceoverText = voiceoverEnabled
-    ? stripHeroMarkupForVoiceover(bodyText.split('\n').filter(l => l.trim()).join('. '))
+    ? stripHeroMarkup(bodyText.split('\n').filter(l => l.trim()).join('. '))
     : ''
 
   // ── VOICEOVER SEGMENTS (pro Slide) ════════════════════
@@ -1230,7 +1240,7 @@ export function TikTokPromotion() {
   // Voiceover = Stille). Positionen müssen 1:1 den Slides entsprechen – sonst
   // verschiebt sich der Audio-Sync (render.js generiert für '' reine Stille).
   const voBodyLines = voiceoverEnabled
-    ? bodyText.split('\n').map(l => stripHeroMarkupForVoiceover(l.trim()))
+    ? bodyText.split('\n').map(l => stripHeroMarkup(l.trim()))
     : []
   // Führende/abschließende Leerzeilen entfernen (innere bleiben = Stille-Slides)
   while (voBodyLines.length > 0 && !voBodyLines[0]) voBodyLines.shift()
@@ -1857,7 +1867,7 @@ export function TikTokPromotion() {
                 <div className="p-2 bg-primary/5 rounded text-xs text-muted-foreground space-y-1">
                   <p className="font-medium">📋 Vorschau:</p>
                   <p className="italic">
-                    [{hookText}] → [{bodyText.split('\n').filter(l => l.trim()).join(' · ')}] → [{bridgeText}]
+                    [{hookText}] → [{bodyText.split('\n').filter(l => l.trim()).map(l => stripHeroMarkup(l)).join(' · ')}] → [{bridgeText}]
                   </p>
                   {thumbnailText && (
                     <p className="text-[10px] text-muted-foreground/70">
@@ -2257,7 +2267,7 @@ export function TikTokPromotion() {
                   {hookText}
                   {'\n'}
                   {bodyText.split('\n').filter((l: string) => l.trim()).map((l: string, i: number) => (
-                    <span key={i}>{l.trim()}{'\n'}</span>
+                    <span key={i}>{stripHeroMarkup(l.trim())}{'\n'}</span>
                   ))}
                   {'\n'}
                   {bridgeText} – {ctaText}

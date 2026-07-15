@@ -497,14 +497,16 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
           const heroWindow = heroWordWindows.find(w => w.slideIndex === i);
           const punchHere  = cutPunchHere || !!heroWindow;
           // Trigger-Frame für den Punch (lokal zur Sequence, die bei
-          // absoluteStart beginnt): Cut-Punch schlägt wie bisher bei
-          // Sequence-Start (0) ein. Reiner Hero-Wort-Punch (kein Cut-Punch
-          // auf diesem Slide) schlägt zum Zeitpunkt der Wort-Einblendung ein.
-          const punchTriggerFrame = cutPunchHere
-            ? 0
-            : heroWindow
-              ? Math.max(0, heroWindow.startFrame - absoluteStart)
-              : 0;
+          // absoluteStart beginnt): Ein ZoomPunchWrapper kann nur EINEN
+          // Zeitpunkt bedienen. Liegt auf diesem Slide ein Hero-Wort-Fenster
+          // vor, hat es IMMER Vorrang vor dem normalen Cut-Punch (der sonst
+          // bei triggerFrame=0 feuern würde und auf TikTok fast immer aktiv
+          // ist) – sonst würde der explizit gewünschte Hook-Wort-Zoom auf
+          // den meisten Slides nie sichtbar werden. Ohne Hero-Fenster bleibt
+          // das bestehende Cut-Punch-Verhalten (triggerFrame=0) unverändert.
+          const punchTriggerFrame = heroWindow
+            ? Math.max(0, heroWindow.startFrame - absoluteStart)
+            : 0;
           const matchCut   = !isRoute ? matchCutMap[i] : undefined;
 
           // Effekt-Kette (innen → außen): Media → MatchCut → Punch → Whip → FadeOut
@@ -519,12 +521,12 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
             );
           }
           if (punchHere) {
-            // Hero-Wort-Punch (ohne Cut-Punch auf diesem Slide) nutzt eine
-            // feste, moderate Stärke (0.08, siehe FEATURE-PLAN.md Schritt 5),
-            // unabhängig von der Plattform-Matrix (die für diesen Slide ggf.
-            // 0 liefert, z.B. YouTube). Cut-Punch bleibt unverändert bei
-            // fx.zoomPunchScale.
-            const punchScaleHere = cutPunchHere ? fx.zoomPunchScale : 0.08;
+            // Hero-Wort-Punch nutzt eine feste, moderate Stärke (0.08, siehe
+            // FEATURE-PLAN.md Schritt 5), unabhängig von der Plattform-Matrix
+            // (die für diesen Slide ggf. 0 liefert, z.B. YouTube) und hat
+            // Vorrang vor dem Cut-Punch-Wert (siehe punchTriggerFrame oben).
+            // Ohne Hero-Fenster bleibt der normale Cut-Punch bei fx.zoomPunchScale.
+            const punchScaleHere = heroWindow ? 0.08 : fx.zoomPunchScale;
             slideContent = (
               <ZoomPunchWrapper punchScale={punchScaleHere} triggerFrame={punchTriggerFrame}>
                 {slideContent}
