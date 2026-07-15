@@ -326,6 +326,9 @@ import { measureSlideVideoDurations } from './videoDuration.js';
 // ── Ambient Sounds (optional) ──────────────────────────────────────────────
 import { generateAmbient } from './ambient.js';
 
+// ── Sound-SFX (optional, Beta) ─────────────────────────────────────────────
+import { generateSfx, SFX_TYPES } from './sfx.js';
+
 // ── Audio Loudness-Normalisierung ─────────────────────────────────────────
 import { normalizeRenderedVideo } from './audioNormalize.js';
 
@@ -972,6 +975,7 @@ export async function renderMojoBusVideo(params) {
     videoSeconds,
     keepOriginalAudio = false,
     stickersEnabled = false,
+    sfxEnabled = false,
   } = params;
 
   if (!imageUrls || imageUrls.length === 0) {
@@ -1102,6 +1106,21 @@ export async function renderMojoBusVideo(params) {
         console.warn(`[Remotion] ⚠️ Atmo fehlgeschlagen: ${atmoErr.message} – fahre ohne fort`);
       }
     }
+
+    // SFX (Whoosh/Ding/Impact) – nur wenn aktiviert (Beta-Toggle)
+    if (sfxEnabled) {
+      try {
+        console.log(`[Remotion] 🔊 SFX generieren: ${SFX_TYPES.join(', ')}`);
+        for (const type of SFX_TYPES) {
+          const sfxPath = path.join(sessionDir, `sfx-${type}.wav`);
+          await generateSfx(type, sfxPath);
+          try { fs.chmodSync(sfxPath, 0o644); } catch (e) {}
+        }
+        console.log(`[Remotion] ✅ SFX generiert`);
+      } catch (sfxErr) {
+        console.warn(`[Remotion] ⚠️ SFX fehlgeschlagen: ${sfxErr.message} – fahre ohne fort`);
+      }
+    }
   } catch (err) {
     try { fs.rmSync(sessionDir, { recursive: true, force: true }); } catch (e) {}
     throw new Error(`Download fehlgeschlagen: ${err.message}`);
@@ -1114,6 +1133,7 @@ export async function renderMojoBusVideo(params) {
   let httpMapImageUrl;
   let httpVoiceoverUrl = null;  // Single voiceover_sync.mp3 (concat)
   let httpAmbientUrl = null;
+  let httpSfxUrls = null;
 
   try {
     imageServer = await startImageServer(sessionDir);
@@ -1139,6 +1159,20 @@ export async function renderMojoBusVideo(params) {
     if (ambientType && fs.existsSync(path.join(sessionDir, 'ambient.wav'))) {
       httpAmbientUrl = `${base}/ambient.wav`;
       console.log(`[Remotion] Ambient-URL: ${httpAmbientUrl}`);
+    }
+
+    // SFX-URLs: lokal wenn generiert (sfx-{type}.wav)
+    if (sfxEnabled) {
+      const generatedSfxUrls = {};
+      for (const type of SFX_TYPES) {
+        if (fs.existsSync(path.join(sessionDir, `sfx-${type}.wav`))) {
+          generatedSfxUrls[type] = `${base}/sfx-${type}.wav`;
+        }
+      }
+      if (Object.keys(generatedSfxUrls).length > 0) {
+        httpSfxUrls = generatedSfxUrls;
+        console.log(`[Remotion] SFX-URLs: ${Object.keys(httpSfxUrls).join(', ')}`);
+      }
     }
 
     // Karten-URL: lokal wenn Download OK, sonst Original-URL
@@ -1181,6 +1215,7 @@ export async function renderMojoBusVideo(params) {
       cinematicEffects,                     // ← Plattform-Matrix-Effekte
       keepOriginalAudio,
       stickersEnabled,
+      sfxEnabled, sfxUrls: httpSfxUrls,
     };
 
     const composition = await selectComposition({

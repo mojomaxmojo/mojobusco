@@ -62,6 +62,7 @@ import {
   MatchCutZoomWrapper,
 } from './components/CinematicEffects';
 import { pickStickerForCut, StickerPop, stickerPopDuration } from './components/StickerPops';
+import { buildSfxCues, SfxLayer } from './components/SfxLayer';
 
 // ── Props Interface ────────────────────────────────────────────────────────
 
@@ -148,6 +149,11 @@ export interface MojoBusVideoProps {
 
   /** Animierte Sticker/Emoji-Pops an Cut-Punkten (Beta). Default: false */
   stickersEnabled?: boolean;
+
+  /** Sound-SFX (Whoosh/Ding/Impact) auf Cut-Punkten (Beta). Default: false */
+  sfxEnabled?: boolean;
+  /** URLs der generierten SFX-WAV-Dateien, keyed nach Typ (whoosh/ding/impact) */
+  sfxUrls?: Record<string, string>;
 
 }
 
@@ -255,6 +261,10 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
 
   // Sticker-Pops
   stickersEnabled = false,
+
+  // Sound-SFX
+  sfxEnabled = false,
+  sfxUrls,
 
   // Voiceover
   voiceoverUrl,
@@ -815,6 +825,17 @@ fadeInSec={0.3}
           </Sequence>
         );
       })}
+
+      {/* ══ NEU SCHICHT 15: Sound-SFX (Whoosh/Ding/Impact) auf Cuts (Beta) ═════
+           Rein additiv, gated hinter sfxEnabled (Default: false). Nutzt
+           dieselben Cut-Frames wie FlashCut/LightLeak/StickerPop. */}
+      {sfxEnabled && sfxUrls && (
+        <SfxLayer
+          cues={buildSfxCues(cutFx, slideDefs.map((_, i) => slideStartFrame(i)))}
+          sfxUrls={sfxUrls}
+          volume={0.5}
+        />
+      )}
 
     </AbsoluteFill>
   );
