@@ -210,6 +210,20 @@ const TRANSITION_OPTIONS = [
   { value: 'glitch', label: '📺 Glitch' },
 ]
 
+/** Farblook-Optionen (Color-Grade-Presets) */
+const COLOR_GRADE_OPTIONS = [
+  { value: 'auto', label: '🎨 Auto' },
+  { value: 'golden', label: '✨ Golden' },
+  { value: 'warm', label: '🔥 Warm' },
+  { value: 'moody', label: '🌙 Moody' },
+  { value: 'blue', label: '🌊 Blue' },
+  { value: 'teal-orange', label: '🎬 Teal-Orange' },
+  { value: 'vintage', label: '📻 Vintage' },
+  { value: 'vhs', label: '📺 VHS' },
+  { value: 'glitch', label: '🌀 Glitch' },
+  { value: 'duotone', label: '🎭 Duotone' },
+]
+
 // ═══════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════
@@ -326,6 +340,7 @@ export function TikTokPromotion() {
   const [secondsPerImage, setSecondsPerImage] = useState(4)
   const [beatSync, setBeatSync] = useState('medium')
   const [captionStyle, setCaptionStyle] = useState<'chunked' | 'full-line'>('full-line')
+  const [colorGrade, setColorGrade] = useState('auto')
 
   // ── AMBIENT ══════════════════════════════════════════════
   const [ambientType, setAmbientType] = useState('__none__')
@@ -715,6 +730,7 @@ export function TikTokPromotion() {
       accentColor: '#F59E0B',
       beatSyncStrength: beatSyncVal,
       transitionType: transitionType || 'auto',
+      colorGrade: colorGrade !== 'auto' ? colorGrade : undefined,
       showLottieBus: true,
       showRouteMap,
       muteVoiceoverSlide: showRouteMap ? Math.floor(articleImages.length / 2) : -1,
@@ -1913,6 +1929,21 @@ export function TikTokPromotion() {
                     </SelectTrigger>
                     <SelectContent>
                       {TRANSITION_OPTIONS.map(o => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Farblook */}
+                <div>
+                  <Label className="text-xs sm:text-sm">Farblook</Label>
+                  <Select value={colorGrade} onValueChange={setColorGrade}>
+                    <SelectTrigger className="mt-1 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {COLOR_GRADE_OPTIONS.map(o => (
                         <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
                       ))}
                     </SelectContent>

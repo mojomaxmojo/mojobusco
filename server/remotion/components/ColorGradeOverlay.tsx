@@ -5,12 +5,13 @@
 
 import { AbsoluteFill } from 'remotion';
 
-export type ColorGrade = 'golden' | 'warm' | 'moody' | 'blue' | 'teal-orange' | 'vintage' | 'none';
+export type ColorGrade = 'golden' | 'warm' | 'moody' | 'blue' | 'teal-orange' | 'vintage' | 'vhs' | 'glitch' | 'duotone' | 'none';
 
 const GRADES: Record<ColorGrade, {
   filter: string;
   overlay: string;
   opacity: number;
+  blendMode?: string;
 }> = {
   golden: {
     filter: 'contrast(1.05) saturate(1.15) brightness(1.02)',
@@ -41,6 +42,22 @@ const GRADES: Record<ColorGrade, {
     filter: 'contrast(1.05) saturate(0.75) brightness(0.98) sepia(0.25)',
     overlay: 'linear-gradient(135deg, rgba(180,150,80,0.15) 0%, rgba(100,60,20,0.12) 100%)',
     opacity: 1,
+  },
+  vhs: {
+    filter: 'contrast(1.1) saturate(1.3) brightness(1.05)',
+    overlay: 'linear-gradient(90deg, rgba(0,255,255,0.12) 0%, rgba(0,0,0,0) 50%, rgba(255,0,255,0.12) 100%)',
+    opacity: 1,
+  },
+  glitch: {
+    filter: 'contrast(1.2) saturate(1.4) hue-rotate(-5deg)',
+    overlay: 'repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0px, rgba(0,0,0,0.15) 1px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 3px)',
+    opacity: 1,
+  },
+  duotone: {
+    filter: 'grayscale(1) contrast(1.15)',
+    overlay: 'linear-gradient(135deg, rgba(255,150,20,0.9) 0%, rgba(20,40,120,0.9) 100%)',
+    opacity: 1,
+    blendMode: 'color',
   },
   none: {
     filter: 'none',
@@ -78,7 +95,7 @@ export const ColorGradeOverlay: React.FC<ColorGradeOverlayProps> = ({ grade }) =
       <AbsoluteFill
         style={{
           background: config.overlay,
-          mixBlendMode: 'multiply',
+          mixBlendMode: (config.blendMode as any) || 'multiply',
           pointerEvents: 'none',
         }}
       />
