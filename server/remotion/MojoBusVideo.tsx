@@ -454,7 +454,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
   // ── Routen-Koordinaten ────────────────────────────────────────────────
   const effectiveRouteCoords = routeCoords && routeCoords.length >= 2
     ? routeCoords
-    : pickDemoRoute(country);
+    : pickDemoRoute(country, location);
 
   // ── Cinematic Effects: Plattform-Matrix + Cut-Plan ─────────────────────
   // fx = was die Plattform erlaubt (TikTok: Punch+Flash, YouTube: Letterbox+Leak...)
