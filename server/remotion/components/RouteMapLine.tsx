@@ -625,12 +625,23 @@ export const DEMO_ROUTES: Record<string, RouteCoord[]> = {
 /**
  * Wählt eine passende Demo-Route basierend auf country-String.
  */
-export function pickDemoRoute(country?: string): RouteCoord[] {
-  if (!country) return DEMO_ROUTES.demo;
-  const lower = country.toLowerCase();
-  if (lower === 'portugal') return DEMO_ROUTES['portugal-west'];
-  if (lower === 'spain' || lower === 'spanien') return DEMO_ROUTES['spain-north'];
-  if (lower === 'france' || lower === 'frankreich') return DEMO_ROUTES['south-france'];
-  if (lower === 'germany' || lower === 'deutschland') return DEMO_ROUTES['central-europe'];
-  return DEMO_ROUTES.demo;
+export function pickDemoRoute(country?: string, location?: string): RouteCoord[] {
+  let route: RouteCoord[];
+  if (!country) {
+    route = DEMO_ROUTES.demo;
+  } else {
+    const lower = country.toLowerCase();
+    if (lower === 'portugal') route = DEMO_ROUTES['portugal-west'];
+    else if (lower === 'spain' || lower === 'spanien') route = DEMO_ROUTES['spain-north'];
+    else if (lower === 'france' || lower === 'frankreich') route = DEMO_ROUTES['south-france'];
+    else if (lower === 'germany' || lower === 'deutschland') route = DEMO_ROUTES['central-europe'];
+    else route = DEMO_ROUTES.demo;
+  }
+  if (!location) return route;
+  // Bugfix: letzten Punkt (Ziel) mit der ECHTEN Location beschriften,
+  // statt dem hartcodierten Demo-Ortsnamen (z.B. "Sagres").
+  const realLabel = location.split(',')[0].trim();
+  return route.map((c, i) =>
+    i === route.length - 1 ? { ...c, label: realLabel } : c
+  );
 }
