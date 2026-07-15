@@ -218,7 +218,7 @@ Kein Code-Schritt, nur Verifikation aller vorherigen Schritte zusammen.
 ## Checkliste
 
 - [x] Schritt 1: `buildSingleLocationRoute()` in `src/lib/routeFromGps.ts` hinzugefügt (noch unverdrahtet)
-- [ ] Schritt 2: Helfer in `buildRouteFromContent()` verdrahtet (`const` → `let`, neue if-Abfrage vor Zeile 461)
+- [x] Schritt 2: Helfer in `buildRouteFromContent()` verdrahtet (`const` → `let`, neue if-Abfrage vor Zeile 461)
 - [ ] Schritt 3: `pickDemoRoute()` in `RouteMapLine.tsx` um optionalen `location`-Parameter erweitert
 - [ ] Schritt 4: Aufruf in `MojoBusVideo.tsx` (Zeile 457) übergibt jetzt `location`
 - [ ] Schritt 5: End-zu-Ende getestet (Einzel-Location, Mehrfach-Location, Kein-GPS-Fallback)

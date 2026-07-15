@@ -487,7 +487,14 @@ export async function buildRouteFromContent(
   }
 
   // 2. Dedupe (< 2km = eine Station) + auf MAX_POINTS ausdünnen
-  const deduped = thinPoints(dedupePoints(raw), MAX_POINTS);
+  let deduped = thinPoints(dedupePoints(raw), MAX_POINTS);
+
+  // 2b. Genau 1 echte Location: synthetische 2-Punkte-Route bauen, die an
+  // der ECHTEN Koordinate endet (Bugfix: sonst source: 'none' und Fallback
+  // auf die hartcodierte Demo-Route mit falschem Ortsnamen).
+  if (deduped.length === 1) {
+    deduped = buildSingleLocationRoute(deduped[0]);
+  }
 
   // 3. Mindestens 2 Stationen nötig (RouteMapLine rendert sonst nichts)
   if (deduped.length < 2) {
