@@ -33,17 +33,31 @@ export function findHeroWordWindow(
   slideFrames: number
 ): { startFrame: number; endFrame: number } | null {
   if (!captionText || !captionText.trim()) return null;
-  if (!/\*\*(.+?)\*\*/.test(captionText)) return null;
 
-  const words = captionText.trim().split(/\s+/).filter(Boolean);
+  // Position des Markups im ROHEN Text suchen (statt Leerzeichen-Split pro
+  // Token), damit auch Mehrwort-Anker wie "**10 Meter**" erkannt werden.
+  const match = /\*\*(.+?)\*\*/.exec(captionText);
+  if (!match) return null;
+
+  // Wortanzahl-Basis: bereinigter Text (wie in PerSlideCaption/Captions.tsx),
+  // damit die Fenster-Berechnung exakt mit der angezeigten Caption übereinstimmt.
+  const words = stripHeroMarkup(captionText).trim().split(/\s+/).filter(Boolean);
   if (words.length === 0) return null;
 
-  const heroWordIdx = words.findIndex((w) => /\*\*(.+?)\*\*/.test(w));
-  if (heroWordIdx === -1) return null;
+  // Start-Wortindex: Anzahl Wörter VOR dem öffnenden Marker im Roh-Text.
+  const beforeMarker = captionText.slice(0, match.index).trim();
+  const heroStartIdx = beforeMarker
+    ? beforeMarker.split(/\s+/).filter(Boolean).length
+    : 0;
+
+  // Anzahl Wörter INNERHALB des Markups (mind. 1) -> deckt Mehrwort-Anker ab.
+  const heroContent = match[1].trim();
+  const heroWordCount = Math.max(1, heroContent.split(/\s+/).filter(Boolean).length);
+  const heroEndIdx = heroStartIdx + heroWordCount - 1;
 
   const perWordFrames = slideFrames / words.length;
-  const startFrame = slideStartFrame + Math.floor(heroWordIdx * perWordFrames);
-  const endFrame = slideStartFrame + Math.floor((heroWordIdx + 1) * perWordFrames);
+  const startFrame = slideStartFrame + Math.floor(heroStartIdx * perWordFrames);
+  const endFrame = slideStartFrame + Math.floor((heroEndIdx + 1) * perWordFrames);
 
   return { startFrame, endFrame };
 }
