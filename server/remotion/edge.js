@@ -192,6 +192,9 @@ export async function generateEdgeVoiceover(text, voiceModel = 'de-DE-SeraphinaM
     );
   }
 
+  // Text normalisieren (Stufe 2+3)
+  const cleanText = normalizeTextForTTS(text);
+
   // Temporäres Verzeichnis für die Ausgabe
   const tmpDir = mkdtempSync(join(os.tmpdir(), 'edge-'));
   const mp3Path = join(tmpDir, 'voiceover.mp3');
@@ -212,11 +215,9 @@ export async function generateEdgeVoiceover(text, voiceModel = 'de-DE-SeraphinaM
     throw new Error('EdgeTTS-Klasse nicht gefunden im node-edge-tts Paket');
   }
 
-  const cleanText = normalizeTextForTTS(text);
-
   console.log(`[EdgeTTS] Generiere: "${cleanText.slice(0, 60)}..." (${voiceModel}, speed=${speed})`);
 
-  // ── Diagnose-Logging (nur mit TTS_DEBUG=1) ──────────────────────────
+  // ── Diagnose-Logging (Stufe 5) ────────────────────────────────────────
   if (process.env.TTS_DEBUG === '1') {
     const buf = Buffer.from(cleanText, 'utf8');
     console.log('[EdgeTTS] UTF-8 Bytes (erste 100):', buf.slice(0, 100).toString('hex'));
@@ -225,49 +226,65 @@ export async function generateEdgeVoiceover(text, voiceModel = 'de-DE-SeraphinaM
     console.log('[EdgeTTS] Länge original:', text.length, 'Länge clean:', cleanText.length);
   }
 
-  try {
-    // node-edge-tts: Konstruktor mit Optionen, dann ttsPromise(text, outputPath)
-    // rate: Prozent-String ('+0%' = normal, '-20%' = langsamer, '+20%' = schneller)
-    const ratePercent = Math.round((speed - 1.0) * 100);
-    const rateStr = ratePercent >= 0 ? '+' + ratePercent + '%' : ratePercent + '%';
+  // ── Retry-Logik (Stufe 7 + 7b) ────────────────────────────────────────
+  const MAX_RETRIES = 2;
+  const RETRY_DELAY_MS = 1000;
+  const TIMEOUT_MS = 30000;        // ← Stufe 7b: 60000 → 30000
 
-    const tts = new EdgeTTS({
-      voice: voiceModel,
-      lang: 'de-DE',
-      outputFormat: 'audio-24khz-48kbitrate-mono-mp3',
-      rate: rateStr,
-      pitch: 'default',
-      volume: 'default',
-      timeout: 60000,
-    });
+  const ratePercent = Math.round((speed - 1.0) * 100);
+  const rateStr = ratePercent >= 0 ? '+' + ratePercent + '%' : ratePercent + '%';
 
-    await tts.ttsPromise(cleanText, mp3Path);
+  let lastErr;
 
-    // Prüfen ob Datei erstellt wurde
-    if (!existsSync(mp3Path)) {
-      throw new Error('Keine Ausgabedatei erstellt (unbekannter Fehler)');
-    }
-
-    const stats = await import('fs').then(f => f.statSync(mp3Path));
-    const sizeKB = stats.size / 1024;
-
-    if (sizeKB < 1) {
-      throw new Error('Ausgabedatei zu klein (' + sizeKB.toFixed(1) + 'KB)');
-    }
-
-    console.log(`[EdgeTTS] ✅ MP3 generiert: ${mp3Path} (${sizeKB.toFixed(0)}KB)`);
-
-    return mp3Path;
-  } catch (synthErr) {
-    // Aufräumen falls Datei doch existiert
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      if (existsSync(mp3Path)) {
-        const rm = await import('fs/promises').then(m => m.rm);
-        await rm(mp3Path, { force: true });
+      const tts = new EdgeTTS({
+        voice: voiceModel,
+        lang: 'de-DE',
+        outputFormat: 'audio-24khz-48kbitrate-mono-mp3',
+        rate: rateStr,
+        pitch: 'default',
+        volume: 'default',
+        timeout: TIMEOUT_MS,
+      });
+
+      await tts.ttsPromise(cleanText, mp3Path);
+
+      if (!existsSync(mp3Path)) {
+        throw new Error('Keine Ausgabedatei erstellt (unbekannter Fehler)');
       }
-    } catch (_) {}
-    throw new Error('Edge TTS Synthese fehlgeschlagen: ' + synthErr.message);
+
+      const stats = await import('fs').then(f => f.statSync(mp3Path));
+      const sizeKB = stats.size / 1024;
+
+      if (sizeKB < 1) {
+        throw new Error('Ausgabedatei zu klein (' + sizeKB.toFixed(1) + 'KB)');
+      }
+
+      console.log(`[EdgeTTS] ✅ MP3 generiert: ${mp3Path} (${sizeKB.toFixed(0)}KB)`);
+      return mp3Path;
+
+    } catch (err) {
+      lastErr = err;
+      console.warn(`[EdgeTTS] ⚠️ Versuch ${attempt}/${MAX_RETRIES} fehlgeschlagen: ${err.message}`);
+
+      // Aufräumen falls Datei doch existiert
+      try {
+        if (existsSync(mp3Path)) {
+          const rm = await import('fs/promises').then(m => m.rm);
+          await rm(mp3Path, { force: true });
+        }
+      } catch (_) {}
+
+      if (attempt < MAX_RETRIES) {
+        const delay = RETRY_DELAY_MS * attempt; // 1s, dann 2s
+        console.log(`[EdgeTTS] ⏳ Nächster Versuch in ${delay}ms...`);
+        await new Promise(r => setTimeout(r, delay));
+      }
+    }
   }
+
+  throw new Error('Edge TTS Synthese fehlgeschlagen nach ' + MAX_RETRIES + ' Versuchen: ' + lastErr.message);
 }
 
 export default {
