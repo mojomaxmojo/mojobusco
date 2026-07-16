@@ -139,6 +139,23 @@ export function isValidEdgeVoice(voiceModel) {
 }
 
 /**
+ * Bereinigt Text für die TTS-Synthese:
+ * - NFC-Normalisierung (Stufe 2)
+ * - Em-Dash → En-Dash (konsistent)
+ * - Geschützte Leerzeichen → normale Leerzeichen
+ * - Hero-Markup-Reste (**fett**) entfernen (Sicherheitsnetz)
+ * - Trim
+ */
+function normalizeTextForTTS(text) {
+  return text
+    .normalize('NFC')
+    .replace(/\u2014/g, '\u2013')      // em dash (—) → en dash (–)
+    .replace(/\u00A0/g, ' ')           // non-breaking space → normal space
+    .replace(/\*\*(.+?)\*\*/g, '$1')   // **hero** → hero (Sicherheitsnetz)
+    .trim();
+}
+
+/**
  * Prüft ob das node-edge-tts Paket verfügbar und importierbar ist.
  * Nutzt dynamischen import() – zerstört NICHT den render.js Import.
  *
@@ -195,7 +212,9 @@ export async function generateEdgeVoiceover(text, voiceModel = 'de-DE-SeraphinaM
     throw new Error('EdgeTTS-Klasse nicht gefunden im node-edge-tts Paket');
   }
 
-  console.log(`[EdgeTTS] Generiere: "${text.slice(0, 60)}..." (${voiceModel}, speed=${speed})`);
+  const cleanText = normalizeTextForTTS(text);
+
+  console.log(`[EdgeTTS] Generiere: "${cleanText.slice(0, 60)}..." (${voiceModel}, speed=${speed})`);
 
   try {
     // node-edge-tts: Konstruktor mit Optionen, dann ttsPromise(text, outputPath)
@@ -213,17 +232,7 @@ export async function generateEdgeVoiceover(text, voiceModel = 'de-DE-SeraphinaM
       timeout: 60000,
     });
 
-    // Unicode NFC-Normalisierung: NFD → NFC
-    // KI-APIs liefern Text oft in NFD (zerlegte Umlaute: u+U+0308 statt ü).
-    // node-edge-tts escaped nur XML-Zeichen, normalisiert aber nicht —
-    // die Edge-Sprachengine kann NFD als separate Laute interpretieren.
-    const normalizedText = text.normalize('NFC');
-    console.log('[EdgeTTS] Text-Diagnose:', {
-      originalLen: text.length,
-      normalizedLen: normalizedText.length,
-      changed: text !== normalizedText,
-    });
-    await tts.ttsPromise(normalizedText, mp3Path);
+    await tts.ttsPromise(cleanText, mp3Path);
 
     // Prüfen ob Datei erstellt wurde
     if (!existsSync(mp3Path)) {
@@ -256,5 +265,6 @@ export default {
   generateEdgeVoiceover,
   isEdgeTtsAvailable,
   isValidEdgeVoice,
+  normalizeTextForTTS,
   AVAILABLE_EDGE_VOICES,
 };
