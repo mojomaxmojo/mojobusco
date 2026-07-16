@@ -8,15 +8,18 @@
  * Dadurch wird der Modul-Import von render.js nicht zerstört, falls node-edge-tts
  * mal wieder Probleme macht.
  *
- * ⚠️ "MultilingualNeural"-Stimmen (Seraphina, Florian) erkennen pro Wort/Phrase
- * automatisch die Sprache und wechseln dann auf englische/andere Aussprache
- * ("denglisch"). Das führt bei Fremdwörtern (z.B. "Camping", "Roadtrip") und
- * manchmal sogar bei Umlauten zu falscher Betonung. Klassische, rein deutsche
- * Neural-Stimmen (ohne "Multilingual" im Namen) bleiben konsequent bei
- * deutscher Phonetik – deshalb ist Katja der neue Standard.
+ * Seraphina (Multilingual) ist Standard – klingt am natürlichsten von allen
+ * verfügbaren Stimmen. Hinweis: "MultilingualNeural"-Stimmen erkennen pro
+ * Wort/Phrase automatisch die Sprache und können bei Fremdwörtern
+ * (z.B. "Camping", "Roadtrip") gelegentlich englisch aussprechen
+ * ("denglisch") bzw. Umlaute leicht anders betonen. Falls das störend
+ * auffällt, stehen klassische, rein deutsche Neural-Stimmen als
+ * Alternative zur Verfügung.
  *
  * Verfügbare deutsche Stimmen (Edge):
- *   de-DE-KatjaNeural                  – weiblich, klar, rein Deutsch ⭐ (Standard)
+ *   de-DE-SeraphinaMultilingualNeural  – weiblich, beste Qualität ⭐ (Standard)
+ *   de-DE-FlorianMultilingualNeural    – männlich, sehr natürlich
+ *   de-DE-KatjaNeural                  – weiblich, klar, rein Deutsch
  *   de-DE-ConradNeural                 – männlich, tief, rein Deutsch
  *   de-DE-AmalaNeural                  – weiblich, freundlich, rein Deutsch
  *   de-DE-KillianNeural                – männlich, jung, rein Deutsch
@@ -25,12 +28,10 @@
  *   de-DE-ElkeNeural                   – weiblich, warm, rein Deutsch
  *   de-DE-RalfNeural                   – männlich, sachlich, rein Deutsch
  *   de-DE-TanjaNeural                  – weiblich, energisch, rein Deutsch
- *   de-DE-SeraphinaMultilingualNeural  – weiblich, sehr natürlich, ⚠️ kann denglisch klingen
- *   de-DE-FlorianMultilingualNeural    – männlich, sehr natürlich, ⚠️ kann denglisch klingen
  *
  * Standard: AUS — Nur wenn voiceoverText explizit übergeben wird + voiceoverEngine='edge'.
  *
- * Aufruf:      generateEdgeVoiceover(text, 'de-DE-KatjaNeural', 0.8)
+ * Aufruf:      generateEdgeVoiceover(text, 'de-DE-SeraphinaMultilingualNeural', 0.8)
  * Ergebnis:    /tmp/edge-XXXXXX/voiceover.mp3
  */
 
@@ -39,16 +40,32 @@ import { join } from 'path';
 import os from 'os';
 
 // ── Verfügbare Edge-Stimmen (deutsch) ──────────────────────────────────
-// Klassische (nicht-multilinguale) Stimmen zuerst – konsequent deutsche
-// Aussprache, kein "Denglisch" bei Fremdwörtern, stabilere Umlaute.
+// Multilingual-Stimmen zuerst – beste, natürlichste Klangqualität.
+// Klassische Stimmen darunter als Alternative (rein deutsche Aussprache).
 export const AVAILABLE_EDGE_VOICES = {
+  'de-DE-SeraphinaMultilingualNeural': {
+    name: 'Seraphina',
+    gender: 'female',
+    quality: 'high',
+    language: 'de',
+    multilingual: true,
+    description: 'Beste Qualität, weiblich ⭐ Standard',
+  },
+  'de-DE-FlorianMultilingualNeural': {
+    name: 'Florian',
+    gender: 'male',
+    quality: 'high',
+    language: 'de',
+    multilingual: true,
+    description: 'Sehr natürlich, männlich',
+  },
   'de-DE-KatjaNeural': {
     name: 'Katja',
     gender: 'female',
     quality: 'high',
     language: 'de',
     multilingual: false,
-    description: 'Klar, weiblich, rein Deutsch ⭐ Standard',
+    description: 'Klar, weiblich, rein Deutsch',
   },
   'de-DE-ConradNeural': {
     name: 'Conrad',
@@ -114,24 +131,6 @@ export const AVAILABLE_EDGE_VOICES = {
     multilingual: false,
     description: 'Energisch, weiblich, rein Deutsch',
   },
-  // Multilingual-Stimmen: beste Klangqualität, aber können Fremdwörter
-  // englisch aussprechen ("denglisch") und gelegentlich Umlaute verhauen.
-  'de-DE-SeraphinaMultilingualNeural': {
-    name: 'Seraphina',
-    gender: 'female',
-    quality: 'high',
-    language: 'de',
-    multilingual: true,
-    description: 'Sehr natürlich, weiblich (kann denglisch klingen)',
-  },
-  'de-DE-FlorianMultilingualNeural': {
-    name: 'Florian',
-    gender: 'male',
-    quality: 'high',
-    language: 'de',
-    multilingual: true,
-    description: 'Sehr natürlich, männlich (kann denglisch klingen)',
-  },
 };
 
 // ── Hilfsfunktion: Stimme auf Gültigkeit prüfen ────────────────────────
@@ -166,7 +165,7 @@ export async function isEdgeTtsAvailable() {
  * @param {number} speed         – Sprechgeschwindigkeit (0.5=langsam, 1.0=normal, 1.5=schnell). Default: 0.8
  * @returns {Promise<string>}    – Pfad zur generierten MP3-Datei
  */
-export async function generateEdgeVoiceover(text, voiceModel = 'de-DE-KatjaNeural', speed = 0.8) {
+export async function generateEdgeVoiceover(text, voiceModel = 'de-DE-SeraphinaMultilingualNeural', speed = 0.8) {
   // Stimme validieren
   if (!isValidEdgeVoice(voiceModel)) {
     const available = Object.keys(AVAILABLE_EDGE_VOICES).join(', ');

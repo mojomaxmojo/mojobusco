@@ -924,7 +924,7 @@ export default function createVideoRouter(PORT) {
           cinematicEffects: req.body.cinematicEffects !== false,
           voiceoverSegmentsInput: voiceoverSegments || undefined,
           voiceoverText: voiceoverText || undefined,
-          voiceoverModel: voiceoverModel || 'de-DE-KatjaNeural',
+          voiceoverModel: voiceoverModel || 'de-DE-SeraphinaMultilingualNeural',
           voiceoverSpeed: parseFloat(voiceoverSpeed) || 0.8,
           voiceoverEngine: voiceoverEngine || undefined,
           voiceoverVolume: parseFloat(voiceoverVolume) || 1.0,

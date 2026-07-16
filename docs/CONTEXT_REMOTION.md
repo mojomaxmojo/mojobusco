@@ -14,7 +14,7 @@
 | `server/remotion/components/CinematicEffects.tsx` | 6 Schnitt-Effekte (ZoomPunch, WhipPan, FlashCut, LightLeak, Letterbox, MatchCutZoom) |
 | `server/remotion/components/KenBurnsImage.tsx` | noise/breathing/focus-in/handheld + GammaFade |
 | `server/remotion/components/RouteMapLine.tsx` | Animierte Routen-Karte mit Puls-Ring + Labels |
-| `server/remotion/edge.js` | Edge TTS (Katja ⭐, Fallback: Piper) |
+| `server/remotion/edge.js` | Edge TTS (Seraphina ⭐, Fallback: Piper) |
 | `server/remotion/audioNormalize.js` | Zwei-Pass ffmpeg-loudnorm: −14,5 LUFS integrated / −1 dBTP True Peak (Post-Render) |
 | `src/lib/routeFromGps.ts` | GPS→Route: Haversine-Dedupe, Nominatim-Geocoding, 9:16-Aspect |
 
@@ -29,7 +29,9 @@ Stack: Remotion v4, Edge TTS, FFmpeg.
 
 | Stimme | ID | Typ |
 |--------|-----|-----|
-| Katja ⭐ | `de-DE-KatjaNeural` | weiblich, rein Deutsch (Standard) |
+| Seraphina ⭐ | `de-DE-SeraphinaMultilingualNeural` | weiblich, beste Qualität (Standard) |
+| Florian | `de-DE-FlorianMultilingualNeural` | männlich, sehr natürlich |
+| Katja | `de-DE-KatjaNeural` | weiblich, rein Deutsch |
 | Conrad | `de-DE-ConradNeural` | männlich, rein Deutsch |
 | Amala | `de-DE-AmalaNeural` | weiblich, rein Deutsch |
 | Killian | `de-DE-KillianNeural` | männlich, rein Deutsch |
@@ -38,15 +40,13 @@ Stack: Remotion v4, Edge TTS, FFmpeg.
 | Elke | `de-DE-ElkeNeural` | weiblich, rein Deutsch |
 | Ralf | `de-DE-RalfNeural` | männlich, rein Deutsch |
 | Tanja | `de-DE-TanjaNeural` | weiblich, rein Deutsch |
-| Seraphina | `de-DE-SeraphinaMultilingualNeural` | weiblich, sehr natürlich, ⚠️ kann denglisch klingen |
-| Florian | `de-DE-FlorianMultilingualNeural` | männlich, sehr natürlich, ⚠️ kann denglisch klingen |
 
-**Hinweis zu "Denglisch"/Umlaut-Problemen**: Die `MultilingualNeural`-Stimmen
-(Seraphina, Florian) erkennen pro Wort automatisch die Sprache und wechseln
-dann auf englische Aussprache bei Fremdwörtern/Anglizismen – dadurch klingt
-der Text "denglisch" und Umlaute werden manchmal falsch betont. Die
-klassischen (nicht-multilingualen) Stimmen bleiben konsequent bei deutscher
-Phonetik. Katja ist deshalb der neue Standard.
+**Hinweis zu "Denglisch"/Umlaut**: Seraphina/Florian sind `MultilingualNeural`-
+Stimmen, die pro Wort automatisch die Sprache erkennen und dadurch bei
+Fremdwörtern/Anglizismen gelegentlich englisch aussprechen bzw. Umlaute
+leicht anders betonen können. Klingen aber insgesamt am natürlichsten,
+deshalb bewusst als Standard gewählt. Die klassischen Stimmen (Katja, Conrad,
+etc.) sind eine Alternative, falls das im Einzelfall stört.
 
 ---
 
