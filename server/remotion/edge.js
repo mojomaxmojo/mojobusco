@@ -216,6 +216,15 @@ export async function generateEdgeVoiceover(text, voiceModel = 'de-DE-SeraphinaM
 
   console.log(`[EdgeTTS] Generiere: "${cleanText.slice(0, 60)}..." (${voiceModel}, speed=${speed})`);
 
+  // ── Diagnose-Logging (nur mit TTS_DEBUG=1) ──────────────────────────
+  if (process.env.TTS_DEBUG === '1') {
+    const buf = Buffer.from(cleanText, 'utf8');
+    console.log('[EdgeTTS] UTF-8 Bytes (erste 100):', buf.slice(0, 100).toString('hex'));
+    console.log('[EdgeTTS] Codepoints:', [...cleanText.slice(0, 30)].map(c => c.codePointAt(0).toString(16)));
+    console.log('[EdgeTTS] NFC-normalisiert:', cleanText.normalize('NFC') === cleanText);
+    console.log('[EdgeTTS] Länge original:', text.length, 'Länge clean:', cleanText.length);
+  }
+
   try {
     // node-edge-tts: Konstruktor mit Optionen, dann ttsPromise(text, outputPath)
     // rate: Prozent-String ('+0%' = normal, '-20%' = langsamer, '+20%' = schneller)
