@@ -213,7 +213,17 @@ export async function generateEdgeVoiceover(text, voiceModel = 'de-DE-SeraphinaM
       timeout: 60000,
     });
 
-    await tts.ttsPromise(text, mp3Path);
+    // Unicode NFC-Normalisierung: NFD → NFC
+    // KI-APIs liefern Text oft in NFD (zerlegte Umlaute: u+U+0308 statt ü).
+    // node-edge-tts escaped nur XML-Zeichen, normalisiert aber nicht —
+    // die Edge-Sprachengine kann NFD als separate Laute interpretieren.
+    const normalizedText = text.normalize('NFC');
+    console.log('[EdgeTTS] Text-Diagnose:', {
+      originalLen: text.length,
+      normalizedLen: normalizedText.length,
+      changed: text !== normalizedText,
+    });
+    await tts.ttsPromise(normalizedText, mp3Path);
 
     // Prüfen ob Datei erstellt wurde
     if (!existsSync(mp3Path)) {
