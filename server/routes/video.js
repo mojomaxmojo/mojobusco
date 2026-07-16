@@ -1285,7 +1285,17 @@ export default function createVideoRouter(PORT) {
         musicFiles: musicFiles.length,
         musicDir: MUSIC_DIR,
         piperAvailable: (await import('../remotion/tts.js')).isPiperAvailable(),
-        edgeTtsAvailable: true,
+        // Nur alle 60 Sekunden einen echten Request an Microsoft Edge TTS
+        edgeTtsAvailable: await (async () => {
+          const shouldHealthCheck = !global.__lastEdgeHealthCheck ||
+            (Date.now() - global.__lastEdgeHealthCheck) > 60000;
+          const { isEdgeTtsAvailable } = await import('../remotion/edge.js');
+          const available = shouldHealthCheck
+            ? await isEdgeTtsAvailable(false)
+            : await isEdgeTtsAvailable(true);
+          if (shouldHealthCheck) global.__lastEdgeHealthCheck = Date.now();
+          return available;
+        })(),
         activeJobs: [...remotionJobs.values()].filter(j => j.status === 'rendering').length,
       })
     } catch (err) {

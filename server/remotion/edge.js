@@ -155,16 +155,71 @@ function normalizeTextForTTS(text) {
     .trim();
 }
 
+// Cache für Health-Check-Ergebnis (60s gültig)
+let healthCache = { available: null, timestamp: 0 };
+const HEALTH_CACHE_TTL_MS = 60000;
+
 /**
  * Prüft ob das node-edge-tts Paket verfügbar und importierbar ist.
+ * Führt optional einen echten Health-Check (1-Wort-Synthese) durch.
  * Nutzt dynamischen import() – zerstört NICHT den render.js Import.
  *
+ * @param {boolean} quickCheck – true (Default): nur Import-Check. false: echter Health-Check mit Cache.
  * @returns {Promise<boolean>}
  */
-export async function isEdgeTtsAvailable() {
+export async function isEdgeTtsAvailable(quickCheck = true) {
   try {
     const edgeModule = await import('node-edge-tts');
-    return !!(edgeModule.EdgeTTS);
+    if (!edgeModule.EdgeTTS) return false;
+
+    // Nur Import-Check, wenn quickCheck=true (Standard)
+    if (quickCheck) return true;
+
+    // ── Echter Health-Check ────────────────────────────────────────────
+    // Cache prüfen
+    const now = Date.now();
+    if (healthCache.available !== null && (now - healthCache.timestamp) < HEALTH_CACHE_TTL_MS) {
+      return healthCache.available;
+    }
+
+    // Mini-Test: 1-Wort-Synthese mit kurzem Timeout
+    const { EdgeTTS } = edgeModule;
+    const { mkdtempSync, existsSync } = await import('fs');
+    const { join } = await import('path');
+    const os = await import('os');
+    const tmpDir = mkdtempSync(join(os.tmpdir(), 'edge-health-'));
+    const testPath = join(tmpDir, 'test.mp3');
+
+    try {
+      const tts = new EdgeTTS({
+        voice: 'de-DE-SeraphinaMultilingualNeural',
+        lang: 'de-DE',
+        timeout: 5000,
+        outputFormat: 'audio-24khz-48kbitrate-mono-mp3',
+        rate: '+0%',
+        pitch: 'default',
+        volume: 'default',
+      });
+      await tts.ttsPromise('Test', testPath);
+      const ok = existsSync(testPath);
+
+      healthCache = { available: ok, timestamp: Date.now() };
+
+      try {
+        const { rm } = await import('fs/promises');
+        await rm(tmpDir, { recursive: true, force: true });
+      } catch {}
+
+      return ok;
+    } catch (err) {
+      healthCache = { available: false, timestamp: Date.now() };
+      console.warn('[EdgeTTS] Health-Check fehlgeschlagen:', err.message);
+      try {
+        const { rm } = await import('fs/promises');
+        await rm(tmpDir, { recursive: true, force: true });
+      } catch {}
+      return false;
+    }
   } catch (err) {
     console.warn('[EdgeTTS] node-edge-tts Paket nicht verfügbar:', err.message);
     return false;
