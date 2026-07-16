@@ -326,7 +326,7 @@ async function concatVoiceoverSegments(segments, sessionDir, hookDurationSec, se
   }
 }
 // ── Video-Clip-Dauer (echte Länge statt Caption-Lesezeit) ──────────────────
-import { measureSlideVideoDurations } from './videoDuration.js';
+import { measureSlideVideoDurations, isVideoFilename } from './videoDuration.js';
 
 // ── Ambient Sounds (optional) ──────────────────────────────────────────────
 import { generateAmbient } from './ambient.js';
@@ -1002,6 +1002,7 @@ export async function renderMojoBusVideo(params) {
   let mapFilename   = null;
   let perSlideArray = null;     // dynamische Slide-Dauern aus Voiceover/Lesezeit
   let voiceoverSyncFilename = null; // Eine fertig getaktete voiceover_sync.mp3
+  let renderConcurrency = 3;    // Default: reine Bilder → 3 parallele Chrome-Tabs
 
   try {
     [imageFilenames, audioFilename, mapFilename] = await Promise.all([
@@ -1014,6 +1015,15 @@ export async function renderMojoBusVideo(params) {
     // videoSeconds[i] überschreibt (falls > 0) die gemessene Länge (manueller
     // Sekunden-Wert vom Frontend). Bilder liefern null und werden ignoriert.
     const measuredVideoDurations = await measureSlideVideoDurations(imageFilenames, sessionDir, FFPROBE_PATH);
+
+    // ── Concurrency dynamisch nach Medientyp ─────────────────────────────
+    // MP4/Video-Clips sind pro Frame deutlich teurer zu rendern (OffthreadVideo
+    // muss Frames aus dem Clip extrahieren) → weniger parallele Chrome-Tabs,
+    // sonst schießt die Server-Last hoch (mehrere Chrome-Renderer + FFmpeg-Decoding
+    // gleichzeitig). Reine Bild-Slideshows sind günstiger → mehr Parallelität ok.
+    const hasVideoClips = measuredVideoDurations.some(d => d != null);
+    renderConcurrency = hasVideoClips ? 2 : 3;
+    console.log(`[Remotion] Concurrency=${renderConcurrency} (${hasVideoClips ? 'Video-Clips erkannt' : 'nur Bilder'})`);
     const effectiveVideoDurations = measuredVideoDurations.map((measured, i) => {
       if (measured == null) return null;
       const override = Array.isArray(videoSeconds) ? parseFloat(videoSeconds[i]) : NaN;
@@ -1252,8 +1262,8 @@ export async function renderMojoBusVideo(params) {
       crf: 28,
       pixelFormat: 'yuv420p',
       x264Preset: 'medium',
-      // 4-Core VPS: 3 parallele Tabs = gutes Verhältnis Speed/RAM
-      concurrency: 3,
+      // 4-Core VPS: MP4/Video-Clips=2 (teurer pro Frame), reine Bilder=3
+      concurrency: renderConcurrency,
       // Globaler Sicherheitsnetz-Timeout für delayRender()-Aufrufe (Default 30000ms).
       // Etwas großzügiger als Default, da OffthreadVideo bei großen MP4s (>20MB)
       // auf einer VPS mit Software-Rendering (SwiftShader) mehr Zeit zum Extrahieren
