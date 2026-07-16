@@ -767,6 +767,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
               driveIn={true}
               driveInPath="curve-down"
               position="bottom-center"
+              platform={platform}
             />
           </AbsoluteFill>
         </Sequence>

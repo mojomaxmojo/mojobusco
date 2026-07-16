@@ -652,6 +652,8 @@ export interface LottieBusIconProps {
   position?: 'center' | 'bottom-center' | 'top-center';
   label?: string;
   lottieData?: object | null;
+  /** Ziel-Plattform – steuert Safe-Zone-Position (z.B. TikTok UI überdeckt untere 20%) */
+  platform?: 'tiktok' | 'reels' | 'youtube';
 }
 
 export const LottieBusIcon: React.FC<LottieBusIconProps> = ({
@@ -664,13 +666,26 @@ export const LottieBusIcon: React.FC<LottieBusIconProps> = ({
   position = 'center',
   label    = 'MOJOBUS',
   lottieData,
+  platform,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
+  // ── Plattformabhängige Safe-Zone für bottom-center ────────────────────────
+  // TikTok überdeckt die unteren ~20% mit UI (Like, Kommentare, etc.).
+  // Der Bus muss oberhalb dieser Zone schweben. Gleiche Logik wie Captions.tsx.
+  const BOTTOM_SAFE_ZONE: Record<string, string> = {
+    tiktok:  '22%',
+    reels:   '25%',
+    youtube: '18%',
+  };
+  const bottomPos = platform && position === 'bottom-center'
+    ? (BOTTOM_SAFE_ZONE[platform] || '5%')
+    : '5%';
+
   const posStyles: React.CSSProperties =
     position === 'bottom-center'
-      ? { position: 'absolute', bottom: '5%',  left: '50%', transform: 'translateX(-50%)' }
+      ? { position: 'absolute', bottom: bottomPos,  left: '50%', transform: 'translateX(-50%)' }
       : position === 'top-center'
       ? { position: 'absolute', top:    '5%',  left: '50%', transform: 'translateX(-50%)' }
       : { position: 'absolute', top:    '50%', left: '50%', transform: 'translate(-50%,-50%)' };
