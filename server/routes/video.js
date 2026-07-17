@@ -996,11 +996,18 @@ export default function createVideoRouter(PORT) {
     res.setHeader('Content-Type', 'video/mp4')
     res.setHeader('Content-Length', stat.size)
     res.setHeader('Content-Disposition', `attachment; filename="mojobus-video-${jobId}.mp4"`)
+    // Deaktiviert Nginx-Proxy-Pufferung für große Downloads
+    res.setHeader('X-Accel-Buffering', 'no')
 
-    const stream = fs.createReadStream(job.outputPath)
-    stream.pipe(res)
+    res.sendFile(path.resolve(job.outputPath), (err) => {
+      if (err) {
+        console.error(`[Remotion] Download-Fehler ${jobId}:`, err.message)
+        if (!res.headersSent) {
+          return res.status(500).json({ error: 'Download konnte nicht gesendet werden' })
+        }
+      }
 
-    stream.on('end', () => {
+      // Datei nach 24h aufräumen (auch nach fehlgeschlagenem Download)
       setTimeout(() => {
         try {
           if (fs.existsSync(job.outputPath)) {

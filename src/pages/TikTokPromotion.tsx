@@ -1228,7 +1228,14 @@ export function TikTokPromotion() {
   const downloadMp4 = () => {
     if (!renderStatus?.jobId) return
     const url = `${getApiBaseUrl()}/api/render-remotion/download/${renderStatus.jobId}`
-    window.open(url, '_blank')
+    // <a download> ist zuverlässiger als window.open() und vermeidet Popup-Blocker
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `mojobus-video-${renderStatus.jobId}.mp4`
+    a.style.display = 'none'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
   }
 
   const copyTikTokText = () => {
@@ -2493,7 +2500,17 @@ export function TikTokPromotion() {
                                   <Button
                                     size="sm" variant="outline"
                                     className="h-7 w-7 p-0"
-                                    onClick={(e) => { e.stopPropagation(); window.open(`${getApiBaseUrl()}/api/render-remotion/download/${job.jobId}`, '_blank') }}
+                                    onClick={(e) => {
+  e.stopPropagation()
+  const url = `${getApiBaseUrl()}/api/render-remotion/download/${job.jobId}`
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `mojobus-video-${job.jobId}.mp4`
+  a.style.display = 'none'
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+}}
                                     title="Video ansehen"
                                   >
                                     <Eye className="w-3 h-3" />
