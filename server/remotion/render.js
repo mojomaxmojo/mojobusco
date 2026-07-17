@@ -8,7 +8,7 @@
  */
 
 import { bundle } from '@remotion/bundler';
-import { renderMedia, selectComposition, ensureBrowser } from '@remotion/renderer';
+import { renderMedia, selectComposition } from '@remotion/renderer';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { OUTPUT_DIR, IMAGES_DIR, COMPOSITION_IDS } from './constants.js';
@@ -16,10 +16,7 @@ import { FFMPEG_PATH, FFPROBE_PATH, FFPROBE } from './binaries.js';
 import { startImageServer } from './mediaServer.js';
 import { downloadAllImages, downloadAudioFile, downloadMapImage } from './mediaDownload.js';
 import fs from 'fs';
-import { execFile, execSync } from 'child_process';
 import crypto from 'crypto';
-import { promisify } from 'util';
-const execFileAsync = promisify(execFile);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -36,6 +33,7 @@ import { generateSfx, SFX_TYPES } from './sfx.js';
 
 // ── Audio Loudness-Normalisierung ─────────────────────────────────────────
 import { normalizeRenderedVideo } from './audioNormalize.js';
+import { CHROME_PATH, CHROMIUM_OPTIONS } from './chrome.js';
 
 for (const dir of [OUTPUT_DIR, IMAGES_DIR]) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -45,75 +43,6 @@ for (const dir of [OUTPUT_DIR, IMAGES_DIR]) {
 // ── Lokaler Bild-HTTP-Server ──────────────────────────────────────────────
 // Chrome kann file:// nicht laden → wir servieren die Bilder lokal über HTTP
 
-
-// ── Chrome finden + Rechte setzen ────────────────────────────────────────
-
-function findAndFixChrome() {
-  const serverDir = path.join(__dirname, '..');
-  const candidates = [
-    path.join(serverDir, 'node_modules/.remotion/chrome-headless-shell/linux64/chrome-headless-shell-linux64/chrome-headless-shell'),
-    path.join(serverDir, 'node_modules/.remotion/chrome-headless-shell/linux64/chrome-headless-shell'),
-    '/home/nginx/domains/mojobus.co/public/server/node_modules/.remotion/chrome-headless-shell/linux64/chrome-headless-shell-linux64/chrome-headless-shell',
-  ];
-
-  for (const p of candidates) {
-    if (fs.existsSync(p)) {
-      try { fs.chmodSync(p, 0o755); } catch (e) {}
-      console.log(`[Remotion] Chrome: ${p}`);
-      return p;
-    }
-  }
-
-  try {
-    const remotionDir = path.join(serverDir, 'node_modules/.remotion');
-    if (fs.existsSync(remotionDir)) {
-      const found = execSync(
-        `find "${remotionDir}" -name "chrome-headless-shell" -type f 2>/dev/null | head -1`,
-        { encoding: 'utf8', timeout: 5000 }
-      ).trim();
-      if (found) {
-        try { fs.chmodSync(found, 0o755); } catch (e) {}
-        console.log(`[Remotion] Chrome (find): ${found}`);
-        return found;
-      }
-    }
-  } catch (e) {}
-
-  return null;
-}
-
-let CHROME_PATH = null;
-try { CHROME_PATH = findAndFixChrome(); } catch (e) {}
-
-const CHROMIUM_OPTIONS = {
-  gl: 'swiftshader',
-  chromiumFlags: [
-    '--no-sandbox',
-    '--disable-setuid-sandbox',
-    '--disable-dev-shm-usage',
-    '--disable-gpu',
-    '--disable-gpu-sandbox',
-    '--single-process',
-    '--no-zygote',
-    '--allow-file-access-from-files',  // Fallback falls doch file:// genutzt
-    '--disable-web-security',           // Erlaubt cross-origin bei localhost
-  ],
-};
-
-async function ensureChromeBinary() {
-  try {
-    await ensureBrowser({ browserExecutable: CHROME_PATH || undefined });
-    if (!CHROME_PATH) CHROME_PATH = findAndFixChrome();
-    const remotionDir = path.join(__dirname, '../node_modules/.remotion');
-    if (fs.existsSync(remotionDir)) {
-      try { execSync(`chmod -R 755 "${remotionDir}"`, { timeout: 10000 }); } catch (e) {}
-    }
-    console.log(`[Remotion] Chrome bereit: ${CHROME_PATH || 'auto'}`);
-  } catch (e) {
-    console.warn('[Remotion] ensureBrowser:', e.message);
-  }
-}
-ensureChromeBinary().catch(() => {});
 
 // ── Bundle Cache ──────────────────────────────────────────────────────────
 
