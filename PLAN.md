@@ -556,6 +556,6 @@ Keine.
 - [x] Schritt 10: `chrome.js` erstellt, Chrome-Setup in `render.js` entfernt
 - [x] Schritt 11: `bundle.js` erstellt, Bundle-Cache + `invalidateBundleCache` in `render.js` entfernt
 - [x] Schritt 12: `MojoBusVideo.tsx` enthält ausschließlich die Hauptkomponente
-- [ ] Schritt 13: `render.js` enthält ausschließlich den Render-Orchestrator
+- [x] Schritt 13: `render.js` enthält ausschließlich den Render-Orchestrator
 - [ ] `build_project` fehlerfrei
 - [ ] Ein vollständiger Remotion-Render im Browser erfolgreich und visuell unverändert

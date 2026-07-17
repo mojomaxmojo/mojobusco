@@ -1,5 +1,5 @@
 /**
- * render.js — Remotion Render-Engine
+ * render.js — Remotion Render-Orchestrator
  *
  * Bilder werden VOR dem Render heruntergeladen und über einen
  * lokalen HTTP-Server bereitgestellt (http://127.0.0.1:PORT/img-NNN.ext).
@@ -10,7 +10,6 @@
 import { renderMedia, selectComposition } from '@remotion/renderer';
 import { getBundledEntry, invalidateBundleCache } from './bundle.js';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { OUTPUT_DIR, IMAGES_DIR, COMPOSITION_IDS } from './constants.js';
 import { FFMPEG_PATH, FFPROBE_PATH, FFPROBE } from './binaries.js';
 import { startImageServer } from './mediaServer.js';
@@ -18,12 +17,10 @@ import { downloadAllImages, downloadAudioFile, downloadMapImage } from './mediaD
 import fs from 'fs';
 import crypto from 'crypto';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
 import { generateVoiceoverSegments, concatVoiceoverSegments } from './voiceover.js';
 
 // ── Video-Clip-Dauer (echte Länge statt Caption-Lesezeit) ──────────────────
-import { measureSlideVideoDurations, isVideoFilename } from './videoDuration.js';
+import { measureSlideVideoDurations } from './videoDuration.js';
 
 // ── Ambient Sounds (optional) ──────────────────────────────────────────────
 import { generateAmbient } from './ambient.js';
@@ -34,15 +31,6 @@ import { generateSfx, SFX_TYPES } from './sfx.js';
 // ── Audio Loudness-Normalisierung ─────────────────────────────────────────
 import { normalizeRenderedVideo } from './audioNormalize.js';
 import { CHROME_PATH, CHROMIUM_OPTIONS } from './chrome.js';
-
-for (const dir of [OUTPUT_DIR, IMAGES_DIR]) {
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-}
-
-
-// ── Lokaler Bild-HTTP-Server ──────────────────────────────────────────────
-// Chrome kann file:// nicht laden → wir servieren die Bilder lokal über HTTP
-
 
 // ── Haupt-Render-Funktion ─────────────────────────────────────────────────
 
@@ -106,6 +94,11 @@ export async function renderMojoBusVideo(params) {
     sfxEnabled = false,
     speedRampEnabled = false,
   } = params;
+
+  // Output-/Image-Verzeichnisse sicherstellen
+  for (const dir of [OUTPUT_DIR, IMAGES_DIR]) {
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  }
 
   if (!imageUrls || imageUrls.length === 0) {
     throw new Error('Keine Bild-URLs übergeben');
