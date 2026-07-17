@@ -3,7 +3,8 @@
  *
  * NEU in v2.0:
  *  ✅ BeatSyncLayer    — Schnitte synchron zur Musik (viral!) via useAudioData
- *  ✅ TransitionWrapper — wipe, clockWipe, fade, slide, morph, zoomRelay, glitch, pagePeel (@remotion/transitions)
+ *  ✅ TransitionWrapper — wipe, clockWipe, irisWipe, starWipe, heartWipe,
+ *                          fade, slide, morph, zoomRelay, glitch, pagePeel
  *  ✅ RouteMapLine      — Animierte Routen-Linie auf Karte (@remotion/shapes)
  *  ✅ LottieBusIcon     — Animierter MojoBus in der Endkarte (@remotion/lottie)
  *
@@ -11,6 +12,8 @@
  *  Jede Sequence läuft: [startFrame ... startFrame + perSlide]
  *  Das NÄCHSTE Bild startet TRANSITION_FRAMES vor Ende des aktuellen.
  *  → Überlappung = smooth Transition ohne Lücken oder Doppelframes.
+ *  Jeder Slide bekommt einen Incoming-TransitionWrapper (z. B. iris/star/heart),
+ *  der ausgehende Slide blendet zusätzlich per FadeOut aus.
  */
 
 import React from 'react';
@@ -39,10 +42,7 @@ import {
   AudioWaveformBar,
   generateFallbackBeats,
 } from './components/BeatSyncLayer';
-import {
-  TransitionWrapper,
-  WipeEdgeGlow
-} from './components/TransitionSlideshow';
+import { TransitionWrapper } from './components/TransitionSlideshow';
 import {
   RouteMapLine,
   pickDemoRoute
@@ -363,21 +363,27 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
                   showBusMarker={true}
                   overlayOpacity={mapImageUrl ? 0.4 : 0}
                 />
+              ) : isLastSlide ? (
+                <TransitionWrapper
+                  type={transitionType}
+                  durationFrames={TRANSITION_FRAMES}
+                  imageIndex={i}
+                >
+                  {slideContent}
+                </TransitionWrapper>
               ) : (
                 <FadeOut
                   durationFrames={TRANSITION_FRAMES}
                   totalFrames={seqDuration}
                 >
-                  {slideContent}
+                  <TransitionWrapper
+                    type={transitionType}
+                    durationFrames={TRANSITION_FRAMES}
+                    imageIndex={i}
+                  >
+                    {slideContent}
+                  </TransitionWrapper>
                 </FadeOut>
-              )}
-              {/* Wipe-Edge-Glow nur bei wipe/auto und nicht auf Route */}
-              {!isRoute && (transitionType === 'wipe' || transitionType === 'auto') && (
-                <WipeEdgeGlow
-                  durationFrames={TRANSITION_FRAMES}
-                  color={accentColor}
-                  direction={i % 2 === 0 ? 'left' : 'right'}
-                />
               )}
             </Sequence>
           );

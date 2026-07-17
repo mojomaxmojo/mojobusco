@@ -235,6 +235,9 @@ const TRANSITION_OPTIONS = [
   { value: 'wipe', label: '🧹 Wipe' },
   { value: 'slide', label: '➡️ Slide' },
   { value: 'glitch', label: '📺 Glitch' },
+  { value: 'irisWipe', label: '👁️ Iris' },
+  { value: 'starWipe', label: '⭐ Star' },
+  { value: 'heartWipe', label: '❤️ Heart' },
 ]
 
 /** Farblook-Optionen (Color-Grade-Presets) */

@@ -2,7 +2,7 @@
  * TransitionSlideshow — @remotion/transitions Integration
  *
  * Ersetzt / ergänzt das einfache CrossDissolve in MojoBusVideo.
- * Acht Transitions nach Priorität:
+ * Elf Transitions nach Priorität:
  *   1. wipe       — Wischer von links nach rechts (Reels-typisch)
  *   2. clockWipe  — Uhrzeiger-Wischer (dramatisch)
  *   3. fade       — Klassisches Cross-Dissolve (dezent)
@@ -11,6 +11,9 @@
  *   6. zoomRelay  — Fokusübergang für Details in Städten oder Natur
  *   7. glitch     — Moderner, digitaler Übergang für urbane Impressionen
  *   8. pagePeel   — Storytelling-Übergang mit Blättereffekt
+ *   9. irisWipe   — Kreisförmiger Iris-Reveal aus der Mitte
+ *  10. starWipe   — Sternförmiger Wipe für Highlights
+ *  11. heartWipe  — Herzförmiger Reveal für emotionale Momente
  *
  * ARCHITEKTUR:
  * - @remotion/transitions nutzt <TransitionSeries> und <Transition> Komponenten
@@ -37,7 +40,7 @@ import { CrossDissolve as FallbackCrossDiss } from './CrossFade';
 
 // ── Transition-Typen ───────────────────────────────────────────────────────
 
-export type TransitionType = 'wipe' | 'clockWipe' | 'fade' | 'slide' | 'morph' | 'zoomRelay' | 'glitch' | 'pagePeel' | 'auto';
+export type TransitionType = 'wipe' | 'clockWipe' | 'irisWipe' | 'starWipe' | 'heartWipe' | 'fade' | 'slide' | 'morph' | 'zoomRelay' | 'glitch' | 'pagePeel' | 'auto';
 
 // ── Pure CSS/SVG Transitions (kein extra Package nötig) ───────────────────
 
@@ -187,6 +190,178 @@ const SlideTransition: React.FC<{
   );
 };
 
+/**
+ * IrisWipeTransition — Kreisförmiger Reveal von der Mitte aus
+ * Sanft, aber deutlich sichtbar — passt gut zu Landschaften und Portraits.
+ */
+const IrisWipeTransition: React.FC<{
+  durationFrames: number;
+  children: React.ReactNode;
+}> = ({ durationFrames, children }) => {
+  const frame = useCurrentFrame();
+  const { width, height } = useVideoConfig();
+
+  const t = interpolate(frame, [0, Math.max(1, durationFrames)], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
+  const eased = t < 0.5
+    ? 4 * t * t * t
+    : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+  const maxRadius = Math.sqrt((width / 2) ** 2 + (height / 2) ** 2);
+  const r = eased * maxRadius;
+  const clipId = `iriswipe-${frame}`;
+
+  return (
+    <AbsoluteFill>
+      <svg
+        style={{ position: 'absolute', width: 0, height: 0 }}
+        aria-hidden="true"
+      >
+        <defs>
+          <clipPath id={clipId} clipPathUnits="userSpaceOnUse">
+            <circle cx={width / 2} cy={height / 2} r={r} />
+          </clipPath>
+        </defs>
+      </svg>
+      <AbsoluteFill style={{ clipPath: `url(#${clipId})` }}>
+        {children}
+      </AbsoluteFill>
+    </AbsoluteFill>
+  );
+};
+
+/**
+ * StarWipeTransition — Sternförmiger Wipe
+ * Eye-Catcher für Highlights, Reveal-Momente und „Wow"-Cuts.
+ */
+const StarWipeTransition: React.FC<{
+  durationFrames: number;
+  children: React.ReactNode;
+}> = ({ durationFrames, children }) => {
+  const frame = useCurrentFrame();
+  const { width, height } = useVideoConfig();
+
+  const t = interpolate(frame, [0, Math.max(1, durationFrames)], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
+  const eased = t < 0.5
+    ? 4 * t * t * t
+    : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+  const outerRadius = Math.max(width, height) * eased;
+  const innerRadius = outerRadius * 0.42;
+  const cx = width / 2;
+  const cy = height / 2;
+
+  const points: string[] = [];
+  for (let i = 0; i < 10; i++) {
+    const angle = (i * Math.PI) / 5 - Math.PI / 2;
+    const r = i % 2 === 0 ? outerRadius : innerRadius;
+    const x = cx + r * Math.cos(angle);
+    const y = cy + r * Math.sin(angle);
+    points.push(`${x.toFixed(2)},${y.toFixed(2)}`);
+  }
+
+  const clipId = `starwipe-${frame}`;
+
+  return (
+    <AbsoluteFill>
+      <svg
+        style={{ position: 'absolute', width: 0, height: 0 }}
+        aria-hidden="true"
+      >
+        <defs>
+          <clipPath id={clipId} clipPathUnits="userSpaceOnUse">
+            <polygon points={points.join(' ')} />
+          </clipPath>
+        </defs>
+      </svg>
+      <AbsoluteFill style={{ clipPath: `url(#${clipId})` }}>
+        {children}
+      </AbsoluteFill>
+    </AbsoluteFill>
+  );
+};
+
+/**
+ * HeartWipeTransition — Herzförmiger Reveal
+ * Ideal für emotionale Momente, Paar/Selfie-Slides oder liebevolle Vanlife-Szenen.
+ */
+const HeartWipeTransition: React.FC<{
+  durationFrames: number;
+  children: React.ReactNode;
+}> = ({ durationFrames, children }) => {
+  const frame = useCurrentFrame();
+  const { width, height } = useVideoConfig();
+
+  const t = interpolate(frame, [0, Math.max(1, durationFrames)], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
+  const eased = t < 0.5
+    ? 4 * t * t * t
+    : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+  const size = Math.max(width, height) * eased;
+  const cx = width / 2;
+  const cy = height / 2;
+
+  // Normierte Herz-Koordinaten (0..1), dann skaliert und zentriert
+  const rawPoints = [
+    [0.5, 0.25],
+    [0.5, 0.1],
+    [0.3, 0],
+    [0.15, 0],
+    [0, 0],
+    [0, 0.15],
+    [0, 0.25],
+    [0, 0.45],
+    [0.5, 0.7],
+    [1, 0.45],
+    [1, 0.25],
+    [1, 0.15],
+    [1, 0],
+    [0.85, 0],
+    [0.7, 0],
+    [0.5, 0.1],
+    [0.5, 0.25],
+  ];
+
+  const pathD = rawPoints
+    .map(([x, y], i) => {
+      const px = cx + (x - 0.5) * size;
+      const py = cy + (y - 0.35) * size;
+      return `${i === 0 ? 'M' : 'L'} ${px.toFixed(2)} ${py.toFixed(2)}`;
+    })
+    .join(' ') + ' Z';
+
+  const clipId = `heartwipe-${frame}`;
+
+  return (
+    <AbsoluteFill>
+      <svg
+        style={{ position: 'absolute', width: 0, height: 0 }}
+        aria-hidden="true"
+      >
+        <defs>
+          <clipPath id={clipId} clipPathUnits="userSpaceOnUse">
+            <path d={pathD} />
+          </clipPath>
+        </defs>
+      </svg>
+      <AbsoluteFill style={{ clipPath: `url(#${clipId})` }}>
+        {children}
+      </AbsoluteFill>
+    </AbsoluteFill>
+  );
+};
+
 // ── TransitionWrapper — Wählt die richtige Transition ─────────────────────
 
 interface TransitionWrapperProps {
@@ -223,8 +398,8 @@ export const TransitionWrapper: React.FC<TransitionWrapperProps> = ({
   // 'auto': deterministisch basierend auf Bild-Index rotieren
   // pagePeel aus auto-Rotation entfernt — braucht nextChildren aus MojoBusVideo
   const AUTO_SEQUENCE: Array<Exclude<TransitionType, 'auto'>> = [
-    'wipe', 'fade', 'clockWipe', 'slide', 'morph', 'zoomRelay',
-    'glitch', 'wipe', 'fade', 'clockWipe'
+    'wipe', 'fade', 'clockWipe', 'irisWipe', 'slide', 'morph', 'starWipe',
+    'zoomRelay', 'glitch', 'heartWipe', 'wipe', 'fade', 'clockWipe'
   ];
 
   const effectiveType: Exclude<TransitionType, 'auto'> =
@@ -309,6 +484,27 @@ export const TransitionWrapper: React.FC<TransitionWrapperProps> = ({
         >
           {children}
         </PagePeelTransition>
+      );
+
+    case 'irisWipe':
+      return (
+        <IrisWipeTransition durationFrames={durationFrames}>
+          {children}
+        </IrisWipeTransition>
+      );
+
+    case 'starWipe':
+      return (
+        <StarWipeTransition durationFrames={durationFrames}>
+          {children}
+        </StarWipeTransition>
+      );
+
+    case 'heartWipe':
+      return (
+        <HeartWipeTransition durationFrames={durationFrames}>
+          {children}
+        </HeartWipeTransition>
       );
 
     case 'fade':
