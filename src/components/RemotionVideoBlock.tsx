@@ -31,7 +31,7 @@ type AspectRatio = '16:9' | '9:16' | '1:1';
 type ColorGrade = 'golden' | 'warm' | 'moody' | 'blue' | 'teal-orange' | 'vintage' | 'auto';
 type CaptionStyle = 'off' | 'tiktok' | 'minimal' | 'full-line';
 type MotionBlur = 0 | 1 | 2;
-type TransitionType = 'auto' | 'fade' | 'wipe' | 'clockWipe' | 'slide' | 'morph' | 'zoomRelay' | 'glitch' | 'pagePeel' | 'irisWipe' | 'starWipe' | 'heartWipe';
+type TransitionType = 'auto' | 'fade' | 'wipe' | 'clockWipe' | 'slide' | 'morph' | 'zoomRelay' | 'glitch' | 'pagePeel' | 'irisWipe' | 'starWipe' | 'heartWipe' | 'scalePopIn' | 'bounceScale' | 'diagonalWipe';
 type RenderStatus = 'idle' | 'uploading-local' | 'queued' | 'rendering' | 'downloading' | 'uploading-blossom' | 'completed' | 'failed';
 
 interface MusicTrack {
@@ -61,6 +61,9 @@ const TRANSITION_LABELS: Record<TransitionType, string> = {
   irisWipe: '👁️ Iris',
   starWipe: '⭐ Star',
   heartWipe: '❤️ Heart',
+  scalePopIn: '💥 Pop',
+  bounceScale: '🔔 Bounce',
+  diagonalWipe: '↗️ Diag',
 };
 
 export interface RemotionVideoBlockProps {

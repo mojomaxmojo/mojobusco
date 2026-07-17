@@ -238,6 +238,9 @@ const TRANSITION_OPTIONS = [
   { value: 'irisWipe', label: '👁️ Iris' },
   { value: 'starWipe', label: '⭐ Star' },
   { value: 'heartWipe', label: '❤️ Heart' },
+  { value: 'scalePopIn', label: '💥 Pop-In' },
+  { value: 'bounceScale', label: '⚡ Bounce' },
+  { value: 'diagonalWipe', label: '↗️ Diagonal' },
 ]
 
 /** Farblook-Optionen (Color-Grade-Presets) */

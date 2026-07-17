@@ -2,18 +2,21 @@
  * TransitionSlideshow — @remotion/transitions Integration
  *
  * Ersetzt / ergänzt das einfache CrossDissolve in MojoBusVideo.
- * Elf Transitions nach Priorität:
- *   1. wipe       — Wischer von links nach rechts (Reels-typisch)
- *   2. clockWipe  — Uhrzeiger-Wischer (dramatisch)
- *   3. fade       — Klassisches Cross-Dissolve (dezent)
- *   4. slide      — Schiebeübergang (modern)
- *   5. morph      — Fließender Übergang zwischen ähnlichen Landschaften
- *   6. zoomRelay  — Fokusübergang für Details in Städten oder Natur
- *   7. glitch     — Moderner, digitaler Übergang für urbane Impressionen
- *   8. pagePeel   — Storytelling-Übergang mit Blättereffekt
- *   9. irisWipe   — Kreisförmiger Iris-Reveal aus der Mitte
- *  10. starWipe   — Sternförmiger Wipe für Highlights
- *  11. heartWipe  — Herzförmiger Reveal für emotionale Momente
+ * 14 Transitions nach Priorität:
+ *   1. wipe         — Wischer von links nach rechts (Reels-typisch)
+ *   2. clockWipe    — Uhrzeiger-Wischer (dramatisch)
+ *   3. fade         — Klassisches Cross-Dissolve (dezent)
+ *   4. slide        — Schiebeübergang (modern)
+ *   5. morph        — Fließender Übergang zwischen ähnlichen Landschaften
+ *   6. zoomRelay    — Fokusübergang für Details in Städten oder Natur
+ *   7. glitch       — Moderner, digitaler Übergang für urbane Impressionen
+ *   8. pagePeel     — Storytelling-Übergang mit Blättereffekt
+ *   9. irisWipe     — Kreisförmiger Iris-Reveal aus der Mitte
+ *  10. starWipe     — Sternförmiger Wipe für Highlights
+ *  11. heartWipe    — Herzförmiger Reveal für emotionale Momente
+ *  12. scalePopIn   — Eingang mit Pop/Bounce-Skala
+ *  13. bounceScale  — Elastischer Bounce 0.8 → 1.05 → 1.0
+ *  14. diagonalWipe — Diagonaler Wischer von Ecke zu Ecke
  *
  * ARCHITEKTUR:
  * - @remotion/transitions nutzt <TransitionSeries> und <Transition> Komponenten
@@ -40,7 +43,7 @@ import { CrossDissolve as FallbackCrossDiss } from './CrossFade';
 
 // ── Transition-Typen ───────────────────────────────────────────────────────
 
-export type TransitionType = 'wipe' | 'clockWipe' | 'irisWipe' | 'starWipe' | 'heartWipe' | 'fade' | 'slide' | 'morph' | 'zoomRelay' | 'glitch' | 'pagePeel' | 'auto';
+export type TransitionType = 'wipe' | 'clockWipe' | 'irisWipe' | 'starWipe' | 'heartWipe' | 'fade' | 'slide' | 'morph' | 'zoomRelay' | 'glitch' | 'pagePeel' | 'scalePopIn' | 'bounceScale' | 'diagonalWipe' | 'auto';
 
 // ── Pure CSS/SVG Transitions (kein extra Package nötig) ───────────────────
 
@@ -362,6 +365,136 @@ const HeartWipeTransition: React.FC<{
   );
 };
 
+/**
+ * ScalePopInTransition — Bild „popt" von leicht klein auf 1.0 herein
+ * Ease-Out-Back gibt den typischen TikTok-Bounce.
+ */
+const ScalePopInTransition: React.FC<{
+  durationFrames: number;
+  children: React.ReactNode;
+}> = ({ durationFrames, children }) => {
+  const frame = useCurrentFrame();
+
+  const t = interpolate(frame, [0, Math.max(1, durationFrames)], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
+  // Ease-Out-Back: leichtes Überschwingen für den Pop-Effekt
+  const c1 = 1.70158;
+  const c3 = c1 + 1;
+  const eased = 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+
+  const scale = 0.82 + (1 - 0.82) * eased;
+
+  return (
+    <AbsoluteFill
+      style={{
+        transform: `scale(${scale.toFixed(4)})`,
+        transformOrigin: 'center center',
+        willChange: 'transform',
+      }}
+    >
+      {children}
+    </AbsoluteFill>
+  );
+};
+
+/**
+ * BounceScaleTransition — Elastischer Bounce: 0.8 → 1.05 → 1.0
+ * Perfekt für energiegeladene TikTok-Cuts.
+ */
+const BounceScaleTransition: React.FC<{
+  durationFrames: number;
+  children: React.ReactNode;
+}> = ({ durationFrames, children }) => {
+  const frame = useCurrentFrame();
+
+  const t = interpolate(frame, [0, Math.max(1, durationFrames)], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
+  // 0 → 60 %: 0.80 → 1.05  |  60 % → 100 %: 1.05 → 1.00
+  const scale = t < 0.6
+    ? interpolate(t, [0, 0.6], [0.8, 1.05], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })
+    : interpolate(t, [0.6, 1], [1.05, 1.0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+
+  return (
+    <AbsoluteFill
+      style={{
+        transform: `scale(${scale.toFixed(4)})`,
+        transformOrigin: 'center center',
+        willChange: 'transform',
+      }}
+    >
+      {children}
+    </AbsoluteFill>
+  );
+};
+
+/**
+ * DiagonalWipeTransition — Diagonaler Wischer von einer Ecke zur anderen
+ * Vier Richtungen, automatisch per imageIndex rotierend.
+ */
+const DiagonalWipeTransition: React.FC<{
+  durationFrames: number;
+  direction?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  children: React.ReactNode;
+}> = ({ durationFrames, direction = 'top-left', children }) => {
+  const frame = useCurrentFrame();
+
+  const t = interpolate(frame, [0, Math.max(1, durationFrames)], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
+  const eased = t < 0.5
+    ? 4 * t * t * t
+    : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+  let clipPath: string;
+  const p = Math.min(100, eased * 200);
+  const q = Math.max(0, (eased - 0.5) * 200);
+
+  switch (direction) {
+    case 'top-right':
+      if (eased <= 0.5) {
+        clipPath = `polygon(100% 0, ${100 - p}% 0, 100% ${p}%)`;
+      } else {
+        clipPath = `polygon(100% 0, 0 0, 0 ${q}%, ${q}% 100%, 100% 100%)`;
+      }
+      break;
+    case 'bottom-left':
+      if (eased <= 0.5) {
+        clipPath = `polygon(0 100%, ${p}% 100%, 0 ${100 - p}%)`;
+      } else {
+        clipPath = `polygon(0 100%, 100% 100%, 100% ${100 - q}%, ${100 - q}% 0, 0 0)`;
+      }
+      break;
+    case 'bottom-right':
+      if (eased <= 0.5) {
+        clipPath = `polygon(100% 100%, ${100 - p}% 100%, 100% ${100 - p}%)`;
+      } else {
+        clipPath = `polygon(100% 100%, 0 100%, 0 ${100 - q}%, ${q}% 0, 100% 0)`;
+      }
+      break;
+    case 'top-left':
+    default:
+      if (eased <= 0.5) {
+        clipPath = `polygon(0 0, ${p}% 0, 0 ${p}%)`;
+      } else {
+        clipPath = `polygon(0 0, 100% 0, 100% ${q}%, ${q}% 100%, 0 100%)`;
+      }
+  }
+
+  return (
+    <AbsoluteFill style={{ clipPath, willChange: 'clip-path' }}>
+      {children}
+    </AbsoluteFill>
+  );
+};
+
 // ── TransitionWrapper — Wählt die richtige Transition ─────────────────────
 
 interface TransitionWrapperProps {
@@ -398,8 +531,9 @@ export const TransitionWrapper: React.FC<TransitionWrapperProps> = ({
   // 'auto': deterministisch basierend auf Bild-Index rotieren
   // pagePeel aus auto-Rotation entfernt — braucht nextChildren aus MojoBusVideo
   const AUTO_SEQUENCE: Array<Exclude<TransitionType, 'auto'>> = [
-    'wipe', 'fade', 'clockWipe', 'irisWipe', 'slide', 'morph', 'starWipe',
-    'zoomRelay', 'glitch', 'heartWipe', 'wipe', 'fade', 'clockWipe'
+    'wipe', 'fade', 'clockWipe', 'irisWipe', 'slide', 'scalePopIn', 'morph',
+    'starWipe', 'zoomRelay', 'glitch', 'heartWipe', 'bounceScale',
+    'diagonalWipe', 'wipe', 'fade', 'clockWipe'
   ];
 
   const effectiveType: Exclude<TransitionType, 'auto'> =
@@ -506,6 +640,34 @@ export const TransitionWrapper: React.FC<TransitionWrapperProps> = ({
           {children}
         </HeartWipeTransition>
       );
+
+    case 'scalePopIn':
+      return (
+        <ScalePopInTransition durationFrames={durationFrames}>
+          {children}
+        </ScalePopInTransition>
+      );
+
+    case 'bounceScale':
+      return (
+        <BounceScaleTransition durationFrames={durationFrames}>
+          {children}
+        </BounceScaleTransition>
+      );
+
+    case 'diagonalWipe': {
+      const diagonalDirections: Array<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'> = [
+        'top-left', 'bottom-right', 'top-right', 'bottom-left',
+      ];
+      return (
+        <DiagonalWipeTransition
+          durationFrames={durationFrames}
+          direction={diagonalDirections[imageIndex % diagonalDirections.length]}
+        >
+          {children}
+        </DiagonalWipeTransition>
+      );
+    }
 
     case 'fade':
     default:
