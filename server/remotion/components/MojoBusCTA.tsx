@@ -81,10 +81,10 @@ export const MojoBusCTA: React.FC<MojoBusCTAProps> = ({
 
   return (
     <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center' }}>
-      {/* Dunkler Hintergrund */}
+      {/* Dunkler Hintergrund (20% heller als vorher) */}
       <AbsoluteFill
         style={{
-          background: `linear-gradient(135deg, rgba(0,0,0,${bgOpacity * 0.88}) 0%, rgba(15,8,0,${bgOpacity * 0.92}) 100%)`,
+          background: `linear-gradient(135deg, rgba(0,0,0,${bgOpacity * 0.70}) 0%, rgba(15,8,0,${bgOpacity * 0.74}) 100%)`,
         }}
       />
 
