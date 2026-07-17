@@ -551,7 +551,7 @@ Keine.
 - [x] Schritt 5: `videoProps.ts` erstellt, `MojoBusVideo.tsx` importiert/re-exportiert es
 - [x] Schritt 6: `components/MediaRenderer.tsx` erstellt, `isVideo` dort exportiert, Aufrufe in `MojoBusVideo.tsx` aktualisiert
 - [x] Schritt 7: `mediaServer.js` erstellt, `render.js` importiert `startImageServer`
-- [ ] Schritt 8: `mediaDownload.js` erstellt, Download-Helpers in `render.js` entfernt
+- [x] Schritt 8: `mediaDownload.js` erstellt, Download-Helpers in `render.js` entfernt
 - [ ] Schritt 9: `voiceover.js` erstellt, Voiceover-Logik in `render.js` entfernt
 - [ ] Schritt 10: `chrome.js` erstellt, Chrome-Setup in `render.js` entfernt
 - [ ] Schritt 11: `bundle.js` erstellt, Bundle-Cache + `invalidateBundleCache` in `render.js` entfernt
