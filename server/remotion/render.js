@@ -12,6 +12,7 @@ import { renderMedia, selectComposition, ensureBrowser } from '@remotion/rendere
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { OUTPUT_DIR, IMAGES_DIR, COMPOSITION_IDS, MIME_TYPES, FASTSTART_EXTENSIONS } from './constants.js';
+import { FFMPEG_PATH, FFPROBE_PATH, FFPROBE } from './binaries.js';
 import fs from 'fs';
 import { execFile, execSync } from 'child_process';
 import crypto from 'crypto';
@@ -23,29 +24,10 @@ const execFileAsync = promisify(execFile);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// ── Binary-Pfade (ffmpeg/ffprobe) automatisch erkennen ────────────────────
-// sucht zuerst statische Pfade (CentminMod), dann via command -v (POSIX)
-const findBinary = (name) => {
-  // Statische Pfade zuerst (CentminMod: /opt/bin/ hat volle Codecs)
-  if (fs.existsSync(`/opt/bin/${name}`)) return `/opt/bin/${name}`;
-  if (fs.existsSync(`/usr/local/bin/${name}`)) return `/usr/local/bin/${name}`;
-  if (fs.existsSync(`/usr/bin/${name}`)) return `/usr/bin/${name}`;
-  // PATH-Fallback
-  try {
-    const found = execSync(`command -v ${name} 2>/dev/null`).toString().trim();
-    if (found) return found;
-  } catch {}
-  return `/usr/bin/${name}`;
-};
-const FFMPEG_PATH  = process.env.FFMPEG_PATH  || findBinary('ffmpeg');
-const FFPROBE_PATH = process.env.FFPROBE_PATH || findBinary('ffprobe');
-
 // ── Per-Segment Voiceover generieren ─────────────────────────────────────
 //
 // Erzeugt für jeden Satz eine eigene MP3 (statt einer großen).
 // Misst die tatsächliche Dauer jeder MP3 via ffprobe.
-
-const FFPROBE = FFPROBE_PATH;
 
 async function generateVoiceoverSegments(segments, voiceoverModel, voiceoverSpeed, effectiveEngine, sessionDir) {
   if (!segments || segments.length === 0) return null;

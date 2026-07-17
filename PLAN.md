@@ -545,7 +545,7 @@ Keine.
 ## Checkliste
 
 - [x] Schritt 1: `constants.js` erstellt, `render.js` nutzt Imports
-- [ ] Schritt 2: `binaries.js` erstellt, `render.js` nutzt ffmpeg/ffprobe davon
+- [x] Schritt 2: `binaries.js` erstellt, `render.js` nutzt ffmpeg/ffprobe davon
 - [ ] Schritt 3: `duration.ts` erstellt, `MojoBusVideo.tsx`/`index.tsx` angepasst
 - [ ] Schritt 4: `components/HookDimOverlay.tsx` erstellt, `MojoBusVideo.tsx` importiert es
 - [ ] Schritt 5: `videoProps.ts` erstellt, `MojoBusVideo.tsx` importiert/re-exportiert es
