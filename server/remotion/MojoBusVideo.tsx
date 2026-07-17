@@ -16,7 +16,7 @@
 import React from 'react';
 import { AbsoluteFill, Sequence, useVideoConfig, Video } from 'remotion';
 
-import { KenBurnsImage, pickDirection, type GammaFade } from './components/KenBurnsImage';
+import { KenBurnsImage, pickDirection } from './components/KenBurnsImage';
 import { ColorGradeOverlay, ColorGradeWrapper, lifestyleToGrade, type ColorGrade } from './components/ColorGradeOverlay';
 import { HookTitle } from './components/HookTitle';
 import { LocationBadge } from './components/LocationBadge';
@@ -25,7 +25,9 @@ import { ProgressBar } from './components/ProgressBar';
 import { AudioLayer } from './components/AudioLayer';
 import { FadeIn, FadeOut } from './components/CrossFade';
 import { StoryCaption } from './components/StoryCaption';
-import { PerSlideCaption, type CaptionStyle } from './components/Captions';
+import {
+  PerSlideCaption
+} from './components/Captions';
 import { LoadFonts } from './components/Fonts';
 import { HookDimOverlay } from './components/HookDimOverlay';
 import { getHookSeconds } from './duration';
@@ -39,13 +41,11 @@ import {
 } from './components/BeatSyncLayer';
 import {
   TransitionWrapper,
-  WipeEdgeGlow,
-  type TransitionType,
+  WipeEdgeGlow
 } from './components/TransitionSlideshow';
 import {
   RouteMapLine,
-  pickDemoRoute,
-  type RouteCoord,
+  pickDemoRoute
 } from './components/RouteMapLine';
 import { LottieBusIcon } from './components/LottieBusIcon';
 
@@ -68,105 +68,8 @@ import { pickStickerForCut, StickerPop, stickerPopDuration } from './components/
 import { buildSfxCues, SfxLayer } from './components/SfxLayer';
 import { findHeroWordWindow } from './components/CaptionHeroWord';
 
-// ── Props Interface ────────────────────────────────────────────────────────
-
-export interface MojoBusVideoProps {
-  imageUrls: string[];
-  title: string;
-  summary?: string;
-  location?: string;
-  country?: string;
-  lifestyle?: string;
-  musicUrl?: string;
-  secondsPerImage?: number;
-  aspectRatio?: '16:9' | '9:16' | '1:1';
-  colorGrade?: ColorGrade;
-  captions?: string[];
-  captionStyle?: 'off' | 'tiktok' | 'chunked' | 'full-line' | 'minimal';
-  /** Ziel-Plattform – steuert Caption-Position (safe zone) */
-  platform?: 'tiktok' | 'reels' | 'youtube';
-  websiteUrl?: string;
-  handle?: string;
-  accentColor?: string;
-  motionBlurStrength?: number;
-
-  // ── NEU: Voiceover (Piper TTS) ───────────────────────────────────────
-// ── NEU: Voiceover (concat) + dynamische Slides ────────────────────────────
-  /** URL der getakteten voiceover_sync.mp3 (alle Segmente concat) */
-  voiceoverUrl?: string;
-  /** Dynamische Slide-Dauern (Sekunden pro Bild, min = secondsPerImage) */
-  perSlideArray?: number[];
-  /** Lautstärke des Voiceover 0-1 (Default: 1.0) */
-  voiceoverVolume?: number;
-  /** URL der generierten Atmo-Spur (wav) – Meer, Regen, Wind etc. */
-  ambientUrl?: string;
-
-  // ── NEU: Kapitel-Marker (Hook + CTA Captions) ─────────────────────────
-  /** Hook-Caption – wird unter dem Titel im Hook-Bereich eingeblendet */
-  hookCaption?: string;
-  /** CTA-Text – wird auf der Endkarte eingeblendet */
-  ctaText?: string;
-
-  // ── NEU: Beat-Sync ────────────────────────────────────────────────────
-  /** Beat-Sync Stärke 0–1 (0 = aus, 1 = standard). Default: 0.6 */
-  beatSyncStrength?: number;
-  /** Beat-Threshold für Audio-Erkennung (0–1). Default: 0.60 */
-  beatThreshold?: number;
-  /** Waveform-Bar anzeigen (unten). Default: false */
-  showWaveformBar?: boolean;
-
-  // ── NEU: Transitions ─────────────────────────────────────────────────
-  /** Transitions-Typ zwischen Bildern. Default: 'auto' */
-  transitionType?: TransitionType;
-
-  // ── NEU: Routen-Karte ────────────────────────────────────────────────
-  /**
-   * Wenn true: zeigt eine Routen-Slide in der Mitte der Slideshow.
-   * Default: false
-   */
-  showRouteMap?: boolean;
-  /**
-   * Routen-Koordinaten (Prozent des Video-Frames).
-   * Wenn nicht angegeben: wird aus 'country' automatisch gewählt.
-   */
-  routeCoords?: RouteCoord[];
-  /** URL eines Karten-Hintergrundbildes für die Routen-Slide */
-  mapImageUrl?: string;
-
-  // ── NEU: Lottie Bus in CTA ────────────────────────────────────────────
-  /**
-   * Animierten CSS/Lottie Bus in der Endkarte anzeigen.
-   * Default: true
-   */
-  showLottieBus?: boolean;
-
-  // ── NEU: Cinematic Effects (Plattform-Matrix) ─────────────────────────
-  /**
-   * Zoom-Punch, WhipPan, FlashCut, LightLeak, Letterbox, Match-Cut-Zoom.
-   * Welche Effekte aktiv sind entscheidet die Plattform-Matrix
-   * (PLATFORM_EFFECTS in CinematicEffects.tsx). Default: true
-   */
-  cinematicEffects?: boolean;
-
-  /** Original-Ton des Videos im Haupt-Slide freigeben (Musik/Atmo ducken) */
-  keepOriginalAudio?: boolean;
-
-  /** Animierte Sticker/Emoji-Pops an Cut-Punkten (Beta). Default: false */
-  stickersEnabled?: boolean;
-
-  /** Sound-SFX (Whoosh/Ding/Impact) auf Cut-Punkten (Beta). Default: false */
-  sfxEnabled?: boolean;
-  /** URLs der generierten SFX-WAV-Dateien, keyed nach Typ (whoosh/ding/impact) */
-  sfxUrls?: Record<string, string>;
-
-  /**
-   * Speed-Ramping bei Video-Clips (Beta): erste Hälfte des Slides läuft
-   * langsamer (Slow-Mo-Intro), zweite Hälfte schneller (Punch-Out).
-   * Nur wirksam auf Video-Slides, Bild-Slides bleiben unberührt. Default: false
-   */
-  speedRampEnabled?: boolean;
-
-}
+import { MojoBusVideoProps } from './videoProps';
+export { MojoBusVideoProps } from './videoProps';
 
 // ── Haupt-Komponent ────────────────────────────────────────────────────────
 
