@@ -49,6 +49,10 @@ export interface MojoBusVideoProps {
   /** Waveform-Bar anzeigen (unten). Default: false */
   showWaveformBar?: boolean;
 
+  // ── NEU: Beat-Sync Velocity Punch ───────────────────────────────────────
+  /** Beat-synchroner Scale-Punch (Velocity-Edit-Look). Default: false */
+  beatVelocityPunch?: boolean;
+
   // ── NEU: Transitions ─────────────────────────────────────────────────
   /** Transitions-Typ zwischen Bildern. Default: 'auto' */
   transitionType?: TransitionType;

@@ -177,6 +177,7 @@ export function RemotionVideoBlock({
   const [captionStyle, setCaptionStyle] = useState<CaptionStyle>('tiktok');
   const [motionBlur, setMotionBlur] = useState<MotionBlur>(1);
   const [transitionType, setTransitionType] = useState<TransitionType>('auto');
+  const [beatVelocityPunch, setBeatVelocityPunch] = useState(false);
   const [showRouteMap, setShowRouteMap] = useState(false);
   const [selectedMusic, setSelectedMusic] = useState<string>('random');
   const [musicTracks, setMusicTracks] = useState<MusicTrack[]>([]);
@@ -319,6 +320,7 @@ export function RemotionVideoBlock({
           accentColor,
           motionBlurStrength: motionBlur,
           transitionType,
+          beatVelocityPunch,
           showRouteMap,
           websiteUrl: 'mojobus.co',
           handle: '@mojobus',
@@ -604,6 +606,20 @@ export function RemotionVideoBlock({
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Beat Velocity Punch */}
+              <div className="flex items-center gap-2">
+                <input
+                  id="beatVelocityPunch"
+                  type="checkbox"
+                  checked={beatVelocityPunch}
+                  onChange={e => setBeatVelocityPunch(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                />
+                <Label htmlFor="beatVelocityPunch" className="text-xs font-medium cursor-pointer">
+                  💥 Beat Velocity Punch
+                </Label>
               </div>
 
               {/* Musik-Auswahl */}

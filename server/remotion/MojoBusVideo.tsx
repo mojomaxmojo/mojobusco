@@ -43,6 +43,7 @@ import {
   generateFallbackBeats,
 } from './components/BeatSyncLayer';
 import { TransitionWrapper } from './components/TransitionSlideshow';
+import { BeatVelocityPunch } from './components/BeatVelocityPunch';
 import {
   RouteMapLine,
   pickDemoRoute
@@ -95,6 +96,9 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
   beatSyncStrength = 0.6,
   beatThreshold = 0.60,
   showWaveformBar = false,
+
+  // Beat-Sync Velocity Punch
+  beatVelocityPunch = false,
 
   // Transitions
   transitionType = 'auto',
@@ -258,8 +262,16 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
       {/* Fonts */}
       <LoadFonts />
 
-      {/* ══ SCHICHT 1: Bilder mit Ken Burns + Transitions ══════════════════ */}
-      <ColorGradeWrapper grade={grade}>
+      {/* ══ SCHICHT 1+2: Bilder + Color Grade mit Beat Velocity Punch ═════ */}
+      <BeatVelocityPunch
+        enabled={beatVelocityPunch}
+        musicUrl={musicUrl}
+        beatThreshold={beatThreshold}
+        strength={beatSyncStrength}
+        fallbackBeats={fallbackBeats}
+      >
+        {/* ══ SCHICHT 1: Bilder mit Ken Burns + Transitions ══════════════════ */}
+        <ColorGradeWrapper grade={grade}>
 
         {/* HOOK — erstes Bild, blendet am Ende aus */}
         {images[0] && (
@@ -402,6 +414,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
 
       {/* ══ SCHICHT 2: Color Grade Overlay ══════════════════════════════════ */}
       <ColorGradeOverlay grade={grade} />
+      </BeatVelocityPunch>
 
       {/* ══ SCHICHT 3: Hook Abdunkelung (nur während Hook-Slide) ══════════════
            Gleichmäßiges dunkles Overlay damit der Hook-Text auf jedem Bild

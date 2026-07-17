@@ -372,6 +372,7 @@ export function TikTokPromotion() {
   const [transitionType, setTransitionType] = useState('auto')
   const [secondsPerImage, setSecondsPerImage] = useState(4)
   const [beatSync, setBeatSync] = useState('medium')
+  const [beatVelocityPunch, setBeatVelocityPunch] = useState(false)
   const [captionStyle, setCaptionStyle] = useState<'chunked' | 'full-line'>('full-line')
   const [colorGrade, setColorGrade] = useState('auto')
   const [stickersEnabled, setStickersEnabled] = useState(false)
@@ -766,6 +767,7 @@ export function TikTokPromotion() {
       musicUrl,                    // ausgewählter Track oder undefined → Server wählt zufällig
       accentColor: '#F59E0B',
       beatSyncStrength: beatSyncVal,
+      beatVelocityPunch,
       transitionType: transitionType || 'auto',
       colorGrade: colorGrade !== 'auto' ? colorGrade : undefined,
       stickersEnabled,
@@ -2085,6 +2087,20 @@ export function TikTokPromotion() {
                       <SelectItem value="high">🔥 Stark</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                {/* Beat Velocity Punch */}
+                <div className="flex items-center gap-2">
+                  <input
+                    id="beatVelocityPunch"
+                    type="checkbox"
+                    checked={beatVelocityPunch}
+                    onChange={e => setBeatVelocityPunch(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <Label htmlFor="beatVelocityPunch" className="text-xs sm:text-sm cursor-pointer">
+                    💥 Beat Velocity Punch (Zoom auf Takt)
+                  </Label>
                 </div>
 
                 {/* Musik */}
