@@ -550,7 +550,7 @@ Keine.
 - [x] Schritt 4: `components/HookDimOverlay.tsx` erstellt, `MojoBusVideo.tsx` importiert es
 - [x] Schritt 5: `videoProps.ts` erstellt, `MojoBusVideo.tsx` importiert/re-exportiert es
 - [x] Schritt 6: `components/MediaRenderer.tsx` erstellt, `isVideo` dort exportiert, Aufrufe in `MojoBusVideo.tsx` aktualisiert
-- [ ] Schritt 7: `mediaServer.js` erstellt, `render.js` importiert `startImageServer`
+- [x] Schritt 7: `mediaServer.js` erstellt, `render.js` importiert `startImageServer`
 - [ ] Schritt 8: `mediaDownload.js` erstellt, Download-Helpers in `render.js` entfernt
 - [ ] Schritt 9: `voiceover.js` erstellt, Voiceover-Logik in `render.js` entfernt
 - [ ] Schritt 10: `chrome.js` erstellt, Chrome-Setup in `render.js` entfernt
