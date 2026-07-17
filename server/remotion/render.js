@@ -11,7 +11,7 @@ import { bundle } from '@remotion/bundler';
 import { renderMedia, selectComposition, ensureBrowser } from '@remotion/renderer';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import os from 'os';
+import { OUTPUT_DIR, IMAGES_DIR, COMPOSITION_IDS, MIME_TYPES, FASTSTART_EXTENSIONS } from './constants.js';
 import fs from 'fs';
 import { execFile, execSync } from 'child_process';
 import crypto from 'crypto';
@@ -337,34 +337,14 @@ import { generateSfx, SFX_TYPES } from './sfx.js';
 // ── Audio Loudness-Normalisierung ─────────────────────────────────────────
 import { normalizeRenderedVideo } from './audioNormalize.js';
 
-const OUTPUT_DIR = path.join(os.tmpdir(), 'remotion-renders');
-const IMAGES_DIR = path.join(os.tmpdir(), 'remotion-images');
-
 for (const dir of [OUTPUT_DIR, IMAGES_DIR]) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
 
-const COMPOSITION_IDS = {
-  '16:9': 'MojoBusVideo-16-9',
-  '9:16': 'MojoBusVideo-9-16',
-  '1:1':  'MojoBusVideo-1-1',
-};
 
 // ── Lokaler Bild-HTTP-Server ──────────────────────────────────────────────
 // Chrome kann file:// nicht laden → wir servieren die Bilder lokal über HTTP
 
-const MIME_TYPES = {
-  '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
-  '.png': 'image/png',  '.webp': 'image/webp',
-  '.gif': 'image/gif',  '.avif': 'image/avif',
-  '.wav': 'audio/wav',  '.mp3': 'audio/mpeg',
-  '.m4a': 'audio/mp4',  '.ogg': 'audio/ogg',
-  // Video-Types für Direkt-Video-Template
-  '.mp4': 'video/mp4',  '.webm': 'video/webm',
-  '.mov': 'video/quicktime',
-  '.avi': 'video/x-msvideo',
-  '.mkv': 'video/x-matroska',
-};
 
 /**
  * Startet einen temporären HTTP-Server der ein Verzeichnis ausliefert.
@@ -673,7 +653,7 @@ function downloadFileWithType(url, destPath, attempt = 1) {
 // Extensions, deren Container ein moov/mdat-Atom nutzt (MP4/MOV) und somit
 // von einem Faststart-Remux profitieren. WebM/MKV/AVI nutzen andere Container
 // und brauchen das nicht.
-const FASTSTART_EXTENSIONS = new Set(['.mp4', '.mov']);
+
 
 /**
  * Bereitet eine MP4/MOV-Datei für Chrome-Headless-Rendering vor:
