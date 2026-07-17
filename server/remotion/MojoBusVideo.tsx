@@ -14,7 +14,7 @@
  */
 
 import React from 'react';
-import { AbsoluteFill, Sequence, useVideoConfig, useCurrentFrame, Video } from 'remotion';
+import { AbsoluteFill, Sequence, useVideoConfig, Video } from 'remotion';
 
 import { KenBurnsImage, pickDirection, type GammaFade } from './components/KenBurnsImage';
 import { ColorGradeOverlay, ColorGradeWrapper, lifestyleToGrade, type ColorGrade } from './components/ColorGradeOverlay';
@@ -27,6 +27,7 @@ import { FadeIn, FadeOut } from './components/CrossFade';
 import { StoryCaption } from './components/StoryCaption';
 import { PerSlideCaption, type CaptionStyle } from './components/Captions';
 import { LoadFonts } from './components/Fonts';
+import { HookDimOverlay } from './components/HookDimOverlay';
 import { getHookSeconds } from './duration';
 export { calculateDuration } from './duration';
 
@@ -166,30 +167,6 @@ export interface MojoBusVideoProps {
   speedRampEnabled?: boolean;
 
 }
-
-// ── HookDimOverlay ────────────────────────────────────────────────────────
-// Top-Level Komponente (PFLICHT: useCurrentFrame darf nicht in inneren Funktionen stehen)
-// Gleichmäßige Abdunkelung des Bildes während des Hook-Slides (0-hookFrames).
-// Sanftes Fade-in (0.4s) und Fade-out (0.5s) für cinematic Look.
-
-const HookDimOverlay: React.FC<{ opacity: number; fps: number; hookFrames: number }> = ({ opacity, fps, hookFrames }) => {
-  const frame = useCurrentFrame();
-  const fadeInFrames  = Math.round(fps * 0.4);
-  const fadeOutFrames = Math.round(fps * 0.5);
-
-  let alpha: number;
-  if (frame < fadeInFrames) {
-    alpha = (frame / fadeInFrames) * opacity;
-  } else if (frame > hookFrames - fadeOutFrames) {
-    alpha = Math.max(0, ((hookFrames - frame) / fadeOutFrames) * opacity);
-  } else {
-    alpha = opacity;
-  }
-
-  return (
-    <AbsoluteFill style={{ background: `rgba(0,0,0,${alpha.toFixed(3)})`, pointerEvents: 'none' }} />
-  );
-};
 
 // ── Haupt-Komponent ────────────────────────────────────────────────────────
 
