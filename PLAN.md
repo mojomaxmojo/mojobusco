@@ -546,7 +546,7 @@ Keine.
 
 - [x] Schritt 1: `constants.js` erstellt, `render.js` nutzt Imports
 - [x] Schritt 2: `binaries.js` erstellt, `render.js` nutzt ffmpeg/ffprobe davon
-- [ ] Schritt 3: `duration.ts` erstellt, `MojoBusVideo.tsx`/`index.tsx` angepasst
+- [x] Schritt 3: `duration.ts` erstellt, `MojoBusVideo.tsx`/`index.tsx` angepasst
 - [ ] Schritt 4: `components/HookDimOverlay.tsx` erstellt, `MojoBusVideo.tsx` importiert es
 - [ ] Schritt 5: `videoProps.ts` erstellt, `MojoBusVideo.tsx` importiert/re-exportiert es
 - [ ] Schritt 6: `components/MediaRenderer.tsx` erstellt, `isVideo` dort exportiert, Aufrufe in `MojoBusVideo.tsx` aktualisiert

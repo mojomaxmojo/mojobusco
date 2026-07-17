@@ -5,7 +5,8 @@
 
 import React from 'react';
 import { Composition, registerRoot } from 'remotion';
-import { MojoBusVideo, calculateDuration, type MojoBusVideoProps } from './MojoBusVideo';
+import { MojoBusVideo, type MojoBusVideoProps } from './MojoBusVideo';
+import { calculateDuration } from './duration';
 
 // Standard-Props für Studio-Preview
 const DEFAULT_PROPS: MojoBusVideoProps = {

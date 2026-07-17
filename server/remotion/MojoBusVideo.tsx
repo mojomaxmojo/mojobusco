@@ -27,6 +27,8 @@ import { FadeIn, FadeOut } from './components/CrossFade';
 import { StoryCaption } from './components/StoryCaption';
 import { PerSlideCaption, type CaptionStyle } from './components/Captions';
 import { LoadFonts } from './components/Fonts';
+import { getHookSeconds } from './duration';
+export { calculateDuration } from './duration';
 
 // ── NEU: 4 neue Skills ────────────────────────────────────────────────────
 import {
@@ -165,24 +167,6 @@ export interface MojoBusVideoProps {
 
 }
 
-// ── Hook-Dauer pro Plattform ─────────────────────────────────────────────
-// EINZIGE QUELLE für die Hook-Dauer – wird von calculateDuration UND der
-// Komponente verwendet. NIEMALS an anderer Stelle hartcodieren!
-//
-// Realität der Hook-Fenster (siehe src/config/prompts/tiktok.js):
-//   TikTok:  0,8–1,2s Entscheidung → 3s Hook-Slide reicht
-//   Reels:   1,0–1,8s → 4s
-//   YouTube: 2,0–4,0s → 5s
-export const HOOK_SECONDS: Record<string, number> = {
-  tiktok: 3,
-  reels: 4,
-  youtube: 5,
-};
-
-export function getHookSeconds(platform?: string): number {
-  return HOOK_SECONDS[platform || 'tiktok'] ?? HOOK_SECONDS.tiktok;
-}
-
 // ── HookDimOverlay ────────────────────────────────────────────────────────
 // Top-Level Komponente (PFLICHT: useCurrentFrame darf nicht in inneren Funktionen stehen)
 // Gleichmäßige Abdunkelung des Bildes während des Hook-Slides (0-hookFrames).
@@ -206,27 +190,6 @@ const HookDimOverlay: React.FC<{ opacity: number; fps: number; hookFrames: numbe
     <AbsoluteFill style={{ background: `rgba(0,0,0,${alpha.toFixed(3)})`, pointerEvents: 'none' }} />
   );
 };
-
-// ── calculateDuration ─────────────────────────────────────────────────────
-
-export function calculateDuration(
-  imageCount: number,
-  fps: number,
-  secondsPerImage: number,
-  perSlideArray?: number[],
-  showRouteMap?: boolean,
-  platform?: string
-): { totalFrames: number; hookFrames: number; ctaFrames: number; slideshowFrames: number } {
-  const hookFrames      = getHookSeconds(platform) * fps;  // plattformabhängig: TikTok 3s, Reels 4s, YouTube 5s
-  const ctaFrames       = 6 * fps;
-  const totalSlideCount = showRouteMap && imageCount >= 2 ? imageCount + 1 : imageCount;
-  // Wenn perSlideArray übergeben: dynamische Summe, sonst fix
-  const slideshowFrames = perSlideArray && perSlideArray.length === totalSlideCount
-    ? perSlideArray.reduce((sum, sec) => sum + Math.round(sec * fps), 0)
-    : totalSlideCount * Math.round(secondsPerImage * fps);
-  const totalFrames     = hookFrames + slideshowFrames + ctaFrames;
-  return { totalFrames, hookFrames, ctaFrames, slideshowFrames };
-}
 
 // ── Haupt-Komponent ────────────────────────────────────────────────────────
 
