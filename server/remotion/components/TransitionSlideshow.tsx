@@ -44,7 +44,7 @@ import { CrossDissolve as FallbackCrossDiss } from './CrossFade';
 
 // ── Transition-Typen ───────────────────────────────────────────────────────
 
-export type TransitionType = 'wipe' | 'clockWipe' | 'irisWipe' | 'starWipe' | 'heartWipe' | 'fade' | 'slide' | 'morph' | 'zoomRelay' | 'glitch' | 'pagePeel' | 'scalePopIn' | 'bounceScale' | 'diagonalWipe' | 'cardFlip' | 'auto';
+export type TransitionType = 'wipe' | 'clockWipe' | 'irisWipe' | 'starWipe' | 'heartWipe' | 'fade' | 'slide' | 'morph' | 'zoomRelay' | 'glitch' | 'pagePeel' | 'scalePopIn' | 'bounceScale' | 'diagonalWipe' | 'cardFlip' | 'busWipe' | 'auto';
 
 // ── Pure CSS/SVG Transitions (kein extra Package nötig) ───────────────────
 
@@ -90,6 +90,66 @@ const WipeTransition: React.FC<{
   return (
     <AbsoluteFill style={{ clipPath }}>
       {children}
+    </AbsoluteFill>
+  );
+};
+
+/**
+ * BusWipeTransition — MojoBus-Silhouette fährt quer über den Screen
+ * und enthüllt das neue Bild (children) innerhalb der Bus-Form.
+ * Der vorherige Slide liegt darunter und bleibt außerhalb der Silhouette sichtbar.
+ * Starker Branding-Moment für TikTok.
+ */
+const BusWipeTransition: React.FC<{
+  durationFrames: number;
+  imageIndex: number;
+  children: React.ReactNode;
+}> = ({ durationFrames, imageIndex, children }) => {
+  const frame = useCurrentFrame();
+  const { width, height } = useVideoConfig();
+
+  const t = interpolate(frame, [0, Math.max(1, durationFrames)], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
+  // Cubic ease-in-out
+  const eased = t < 0.5
+    ? 4 * t * t * t
+    : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+  const directions = ['left', 'right'] as const;
+  const direction = directions[imageIndex % directions.length];
+
+  // Bus startet außerhalb, fährt quer und skaliert auf, bis er den Screen bedeckt
+  const startX = direction === 'left' ? -width * 0.35 : width * 1.25;
+  const endX = direction === 'left' ? width * 1.25 : -width * 0.35;
+  const busX = interpolate(eased, [0, 1], [startX, endX]);
+  const busY = height * 0.58;
+  const scale = interpolate(eased, [0, 0.55, 1], [0.35, 1.15, 3.2]);
+
+  const clipId = `buswipe-${frame}`;
+
+  return (
+    <AbsoluteFill>
+      <svg style={{ position: 'absolute', width: 0, height: 0 }} aria-hidden="true">
+        <defs>
+          <clipPath id={clipId} clipPathUnits="userSpaceOnUse">
+            <g transform={`translate(${busX}, ${busY}) scale(${scale})`}>
+              {/* Bus-Karosserie */}
+              <rect x="20" y="20" width="360" height="70" rx="22" />
+              {/* Windschutzscheibe */}
+              <rect x="310" y="28" width="60" height="36" rx="6" />
+              {/* Räder */}
+              <circle cx="105" cy="92" r="34" />
+              <circle cx="315" cy="92" r="34" />
+            </g>
+          </clipPath>
+        </defs>
+      </svg>
+      <AbsoluteFill style={{ clipPath: `url(#${clipId})` }}>
+        {children}
+      </AbsoluteFill>
     </AbsoluteFill>
   );
 };
@@ -617,7 +677,7 @@ export const TransitionWrapper: React.FC<TransitionWrapperProps> = ({
   const AUTO_SEQUENCE: Array<Exclude<TransitionType, 'auto'>> = [
     'wipe', 'fade', 'clockWipe', 'irisWipe', 'slide', 'scalePopIn', 'morph',
     'starWipe', 'zoomRelay', 'glitch', 'heartWipe', 'bounceScale',
-    'diagonalWipe', 'wipe', 'fade', 'clockWipe'
+    'diagonalWipe', 'busWipe', 'wipe', 'fade', 'clockWipe'
   ];
 
   const effectiveType: Exclude<TransitionType, 'auto'> =
@@ -752,6 +812,13 @@ export const TransitionWrapper: React.FC<TransitionWrapperProps> = ({
         </DiagonalWipeTransition>
       );
     }
+
+    case 'busWipe':
+      return (
+        <BusWipeTransition durationFrames={durationFrames} imageIndex={imageIndex}>
+          {children}
+        </BusWipeTransition>
+      );
 
     case 'fade':
     default:

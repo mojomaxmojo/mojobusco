@@ -455,6 +455,18 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
                   </FadeOut>
                 )
               ) : isLastSlide ? (
+                transitionType === 'busWipe' ? (
+                  slideContent
+                ) : (
+                  <TransitionWrapper
+                    type={transitionType}
+                    durationFrames={TRANSITION_FRAMES}
+                    imageIndex={i}
+                  >
+                    {slideContent}
+                  </TransitionWrapper>
+                )
+              ) : transitionType === 'busWipe' ? (
                 <TransitionWrapper
                   type={transitionType}
                   durationFrames={TRANSITION_FRAMES}
