@@ -776,6 +776,125 @@ export const MojoBusSilhouette: React.FC<{ size?: number }> = ({ size = 420 }) =
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// MOJOBUS MINIATUR — statischer, korrekt gefärbter Bus für Karten-Marker
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const MojoBusMiniature: React.FC<{ size?: number; accentColor?: string; color?: string }> = ({
+  size = 120,
+  accentColor = '#F59E0B',
+  color = '#FFFFFF',
+}) => {
+  const W = size;
+  const H = size * 0.353;
+  const WR = H * 0.138;
+  const RY = H + WR * 0.6;
+
+  return (
+    <svg
+      width={W}
+      height={RY + WR * 1.3}
+      viewBox={`0 0 ${W} ${RY + WR * 1.3}`}
+      overflow="visible"
+      style={{ filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.5))' }}
+    >
+      <defs>
+        <linearGradient id="mini-body" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#fefcf8" />
+          <stop offset="50%" stopColor="#faf7f0" />
+          <stop offset="100%" stopColor="#e0d8c4" />
+        </linearGradient>
+        <linearGradient id="mini-glass" x1="0" y1="0" x2="0.15" y2="1">
+          <stop offset="0%" stopColor="#cce8ff" stopOpacity="0.9" />
+          <stop offset="100%" stopColor="#6ab4dc" stopOpacity="0.7" />
+        </linearGradient>
+        <linearGradient id="mini-chrome" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="50%" stopColor="#e0e0e0" />
+          <stop offset="100%" stopColor="#999999" />
+        </linearGradient>
+      </defs>
+
+      {/* Karosserie */}
+      <rect x={W * 0.01} y={H * 0.12} width={W * 0.98} height={H * 0.9} fill="url(#mini-body)" />
+      <rect x={W * 0.01} y={H * 0.04} width={W * 0.98} height={H * 0.12} rx={H * 0.06} fill="url(#mini-body)" />
+
+      {/* Front- und Heck-Flächen */}
+      <rect x={W * 0.82} y={H * 0.12} width={W * 0.17} height={H * 0.9} fill="#f0ece0" />
+      <rect x={W * 0.01} y={H * 0.04} width={W * 0.04} height={H * 1.0} fill="#f0ece0" />
+
+      {/* Windschutzscheibe */}
+      <rect x={W * 0.82} y={H * 0.12} width={W * 0.16} height={H * 0.4} rx={H * 0.03} fill="url(#mini-glass)" stroke="#444" strokeWidth={1} />
+
+      {/* Fahrertür-Fenster */}
+      <rect x={W * 0.05} y={H * 0.095} width={W * 0.18} height={H * 0.35} rx={H * 0.05} fill="url(#mini-glass)" stroke="#444" strokeWidth={1} />
+
+      {/* Wohnraum-Fenster */}
+      {[0.25, 0.45, 0.65].map((x, i) => (
+        <rect key={i} x={W * x} y={H * 0.095} width={W * 0.18} height={H * 0.35} rx={H * 0.05} fill="url(#mini-glass)" stroke="#444" strokeWidth={1} />
+      ))}
+
+      {/* Heckscheibe */}
+      <rect x={W * 0.014} y={H * 0.095} width={W * 0.032} height={H * 0.3} rx={H * 0.02} fill="url(#mini-glass)" stroke="#444" strokeWidth={1} />
+
+      {/* Fensterschienen */}
+      <rect x={W * 0.02} y={H * 0.075} width={W * 0.85} height={H * 0.022} rx={2} fill="#888" opacity={0.5} />
+      <rect x={W * 0.02} y={H * 0.44} width={W * 0.85} height={H * 0.02} rx={2} fill="#888" opacity={0.45} />
+
+      {/* Räder + Radkästen */}
+      <ellipse cx={W * 0.175} cy={RY} rx={WR * 1.35} ry={WR * 0.38} fill="#111" transform="skewX(5)" />
+      <ellipse cx={W * 0.77} cy={RY} rx={WR * 1.35} ry={WR * 0.38} fill="#111" transform="skewX(5)" />
+      <circle cx={W * 0.175} cy={RY} r={WR} fill="#222" stroke="#ddd" strokeWidth={WR * 0.12} />
+      <circle cx={W * 0.77} cy={RY} r={WR} fill="#222" stroke="#ddd" strokeWidth={WR * 0.12} />
+      <circle cx={W * 0.175} cy={RY} r={WR * 0.35} fill="#ddd" />
+      <circle cx={W * 0.77} cy={RY} r={WR * 0.35} fill="#ddd" />
+
+      {/* Scheinwerfer */}
+      <rect x={W * 0.83} y={H * 0.62} width={W * 0.04} height={H * 0.07} rx={H * 0.01} fill="#fffde7" />
+      <rect x={W * 0.9} y={H * 0.62} width={W * 0.04} height={H * 0.07} rx={H * 0.01} fill="#fffde7" />
+
+      {/* Blinker */}
+      <rect x={W * 0.82} y={H * 0.775} width={W * 0.16} height={H * 0.045} rx={H * 0.01} fill="#d97706" stroke="#92400e" strokeWidth={1} />
+
+      {/* Kühlergrill */}
+      <rect x={W * 0.82} y={H * 0.765} width={W * 0.16} height={H * 0.145} rx={3} fill="#222" />
+      {[0, 1, 2, 3, 4].map((i) => (
+        <rect key={i} x={W * (0.83 + i * 0.03)} y={H * 0.775} width={W * 0.025} height={H * 0.015} fill="#555" />
+      ))}
+
+      {/* Stoßstangen */}
+      <rect x={W * 0.81} y={H * 0.875} width={W * 0.18} height={H * 0.09} rx={H * 0.02} fill="url(#mini-chrome)" />
+      <rect x={W * 0.008} y={H * 0.875} width={W * 0.048} height={H * 0.088} rx={H * 0.018} fill="url(#mini-chrome)" />
+
+      {/* Rücklichter */}
+      <circle cx={W * 0.028} cy={H * 0.52} r={H * 0.065} fill="#b91c1c" stroke="#7f1d1d" strokeWidth={1} />
+      <circle cx={W * 0.028} cy={H * 0.65} r={H * 0.065} fill="#b91c1c" stroke="#7f1d1d" strokeWidth={1} />
+
+      {/* Peace-Zeichen als Side-Decal */}
+      <g transform={`translate(${W * 0.06}, ${H * 0.72}) scale(${H * 0.004})`}>
+        <circle r={40} fill="none" stroke={accentColor} strokeWidth={8} />
+        <line x1={0} y1={0} x2={0} y2={-40} stroke={accentColor} strokeWidth={8} strokeLinecap="round" />
+        <line x1={0} y1={0} x2={-28} y2={28} stroke={accentColor} strokeWidth={8} strokeLinecap="round" />
+        <line x1={0} y1={0} x2={28} y2={28} stroke={accentColor} strokeWidth={8} strokeLinecap="round" />
+      </g>
+
+      {/* Dach-AC-Einheiten */}
+      <g transform={`translate(${W * 0.175}, ${-H * 0.035})`}>
+        <rect x={-W * 0.11} y={0} width={W * 0.22} height={H * 0.07} rx={H * 0.02} fill="#c8c0b0" />
+        <rect x={-W * 0.09} y={H * 0.01} width={W * 0.18} height={H * 0.05} rx={H * 0.015} fill="#b0a898" />
+      </g>
+      <g transform={`translate(${W * 0.77}, ${-H * 0.035})`}>
+        <rect x={-W * 0.11} y={0} width={W * 0.22} height={H * 0.07} rx={H * 0.02} fill="#c8c0b0" />
+        <rect x={-W * 0.09} y={H * 0.01} width={W * 0.18} height={H * 0.05} rx={H * 0.015} fill="#b0a898" />
+      </g>
+
+      {/* Abgaswölkchen */}
+      <ellipse cx={W * 0.01} cy={H * 0.82} rx={W * 0.03} ry={H * 0.05} fill="#c8d0d8" opacity={0.6} />
+      <ellipse cx={W * -0.015} cy={H * 0.75} rx={W * 0.04} ry={H * 0.06} fill="#c8d0d8" opacity={0.4} />
+    </svg>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // EXPORTS
 // ─────────────────────────────────────────────────────────────────────────────
 

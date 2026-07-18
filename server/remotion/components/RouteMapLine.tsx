@@ -26,7 +26,7 @@ import {
   useVideoConfig,
 } from 'remotion';
 import { FONT_FAMILY_REGULAR, FONT_WEIGHT } from './Fonts';
-import { MojoBusSilhouette } from './LottieBusIcon';
+import { MojoBusMiniature } from './LottieBusIcon';
 
 // ── Typen ─────────────────────────────────────────────────────────────────
 
@@ -171,9 +171,8 @@ const BusMarker: React.FC<{
 
 /**
  * TravelingBusMarker — echter MojoBus entlang der Route.
- * - Nutzt MojoBusSilhouette aus LottieBusIcon
+ * - Nutzt MojoBusMiniature aus LottieBusIcon (korrekt gefärbt)
  * - Rotiert sich in Fahrtrichtung
- * - Skaliert responsiv
  */
 const TravelingBusMarker: React.FC<{
   coords: RouteCoord[];
@@ -197,24 +196,13 @@ const TravelingBusMarker: React.FC<{
         position: 'absolute',
         left: pos.x,
         top: pos.y,
-        width: size,
+        width: size * 2.2,
         height: size,
         transform: `translate(-50%, -50%) rotate(${angle}deg)`,
         pointerEvents: 'none',
       }}
     >
-      <svg
-        width={size}
-        height={size}
-        viewBox={`0 0 ${size} ${size}`}
-        style={{ overflow: 'visible' }}
-      >
-        <g transform={`translate(${size * 0.5}, ${size * 0.5}) scale(${size / 420})`}>
-          <g fill={accentColor} stroke="none">
-            <MojoBusSilhouette size={420} />
-          </g>
-        </g>
-      </svg>
+      <MojoBusMiniature size={size} accentColor={accentColor} />
     </div>
   );
 };
