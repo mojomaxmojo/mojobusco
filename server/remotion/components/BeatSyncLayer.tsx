@@ -86,6 +86,33 @@ export function computeAudioBeats(
   return beats;
 }
 
+const EMPTY_AUDIO_SRC = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAIlYAAESsAAACABAAZGF0YQAAAAA=';
+
+// ── useBeats Hook ───────────────────────────────────────────────────────
+// Wiederverwendbare Beat-Erkennung für andere Components (z. B. LottieBus).
+// Ruft useAudioData immer mit einem String auf (Hooks-Regel) und ignoriert
+// das Ergebnis, wenn keine musicUrl vorhanden ist.
+
+export function useBeats(
+  musicUrl: string | undefined,
+  fps: number,
+  durationInFrames: number,
+  beatThreshold: number,
+  fallbackBeats: BeatInfo[]
+): BeatInfo[] {
+  const audioData = useAudioData(musicUrl || EMPTY_AUDIO_SRC);
+
+  return React.useMemo(() => {
+    if (!musicUrl || !audioData) return fallbackBeats;
+    try {
+      const realBeats = computeAudioBeats(audioData, fps, durationInFrames, beatThreshold);
+      return realBeats.length > 0 ? realBeats : fallbackBeats;
+    } catch {
+      return fallbackBeats;
+    }
+  }, [audioData, beatThreshold, durationInFrames, fallbackBeats, fps, musicUrl]);
+}
+
 // ── Beat-Flash ────────────────────────────────────────────────────────────
 
 const BeatFlash: React.FC<{

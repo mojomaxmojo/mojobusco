@@ -19,6 +19,84 @@
 
 import React from 'react';
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
+import { Lottie, LottieAnimationData } from '@remotion/lottie';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TYPEN
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface LottieBusIconProps {
+  size?: number;
+  accentColor?: string;
+  bodyColor?: string;
+  color?: string;
+  driveIn?: boolean;
+  driveInPath?: 'straight' | 'curve-down';
+  position?: 'center' | 'bottom-center' | 'top-center';
+  label?: string;
+  /** Echtes Lottie-JSON (aus After Effects / Bodymovin). Wenn vorhanden, wird
+   *  dieses geladen, sonst der interne SVG-Bus. */
+  lottieData?: LottieAnimationData | object | null;
+  /** Lottie Loop. Default: true */
+  lottieLoop?: boolean;
+  /** Lottie Abspielgeschwindigkeit. Default: 1 */
+  lottiePlaybackRate?: number;
+  /** Ziel-Plattform – steuert Safe-Zone-Position (z.B. TikTok UI überdeckt untere 20%) */
+  platform?: 'tiktok' | 'reels' | 'youtube';
+  /** Beat-Puls: Frames, auf denen der Bus pulsiert. */
+  beatFrames?: number[];
+  /** Beat-Puls aktivieren. Default: true wenn beatFrames gesetzt */
+  beatPulse?: boolean;
+  /** Maximale Skalierung beim Beat-Puls (1.12 = 12% größer). Default: 1.12 */
+  beatPulseScale?: number;
+  /** Dauer des Pulses in Frames. Default: 8 */
+  beatPulseDuration?: number;
+  /** Intensitäts-Multiplikator 0–1. Default: 1 */
+  beatPulseIntensity?: number;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BEAT-PULS WRAPPER
+// ─────────────────────────────────────────────────────────────────────────────
+
+const BeatPulse: React.FC<{
+  beatFrames?: number[];
+  pulseScale?: number;
+  pulseDuration?: number;
+  intensity?: number;
+  children: React.ReactNode;
+}> = ({
+  beatFrames = [],
+  pulseScale = 1.12,
+  pulseDuration = 8,
+  intensity = 1,
+  children,
+}) => {
+  const frame = useCurrentFrame();
+  if (beatFrames.length === 0 || intensity <= 0) return <>{children}</>;
+
+  const half = pulseDuration / 2;
+  let bestT = 1;
+  for (const bf of beatFrames) {
+    const d = Math.abs(frame - bf);
+    if (d <= half) {
+      // 0 auf dem Beat, 1 am Rand des Fensters, mit leichtem Overshoot
+      const t = d / half;
+      if (t < bestT) bestT = t;
+    }
+  }
+
+  const scale = interpolate(bestT, [0, 1], [1 + (pulseScale - 1) * intensity, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
+  return (
+    <div style={{ transform: `scale(${scale})`, transformOrigin: 'center center' }}>
+      {children}
+    </div>
+  );
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HILFSKOMPONENTEN
@@ -651,9 +729,25 @@ export interface LottieBusIconProps {
   driveInPath?: 'straight' | 'curve-down';
   position?: 'center' | 'bottom-center' | 'top-center';
   label?: string;
-  lottieData?: object | null;
+  /** Echtes Lottie-JSON (aus After Effects / Bodymovin). Wenn vorhanden, wird
+   *  dieses geladen, sonst der interne SVG-Bus. */
+  lottieData?: LottieAnimationData | object | null;
+  /** Lottie Loop. Default: true */
+  lottieLoop?: boolean;
+  /** Lottie Abspielgeschwindigkeit. Default: 1 */
+  lottiePlaybackRate?: number;
   /** Ziel-Plattform – steuert Safe-Zone-Position (z.B. TikTok UI überdeckt untere 20%) */
   platform?: 'tiktok' | 'reels' | 'youtube';
+  /** Beat-Puls: Frames, auf denen der Bus pulsiert. */
+  beatFrames?: number[];
+  /** Beat-Puls aktivieren. Default: true wenn beatFrames gesetzt */
+  beatPulse?: boolean;
+  /** Maximale Skalierung beim Beat-Puls (1.12 = 12% größer). Default: 1.12 */
+  beatPulseScale?: number;
+  /** Dauer des Pulses in Frames. Default: 8 */
+  beatPulseDuration?: number;
+  /** Intensitäts-Multiplikator 0–1. Default: 1 */
+  beatPulseIntensity?: number;
 }
 
 export const LottieBusIcon: React.FC<LottieBusIconProps> = ({
@@ -666,14 +760,21 @@ export const LottieBusIcon: React.FC<LottieBusIconProps> = ({
   position = 'center',
   label    = 'MOJOBUS',
   lottieData,
+  lottieLoop = true,
+  lottiePlaybackRate = 1,
   platform,
+  beatFrames = [],
+  beatPulse: beatPulseProp,
+  beatPulseScale = 1.12,
+  beatPulseDuration = 8,
+  beatPulseIntensity = 1,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
+  const hasBeatPulse = beatPulseProp ?? beatFrames.length > 0;
+
   // ── Plattformabhängige Safe-Zone für bottom-center ────────────────────────
-  // TikTok überdeckt die unteren ~20% mit UI (Like, Kommentare, etc.).
-  // Der Bus muss oberhalb dieser Zone schweben. Gleiche Logik wie Captions.tsx.
   const BOTTOM_SAFE_ZONE: Record<string, string> = {
     tiktok:  '22%',
     reels:   '25%',
@@ -693,16 +794,36 @@ export const LottieBusIcon: React.FC<LottieBusIconProps> = ({
   const enter   = spring({ frame, fps, config: { damping: 20, stiffness: 80 } });
   const opacity = interpolate(enter, [0, 1], [0, 1]);
 
+  const content = lottieData ? (
+    <Lottie
+      animationData={lottieData as LottieAnimationData}
+      loop={lottieLoop}
+      playbackRate={lottiePlaybackRate}
+    />
+  ) : (
+    <MojoBusCoach
+      size={size}
+      accentColor={accentColor}
+      bodyColor={bodyColor}
+      color={color}
+      driveIn={driveIn}
+      driveInPath={driveInPath}
+      label={label}
+    />
+  );
+
   return (
     <div style={{ ...posStyles, opacity, pointerEvents: 'none' }}>
-      <MojoBusCoach
-        size={size}
-        accentColor={accentColor}
-        color={color}
-        driveIn={driveIn}
-        driveInPath={driveInPath}
-        label={label}
-      />
+      {hasBeatPulse ? (
+        <BeatPulse
+          beatFrames={beatFrames}
+          pulseScale={beatPulseScale}
+          pulseDuration={beatPulseDuration}
+          intensity={beatPulseIntensity}
+        >
+          {content}
+        </BeatPulse>
+      ) : content}
     </div>
   );
 };

@@ -374,6 +374,11 @@ export async function renderMojoBusVideo(params) {
       showRouteMap, routeCoords,
       mapImageUrl: httpMapImageUrl,         // ← Lokal gecacht!
       showLottieBus,
+      lottieData: params.lottieData || null,
+      lottieBeatPulse: params.lottieBeatPulse ?? true,
+      lottieBeatPulseScale: params.lottieBeatPulseScale ?? 1.12,
+      lottieBeatPulseDuration: params.lottieBeatPulseDuration ?? 8,
+      lottieBeatPulseIntensity: params.lottieBeatPulseIntensity ?? 0.85,
       cinematicEffects,                     // ← Plattform-Matrix-Effekte
       keepOriginalAudio,
       stickersEnabled,

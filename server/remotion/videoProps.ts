@@ -74,12 +74,22 @@ export interface MojoBusVideoProps {
   /** URL eines Karten-Hintergrundbildes für die Routen-Slide */
   mapImageUrl?: string;
 
-  // ── NEU: Lottie Bus in CTA ────────────────────────────────────────────
+  // ── NEU: Lottie Bus in CTA + Hook ─────────────────────────────────────
   /**
-   * Animierten CSS/Lottie Bus in der Endkarte anzeigen.
+   * Animierten CSS/Lottie Bus in der Endkarte + Hook anzeigen.
    * Default: true
    */
   showLottieBus?: boolean;
+  /** Echtes Lottie-JSON (After Effects / Bodymovin). Default: null */
+  lottieData?: object | null;
+  /** Beat-Puls auf dem Lottie/SVG-Bus aktivieren. Default: true */
+  lottieBeatPulse?: boolean;
+  /** Skalierung des Beat-Pulses (1.12 = 12% größer). Default: 1.12 */
+  lottieBeatPulseScale?: number;
+  /** Dauer des Pulses in Frames. Default: 8 */
+  lottieBeatPulseDuration?: number;
+  /** Intensität des Pulses 0–1. Default: 0.85 */
+  lottieBeatPulseIntensity?: number;
 
   // ── NEU: Cinematic Effects (Plattform-Matrix) ─────────────────────────
   /**

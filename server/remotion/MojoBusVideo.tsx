@@ -43,6 +43,7 @@ import {
   BeatSyncLayer,
   AudioWaveformBar,
   generateFallbackBeats,
+  useBeats,
 } from './components/BeatSyncLayer';
 import { TransitionWrapper, CardFlipTransition } from './components/TransitionSlideshow';
 import { BeatVelocityPunch } from './components/BeatVelocityPunch';
@@ -94,6 +95,15 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
   accentColor = '#F59E0B',
   motionBlurStrength = 1,
 
+  // Dynamische Slide-Dauern + Voiceover / Atmo / Audio-Optionen
+  perSlideArray,
+  hookCaption,
+  ctaText,
+  keepOriginalAudio = false,
+  voiceoverUrl,
+  voiceoverVolume = 1.0,
+  ambientUrl,
+
   // Beat-Sync
   beatSyncStrength = 0.6,
   beatThreshold = 0.60,
@@ -101,6 +111,13 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
 
   // Beat-Sync Velocity Punch
   beatVelocityPunch = false,
+
+  // Lottie Bus Beat-Puls
+  lottieBeatPulse = true,
+  lottieBeatPulseScale = 1.12,
+  lottieBeatPulseDuration = 8,
+  lottieBeatPulseIntensity = 0.85,
+  lottieData,
 
   // Transitions
   transitionType = 'auto',
@@ -213,6 +230,10 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
     imageCount,
     hookFrames
   );
+
+  // ── Beat-Sync: Echte Audio-Beats für Lottie-Bus-Puls + Flash ──────────
+  const effectiveBeats = useBeats(musicUrl, fps, durationInFrames, beatThreshold, fallbackBeats);
+  const beatFrames = effectiveBeats.map(b => Math.round(b.frame));
 
   // ── Routen-Koordinaten ────────────────────────────────────────────────
   const effectiveRouteCoords = routeCoords && routeCoords.length >= 2
@@ -515,7 +536,32 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
         </Sequence>
       )}
 
-      // ── Auto-Captions ══════════════════════════════════════════
+      {/* ══ SCHICHT 4b: Lottie Bus im Hook (Beat-Puls Branding) ════════════════
+           Bus fährt kurz nach Hook-Start im Beat ein, pulsiert synchron.
+           Nur wenn genug Hook-Dauer vorhanden ist (>1s). */}
+      {showLottieBus && hookFrames > fps && (
+        <Sequence from={Math.round(fps * 0.4)} durationInFrames={hookFrames - Math.round(fps * 0.4)}>
+          <AbsoluteFill style={{ pointerEvents: 'none' }}>
+            <LottieBusIcon
+              size={180}
+              accentColor={accentColor}
+              driveIn={true}
+              driveInPath="curve-down"
+              position="bottom-center"
+              platform={platform}
+              lottieData={lottieData}
+              lottieLoop={true}
+              beatFrames={beatFrames}
+              beatPulse={lottieBeatPulse}
+              beatPulseScale={lottieBeatPulseScale}
+              beatPulseDuration={lottieBeatPulseDuration}
+              beatPulseIntensity={lottieBeatPulseIntensity}
+            />
+          </AbsoluteFill>
+        </Sequence>
+      )}
+
+      {/* ══ Auto-Captions ══════════════════════════════════════════ */}
       {/* ══ SCHICHT 6: Per-Slide Captions (dynamisch, synchron) ════════════════ */}
       {hasCaptions && (
         <PerSlideCaption
@@ -598,6 +644,13 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
               driveInPath="curve-down"
               position="bottom-center"
               platform={platform}
+              lottieData={lottieData}
+              lottieLoop={true}
+              beatFrames={beatFrames}
+              beatPulse={lottieBeatPulse}
+              beatPulseScale={lottieBeatPulseScale}
+              beatPulseDuration={lottieBeatPulseDuration}
+              beatPulseIntensity={lottieBeatPulseIntensity}
             />
           </AbsoluteFill>
         </Sequence>
