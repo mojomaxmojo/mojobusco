@@ -293,6 +293,10 @@ const MojoBusCoach: React.FC<{
   driveIn?: boolean;
   driveInPath?: 'straight' | 'curve-down';
   label?: string;
+  /** Animationen abspielen (Bounce, Wackeln, Räder, Scheinwerfer-Puls). Default: true */
+  animated?: boolean;
+  /** Bodenschatten anzeigen. Default: true */
+  showShadow?: boolean;
 }> = ({
   size    = 420,
   accentColor = '#F59E0B',
@@ -300,6 +304,8 @@ const MojoBusCoach: React.FC<{
   driveIn = true,
   driveInPath = 'straight',
   label   = 'MOJOBUS',
+  animated = true,
+  showShadow = true,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -313,18 +319,21 @@ const MojoBusCoach: React.FC<{
   const enter     = spring({ frame, fps, config: springConfig });
 
   // Horizontale Einfahrt: von links (−4× Breite) zur Zielposition
-  const driveInX  = driveIn ? interpolate(enter, [0, 1], [-(size * 4), 0]) : 0;
+  const driveInX  = driveIn && animated ? interpolate(enter, [0, 1], [-(size * 4), 0]) : 0;
 
   // Vertikaler Bogen bei curve-down: startet oben, senkt sich im Bogen nach unten
-  const curveY    = driveIn && driveInPath === 'curve-down'
+  const curveY    = driveIn && driveInPath === 'curve-down' && animated
     ? interpolate(enter, [0, 0.5, 1], [size * 0.15, size * 0.35, size * 0.5])
     : 0;
 
-  const rockAngle = Math.sin((frame / fps) * Math.PI * 2 * 1.2) * 0.55;
-  const bounceY   = Math.abs(Math.sin((frame / fps) * Math.PI * 2.4)) * 2.2;
-  const wheelRot  = (frame / fps) * 360 * 1.4;
-  const lightPulse = 0.72 + Math.sin((frame / fps) * Math.PI * 2 * 0.9) * 0.16;
+  const rockAngle = animated ? Math.sin((frame / fps) * Math.PI * 2 * 1.2) * 0.55 : 0;
+  const bounceY   = animated ? Math.abs(Math.sin((frame / fps) * Math.PI * 2.4)) * 2.2 : 0;
+  const wheelRot  = animated ? (frame / fps) * 360 * 1.4 : 0;
+  const lightPulse = animated ? 0.72 + Math.sin((frame / fps) * Math.PI * 2 * 0.9) * 0.16 : 0.72;
 
+  const wrapperTransform = animated || driveIn
+    ? `translateX(${driveInX}px) translateY(${curveY}px) rotate(${rockAngle}deg) translateY(${bounceY}px)`
+    : 'none';
   // ── Proportionen: Original Bus 9.20m × 3.25m, Räder Ø90cm ──────────
   const W  = size;
   const H  = size * 0.353;          // 9.20m × 3.25m → 2.83:1
@@ -388,8 +397,8 @@ const MojoBusCoach: React.FC<{
 
   return (
     <div style={{
-      transform:       `translateX(${driveInX}px) translateY(${curveY}px) rotate(${rockAngle}deg) translateY(${bounceY}px)`,
-      transformOrigin: 'bottom center',
+      transform:       wrapperTransform,
+      transformOrigin: animated ? 'bottom center' : 'center center',
       display:         'inline-block',
       filter:          'drop-shadow(0 14px 32px rgba(0,0,0,0.65))',
     }}>
@@ -446,7 +455,9 @@ const MojoBusCoach: React.FC<{
         {/* ══════════════════════════════════════════════════════════════════
             BODENSCHATTEN
         ══════════════════════════════════════════════════════════════════ */}
-        <ellipse cx={W*0.5} cy={RY+WR*1.18} rx={W*0.5} ry={WR*0.2} fill="rgba(0,0,0,0.45)" transform="skewX(15)" />
+        {showShadow && (
+          <ellipse cx={W*0.5} cy={RY+WR*1.18} rx={W*0.5} ry={WR*0.2} fill="rgba(0,0,0,0.45)" transform="skewX(15)" />
+        )}
 
         {/* ══════════════════════════════════════════════════════════════════
             HAUPTKAROSSERIE

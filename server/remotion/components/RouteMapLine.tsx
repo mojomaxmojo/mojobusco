@@ -26,7 +26,7 @@ import {
   useVideoConfig,
 } from 'remotion';
 import { FONT_FAMILY_REGULAR, FONT_WEIGHT } from './Fonts';
-import { MojoBusMiniature } from './LottieBusIcon';
+import { MojoBusCoach } from './LottieBusIcon';
 
 // ── Typen ─────────────────────────────────────────────────────────────────
 
@@ -171,8 +171,8 @@ const BusMarker: React.FC<{
 
 /**
  * TravelingBusMarker — echter MojoBus entlang der Route.
- * - Nutzt MojoBusMiniature aus LottieBusIcon (korrekt gefärbt)
- * - Rotiert sich in Fahrtrichtung
+ * Nutzt den vollen MojoBusCoach aus LottieBusIcon (bunt wie Hook/CTA),
+ * aber ohne Animation und ohne Schatten, damit Rotation sauber aussieht.
  */
 const TravelingBusMarker: React.FC<{
   coords: RouteCoord[];
@@ -196,13 +196,22 @@ const TravelingBusMarker: React.FC<{
         position: 'absolute',
         left: pos.x,
         top: pos.y,
-        width: size * 2.2,
-        height: size,
-        transform: `translate(-50%, -50%) rotate(${angle}deg)`,
+        width: 0,
+        height: 0,
+        transform: `rotate(${angle}deg)`,
         pointerEvents: 'none',
       }}
     >
-      <MojoBusMiniature size={size} accentColor={accentColor} />
+      <div style={{ position: 'absolute', transform: 'translate(-50%, -50%)' }}>
+        <MojoBusCoach
+          size={size}
+          accentColor={accentColor}
+          driveIn={false}
+          animated={false}
+          showShadow={false}
+          label=""
+        />
+      </div>
     </div>
   );
 };
