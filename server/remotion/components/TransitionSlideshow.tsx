@@ -17,6 +17,7 @@
  *  12. scalePopIn   — Eingang mit Pop/Bounce-Skala
  *  13. bounceScale  — Elastischer Bounce 0.8 → 1.05 → 1.0
  *  14. diagonalWipe — Diagonaler Wischer von Ecke zu Ecke
+ *  15. cardFlip     — 3D-Karten-Flip um die Y-Achse
  *
  * ARCHITEKTUR:
  * - @remotion/transitions nutzt <TransitionSeries> und <Transition> Komponenten
@@ -43,7 +44,7 @@ import { CrossDissolve as FallbackCrossDiss } from './CrossFade';
 
 // ── Transition-Typen ───────────────────────────────────────────────────────
 
-export type TransitionType = 'wipe' | 'clockWipe' | 'irisWipe' | 'starWipe' | 'heartWipe' | 'fade' | 'slide' | 'morph' | 'zoomRelay' | 'glitch' | 'pagePeel' | 'scalePopIn' | 'bounceScale' | 'diagonalWipe' | 'auto';
+export type TransitionType = 'wipe' | 'clockWipe' | 'irisWipe' | 'starWipe' | 'heartWipe' | 'fade' | 'slide' | 'morph' | 'zoomRelay' | 'glitch' | 'pagePeel' | 'scalePopIn' | 'bounceScale' | 'diagonalWipe' | 'cardFlip' | 'auto';
 
 // ── Pure CSS/SVG Transitions (kein extra Package nötig) ───────────────────
 
@@ -495,6 +496,75 @@ const DiagonalWipeTransition: React.FC<{
   );
 };
 
+/**
+ * CardFlipTransition — 3D-Karten-Flip um die Y-Achse
+ *
+ * Aktuelles Bild dreht sich von 0° auf 90° weg (unsichtbar),
+ * nächstes Bild dreht sich von -90° auf 0° heran.
+ * Reines CSS perspective + rotateY — WebGL-frei.
+ *
+ * WICHTIG: Braucht nextChildren, weil beide Bilder innerhalb einer
+ * Komponente gerendert werden müssen (wie pagePeel).
+ */
+const CardFlipTransition: React.FC<{
+  durationFrames: number;
+  direction?: 'left' | 'right';
+  children: React.ReactNode;
+  nextChildren: React.ReactNode;
+}> = ({ durationFrames, direction = 'right', children, nextChildren }) => {
+  const frame = useCurrentFrame();
+
+  const t = interpolate(frame, [0, Math.max(1, durationFrames)], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
+  // Ease-in-out: beide Bewegungen sollen sich treffen
+  const eased = t < 0.5
+    ? 4 * t * t * t
+    : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+  const dir = direction === 'left' ? -1 : 1;
+
+  // Aktuelles Bild: 0° → 90°
+  const currentRotate = dir * 90 * eased;
+  const currentOpacity = eased < 0.5 ? 1 : Math.max(0, 1 - (eased - 0.5) * 4);
+
+  // Nächstes Bild: -90° → 0°
+  const nextRotate = -dir * 90 * (1 - eased);
+  const nextOpacity = eased > 0.5 ? 1 : Math.max(0, (eased - 0.4) * 5);
+
+  return (
+    <AbsoluteFill style={{ perspective: '1200px' }}>
+      {/* Nächstes Bild: liegt hinten, dreht sich heran */}
+      <AbsoluteFill
+        style={{
+          transform: `rotateY(${nextRotate.toFixed(2)}deg)`,
+          opacity: nextOpacity,
+          transformStyle: 'preserve-3d',
+          backfaceVisibility: 'hidden',
+          willChange: 'transform, opacity',
+        }}
+      >
+        {nextChildren}
+      </AbsoluteFill>
+
+      {/* Aktuelles Bild: dreht sich weg */}
+      <AbsoluteFill
+        style={{
+          transform: `rotateY(${currentRotate.toFixed(2)}deg)`,
+          opacity: currentOpacity,
+          transformStyle: 'preserve-3d',
+          backfaceVisibility: 'hidden',
+          willChange: 'transform, opacity',
+        }}
+      >
+        {children}
+      </AbsoluteFill>
+    </AbsoluteFill>
+  );
+};
+
 // ── TransitionWrapper — Wählt die richtige Transition ─────────────────────
 
 interface TransitionWrapperProps {
@@ -533,7 +603,7 @@ export const TransitionWrapper: React.FC<TransitionWrapperProps> = ({
   const AUTO_SEQUENCE: Array<Exclude<TransitionType, 'auto'>> = [
     'wipe', 'fade', 'clockWipe', 'irisWipe', 'slide', 'scalePopIn', 'morph',
     'starWipe', 'zoomRelay', 'glitch', 'heartWipe', 'bounceScale',
-    'diagonalWipe', 'wipe', 'fade', 'clockWipe'
+    'diagonalWipe', 'cardFlip', 'wipe', 'fade', 'clockWipe'
   ];
 
   const effectiveType: Exclude<TransitionType, 'auto'> =
@@ -666,6 +736,27 @@ export const TransitionWrapper: React.FC<TransitionWrapperProps> = ({
         >
           {children}
         </DiagonalWipeTransition>
+      );
+    }
+
+    case 'cardFlip': {
+      // cardFlip braucht beide Bilder (wie pagePeel)
+      if (!nextChildren) {
+        return (
+          <FallbackCrossDiss durationFrames={durationFrames}>
+            {children}
+          </FallbackCrossDiss>
+        );
+      }
+      const flipDir = imageIndex % 2 === 0 ? 'right' : 'left';
+      return (
+        <CardFlipTransition
+          durationFrames={durationFrames}
+          direction={flipDir}
+          nextChildren={nextChildren}
+        >
+          {children}
+        </CardFlipTransition>
       );
     }
 

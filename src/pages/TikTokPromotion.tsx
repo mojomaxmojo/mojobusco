@@ -241,6 +241,7 @@ const TRANSITION_OPTIONS = [
   { value: 'scalePopIn', label: '💥 Pop-In' },
   { value: 'bounceScale', label: '⚡ Bounce' },
   { value: 'diagonalWipe', label: '↗️ Diagonal' },
+  { value: 'cardFlip', label: '🃏 Flip' },
 ]
 
 /** Farblook-Optionen (Color-Grade-Presets) */
