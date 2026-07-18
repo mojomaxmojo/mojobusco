@@ -811,7 +811,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
            dieselben Cut-Frames wie FlashCut/LightLeak/StickerPop. */}
       {sfxEnabled && sfxUrls && (
         <SfxLayer
-          cues={buildSfxCues(cutFx, slideDefs.map((_, i) => slideStartFrame(i)))}
+          cues={buildSfxCues(cutFx, slideDefs.map((_, i) => slideStartFrame(i)), transitionType)}
           sfxUrls={sfxUrls}
           volume={0.5}
         />

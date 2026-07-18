@@ -33,22 +33,40 @@ export interface SfxCue {
  * @param cutFx            – ein Effekt-Typ pro Cut-Index (wie in MojoBusVideo.tsx)
  * @param slideStartFrames – der Start-Frame pro Cut-Index (slideStartFrame(i))
  */
-export function buildSfxCues(cutFx: string[], slideStartFrames: number[]): SfxCue[] {
-  const cues: SfxCue[] = [];
+export function buildSfxCues(
+  cutFx: string[],
+  slideStartFrames: number[],
+  transitionType?: string
+): SfxCue[] {
+  const cues = new Map<number, SfxCue>();
+
+  // 1. Cues aus Cinematic Cut-Effekten (flash/whip/leak)
   for (let i = 0; i < cutFx.length; i++) {
     const cutFrame = slideStartFrames[i];
     if (cutFrame == null) continue;
 
     if (cutFx[i] === 'flash') {
-      cues.push({ cutFrame, type: 'ding' });
+      cues.set(cutFrame, { cutFrame, type: 'ding' });
     } else if (cutFx[i] === 'whip') {
-      cues.push({ cutFrame, type: 'whoosh' });
+      cues.set(cutFrame, { cutFrame, type: 'whoosh' });
     } else if (cutFx[i] === 'leak') {
-      cues.push({ cutFrame, type: 'impact' });
+      cues.set(cutFrame, { cutFrame, type: 'impact' });
     }
-    // 'none' → kein Cue
   }
-  return cues;
+
+  // 2. busWipe-Transitionen bekommen zusätzlich einen Whoosh, falls kein
+  //    anderer SFX bereits auf diesem Cut liegt.
+  if (transitionType === 'busWipe') {
+    for (let i = 0; i < slideStartFrames.length; i++) {
+      const cutFrame = slideStartFrames[i];
+      if (cutFrame == null || cutFrame <= 0) continue;
+      if (!cues.has(cutFrame)) {
+        cues.set(cutFrame, { cutFrame, type: 'whoosh' });
+      }
+    }
+  }
+
+  return Array.from(cues.values());
 }
 
 // ══════════════════════════════════════════════════════════════════════════
