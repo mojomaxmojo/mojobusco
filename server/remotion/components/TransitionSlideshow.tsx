@@ -497,21 +497,21 @@ const DiagonalWipeTransition: React.FC<{
 };
 
 /**
- * CardFlipTransition — 3D-Karten-Flip um die Y-Achse
+ * CardFlipTransition — 3D-Karten-Flip um 180° (wie @remotion/transitions/flip)
  *
- * Aktuelles Bild dreht sich von 0° auf 90° weg (unsichtbar),
- * nächstes Bild dreht sich von -90° auf 0° heran.
- * Reines CSS perspective + rotateY — WebGL-frei.
+ * Das vorherige Bild liegt auf der Vorderseite, das aktuelle Bild auf der
+ * Rückseite. Die Karte dreht sich von 0° auf 180°, wodurch das aktuelle Bild
+ * sichtbar wird.
  *
- * WICHTIG: Braucht nextChildren, weil beide Bilder innerhalb einer
- * Komponente gerendert werden müssen (wie pagePeel).
+ * Braucht previousChildren UND currentChildren in derselben Komponente.
+ * Pure CSS 3D-Transforms, kein WebGL/Canvas.
  */
-const CardFlipTransition: React.FC<{
+export const CardFlipTransition: React.FC<{
   durationFrames: number;
-  direction?: 'left' | 'right';
+  direction?: 'left' | 'right' | 'up' | 'down';
+  previousChildren: React.ReactNode;
   children: React.ReactNode;
-  nextChildren: React.ReactNode;
-}> = ({ durationFrames, direction = 'right', children, nextChildren }) => {
+}> = ({ durationFrames, direction = 'right', previousChildren, children: currentChildren }) => {
   const frame = useCurrentFrame();
 
   const t = interpolate(frame, [0, Math.max(1, durationFrames)], [0, 1], {
@@ -519,48 +519,62 @@ const CardFlipTransition: React.FC<{
     extrapolateRight: 'clamp',
   });
 
-  // Ease-in-out: beide Bewegungen sollen sich treffen
+  // Smooth ease-in-out damit die Drehung realistisch wirkt
   const eased = t < 0.5
     ? 4 * t * t * t
     : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
-  const dir = direction === 'left' ? -1 : 1;
-
-  // Aktuelles Bild: 0° → 90°
-  const currentRotate = dir * 90 * eased;
-  const currentOpacity = eased < 0.5 ? 1 : Math.max(0, 1 - (eased - 0.5) * 4);
-
-  // Nächstes Bild: -90° → 0°
-  const nextRotate = -dir * 90 * (1 - eased);
-  const nextOpacity = eased > 0.5 ? 1 : Math.max(0, (eased - 0.4) * 5);
+  // Drehachse wählen
+  let rotate = '';
+  switch (direction) {
+    case 'left':
+      rotate = `rotateY(${-180 * eased}deg)`;
+      break;
+    case 'up':
+      rotate = `rotateX(${180 * eased}deg)`;
+      break;
+    case 'down':
+      rotate = `rotateX(${-180 * eased}deg)`;
+      break;
+    case 'right':
+    default:
+      rotate = `rotateY(${180 * eased}deg)`;
+  }
 
   return (
     <AbsoluteFill style={{ perspective: '1200px' }}>
-      {/* Nächstes Bild: liegt hinten, dreht sich heran */}
-      <AbsoluteFill
+      <div
         style={{
-          transform: `rotateY(${nextRotate.toFixed(2)}deg)`,
-          opacity: nextOpacity,
+          position: 'relative',
+          width: '100%',
+          height: '100%',
           transformStyle: 'preserve-3d',
-          backfaceVisibility: 'hidden',
-          willChange: 'transform, opacity',
+          transform: rotate,
+          willChange: 'transform',
         }}
       >
-        {nextChildren}
-      </AbsoluteFill>
+        {/* Vorderseite: vorheriges Bild */}
+        <AbsoluteFill
+          style={{
+            backfaceVisibility: 'hidden',
+            WebkitBackfaceVisibility: 'hidden',
+          }}
+        >
+          {previousChildren}
+        </AbsoluteFill>
 
-      {/* Aktuelles Bild: dreht sich weg */}
-      <AbsoluteFill
-        style={{
-          transform: `rotateY(${currentRotate.toFixed(2)}deg)`,
-          opacity: currentOpacity,
-          transformStyle: 'preserve-3d',
-          backfaceVisibility: 'hidden',
-          willChange: 'transform, opacity',
-        }}
-      >
-        {children}
-      </AbsoluteFill>
+        {/* Rückseite: aktuelles Bild, gespiegelt damit es nach der Drehung
+            nicht verkehrt herum erscheint. */}
+        <AbsoluteFill
+          style={{
+            backfaceVisibility: 'hidden',
+            WebkitBackfaceVisibility: 'hidden',
+            transform: 'rotateY(180deg)',
+          }}
+        >
+          {currentChildren}
+        </AbsoluteFill>
+      </div>
     </AbsoluteFill>
   );
 };
@@ -603,7 +617,7 @@ export const TransitionWrapper: React.FC<TransitionWrapperProps> = ({
   const AUTO_SEQUENCE: Array<Exclude<TransitionType, 'auto'>> = [
     'wipe', 'fade', 'clockWipe', 'irisWipe', 'slide', 'scalePopIn', 'morph',
     'starWipe', 'zoomRelay', 'glitch', 'heartWipe', 'bounceScale',
-    'diagonalWipe', 'cardFlip', 'wipe', 'fade', 'clockWipe'
+    'diagonalWipe', 'wipe', 'fade', 'clockWipe'
   ];
 
   const effectiveType: Exclude<TransitionType, 'auto'> =
@@ -736,27 +750,6 @@ export const TransitionWrapper: React.FC<TransitionWrapperProps> = ({
         >
           {children}
         </DiagonalWipeTransition>
-      );
-    }
-
-    case 'cardFlip': {
-      // cardFlip braucht beide Bilder (wie pagePeel)
-      if (!nextChildren) {
-        return (
-          <FallbackCrossDiss durationFrames={durationFrames}>
-            {children}
-          </FallbackCrossDiss>
-        );
-      }
-      const flipDir = imageIndex % 2 === 0 ? 'right' : 'left';
-      return (
-        <CardFlipTransition
-          durationFrames={durationFrames}
-          direction={flipDir}
-          nextChildren={nextChildren}
-        >
-          {children}
-        </CardFlipTransition>
       );
     }
 

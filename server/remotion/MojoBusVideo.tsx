@@ -42,7 +42,7 @@ import {
   AudioWaveformBar,
   generateFallbackBeats,
 } from './components/BeatSyncLayer';
-import { TransitionWrapper } from './components/TransitionSlideshow';
+import { TransitionWrapper, CardFlipTransition } from './components/TransitionSlideshow';
 import { BeatVelocityPunch } from './components/BeatVelocityPunch';
 import {
   RouteMapLine,
@@ -256,6 +256,18 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
     })
     .filter((w): w is { slideIndex: number; startFrame: number; endFrame: number } => w !== null);
 
+  // ── Einfaches vorheriges Bild pro Slide (nur für cardFlip-Transition) ──────
+  // Index 0 = Hook-Bild, danach das vorhergehende Bild (Route-Slides überspringen).
+  const previousImageUrls = slideDefs.map((def, i) => {
+    if (i === 0) return images[0] || null;
+    for (let j = i - 1; j >= 0; j--) {
+      if (slideDefs[j].type === 'image') {
+        return images[slideDefs[j].imageIdx] || null;
+      }
+    }
+    return images[0] || null;
+  });
+
   return (
     <AbsoluteFill style={{ background: '#000' }}>
 
@@ -375,6 +387,29 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
                   showBusMarker={true}
                   overlayOpacity={mapImageUrl ? 0.4 : 0}
                 />
+              ) : transitionType === 'cardFlip' ? (
+                isLastSlide ? (
+                  <CardFlipTransition
+                    durationFrames={TRANSITION_FRAMES}
+                    direction={i % 2 === 0 ? 'right' : 'left'}
+                    previousChildren={previousImageUrls[i] ? <MediaRenderer src={previousImageUrls[i]} index={-1} /> : slideContent}
+                  >
+                    {slideContent}
+                  </CardFlipTransition>
+                ) : (
+                  <FadeOut
+                    durationFrames={TRANSITION_FRAMES}
+                    totalFrames={seqDuration}
+                  >
+                    <CardFlipTransition
+                      durationFrames={TRANSITION_FRAMES}
+                      direction={i % 2 === 0 ? 'right' : 'left'}
+                      previousChildren={previousImageUrls[i] ? <MediaRenderer src={previousImageUrls[i]} index={-1} /> : slideContent}
+                    >
+                      {slideContent}
+                    </CardFlipTransition>
+                  </FadeOut>
+                )
               ) : isLastSlide ? (
                 <TransitionWrapper
                   type={transitionType}
