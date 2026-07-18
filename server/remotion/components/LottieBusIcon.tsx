@@ -717,6 +717,65 @@ const MojoBusCoach: React.FC<{
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// BUS-SILHOUETTE — für Clip-Path Transitions (busWipe)
+// Reine Form ohne Farben/Animationen, zentrierter Ursprung für einfaches Scaling
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const MojoBusSilhouette: React.FC<{ size?: number }> = ({ size = 420 }) => {
+  const W = size;
+  const H = size * 0.353;
+  const WR = H * 0.138;
+  const RY = H + WR * 0.6;
+  const totalH = RY + WR * 1.3;
+
+  // Zentriere den Bus, damit scale/translate um (0,0) funktionieren
+  const centerX = W * 0.5;
+  const centerY = totalH * 0.5;
+
+  return (
+    <g transform={`translate(${-centerX}, ${-centerY})`}>
+      {/* Karosserie-Hauptkörper */}
+      <rect x={W * 0.01} y={H * 0.12} width={W * 0.98} height={H * 0.9} />
+      {/* Obere abgerundete Kappe */}
+      <rect x={W * 0.01} y={H * 0.04} width={W * 0.98} height={H * 0.12} rx={H * 0.06} />
+      {/* Front-Fläche */}
+      <rect x={W * 0.82} y={H * 0.12} width={W * 0.17} height={H * 0.9} />
+      {/* Heck-Fläche */}
+      <rect x={W * 0.01} y={H * 0.04} width={W * 0.04} height={H * 1.0} />
+      {/* Windschutzscheibe */}
+      <rect x={W * 0.82} y={H * 0.12} width={W * 0.16} height={H * 0.4} rx={H * 0.03} />
+      {/* Fahrertür-Fenster */}
+      <rect x={W * 0.05} y={H * 0.095} width={W * 0.18} height={H * 0.35} rx={H * 0.05} />
+      {/* Wohnraum-Fenster */}
+      {[0.25, 0.45, 0.65].map((x, i) => (
+        <rect key={i} x={W * x} y={H * 0.095} width={W * 0.18} height={H * 0.35} rx={H * 0.05} />
+      ))}
+      {/* Heckscheibe */}
+      <rect x={W * 0.014} y={H * 0.095} width={W * 0.032} height={H * 0.3} rx={H * 0.02} />
+      {/* Außenspiegel */}
+      <rect x={W * 0.78} y={H * 0.08} width={W * 0.04} height={H * 0.14} rx={W * 0.01} />
+      {/* Räder */}
+      <circle cx={W * 0.175} cy={RY} r={WR} />
+      <circle cx={W * 0.77} cy={RY} r={WR} />
+      {/* Front-Stoßstange */}
+      <rect x={W * 0.81} y={H * 0.875} width={W * 0.18} height={H * 0.09} rx={H * 0.02} />
+      {/* Heck-Stoßstange */}
+      <rect x={W * 0.008} y={H * 0.875} width={W * 0.048} height={H * 0.088} rx={H * 0.018} />
+      {/* Doppelscheinwerfer */}
+      <rect x={W * 0.83} y={H * 0.62} width={W * 0.04} height={H * 0.07} rx={H * 0.01} />
+      <rect x={W * 0.9} y={H * 0.62} width={W * 0.04} height={H * 0.07} rx={H * 0.01} />
+      {/* Blinker vorne */}
+      <rect x={W * 0.82} y={H * 0.775} width={W * 0.16} height={H * 0.045} rx={H * 0.01} />
+      {/* Rücklichter */}
+      <circle cx={W * 0.028} cy={H * 0.52} r={H * 0.065} />
+      <circle cx={W * 0.028} cy={H * 0.65} r={H * 0.065} />
+      {/* Kühlergrill */}
+      <rect x={W * 0.82} y={H * 0.765} width={W * 0.16} height={H * 0.145} rx={3} />
+    </g>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // EXPORTS
 // ─────────────────────────────────────────────────────────────────────────────
 

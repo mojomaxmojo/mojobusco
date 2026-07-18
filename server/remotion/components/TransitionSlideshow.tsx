@@ -41,6 +41,7 @@ import {
   useVideoConfig,
 } from 'remotion';
 import { CrossDissolve as FallbackCrossDiss } from './CrossFade';
+import { MojoBusSilhouette } from './LottieBusIcon';
 
 // ── Transition-Typen ───────────────────────────────────────────────────────
 
@@ -121,12 +122,17 @@ const BusWipeTransition: React.FC<{
   const directions = ['left', 'right'] as const;
   const direction = directions[imageIndex % directions.length];
 
-  // Bus startet außerhalb, fährt quer und skaliert auf, bis er den Screen bedeckt
-  const startX = direction === 'left' ? -width * 0.35 : width * 1.25;
-  const endX = direction === 'left' ? width * 1.25 : -width * 0.35;
+  // Echte MojoBus-Silhouette: zentrierter Ursprung, skalierbar
+  const busSize = 420;
+  const busTotalHeight = busSize * 0.445; // ~187px (H + Räder)
+  const endScale = (height / busTotalHeight) * 1.2; // Am Ende ganzen Screen bedecken
+
+  // Bus startet außerhalb, fährt quer und skaliert auf
+  const startX = direction === 'left' ? -width * 0.3 : width * 1.3;
+  const endX = direction === 'left' ? width * 1.3 : -width * 0.3;
   const busX = interpolate(eased, [0, 1], [startX, endX]);
-  const busY = height * 0.58;
-  const scale = interpolate(eased, [0, 0.55, 1], [0.35, 1.15, 3.2]);
+  const busY = height * 0.5;
+  const scale = interpolate(eased, [0, 0.5, 1], [0.35, 1.05, endScale]);
 
   const clipId = `buswipe-${frame}`;
 
@@ -136,13 +142,7 @@ const BusWipeTransition: React.FC<{
         <defs>
           <clipPath id={clipId} clipPathUnits="userSpaceOnUse">
             <g transform={`translate(${busX}, ${busY}) scale(${scale})`}>
-              {/* Bus-Karosserie */}
-              <rect x="20" y="20" width="360" height="70" rx="22" />
-              {/* Windschutzscheibe */}
-              <rect x="310" y="28" width="60" height="36" rx="6" />
-              {/* Räder */}
-              <circle cx="105" cy="92" r="34" />
-              <circle cx="315" cy="92" r="34" />
+              <MojoBusSilhouette size={busSize} />
             </g>
           </clipPath>
         </defs>
