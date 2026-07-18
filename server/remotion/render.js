@@ -31,6 +31,12 @@ import { generateSfx, SFX_TYPES } from './sfx.js';
 // ── Audio Loudness-Normalisierung ─────────────────────────────────────────
 import { normalizeRenderedVideo } from './audioNormalize.js';
 import { CHROME_PATH, CHROMIUM_OPTIONS } from './chrome.js';
+import {
+  groupImagesIntoSlides,
+  findRouteSlideIndex,
+  reduceToSlides,
+  combineSlideTexts,
+} from './slideLayouts.js';
 
 // ── Haupt-Render-Funktion ─────────────────────────────────────────────────
 
@@ -93,6 +99,8 @@ export async function renderMojoBusVideo(params) {
     stickersEnabled = false,
     sfxEnabled = false,
     speedRampEnabled = false,
+    // ── NEU: Photo-Dump / Split-Screen Layouts ────────────────────────────
+    slideLayouts,
   } = params;
 
   // Output-/Image-Verzeichnisse sicherstellen
@@ -108,6 +116,16 @@ export async function renderMojoBusVideo(params) {
   const sessionId     = crypto.randomBytes(8).toString('hex');
   const sessionDir    = path.join(IMAGES_DIR, sessionId);
   const outputPath    = path.join(OUTPUT_DIR, `mojobus-${sessionId}.mp4`);
+
+  // Photo-Dump / Split-Screen Layouts vorbereiten
+  const hasSlideLayouts = Array.isArray(slideLayouts) && slideLayouts.length > 0;
+  const imageGroups = hasSlideLayouts ? groupImagesIntoSlides(imageUrls, slideLayouts) : null;
+  const routeVisualIndex = hasSlideLayouts && showRouteMap && imageUrls.length >= 2
+    ? findRouteSlideIndex(imageGroups)
+    : -1;
+  if (hasSlideLayouts) {
+    console.log(`[Remotion] 📐 Slide-Layouts: ${imageGroups.map(g => g.layout).join(', ')} → ${imageGroups.length} Slides`);
+  }
 
   fs.mkdirSync(sessionDir, { recursive: true });
   console.log(`[Remotion] ── Start: ${compositionId} | ${imageUrls.length} Bilder | ${aspectRatio}`);
@@ -160,9 +178,20 @@ export async function renderMojoBusVideo(params) {
       perSlideArray.push(Math.max(secondsPerImage, videoMin, Math.round((readingTime + 1) * 10) / 10));
     }
 
+    // Photo-Dump Layouts: bild-indizierte Arrays auf Slide-Ebene reduzieren
+    if (hasSlideLayouts && imageGroups) {
+      perSlideArray = reduceToSlides(perSlideArray, imageGroups);
+      captions = reduceToSlides(captions, imageGroups);
+      effectiveVideoDurations = reduceToSlides(effectiveVideoDurations, imageGroups);
+      if (Array.isArray(voiceoverSegmentsInput) && voiceoverSegmentsInput.length > 0) {
+        voiceoverSegmentsInput = combineSlideTexts(voiceoverSegmentsInput, imageGroups);
+      }
+      console.log(`[Remotion] 📐 Reduziert auf ${perSlideArray.length} Slide-Dauern`);
+    }
+
     // RouteMap als extra Slide in der Mitte einfügen
     if (showRouteMap && imageUrls.length >= 2) {
-      const routeIdx = Math.floor(imageUrls.length / 2);
+      const routeIdx = hasSlideLayouts ? routeVisualIndex : Math.floor(imageUrls.length / 2);
       const routeDur = perSlideArray[routeIdx] || secondsPerImage;
       perSlideArray.splice(routeIdx, 0, routeDur);
     }
@@ -191,9 +220,10 @@ export async function renderMojoBusVideo(params) {
 
       if (rawSegments && rawSegments.length > 0) {
         // RouteMap-Slide Vorbereitung: wurde als Extra Slide vom Frontend gemeldet
-        // RouteMap: Position berechnen (Mitte der Bilder)
+        // RouteMap: Position berechnen (Mitte der Bilder, layout-aware)
         const routeIdx = showRouteMap && imageUrls.length >= 2
-          ? Math.floor(imageUrls.length / 2) : -1;
+          ? (hasSlideLayouts ? routeVisualIndex : Math.floor(imageUrls.length / 2))
+          : -1;
 
         // routeDur: Dauer des RouteMap-Slides.
         // Wir nehmen den größten Wert aus Basis-perSlideArray an dieser Position
@@ -349,6 +379,7 @@ export async function renderMojoBusVideo(params) {
       stickersEnabled,
       sfxEnabled, sfxUrls: httpSfxUrls,
       speedRampEnabled,
+      slideLayouts: hasSlideLayouts ? slideLayouts : undefined,
     };
 
     const composition = await selectComposition({

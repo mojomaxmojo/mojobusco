@@ -3,6 +3,9 @@ import type { GammaFade } from './components/KenBurnsImage';
 import type { TransitionType } from './components/TransitionSlideshow';
 import type { RouteCoord } from './components/RouteMapLine';
 import type { CaptionStyle } from './components/Captions';
+import type { SlideLayout } from './slideLayouts';
+
+export type { SlideLayout } from './slideLayouts';
 
 export interface MojoBusVideoProps {
   imageUrls: string[];
@@ -103,5 +106,14 @@ export interface MojoBusVideoProps {
    * Nur wirksam auf Video-Slides, Bild-Slides bleiben unberührt. Default: false
    */
   speedRampEnabled?: boolean;
+
+  // ── NEU: Photo-Dump / Split-Screen Layouts ────────────────────────────
+  /**
+   * Layout pro Slide. 'single' = klassisch (1 Bild pro Slide),
+   * 'split-2-v'/'split-2-h' = 2 Bilder nebeneinander/übereinander,
+   * 'split-3' = Mosaik mit 3 Bildern, 'split-4' = 4 Quadrate.
+   * Fehlende Einträge werden als 'single' behandelt. Default: alle 'single'.
+   */
+  slideLayouts?: SlideLayout[];
 
 }

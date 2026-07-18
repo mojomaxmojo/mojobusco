@@ -828,6 +828,8 @@ export default function createVideoRouter(PORT) {
       stickersEnabled = false,
       sfxEnabled = false,
       speedRampEnabled = false,
+      // ── NEU: Photo-Dump / Split-Screen Layouts ────────────────────────────
+      slideLayouts,
     } = req.body
 
     if (!imageUrls || !Array.isArray(imageUrls) || imageUrls.length === 0) {
@@ -934,6 +936,7 @@ export default function createVideoRouter(PORT) {
           stickersEnabled: !!stickersEnabled,
           sfxEnabled: !!sfxEnabled,
           speedRampEnabled: !!speedRampEnabled,
+          slideLayouts: Array.isArray(slideLayouts) && slideLayouts.length > 0 ? slideLayouts : undefined,
           localMusicDir: MUSIC_DIR,
           onProgress: (percent) => {
             const j = remotionJobs.get(jobId)

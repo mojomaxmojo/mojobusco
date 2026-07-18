@@ -52,7 +52,11 @@ const RemotionRoot: React.FC = () => {
         durationInFrames={calculateDuration(
           DEFAULT_PROPS.imageUrls.length,
           FPS,
-          DEFAULT_PROPS.secondsPerImage ?? 5
+          DEFAULT_PROPS.secondsPerImage ?? 5,
+          undefined,
+          DEFAULT_PROPS.showRouteMap,
+          DEFAULT_PROPS.platform,
+          DEFAULT_PROPS.slideLayouts
         ).totalFrames}
         defaultProps={DEFAULT_PROPS}
         calculateMetadata={({ props }) => {
@@ -62,7 +66,8 @@ const RemotionRoot: React.FC = () => {
             props.secondsPerImage ?? 5,
             (props as any).perSlideArray,
             props.showRouteMap,
-            props.platform
+            props.platform,
+            props.slideLayouts
           );
           return { durationInFrames: totalFrames };
         }}
@@ -80,7 +85,11 @@ const RemotionRoot: React.FC = () => {
         durationInFrames={calculateDuration(
           DEFAULT_PROPS.imageUrls.length,
           FPS,
-          DEFAULT_PROPS.secondsPerImage ?? 5
+          DEFAULT_PROPS.secondsPerImage ?? 5,
+          undefined,
+          DEFAULT_PROPS.showRouteMap,
+          DEFAULT_PROPS.platform,
+          DEFAULT_PROPS.slideLayouts
         ).totalFrames}
         defaultProps={{ ...DEFAULT_PROPS, aspectRatio: '9:16' }}
         calculateMetadata={({ props }) => {
@@ -90,7 +99,8 @@ const RemotionRoot: React.FC = () => {
             props.secondsPerImage ?? 5,
             (props as any).perSlideArray,
             props.showRouteMap,
-            props.platform
+            props.platform,
+            props.slideLayouts
           );
           return { durationInFrames: totalFrames };
         }}
@@ -108,7 +118,11 @@ const RemotionRoot: React.FC = () => {
         durationInFrames={calculateDuration(
           DEFAULT_PROPS.imageUrls.length,
           FPS,
-          DEFAULT_PROPS.secondsPerImage ?? 5
+          DEFAULT_PROPS.secondsPerImage ?? 5,
+          undefined,
+          DEFAULT_PROPS.showRouteMap,
+          DEFAULT_PROPS.platform,
+          DEFAULT_PROPS.slideLayouts
         ).totalFrames}
         defaultProps={{ ...DEFAULT_PROPS, aspectRatio: '1:1' }}
         calculateMetadata={({ props }) => {
@@ -118,7 +132,8 @@ const RemotionRoot: React.FC = () => {
             props.secondsPerImage ?? 5,
             (props as any).perSlideArray,
             props.showRouteMap,
-            props.platform
+            props.platform,
+            props.slideLayouts
           );
           return { durationInFrames: totalFrames };
         }}

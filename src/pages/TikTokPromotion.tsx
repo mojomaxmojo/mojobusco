@@ -53,6 +53,14 @@ import { extractImagesFromEvent, extractTitle, extractSummary } from '@/lib/nost
 import { KEEP_ORIGINAL_AUDIO_LABEL, KEEP_ORIGINAL_AUDIO_HINT, DEFAULT_KEEP_ORIGINAL_AUDIO } from '@/config/videoAudio'
 import { EffectPresetSelector } from '@/components/pin/EffectPresetSelector'
 import { EFFECT_PRESETS, type EffectPreset, type EffectPresetId } from '@/config/effectPresets'
+import {
+  type SlideLayout,
+  SLIDE_LAYOUT_ORDER,
+  LAYOUT_SHORT_LABELS,
+  LAYOUT_LABELS,
+  DEFAULT_SLIDE_LAYOUT,
+  LAYOUT_IMAGE_COUNTS,
+} from '@/config/slideLayouts'
 
 // ── Capacitor-Fix: absolute API-URL ──────────────────────────────────────────
 // In der nativen App (Capacitor WebView) läuft die Seite im file:// Kontext.
@@ -380,6 +388,7 @@ export function TikTokPromotion() {
   const [sfxEnabled, setSfxEnabled] = useState(false)
   const [speedRampEnabled, setSpeedRampEnabled] = useState(false)
   const [activeEffectPreset, setActiveEffectPreset] = useState<EffectPresetId | null>(null)
+  const [slideLayout, setSlideLayout] = useState<SlideLayout>(DEFAULT_SLIDE_LAYOUT)
 
   // ── AMBIENT ══════════════════════════════════════════════
   const [ambientType, setAmbientType] = useState('__none__')
@@ -773,7 +782,6 @@ export function TikTokPromotion() {
       colorGrade: colorGrade !== 'auto' ? colorGrade : undefined,
       stickersEnabled,
       sfxEnabled,
-      showLottieBus: true,
       showRouteMap,
       muteVoiceoverSlide: showRouteMap ? Math.floor(articleImages.length / 2) : -1,
       ambientType: ambientType !== '__none__' ? ambientType : undefined,
@@ -785,6 +793,9 @@ export function TikTokPromotion() {
       }),
       keepOriginalAudio,
       speedRampEnabled,
+      ...(slideLayout !== 'single' && {
+        slideLayouts: Array(articleImages.length).fill(slideLayout),
+      }),
     }
 
     // ── Echte GPS-Route statt Demo-Route ─────────────────────────────────
@@ -2004,15 +2015,21 @@ export function TikTokPromotion() {
 
                 {/* Dauer pro Bild */}
                 <div>
-                  <Label className="text-xs sm:text-sm">Dauer pro Bild</Label>
+                  <Label className="text-xs sm:text-sm">Dauer pro Bild-Slide</Label>
                   <Select value={String(secondsPerImage)} onValueChange={v => setSecondsPerImage(Number(v))}>
                     <SelectTrigger className="mt-1 text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {[3,4,5,6,7,8,9,10].map(s => (
-                        <SelectItem key={s} value={String(s)}>{s}s · ~{(articleImages.length * s + 10)}s Gesamt</SelectItem>
-                      ))}
+                      {[3,4,5,6,7,8,9,10].map(s => {
+                        const imageSlides = slideLayout === 'single'
+                          ? articleImages.length
+                          : Math.ceil(articleImages.length / LAYOUT_IMAGE_COUNTS[slideLayout])
+                        const totalSlides = imageSlides + (showRouteMap && articleImages.length >= 2 ? 1 : 0)
+                        return (
+                          <SelectItem key={s} value={String(s)}>{s}s · ~{(totalSlides * s + 10)}s Gesamt</SelectItem>
+                        )
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
@@ -2030,6 +2047,40 @@ export function TikTokPromotion() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+
+                {/* Photo-Dump / Split-Screen Layout */}
+                <div>
+                  <Label className="text-xs sm:text-sm flex items-center gap-1">
+                    🖼️ Photo-Dump Layout
+                    <span className="text-[10px] text-muted-foreground ml-1">(Bilder pro Slide)</span>
+                  </Label>
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5 mt-1">
+                    {SLIDE_LAYOUT_ORDER.map((val) => {
+                      const disabled = val !== 'single' && articleImages.length < LAYOUT_IMAGE_COUNTS[val]
+                      return (
+                        <button
+                          key={val}
+                          type="button"
+                          onClick={() => setSlideLayout(val)}
+                          disabled={disabled}
+                          title={LAYOUT_LABELS[val]}
+                          className={`py-1.5 px-1 text-xs rounded border transition-all text-center ${
+                            slideLayout === val
+                              ? 'bg-background shadow text-foreground border-primary'
+                              : 'border-border text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed'
+                          }`}
+                        >
+                          {LAYOUT_SHORT_LABELS[val]}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  {slideLayout !== 'single' && (
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      {LAYOUT_LABELS[slideLayout]}: Jedem Slide werden {LAYOUT_IMAGE_COUNTS[slideLayout]} Bilder zugewiesen.
+                    </p>
+                  )}
                 </div>
 
                 {/* Farblook */}

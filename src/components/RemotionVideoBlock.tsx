@@ -24,6 +24,14 @@ import { Video, Loader2, CheckCircle, Sparkles } from '@/lib/icons';
 import { useUploadFile } from '@/hooks/useUploadFile';
 import { useToast } from '@/hooks/useToast';
 import { Badge } from '@/components/ui/badge';
+import {
+  type SlideLayout,
+  SLIDE_LAYOUT_ORDER,
+  LAYOUT_SHORT_LABELS,
+  LAYOUT_LABELS,
+  DEFAULT_SLIDE_LAYOUT,
+  LAYOUT_IMAGE_COUNTS,
+} from '@/config/slideLayouts';
 
 // ── Typen ─────────────────────────────────────────────────────────────────
 
@@ -183,6 +191,7 @@ export function RemotionVideoBlock({
   const [selectedMusic, setSelectedMusic] = useState<string>('random');
   const [musicTracks, setMusicTracks] = useState<MusicTrack[]>([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [slideLayout, setSlideLayout] = useState<SlideLayout>(DEFAULT_SLIDE_LAYOUT);
 
   // ── Render State ────────────────────────────────────────────────────────
   const [status, setStatus] = useState<RenderStatus>('idle');
@@ -237,10 +246,13 @@ export function RemotionVideoBlock({
   const defaultGrade = LIFESTYLE_GRADE[lifestyle] || 'golden';
   const resolvedGrade = colorGrade === 'auto' ? defaultGrade : colorGrade;
 
-  // Geschätzte Videolänge
+  // Geschätzte Videolänge (layout-aware)
   const hookSec = 4;
   const ctaSec = 6;
-  const slideshowSec = imageCount * imgDuration;
+  const imagesPerSlide = LAYOUT_IMAGE_COUNTS[slideLayout];
+  const estimatedImageSlides = imageCount > 0 ? Math.ceil(imageCount / imagesPerSlide) : 0;
+  const estimatedSlides = estimatedImageSlides + (showRouteMap && imageCount >= 2 ? 1 : 0);
+  const slideshowSec = estimatedSlides * imgDuration;
   const totalSec = hookSec + slideshowSec + ctaSec;
 
   // ── Lokale Bilder hochladen ─────────────────────────────────────────────
@@ -325,6 +337,9 @@ export function RemotionVideoBlock({
           showRouteMap,
           websiteUrl: 'mojobus.co',
           handle: '@mojobus',
+          ...(slideLayout !== 'single' && {
+            slideLayouts: Array(imageCount).fill(slideLayout),
+          }),
           ...(selectedMusic !== 'random' && { musicUrl: selectedMusic }),
         }),
       });
@@ -609,6 +624,39 @@ export function RemotionVideoBlock({
                 </div>
               </div>
 
+              {/* Photo-Dump / Split-Screen Layout */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">
+                  🖼️ Photo-Dump Layout
+                  <span className="ml-1.5 text-[10px] font-normal opacity-60">(Mehrere Bilder pro Slide)</span>
+                </Label>
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-1">
+                  {SLIDE_LAYOUT_ORDER.map((val) => (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => setSlideLayout(val)}
+                      disabled={val !== 'single' && imageCount < LAYOUT_IMAGE_COUNTS[val]}
+                      title={LAYOUT_LABELS[val]}
+                      className={`py-1.5 px-1 text-[11px] rounded border transition-all text-center ${
+                        slideLayout === val
+                          ? 'text-white border-transparent'
+                          : 'bg-white dark:bg-gray-900 text-gray-500 border-gray-300 dark:border-gray-600 disabled:opacity-40 disabled:cursor-not-allowed'
+                      }`}
+                      style={slideLayout === val ? { background: accentColor } : {}}
+                    >
+                      {LAYOUT_SHORT_LABELS[val]}
+                    </button>
+                  ))}
+                </div>
+                {slideLayout !== 'single' && (
+                  <p className="text-[10px] text-muted-foreground">
+                    {LAYOUT_LABELS[slideLayout]}: Jedem Slide werden {LAYOUT_IMAGE_COUNTS[slideLayout]} Bilder zugewiesen.
+                    Nicht passende Layouts sind bei nur {imageCount} Bild{imageCount !== 1 ? 'ern' : ''} deaktiviert.
+                  </p>
+                )}
+              </div>
+
               {/* Beat Velocity Punch */}
               <div className="flex items-center gap-2">
                 <input
@@ -767,7 +815,7 @@ export function RemotionVideoBlock({
             {[
               `${LIFESTYLE_EMOJI[lifestyle] || '🎬'} ${lifestyle}`,
               `🎨 ${GRADE_LABELS[colorGrade === 'auto' ? defaultGrade : colorGrade]}`,
-              '🌊 Noise Ken Burns',
+              slideLayout === 'single' ? '🌊 Noise Ken Burns' : `🖼️ Photo-Dump: ${LAYOUT_SHORT_LABELS[slideLayout]}`,
               motionBlur > 0 ? `🎬 Motion Blur` : null,
               `${TRANSITION_LABELS[transitionType]}`,
               captionStyle !== 'off' ? `💬 ${CAPTION_STYLE_LABELS[captionStyle]}` : null,

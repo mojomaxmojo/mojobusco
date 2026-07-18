@@ -20,18 +20,28 @@ export function getHookSeconds(platform?: string): number {
   return HOOK_SECONDS[platform || 'tiktok'] ?? HOOK_SECONDS.tiktok;
 }
 
+import { groupImagesIntoSlides } from './slideLayouts';
+import type { SlideLayout } from './videoProps';
+
 export function calculateDuration(
   imageCount: number,
   fps: number,
   secondsPerImage: number,
   perSlideArray?: number[],
   showRouteMap?: boolean,
-  platform?: string
+  platform?: string,
+  slideLayouts?: SlideLayout[]
 ): { totalFrames: number; hookFrames: number; ctaFrames: number; slideshowFrames: number } {
-  const hookFrames      = getHookSeconds(platform) * fps;  // plattformabhängig: TikTok 3s, Reels 4s, YouTube 5s
+  const hookFrames      = getHookSeconds(platform) * fps;
   const ctaFrames       = 6 * fps;
-  const totalSlideCount = showRouteMap && imageCount >= 2 ? imageCount + 1 : imageCount;
-  // Wenn perSlideArray übergeben: dynamische Summe, sonst fix
+
+  // Layout-aware Slides: groupImagesIntoSlides braucht Dummy-URLs, wir nutzen
+  // einfach leere Strings – zählt nur die Anzahl und Layouts.
+  const imageUrls = Array.from({ length: imageCount }, () => '');
+  const groups = groupImagesIntoSlides(imageUrls, slideLayouts ?? []);
+  const baseSlideCount = groups.length;
+  const totalSlideCount = showRouteMap && imageCount >= 2 ? baseSlideCount + 1 : baseSlideCount;
+
   const slideshowFrames = perSlideArray && perSlideArray.length === totalSlideCount
     ? perSlideArray.reduce((sum, sec) => sum + Math.round(sec * fps), 0)
     : totalSlideCount * Math.round(secondsPerImage * fps);

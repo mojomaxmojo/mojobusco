@@ -34,6 +34,8 @@ import { LoadFonts } from './components/Fonts';
 import { HookDimOverlay } from './components/HookDimOverlay';
 import { MediaRenderer, isVideo } from './components/MediaRenderer';
 import { getHookSeconds } from './duration';
+import { PhotoDumpLayout } from './components/PhotoDumpLayout';
+import { groupImagesIntoSlides, findRouteSlideIndex } from './slideLayouts';
 export { calculateDuration } from './duration';
 
 // ── NEU: 4 neue Skills ────────────────────────────────────────────────────
@@ -124,19 +126,8 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
   // Speed-Ramping
   speedRampEnabled = false,
 
-  // Voiceover
-  voiceoverUrl,
-  perSlideArray,
-  voiceoverVolume = 1.0,
-  // Ambient
-  ambientUrl,
-
-  // Kapitel-Marker
-  hookCaption,
-  ctaText,
-
-  // Original-Ton behalten
-  keepOriginalAudio = false,
+  // Photo-Dump Layouts
+  slideLayouts,
 
 }) => {
   const { fps, durationInFrames } = useVideoConfig();
@@ -145,11 +136,15 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
   const images     = imageUrls.slice(0, 20);
   const imageCount = images.length;
 
-  // ── Slides: inkl. extra Routen-Slide wenn showRouteMap ────────────────
-  // Der Routen-Slide wird als EXTRA Slide eingefügt, ersetzt KEIN Bild
+  // ── Slides: layout-aware Gruppierung + extra Routen-Slide ─────────────
+  // Bilder werden anhand slideLayouts in Gruppen aufgeteilt. Der Routen-Slide
+  // wird als EXTRA Slide eingefügt und ersetzt kein Bild.
+  const baseGroups = groupImagesIntoSlides(images, slideLayouts ?? []);
+  const baseSlideCount = baseGroups.length;
+
   const hasRouteMap = showRouteMap && images.length >= 2;
-  const routeSlideIndex = Math.floor(imageCount / 2);
-  const totalSlideCount = hasRouteMap ? imageCount + 1 : imageCount;
+  const routeVisualIndex = hasRouteMap ? findRouteSlideIndex(baseGroups) : -1;
+  const totalSlideCount = baseSlideCount + (hasRouteMap ? 1 : 0);
 
   // Dynamische perSlide: perSlideArray vom Server (inkl. RouteMap), sonst fix
   const slidesSec = perSlideArray && perSlideArray.length === totalSlideCount
@@ -157,24 +152,39 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
     : new Array(totalSlideCount).fill(secondsPerImage);
   const slidesFrames = slidesSec.map(s => Math.round(s * fps));
 
-  const hookFrames = getHookSeconds(platform) * fps;  // plattformabhängig (muss mit calculateDuration übereinstimmen)
+  const hookFrames = getHookSeconds(platform) * fps;
   const ctaFrames  = 6 * fps;
 
-  // routeDurFrames aus slidesFrames (enthält bereits RouteMap-Eintrag an routeSlideIndex)
+  // Route-Dauer aus slidesFrames (enthält bereits RouteMap an routeVisualIndex)
   const routeDurFrames = hasRouteMap
-    ? (slidesFrames[routeSlideIndex] || Math.round(secondsPerImage * fps))
+    ? (slidesFrames[routeVisualIndex] || Math.round(secondsPerImage * fps))
     : 0;
 
-  // Flat slide sequence: [image0, image1, ..., routeMap, imageN, ...]
-  // slidesFrames hat totalSlideCount Einträge (inkl. RouteMap an routeSlideIndex)
-  // Für Bilder: Index < routeSlideIndex → slidesFrames[i], Index >= routeSlideIndex → slidesFrames[i+1]
-  const slideDefs: { type: 'image' | 'route'; imageIdx: number; frames: number }[] = [];
-  for (let i = 0; i < images.length; i++) {
-    if (hasRouteMap && i === routeSlideIndex) {
-      slideDefs.push({ type: 'route', imageIdx: -1, frames: slidesFrames[routeSlideIndex] });
+  // Slide-Definitionen: jeder Eintrag kann ein oder mehrere Bilder enthalten
+  interface SlideDef {
+    type: 'image' | 'route';
+    imageIndices: number[];
+    frames: number;
+    layout?: import('./videoProps').SlideLayout;
+  }
+
+  const slideDefs: SlideDef[] = [];
+  let framesIdx = 0;
+  baseGroups.forEach((group, groupIdx) => {
+    if (hasRouteMap && groupIdx === routeVisualIndex) {
+      slideDefs.push({ type: 'route', imageIndices: [], frames: slidesFrames[framesIdx] ?? Math.round(secondsPerImage * fps) });
+      framesIdx++;
     }
-    const framesIdx = hasRouteMap && i >= routeSlideIndex ? i + 1 : i;
-    slideDefs.push({ type: 'image', imageIdx: i, frames: slidesFrames[framesIdx] || perSlide });
+    slideDefs.push({
+      type: 'image',
+      imageIndices: group.imageIndices,
+      frames: slidesFrames[framesIdx] ?? Math.round(secondsPerImage * fps),
+      layout: group.layout,
+    });
+    framesIdx++;
+  });
+  if (hasRouteMap && routeVisualIndex >= baseGroups.length) {
+    slideDefs.push({ type: 'route', imageIndices: [], frames: slidesFrames[framesIdx] ?? Math.round(secondsPerImage * fps) });
   }
 
   const totalSlides = slideDefs.length;
@@ -235,7 +245,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
   // bleiben stumm (kein allowAudio).
   const videoDuckWindows = keepOriginalAudio
     ? slideDefs
-        .filter((d): d is typeof d & { type: 'image' } => d.type === 'image' && isVideo(images[d.imageIdx]))
+        .filter((d): d is typeof d & { type: 'image' } => d.type === 'image' && isVideo(images[d.imageIndices[0]]))
         .map((d) => {
           const sf = slideStartFrame(slideDefs.indexOf(d));
           return { startFrame: sf, endFrame: sf + d.frames };
@@ -249,7 +259,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
   const heroWordWindows = slideDefs
     .map((def, i) => {
       if (def.type !== 'image') return null;
-      const captionText = captions[def.imageIdx];
+      const captionText = captions[i];
       if (!captionText) return null;
       const win = findHeroWordWindow(captionText, slideStartFrame(i), def.frames);
       return win ? { slideIndex: i, ...win } : null;
@@ -259,13 +269,18 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
   // ── Einfaches vorheriges Bild pro Slide (nur für cardFlip-Transition) ──────
   // Index 0 = Hook-Bild, danach das vorhergehende Bild (Route-Slides überspringen).
   const previousImageUrls = slideDefs.map((def, i) => {
-    if (i === 0) return images[0] || null;
+    const firstImage = (d: typeof slideDefs[0]) => images[d.imageIndices[0]] || null;
+    if (i === 0) {
+      const firstImageSlide = slideDefs.find(d => d.type === 'image');
+      return firstImageSlide ? firstImage(firstImageSlide) : null;
+    }
     for (let j = i - 1; j >= 0; j--) {
       if (slideDefs[j].type === 'image') {
-        return images[slideDefs[j].imageIdx] || null;
+        return firstImage(slideDefs[j]);
       }
     }
-    return images[0] || null;
+    const firstImageSlide = slideDefs.find(d => d.type === 'image');
+    return firstImageSlide ? firstImage(firstImageSlide) : null;
   });
 
   return (
@@ -334,7 +349,15 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
 
           // Effekt-Kette (innen → außen): Media → MatchCut → Punch → Whip → FadeOut
           let slideContent: React.ReactNode = !isRoute ? (
-            <MediaRenderer src={images[def.imageIdx]} index={def.imageIdx + 1} allowAudio={keepOriginalAudio} speedRamp={speedRampEnabled} slideFrames={thisSlideFrames} />
+            def.imageIndices.length === 1 && (!def.layout || def.layout === 'single') ? (
+              <MediaRenderer src={images[def.imageIndices[0]]} index={def.imageIndices[0] + 1} allowAudio={keepOriginalAudio} speedRamp={speedRampEnabled} slideFrames={thisSlideFrames} />
+            ) : (
+              <PhotoDumpLayout
+                images={def.imageIndices.map(idx => images[idx])}
+                layout={def.layout || 'single'}
+                slideIndex={i}
+              />
+            )
           ) : null;
           if (matchCut) {
             slideContent = (
@@ -497,8 +520,12 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
       {hasCaptions && (
         <PerSlideCaption
           captions={(() => {
+            // Server liefert captions slide-indiziert (inkl. RouteMap) wenn
+            // slideLayouts gesetzt sind, sonst bild-indiziert. Wir normalisieren
+            // hier auf die finale Slide-Anzahl inkl. RouteMap.
+            if (captions.length === totalSlideCount) return captions;
             const c = [...captions];
-            if (showRouteMap) c.splice(routeSlideIndex, 0, '');
+            if (showRouteMap) c.splice(routeVisualIndex, 0, '');
             return c;
           })()}
           slidesStartFrame={hookFrames}
@@ -512,8 +539,8 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
       {/* ══ SCHICHT 7: Summary Subtitle (Mitte, ohne Captions) ═══════════════ */}
       {summary && imageCount >= 3 && !hasCaptions && (
         <Sequence
-          from={slideStartFrame(Math.floor(imageCount / 2))}
-          durationInFrames={slidesFrames[Math.floor(imageCount / 2)] || perSlide}
+          from={slideStartFrame(Math.floor(totalSlides / 2))}
+          durationInFrames={slidesFrames[Math.floor(totalSlides / 2)] || perSlide}
         >
           <StoryCaption
             text={summary.slice(0, 80)}
