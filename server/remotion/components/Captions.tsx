@@ -57,6 +57,31 @@ interface WordHighlightCaptionsProps {
 
 // ── Hilfsfunktionen ───────────────────────────────────────────────────────
 
+/**
+ * Berechnet den Bounce-Scale für ein aktives Wort.
+ * Am Anfang der Wort-Periode poppt das Wort rein (0.85 → 1.10 → 1.0),
+ * danach bleibt es bei 1.0.
+ */
+function getWordBounceScale(
+  localFrame: number,
+  wordFrames: number,
+  activeScale = 1.08
+): number {
+  if (wordFrames <= 0) return 1;
+  const punchFrames = Math.min(wordFrames * 0.45, 8);
+  const t = Math.max(0, Math.min(1, localFrame / punchFrames));
+
+  // Ease-Out-Back: 0 → 1 mit leichtem Überschwingen
+  const c1 = 1.70158;
+  const c3 = c1 + 1;
+  const eased = 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+
+  // Map: 0.85 → activeScale → 1.0
+  const minScale = 0.85;
+  if (t >= 1) return 1;
+  return minScale + (activeScale - minScale) * eased;
+}
+
 /** Text in Wörter aufteilen mit gleichmäßigem Timing */
 export function textToTimedWords(
   text: string,
@@ -97,7 +122,8 @@ const TikTokWord: React.FC<{
   isActive: boolean;
   isNext: boolean;
   accentColor: string;
-}> = ({ word, isActive, isNext, accentColor }) => {
+  bounceScale?: number;
+}> = ({ word, isActive, isNext, accentColor, bounceScale = 1.08 }) => {
   return (
     <span
       style={{
@@ -108,7 +134,7 @@ const TikTokWord: React.FC<{
         background: isActive ? accentColor : 'transparent',
         color: isActive ? '#000' : isNext ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.5)',
         fontWeight: isActive ? FONT_WEIGHT.black : FONT_WEIGHT.bold,
-        transform: isActive ? 'scale(1.08)' : 'scale(1)',
+        transform: `scale(${isActive ? bounceScale.toFixed(4) : '1'})`,
         transition: 'all 0.1s ease',
         textShadow: isActive ? 'none' : '0 2px 8px rgba(0,0,0,0.9)',
         letterSpacing: isActive ? '-0.01em' : '0em',
@@ -138,6 +164,14 @@ export const WordHighlightCaptions: React.FC<WordHighlightCaptionsProps> = ({
   );
 
   if (activeIndex === -1) return null;
+
+  // Frames seit Start des aktiven Wortes (für Bounce-Einblende)
+  const activeWord = words[activeIndex];
+  const wordStartFrame = activeWord.startInSeconds * fps;
+  const wordEndFrame = activeWord.endInSeconds * fps;
+  const wordDurationFrames = Math.max(1, wordEndFrame - wordStartFrame);
+  const localActiveFrame = Math.max(0, frame - wordStartFrame);
+  const activeBounceScale = getWordBounceScale(localActiveFrame, wordDurationFrames, 1.10);
 
   // Fenster: wordsPerLine Wörter um das aktive herum anzeigen
   const windowStart = Math.max(0, activeIndex - Math.floor(wordsPerLine / 2));
@@ -180,6 +214,7 @@ export const WordHighlightCaptions: React.FC<WordHighlightCaptionsProps> = ({
                 isActive={globalIndex === activeIndex}
                 isNext={globalIndex === activeIndex + 1}
                 accentColor={accentColor}
+                bounceScale={globalIndex === activeIndex ? activeBounceScale : 1.08}
               />
             );
           })}
@@ -349,6 +384,11 @@ export const PerSlideCaption: React.FC<PerSlideCaptionProps> = ({
     words.length - 1
   );
 
+  // Lokaler Frame im aktiven Wort für Bounce-Einblendung
+  const activeWordStartFrame = activeWordIdx * perWordFrames;
+  const localActiveFrame = Math.max(0, slideFrame - activeWordStartFrame);
+  const activeBounceScale = getWordBounceScale(localActiveFrame, perWordFrames, 1.08);
+
   // Chunk-Fenster: 3 Wörter um das aktive herum (für 'chunked') oder alle (für 'tiktok')
   const isChunked = style === 'chunked';
   const windowSize = isChunked ? 3 : words.length;
@@ -400,7 +440,7 @@ export const PerSlideCaption: React.FC<PerSlideCaptionProps> = ({
                 textShadow: isActive
                   ? `0 0 20px ${accentColor}88`
                   : '0 1px 4px rgba(0,0,0,0.7)',
-                transform: isActive ? 'scale(1.06)' : 'scale(1)',
+                transform: `scale(${isActive ? activeBounceScale.toFixed(4) : '1'})`,
                 opacity: isChunked && !isActive && i >= windowSize - 1 ? 0.65 : 1,
               }}
             >
