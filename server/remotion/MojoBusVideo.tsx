@@ -643,7 +643,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
         <AudioLayer
           src={musicUrl}
           volume={0.34}
-fadeInSec={0.3}
+          fadeInSec={0.4}
           duckWindows={videoDuckWindows}
         />
       )}
