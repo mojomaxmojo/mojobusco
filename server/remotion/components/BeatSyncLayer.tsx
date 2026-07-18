@@ -11,12 +11,62 @@
 import React from 'react';
 import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
 import { useAudioData, visualizeAudio, type AudioData } from '@remotion/media-utils';
-import { staticFile } from 'remotion';
 
-// Leere WAV-Datei für den Fall, dass keine Musik vorhanden ist.
-// Remotion's useAudioData braucht eine decodierbare Audio-URL, darf aber
-// nicht mit leerem String aufgerufen werden (Hooks-Regel).
-const EMPTY_AUDIO_SRC = staticFile('silence.wav');
+// Inline stumme WAV als Data-URI. Verhindert 404-Probleme mit staticFile()
+// bei Deploys, da die Datei in keinem public/-Ordner liegen muss.
+// useAudioData braucht eine decodierbare Audio-URL, darf aber nicht mit
+// leerem String aufgerufen werden (Hooks-Regel).
+function getSilentWavDataUrl(): string {
+  const sampleRate = 44100;
+  const durationSeconds = 0.2;
+  const numChannels = 1;
+  const bitsPerSample = 16;
+  const bytesPerSample = bitsPerSample / 8;
+  const byteRate = sampleRate * numChannels * bytesPerSample;
+  const blockAlign = numChannels * bytesPerSample;
+  const numSamples = Math.floor(sampleRate * durationSeconds);
+  const dataSize = numSamples * numChannels * bytesPerSample;
+  const fileSize = 36 + dataSize;
+
+  const buffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buffer);
+
+  const writeString = (offset: number, str: string) => {
+    for (let i = 0; i < str.length; i++) {
+      view.setUint8(offset + i, str.charCodeAt(i));
+    }
+  };
+
+  // RIFF chunk descriptor
+  writeString(0, 'RIFF');
+  view.setUint32(4, fileSize, true);
+  writeString(8, 'WAVE');
+  // fmt sub-chunk
+  writeString(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true); // PCM
+  view.setUint16(22, numChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, byteRate, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bitsPerSample, true);
+  // data sub-chunk
+  writeString(36, 'data');
+  view.setUint32(40, dataSize, true);
+  // samples are already zero (silent)
+
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  const base64 = typeof btoa === 'function'
+    ? btoa(binary)
+    : Buffer.from(binary, 'binary').toString('base64');
+  return `data:audio/wav;base64,${base64}`;
+}
+
+const EMPTY_AUDIO_SRC = getSilentWavDataUrl();
 
 // ── Fallback-Beats ────────────────────────────────────────────────────────
 // Wird sowohl intern als auch von MojoBusVideo.tsx/extern verwendet.
