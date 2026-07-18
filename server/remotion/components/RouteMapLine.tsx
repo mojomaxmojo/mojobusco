@@ -26,6 +26,7 @@ import {
   useVideoConfig,
 } from 'remotion';
 import { FONT_FAMILY_REGULAR, FONT_WEIGHT } from './Fonts';
+import { MojoBusSilhouette } from './LottieBusIcon';
 
 // ── Typen ─────────────────────────────────────────────────────────────────
 
@@ -163,6 +164,56 @@ const BusMarker: React.FC<{
         <circle cx="17" cy="19" r="2.5" fill="#333" stroke={color} strokeWidth="0.8" />
         {/* Front stripe */}
         <rect x="2" y="4" width="3" height="14" rx="2" fill={color} opacity="0.15" />
+      </svg>
+    </div>
+  );
+};
+
+/**
+ * TravelingBusMarker — echter MojoBus entlang der Route.
+ * - Nutzt MojoBusSilhouette aus LottieBusIcon
+ * - Rotiert sich in Fahrtrichtung
+ * - Skaliert responsiv
+ */
+const TravelingBusMarker: React.FC<{
+  coords: RouteCoord[];
+  t: number;
+  svgW: number;
+  svgH: number;
+  size?: number;
+  accentColor?: string;
+}> = ({ coords, t, svgW, svgH, size = 84, accentColor = '#F59E0B' }) => {
+  const pos = getPointOnPolyline(coords, t, svgW, svgH);
+  const prev = getPointOnPolyline(coords, Math.max(0, t - 0.008), svgW, svgH);
+  const next = getPointOnPolyline(coords, Math.min(1, t + 0.008), svgW, svgH);
+
+  const dx = next.x - prev.x;
+  const dy = next.y - prev.y;
+  const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: pos.x,
+        top: pos.y,
+        width: size,
+        height: size,
+        transform: `translate(-50%, -50%) rotate(${angle}deg)`,
+        pointerEvents: 'none',
+      }}
+    >
+      <svg
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
+        style={{ overflow: 'visible' }}
+      >
+        <g transform={`translate(${size * 0.5}, ${size * 0.5}) scale(${size / 420})`}>
+          <g fill={accentColor} stroke="none">
+            <MojoBusSilhouette size={420} />
+          </g>
+        </g>
       </svg>
     </div>
   );
@@ -465,16 +516,14 @@ export const RouteMapLine: React.FC<RouteMapLineProps> = ({
       {/* Bus-Marker bewegt sich entlang der Route */}
       {showBusMarker && drawEased > 0.05 && (
         <AbsoluteFill>
-          <div
-            style={{
-              position: 'absolute',
-              left: busPos.x,
-              top: busPos.y,
-              transform: 'translate(-50%, -100%)',
-            }}
-          >
-            <BusMarker size={36} accentColor={accentColor} />
-          </div>
+          <TravelingBusMarker
+            coords={coords}
+            t={drawEased}
+            svgW={svgW}
+            svgH={svgH}
+            size={Math.max(64, Math.min(width, height) * 0.12)}
+            accentColor={accentColor}
+          />
         </AbsoluteFill>
       )}
 
