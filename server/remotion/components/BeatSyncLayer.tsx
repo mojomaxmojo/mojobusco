@@ -11,82 +11,12 @@
 import React from 'react';
 import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
 import { useAudioData, visualizeAudio, type AudioData } from '@remotion/media-utils';
+import { staticFile } from 'remotion';
 
-// ── Typen ─────────────────────────────────────────────────────────────────
-
-export interface BeatInfo {
-  frame: number;
-  intensity: number;
-}
-
-// ── Fallback-Beats ────────────────────────────────────────────────────────
-
-export function generateFallbackBeats(
-  totalFrames: number,
-  fps: number,
-  secondsPerImage: number,
-  imageCount: number,
-  hookFrames: number
-): BeatInfo[] {
-  const perSlide = Math.round(secondsPerImage * fps);
-  const beats: BeatInfo[] = [];
-  for (let i = 0; i < imageCount; i++) {
-    const beatFrame = hookFrames + i * perSlide;
-    if (beatFrame < totalFrames) {
-      beats.push({ frame: beatFrame, intensity: 0.75 });
-      const mid = beatFrame + Math.round(perSlide / 2);
-      if (mid < totalFrames) beats.push({ frame: mid, intensity: 0.45 });
-    }
-  }
-  return beats;
-}
-
-// ── Echte Audio-Beat-Erkennung ───────────────────────────────────────────
-// Reine Berechnung, kein Seiteneffekt: analysiert bereits geladene AudioData
-// (aus useAudioData) und findet lokale Lautstärke-Spitzen als echte Beats.
-
-export function computeAudioBeats(
-  audioData: AudioData,
-  fps: number,
-  durationInFrames: number,
-  threshold: number
-): BeatInfo[] {
-  const STEP_FRAMES = 2;
-  const beats: BeatInfo[] = [];
-  let prevVolume = 0;
-  let rising = false;
-
-  for (let frame = 0; frame < durationInFrames; frame += STEP_FRAMES) {
-    let volume = 0;
-    try {
-      const visualization = visualizeAudio({
-        fps,
-        frame,
-        audioData,
-        numberOfSamples: 32,
-      });
-      volume = visualization.reduce((sum, v) => sum + v, 0) / visualization.length;
-    } catch {
-      continue;
-    }
-
-    if (volume > threshold) {
-      if (volume > prevVolume && !rising) {
-        rising = true;
-      } else if (volume <= prevVolume && rising) {
-        rising = false;
-        beats.push({ frame: Math.max(0, frame - STEP_FRAMES), intensity: Math.min(1, prevVolume) });
-      }
-    } else {
-      rising = false;
-    }
-    prevVolume = volume;
-  }
-
-  return beats;
-}
-
-const EMPTY_AUDIO_SRC = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAIlYAAESsAAACABAAZGF0YQAAAAA=';
+// Leere WAV-Datei für den Fall, dass keine Musik vorhanden ist.
+// Remotion's useAudioData braucht eine decodierbare Audio-URL, darf aber
+// nicht mit leerem String aufgerufen werden (Hooks-Regel).
+const EMPTY_AUDIO_SRC = staticFile('silence.wav');
 
 // ── useBeats Hook ───────────────────────────────────────────────────────
 // Wiederverwendbare Beat-Erkennung für andere Components (z. B. LottieBus).
