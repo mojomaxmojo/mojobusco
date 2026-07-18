@@ -196,22 +196,19 @@ const TravelingBusMarker: React.FC<{
         position: 'absolute',
         left: pos.x,
         top: pos.y,
-        width: 0,
-        height: 0,
-        transform: `rotate(${angle}deg)`,
+        transform: `translate(-50%, -50%) rotate(${angle}deg)`,
+        transformOrigin: 'center center',
         pointerEvents: 'none',
       }}
     >
-      <div style={{ position: 'absolute', transform: 'translate(-50%, -50%)' }}>
-        <MojoBusCoach
-          size={size}
-          accentColor={accentColor}
-          driveIn={false}
-          animated={false}
-          showShadow={false}
-          label=""
-        />
-      </div>
+      <MojoBusCoach
+        size={size}
+        accentColor={accentColor}
+        driveIn={false}
+        animated={false}
+        showShadow={false}
+        label=""
+      />
     </div>
   );
 };
