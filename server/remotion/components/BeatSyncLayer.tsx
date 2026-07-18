@@ -18,6 +18,34 @@ import { staticFile } from 'remotion';
 // nicht mit leerem String aufgerufen werden (Hooks-Regel).
 const EMPTY_AUDIO_SRC = staticFile('silence.wav');
 
+// ── Fallback-Beats ────────────────────────────────────────────────────────
+// Wird sowohl intern als auch von MojoBusVideo.tsx/extern verwendet.
+
+export interface BeatInfo {
+  frame: number;
+  intensity: number;
+}
+
+export function generateFallbackBeats(
+  totalFrames: number,
+  fps: number,
+  secondsPerImage: number,
+  imageCount: number,
+  hookFrames: number
+): BeatInfo[] {
+  const perSlide = Math.round(secondsPerImage * fps);
+  const beats: BeatInfo[] = [];
+  for (let i = 0; i < imageCount; i++) {
+    const beatFrame = hookFrames + i * perSlide;
+    if (beatFrame < totalFrames) {
+      beats.push({ frame: beatFrame, intensity: 0.75 });
+      const mid = beatFrame + Math.round(perSlide / 2);
+      if (mid < totalFrames) beats.push({ frame: mid, intensity: 0.45 });
+    }
+  }
+  return beats;
+}
+
 // ── useBeats Hook ───────────────────────────────────────────────────────
 // Wiederverwendbare Beat-Erkennung für andere Components (z. B. LottieBus).
 // Ruft useAudioData immer mit einem String auf (Hooks-Regel) und ignoriert
@@ -41,6 +69,51 @@ export function useBeats(
       return fallbackBeats;
     }
   }, [audioData, beatThreshold, durationInFrames, fallbackBeats, fps, musicUrl]);
+}
+
+// ── Echte Audio-Beat-Erkennung ───────────────────────────────────────────
+// Reine Berechnung, kein Seiteneffekt: analysiert bereits geladene AudioData
+// (aus useAudioData) und findet lokale Lautstärke-Spitzen als echte Beats.
+
+export function computeAudioBeats(
+  audioData: AudioData,
+  fps: number,
+  durationInFrames: number,
+  threshold: number
+): BeatInfo[] {
+  const STEP_FRAMES = 2;
+  const beats: BeatInfo[] = [];
+  let prevVolume = 0;
+  let rising = false;
+
+  for (let frame = 0; frame < durationInFrames; frame += STEP_FRAMES) {
+    let volume = 0;
+    try {
+      const visualization = visualizeAudio({
+        fps,
+        frame,
+        audioData,
+        numberOfSamples: 32,
+      });
+      volume = visualization.reduce((sum, v) => sum + v, 0) / visualization.length;
+    } catch {
+      continue;
+    }
+
+    if (volume > threshold) {
+      if (volume > prevVolume && !rising) {
+        rising = true;
+      } else if (volume <= prevVolume && rising) {
+        rising = false;
+        beats.push({ frame: Math.max(0, frame - STEP_FRAMES), intensity: Math.min(1, prevVolume) });
+      }
+    } else {
+      rising = false;
+    }
+    prevVolume = volume;
+  }
+
+  return beats;
 }
 
 // ── Beat-Flash ────────────────────────────────────────────────────────────
