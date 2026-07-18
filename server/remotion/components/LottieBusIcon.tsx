@@ -286,7 +286,7 @@ const RustSpot: React.FC<{ cx: number; cy: number; rx: number; ry: number; opaci
 // HAUPT-BUS SVG
 // ─────────────────────────────────────────────────────────────────────────────
 
-const MojoBusCoach: React.FC<{
+export const MojoBusCoach: React.FC<{
   size?: number;
   accentColor?: string;
   color?: string;
