@@ -240,7 +240,7 @@ async function downloadAllImages(imageUrls, sessionDir) {
  *
  * Gibt den Dateinamen im sessionDir zurück (z.B. "audio.mp3").
  */
-async function downloadAudioFile(url, sessionDir, localMusicDir) {
+async function downloadAudioFile(url, sessionDir, localMusicDir, outputName = 'audio') {
   if (!url) return null;
 
   const AUDIO_MIME_MAP = {
@@ -260,12 +260,12 @@ async function downloadAudioFile(url, sessionDir, localMusicDir) {
     const localPath = url.replace(/^file:\/\//, '');
     if (fs.existsSync(localPath)) {
       const ext = path.extname(localPath) || guessExt;
-      const destPath = path.join(sessionDir, `audio${ext}`);
+      const destPath = path.join(sessionDir, `${outputName}${ext}`);
       fs.copyFileSync(localPath, destPath);
       try { fs.chmodSync(destPath, 0o644); } catch (e) {}
       const sizeKB = (fs.statSync(destPath).size / 1024).toFixed(0);
-      console.log(`[Remotion] ✓ Audio (lokal kopiert): audio${ext} ${sizeKB}KB`);
-      return `audio${ext}`;
+      console.log(`[Remotion] ✓ Audio (lokal kopiert): ${outputName}${ext} ${sizeKB}KB`);
+      return `${outputName}${ext}`;
     }
     console.warn(`[Remotion] ✗ Lokale Audio-Datei nicht gefunden: ${localPath}`);
     return null;
@@ -278,12 +278,12 @@ async function downloadAudioFile(url, sessionDir, localMusicDir) {
     const localPath = path.join(localMusicDir, filename);
     if (fs.existsSync(localPath)) {
       const ext = path.extname(filename) || guessExt;
-      const destPath = path.join(sessionDir, `audio${ext}`);
+      const destPath = path.join(sessionDir, `${outputName}${ext}`);
       fs.copyFileSync(localPath, destPath);
       try { fs.chmodSync(destPath, 0o644); } catch (e) {}
       const sizeKB = (fs.statSync(destPath).size / 1024).toFixed(0);
-      console.log(`[Remotion] ✓ Audio (api/music→lokal): audio${ext} ${sizeKB}KB`);
-      return `audio${ext}`;
+      console.log(`[Remotion] ✓ Audio (api/music→lokal): ${outputName}${ext} ${sizeKB}KB`);
+      return `${outputName}${ext}`;
     }
     console.warn(`[Remotion] ✗ Musik-Datei im music/-Ordner nicht gefunden: ${filename}`);
   }
@@ -295,27 +295,27 @@ async function downloadAudioFile(url, sessionDir, localMusicDir) {
     const localPath = path.join(localMusicDir, filename);
     if (fs.existsSync(localPath)) {
       const ext = path.extname(filename) || guessExt;
-      const destPath = path.join(sessionDir, `audio${ext}`);
+      const destPath = path.join(sessionDir, `${outputName}${ext}`);
       fs.copyFileSync(localPath, destPath);
       try { fs.chmodSync(destPath, 0o644); } catch (e) {}
       const sizeKB = (fs.statSync(destPath).size / 1024).toFixed(0);
-      console.log(`[Remotion] ✓ Audio (localhost→lokal): audio${ext} ${sizeKB}KB`);
-      return `audio${ext}`;
+      console.log(`[Remotion] ✓ Audio (localhost→lokal): ${outputName}${ext} ${sizeKB}KB`);
+      return `${outputName}${ext}`;
     }
     console.warn(`[Remotion] ✗ Musik-Datei im music/-Ordner nicht gefunden: ${filename}`);
   }
 
   // Fall 3: Externe HTTP(S)-URL → herunterladen
-  const tempPath = path.join(sessionDir, 'audio.tmp');
+  const tempPath = path.join(sessionDir, `${outputName}.tmp`);
   try {
     const { contentType } = await downloadFileWithType(url, tempPath);
     const ext = (contentType && AUDIO_MIME_MAP[contentType.toLowerCase().split(';')[0].trim()]) || guessExt;
-    const finalPath = path.join(sessionDir, `audio${ext}`);
+    const finalPath = path.join(sessionDir, `${outputName}${ext}`);
     fs.renameSync(tempPath, finalPath);
     try { fs.chmodSync(finalPath, 0o644); } catch (e) {}
     const sizeKB = (fs.statSync(finalPath).size / 1024).toFixed(0);
-    console.log(`[Remotion] ✓ Audio (HTTP): audio${ext} ${sizeKB}KB`);
-    return `audio${ext}`;
+    console.log(`[Remotion] ✓ Audio (HTTP): ${outputName}${ext} ${sizeKB}KB`);
+    return `${outputName}${ext}`;
   } catch (err) {
     console.warn(`[Remotion] ✗ Audio-Download fehlgeschlagen (${err.message}) → kein Audio`);
     try { if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath); } catch (e) {}

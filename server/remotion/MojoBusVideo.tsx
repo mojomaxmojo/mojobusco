@@ -71,6 +71,7 @@ import {
 import { pickStickerForCut, StickerPop, stickerPopDuration } from './components/StickerPops';
 import { buildSfxCues, SfxLayer } from './components/SfxLayer';
 import { findHeroWordWindow } from './components/CaptionHeroWord';
+import { IntroAudioLayer } from './components/IntroAudioLayer';
 
 import { MojoBusVideoProps } from './videoProps';
 export { MojoBusVideoProps } from './videoProps';
@@ -145,6 +146,13 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
 
   // Photo-Dump Layouts
   slideLayouts,
+
+  // Hook Intro Audio
+  introStingUrl,
+  introStingVolume = 0.8,
+  introBedUrl,
+  introBedVolume = 0.5,
+  introBedFadeOutSec = 0.3,
 
 }) => {
   const { fps, durationInFrames } = useVideoConfig();
@@ -709,7 +717,13 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
           src={musicUrl}
           volume={0.34}
           fadeInSec={0.4}
-          duckWindows={videoDuckWindows}
+          duckWindows={[
+            // Wenn ein Hook Bed aktiv ist, wird die Haupt-Musik während des
+            // Hooks geduckt. Der Audio-Track bleibt für Beat-Sync-Analyse ab
+            // Frame 0 erhalten, ist aber im Hook-Bereich nicht hörbar.
+            ...(introBedUrl ? [{ startFrame: 0, endFrame: hookFrames }] : []),
+            ...videoDuckWindows,
+          ]}
         />
       )}
 
@@ -737,6 +751,29 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
           fadeOutSec={3}
           duckWindows={videoDuckWindows}
         />
+      )}
+
+      {/* ══ NEU SCHICHT 11d: Hook Intro Audio (Sting + Bed) ═══════════════════ */}
+      {introStingUrl && (
+        <Sequence from={0} durationInFrames={Math.min(6 * fps, durationInFrames)}>
+          <IntroAudioLayer
+            src={introStingUrl}
+            volume={introStingVolume}
+            fadeOutStartFrame={1 * fps}
+            fadeOutDurationFrames={5 * fps}
+          />
+        </Sequence>
+      )}
+      {introBedUrl && (
+        <Sequence from={0} durationInFrames={hookFrames}>
+          <IntroAudioLayer
+            src={introBedUrl}
+            volume={introBedVolume}
+            fadeOutStartFrame={Math.max(0, hookFrames - Math.round(introBedFadeOutSec * fps))}
+            fadeOutDurationFrames={Math.round(introBedFadeOutSec * fps)}
+            loop
+          />
+        </Sequence>
       )}
 
       {/* ══ NEU SCHICHT 12: Beat-Sync Flash Effekt ═══════════════════════════ */}

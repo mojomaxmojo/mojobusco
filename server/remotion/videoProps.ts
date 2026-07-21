@@ -126,4 +126,16 @@ export interface MojoBusVideoProps {
    */
   slideLayouts?: SlideLayout[];
 
+  // ── NEU: Hook Intro Audio ─────────────────────────────────────────────
+  /** URL einer kurzen Sting-Datei (z. B. Motorstart). Spielt ab Frame 0. */
+  introStingUrl?: string;
+  /** Lautstärke des Stings (0–1). Default: 0.8 */
+  introStingVolume?: number;
+  /** URL einer Intro-Musik-Spur (Bed). Läuft während des Hooks. */
+  introBedUrl?: string;
+  /** Lautstärke des Beds (0–1). Default: 0.5 */
+  introBedVolume?: number;
+  /** Fade-Out-Dauer des Beds am Hook-Ende in Sekunden. Default: 0.3 */
+  introBedFadeOutSec?: number;
+
 }

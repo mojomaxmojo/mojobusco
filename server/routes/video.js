@@ -830,6 +830,12 @@ export default function createVideoRouter(PORT) {
       speedRampEnabled = false,
       // ── NEU: Photo-Dump / Split-Screen Layouts ────────────────────────────
       slideLayouts,
+      // ── NEU: Hook Intro Audio ─────────────────────────────────────────────
+      introStingFilename,
+      introStingVolume = 0.8,
+      introBedFilename,
+      introBedVolume = 0.5,
+      introBedFadeOutSec = 0.3,
     } = req.body
 
     if (!imageUrls || !Array.isArray(imageUrls) || imageUrls.length === 0) {
@@ -893,6 +899,21 @@ export default function createVideoRouter(PORT) {
           }
         }
 
+        const resolveIntroUrl = (filename, subfolder) => {
+          if (!filename || filename === '__none__') return null
+          const safeSub = path.basename(subfolder)
+          const safeFile = path.basename(filename)
+          const filePath = path.join(MUSIC_DIR, safeSub, safeFile)
+          if (!fs.existsSync(filePath)) {
+            console.warn(`[Remotion] Intro-Datei nicht gefunden: ${filePath}`)
+            return null
+          }
+          return `http://localhost:${PORT}/api/music/${safeSub}/${encodeURIComponent(safeFile)}`
+        }
+
+        const resolvedIntroStingUrl = resolveIntroUrl(introStingFilename, 'intro-stings')
+        const resolvedIntroBedUrl = resolveIntroUrl(introBedFilename, 'intro-beds')
+
         const result = await renderer.renderMojoBusVideo({
           imageUrls,
           title,
@@ -937,6 +958,11 @@ export default function createVideoRouter(PORT) {
           sfxEnabled: !!sfxEnabled,
           speedRampEnabled: !!speedRampEnabled,
           slideLayouts: Array.isArray(slideLayouts) && slideLayouts.length > 0 ? slideLayouts : undefined,
+          introStingUrl: resolvedIntroStingUrl,
+          introStingVolume: parseFloat(String(introStingVolume)) || 0.8,
+          introBedUrl: resolvedIntroBedUrl,
+          introBedVolume: parseFloat(String(introBedVolume)) || 0.5,
+          introBedFadeOutSec: parseFloat(String(introBedFadeOutSec)) || 0.3,
           localMusicDir: MUSIC_DIR,
           onProgress: (percent) => {
             const j = remotionJobs.get(jobId)
@@ -1023,13 +1049,20 @@ export default function createVideoRouter(PORT) {
   })
 
   // ── GET /api/music/list ─────────────────────────────────
+  // Optionaler Query-Parameter ?folder=intro-stings | ?folder=intro-beds
   router.get('/api/music/list', (req, res) => {
     try {
-      if (!fs.existsSync(MUSIC_DIR)) {
-        return res.json({ tracks: [] })
+      const requestedFolder = typeof req.query.folder === 'string' ? req.query.folder : ''
+      const safeFolder = path.normalize(requestedFolder).replace(/^(\.\.(\/|\\|$))+/, '')
+      const targetDir = safeFolder ? path.join(MUSIC_DIR, safeFolder) : MUSIC_DIR
+
+      // Sicherstellen, dass Ziel innerhalb von MUSIC_DIR liegt
+      if (!targetDir.startsWith(MUSIC_DIR) || !fs.existsSync(targetDir)) {
+        return res.json({ tracks: [], total: 0 })
       }
+
       const AUDIO_EXTS = ['.mp3', '.m4a', '.ogg', '.wav']
-      const files = fs.readdirSync(MUSIC_DIR)
+      const files = fs.readdirSync(targetDir)
         .filter(f => AUDIO_EXTS.includes(path.extname(f).toLowerCase()))
         .sort()
 
@@ -1044,15 +1077,17 @@ export default function createVideoRouter(PORT) {
           lower.includes(l)
         ) || null
 
+        const relativePath = safeFolder ? `${safeFolder}/${filename}` : filename
+
         return {
           filename,
           label,
           lifestyle,
-          url: `/api/music/${encodeURIComponent(filename)}`,
+          url: `/api/music/${encodeURIComponent(relativePath)}`,
         }
       })
 
-      res.json({ tracks, total: tracks.length })
+      res.json({ tracks, total: tracks.length, folder: safeFolder || null })
     } catch (err) {
       res.status(500).json({ error: err.message, tracks: [] })
     }
@@ -1083,16 +1118,22 @@ export default function createVideoRouter(PORT) {
   })
 
   // ── Musik-Dateien für Remotion als HTTP-Assets bereitstellen ────────────
-  router.get('/api/music/:filename', (req, res) => {
-    const filename = decodeURIComponent(req.params.filename)
-    const safeName = path.basename(filename)
-    const filePath = path.join(MUSIC_DIR, safeName)
-
-    if (!fs.existsSync(filePath)) {
+  // Unterstützt sowohl root-Dateien als auch Unterordner (z. B. intro-stings/...)
+  router.get('/api/music/*', (req, res) => {
+    const relPath = decodeURIComponent(req.params[0] || '')
+    if (!relPath) {
       return res.status(404).json({ error: 'Musik-Datei nicht gefunden' })
     }
 
-    const ext = path.extname(safeName).toLowerCase()
+    const safePath = path.normalize(relPath).replace(/^(\.\.(\/|\\|$))+/, '')
+    const filePath = path.join(MUSIC_DIR, safePath)
+
+    // Path-Traversal-Schutz
+    if (!filePath.startsWith(MUSIC_DIR) || !fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+      return res.status(404).json({ error: 'Musik-Datei nicht gefunden' })
+    }
+
+    const ext = path.extname(filePath).toLowerCase()
     const mimeTypes = { '.mp3': 'audio/mpeg', '.m4a': 'audio/mp4', '.ogg': 'audio/ogg', '.wav': 'audio/wav' }
     res.setHeader('Content-Type', mimeTypes[ext] || 'audio/mpeg')
     res.setHeader('Cache-Control', 'public, max-age=3600')

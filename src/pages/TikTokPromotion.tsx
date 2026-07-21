@@ -35,6 +35,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Slider } from '@/components/ui/slider'
 
 // Icons
 import {
@@ -61,6 +62,19 @@ import {
   DEFAULT_SLIDE_LAYOUT,
   LAYOUT_IMAGE_COUNTS,
 } from '@/config/slideLayouts'
+import {
+  INTRO_NONE_VALUE,
+  INTRO_STINGS_FOLDER,
+  INTRO_BEDS_FOLDER,
+  DEFAULT_INTRO_STING_VOLUME,
+  DEFAULT_INTRO_BED_VOLUME,
+  DEFAULT_INTRO_BED_FADE_OUT_SEC,
+  INTRO_NONE_OPTION,
+  INTRO_STING_LABEL,
+  INTRO_BED_LABEL,
+  INTRO_STING_HINT,
+  INTRO_BED_HINT,
+} from '@/config/hookAudio'
 
 // ── Capacitor-Fix: absolute API-URL ──────────────────────────────────────────
 // In der nativen App (Capacitor WebView) läuft die Seite im file:// Kontext.
@@ -399,6 +413,18 @@ export function TikTokPromotion() {
   const [playingPreview, setPlayingPreview] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
+  // ── HOOK INTRO AUDIO ═══════════════════════════════════════
+  const [introStingFilename, setIntroStingFilename] = useState(INTRO_NONE_VALUE)
+  const [introBedFilename, setIntroBedFilename] = useState(INTRO_NONE_VALUE)
+  const [introStingVolume, setIntroStingVolume] = useState(DEFAULT_INTRO_STING_VOLUME)
+  const [introBedVolume, setIntroBedVolume] = useState(DEFAULT_INTRO_BED_VOLUME)
+  const [stingTracks, setStingTracks] = useState<{ filename: string; label: string; url: string }[]>([])
+  const [bedTracks, setBedTracks] = useState<{ filename: string; label: string; url: string }[]>([])
+  const [playingStingPreview, setPlayingStingPreview] = useState(false)
+  const [playingBedPreview, setPlayingBedPreview] = useState(false)
+  const stingAudioRef = useRef<HTMLAudioElement | null>(null)
+  const bedAudioRef = useRef<HTMLAudioElement | null>(null)
+
   // ── ROUTEMAP ═════════════════════════════════════════════
   const [showRouteMap, setShowRouteMap] = useState(false)
   // Echte Route aus GPS-Tags der Events (null = keine GPS-Daten → Demo-Fallback)
@@ -447,15 +473,18 @@ export function TikTokPromotion() {
       .catch(() => setRemotionAvailable(false))
   }, [])
 
-  // Musik-Tracks vom Server laden
+  // Musik-Tracks vom Server laden (Haupt-Musik + Hook Intro Stings/Beds)
   useEffect(() => {
     const base = getApiBaseUrl()
-    fetch(`${base}/api/music/list`)
-      .then(r => r.json())
-      .then(data => {
-        if (data?.tracks) {
-          setMusicTracks(data.tracks)
-        }
+    Promise.all([
+      fetch(`${base}/api/music/list`).then(r => r.json()),
+      fetch(`${base}/api/music/list?folder=${INTRO_STINGS_FOLDER}`).then(r => r.json()),
+      fetch(`${base}/api/music/list?folder=${INTRO_BEDS_FOLDER}`).then(r => r.json()),
+    ])
+      .then(([mainData, stingData, bedData]) => {
+        if (mainData?.tracks) setMusicTracks(mainData.tracks)
+        if (stingData?.tracks) setStingTracks(stingData.tracks)
+        if (bedData?.tracks) setBedTracks(bedData.tracks)
       })
       .catch(() => {})
   }, [])
@@ -796,6 +825,12 @@ export function TikTokPromotion() {
       ...(slideLayout !== 'single' && {
         slideLayouts: Array(articleImages.length).fill(slideLayout),
       }),
+      // Hook Intro Audio
+      introStingFilename: introStingFilename !== INTRO_NONE_VALUE ? introStingFilename : undefined,
+      introBedFilename: introBedFilename !== INTRO_NONE_VALUE ? introBedFilename : undefined,
+      introStingVolume,
+      introBedVolume,
+      introBedFadeOutSec: DEFAULT_INTRO_BED_FADE_OUT_SEC,
     }
 
     // ── Echte GPS-Route statt Demo-Route ─────────────────────────────────
@@ -1174,6 +1209,14 @@ export function TikTokPromotion() {
         audioRef.current.pause()
         audioRef.current = null
       }
+      if (stingAudioRef.current) {
+        stingAudioRef.current.pause()
+        stingAudioRef.current = null
+      }
+      if (bedAudioRef.current) {
+        bedAudioRef.current.pause()
+        bedAudioRef.current = null
+      }
     }
   }, [])
 
@@ -1233,6 +1276,97 @@ export function TikTokPromotion() {
       setPlayingPreview(false)
     }
     setSelectedTrack(value)
+  }
+
+  // ── HOOK INTRO AUDIO VORSCHAU ═══════════════════════════
+  const buildPreviewUrl = (filename: string, folder?: string) => {
+    return folder
+      ? `${getApiBaseUrl()}/server/music/${folder}/${encodeURIComponent(filename)}`
+      : `${getApiBaseUrl()}/server/music/${encodeURIComponent(filename)}`
+  }
+
+  const playOneShotPreview = (
+    url: string,
+    volume: number,
+    setPlaying: (playing: boolean) => void,
+    audioRef: React.MutableRefObject<HTMLAudioElement | null>,
+  ) => {
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current = null
+    }
+
+    const audio = new Audio()
+    audio.volume = volume
+    audioRef.current = audio
+
+    audio.oncanplay = () => {
+      audio.play().then(() => {
+        setPlaying(true)
+      }).catch((err) => {
+        console.warn('[IntroPreview] play() fehlgeschlagen:', err)
+        setPlaying(false)
+        audioRef.current = null
+      })
+    }
+
+    audio.onerror = () => {
+      setPlaying(false)
+      audioRef.current = null
+    }
+
+    audio.onended = () => {
+      setPlaying(false)
+      audioRef.current = null
+    }
+
+    audio.src = url
+    audio.load()
+  }
+
+  const stopPreview = (
+    setPlaying: (playing: boolean) => void,
+    audioRef: React.MutableRefObject<HTMLAudioElement | null>,
+  ) => {
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current = null
+    }
+    setPlaying(false)
+  }
+
+  const toggleStingPreview = () => {
+    if (playingStingPreview) {
+      stopPreview(setPlayingStingPreview, stingAudioRef)
+      return
+    }
+    const track = stingTracks.find(t => t.filename === introStingFilename)
+    if (!track) return
+    playOneShotPreview(buildPreviewUrl(track.filename, INTRO_STINGS_FOLDER), introStingVolume * 0.75, setPlayingStingPreview, stingAudioRef)
+  }
+
+  const toggleBedPreview = () => {
+    if (playingBedPreview) {
+      stopPreview(setPlayingBedPreview, bedAudioRef)
+      return
+    }
+    const track = bedTracks.find(t => t.filename === introBedFilename)
+    if (!track) return
+    playOneShotPreview(buildPreviewUrl(track.filename, INTRO_BEDS_FOLDER), introBedVolume * 0.75, setPlayingBedPreview, bedAudioRef)
+  }
+
+  const handleStingChange = (value: string) => {
+    if (playingStingPreview) {
+      stopPreview(setPlayingStingPreview, stingAudioRef)
+    }
+    setIntroStingFilename(value)
+  }
+
+  const handleBedChange = (value: string) => {
+    if (playingBedPreview) {
+      stopPreview(setPlayingBedPreview, bedAudioRef)
+    }
+    setIntroBedFilename(value)
   }
 
   // ── DOWNLOAD ════════════════════════════════════════════
@@ -2222,6 +2356,112 @@ export function TikTokPromotion() {
                   <p className="text-[10px] text-muted-foreground mt-1">
                     Via FFmpeg generiert · Lautstärke ~15%
                   </p>
+                </div>
+
+                {/* Hook Intro Audio */}
+                <div className="p-3 bg-muted/30 rounded-lg space-y-3">
+                  <div className="flex items-center gap-1.5">
+                    <Music className="w-3.5 h-3.5 text-primary" />
+                    <Label className="text-xs sm:text-sm font-medium">Hook Intro Audio</Label>
+                  </div>
+
+                  {/* Sting */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs">{INTRO_STING_LABEL}</Label>
+                      <span className="text-[10px] text-muted-foreground tabular-nums">
+                        {Math.round(introStingVolume * 100)}%
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Select value={introStingFilename} onValueChange={handleStingChange}>
+                        <SelectTrigger className="text-sm flex-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={INTRO_NONE_VALUE}>{INTRO_NONE_OPTION.label}</SelectItem>
+                          {stingTracks.map(track => (
+                            <SelectItem key={track.filename} value={track.filename}>
+                              {track.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant={playingStingPreview ? 'default' : 'outline'}
+                        className="h-9 w-9 shrink-0"
+                        disabled={introStingFilename === INTRO_NONE_VALUE || stingTracks.length === 0}
+                        onClick={toggleStingPreview}
+                        title={playingStingPreview ? 'Stoppen' : 'Vorschau abspielen'}
+                      >
+                        {playingStingPreview
+                          ? <Square className="w-3.5 h-3.5 fill-current" />
+                          : <Play className="w-3.5 h-3.5 fill-current" />
+                        }
+                      </Button>
+                    </div>
+                    <Slider
+                      value={[introStingVolume]}
+                      onValueChange={([v]) => setIntroStingVolume(v)}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                    />
+                    <p className="text-[10px] text-muted-foreground leading-relaxed">
+                      {INTRO_STING_HINT}
+                    </p>
+                  </div>
+
+                  {/* Bed */}
+                  <div className="space-y-1.5 pt-2 border-t border-border/50">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs">{INTRO_BED_LABEL}</Label>
+                      <span className="text-[10px] text-muted-foreground tabular-nums">
+                        {Math.round(introBedVolume * 100)}%
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Select value={introBedFilename} onValueChange={handleBedChange}>
+                        <SelectTrigger className="text-sm flex-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={INTRO_NONE_VALUE}>{INTRO_NONE_OPTION.label}</SelectItem>
+                          {bedTracks.map(track => (
+                            <SelectItem key={track.filename} value={track.filename}>
+                              {track.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant={playingBedPreview ? 'default' : 'outline'}
+                        className="h-9 w-9 shrink-0"
+                        disabled={introBedFilename === INTRO_NONE_VALUE || bedTracks.length === 0}
+                        onClick={toggleBedPreview}
+                        title={playingBedPreview ? 'Stoppen' : 'Vorschau abspielen'}
+                      >
+                        {playingBedPreview
+                          ? <Square className="w-3.5 h-3.5 fill-current" />
+                          : <Play className="w-3.5 h-3.5 fill-current" />
+                        }
+                      </Button>
+                    </div>
+                    <Slider
+                      value={[introBedVolume]}
+                      onValueChange={([v]) => setIntroBedVolume(v)}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                    />
+                    <p className="text-[10px] text-muted-foreground leading-relaxed">
+                      {INTRO_BED_HINT}
+                    </p>
+                  </div>
                 </div>
 
                 {/* Sticker-Pops */}

@@ -101,6 +101,12 @@ export async function renderMojoBusVideo(params) {
     speedRampEnabled = false,
     // ── NEU: Photo-Dump / Split-Screen Layouts ────────────────────────────
     slideLayouts,
+    // ── NEU: Hook Intro Audio ─────────────────────────────────────────────
+    introStingUrl,
+    introStingVolume = 0.8,
+    introBedUrl,
+    introBedVolume = 0.5,
+    introBedFadeOutSec = 0.3,
   } = params;
 
   // Output-/Image-Verzeichnisse sicherstellen
@@ -133,16 +139,26 @@ export async function renderMojoBusVideo(params) {
   // SCHRITT 1: Bilder + Audio + Karte parallel herunterladen
   let imageFilenames;
   let audioFilename = null;
+  let stingFilename = null;
+  let bedFilename   = null;
   let mapFilename   = null;
   let perSlideArray = null;     // dynamische Slide-Dauern aus Voiceover/Lesezeit
   let voiceoverSyncFilename = null; // Eine fertig getaktete voiceover_sync.mp3
   let renderConcurrency = 3;    // Default: reine Bilder → 3 parallele Chrome-Tabs
 
   try {
-    [imageFilenames, audioFilename, mapFilename] = await Promise.all([
+    [
+      imageFilenames,
+      audioFilename,
+      mapFilename,
+      stingFilename,
+      bedFilename,
+    ] = await Promise.all([
       downloadAllImages(imageUrls, sessionDir),
-      musicUrl  ? downloadAudioFile(musicUrl, sessionDir, localMusicDir) : Promise.resolve(null),
-      mapImageUrl ? downloadMapImage(mapImageUrl, sessionDir) : Promise.resolve(null),
+      musicUrl      ? downloadAudioFile(musicUrl, sessionDir, localMusicDir, 'audio')      : Promise.resolve(null),
+      mapImageUrl   ? downloadMapImage(mapImageUrl, sessionDir)                           : Promise.resolve(null),
+      introStingUrl ? downloadAudioFile(introStingUrl, sessionDir, localMusicDir, 'intro-sting') : Promise.resolve(null),
+      introBedUrl   ? downloadAudioFile(introBedUrl, sessionDir, localMusicDir, 'intro-bed')     : Promise.resolve(null),
     ]);
 
     // ── Echte Video-Clip-Längen messen (Voreinstellung: volle Länge) ──────
@@ -292,6 +308,8 @@ export async function renderMojoBusVideo(params) {
   let imageServer = null;
   let httpImageUrls;
   let httpMusicUrl;
+  let httpStingUrl = null;
+  let httpBedUrl = null;
   let httpMapImageUrl;
   let httpVoiceoverUrl = null;  // Single voiceover_sync.mp3 (concat)
   let httpAmbientUrl = null;
@@ -310,6 +328,12 @@ export async function renderMojoBusVideo(params) {
       ? `${base}/${audioFilename}`
       : musicUrl || null;
     if (httpMusicUrl) console.log(`[Remotion] Audio-URL: ${httpMusicUrl}`);
+
+    // Intro Sting + Bed URLs
+    httpStingUrl = stingFilename ? `${base}/${stingFilename}` : null;
+    httpBedUrl = bedFilename ? `${base}/${bedFilename}` : null;
+    if (httpStingUrl) console.log(`[Remotion] Intro Sting-URL: ${httpStingUrl}`);
+    if (httpBedUrl) console.log(`[Remotion] Intro Bed-URL: ${httpBedUrl}`);
 
     // Voiceover-URL: Einzel-Datei (concat)
     if (voiceoverSyncFilename) {
@@ -385,6 +409,12 @@ export async function renderMojoBusVideo(params) {
       sfxEnabled, sfxUrls: httpSfxUrls,
       speedRampEnabled,
       slideLayouts: hasSlideLayouts ? slideLayouts : undefined,
+      // ── Hook Intro Audio ──────────────────────────────────────────
+      introStingUrl: httpStingUrl,
+      introStingVolume,
+      introBedUrl: httpBedUrl,
+      introBedVolume,
+      introBedFadeOutSec,
     };
 
     const composition = await selectComposition({
@@ -427,9 +457,10 @@ export async function renderMojoBusVideo(params) {
       offthreadVideoCacheSizeInBytes: 2 * 1024 * 1024 * 1024,
       // numberOfSharedAudioTags: verhindert Audio-Glitches bei Sequence-Wechseln.
       // Remotion alloziert Audio-Tags vorab statt sie bei jedem Wechsel neu zu erstellen.
-      // Wir haben 1 Musik-Track + ggf. BeatSync-Analyse → 3 reicht.
+      // Maximale gleichzeitige Audio-Elemente:
+      //   Musik + Voiceover + Ambient + Sting + Bed + SFX = 6
       // WICHTIG: muss >= Anzahl gleichzeitiger Audio-Elemente sein, sonst Ruckler!
-      numberOfSharedAudioTags: 3,
+      numberOfSharedAudioTags: 6,
       ...(CHROME_PATH ? { browserExecutable: CHROME_PATH } : {}),
       chromiumOptions: CHROMIUM_OPTIONS,
       onBrowserLog: ({ type, text }) => {
