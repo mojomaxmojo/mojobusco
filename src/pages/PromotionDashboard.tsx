@@ -186,7 +186,11 @@ export function PromotionDashboard() {
 
   // ── CONTENT AUSWÄHLEN UND AUSFÜLLEN ═══════════════════
 
-  const selectContentAndFill = (item: ContentItem) => {
+  const selectContentAndFill = (item: ContentItem | null) => {
+    if (!item) {
+      setSelectedContent(null)
+      return
+    }
     setSelectedContent(item)
     setArticleTitle(item.title)
     setArticleSummary(item.summary)
@@ -196,14 +200,14 @@ export function PromotionDashboard() {
     if (item.url) setArticleLink(item.url)
 
     // Bilder übernehmen
-    if (item.images.length > 0) {
+    if ((item.images?.length ?? 0) > 0) {
       setImageUrls(item.images.slice(0, 20))
       setSelectedImageIdx(0)
     }
 
     toast({
       title: `${item.type === 'article' ? 'Artikel' : 'Post'} ausgewählt`,
-      description: `"${item.title}" – ${item.images.length} Bilder geladen. Alle Felder vorausgefüllt.`
+      description: `"${item.title}" – ${item.images?.length ?? 0} Bilder geladen. Alle Felder vorausgefüllt.`
     })
   }
 
@@ -650,7 +654,11 @@ export function PromotionDashboard() {
               </CardHeader>
               <CardContent>
                 <ContentSelector
-                  onSelect={(item: ContentItem) => selectContentAndFill(item)}
+                  mode="single"
+                  onSelect={(items: ContentItem[]) => {
+                    const item = items[items.length - 1] || null
+                    selectContentAndFill(item)
+                  }}
                   selected={selectedContent}
                 />
               </CardContent>
@@ -683,7 +691,7 @@ export function PromotionDashboard() {
                           <Badge variant="outline" className="text-[10px]">
                             {selectedContent.type === 'article' ? 'Artikel' : 'Post'}
                           </Badge>
-                          {selectedContent.images.length > 0 && (
+                          {(selectedContent.images?.length ?? 0) > 0 && (
                             <Badge variant="outline" className="text-[10px]">
                               {selectedContent.images.length} Bild{selectedContent.images.length > 1 ? 'er' : ''}
                             </Badge>

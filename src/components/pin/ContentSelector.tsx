@@ -92,9 +92,14 @@ interface ContentSelectorProps {
   // Erlaubt auch null/undefined – manche Callsites (z.B. PromotionDashboard.tsx)
   // verwalten ihre Auswahl als Einzel-Item (ContentItem | null) statt Array.
   selected?: ContentItem[] | ContentItem | null
+  /**
+   * 'multi' (default): Checkboxen, max. 3 Items auswählbar.
+   * 'single':          Einzel-Auswahl per Klick, keine Checkboxen.
+   */
+  mode?: 'single' | 'multi'
 }
 
-export function ContentSelector({ onSelect, selected: selectedProp }: ContentSelectorProps) {
+export function ContentSelector({ onSelect, selected: selectedProp, mode = 'multi' }: ContentSelectorProps) {
   const { nostr } = useNostr()
 
   // Normalisiert die selected-Prop auf ein Array: unterstützt Array, einzelnes
@@ -366,15 +371,25 @@ export function ContentSelector({ onSelect, selected: selectedProp }: ContentSel
   const filteredPlaces  = filterItems(places)
   const filteredTrips   = filterItems(trips)
 
-  const handleSelect = useCallback((item: ContentItem) => {
-    onSelect(item)
-  }, [onSelect])
-
-  // ── Multi-Select Handler (max 3) ──────────────────────────────────
+  // ── Selection state (multi + single) ───────────────────────────────
   const [checkedIds, setCheckedIds] = useState<Set<string>>(
     new Set(selected.map(i => i.id))
   )
 
+  // Single-Select Handler
+  const handleSelect = useCallback((item: ContentItem) => {
+    setCheckedIds(prev => {
+      const isSelected = prev.has(item.id)
+      if (isSelected) {
+        onSelect([])
+        return new Set()
+      }
+      onSelect([item])
+      return new Set([item.id])
+    })
+  }, [onSelect])
+
+  // Multi-Select Handler (max 3)
   const handleToggle = useCallback((item: ContentItem) => {
     setCheckedIds(prev => {
       const next = new Set(prev)
@@ -482,8 +497,10 @@ export function ContentSelector({ onSelect, selected: selectedProp }: ContentSel
               items={filteredMedia}
               checkedIds={checkedIds}
               onToggle={handleToggle}
+              onSelect={handleSelect}
               emptyText="Keine Medien gefunden"
               emptyHint='Poste Medien mit #medien, #media, #bilder oder #images Tag'
+              mode={mode}
             />
           )}
 
@@ -493,8 +510,10 @@ export function ContentSelector({ onSelect, selected: selectedProp }: ContentSel
               items={filteredNotes}
               checkedIds={checkedIds}
               onToggle={handleToggle}
+              onSelect={handleSelect}
               emptyText="Keine Notes gefunden"
               emptyHint='Poste Notes mit #note oder #notiz Tag'
+              mode={mode}
             />
           )}
         </TabsContent>
@@ -533,8 +552,10 @@ export function ContentSelector({ onSelect, selected: selectedProp }: ContentSel
               items={filteredReports}
               checkedIds={checkedIds}
               onToggle={handleToggle}
+              onSelect={handleSelect}
               emptyText="Keine Berichte gefunden"
               emptyHint="Veröffentliche Artikel unter /veroeffentlichen"
+              mode={mode}
             />
           )}
 
@@ -544,8 +565,10 @@ export function ContentSelector({ onSelect, selected: selectedProp }: ContentSel
               items={filteredPlaces}
               checkedIds={checkedIds}
               onToggle={handleToggle}
+              onSelect={handleSelect}
               emptyText="Keine Plätze gefunden"
               emptyHint="Veröffentliche Plätze mit #place Tag"
+              mode={mode}
             />
           )}
 
@@ -555,8 +578,10 @@ export function ContentSelector({ onSelect, selected: selectedProp }: ContentSel
               items={filteredTrips}
               checkedIds={checkedIds}
               onToggle={handleToggle}
+              onSelect={handleSelect}
               emptyText="Keine Trips gefunden"
               emptyHint="Erstelle Trips unter /trips"
+              mode={mode}
             />
           )}
         </TabsContent>
@@ -598,13 +623,15 @@ function SubTabButton({
 // ═══════════════════════════════════════════════════════════
 
 function ContentList({
-  items, checkedIds, onToggle, emptyText, emptyHint,
+  items, checkedIds, onToggle, onSelect, emptyText, emptyHint, mode,
 }: {
   items: ContentItem[]
   checkedIds: Set<string>
   onToggle: (item: ContentItem) => void
+  onSelect: (item: ContentItem) => void
   emptyText: string
   emptyHint?: string
+  mode: 'single' | 'multi'
 }) {
   if (items.length === 0) {
     return (
@@ -625,6 +652,8 @@ function ContentList({
           item={item}
           isChecked={checkedIds.has(item.id)}
           onToggle={onToggle}
+          onSelect={onSelect}
+          mode={mode}
         />
       ))}
     </div>
@@ -655,32 +684,37 @@ interface ContentCardProps {
   item: ContentItem
   isChecked: boolean
   onToggle: (item: ContentItem) => void
+  onSelect: (item: ContentItem) => void
+  mode: 'single' | 'multi'
 }
 
-function ContentCard({ item, isChecked, onToggle }: ContentCardProps) {
+function ContentCard({ item, isChecked, onToggle, onSelect, mode }: ContentCardProps) {
+  const isSingle = mode === 'single'
   return (
     <button
-      onClick={() => onToggle(item)}
+      onClick={() => isSingle ? onSelect(item) : onToggle(item)}
       className={`w-full text-left p-3 rounded-lg border-2 transition-all hover:shadow-md
         ${isChecked
           ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
           : 'border-border hover:border-primary/40 hover:bg-muted/20'}`}
     >
       <div className="flex gap-3">
-        {/* Checkbox */}
-        <div className="self-center shrink-0">
-          <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors
-            ${isChecked
-              ? 'bg-primary border-primary text-primary-foreground'
-              : 'border-muted-foreground/40'}`}
-          >
-            {isChecked && (
-              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
-            )}
+        {/* Checkbox (nur im Multi-Modus) */}
+        {!isSingle && (
+          <div className="self-center shrink-0">
+            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors
+              ${isChecked
+                ? 'bg-primary border-primary text-primary-foreground'
+                : 'border-muted-foreground/40'}`}
+            >
+              {isChecked && (
+                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Thumbnail */}
         <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted shrink-0">
