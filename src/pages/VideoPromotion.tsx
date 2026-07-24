@@ -16,7 +16,7 @@
  * - GET  /api/render-remotion/check → Status-Prüfung
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useToast } from '@/hooks/useToast'
@@ -54,6 +54,17 @@ import { extractImagesFromEvent, extractTitle, extractSummary } from '@/lib/nost
 import { KEEP_ORIGINAL_AUDIO_LABEL, KEEP_ORIGINAL_AUDIO_HINT, DEFAULT_KEEP_ORIGINAL_AUDIO } from '@/config/videoAudio'
 import { EffectPresetSelector } from '@/components/pin/EffectPresetSelector'
 import { EFFECT_PRESETS, type EffectPreset, type EffectPresetId } from '@/config/effectPresets'
+import { FormatSelector } from '@/components/video/FormatSelector'
+import { LongformSettings } from '@/components/video/LongformSettings'
+import { ChapterMarkerList } from '@/components/video/ChapterMarkerList'
+import type { ChapterMarker } from '@/components/video/ChapterMarkerList'
+import {
+  VIDEO_FORMATS,
+  LONGFORM_DEFAULTS,
+  calculateSecondsPerImage,
+  type VideoFormat,
+} from '@/config/videoFormats'
+import { buildChaptersFromSlides } from '@/lib/youtubeChapters'
 import {
   type SlideLayout,
   SLIDE_LAYOUT_ORDER,
@@ -379,6 +390,12 @@ export function VideoPromotion() {
   const [hashtags, setHashtags] = useState('')
   const [thumbnailText, setThumbnailText] = useState('')
 
+  // ── FORMAT & LONGFORM ════════════════════════════════════
+  const [format, setFormat] = useState<VideoFormat>('shorts')
+  const [targetDurationMin, setTargetDurationMin] = useState(VIDEO_FORMATS.longform.defaultDurationMin)
+  const [generateThumbnail, setGenerateThumbnail] = useState(false)
+  const [chapters, setChapters] = useState<ChapterMarker[]>([])
+
   // ── PLATTFORM ═════════════════════════════════════════════
   const [platform, setPlatform] = useState<'tiktok' | 'reels' | 'youtube'>('tiktok')
 
@@ -427,6 +444,54 @@ export function VideoPromotion() {
 
   // ── ROUTEMAP ═════════════════════════════════════════════
   const [showRouteMap, setShowRouteMap] = useState(false)
+
+  // ── FORMAT-EFFEKT ════════════════════════════════════════
+  // Wechselt plattform- und stil-spezifische Defaults wenn Shorts ↔ Longform
+  // gewechselt wird.
+  useEffect(() => {
+    const cfg = VIDEO_FORMATS[format]
+    setPlatform(cfg.platform)
+    if (format === 'longform') {
+      setCaptionStyle(LONGFORM_DEFAULTS.captionStyle)
+      setBeatSync('low')
+      setBeatVelocityPunch(false)
+      setTransitionType(LONGFORM_DEFAULTS.transitionType)
+      setColorGrade(LONGFORM_DEFAULTS.colorGrade)
+      setStickersEnabled(false)
+      setSfxEnabled(false)
+    } else {
+      // Shorts: Defaults zurücksetzen
+      setCaptionStyle('full-line')
+      setBeatSync('medium')
+      setTransitionType('auto')
+      setColorGrade('auto')
+      setStickersEnabled(false)
+      setSfxEnabled(false)
+    }
+  }, [format])
+
+  // Dynamische secondsPerImage aus Ziel-Länge + Bildanzahl
+  const hookSecondsForFormat = platform === 'youtube' ? 5 : platform === 'reels' ? 4 : 3
+  const effectiveSecondsPerImage = useMemo(() => {
+    if (format === 'shorts') return secondsPerImage
+    return calculateSecondsPerImage(targetDurationMin, articleImages.length, hookSecondsForFormat)
+  }, [format, targetDurationMin, articleImages.length, secondsPerImage, hookSecondsForFormat])
+
+  // ── KAPITEL AUS BODY-LINES ═══════════════════════════════
+  useEffect(() => {
+    if (format !== 'longform' || !bodyText.trim()) {
+      setChapters([])
+      return
+    }
+    const bodyLines = bodyText.split('\n').filter((l) => l.trim().length > 0)
+    const titles = [hookText || 'Intro', ...bodyLines]
+    const calculated = buildChaptersFromSlides({
+      titles,
+      secondsPerSlide: effectiveSecondsPerImage,
+      hookSeconds: hookSecondsForFormat,
+    })
+    setChapters(calculated)
+  }, [format, bodyText, hookText, effectiveSecondsPerImage, hookSecondsForFormat])
   // Echte Route aus GPS-Tags der Events (null = keine GPS-Daten → Demo-Fallback)
   const [gpsRoute, setGpsRoute] = useState<RouteResult | null>(null)
   const [gpsRouteLoading, setGpsRouteLoading] = useState(false)
@@ -1643,10 +1708,30 @@ export function VideoPromotion() {
                 Schritt 2: Template &amp; KI
               </CardTitle>
               <CardDescription className="text-xs sm:text-sm">
-                Wähle ein TikTok-Format und generiere die Texte
+                Wähle Format, Template und generiere die Texte
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
+              {/* Format-Umschalter */}
+              <div>
+                <Label className="mb-2 block text-sm">Format</Label>
+                <FormatSelector value={format} onChange={setFormat} />
+              </div>
+
+              {/* Longform-Einstellungen */}
+              {format === 'longform' && (
+                <LongformSettings
+                  targetDurationMin={targetDurationMin}
+                  onTargetDurationChange={setTargetDurationMin}
+                  generateThumbnail={generateThumbnail}
+                  onGenerateThumbnailChange={setGenerateThumbnail}
+                  thumbnailText={thumbnailText}
+                  onThumbnailTextChange={setThumbnailText}
+                  imageCount={articleImages.length}
+                  hookSeconds={hookSecondsForFormat}
+                />
+              )}
+
               {/* Template Grid */}
               <div>
                 <Label className="mb-2 block text-sm">Video-Template</Label>
@@ -1710,7 +1795,7 @@ export function VideoPromotion() {
                       ({articleImages.length} von max 20 · Ziehen zum Sortieren)
                     </span>
                   </Label>
-                  {articleImages.length > 10 && (
+                  {articleImages.length > 10 && format === 'shorts' && (
                     <p className="text-[10px] text-amber-500 mb-2">
                       ⚠ Mehr als 10 Bilder – die Slideshow wird sehr lang.
                     </p>
@@ -1785,20 +1870,24 @@ export function VideoPromotion() {
               )}
 
               {/* Plattform-Selector – hier, damit die KI beim ersten Klick die richtige Plattform bekommt */}
-              <div className="p-3 bg-muted/30 rounded-lg space-y-2">
+              <div className={`p-3 bg-muted/30 rounded-lg space-y-2 ${format === 'longform' ? 'opacity-70' : ''}`}>
                 <Label className="text-xs sm:text-sm font-medium flex items-center gap-1">
                   <Globe className="w-3 h-3" /> Ziel-Plattform
+                  {format === 'longform' && (
+                    <span className="ml-2 text-[10px] text-primary">(Longform = YouTube)</span>
+                  )}
                 </Label>
                 <div className="flex gap-1.5 p-1 bg-muted/40 rounded-lg">
                   {(['tiktok', 'reels', 'youtube'] as const).map(p => (
                     <button
                       key={p}
-                      onClick={() => setPlatform(p)}
+                      onClick={() => format !== 'longform' && setPlatform(p)}
+                      disabled={format === 'longform'}
                       className={`flex-1 py-1 px-2 rounded text-xs font-medium transition-colors ${
                         platform === p
                           ? 'bg-background shadow text-foreground'
                           : 'text-muted-foreground hover:text-foreground'
-                      }`}
+                      } ${format === 'longform' ? 'cursor-not-allowed' : ''}`}
                     >
                       {p === 'tiktok' ? '🎵 TikTok' : p === 'reels' ? '📸 Reels' : '▶️ YouTube'}
                     </button>
@@ -2100,6 +2189,11 @@ export function VideoPromotion() {
                     </p>
                   )}
                 </div>
+
+                {/* Kapitel-Marker (nur Longform) */}
+                {format === 'longform' && (
+                  <ChapterMarkerList chapters={chapters} />
+                )}
               </CardContent>
             </Card>
 
@@ -2111,7 +2205,7 @@ export function VideoPromotion() {
                   Render-Einstellungen
                 </CardTitle>
                 <CardDescription className="text-xs sm:text-sm">
-                  9:16 · Remotion · {articleImages.length} Bilder
+                  {format === 'longform' ? '16:9 · Remotion · 1920×1080 ·' : '9:16 · Remotion ·'} {articleImages.length} Bilder
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
