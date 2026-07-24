@@ -390,6 +390,11 @@ export function VideoPromotion() {
   const [hashtags, setHashtags] = useState('')
   const [thumbnailText, setThumbnailText] = useState('')
 
+  // ── YOUTUBE LONGFORM METADATEN ═══════════════════════════
+  const [videoDescription, setVideoDescription] = useState('')
+  const [youtubeTags, setYoutubeTags] = useState<string[]>([])
+  const [chapterTitles, setChapterTitles] = useState<string[]>([])
+
   // ── FORMAT & LONGFORM ════════════════════════════════════
   const [format, setFormat] = useState<VideoFormat>('shorts')
   const [targetDurationMin, setTargetDurationMin] = useState(VIDEO_FORMATS.longform.defaultDurationMin)
@@ -477,21 +482,22 @@ export function VideoPromotion() {
     return calculateSecondsPerImage(targetDurationMin, articleImages.length, hookSecondsForFormat)
   }, [format, targetDurationMin, articleImages.length, secondsPerImage, hookSecondsForFormat])
 
-  // ── KAPITEL AUS BODY-LINES ═══════════════════════════════
+  // ── KAPITEL AUS BODY-LINES / KI-CHAPTER-TITLES ═══════════
   useEffect(() => {
-    if (format !== 'longform' || !bodyText.trim()) {
+    if (format !== 'longform') {
       setChapters([])
       return
     }
-    const bodyLines = bodyText.split('\n').filter((l) => l.trim().length > 0)
-    const titles = [hookText || 'Intro', ...bodyLines]
+    const titles = chapterTitles.length > 0
+      ? [hookText || chapterTitles[0] || 'Intro', ...chapterTitles.slice(1)]
+      : [hookText || 'Intro', ...bodyText.split('\n').filter((l) => l.trim().length > 0)]
     const calculated = buildChaptersFromSlides({
       titles,
       secondsPerSlide: effectiveSecondsPerImage,
       hookSeconds: hookSecondsForFormat,
     })
     setChapters(calculated)
-  }, [format, bodyText, hookText, effectiveSecondsPerImage, hookSecondsForFormat])
+  }, [format, bodyText, hookText, effectiveSecondsPerImage, hookSecondsForFormat, chapterTitles])
   // Echte Route aus GPS-Tags der Events (null = keine GPS-Daten → Demo-Fallback)
   const [gpsRoute, setGpsRoute] = useState<RouteResult | null>(null)
   const [gpsRouteLoading, setGpsRouteLoading] = useState(false)
@@ -711,8 +717,10 @@ export function VideoPromotion() {
           template,
           model: aiModel,
           imageCount: articleImages.length,
-          voiceoverEnabled,
+          voiceoverEnabled: voiceoverEnabled || format === 'longform',
           platform,
+          format,
+          targetDurationMin,
           // Vision-Beschreibungen pro Bild in sortierter Reihenfolge
           // Priorität: Vision-API > imeta alt > location > leer
           imageContexts: visionDescriptions,
@@ -734,8 +742,19 @@ export function VideoPromotion() {
       setHashtags((data.hashtags || []).join(' '))
       setThumbnailText(data.thumbnail || '')
 
-      const platLabel = platform === 'reels' ? 'Reels' : platform === 'youtube' ? 'YouTube' : 'TikTok'
-      const voLabel = voiceoverEnabled ? ' · TTS-optimiert' : ''
+      // Longform-spezifische Felder
+      if (format === 'longform') {
+        setVideoDescription(data.description || '')
+        setYoutubeTags(Array.isArray(data.tags) ? data.tags : [])
+        setChapterTitles(Array.isArray(data.chapterTitles) ? data.chapterTitles : [])
+      } else {
+        setVideoDescription('')
+        setYoutubeTags([])
+        setChapterTitles([])
+      }
+
+      const platLabel = format === 'longform' ? 'YouTube Longform' : platform === 'reels' ? 'Reels' : platform === 'youtube' ? 'YouTube' : 'TikTok'
+      const voLabel = (voiceoverEnabled || format === 'longform') ? ' · TTS-optimiert' : ''
       toast({
         title: `${platLabel}-Text generiert! ✍️`,
         description: `Foster-Huntington-Stil${voLabel} – Bilder analysiert ✓`,
@@ -860,8 +879,8 @@ export function VideoPromotion() {
       location: location || undefined,
       country: country || undefined,
       lifestyle: 'mojobus',
-      secondsPerImage,
-      aspectRatio: '9:16',
+      secondsPerImage: effectiveSecondsPerImage,
+      aspectRatio: VIDEO_FORMATS[format].aspectRatio,
       captions,
       captionStyle,                    // 'full-line' = ganzer Satz auf einmal | 'chunked' = Karaoke 2-5 Wörter
       platform,                        // 'tiktok' | 'reels' | 'youtube' → Caption-Position (safe zone)
@@ -896,6 +915,14 @@ export function VideoPromotion() {
       introStingVolume,
       introBedVolume,
       introBedFadeOutSec: DEFAULT_INTRO_BED_FADE_OUT_SEC,
+      // Longform-spezifische Metadaten
+      format,
+      targetDurationMin,
+      generateThumbnail,
+      thumbnailText,
+      chapters,
+      videoDescription,
+      youtubeTags,
     }
 
     // ── Echte GPS-Route statt Demo-Route ─────────────────────────────────
@@ -943,7 +970,9 @@ export function VideoPromotion() {
 
       toast({
         title: '🎬 Rendering gestartet!',
-        description: `${articleImages.length} Bilder · ~${secondsPerImage}s/Bild · 9:16`,
+        description: format === 'longform'
+          ? `${articleImages.length} Bilder · ${VIDEO_FORMATS.longform.resolution} · ~${targetDurationMin} Min`
+          : `${articleImages.length} Bilder · ~${effectiveSecondsPerImage}s/Bild · ${VIDEO_FORMATS.shorts.aspectRatio}`,
       })
 
       setRenderStatus({
