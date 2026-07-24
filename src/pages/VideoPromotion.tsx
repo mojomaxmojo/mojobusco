@@ -157,10 +157,11 @@ interface TikTokTemplateInfo {
 
 interface RenderStatus {
   jobId: string
-  status: 'queued' | 'rendering' | 'completed' | 'failed'
+  status: 'queued' | 'rendering' | 'completed' | 'failed' | 'rendering-thumbnail'
   progress: number
   fileSizeMB: number | null
   videoDurationSec: number | null
+  thumbnailUrl: string | null
   error: string | null
   loudness?: {
     normalized: boolean
@@ -501,6 +502,22 @@ export function VideoPromotion() {
   // Echte Route aus GPS-Tags der Events (null = keine GPS-Daten → Demo-Fallback)
   const [gpsRoute, setGpsRoute] = useState<RouteResult | null>(null)
   const [gpsRouteLoading, setGpsRouteLoading] = useState(false)
+
+  // ── YOUTUBE LONGFORM BESCHREIBUNG ════════════════════════
+  const longformDescription = useMemo(() => {
+    if (format !== 'longform') return ''
+    const chapterBlock = formatChaptersForDescription(chapters)
+    return [
+      videoDescription,
+      '',
+      chapterBlock ? 'Kapitel:' : '',
+      chapterBlock,
+      '',
+      '➡️ Mehr auf mojobus.co',
+      '',
+      youtubeTags.length > 0 ? `Tags: ${youtubeTags.join(', ')}` : '',
+    ].filter(Boolean).join('\n')
+  }, [format, videoDescription, chapters, youtubeTags])
 
   // ── LOCATION (aus Content extrahiert) ════════════════════
   const [location, setLocation] = useState('')
@@ -981,6 +998,7 @@ export function VideoPromotion() {
         progress: 0,
         fileSizeMB: null,
         videoDurationSec: null,
+        thumbnailUrl: null,
         error: null,
       })
 
@@ -1490,7 +1508,12 @@ export function VideoPromotion() {
     ].join('\n')
 
     navigator.clipboard.writeText(text)
-    toast({ title: 'Kopiert!', description: 'TikTok-Text in der Zwischenablage.' })
+    toast({ title: 'Kopiert!', description: format === 'longform' ? 'Video-Text in der Zwischenablage.' : 'TikTok-Text in der Zwischenablage.' })
+  }
+
+  const copyField = (text: string, key: string) => {
+    navigator.clipboard.writeText(text)
+    toast({ title: 'Kopiert!', description: `${key} in die Zwischenablage kopiert.` })
   }
 
   // ── VOICEOVER TEXT ══════════════════════════════════════
@@ -2779,10 +2802,82 @@ export function VideoPromotion() {
                 </div>
                 <Button onClick={copyTikTokText} className="w-full" variant="outline">
                   <Copy className="w-4 h-4 mr-2" />
-                  📋 TikTok-Text kopieren
+                  {format === 'longform' ? '📋 Video-Text kopieren' : '📋 TikTok-Text kopieren'}
                 </Button>
               </CardContent>
             </Card>
+
+            {/* ── YOUTUBE LONGFORM METADATEN ── */}
+            {format === 'longform' && (
+              <Card>
+                <CardContent className="py-4 space-y-4">
+                  <h3 className="text-sm font-semibold flex items-center gap-2">
+                    ▶️ YouTube Longform Metadaten
+                  </h3>
+
+                  {/* Thumbnail */}
+                  {renderStatus?.thumbnailUrl && (
+                    <div className="rounded-lg overflow-hidden border aspect-video bg-muted">
+                      <img
+                        src={`${getApiBaseUrl()}${renderStatus.thumbnailUrl}`}
+                        alt="Thumbnail"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+
+                  {/* Titel */}
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Titel</Label>
+                    <div className="p-2 bg-muted/30 rounded text-xs font-mono mt-1">
+                      {hookText || 'MojoBus Video'}
+                    </div>
+                    <Button
+                      onClick={() => copyField(hookText, 'title')}
+                      variant="outline"
+                      size="sm"
+                      className="w-full mt-1.5 text-xs"
+                    >
+                      <Copy className="w-3 h-3 mr-1" /> Titel kopieren
+                    </Button>
+                  </div>
+
+                  {/* Beschreibung mit Kapiteln */}
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Beschreibung</Label>
+                    <div className="p-2 bg-muted/30 rounded text-xs font-mono whitespace-pre-wrap mt-1 max-h-[200px] overflow-y-auto">
+                      {longformDescription}
+                    </div>
+                    <Button
+                      onClick={() => copyField(longformDescription, 'description')}
+                      variant="outline"
+                      size="sm"
+                      className="w-full mt-1.5 text-xs"
+                    >
+                      <Copy className="w-3 h-3 mr-1" /> Beschreibung kopieren
+                    </Button>
+                  </div>
+
+                  {/* Tags */}
+                  {youtubeTags.length > 0 && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Tags</Label>
+                      <div className="p-2 bg-muted/30 rounded text-xs font-mono mt-1">
+                        {youtubeTags.join(', ')}
+                      </div>
+                      <Button
+                        onClick={() => copyField(youtubeTags.join(', '), 'tags')}
+                        variant="outline"
+                        size="sm"
+                        className="w-full mt-1.5 text-xs"
+                      >
+                        <Copy className="w-3 h-3 mr-1" /> Tags kopieren
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* ── PLATTFORM-LINKS ── */}
             <Card>
