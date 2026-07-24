@@ -43,7 +43,19 @@ Niemals ein Beispiel wörtlich oder leicht abgewandelt übernehmen –
 immer aus dem konkreten INHALT neu schreiben.
 
 ANTWORT-FORMAT (NUR JSON, kein Text davor/danach):
-{
+${isLongform
+? `{
+  "hook": "Hook-Slide Text, max ${LONGFORM_CONFIG.hookMaxChars} Zeichen",
+  "hookAlternatives": ["Alternative 1", "Alternative 2"],
+  "bodyLines": ["Gedanke für Bild 1", "Gedanke für Bild 2", "..."],
+  "chapterTitles": ["Intro: ...", "Kapitel 2", "..."],
+  "bridge": "Überleitung zu mojobus.co, max 60 Zeichen",
+  "cta": "Handlungsaufforderung, max 40 Zeichen",
+  "thumbnail": "Cover-Text max ${LONGFORM_CONFIG.thumbnailMaxWords} Wörter",
+  "description": "SEO-Beschreibung max 300 Zeichen",
+  "tags": ["Vanlife", "Portugal", "Wohnmobil", "MojoBus", "Camping"]
+}`
+: `{
   "hook": "Zündet in unter 1 Sekunde – unvollständig, offen, hakt",
   "hookAlternatives": ["Alternative mit ANDERER Hook-Mechanik", "zweite Alternative, dritte Mechanik"],
   "bodyLines": ["Gedanke für Bild 1", "Gedanke für Bild 2", "..."],
@@ -51,7 +63,7 @@ ANTWORT-FORMAT (NUR JSON, kein Text davor/danach):
   "cta": "Handlungsaufforderung – max 40 Zeichen",
   "thumbnail": "Cover-Text max 5 Wörter – NICHT identisch mit dem Hook",
   "hashtags": ["#vanlife", "#perpetualtraveler", "#mojobus"]
-}
+}`}
 
 REGEL für hookAlternatives:
 - Genau 2 Einträge. Beide gleichwertig stark – keine Resterampe.
@@ -280,6 +292,50 @@ const PLATFORM_CONFIG = {
 }
 
 // ================================================================================
+// LONGFORM-KONFIGURATION (YouTube 16:9, 1–10 Minuten)
+// ================================================================================
+
+const LONGFORM_CONFIG = {
+  label: 'YouTube Longform',
+  hookMaxChars: 120,
+  hookNote: 'Hook-Slide 5s. Titel-Gefühl: konkret, SEO-relevant, aber im Foster-Ton.',
+  bodyMaxChars: 220,
+  tagCount: '5–10',
+  ctaStyle: 'Kanal abonnieren + Link zu mojobus.co',
+  thumbnailMaxWords: 7,
+}
+
+/** Longform-spezifische Prompt-Regeln */
+const LONGFORM_RULES = `
+LONGFORM-REGELN (YouTube 16:9, 1–10 Minuten):
+
+STIL:
+- Vollständige Sätze, keine Fragmente – der Text wird gesprochen (Voiceover).
+- Erzählerischer Fluss über alle Bilder, aber jede bodyLine bleibt Bild-gebunden.
+- Weniger schnelle Schnitte, mehr Atem: längere Sätze erlaubt, aber Rhythmus beibehalten.
+- Keine Leseransprache, kein Ausrufezeichen, kein Instagram-Vokabular.
+
+LÄNGE:
+- bodyLines hat EXAKT so viele Einträge wie Bilder.
+- Jede bodyLine: 1–3 kurze Sätze, max ${LONGFORM_CONFIG.bodyMaxChars} Zeichen.
+- Wenn targetDurationMin angegeben: passe Textmenge so an, dass er bei ~${LONGFORM_CONFIG.bodyMaxChars} Zeichen/Slide nicht zu schnell geraten würde.
+
+SEO / METADATEN:
+- Titel-Charakter: prägnant, beinhaltet Ort oder konkretes Thema, max 100 Zeichen.
+- Beschreibung: 1–2 Sätze Zusammenfassung + CTA, max 300 Zeichen.
+- Tags: 5–10 kommagetrennte YouTube-Keywords (ohne #), z. B. "Vanlife, Portugal, Wohnmobil, MojoBus, Camping".
+- Thumbnail-Text: max ${LONGFORM_CONFIG.thumbnailMaxWords} Wörter, groß lesbar, darf Hook ähnlich aber nicht identisch sein.
+
+KAPITEL:
+- chapterTitles: Array mit EXAKT so vielen Einträgen wie Bilder.
+- Jedes Kapitel ist ein kurzer, lesbarer Titel für diesen Slide (max 40 Zeichen).
+- Kapitel 0 = Intro (das Bild während des Hooks).
+
+CTA:
+- Am Ende: sanfter Hinweis auf Abo + Website. Nicht aufdringlich.`
+
+
+// ================================================================================
 // VOICEOVER-MODUS
 // ================================================================================
 
@@ -413,6 +469,8 @@ Alle drei Mechaniken in Foster-Ton: lakonisch, roh, nie nach Trick klingend.`
  * @param {string[]} params.imageContexts - Vision-KI Beschreibungen pro Bild (bevorzugt)
  * @param {boolean}  params.voiceoverMode - true = Edge TTS spricht den Text
  * @param {string}   params.platform     - 'tiktok' | 'reels' | 'youtube' (default: 'tiktok')
+ * @param {string}   params.format       - 'shorts' | 'longform' (default: 'shorts')
+ * @param {number}   params.targetDurationMin - nur für longform (1–10)
  *
  * @returns {string} Vollständiger User-Prompt für die KI
  */
@@ -426,10 +484,13 @@ export function generateTikTokUserPrompt({
   imageContexts = [],
   voiceoverMode = false,
   platform = 'tiktok',
+  format = 'shorts',
+  targetDurationMin = 3,
 }) {
   const tmpl = TEMPLATE_CONFIG[template] || TEMPLATE_CONFIG.story
-  const plat = PLATFORM_CONFIG[platform] || PLATFORM_CONFIG.tiktok
-  const voRules = voiceoverMode ? VOICEOVER_RULES.on : VOICEOVER_RULES.off
+  const isLongform = format === 'longform'
+  const plat = isLongform ? LONGFORM_CONFIG : (PLATFORM_CONFIG[platform] || PLATFORM_CONFIG.tiktok)
+  const voRules = voiceoverMode || isLongform ? VOICEOVER_RULES.on : VOICEOVER_RULES.off
   const isRetention = template === 'retention'
 
   // Köder (ab 5 Bildern) + Soft-Loop (nur TikTok) – NICHT bei 'retention'
@@ -524,6 +585,7 @@ export function generateTikTokUserPrompt({
     'Anforderung: ' + plat.hookNote + '\n\n' +
     'HOOK-MECHANIKEN\n' +
     HOOK_MECHANICS + '\n\n' +
+    (isLongform ? LONGFORM_RULES + '\n\n' : '') +
     'FÜR DIESEN ARTIKEL wähle: ' + tmpl.hookGuidance + '\n\n' +
     (firstImageContext
       ? 'HOOK LIEGT AUF BILD 1: Der Hook erscheint als Text ÜBER Bild 1.\n' +
@@ -597,13 +659,18 @@ export function generateTikTokUserPrompt({
     'BRIDGE + CTA + THUMBNAIL\n' +
     '- BRIDGE: Überleitung zu mojobus.co. Max 60 Zeichen. Kein Werbesprech.\n' +
     '- CTA: ' + plat.ctaStyle + '. Max 40 Zeichen.\n' +
-    '- THUMBNAIL: Max 5 Wörter. Konkret oder lakonisch.\n' +
+    '- THUMBNAIL: Max ' + (isLongform ? LONGFORM_CONFIG.thumbnailMaxWords : '5') + ' Wörter. Konkret oder lakonisch.\n' +
     '  PFLICHT: Thumbnail und Hook müssen VERSCHIEDEN sein – der Zuschauer\n' +
     '  sieht beide direkt nacheinander (Cover, dann erste Sekunde).\n\n' +
 
-    // ---- HASHTAGS ----------------------------------------------------------
-    'HASHTAGS: ' + plat.hashtagCount + ' Tags – ' + plat.hashtagStrategy + '\n' +
-    (plat.note ? '(' + plat.note + ')\n\n' : '\n') +
+    // ---- HASHTAGS / TAGS ---------------------------------------------------
+    (isLongform
+      ? 'TAGS: ' + LONGFORM_CONFIG.tagCount + ' kommagetrennte YouTube-Keywords (ohne #).\n' +
+        'DESCRIPTION: max 300 Zeichen, SEO-Beschreibung + CTA.\n' +
+        'CHAPTER_TITLES: Array mit EXAKT ' + imageCount + ' Kurztiteln (max 40 Zeichen), einer pro Bild/Kapitel.\n\n'
+      : 'HASHTAGS: ' + plat.hashtagCount + ' Tags – ' + plat.hashtagStrategy + '\n' +
+        (plat.note ? '(' + plat.note + ')\n\n' : '\n')
+    ) +
 
     // ---- ANTWORT-FORMAT ----------------------------------------------------
     'ANTWORT: Nur JSON. Kein Text davor oder danach. Kein ```json Block.'
