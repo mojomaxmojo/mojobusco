@@ -6,6 +6,7 @@
 import React from 'react';
 import { Composition, registerRoot } from 'remotion';
 import { MojoBusVideo } from './MojoBusVideo';
+import { MojoBusThumbnail } from './components/Thumbnail';
 import type { MojoBusVideoProps } from './videoProps';
 import { calculateDuration } from './duration';
 
@@ -136,6 +137,22 @@ const RemotionRoot: React.FC = () => {
             props.slideLayouts
           );
           return { durationInFrames: totalFrames };
+        }}
+      />
+
+      {/* Thumbnail — 16:9 YouTube Cover */}
+      <Composition
+        id="MojoBusVideo-Thumbnail"
+        component={MojoBusThumbnail}
+        fps={1}
+        width={1920}
+        height={1080}
+        durationInFrames={1}
+        defaultProps={{
+          imageUrl: DEFAULT_PROPS.imageUrls[0] || '',
+          title: DEFAULT_PROPS.title,
+          thumbnailText: '',
+          accentColor: DEFAULT_PROPS.accentColor,
         }}
       />
     </>

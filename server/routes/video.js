@@ -836,6 +836,9 @@ export default function createVideoRouter(PORT) {
       introBedFilename,
       introBedVolume = 0.5,
       introBedFadeOutSec = 0.3,
+      // ── NEU: Thumbnail ────────────────────────────────────────────────────
+      generateThumbnail = false,
+      thumbnailText,
     } = req.body
 
     if (!imageUrls || !Array.isArray(imageUrls) || imageUrls.length === 0) {
@@ -852,6 +855,7 @@ export default function createVideoRouter(PORT) {
       status: 'queued',
       progress: 0,
       outputPath: null,
+      thumbnailPath: null,
       fileSizeMB: null,
       videoDurationSec: null,
       error: null,
@@ -980,6 +984,25 @@ export default function createVideoRouter(PORT) {
 
         console.log(`[Remotion] Job ${jobId} ✓ fertig: ${result.fileSizeMB}MB, ${result.videoDurationSec}s`)
 
+        // ── Thumbnail rendern (nur wenn angefordert) ────────────────────────
+        if (generateThumbnail && imageUrls[0]) {
+          try {
+            job.status = 'rendering-thumbnail'
+            const thumbResult = await renderer.renderMojoBusThumbnail({
+              imageUrl: imageUrls[0],
+              title: title || 'MojoBus Video',
+              thumbnailText: thumbnailText || hookText || '',
+              accentColor: accentColor || '#F59E0B',
+            })
+            job.thumbnailPath = thumbResult.outputPath
+            console.log(`[Remotion] Job ${jobId} ✓ Thumbnail: ${thumbResult.outputPath}`)
+          } catch (thumbErr) {
+            console.warn(`[Remotion] Job ${jobId} ⚠️ Thumbnail-Fehler:`, thumbErr.message)
+          }
+        }
+
+        job.status = 'completed'
+
       } catch (err) {
         const j = remotionJobs.get(jobId)
         if (j) {
@@ -1005,6 +1028,7 @@ export default function createVideoRouter(PORT) {
       progress: job.progress,
       fileSizeMB: job.fileSizeMB,
       videoDurationSec: job.videoDurationSec,
+      thumbnailUrl: job.thumbnailPath ? `/api/render-remotion/thumbnail/${jobId}` : null,
       error: job.error,
       loudness: job.loudness || null,
     })
@@ -1045,6 +1069,31 @@ export default function createVideoRouter(PORT) {
           }
         } catch (e) { /* ignorieren */ }
       }, 24 * 60 * 60 * 1000)
+    })
+  })
+
+  // GET /api/render-remotion/thumbnail/:jobId
+  router.get('/api/render-remotion/thumbnail/:jobId', (req, res) => {
+    const { jobId } = req.params
+    const job = remotionJobs.get(jobId)
+
+    if (!job) return res.status(404).json({ error: 'Job nicht gefunden' })
+    if (!job.thumbnailPath || !fs.existsSync(job.thumbnailPath)) {
+      return res.status(404).json({ error: 'Thumbnail nicht gefunden' })
+    }
+
+    const stat = fs.statSync(job.thumbnailPath)
+    res.setHeader('Content-Type', 'image/jpeg')
+    res.setHeader('Content-Length', stat.size)
+    res.setHeader('Content-Disposition', `inline; filename="mojobus-thumbnail-${jobId}.jpg"`)
+
+    res.sendFile(path.resolve(job.thumbnailPath), (err) => {
+      if (err) {
+        console.error(`[Remotion] Thumbnail-Download-Fehler ${jobId}:`, err.message)
+        if (!res.headersSent) {
+          return res.status(500).json({ error: 'Thumbnail konnte nicht gesendet werden' })
+        }
+      }
     })
   })
 
