@@ -9,7 +9,8 @@
 
 | Datei | Zweck |
 |-------|-------|
-| `server/remotion/render.js` | Render-Engine: slide-genaue MP3s, ffprobe-Sync, concat |
+| `server/remotion/components/Thumbnail.tsx` | Dedizierte 1920×1080 Thumbnail-Composition für YouTube Longform |
+| `server/remotion/render.js` | Render-Engine: slide-genaue MP3s, ffprobe-Sync, concat, Video + Thumbnail |
 | `server/remotion/MojoBusVideo.tsx` | Remotion-Hauptkomponente |
 | `server/remotion/components/CinematicEffects.tsx` | 6 Schnitt-Effekte (ZoomPunch, WhipPan, FlashCut, LightLeak, Letterbox, MatchCutZoom) |
 | `server/remotion/components/KenBurnsImage.tsx` | noise/breathing/focus-in/handheld + GammaFade |

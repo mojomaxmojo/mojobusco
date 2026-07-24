@@ -10,6 +10,11 @@
 | Datei | Zweck |
 |-------|-------|
 | `src/config/prompts/tiktok.js` | Foster Huntington TikTok-Prompt (**darf bearbeitet werden** – einzige Ausnahme im prompts/-Tabu) |
+| `src/config/videoFormats.ts` | Format-Config: Shorts (9:16) vs YouTube Longform (16:9), Dauer-Berechnung |
+| `src/components/video/FormatSelector.tsx` | Shorts ↔ Longform Umschalter |
+| `src/components/video/LongformSettings.tsx` | Ziel-Länge 1–10min, Thumbnail-Option |
+| `src/components/video/ChapterMarkerList.tsx` | Kapitel-Marker-Anzeige |
+| `src/lib/youtubeChapters.ts` | Kapitel-Berechnung + YouTube-Beschreibungsformatierung |
 | `src/pages/VideoPromotion.tsx` | Social-Video-Generator (TikTok/Reels/YouTube Shorts + Longform UI) |
 | `src/pages/Videos.tsx` | Video-Feed (kind 34236 NIP-71, 9:16 + 16:9) |
 | `src/hooks/useVideos.ts` | Lädt kind 34236+34235, Hybrid-Hook, Capacitor-kompatibel |
