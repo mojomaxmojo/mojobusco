@@ -43,27 +43,15 @@ Niemals ein Beispiel wörtlich oder leicht abgewandelt übernehmen –
 immer aus dem konkreten INHALT neu schreiben.
 
 ANTWORT-FORMAT (NUR JSON, kein Text davor/danach):
-${isLongform
-? `{
-  "hook": "Hook-Slide Text, max ${LONGFORM_CONFIG.hookMaxChars} Zeichen",
-  "hookAlternatives": ["Alternative 1", "Alternative 2"],
-  "bodyLines": ["Gedanke für Bild 1", "Gedanke für Bild 2", "..."],
-  "chapterTitles": ["Intro: ...", "Kapitel 2", "..."],
-  "bridge": "Überleitung zu mojobus.co, max 60 Zeichen",
-  "cta": "Handlungsaufforderung, max 40 Zeichen",
-  "thumbnail": "Cover-Text max ${LONGFORM_CONFIG.thumbnailMaxWords} Wörter",
-  "description": "SEO-Beschreibung max 300 Zeichen",
-  "tags": ["Vanlife", "Portugal", "Wohnmobil", "MojoBus", "Camping"]
-}`
-: `{
-  "hook": "Zündet in unter 1 Sekunde – unvollständig, offen, hakt",
-  "hookAlternatives": ["Alternative mit ANDERER Hook-Mechanik", "zweite Alternative, dritte Mechanik"],
-  "bodyLines": ["Gedanke für Bild 1", "Gedanke für Bild 2", "..."],
-  "bridge": "Überleitung zum Blog – max 60 Zeichen",
-  "cta": "Handlungsaufforderung – max 40 Zeichen",
-  "thumbnail": "Cover-Text max 5 Wörter – NICHT identisch mit dem Hook",
-  "hashtags": ["#vanlife", "#perpetualtraveler", "#mojobus"]
-}`}
+{
+  "hook": "...",
+  "hookAlternatives": ["...", "..."],
+  "bodyLines": ["..."],
+  "bridge": "...",
+  "cta": "...",
+  "thumbnail": "...",
+  "hashtags": ["..."]
+}
 
 REGEL für hookAlternatives:
 - Genau 2 Einträge. Beide gleichwertig stark – keine Resterampe.
@@ -673,7 +661,30 @@ export function generateTikTokUserPrompt({
     ) +
 
     // ---- ANTWORT-FORMAT ----------------------------------------------------
-    'ANTWORT: Nur JSON. Kein Text davor oder danach. Kein ```json Block.'
+    'ANTWORT: Nur JSON. Kein Text davor oder danach. Kein ```json Block.\n\n' +
+    'ERWARTETES JSON-FORMAT FÜR ' + (isLongform ? 'YOUTUBE LONGFORM' : plat.label.toUpperCase()) + ':\n' +
+    (isLongform
+      ? '{\n' +
+        '  "hook": "Hook-Slide Text, max ' + LONGFORM_CONFIG.hookMaxChars + ' Zeichen",\n' +
+        '  "hookAlternatives": ["Alternative 1", "Alternative 2"],\n' +
+        '  "bodyLines": ["Gedanke für Bild 1", "Gedanke für Bild 2", "..."],\n' +
+        '  "chapterTitles": ["Intro: ...", "Kapitel 2", "..."],\n' +
+        '  "bridge": "Überleitung zu mojobus.co, max 60 Zeichen",\n' +
+        '  "cta": "Handlungsaufforderung, max 40 Zeichen",\n' +
+        '  "thumbnail": "Cover-Text max ' + LONGFORM_CONFIG.thumbnailMaxWords + ' Wörter",\n' +
+        '  "description": "SEO-Beschreibung max 300 Zeichen",\n' +
+        '  "tags": ["Vanlife", "Portugal", "Wohnmobil", "MojoBus", "Camping"]\n' +
+        '}\n'
+      : '{\n' +
+        '  "hook": "Zündet in unter 1 Sekunde – unvollständig, offen, hakt",\n' +
+        '  "hookAlternatives": ["Alternative mit ANDERER Hook-Mechanik", "zweite Alternative, dritte Mechanik"],\n' +
+        '  "bodyLines": ["Gedanke für Bild 1", "Gedanke für Bild 2", "..."],\n' +
+        '  "bridge": "Überleitung zum Blog – max 60 Zeichen",\n' +
+        '  "cta": "Handlungsaufforderung – max 40 Zeichen",\n' +
+        '  "thumbnail": "Cover-Text max 5 Wörter – NICHT identisch mit dem Hook",\n' +
+        '  "hashtags": ["#vanlife", "#perpetualtraveler", "#mojobus"]\n' +
+        '}\n'
+    )
   )
 }
 

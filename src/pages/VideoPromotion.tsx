@@ -64,7 +64,7 @@ import {
   calculateSecondsPerImage,
   type VideoFormat,
 } from '@/config/videoFormats'
-import { buildChaptersFromSlides } from '@/lib/youtubeChapters'
+import { buildChaptersFromSlides, formatChaptersForDescription } from '@/lib/youtubeChapters'
 import {
   type SlideLayout,
   SLIDE_LAYOUT_ORDER,
