@@ -10,7 +10,7 @@
 | Datei | Zweck |
 |-------|-------|
 | `src/config/prompts/tiktok.js` | Foster Huntington TikTok-Prompt (**darf bearbeitet werden** – einzige Ausnahme im prompts/-Tabu) |
-| `src/pages/TikTokPromotion.tsx` | TikTok-Video-Generator (4-Schritte UI) |
+| `src/pages/VideoPromotion.tsx` | Social-Video-Generator (TikTok/Reels/YouTube Shorts + Longform UI) |
 | `src/pages/Videos.tsx` | Video-Feed (kind 34236 NIP-71, 9:16 + 16:9) |
 | `src/hooks/useVideos.ts` | Lädt kind 34236+34235, Hybrid-Hook, Capacitor-kompatibel |
 | `server/server.js` | Express-Backend: KI-API, Remotion, Bot-Middleware (⛔ nur mit Auftrag ändern) |

@@ -21,7 +21,7 @@ import {
 import type { ContentItem } from '@/components/pin/ContentSelector'
 import { Upload, FileText } from 'lucide-react'
 
-// ── Capacitor-Fix: absolute API-URL (identisch zu TikTokPromotion.tsx) ──────
+// ── Capacitor-Fix: absolute API-URL (identisch zu VideoPromotion.tsx) ──────
 function getApiBaseUrl(): string {
   try {
     const cap = (window as any).Capacitor

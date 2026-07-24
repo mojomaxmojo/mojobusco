@@ -45,7 +45,7 @@ Autoren prüfen: `cat src/config/authors.json | jq '.authors[] | {name, pubkey, 
 |-------|-------|
 | `src/hooks/usePreloadedData.ts` | Hybrid-Hook: JSON-Dump sofort + Live-Relay im Hintergrund |
 | `src/hooks/useVideos.ts` | Lädt kind 34236+34235, Hybrid-Hook, Capacitor-kompatibel |
-| `src/pages/TikTokPromotion.tsx` | TikTok-Video-Generator (4-Schritte UI) |
+| `src/pages/VideoPromotion.tsx` | Social-Video-Generator (TikTok/Reels/YouTube Shorts + Longform UI) |
 | `src/pages/Videos.tsx` | Video-Feed (kind 34236 NIP-71, 9:16 + 16:9) |
 | `src/lib/routeFromGps.ts` | GPS→Route: Haversine-Dedupe, Nominatim, 9:16-Aspect |
 | `public/sw.js` | Service Worker v21: staleWhileRevalidate + Cache-First |

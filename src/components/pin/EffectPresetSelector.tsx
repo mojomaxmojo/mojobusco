@@ -3,8 +3,8 @@
  *
  * Zeigt die 3 Presets aus `EFFECT_PRESETS` (src/config/effectPresets.ts) als
  * Button-Kacheln, gleiches visuelles Muster wie das TEMPLATES-Grid in
- * TikTokPromotion.tsx. Ein Klick ruft `onApply(preset)` auf – die
- * eigentliche State-Übernahme passiert im Parent (TikTokPromotion.tsx).
+ * VideoPromotion.tsx. Ein Klick ruft `onApply(preset)` auf – die
+ * eigentliche State-Übernahme passiert im Parent (VideoPromotion.tsx).
  *
  * Siehe FEATURE-PLAN.md, Schritt 6.
  */

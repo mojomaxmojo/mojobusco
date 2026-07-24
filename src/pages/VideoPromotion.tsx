@@ -1,11 +1,11 @@
 /**
- * TikTokPromotion.tsx – TikTok Video Generator für MojoBus
+ * VideoPromotion.tsx – Social Video Generator für MojoBus (TikTok / Reels / YouTube Shorts + Longform)
  *
  * Workflow:
  * 1. Nostr-Content auswählen (Bilder/Video)
- * 2. Template wählen + KI-generierte Texte
+ * 2. Format & Template wählen + KI-generierte Texte
  * 3. Remotion rendert MP4 (serverseitig)
- * 4. Download + manuell auf TikTok posten
+ * 4. Download + manuell auf die gewünschte Plattform posten
  *
  * Route: /promotion/tiktok
  *
@@ -284,7 +284,7 @@ const COLOR_GRADE_OPTIONS = [
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════
 
-export function TikTokPromotion() {
+export function VideoPromotion() {
   const { user } = useCurrentUser()
   const navigate = useNavigate()
   const { toast } = useToast()
@@ -294,7 +294,7 @@ export function TikTokPromotion() {
     if (!user || !user.pubkey) {
       toast({
         title: 'Login erforderlich',
-        description: 'Bitte logge dich ein um die TikTok-Promotion zu nutzen.',
+        description: 'Bitte logge dich ein um die Video-Promotion zu nutzen.',
         variant: 'destructive',
       })
       navigate('/')
@@ -2957,4 +2957,4 @@ function SortableThumb({ id, url, index, onRemove, videoSecondsValue, onVideoSec
   )
 }
 
-export default TikTokPromotion
+export default VideoPromotion

@@ -1,6 +1,6 @@
 /**
  * Slide-Layout Konfiguration für Photo-Dump / Split-Screen Effekte.
- * Single Source of Truth für Labels, die im Frontend (TikTokPromotion,
+ * Single Source of Truth für Labels, die im Frontend (VideoPromotion,
  * RemotionVideoBlock) angezeigt werden.
  *
  * Laufzeit-Counts und Gruppier-Logik für den Server/Remotion befinden sich in

@@ -25,7 +25,7 @@
  * Geocoding aus ihrem 'location'-Text-Tag (+ Land) aufgelöst, statt
  * komplett zu fehlen → siehe extractTextLocationQuery() + forwardGeocode().
  *
- * Verwendung: TikTokPromotion.tsx → buildRouteFromContent(selectedContent)
+ * Verwendung: VideoPromotion.tsx → buildRouteFromContent(selectedContent)
  * → routeCoords in den Render-Payload → MojoBusVideo nutzt echte Route
  * statt pickDemoRoute-Fallback.
  */

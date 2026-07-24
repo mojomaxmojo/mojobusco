@@ -1,5 +1,5 @@
 /**
- * hookAudio.ts —Konstanten für den Hook-Intro-Audio-Bereich in TikTokPromotion.
+ * hookAudio.ts —Konstanten für den Hook-Intro-Audio-Bereich in VideoPromotion.
  *
  * Ordner werden per FTP auf dem Server befüllt:
  *   server/music/intro-stings/
