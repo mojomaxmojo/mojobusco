@@ -535,6 +535,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
           fromFrame={0}
           toFrame={hookFrames - 5}
           accentColor={accentColor}
+          platform={platform}
         />
       </Sequence>
 

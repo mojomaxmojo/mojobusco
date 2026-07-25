@@ -6,6 +6,7 @@
 
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 import { FONT_FAMILY, FONT_FAMILY_REGULAR, FONT_WEIGHT, TEXT_STYLES } from './Fonts';
+import { YOUTUBE_LONGFORM_CAPTION } from '../../../src/config/captions';
 
 interface HookTitleProps {
   title: string;
@@ -17,6 +18,8 @@ interface HookTitleProps {
   accentColor?: string;
   /** Kapitel-Marker: optionale Caption unter dem Title (z.B. "Algarve, Portugal") */
   caption?: string;
+  /** Ziel-Plattform – YouTube Longform bekommt größeren, optisch zentrierten Hook-Text */
+  platform?: 'tiktok' | 'reels' | 'youtube';
 }
 
 export const HookTitle: React.FC<HookTitleProps> = ({
@@ -28,6 +31,7 @@ export const HookTitle: React.FC<HookTitleProps> = ({
   textColor = '#FFFFFF',
   accentColor = '#F59E0B',
   caption,
+  platform = 'tiktok',
 }) => {
   const frame = useCurrentFrame();
   const { durationInFrames, fps } = useVideoConfig();
@@ -55,12 +59,20 @@ export const HookTitle: React.FC<HookTitleProps> = ({
   // Wörter des Titels einzeln animieren (leicht versetzt)
   const titleWords = title.split(' ');
 
+  const isYouTube = platform === 'youtube';
+  const { sideMarginPx } = YOUTUBE_LONGFORM_CAPTION;
+
+  // YouTube Longform: größerer Hook-Text, optische Mitte bei ~45% Höhe
+  const titleFontSize = isYouTube ? '120px' : 'clamp(2.4rem, 10vw, 5.5rem)';
+  const subtitleFontSize = isYouTube ? '28px' : 'clamp(1rem, 4vw, 1.8rem)';
+  const captionFontSize = isYouTube ? '24px' : 'clamp(0.9rem, 3.5vw, 1.4rem)';
+
   return (
     <AbsoluteFill
       style={{
-        justifyContent: 'center',
+        justifyContent: isYouTube ? 'flex-start' : 'center',
         alignItems: 'center',
-        padding: '10%',
+        padding: isYouTube ? 0 : '10%',
         pointerEvents: 'none',
       }}
     >
@@ -75,18 +87,23 @@ export const HookTitle: React.FC<HookTitleProps> = ({
       <div
         style={{
           opacity,
-          transform: `translateY(${translateY}px)`,
+          transform: isYouTube
+            ? `translate(-50%, -50%) translateY(${translateY}px)`
+            : `translateY(${translateY}px)`,
           textAlign: 'center',
-          position: 'relative',
+          position: isYouTube ? 'absolute' : 'relative',
+          top: isYouTube ? '45%' : undefined,
+          left: isYouTube ? '50%' : undefined,
           zIndex: 10,
-          maxWidth: '88%',
+          maxWidth: isYouTube ? `calc(100% - ${sideMarginPx * 2}px)` : '88%',
+          width: isYouTube ? `calc(100% - ${sideMarginPx * 2}px)` : undefined,
         }}
       >
         {/* Emoji */}
         {emoji && (
           <div
             style={{
-              fontSize: 'clamp(2.5rem, 8vw, 4rem)',
+              fontSize: isYouTube ? '64px' : 'clamp(2.5rem, 8vw, 4rem)',
               marginBottom: '0.4rem',
               filter: 'drop-shadow(0 2px 10px rgba(0,0,0,0.7))',
               lineHeight: 1,
@@ -100,7 +117,7 @@ export const HookTitle: React.FC<HookTitleProps> = ({
         <div
           style={{
             ...TEXT_STYLES.hookTitle,
-            fontSize: 'clamp(2.4rem, 10vw, 5.5rem)',
+            fontSize: titleFontSize,
             color: textColor,
             textShadow: '0 4px 24px rgba(0,0,0,0.85), 0 2px 6px rgba(0,0,0,0.7)',
             wordBreak: 'break-word',
@@ -113,8 +130,8 @@ export const HookTitle: React.FC<HookTitleProps> = ({
         {/* Akzentlinie */}
         <div
           style={{
-            width: '56px',
-            height: '4px',
+            width: isYouTube ? '80px' : '56px',
+            height: isYouTube ? '5px' : '4px',
             background: `linear-gradient(90deg, ${accentColor}, ${accentColor}AA)`,
             margin: '0.85rem auto',
             borderRadius: '2px',
@@ -127,7 +144,7 @@ export const HookTitle: React.FC<HookTitleProps> = ({
           <div
             style={{
               ...TEXT_STYLES.hookSubtitle,
-              fontSize: 'clamp(1rem, 4vw, 1.8rem)',
+              fontSize: subtitleFontSize,
               color: 'rgba(255,255,255,0.88)',
               textShadow: '0 2px 10px rgba(0,0,0,0.8)',
             }}
@@ -142,7 +159,7 @@ export const HookTitle: React.FC<HookTitleProps> = ({
             style={{
               fontFamily: FONT_FAMILY_REGULAR,
               fontWeight: FONT_WEIGHT.medium,
-              fontSize: 'clamp(0.9rem, 3.5vw, 1.4rem)',
+              fontSize: captionFontSize,
               color: accentColor,
               textShadow: '0 2px 10px rgba(0,0,0,0.8)',
               marginTop: '0.6rem',
