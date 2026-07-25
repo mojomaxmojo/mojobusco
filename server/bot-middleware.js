@@ -27,265 +27,31 @@
  * ============================================================
  */
 
-import { nip19, SimplePool } from 'nostr-tools'
+import { SimplePool } from 'nostr-tools'
 import { WebSocket } from 'ws'
+import {
+  SITE_URL,
+  SITE_NAME,
+  SITE_LOGO,
+  DEFAULT_OG_IMAGE,
+  BOT_RELAYS,
+  RELAY_TIMEOUT,
+  responseCache,
+  CACHE_TTL,
+  STATIC_PAGE_META,
+} from './bot/config.js'
+import {
+  isBot,
+  escapeHtml,
+  truncate,
+  extractImageFromEvent,
+  extractEventMetadata,
+  parseNostrPath,
+} from './bot/utils.js'
 
 // nostr-tools braucht WebSocket in Node.js
 // (Im Browser ist WebSocket global — in Node.js nicht)
 global.WebSocket = WebSocket
-
-// ============================================================
-// KONFIGURATION
-// ============================================================
-
-const SITE_URL    = 'https://mojobus.co'
-const SITE_NAME   = 'MojoBus — Perpetual Travelers'
-const SITE_LOGO   = 'https://mojobus.co/mojobuslogo.png'
-const DEFAULT_OG_IMAGE = 'https://mojobus.co/mojobuslogo.png'
-
-// Nostr Relays — lokaler Relay zuerst für maximale Geschwindigkeit
-const BOT_RELAYS = [
-  'wss://relay.mojobus.co',
-  'wss://relay.primal.net',    // Fallback
-]
-
-// Timeout für Relay-Abfrage in Millisekunden
-// Lokal = 300ms reicht, extern = 1500ms Fallback
-const RELAY_TIMEOUT = 2500
-
-// Cache: gerenderte HTML-Antworten im Speicher halten
-// Key: URL-Pfad, Value: { html, timestamp }
-const responseCache = new Map()
-const CACHE_TTL = 1000 * 60 * 15 // 15 Minuten
-
-// ============================================================
-// BOT USER-AGENT LISTE
-// Quelle: prerender-node (offiziell) + eigene Erweiterungen
-// Stand: 2025
-// ============================================================
-
-const BOT_USER_AGENTS = [
-  // ── Suchmaschinen ──────────────────────────────────────
-  'googlebot',
-  'adsbot-google',
-  'apis-google',
-  'mediapartners-google',
-  'google-safety',
-  'feedfetcher-google',
-  'googleproducer',
-  'google-site-verification',
-  'google-inspectiontool',
-  'google-extended',
-  'googleother',
-  'google page speed',
-  'bingbot',
-  'bingpreview',
-  'yahoo! slurp',
-  'yandex',
-  'yandexbot',
-  'baiduspider',
-  'baiduspider-render',
-  'naver',
-  'seznambot',
-  'sznprohlizec',
-  'qwantbot',
-  'qwantify',
-  'ecosia',
-  'duckduckbot',
-  'duckassistbot',
-  'applebot',
-
-  // ── Social Media ───────────────────────────────────────
-  // Pinterest — WICHTIG: zwei User-Agents!
-  'pinterest/0.',        // alter Pinterest-Crawler
-  'pinterestbot',        // neuer Pinterest-Crawler (2022+)
-
-  // Facebook / Instagram / Meta
-  'facebookexternalhit',
-  'facebookbot',
-  'meta-externalagent',
-  'facebookcatalog',
-  'instagram',
-
-  // WhatsApp
-  'whatsapp',
-
-  // Twitter / X
-  'twitterbot',
-
-  // Telegram
-  'telegrambot',
-
-  // Discord
-  'discordbot',
-
-  // LinkedIn
-  'linkedinbot',
-
-  // Slack
-  'slackbot',
-
-  // Reddit
-  'redditbot',
-
-  // TikTok / ByteDance
-  'tiktokspider',
-  'bytespider',
-  'bytedance/tiktok',
-
-  // Weitere Social
-  'tumblr',
-  'flipboard',
-  'vkshare',
-  'skypeuripreview',
-  'xing-contenttabreceiver',
-
-  // ── KI-Bots (2024/2025) ────────────────────────────────
-  'gptbot',
-  'chatgpt-user',
-  'oai-searchbot',
-  'openai/chatgpt',
-  'claudebot',
-  'claude-web',
-  'anthropic-ai',
-  'anthropic/claude',
-  'perplexitybot',
-  'perplexitybot/1.0',
-  'perplexity-user',
-  'google-extended',
-  'microsoft/bing ai',
-  'cohere',
-  'cohere-ai',
-  'cohere-crawler',
-  'mistralai-user',
-  'hugging-face-ai',
-  'huggingfacebot',
-  'youbot',
-  'neevabot',
-  'ccbot',
-
-  // ── SEO Tools ──────────────────────────────────────────
-  'ahrefsbot',
-  'ahrefssiteaudit',
-  'semrushbot',
-  'screaming frog seo spider',
-  'screaming-frog',
-  'chrome-lighthouse',
-  'dotbot',
-  'diffbot',
-  'rogerbot',
-  'oncrawlbot',
-  'deepcrawl',
-  'lumar',
-
-  // ── Link-Preview Bots ──────────────────────────────────
-  'iframely',
-  'embedly',
-  'bitlybot',
-  'outbrain',
-  'showyoubot',
-  'quora link preview',
-  'w3c_validator',
-  'nuzzel',
-  'bufferbot',
-  'x-bufferbot',
-]
-
-// ============================================================
-// HILFS-FUNKTIONEN
-// ============================================================
-
-/**
- * Prüft ob der User-Agent ein bekannter Bot ist
- * @param {string} userAgent
- * @returns {boolean}
- */
-function isBot(userAgent) {
-  if (!userAgent) return false
-  const ua = userAgent.toLowerCase()
-  return BOT_USER_AGENTS.some(bot => ua.includes(bot.toLowerCase()))
-}
-
-/**
- * Escaped HTML-Sonderzeichen für sichere Meta-Tags
- * @param {string} str
- * @returns {string}
- */
-function escapeHtml(str) {
-  if (!str) return ''
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-}
-
-/**
- * Kürzt Text auf maximale Länge
- * @param {string} str
- * @param {number} maxLen
- * @returns {string}
- */
-function truncate(str, maxLen = 200) {
-  if (!str) return ''
-  const clean = str.replace(/\s+/g, ' ').trim()
-  if (clean.length <= maxLen) return clean
-  return clean.substring(0, maxLen - 3) + '...'
-}
-
-/**
- * Extrahiert das erste Bild aus Nostr-Event-Inhalt oder Tags
- * @param {object} event
- * @returns {string|null}
- */
-function extractImageFromEvent(event) {
-  if (!event) return null
-
-  // 1. image-Tag suchen (Standard für Longform-Artikel)
-  const imageTag = event.tags?.find(t => t[0] === 'image')
-  if (imageTag?.[1]) return imageTag[1]
-
-  // 2. thumb-Tag suchen
-  const thumbTag = event.tags?.find(t => t[0] === 'thumb')
-  if (thumbTag?.[1]) return thumbTag[1]
-
-  // 3. Erstes Bild aus dem Content extrahieren
-  if (event.content) {
-    const imageRegex = /(https?:\/\/[^\s"'<>]+\.(jpg|jpeg|png|gif|webp))(\?[^\s"'<>]*)?/gi
-    const matches = event.content.match(imageRegex)
-    if (matches?.[0]) return matches[0]
-  }
-
-  return null
-}
-
-/**
- * Extrahiert Metadaten aus einem Nostr-Event
- * @param {object} event
- * @returns {object} { title, summary, image, identifier, publishedAt }
- */
-function extractEventMetadata(event) {
-  if (!event) return {}
-
-  const tags = event.tags || []
-
-  // Tag-Helfer
-  const getTag = (name) => tags.find(t => t[0] === name)?.[1] || ''
-
-  const title      = getTag('title') || truncate(event.content, 80)
-  const summary    = getTag('summary') || truncate(event.content, 200)
-  const image      = extractImageFromEvent(event)
-  const identifier = getTag('d')
-  const publishedAt = getTag('published_at')
-    ? new Date(parseInt(getTag('published_at')) * 1000).toISOString()
-    : new Date(event.created_at * 1000).toISOString()
-
-  // Tags für Keywords
-  const tTags = tags.filter(t => t[0] === 't').map(t => t[1]).slice(0, 10)
-
-  return { title, summary, image, identifier, publishedAt, tTags }
-}
 
 /**
  * Nostr-Event vom Relay laden
@@ -448,92 +214,6 @@ function buildBotHtml(meta) {
   <p><a href="${SITE_URL}">← ${escapeHtml(siteName)}</a></p>
 </body>
 </html>`
-}
-
-// ============================================================
-// ROUTE-PARSER
-// Erkennt Nostr-URL-Formate und gibt NIP-19 Daten zurück
-// ============================================================
-
-/**
- * Parsed einen URL-Pfad und gibt Nostr-Daten zurück
- * @param {string} pathname - z.B. "/naddr1...", "/note1...", "/bild/note1..."
- * @returns {object|null} { type, decoded } oder null
- */
-function parseNostrPath(pathname) {
-  if (!pathname) return null
-
-  // Führenden Slash entfernen
-  const path = pathname.startsWith('/') ? pathname.slice(1) : pathname
-
-  // Bekannte Präfixe entfernen: bild/, trip/
-  const segments = path.split('/')
-  const nip19Part = segments.find(s =>
-    s.startsWith('naddr1') ||
-    s.startsWith('note1') ||
-    s.startsWith('nevent1') ||
-    s.startsWith('npub1') ||
-    s.startsWith('nprofile1')
-  )
-
-  if (!nip19Part) return null
-
-  try {
-    const decoded = nip19.decode(nip19Part)
-    return { raw: nip19Part, type: decoded.type, decoded: decoded.data }
-  } catch {
-    return null
-  }
-}
-
-// ============================================================
-// STATISCHE SEITEN META-TAGS
-// Für Seiten ohne dynamischen Nostr-Inhalt
-// ============================================================
-
-const STATIC_PAGE_META = {
-  '/': {
-    title: 'MojoBus — Perpetual Travelers | Unser Leben am Meer',
-    description: 'Geschichten, Tipps und Einblicke in unser Leben zwischen Sand und Horizont. Vanlife, Portugal, Offgrid, Solar.',
-    image: DEFAULT_OG_IMAGE,
-    type: 'website',
-  },
-  '/artikel': {
-    title: 'Reiseberichte & Artikel — MojoBus',
-    description: 'Alle Reiseberichte von Mojo & Susanne. Vanlife am Meer, Portugal, Spanien, Offgrid und mehr.',
-    image: DEFAULT_OG_IMAGE,
-    type: 'website',
-  },
-  '/plaetze': {
-    title: 'Geheime Stellplätze & Orte — MojoBus',
-    description: 'Unsere besten Stellplätze und Lieblingsorte am Meer. GPS-Koordinaten, Tipps und Bewertungen.',
-    image: DEFAULT_OG_IMAGE,
-    type: 'website',
-  },
-  '/bilder': {
-    title: 'Foto-Galerie — MojoBus Perpetual Travelers',
-    description: 'Bilder aus unserem Leben am Meer. Strände, Sonnenuntergänge, Vanlife und Offgrid-Abenteuer.',
-    image: DEFAULT_OG_IMAGE,
-    type: 'website',
-  },
-  '/notes': {
-    title: 'Notizen & Gedanken — MojoBus',
-    description: 'Kurze Gedanken und Notizen aus unserem Alltag am Meer.',
-    image: DEFAULT_OG_IMAGE,
-    type: 'website',
-  },
-  '/about': {
-    title: 'Über uns — Mojo & Susanne | MojoBus',
-    description: 'Wir sind Mojo & Susanne. Seit Jahren leben wir als Perpetual Travelers zwischen Sand und Horizont.',
-    image: DEFAULT_OG_IMAGE,
-    type: 'profile',
-  },
-  '/map': {
-    title: 'Unsere Reisekarte — MojoBus',
-    description: 'Alle unsere Reiserouten, Stellplätze und besuchten Orte auf einer interaktiven Karte.',
-    image: DEFAULT_OG_IMAGE,
-    type: 'website',
-  },
 }
 
 // ============================================================
