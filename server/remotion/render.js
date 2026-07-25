@@ -438,7 +438,7 @@ export async function renderMojoBusVideo(params) {
       ffprobeExecutable: FFPROBE_PATH,
       // ── Encode-Einstellungen für Social-Media ────────────────────────
       // crf 28: gute Qualität, ~6x kleiner als crf 20
-      //   16:9 @ 1280×720 @ 25fps @ 110s → ~8-15MB  ✅
+      //   16:9 @ 1920×1080 @ 25fps @ 180s → ~20-40MB  ✅
       //   9:16 @ 1080×1920 @ 25fps @ 110s → ~15-25MB ✅
       //   (vorher: 1920×1080 @ 30fps @ crf 20 → 127MB ❌)
       crf: 28,

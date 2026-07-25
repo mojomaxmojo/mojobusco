@@ -39,17 +39,14 @@ const FPS = 25;
 const RemotionRoot: React.FC = () => {
   return (
     <>
-      {/* 16:9 — YouTube / Standard
-          1280×720 statt 1920×1080:
-          - YouTube komprimiert sowieso auf 720p für die meisten Geräte
-          - ~45% weniger Pixel → ~45% kleinere Datei
-          - Render-Zeit: ~40% schneller */}
+      {/* 16:9 — YouTube Longform
+           1920×1080 Full HD — zeitgemäß für große Monitore und TV. */}
       <Composition
         id="MojoBusVideo-16-9"
         component={MojoBusVideo}
         fps={FPS}
-        width={1280}
-        height={720}
+        width={1920}
+        height={1080}
         durationInFrames={calculateDuration(
           DEFAULT_PROPS.imageUrls.length,
           FPS,

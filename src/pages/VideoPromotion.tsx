@@ -1128,7 +1128,7 @@ export function VideoPromotion() {
       const thumbnailUrl = articleImages[0] || ''
 
       // Aspektverhältnis: 9:16 (Hochformat) oder 16:9 (Querformat)
-      const dimTag = '1080x1920' // 9:16
+      const dimTag = VIDEO_FORMATS[format].resolution.replace('×', 'x')
 
       // Hashtags als t-Tags
       const hashtagTags: string[][] = hashtags
