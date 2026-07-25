@@ -259,17 +259,17 @@ Zielgröße: `MojoBusVideo.tsx` ca. 150–250 Zeilen.
 
 - [x] Schritt 1: `server/remotion/config/renderConfig.ts` angelegt, Konstanten verschoben, Werte in `MojoBusVideo.tsx` ersetzt.
 - [ ] Schritt 1 getestet: Build läuft, ein Standard-Video sieht unverändert aus.
-- [ ] Schritt 2: `server/remotion/slidePlan.ts` angelegt, Slide-Berechnungen verschoben.
+- [x] Schritt 2: `server/remotion/slidePlan.ts` angelegt, Slide-Berechnungen verschoben.
 - [ ] Schritt 2 getestet: RouteMap-Video rendert korrekt.
-- [ ] Schritt 3: `server/remotion/cutEffectsPlan.ts` angelegt, Cinematic-Plan verschoben.
+- [x] Schritt 3: `server/remotion/cutEffectsPlan.ts` angelegt, Cinematic-Plan verschoben.
 - [ ] Schritt 3 getestet: TikTok + YouTube Longform mit Effects rendern korrekt.
-- [ ] Schritt 4: `server/remotion/slideHelpers.ts` angelegt, Hero-Word + Previous-Image verschoben.
+- [x] Schritt 4: `server/remotion/slideHelpers.ts` angelegt, Hero-Word + Previous-Image verschoben.
 - [ ] Schritt 4 getestet: `**wort**`-Zoom und `cardFlip`-Transition funktionieren.
-- [ ] Schritt 5: `server/remotion/components/AudioStack.tsx` angelegt, Audio-Sequenzen verschoben.
+- [x] Schritt 5: `server/remotion/components/AudioStack.tsx` angelegt, Audio-Sequenzen verschoben.
 - [ ] Schritt 5 getestet: Musik, Voiceover, Ambient, Sting, Bed hörbar wie vorher.
-- [ ] Schritt 6: `server/remotion/components/CutEffectsLayer.tsx` angelegt, Cut-Effekte verschoben.
+- [x] Schritt 6: `server/remotion/components/CutEffectsLayer.tsx` angelegt, Cut-Effekte verschoben.
 - [ ] Schritt 6 getestet: FlashCut, LightLeak, Sticker, SFX sichtbar/hörbar.
-- [ ] Schritt 7: `server/remotion/components/SlideshowLayer.tsx` angelegt, Slideshow verschoben.
+- [x] Schritt 7: `server/remotion/components/SlideshowLayer.tsx` angelegt, Slideshow verschoben.
 - [ ] Schritt 7 getestet: Slide-Folge, Transitionen und RouteMap stimmen.
 - [ ] Gesamttest: Zwei komplette Videos (TikTok + YouTube Longform) mit allen Features rendern und mit vorheriger Version visuell vergleichen.
 - [ ] `build_project` nach jedem Schritt fehlerfrei.

@@ -24,18 +24,18 @@ import { HookTitle } from './components/HookTitle';
 import { LocationBadge } from './components/LocationBadge';
 import { MojoBusCTA } from './components/MojoBusCTA';
 import { ProgressBar } from './components/ProgressBar';
-import { AudioLayer } from './components/AudioLayer';
-import { FadeIn, FadeOut } from './components/CrossFade';
 import { StoryCaption } from './components/StoryCaption';
-import {
-  PerSlideCaption
-} from './components/Captions';
+import { PerSlideCaption } from './components/Captions';
 import { LoadFonts } from './components/Fonts';
 import { HookDimOverlay } from './components/HookDimOverlay';
-import { MediaRenderer, isVideo } from './components/MediaRenderer';
+import { isVideo } from './components/MediaRenderer';
 import { getHookSeconds } from './duration';
-import { PhotoDumpLayout } from './components/PhotoDumpLayout';
-import { groupImagesIntoSlides, findRouteSlideIndex } from './slideLayouts';
+import { buildSlidePlan, type SlideDef } from './slidePlan';
+import { buildCutEffectsPlan } from './cutEffectsPlan';
+import { buildHeroWordWindows, buildPreviousImageUrls } from './slideHelpers';
+import { AudioStack } from './components/AudioStack';
+import { CutEffectsLayer } from './components/CutEffectsLayer';
+import { SlideshowLayer } from './components/SlideshowLayer';
 export { calculateDuration } from './duration';
 
 // ── NEU: 4 neue Skills ────────────────────────────────────────────────────
@@ -45,33 +45,12 @@ import {
   generateFallbackBeats,
   useBeats,
 } from './components/BeatSyncLayer';
-import { TransitionWrapper, CardFlipTransition } from './components/TransitionSlideshow';
 import { BeatVelocityPunch } from './components/BeatVelocityPunch';
-import {
-  RouteMapLine,
-  pickDemoRoute
-} from './components/RouteMapLine';
+import { pickDemoRoute } from './components/RouteMapLine';
 import { LottieBusIcon } from './components/LottieBusIcon';
 
-// ── NEU: Cinematic Effects (Zoom-Punch, WhipPan, FlashCut, LightLeak,
-//         Letterbox, Match-Cut-Zoom) + Plattform-Matrix ──────────────────
-import {
-  getPlatformEffects,
-  pickCutEffect,
-  buildMatchCutMap,
-  ZoomPunchWrapper,
-  WhipPanWrapper,
-  FlashCut,
-  flashCutDuration,
-  LightLeak,
-  lightLeakDuration,
-  CinematicLetterbox,
-  MatchCutZoomWrapper,
-} from './components/CinematicEffects';
-import { pickStickerForCut, StickerPop, stickerPopDuration } from './components/StickerPops';
-import { buildSfxCues, SfxLayer } from './components/SfxLayer';
-import { findHeroWordWindow } from './components/CaptionHeroWord';
-import { IntroAudioLayer } from './components/IntroAudioLayer';
+// ── NEU: Cinematic Effects (Letterbox) ───────────────────────────────────
+import { CinematicLetterbox } from './components/CinematicEffects';
 import {
   TRANSITION_DURATION_SEC,
   CTA_DURATION_SEC,
@@ -179,62 +158,31 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
   const images     = imageUrls.slice(0, 20);
   const imageCount = images.length;
 
-  // ── Slides: layout-aware Gruppierung + extra Routen-Slide ─────────────
-  // Bilder werden anhand slideLayouts in Gruppen aufgeteilt. Der Routen-Slide
-  // wird als EXTRA Slide eingefügt und ersetzt kein Bild.
-  const baseGroups = groupImagesIntoSlides(images, slideLayouts ?? []);
-  const baseSlideCount = baseGroups.length;
-
-  const hasRouteMap = showRouteMap && images.length >= 2;
-  const routeVisualIndex = hasRouteMap ? findRouteSlideIndex(baseGroups) : -1;
-  const totalSlideCount = baseSlideCount + (hasRouteMap ? 1 : 0);
-
-  // Dynamische perSlide: perSlideArray vom Server (inkl. RouteMap), sonst fix
-  const slidesSec = perSlideArray && perSlideArray.length === totalSlideCount
-    ? perSlideArray
-    : new Array(totalSlideCount).fill(secondsPerImage);
-  const slidesFrames = slidesSec.map(s => Math.round(s * fps));
-
   const hookFrames = getHookSeconds(platform) * fps;
   const ctaFrames  = CTA_DURATION_SEC * fps;
 
-  // Route-Dauer aus slidesFrames (enthält bereits RouteMap an routeVisualIndex)
-  const routeDurFrames = hasRouteMap
-    ? (slidesFrames[routeVisualIndex] || Math.round(secondsPerImage * fps))
-    : 0;
-
-  // Slide-Definitionen: jeder Eintrag kann ein oder mehrere Bilder enthalten
-  interface SlideDef {
-    type: 'image' | 'route';
-    imageIndices: number[];
-    frames: number;
-    layout?: import('./videoProps').SlideLayout;
-  }
-
-  const slideDefs: SlideDef[] = [];
-  let framesIdx = 0;
-  baseGroups.forEach((group, groupIdx) => {
-    if (hasRouteMap && groupIdx === routeVisualIndex) {
-      slideDefs.push({ type: 'route', imageIndices: [], frames: slidesFrames[framesIdx] ?? Math.round(secondsPerImage * fps) });
-      framesIdx++;
-    }
-    slideDefs.push({
-      type: 'image',
-      imageIndices: group.imageIndices,
-      frames: slidesFrames[framesIdx] ?? Math.round(secondsPerImage * fps),
-      layout: group.layout,
-    });
-    framesIdx++;
-  });
-  if (hasRouteMap && routeVisualIndex >= baseGroups.length) {
-    slideDefs.push({ type: 'route', imageIndices: [], frames: slidesFrames[framesIdx] ?? Math.round(secondsPerImage * fps) });
-  }
-
-  const totalSlides = slideDefs.length;
-  const slideshowFrames = slideDefs.reduce((sum, s) => sum + s.frames, 0); // inkl. RouteMap
-
-  const slideStartFrame = (idx: number) =>
-    hookFrames + slideDefs.slice(0, idx).reduce((sum, s) => sum + s.frames, 0);
+  // ── Slides: layout-aware Gruppierung + extra Routen-Slide ─────────────
+  const {
+    baseGroups,
+    baseSlideCount,
+    hasRouteMap,
+    routeVisualIndex,
+    totalSlideCount,
+    slidesSec,
+    slidesFrames,
+    slideDefs,
+    totalSlides,
+    slideshowFrames,
+    slideStartFrame,
+    routeDurFrames,
+  } = buildSlidePlan({
+    imageUrls: images,
+    secondsPerImage,
+    perSlideArray,
+    showRouteMap,
+    slideLayouts,
+    hookFrames,
+  }, fps);
 
   // perSlide für Legacy
   const perSlide = Math.round((perSlideArray?.[0] || secondsPerImage) * fps);
@@ -267,22 +215,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
     : pickDemoRoute(country, location);
 
   // ── Cinematic Effects: Plattform-Matrix + Cut-Plan ─────────────────────
-  // fx = was die Plattform erlaubt (TikTok: Punch+Flash, YouTube: Letterbox+Leak...)
-  // cutFx[i] = Effekt am Cut VOR Slide i (Cut 0 = Übergang Hook→Slide 0)
-  // matchCutMap = Slide-Paare mit durchgehender Zoom-Bewegung über den Schnitt
-  const fx = cinematicEffects
-    ? getPlatformEffects(platform)
-    : { zoomPunchScale: 0, whipPan: false, flashColor: '', lightLeaks: false, letterboxPct: 0, matchCutZoom: false };
-  const cutFx = slideDefs.map((_, i) => (cinematicEffects ? pickCutEffect(i, platform) : 'none'));
-  const matchCutMap = fx.matchCutZoom ? buildMatchCutMap(slideDefs) : {};
-  // WhipPan-Richtung pro Cut (deterministisch alternierend)
-  const whipDir = (i: number): 'left' | 'right' => (i % 2 === 0 ? 'left' : 'right');
-
-  // ── LocationBadge Top-Offset: unterhalb Letterbox-Balken (Reels 6% /
-  // YouTube 8%) + Sicherheitsabstand, damit das Badge NIE mit dem
-  // Cinematic-Letterbox oder der Hook-Titel-Zone kollidiert. TikTok hat
-  // keine Letterbox → Standard-Abstand von der oberen Videokante.
-  const locationBadgeTopPct = fx.letterboxPct > 0 ? fx.letterboxPct + 5 : 10;
+  const { fx, cutFx, matchCutMap, whipDir, locationBadgeTopPct } = buildCutEffectsPlan(slideDefs, platform, cinematicEffects);
 
   // ── Duck-Fenster für Musik/Atmo während Video-Slides ─────────────────
   // Nur aktiv wenn keepOriginalAudio=true: Für jeden Slide, der ein
@@ -299,36 +232,9 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
         })
     : [];
 
-  // ── Hook-Wort-Zoom: Fenster des per **...** markierten Wortes pro Slide ─
-  // Reine Berechnung (keine Wirkung ohne den erweiterten punchHere-Check
-  // unten in der Slideshow-Schleife). Nur Bild-Slides mit vorhandener
-  // Caption werden geprüft; Route-Slides und fehlende Captions liefern null.
-  const heroWordWindows = slideDefs
-    .map((def, i) => {
-      if (def.type !== 'image') return null;
-      const captionText = captions[i];
-      if (!captionText) return null;
-      const win = findHeroWordWindow(captionText, slideStartFrame(i), def.frames);
-      return win ? { slideIndex: i, ...win } : null;
-    })
-    .filter((w): w is { slideIndex: number; startFrame: number; endFrame: number } => w !== null);
-
-  // ── Einfaches vorheriges Bild pro Slide (nur für cardFlip-Transition) ──────
-  // Index 0 = Hook-Bild, danach das vorhergehende Bild (Route-Slides überspringen).
-  const previousImageUrls = slideDefs.map((def, i) => {
-    const firstImage = (d: typeof slideDefs[0]) => images[d.imageIndices[0]] || null;
-    if (i === 0) {
-      const firstImageSlide = slideDefs.find(d => d.type === 'image');
-      return firstImageSlide ? firstImage(firstImageSlide) : null;
-    }
-    for (let j = i - 1; j >= 0; j--) {
-      if (slideDefs[j].type === 'image') {
-        return firstImage(slideDefs[j]);
-      }
-    }
-    const firstImageSlide = slideDefs.find(d => d.type === 'image');
-    return firstImageSlide ? firstImage(firstImageSlide) : null;
-  });
+  // ── Hook-Wort-Zoom + vorheriges Bild für Transitions ───────────────────
+  const heroWordWindows = buildHeroWordWindows(slideDefs, captions, slideStartFrame);
+  const previousImageUrls = buildPreviousImageUrls(slideDefs, images);
 
   return (
     <AbsoluteFill style={{ background: '#000' }}>
@@ -344,190 +250,31 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
         strength={beatSyncStrength}
         fallbackBeats={fallbackBeats}
       >
-        {/* ══ SCHICHT 1: Bilder mit Ken Burns + Transitions ══════════════════ */}
         <ColorGradeWrapper grade={grade}>
-
-        {/* HOOK — erstes Bild, blendet am Ende aus */}
-        {images[0] && (
-          <Sequence from={0} durationInFrames={hookFrames + TRANSITION_FRAMES}>
-            <FadeOut
-              durationFrames={TRANSITION_FRAMES}
-              totalFrames={hookFrames + TRANSITION_FRAMES}
-            >
-              <MediaRenderer src={images[0]} index={0} />
-            </FadeOut>
-          </Sequence>
-        )}
-
-        {/* SLIDESHOW — alle Slides (Bilder + ggf. Routen-Karte dazwischen) */}
-        {slideDefs.map((def, i) => {
-          const isLastSlide = i === totalSlides - 1;
-          const isRoute = def.type === 'route';
-          const absoluteStart = slideStartFrame(i);
-          const thisSlideFrames = def.frames;
-          const seqDuration = isLastSlide ? thisSlideFrames : thisSlideFrames + TRANSITION_FRAMES;
-          const nextDef = !isLastSlide ? slideDefs[i + 1] : undefined;
-
-          // ── Cinematic Effects für diesen Slide ─────────────────────────
-          // Cut i = Übergang IN Slide i. WhipPan verbindet beide Seiten:
-          //   Slide i-1 reißt raus (whipOut, cutFx[i]), Slide i reißt rein (whipIn).
-          // Zoom-Punch nur wenn KEIN Whip auf dem Cut liegt (sonst doppelt).
-          // WhipIn nicht auf Cut 0 (Hook blendet weich aus – halber Whip sähe kaputt aus)
-          // und nicht nach einer Route-Slide (Karte whippt nicht raus → inkonsistent)
-          const prevDef = i > 0 ? slideDefs[i - 1] : undefined;
-          const hasWhipIn  = !isRoute && i > 0 && cutFx[i] === 'whip' && prevDef?.type !== 'route';
-          // Kein WhipOut in eine Route-Slide hinein (Karte whippt nicht rein → inkonsistent)
-          const hasWhipOut = !isRoute && !isLastSlide && cutFx[i + 1] === 'whip' && nextDef?.type !== 'route';
-          const cutPunchHere = !isRoute && fx.zoomPunchScale > 0 && cutFx[i] !== 'whip' && i > 0;
-          const heroWindow = heroWordWindows.find(w => w.slideIndex === i);
-          const punchHere  = cutPunchHere || !!heroWindow;
-          // Trigger-Frame für den Punch (lokal zur Sequence, die bei
-          // absoluteStart beginnt): Ein ZoomPunchWrapper kann nur EINEN
-          // Zeitpunkt bedienen. Liegt auf diesem Slide ein Hero-Wort-Fenster
-          // vor, hat es IMMER Vorrang vor dem normalen Cut-Punch (der sonst
-          // bei triggerFrame=0 feuern würde und auf TikTok fast immer aktiv
-          // ist) – sonst würde der explizit gewünschte Hook-Wort-Zoom auf
-          // den meisten Slides nie sichtbar werden. Ohne Hero-Fenster bleibt
-          // das bestehende Cut-Punch-Verhalten (triggerFrame=0) unverändert.
-          const punchTriggerFrame = heroWindow
-            ? Math.max(0, heroWindow.startFrame - absoluteStart)
-            : 0;
-          const matchCut   = !isRoute ? matchCutMap[i] : undefined;
-
-          // Effekt-Kette (innen → außen): Media → MatchCut → Punch → Whip → FadeOut
-          let slideContent: React.ReactNode = !isRoute ? (
-            def.imageIndices.length === 1 && (!def.layout || def.layout === 'single') ? (
-              <MediaRenderer src={images[def.imageIndices[0]]} index={def.imageIndices[0] + 1} allowAudio={keepOriginalAudio} speedRamp={speedRampEnabled} slideFrames={thisSlideFrames} />
-            ) : (
-              <PhotoDumpLayout
-                images={def.imageIndices.map(idx => images[idx])}
-                layout={def.layout || 'single'}
-                slideIndex={i}
-              />
-            )
-          ) : null;
-          if (matchCut) {
-            slideContent = (
-              <MatchCutZoomWrapper from={matchCut.from} to={matchCut.to}>
-                {slideContent}
-              </MatchCutZoomWrapper>
-            );
-          }
-          if (punchHere) {
-            // Hero-Wort-Punch nutzt eine feste, moderate Stärke (0.08, siehe
-            // FEATURE-PLAN.md Schritt 5), unabhängig von der Plattform-Matrix
-            // (die für diesen Slide ggf. 0 liefert, z.B. YouTube) und hat
-            // Vorrang vor dem Cut-Punch-Wert (siehe punchTriggerFrame oben).
-            // Ohne Hero-Fenster bleibt der normale Cut-Punch bei fx.zoomPunchScale.
-            const punchScaleHere = heroWindow ? 0.08 : fx.zoomPunchScale;
-            slideContent = (
-              <ZoomPunchWrapper punchScale={punchScaleHere} triggerFrame={punchTriggerFrame}>
-                {slideContent}
-              </ZoomPunchWrapper>
-            );
-          }
-          if (hasWhipIn || hasWhipOut) {
-            slideContent = (
-              <WhipPanWrapper
-                whipIn={hasWhipIn}
-                whipOut={hasWhipOut}
-                direction={hasWhipIn ? whipDir(i) : whipDir(i + 1)}
-                // WICHTIG: thisSlideFrames (nicht seqDuration) – der WhipOut muss
-                // AM CUT enden. seqDuration läuft TRANSITION_FRAMES darüber hinaus,
-                // dann würde der Raus-Schwenk erst NACH dem Rein-Schwenk des
-                // nächsten Slides laufen → kein durchgehender Kameraschwenk.
-                totalFrames={thisSlideFrames}
-              >
-                {slideContent}
-              </WhipPanWrapper>
-            );
-          }
-
-          return (
-            <Sequence key={`slide-${i}`} from={absoluteStart} durationInFrames={seqDuration}>
-              {isRoute ? (
-                <RouteMapLine
-                  coords={effectiveRouteCoords}
-                  mapImageUrl={mapImageUrl}
-                  color="#FFFFFF"
-                  accentColor={accentColor}
-                  strokeWidth={4}
-                  animType="both"
-                  showLabels={true}
-                  showBusMarker={true}
-                  overlayOpacity={mapImageUrl ? 0.4 : 0}
-                />
-              ) : transitionType === 'cardFlip' ? (
-                isLastSlide ? (
-                  <CardFlipTransition
-                    durationFrames={TRANSITION_FRAMES}
-                    direction={i % 2 === 0 ? 'right' : 'left'}
-                    previousChildren={previousImageUrls[i] ? <MediaRenderer src={previousImageUrls[i]} index={-1} /> : slideContent}
-                  >
-                    {slideContent}
-                  </CardFlipTransition>
-                ) : (
-                  <FadeOut
-                    durationFrames={TRANSITION_FRAMES}
-                    totalFrames={seqDuration}
-                  >
-                    <CardFlipTransition
-                      durationFrames={TRANSITION_FRAMES}
-                      direction={i % 2 === 0 ? 'right' : 'left'}
-                      previousChildren={previousImageUrls[i] ? <MediaRenderer src={previousImageUrls[i]} index={-1} /> : slideContent}
-                    >
-                      {slideContent}
-                    </CardFlipTransition>
-                  </FadeOut>
-                )
-              ) : isLastSlide ? (
-                transitionType === 'busWipe' ? (
-                  slideContent
-                ) : (
-                  <TransitionWrapper
-                    type={transitionType}
-                    durationFrames={TRANSITION_FRAMES}
-                    imageIndex={i}
-                  >
-                    {slideContent}
-                  </TransitionWrapper>
-                )
-              ) : transitionType === 'busWipe' ? (
-                <TransitionWrapper
-                  type={transitionType}
-                  durationFrames={TRANSITION_FRAMES}
-                  imageIndex={i}
-                >
-                  {slideContent}
-                </TransitionWrapper>
-              ) : (
-                <FadeOut
-                  durationFrames={TRANSITION_FRAMES}
-                  totalFrames={seqDuration}
-                >
-                  <TransitionWrapper
-                    type={transitionType}
-                    durationFrames={TRANSITION_FRAMES}
-                    imageIndex={i}
-                  >
-                    {slideContent}
-                  </TransitionWrapper>
-                </FadeOut>
-              )}
-            </Sequence>
-          );
-        })}
-
-        {/* CTA Hintergrund — letztes Bild, sehr langsamer Zoom */}
-        {images[imageCount - 1] && (
-          <Sequence from={hookFrames + slideshowFrames} durationInFrames={ctaFrames}>
-            <FadeIn durationFrames={20}>
-              <MediaRenderer src={images[imageCount - 1]} index={imageCount + 1} />
-            </FadeIn>
-          </Sequence>
-        )}
-
-      </ColorGradeWrapper>
+          <SlideshowLayer
+            images={images}
+            slideDefs={slideDefs}
+            slideStartFrame={slideStartFrame}
+            transitionType={transitionType}
+            fx={fx}
+            cutFx={cutFx}
+            matchCutMap={matchCutMap}
+            whipDir={whipDir}
+            heroWordWindows={heroWordWindows}
+            previousImageUrls={previousImageUrls}
+            effectiveRouteCoords={effectiveRouteCoords}
+            mapImageUrl={mapImageUrl}
+            accentColor={accentColor}
+            keepOriginalAudio={keepOriginalAudio}
+            speedRampEnabled={speedRampEnabled}
+            platform={platform}
+            hookFrames={hookFrames}
+            slideshowFrames={slideshowFrames}
+            ctaFrames={ctaFrames}
+            transitionFrames={TRANSITION_FRAMES}
+            grade={grade}
+          />
+        </ColorGradeWrapper>
 
       {/* ══ SCHICHT 2: Color Grade Overlay ══════════════════════════════════ */}
       <ColorGradeOverlay grade={grade} />
@@ -732,70 +479,21 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
         </Sequence>
       )}
 
-      {/* ══ SCHICHT 11: Audio (Musik) ════════════════════════════════════════ */}
-      {musicUrl && (
-        <AudioLayer
-          src={musicUrl}
-          volume={MUSIC_VOLUME}
-          fadeInSec={0.4}
-          duckWindows={[
-            // Wenn ein Hook Bed aktiv ist, wird die Haupt-Musik während des
-            // Hooks geduckt. Der Audio-Track bleibt für Beat-Sync-Analyse ab
-            // Frame 0 erhalten, ist aber im Hook-Bereich nicht hörbar.
-            ...(introBedUrl ? [{ startFrame: 0, endFrame: hookFrames }] : []),
-            ...videoDuckWindows,
-          ]}
-        />
-      )}
-
-      {/* ══ SCHICHT 11b: Audio (Voiceover) – startet mit Slideshow, nicht Hook ═══
-           Voiceover enthält nur Body-Sätze (kein Hook-Text).
-           startFrom=hookFrames: Audio startet synchron mit Slide 0 der Slideshow.
-           Hook-Slide (0-4s): kein Voiceover, nur HookTitle-Text auf dem Screen. */}
-      {voiceoverUrl && (
-        <Sequence from={hookFrames}>
-          <AudioLayer
-            src={voiceoverUrl}
-            volume={voiceoverVolume}
-            fadeInSec={0.1}
-            fadeOutSec={0.5}
-          />
-        </Sequence>
-      )}
-
-      {/* ══ SCHICHT 11c: Audio (Ambient/Atmo) – leise im Hintergrund ════ */}
-      {ambientUrl && (
-        <AudioLayer
-          src={ambientUrl}
-          volume={AMBIENT_VOLUME}
-          fadeInSec={0.5}
-          fadeOutSec={3}
-          duckWindows={videoDuckWindows}
-        />
-      )}
-
-      {/* ══ NEU SCHICHT 11d: Hook Intro Audio (Sting + Bed) ═══════════════════ */}
-      {introStingUrl && (
-        <Sequence from={0} durationInFrames={Math.min(6 * fps, durationInFrames)}>
-          <IntroAudioLayer
-            src={introStingUrl}
-            volume={introStingVolume}
-            fadeOutStartFrame={1 * fps}
-            fadeOutDurationFrames={5 * fps}
-          />
-        </Sequence>
-      )}
-      {introBedUrl && (
-        <Sequence from={0} durationInFrames={hookFrames}>
-          <IntroAudioLayer
-            src={introBedUrl}
-            volume={introBedVolume}
-            fadeOutStartFrame={Math.max(0, hookFrames - Math.round(introBedFadeOutSec * fps))}
-            fadeOutDurationFrames={Math.round(introBedFadeOutSec * fps)}
-            loop
-          />
-        </Sequence>
-      )}
+      {/* ══ SCHICHT 11: Audio Stack (Musik, Voiceover, Ambient, Intro) ═══════ */}
+      <AudioStack
+        musicUrl={musicUrl}
+        voiceoverUrl={voiceoverUrl}
+        ambientUrl={ambientUrl}
+        introStingUrl={introStingUrl}
+        introBedUrl={introBedUrl}
+        voiceoverVolume={voiceoverVolume}
+        introStingVolume={introStingVolume}
+        introBedVolume={introBedVolume}
+        introBedFadeOutSec={introBedFadeOutSec}
+        hookFrames={hookFrames}
+        slideshowFrames={slideshowFrames}
+        videoDuckWindows={videoDuckWindows}
+      />
 
       {/* ══ NEU SCHICHT 12: Beat-Sync Flash Effekt ═══════════════════════════ */}
       {beatSyncStrength > 0 && (
@@ -811,69 +509,17 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
         </Sequence>
       )}
 
-      {/* ══ NEU SCHICHT 13: FlashCut + LightLeak auf den Cuts ═══════════════
-           FlashCut: 2 Frames Blitz AUF dem Cut-Frame (weiß TikTok / schwarz YouTube)
-           LightLeak: ~1s Overlay, Peak liegt AUF dem Cut (startet 0.5s davor)
-           Beide über ColorGrade + Captions – wie echtes Licht in der Linse. */}
-      {slideDefs.map((_, i) => {
-        const effect = cutFx[i];
-        if (effect !== 'flash' && effect !== 'leak') return null;
-        const cutFrame = slideStartFrame(i);
-
-        if (effect === 'flash' && fx.flashColor) {
-          return (
-            <Sequence
-              key={`cutfx-${i}`}
-              from={cutFrame}
-              durationInFrames={flashCutDuration(fps)}
-            >
-              <FlashCut color={fx.flashColor} />
-            </Sequence>
-          );
-        }
-        if (effect === 'leak' && fx.lightLeaks) {
-          const leakDur = lightLeakDuration(fps);
-          return (
-            <Sequence
-              key={`cutfx-${i}`}
-              from={Math.max(0, cutFrame - Math.round(leakDur / 2))}
-              durationInFrames={leakDur}
-            >
-              <LightLeak seed={i} />
-            </Sequence>
-          );
-        }
-        return null;
-      })}
-
-      {/* ══ NEU SCHICHT 14: Sticker/Emoji-Pops an Cut-Punkten (Beta) ═══════════
-           Rein additiv, gated hinter stickersEnabled (Default: false).
-           Poppt auf denselben Cut-Frames wie FlashCut/LightLeak, aber nur
-           bei Cuts mit einem aktiven Effekt (cutFx[i] !== 'none'). */}
-      {stickersEnabled && slideDefs.map((_, i) => {
-        if (cutFx[i] === 'none') return null;
-        const cutFrame = slideStartFrame(i);
-        return (
-          <Sequence
-            key={`sticker-${i}`}
-            from={cutFrame}
-            durationInFrames={stickerPopDuration(fps)}
-          >
-            <StickerPop emoji={pickStickerForCut(i)} />
-          </Sequence>
-        );
-      })}
-
-      {/* ══ NEU SCHICHT 15: Sound-SFX (Whoosh/Ding/Impact) auf Cuts (Beta) ═════
-           Rein additiv, gated hinter sfxEnabled (Default: false). Nutzt
-           dieselben Cut-Frames wie FlashCut/LightLeak/StickerPop. */}
-      {sfxEnabled && sfxUrls && (
-        <SfxLayer
-          cues={buildSfxCues(cutFx, slideDefs.map((_, i) => slideStartFrame(i)), transitionType)}
-          sfxUrls={sfxUrls}
-          volume={SFX_VOLUME}
-        />
-      )}
+      {/* ══ NEU SCHICHT 13-15: Cut Effects (FlashCut, LightLeak, Sticker, SFX) ═ */}
+      <CutEffectsLayer
+        cutFx={cutFx}
+        slideDefs={slideDefs}
+        fx={fx}
+        slideStartFrame={slideStartFrame}
+        transitionType={transitionType}
+        stickersEnabled={stickersEnabled}
+        sfxEnabled={sfxEnabled}
+        sfxUrls={sfxUrls}
+      />
 
     </AbsoluteFill>
   );
