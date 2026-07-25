@@ -64,7 +64,7 @@ import {
   calculateSecondsPerImage,
   type VideoFormat,
 } from '@/config/videoFormats'
-import { buildChaptersFromSlides, formatChaptersForDescription } from '@/lib/youtubeChapters'
+import { buildChaptersFromSlides, buildChaptersFromChapterTitles, formatChaptersForDescription } from '@/lib/youtubeChapters'
 import {
   type SlideLayout,
   SLIDE_LAYOUT_ORDER,
@@ -489,16 +489,34 @@ export function VideoPromotion() {
       setChapters([])
       return
     }
-    const titles = chapterTitles.length > 0
-      ? [hookText || chapterTitles[0] || 'Intro', ...chapterTitles.slice(1)]
-      : [hookText || 'Intro', ...bodyText.split('\n').filter((l) => l.trim().length > 0)]
+
+    if (chapterTitles.length > 0) {
+      // KI hat Kapitel geliefert (5–15 möglich). Robust über Bilder verteilen.
+      const calculated = buildChaptersFromChapterTitles(
+        chapterTitles,
+        articleImages.length,
+        effectiveSecondsPerImage,
+        hookSecondsForFormat,
+        hookText
+      )
+      setChapters(calculated)
+      return
+    }
+
+    // Fallback: Kapitel aus bodyLines
+    if (!bodyText.trim()) {
+      setChapters([])
+      return
+    }
+    const bodyLines = bodyText.split('\n').filter((l) => l.trim().length > 0)
+    const titles = [hookText || 'Intro', ...bodyLines]
     const calculated = buildChaptersFromSlides({
       titles,
       secondsPerSlide: effectiveSecondsPerImage,
       hookSeconds: hookSecondsForFormat,
     })
     setChapters(calculated)
-  }, [format, bodyText, hookText, effectiveSecondsPerImage, hookSecondsForFormat, chapterTitles])
+  }, [format, bodyText, hookText, effectiveSecondsPerImage, hookSecondsForFormat, chapterTitles, articleImages.length])
   // Echte Route aus GPS-Tags der Events (null = keine GPS-Daten → Demo-Fallback)
   const [gpsRoute, setGpsRoute] = useState<RouteResult | null>(null)
   const [gpsRouteLoading, setGpsRouteLoading] = useState(false)

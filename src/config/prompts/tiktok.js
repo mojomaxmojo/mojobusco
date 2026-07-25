@@ -303,24 +303,32 @@ STIL:
 - Weniger schnelle Schnitte, mehr Atem: längere Sätze erlaubt, aber Rhythmus beibehalten.
 - Keine Leseransprache, kein Ausrufezeichen, kein Instagram-Vokabular.
 
+HOOK (erste 5 Sekunden):
+- 1–2 vollständige Sätze, max ${LONGFORM_CONFIG.hookMaxChars} Zeichen.
+- Der Hook-Slide läuft exakt 5s – der Text muss in dieser Zeit lesbar bleiben.
+- Muss alleinstehend funktionieren: kein "In diesem Video...", kein Kontext aus dem restlichen Clip nötig.
+
 LÄNGE:
 - bodyLines hat EXAKT so viele Einträge wie Bilder.
 - Jede bodyLine: 1–3 kurze Sätze, max ${LONGFORM_CONFIG.bodyMaxChars} Zeichen.
 - Wenn targetDurationMin angegeben: passe Textmenge so an, dass er bei ~${LONGFORM_CONFIG.bodyMaxChars} Zeichen/Slide nicht zu schnell geraten würde.
 
-SEO / METADATEN:
-- Titel-Charakter: prägnant, beinhaltet Ort oder konkretes Thema, max 100 Zeichen.
-- Beschreibung: 1–2 Sätze Zusammenfassung + CTA, max 300 Zeichen.
-- Tags: 5–10 kommagetrennte YouTube-Keywords (ohne #), z. B. "Vanlife, Portugal, Wohnmobil, MojoBus, Camping".
-- Thumbnail-Text: max ${LONGFORM_CONFIG.thumbnailMaxWords} Wörter, groß lesbar, darf Hook ähnlich aber nicht identisch sein.
-
 KAPITEL:
-- chapterTitles: Array mit EXAKT so vielen Einträgen wie Bilder.
-- Jedes Kapitel ist ein kurzer, lesbarer Titel für diesen Slide (max 40 Zeichen).
-- Kapitel 0 = Intro (das Bild während des Hooks).
+- Ziel für YouTube-Beschreibung: 5–15 Kapitel.
+- Bei 5–15 Bildern: genau 1 Kapitel pro Bild.
+- Bei mehr als 15 Bildern: fasse thematisch zusammenhängende benachbarte Bilder zu Kapiteln zusammen (max 15).
+- Bei weniger als 5 Bildern: Kapitel = Bilder (keine Erfindungen).
+- Jedes Kapitel ist ein kurzer, lesbarer Titel (max 40 Zeichen).
 
 CTA:
-- Am Ende: sanfter Hinweis auf Abo + Website. Nicht aufdringlich.`
+- BRIDGE/CTA am Ende: sanfter Hinweis auf "Kanal abonnieren" + mojobus.co.
+- Füge in der description einen kurzen Hinweis auf die Kapitel-Zeitstempel hinzu.
+
+SEO / METADATEN:
+- Titel-Charakter: prägnant, beinhaltet Ort oder konkretes Thema, max 100 Zeichen.
+- Beschreibung: 1–2 Sätze Zusammenfassung + CTA + Hinweis auf Kapitel, max 300 Zeichen.
+- Tags: 5–10 kommagetrennte YouTube-Keywords (ohne #), z. B. "Vanlife, Portugal, Wohnmobil, MojoBus, Camping".
+- Thumbnail-Text: max ${LONGFORM_CONFIG.thumbnailMaxWords} Wörter, groß lesbar, darf Hook ähnlich aber nicht identisch sein.`
 
 
 // ================================================================================
