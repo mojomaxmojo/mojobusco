@@ -6,7 +6,7 @@
 
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 import { FONT_FAMILY, FONT_FAMILY_REGULAR, FONT_WEIGHT, TEXT_STYLES } from './Fonts';
-import { YOUTUBE_LONGFORM_CAPTION } from '../../../src/config/captions';
+import { YOUTUBE_LONGFORM_CAPTION } from '../config/captions';
 
 interface HookTitleProps {
   title: string;

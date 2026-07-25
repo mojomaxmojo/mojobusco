@@ -7,7 +7,7 @@ import { FONT_FAMILY, FONT_FAMILY_REGULAR, FONT_WEIGHT, TEXT_STYLES } from './Fo
 import {
   splitCaptionIntoLines,
   YOUTUBE_LONGFORM_CAPTION,
-} from '../../../src/config/captions';
+} from '../config/captions';
 
 interface StoryCaptionProps {
   text: string;

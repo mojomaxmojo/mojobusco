@@ -4,9 +4,9 @@
  * Single Source of Truth für plattformspezifische Caption-Darstellung
  * im Remotion-Video-Renderer (TikTok / Reels / YouTube Longform).
  *
- * Hinweis: Diese Datei ist bewusst frei von React-Imports, damit sie
- * sowohl vom Frontend als auch vom serverseitigen Remotion-Bundle
- * importiert werden kann.
+ * Hinweis: Diese Datei liegt bewusst im Remotion-Verzeichnis, damit der
+ * serverseitige Remotion-Bundler sie auflösen kann. Sie wird nicht vom
+ * Frontend-Vite-Bundle geladen.
  */
 
 export type CaptionPlatform = 'tiktok' | 'reels' | 'youtube';
@@ -129,17 +129,4 @@ export function splitCaptionIntoLines(
   }
 
   return trimmed;
-}
-
-/**
- * Prüft, ob ein Caption-Text für YouTube Longform klassisch gerendert werden
- * soll (Vollzeile, max 2 Zeilen) oder dynamisch (Wort-für-Wort).
- */
-export function isYouTubeDynamicStyle(
-  style: string | undefined,
-  platform: CaptionPlatform
-): boolean {
-  if (platform !== 'youtube') return style === 'tiktok' || style === 'chunked';
-  // YouTube Longform bevorzugt klassische 2-Zeilen, außer explizit dynamisch.
-  return style === 'tiktok' || style === 'chunked';
 }

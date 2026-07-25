@@ -21,7 +21,7 @@ import {
   splitCaptionIntoLines,
   YOUTUBE_LONGFORM_CAPTION,
   SHORTS_CAPTION_BOTTOM,
-} from '../../../src/config/captions';
+} from '../config/captions';
 
 // ── Typen ─────────────────────────────────────────────────────────────────
 
