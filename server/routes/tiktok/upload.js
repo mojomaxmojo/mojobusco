@@ -3,8 +3,8 @@ import multer from 'multer'
 import fs from 'fs'
 import path from 'path'
 import crypto from 'crypto'
-import { sanitizeInput } from '../utils/http-helpers.js'
-import { TIKTOK_UPLOAD_DIR, TIKTOK_UPLOAD_MAX_AGE_MS } from '../config/tiktok-upload-paths.js'
+import { sanitizeInput } from '../../utils/http-helpers.js'
+import { TIKTOK_UPLOAD_DIR, TIKTOK_UPLOAD_MAX_AGE_MS } from '../../config/tiktok-upload-paths.js'
 
 const router = express.Router()
 

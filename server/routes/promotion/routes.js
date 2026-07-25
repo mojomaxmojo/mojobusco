@@ -1,61 +1,24 @@
-/**
- * Pinterest Promotion API
- * 
- * Endpunkte:
- * - POST /api/promotion/generate-pin-text → KI-generierte Pin-Texte
- * - GET  /api/promotion/articles → Artikel-Liste für Dropdown
- * - POST /api/promotion/save-pin    → Pin speichern
- * 
- * Verwendet die gleichen KI-Modelle wie server.js:
- * - Claude Sonnet 4.6 (Anthropic)
- * - Llama 4 Scout (Groq)
- */
-
 import express from 'express'
-import axios from 'axios'
 import fs from 'fs'
-
 import {
   PINS_FILE,
   STARTDATUM,
   getTagnummer,
   buildStoryTag,
-  KEYWORD_DATA,
   TEMPLATES,
   LIFESTYLE_PINTEREST_CONFIG,
-} from './routes/promotion/config.js'
-
+} from './config.js'
 import {
   sanitizeInput,
   validateApiKey,
-  safelyParseJSON,
   analyzeImageWithVision,
   parsePinJson,
-} from './routes/promotion/utils.js'
+} from './utils.js'
+import { generateWithKi } from './ai.js'
+import { getLifestyleConfig } from '../../src/config/prompts/index.js'
 
 const router = express.Router()
 
-// ── Prompts aus src/config/prompts/ importieren ──────────────────────────────
-import { getLifestyleConfig } from '../src/config/prompts/index.js'
-import { generateWithKi } from './routes/promotion/ai.js'
-
-// API ROUTEN
-// ═══════════════════════════════════════════════════════════
-
-/**
- * POST /api/promotion/generate-pin-text
- * 
- * Generiert Pinterest-optimierte Texte für einen bestimmten Template-Typ
- * 
- * Body:
- * - title: string (Artikel-Titel)
- * - summary: string (Zusammenfassung)
- * - text: string (Artikel-Text)
- * - template: string (Template-ID aus TEMPLATES)
- * - model: string ('llama4' | 'claude')
- * - lifestyle: string (Lifestyle-Key, z.B. 'perpetual-travelers')
- * - imageUrl: string (optional – aktuelle Bild-URL für Vision-Analyse)
- */
 router.post('/api/promotion/generate-pin-text', async (req, res) => {
   if (!validateApiKey()) {
     return res.status(500).json({ error: 'Server-Konfigurationsfehler: API-Key fehlt' })

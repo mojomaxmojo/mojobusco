@@ -1226,28 +1226,28 @@ export { LongformLayer };
   - [x] Schritt 6: `server/routes/promotion/ai.js` erstellt.
   - [x] Schritt 7: `server/routes/tiktok/vision.js` erstellt.
   - [x] Schritt 8: `server/routes/tiktok/text.js` erstellt.
-  - [ x] Schritt 9: `server/routes/content/vision.js` erstellt.
+  - [x] Schritt 9: `server/routes/content/vision.js` erstellt.
 
-- [x ] **Phase 3: Bot-Middleware**
-  - [ x] Schritt 10: `server/bot/relay.js` erstellt.
-  - [ x] Schritt 11: `server/bot/html.js` erstellt.
-  - [ x] Schritt 12: `server/bot/middleware.js` erstellt, `server/bot-middleware.js` gelöscht.
+- [x] **Phase 3: Bot-Middleware**
+  - [x] Schritt 10: `server/bot/relay.js` erstellt.
+  - [x] Schritt 11: `server/bot/html.js` erstellt.
+  - [x] Schritt 12: `server/bot/middleware.js` erstellt, `server/bot-middleware.js` gelöscht.
 
-- [ ] **Phase 4: Promotion-Routen**
-  - [ ] Schritt 13: `server/routes/promotion/routes.js` erstellt.
-  - [ ] Schritt 14: `server/routes/promotion/index.js` erstellt, `server/promotion-api.js` gelöscht.
+- [x] **Phase 4: Promotion-Routen**
+  - [x] Schritt 13: `server/routes/promotion/routes.js` erstellt.
+  - [x] Schritt 14: `server/routes/promotion/index.js` erstellt, `server/promotion-api.js` gelöscht.
 
-- [ ] **Phase 5: TikTok-Routen**
-  - [ ] Schritt 15: `server/routes/tiktok/upload.js` erstellt, `server/routes/tiktokUpload.js` gelöscht.
-  - [ ] `server/routes/tiktok/index.js` erstellt, `server/routes/tiktok.js` gelöscht.
+- [x] **Phase 5: TikTok-Routen**
+  - [x] Schritt 15: `server/routes/tiktok/upload.js` erstellt, `server/routes/tiktokUpload.js` gelöscht.
+  - [x] `server/routes/tiktok/index.js` erstellt, `server/routes/tiktok.js` gelöscht.
 
-- [ ] **Phase 6: Content-Routen**
-  - [ ] Schritt 16: `server/routes/content/media.js` erstellt.
-  - [ ] Schritt 17: `server/routes/content/trip.js` erstellt.
-  - [ ] Schritt 18: `server/routes/content/article.js` erstellt.
-  - [ ] Schritt 19: `server/routes/content/place.js` erstellt.
-  - [ ] Schritt 20: `server/routes/content/note.js` erstellt.
-  - [ ] Schritt 21: `server/routes/content/index.js` erstellt, `server/routes/content.js` gelöscht.
+- [x] **Phase 6: Content-Routen**
+  - [x] Schritt 16: `server/routes/content/media.js` erstellt.
+  - [x] Schritt 17: `server/routes/content/trip.js` erstellt.
+  - [x] Schritt 18: `server/routes/content/article.js` erstellt.
+  - [x] Schritt 19: `server/routes/content/place.js` erstellt.
+  - [x] Schritt 20: `server/routes/content/note.js` erstellt.
+  - [x] Schritt 21: `server/routes/content/index.js` erstellt, `server/routes/content.js` gelöscht.
 
 - [ ] **Phase 7: Video-Routen**
   - [ ] Schritt 22: `server/routes/video/helpers.js` erstellt.

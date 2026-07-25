@@ -23,10 +23,9 @@ import {
   runFfmpeg
 } from './utils/image-ffmpeg.js'
 import { generateWithModel } from './services/ai-content.js'
-import contentRouter from './routes/content.js'
+import contentRouter from './routes/content/index.js'
 import createVideoRouter from './routes/video.js'
-import tiktokRouter from './routes/tiktok.js'
-import tiktokUploadRouter from './routes/tiktokUpload.js'
+import tiktokRouter from './routes/tiktok/index.js'
 
 // ===== PROMPTS AUS src/config/prompts/ IMPORTIEREN =====
 // Alle Prompts sind zentral in src/config/prompts/ definiert
@@ -51,10 +50,10 @@ import {
   } from '../src/config/prompts/index.js'
 
 // ── Bot Meta-Tag Middleware ────────────────────────────────
-import { botMiddleware, getBotCacheStats, clearBotCache } from './bot-middleware.js'
+import { botMiddleware, getBotCacheStats, clearBotCache } from './bot/middleware.js'
 
 // ── Pinterest Promotion API ────────────────────────────────
-import promotionRouter from './promotion-api.js'
+import promotionRouter from './routes/promotion/index.js'
 
 const app = express()
 const PORT = process.env.PORT || 3002
@@ -86,10 +85,6 @@ app.use(createVideoRouter(PORT))
 // ===== TIKTOK TEXT GENERATOR ROUTEN =====
 // TikTok-Routen aus server/routes/tiktok.js
 app.use(tiktokRouter)
-
-// ===== TIKTOK UPLOAD ROUTE =====
-// Bild/Video-Upload für den Upload-Reiter in Schritt "Inhalt"
-app.use(tiktokUploadRouter)
 
 // ===== GLOBALER ERROR-HANDLER =====
 // Fängt alle unbehandelten Fehler ab und gibt immer JSON zurück (nie HTML)
