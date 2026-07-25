@@ -17,6 +17,11 @@ import React from 'react';
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 import { FONT_FAMILY, FONT_FAMILY_REGULAR, FONT_WEIGHT, TEXT_STYLES } from './Fonts';
 import { stripHeroMarkup } from './CaptionHeroWord';
+import {
+  splitCaptionIntoLines,
+  YOUTUBE_LONGFORM_CAPTION,
+  SHORTS_CAPTION_BOTTOM,
+} from '../../../src/config/captions';
 
 // ── Typen ─────────────────────────────────────────────────────────────────
 
@@ -334,13 +339,6 @@ interface PerSlideCaptionProps {
   platform?: 'tiktok' | 'reels' | 'youtube';
 }
 
-// Plattform → bottom %-Wert (Abstand vom unteren Rand)
-const CAPTION_BOTTOM: Record<string, string> = {
-  tiktok:  '20%',
-  reels:   '25%',
-  youtube: '18%',
-};
-
 export const PerSlideCaption: React.FC<PerSlideCaptionProps> = ({
   captions,
   slidesStartFrame,
@@ -372,10 +370,20 @@ export const PerSlideCaption: React.FC<PerSlideCaptionProps> = ({
   if (!captionText || !captionText.trim()) return null;
   const displayText = stripHeroMarkup(captionText);
 
+  // ── YouTube Longform: klassische 2-Zeilen-Captions mit fixen px-Werten ─
+  const isYouTube = platform === 'youtube';
+  const youtubeLines = isYouTube
+    ? splitCaptionIntoLines(
+        displayText,
+        YOUTUBE_LONGFORM_CAPTION.maxCharsPerLine,
+        YOUTUBE_LONGFORM_CAPTION.maxLines
+      )
+    : [];
+
   const words = displayText.trim().split(/\s+/).filter(Boolean);
   if (words.length === 0) return null;
 
-  // Wort-Timing innerhalb dieses Slides
+  // Wort-Timing innerhalb dieses Slides (Shorts / dynamische Styles)
   const slideFrame = frame - slideStart; // Frame innerhalb dieses Slides
   const slideDurationFrames = slidesFrames[slideIndex];
   const perWordFrames = slideDurationFrames / words.length;
@@ -392,7 +400,6 @@ export const PerSlideCaption: React.FC<PerSlideCaptionProps> = ({
   // Chunk-Fenster: 3 Wörter um das aktive herum (für 'chunked') oder alle (für 'tiktok')
   const isChunked = style === 'chunked';
   const windowSize = isChunked ? 3 : words.length;
-  const halfWindow = Math.floor(windowSize / 2);
   const chunkStart = isChunked
     ? Math.max(0, Math.min(activeWordIdx - 1, words.length - windowSize))
     : 0;
@@ -401,7 +408,53 @@ export const PerSlideCaption: React.FC<PerSlideCaptionProps> = ({
     : words.length;
   const visibleWords = words.slice(chunkStart, chunkEnd);
 
-  const bottomPos = CAPTION_BOTTOM[platform] || CAPTION_BOTTOM.tiktok;
+  const bottomPos = isYouTube
+    ? `${YOUTUBE_LONGFORM_CAPTION.bottomMarginPx}px`
+    : SHORTS_CAPTION_BOTTOM[platform] || SHORTS_CAPTION_BOTTOM.tiktok;
+
+  // YouTube Longform: feste px-Schriftgröße + Schwarz-Outline
+  if (isYouTube) {
+    const { classicFontSizePx, sideMarginPx, strokeWidthPx, strokeColor, lineHeight } =
+      YOUTUBE_LONGFORM_CAPTION;
+
+    return (
+      <AbsoluteFill style={{ pointerEvents: 'none' }}>
+        {/* Dezenter Bottom-Gradient für Lesbarkeit */}
+        <AbsoluteFill
+          style={{
+            background:
+              'linear-gradient(0deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.20) 55%, transparent 100%)',
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            bottom: bottomPos,
+            left: `${sideMarginPx}px`,
+            right: `${sideMarginPx}px`,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            textAlign: 'center',
+            fontFamily: FONT_FAMILY_REGULAR,
+            fontSize: `${classicFontSizePx}px`,
+            fontWeight: FONT_WEIGHT.bold,
+            color: '#FFFFFF',
+            lineHeight,
+            WebkitTextStroke: `${strokeWidthPx}px ${strokeColor}`,
+            textShadow: `0 2px 8px rgba(0,0,0,0.7), 0 0 ${strokeWidthPx * 2}px rgba(0,0,0,0.5)`,
+          }}
+        >
+          {youtubeLines.map((line, i) => (
+            <div key={`line-${i}`} style={{ whiteSpace: 'nowrap' }}>
+              {line}
+            </div>
+          ))}
+        </div>
+      </AbsoluteFill>
+    );
+  }
 
   return (
     <AbsoluteFill style={{ pointerEvents: 'none' }}>

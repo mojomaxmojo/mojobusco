@@ -615,6 +615,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
             position="bottom"
             style="subtitle"
             accentColor={accentColor}
+            platform={platform}
           />
         </Sequence>
       )}
@@ -635,6 +636,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
             position="bottom"
             style="minimal"
             accentColor={accentColor}
+            platform={platform}
           />
         );
       })}
