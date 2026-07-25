@@ -1,0 +1,16 @@
+export const TRANSITION_DURATION_SEC = 0.67;
+export const CTA_DURATION_SEC = 6;
+export const HOOK_EMOJI = '';
+export const HOOK_DIM_OPACITY = 0.40;
+export const LOTTE_BUS_HOOK_SIZE = 180;
+export const LOTTE_BUS_CTA_SIZE = 175;
+export const PROGRESS_BAR_HEIGHT = 3;
+export const AUDIO_WAVEFORM_BARS = 48;
+export const AUDIO_WAVEFORM_HEIGHT = 40;
+export const AUDIO_WAVEFORM_OPACITY = 0.45;
+export const MUSIC_VOLUME = 0.34;
+export const AMBIENT_VOLUME = 0.15;
+export const BEAT_SYNC_FLASH_OPACITY = 0.15;
+export const SFX_VOLUME = 0.5;
+export const CINEMATIC_LETTERBOX_ENTER_SEC = 1.0;
+export const CINEMATIC_LETTERBOX_EXIT_SEC = 0.8;

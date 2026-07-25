@@ -1,561 +1,276 @@
-# Refactoring-Plan: Modularisierung von `render.js` + `MojoBusVideo.tsx`
+# Plan: Aufteilung von `server/remotion/MojoBusVideo.tsx` in 7 kleinere Module
 
-**Ziel:** beide Dateien in kleine, getrennte Module aufteilen, ohne die Funktionalität zu verändern.  
-**Rahmen:**
-
-- `server/remotion/render.js` (Render-Orchestrator, Node.js)
-- `server/remotion/MojoBusVideo.tsx` (Remotion-Hauptkomponente)
-- Verwendende Dateien: `server/remotion/index.tsx` (Compositions-Eintrag) und `server/routes/video.js` (API-Route)
-
-**Regeln für diesen Plan:**
-
-1. Reihenfolge nach Risiko: Konstanten/Konfiguration zuerst, Helfer/Feature-Module danach, stark vernetzte Orchestrator-Dateien zuletzt.
-2. Pro Schritt **ein** auslagerbares Modul.
-3. Kein Verhalten ändern, kein Umschreiben, keine „Verbesserungen“.
-4. Sobald etwas in ein anderes Modul wandert, importiert die bisherige Datei es; re-exports bleiben erlaubt, damit Aufrufer (z. B. `index.tsx` oder `server/routes/video.js`) nicht sofort umgebaut werden müssen.
+> Ziel: Dateigröße unter ~500 Zeilen halten (AGENTS.md Regel 10), Lesbarkeit und Wartbarkeit verbessern.
+> Prinzip: reines Verschieben von Code, keine Umbenennungen, keine Logik-Änderungen.
+> Hinweis zu Config: Konstanten wandern in `server/remotion/config/`, weil der Remotion-Bundler Pfad `../../../src/config` beim Server-Deploy nicht auflösen kann (siehe bereits bestehendes `server/remotion/audioConfig.js`).
 
 ---
 
-## Schritt 1: `server/remotion/constants.js` – zentrale Konstanten
+## Schritt 1 — Konstanten & magische Zahlen
+**Neue Datei:** `server/remotion/config/renderConfig.ts`
 
-**Neue Datei:** `server/remotion/constants.js`
+**Risiko:** sehr niedrig (nur Literale, keine Logik).
 
-**Wandert dorthin (exakt):**
+**Dorthin verschieben (Zeilennummern aus MojoBusVideo.tsx):**
+- Zeile 225: Dauer-Faktor `0.67` für `TRANSITION_FRAMES`
+- Zeile 181: Dauer `6` für `ctaFrames`
+- Zeile 229: `hookEmoji = ''`
+- Zeile 523: Opacity-Wert `0.40` für `HookDimOverlay`
+- Zeile 567: `size={180}` für LottieBusIcon im Hook
+- Zeile 664: `size={175}` für LottieBusIcon in CTA
+- Zeile 697: `height={3}` für ProgressBar
+- Zeilen 709–712: `numberOfBars={48}`, `height={40}`, `opacity={0.45}` für AudioWaveformBar
+- Zeile 721: `volume={0.34}` für Musik
+- Zeile 752: `volume={0.15}` für Ambient
+- Zeile 789: `flashOpacity={0.15}` für BeatSyncLayer
+- Zeile 856: `volume={0.5}` für SfxLayer
+- Zeile 688: Dauer `1.0` für CinematicLetterbox-Einblendung
+- Zeile 690: Dauer `0.8` für CinematicLetterbox-Ausblendung
 
-- `OUTPUT_DIR`
-- `IMAGES_DIR`
-- `COMPOSITION_IDS`
-- `MIME_TYPES`
-- `FASTSTART_EXTENSIONS`
+**Imports/Exports in `renderConfig.ts`:**
+- Exporte: benannte Konstanten, z.B. `TRANSITION_DURATION_SEC`, `CTA_DURATION_SEC`, `HOOK_DIM_OPACITY`, `MUSIC_VOLUME`, `AMBIENT_VOLUME`, `SFX_VOLUME`, `BEAT_SYNC_FLASH_OPACITY`, `LOTTE_BUS_HOOK_SIZE`, `LOTTE_BUS_CTA_SIZE`, etc.
+- Keine React-Imports nötig.
 
-**Imports/Exports in der neuen Datei:**
-
-```js
-import path from 'path';
-import os from 'os';
-
-export const OUTPUT_DIR = path.join(os.tmpdir(), 'remotion-renders');
-export const IMAGES_DIR = path.join(os.tmpdir(), 'remotion-images');
-export const COMPOSITION_IDS = { ... };
-export const MIME_TYPES = { ... };
-export const FASTSTART_EXTENSIONS = new Set(['.mp4', '.mov']);
-```
-
-**Anpassung in `server/remotion/render.js`:**
-
-- Entfernen der obigen fünf Definitionen.
-- `import { OUTPUT_DIR, IMAGES_DIR, COMPOSITION_IDS, MIME_TYPES, FASTSTART_EXTENSIONS } from './constants.js';` einfügen.
-- `os` aus den Imports entfernen, falls danach nicht mehr verwendet wird.
-
-**Anpassung in `server.js` / `server/routes/video.js`:**  
-Keine, sofern `render.js` die Konstanten weiter intern nutzt.
+**Was sich in `MojoBusVideo.tsx` ändert:**
+- Oben in der Datei: Import der Konstanten hinzufügen.
+- Zeilen 181, 225, 229, 523, 567, 664, 688, 690, 697, 709–712, 721, 752, 789, 856: Hartkodierte Zahlen durch die importierten Konstanten ersetzen.
+- Keine Zeilen entfernen, nur Werte austauschen.
 
 **Testhinweis:**
-
-- Eine Render-Anfrage starten.
-- Prüfen, dass im Log weiterhin `OUTPUT_DIR`/`IMAGES_DIR` unter `/tmp/remotion-renders` bzw. `/tmp/remotion-images` erscheinen und die Composition-IDs `MojoBusVideo-16-9/9-16/1-1` unverändert sind.
+1. Im Browser zu `Video Promotion` gehen.
+2. Ein bekanntes Video (z. B. 5 Bilder, TikTok-Format) rendern.
+3. Visuell prüfen: Länge des Videos, Transitions, Lautstärke der Musik, Lottie-Bus-Größe, ProgressBar-Höhe — alles muss exakt wie vorher aussehen.
+4. Optional: Dauer des gerenderten MP4 mit vorheriger Version vergleichen.
 
 ---
 
-## Schritt 2: `server/remotion/binaries.js` – ffmpeg/ffprobe-Auflösung
+## Schritt 2 — Slide-Plan Berechnung
+**Neue Datei:** `server/remotion/slidePlan.ts`
 
-**Neue Datei:** `server/remotion/binaries.js`
+**Risiko:** niedrig (reine Berechnung, wird nur konsumiert).
 
-**Wandert dorthin (exakt):**
+**Dorthin verschieben (Zeilennummern aus MojoBusVideo.tsx):**
+- Zeilen 188–194: Interface `SlideDef`
+- Zeilen 164–172: Berechnung von `baseGroups`, `baseSlideCount`, `hasRouteMap`, `routeVisualIndex`, `totalSlideCount`
+- Zeilen 174–178: Berechnung von `slidesSec`, `slidesFrames`
+- Zeilen 196–216: Aufbau von `slideDefs`, `totalSlides`, `slideshowFrames`
+- Zeilen 218–219: `slideStartFrame`-Helfer
+- Zeilen 183–186: `routeDurFrames`
 
-- `findBinary(name)`
-- `FFMPEG_PATH`
-- `FFPROBE_PATH`
-- `FFPROBE` (Alias)
+**Imports/Exports in `slidePlan.ts`:**
+- Import: Types `SlideLayout` aus `./videoProps`, `groupImagesIntoSlides` und `findRouteSlideIndex` aus `./slideLayouts`.
+- Export: `SlideDef` Interface und `buildSlidePlan(props, fps)` Funktion.
+- `buildSlidePlan` nimmt die relevanten Props entgegen (`imageUrls`, `secondsPerImage`, `perSlideArray`, `showRouteMap`, `slideLayouts`) und `fps`, und gibt ein Objekt zurück, das alle oben genannten berechneten Werte enthält.
 
-**Imports/Exports in der neuen Datei:**
-
-```js
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { execSync } from 'child_process';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-export const findBinary = (name) => { ... };
-export const FFMPEG_PATH = process.env.FFMPEG_PATH || findBinary('ffmpeg');
-export const FFPROBE_PATH = process.env.FFPROBE_PATH || findBinary('ffprobe');
-export const FFPROBE = FFPROBE_PATH;
-```
-
-**Anpassung in `server/remotion/render.js`:**
-
-- `findBinary`, `FFMPEG_PATH`, `FFPROBE_PATH` und `const FFPROBE = FFPROBE_PATH;` entfernen.
-- `import { FFMPEG_PATH, FFPROBE_PATH, FFPROBE } from './binaries.js';` einfügen.
-- `execSync` aus den Imports entfernen, falls danach nicht mehr direkt benötigt wird.
-
-**Anpassung in `server.js` / `server/routes/video.js`:**  
-Keine.
+**Was sich in `MojoBusVideo.tsx` ändert:**
+- Oben: `import { buildSlidePlan, type SlideDef } from './slidePlan';` hinzufügen.
+- Entfernen: Zeilen 164–186, 188–194, 196–219.
+- Einfügen: `const { baseGroups, baseSlideCount, hasRouteMap, routeVisualIndex, totalSlideCount, slidesSec, slidesFrames, slideDefs, totalSlides, slideshowFrames, slideStartFrame, routeDurFrames } = buildSlidePlan({ ... }, fps);`
 
 **Testhinweis:**
-
-- Im Render-Log muss weiterhin exakt derselbe ffmpeg-Pfad auftauchen (z. B. `/usr/local/bin/ffmpeg`).
-- Ein kurzer Render-Test sollte nicht mit „ffmpeg not found“ abbrechen.
+1. Ein Video mit RouteMap aktiv rendern.
+2. Prüfen, ob die Routen-Karte an der richtigen Slide-Position erscheint.
+3. Ein Video mit `slideLayouts` (z. B. Split-Screen) rendern und prüfen, ob Slide-Dauern und Gruppierung wie vorher funktionieren.
 
 ---
 
-## Schritt 3: `server/remotion/duration.ts` – Hook-/Dauer-Konstanten
+## Schritt 3 — Cinematic-Effects-Plan
+**Neue Datei:** `server/remotion/cutEffectsPlan.ts`
 
-**Neue Datei:** `server/remotion/duration.ts`
+**Risiko:** mittel (wird von Slideshow und Cut-Effekten konsumiert).
 
-**Wandert dorthin (exakt):**
+**Dorthin verschieben (Zeilennummern aus MojoBusVideo.tsx):**
+- Zeilen 251–267: Berechnung von `fx`, `cutFx`, `matchCutMap`, `whipDir`, `locationBadgeTopPct`
 
-- `HOOK_SECONDS`
-- `getHookSeconds(platform?)`
-- `calculateDuration(...)`
+**Imports/Exports in `cutEffectsPlan.ts`:**
+- Import: `getPlatformEffects`, `pickCutEffect`, `buildMatchCutMap` aus `./components/CinematicEffects`.
+- Import: `SlideDef` aus `./slidePlan`.
+- Export: `buildCutEffectsPlan(slideDefs, platform, cinematicEffects)` die `{ fx, cutFx, matchCutMap, whipDir, locationBadgeTopPct }` zurückgibt.
 
-**Imports/Exports in der neuen Datei:**
-
-```ts
-export const HOOK_SECONDS: Record<string, number> = { ... };
-export function getHookSeconds(platform?: string): number { ... }
-export function calculateDuration(...) { ... }
-```
-
-**Anpassung in `server/remotion/MojoBusVideo.tsx`:**
-
-- Die drei Definitionen entfernen.
-- `import { getHookSeconds } from './duration';` einfügen (HOOK_SECONDS/calculateDuration braucht die Komponente selbst nicht).
-- Optional weiterhin `export { calculateDuration } from './duration';` ergänzen, damit `server/remotion/index.tsx` weiter `calculateDuration` aus `./MojoBusVideo` importieren kann.
-
-**Anpassung in `server/remotion/index.tsx`:**
-
-- Optional: stattdessen `import { calculateDuration } from './duration';` verwenden.
-
-**Anpassung in `server.js` / `server/routes/video.js`:**  
-Keine.
+**Was sich in `MojoBusVideo.tsx` ändert:**
+- Oben: `import { buildCutEffectsPlan } from './cutEffectsPlan';` hinzufügen.
+- Entfernen: Zeilen 251–267.
+- Einfügen: `const { fx, cutFx, matchCutMap, whipDir, locationBadgeTopPct } = buildCutEffectsPlan(slideDefs, platform, cinematicEffects);`
 
 **Testhinweis:**
-
-- Remotion-Player öffnen.
-- Prüfen, dass Gesamtdauer und `hookFrames` pro Plattform (TikTok 3s, Reels 4s, YouTube 5s) identisch bleiben.
+1. Video mit `cinematicEffects=true` für TikTok rendern.
+2. Prüfen, ob Zoom-Punch, WhipPan und FlashCut wie vorher auftreten.
+3. Dasselbe Video für YouTube Longform rendern und prüfen, ob Letterbox und LightLeak funktionieren.
 
 ---
 
-## Schritt 4: `server/remotion/components/HookDimOverlay.tsx` – Hook-Overlay
+## Schritt 4 — Slide-Helfer
+**Neue Datei:** `server/remotion/slideHelpers.ts`
 
-**Neue Datei:** `server/remotion/components/HookDimOverlay.tsx`
+**Risiko:** mittel (wird von Slideshow und cardFlip-Transition konsumiert).
 
-**Wandert dorthin (exakt):**
+**Dorthin verschieben (Zeilennummern aus MojoBusVideo.tsx):**
+- Zeilen 284–296: Berechnung von `heroWordWindows`
+- Zeilen 298–313: Berechnung von `previousImageUrls`
 
-- `HookDimOverlay` (interne Komponente)
+**Imports/Exports in `slideHelpers.ts`:**
+- Import: `findHeroWordWindow` aus `./components/CaptionHeroWord`, `SlideDef` aus `./slidePlan`.
+- Export: `buildHeroWordWindows(slideDefs, captions, slideStartFrame)` und `buildPreviousImageUrls(slideDefs, images)`.
 
-**Imports/Exports in der neuen Datei:**
-
-```ts
-import React from 'react';
-import { AbsoluteFill, useCurrentFrame } from 'remotion';
-
-export const HookDimOverlay: React.FC<{ opacity: number; fps: number; hookFrames: number }> = ...
-```
-
-**Anpassung in `server/remotion/MojoBusVideo.tsx`:**
-
-- `HookDimOverlay` entfernen.
-- `import { HookDimOverlay } from './components/HookDimOverlay';` einfügen.
-- `useCurrentFrame` aus den Imports entfernen (wird nur noch im Overlay verwendet).
-
-**Anpassung in `server.js` / `server/routes/video.js`:**  
-Keine.
+**Was sich in `MojoBusVideo.tsx` ändert:**
+- Oben: `import { buildHeroWordWindows, buildPreviousImageUrls } from './slideHelpers';` hinzufügen.
+- Entfernen: Zeilen 284–313.
+- Einfügen:
+  - `const heroWordWindows = buildHeroWordWindows(slideDefs, captions, slideStartFrame);`
+  - `const previousImageUrls = buildPreviousImageUrls(slideDefs, images);`
 
 **Testhinweis:**
-
-- Hook-Slide im Player ansehen.
-- Abdunkelung muss weiterhin 0.40 Opacity mit sanftem Fade-In (0,4s) und Fade-Out (0,5s) zeigen.
+1. Captions mit `**wort**`-Markup eingeben.
+2. Video rendern und prüfen, ob der Zoom-Effekt auf den markierten Wörtern wie vorher sichtbar ist.
+3. Transition-Typ `cardFlip` auswählen und rendern — das vorherige Bild soll korrekt übergeben werden.
 
 ---
 
-## Schritt 5: `server/remotion/videoProps.ts` – Props-Interface
+## Schritt 5 — Audio-Stack Komponente
+**Neue Datei:** `server/remotion/components/AudioStack.tsx`
 
-**Neue Datei:** `server/remotion/videoProps.ts`
+**Risiko:** mittel (JSX-Komponente, aber isoliert und gut testbar).
 
-**Wandert dorthin (exakt):**
+**Dorthin verschieben (Zeilennummern aus MojoBusVideo.tsx):**
+- Zeilen 717–780: sämtliche Audio-Sequenzen
+  - Schicht 11: Musik mit Duck-Windows
+  - Schicht 11b: Voiceover
+  - Schicht 11c: Ambient
+  - Schicht 11d: Hook Intro Sting + Bed
 
-- `MojoBusVideoProps` (komplettes Interface)
-- Dazugehörige Type-Imports: `ColorGrade`, `GammaFade`, `TransitionType`, `RouteCoord`, `CaptionStyle`
+**Imports/Exports in `AudioStack.tsx`:**
+- Import: `{ Sequence, useVideoConfig }` aus `remotion`, `AudioLayer` aus `./AudioLayer`, `IntroAudioLayer` aus `./IntroAudioLayer`.
+- Import: Audiokonstanten aus `../config/renderConfig` (oder aus Schritt 1).
+- Export: `AudioStack` Komponente.
+- Props: `musicUrl`, `voiceoverUrl`, `ambientUrl`, `introStingUrl`, `introBedUrl`, `voiceoverVolume`, `introStingVolume`, `introBedVolume`, `introBedFadeOutSec`, `hookFrames`, `slideshowFrames`, `videoDuckWindows`.
+- `fps` und `durationInFrames` innerhalb der Komponente via `useVideoConfig()` ermitteln.
 
-**Imports/Exports in der neuen Datei:**
-
-```ts
-import type { ColorGrade, GammaFade } from './components/ColorGradeOverlay';
-import type { TransitionType } from './components/TransitionSlideshow';
-import type { RouteCoord } from './components/RouteMapLine';
-import type { CaptionStyle } from './components/Captions';
-
-export interface MojoBusVideoProps { ... }
-```
-
-**Anpassung in `server/remotion/MojoBusVideo.tsx`:**
-
-- Interface-Definition und alle `type` Imports entfernen, die nur für das Interface benötigt wurden (`GammaFade`, `TransitionType`, `RouteCoord`, `CaptionStyle`).
-- `import { MojoBusVideoProps } from './videoProps';` einfügen.
-- Re-Export anbieten: `export { MojoBusVideoProps } from './videoProps';`
-
-**Anpassung in `server/remotion/index.tsx`:**
-
-- Optional: `type MojoBusVideoProps` direkt aus `./videoProps` importieren.
-
-**Anpassung in `server.js` / `server/routes/video.js`:**  
-Keine.
+**Was sich in `MojoBusVideo.tsx` ändert:**
+- Oben: `import { AudioStack } from './components/AudioStack';` hinzufügen.
+- Entfernen: Zeilen 717–780.
+- Einfügen: `<AudioStack musicUrl={musicUrl} voiceoverUrl={voiceoverUrl} ... />` an gleicher Stelle.
+- `AudioLayer` und `IntroAudioLayer` können aus den Imports von `MojoBusVideo.tsx` entfernt werden (wenn sie sonst nicht verwendet werden).
 
 **Testhinweis:**
-
-- `build_project` muss weiterhin fehlerfrei durchlaufen (keine TypeScript-Fehler).
-- Remotion-Player akzeptiert dieselben Props wie vorher.
+1. Video mit Musik, Voiceover, Ambient-Sound und Intro-Sting/Bed rendern.
+2. Mit Kopfhörer prüfen:
+   - Musik ist während Voiceover-Slides leise/geduckt?
+   - Voiceover startet erst nach dem Hook?
+   - Ambient ist im Hintergrund hörbar?
+   - Sting spielt am Anfang, Bed während des Hooks?
 
 ---
 
-## Schritt 6: `server/remotion/components/MediaRenderer.tsx` – Medien-Renderer + isVideo
+## Schritt 6 — Cut-Effects-Layer Komponente
+**Neue Datei:** `server/remotion/components/CutEffectsLayer.tsx`
 
-**Neue Datei:** `server/remotion/components/MediaRenderer.tsx`
+**Risiko:** hoch (JSX, wird von mehreren Stellen konsumiert).
 
-**Wandert dorthin (exakt):**
+**Dorthin verschieben (Zeilennummern aus MojoBusVideo.tsx):**
+- Zeilen 796–829: FlashCut + LightLeak (Schicht 13)
+- Zeilen 831–847: StickerPops (Schicht 14)
+- Zeilen 849–858: SfxLayer (Schicht 15)
 
-- `isVideo(url)`
-- `MediaRenderer` (interne Komponente)
+**Imports/Exports in `CutEffectsLayer.tsx`:**
+- Import: `{ Sequence, useVideoConfig }` aus `remotion`, `FlashCut`, `flashCutDuration`, `LightLeak`, `lightLeakDuration`, `getPlatformEffects` etc. aus `./CinematicEffects`, `StickerPop`, `stickerPopDuration`, `pickStickerForCut` aus `./StickerPops`, `SfxLayer`, `buildSfxCues` aus `./SfxLayer`.
+- Export: `CutEffectsLayer` Komponente.
+- Props: `cutFx`, `slideDefs`, `fx`, `slideStartFrame`, `transitionType`, ` stickersEnabled`, `sfxEnabled`, `sfxUrls`.
+- `fps` innerhalb der Komponente via `useVideoConfig()` ermitteln.
 
-**Imports/Exports in der neuen Datei:**
-
-```ts
-import React from 'react';
-import { AbsoluteFill, Sequence, Video } from 'remotion';
-import { KenBurnsImage, pickDirection } from './KenBurnsImage';
-
-export const isVideo = (url: string) => ...
-export const MediaRenderer: React.FC<{ src: string; index: number; allowAudio?: boolean; speedRamp?: boolean; slideFrames?: number }> = ...
-```
-
-**Anpassung in `server/remotion/MojoBusVideo.tsx`:**
-
-- `const isVideo = ...` und `const MediaRenderer = ...` entfernen.
-- `import { MediaRenderer, isVideo } from './components/MediaRenderer';` einfügen.
-- `Video`, `Sequence` und `KenBurnsImage`, `pickDirection` aus den Imports entfernen (werden nur noch im MediaRenderer verwendet). `Sequence` nutzt die Hauptkomponente weiterhin.
-- Aufrufstellen anpassen:
-  - `<MediaRenderer src={images[0]} index={0} />`
-  - `<MediaRenderer src={images[d.imageIdx]} index={def.imageIdx + 1} allowAudio={keepOriginalAudio} speedRamp={speedRampEnabled} slideFrames={thisSlideFrames} />`
-  - `<MediaRenderer src={images[imageCount - 1]} index={imageCount + 1} />`
-
-**Anpassung in `server.js` / `server/routes/video.js`:**  
-Keine.
+**Was sich in `MojoBusVideo.tsx` ändert:**
+- Oben: `import { CutEffectsLayer } from './components/CutEffectsLayer';` hinzufügen.
+- Entfernen: Zeilen 796–858.
+- Einfügen: `<CutEffectsLayer cutFx={cutFx} slideDefs={slideDefs} fx={fx} slideStartFrame={slideStartFrame} transitionType={transitionType} stickersEnabled={stickersEnabled} sfxEnabled={sfxEnabled} sfxUrls={sfxUrls} />` an gleicher Stelle.
+- Importe für FlashCut, LightLeak, StickerPop, SfxLayer aus `MojoBusVideo.tsx` entfernen (wenn nicht anderweitig verwendet).
 
 **Testhinweis:**
-
-- Ein Video-Clip, ein Bild und Speed-Ramp müssen weiterhin korrekt ausgespielt werden.
-- `keepOriginalAudio=true` duckt Musik/Atmo weiterhin in Video-Slides.
+1. Ein Video mit `cinematicEffects=true`, `stickersEnabled=true` und `sfxEnabled=true` rendern.
+2. Frame für Frame durchskippen (z. B. im VLC per Pfeiltaste) und prüfen:
+   - An jedem Slide-Cut ein kurzer Blitz (FlashCut) oder LightLeak?
+   - Sticker/Emoji erscheinen kurz an den Cuts?
+   - Whoosh/Impact-Sound ist an den Cuts hörbar?
 
 ---
 
-## Schritt 7: `server/remotion/mediaServer.js` – lokaler HTTP-Bildserver
+## Schritt 7 — Slideshow-Layer Komponente
+**Neue Datei:** `server/remotion/components/SlideshowLayer.tsx`
 
-**Neue Datei:** `server/remotion/mediaServer.js`
+**Risiko:** hoch (komplexeste JSX-Logik, viele Props).
 
-**Wandert dorthin (exakt):**
+**Dorthin verschieben (Zeilennummern aus MojoBusVideo.tsx):**
+- Zeilen 321–516: der gesamte Block "Bilder + Color Grade mit Beat Velocity Punch" minus den umschließenden `BeatVelocityPunch`/`ColorGradeWrapper` (nur der innere Inhalt)
+  - Zeilen 332–342: Hook-Hintergrund-Bild
+  - Zeilen 344–501: Slideshow `.map()` mit allen Transitionen und Cinematic Effects
+  - Zeilen 503–510: CTA-Hintergrund-Bild
 
-- `startImageServer(serveDir)`
+**Imports/Exports in `SlideshowLayer.tsx`:**
+- Import: `{ Sequence }` aus `remotion`, `ColorGradeWrapper` aus `./ColorGradeOverlay`, `MediaRenderer` aus `./MediaRenderer`, `FadeIn`, `FadeOut` aus `./CrossFade`, `PhotoDumpLayout` aus `./PhotoDumpLayout`, `TransitionWrapper`, `CardFlipTransition` aus `./TransitionSlideshow`, `RouteMapLine` aus `./RouteMapLine`, `ZoomPunchWrapper`, `WhipPanWrapper`, `MatchCutZoomWrapper` aus `./CinematicEffects`.
+- Import: Konstanten aus `../config/renderConfig`.
+- Export: `SlideshowLayer` Komponente.
+- Props: `images`, `slideDefs`, `slideStartFrame`, `transitionType`, `fx`, `cutFx`, `matchCutMap`, `whipDir`, `heroWordWindows`, `previousImageUrls`, `effectiveRouteCoords`, `mapImageUrl`, `accentColor`, `keepOriginalAudio`, `speedRampEnabled`, `platform`, `hookFrames`, `slideshowFrames`, `ctaFrames`, `grade`.
 
-**Imports/Exports in der neuen Datei:**
-
-```js
-import fs from 'fs';
-import path from 'path';
-import { createServer } from 'http';
-import { MIME_TYPES } from './constants.js';
-
-export function startImageServer(serveDir) { ... }
-```
-
-**Anpassung in `server/remotion/render.js`:**
-
-- `startImageServer` und `MIME_TYPES` entfernen.
-- `import { startImageServer } from './mediaServer.js';` einfügen.
-- `createServer` und `http` aus den Imports entfernen.
-
-**Anpassung in `server.js` / `server/routes/video.js`:**  
-Keine.
+**Was sich in `MojoBusVideo.tsx` ändert:**
+- Oben: `import { SlideshowLayer } from './components/SlideshowLayer';` hinzufügen.
+- Entfernen: Zeilen 321–516 (innerhalb von `ColorGradeWrapper`).
+- Einfügen: `<SlideshowLayer images={images} slideDefs={slideDefs} ... />` innerhalb von `ColorGradeWrapper`.
+- `ColorGradeWrapper`, `MediaRenderer`, `FadeIn`, `FadeOut`, `PhotoDumpLayout`, `TransitionWrapper`, `CardFlipTransition`, `RouteMapLine`, `ZoomPunchWrapper`, `WhipPanWrapper`, `MatchCutZoomWrapper` können aus den Imports von `MojoBusVideo.tsx` entfernt werden (wenn nicht anderweitig verwendet).
 
 **Testhinweis:**
-
-- Render-Log zeigt weiterhin `Bild-Server läuft auf http://127.0.0.1:<port>`.
-- Größere MP4-Clips (>10 MB) rendern weiterhin ohne `delayRender`-Timeout (Range-Requests 206).
-
----
-
-## Schritt 8: `server/remotion/mediaDownload.js` – Download-/Faststart-Logik
-
-**Neue Datei:** `server/remotion/mediaDownload.js`
-
-**Wandert dorthin (exakt):**
-
-- `getImageExtension(url, contentType)`
-- `downloadFileWithType(url, destPath, attempt = 1)`
-- `ensureFaststart(filePath)`
-- `downloadAllImages(imageUrls, sessionDir)`
-- `downloadAudioFile(url, sessionDir, localMusicDir)`
-- `downloadMapImage(url, sessionDir)`
-
-**Imports/Exports in der neuen Datei:**
-
-```js
-import fs from 'fs';
-import path from 'path';
-import http from 'http';
-import https from 'https';
-import { execFile } from 'child_process';
-import { promisify } from 'util';
-import { FFMPEG_PATH, FFPROBE_PATH } from './binaries.js';
-import { FASTSTART_EXTENSIONS } from './constants.js';
-
-const execFileAsync = promisify(execFile);
-
-export function getImageExtension(...) { ... }
-export function downloadFileWithType(...) { ... }
-export async function ensureFaststart(filePath) { ... }
-export async function downloadAllImages(imageUrls, sessionDir) { ... }
-export async function downloadAudioFile(url, sessionDir, localMusicDir) { ... }
-export async function downloadMapImage(url, sessionDir) { ... }
-```
-
-**Anpassung in `server/remotion/render.js`:**
-
-- Alle oben genannten Funktionen und `downloadFileWithType`-Helfer entfernen.
-- `import { downloadAllImages, downloadAudioFile, downloadMapImage } from './mediaDownload.js';` einfügen.
-- `http`, `https` und `promisify`/`util` aus den Imports entfernen, falls danach nicht mehr benötigt.
-
-**Anpassung in `server.js` / `server/routes/video.js`:**  
-Keine.
-
-**Testhinweis:**
-
-- Render starten.
-- Logs für Bilder/Audio/Karten-Downloads identisch.
-- hochgeladene HEVC-Videos werden weiterhin zu H.264 + Faststart re-encoded.
+1. Ein Video mit verschiedenen Transitionen (Fade, Wipe, CardFlip) rendern.
+2. Prüfen, ob alle Bilder in der richtigen Reihenfolge erscheinen.
+3. Bei `showRouteMap=true`: Routen-Karte wird korrekt eingeblendet?
+4. CTA-Hintergrund zeigt das letzte Bild?
+5. Vergleich mit einem vorher gerenderten Video (Frame-Count, Bildfolge, Effekte).
 
 ---
 
-## Schritt 9: `server/remotion/voiceover.js` – Voiceover-Generierung + Concat
+## Ergebnis nach allen Schritten
 
-**Neue Datei:** `server/remotion/voiceover.js`
+`MojoBusVideo.tsx` enthält danach hauptsächlich:
+- Imports
+- Destrukturierung der Props
+- `useVideoConfig()`
+- Aufruf der Plan-Builder (`buildSlidePlan`, `buildCutEffectsPlan`, etc.)
+- Den `return`-Block mit den Schichten-Komponenten:
+  - `<LoadFonts />`
+  - `<BeatVelocityPunch>` umschließt `<ColorGradeWrapper>` mit `<SlideshowLayer />`
+  - `<ColorGradeOverlay />`
+  - `</BeatVelocityPunch>`
+  - `<HookDimOverlay />`
+  - `<HookTitle />`
+  - `<LocationBadge />`
+  - LottieBusIcon (Hook)
+  - `<PerSlideCaption />`
+  - Summary / manuelle Captions
+  - `<MojoBusCTA />`
+  - LottieBusIcon (CTA)
+  - `<CinematicLetterbox />`
+  - `<ProgressBar />`
+  - `<AudioWaveformBar />`
+  - `<AudioStack />`
+  - `<BeatSyncLayer />`
+  - `<CutEffectsLayer />`
 
-**Wandert dorthin (exakt):**
-
-- `generateVoiceoverSegments(segments, voiceoverModel, voiceoverSpeed, effectiveEngine, sessionDir)`
-- `concatVoiceoverSegments(segments, sessionDir, hookDurationSec, secondsPerImage, bridgeDurationSec, muteBodyIndex, routeSlideIndex, routeDuration, videoDurations)`
-- `MAX_TTS_CHARS`
-
-**Imports/Exports in der neuen Datei:**
-
-```js
-import fs from 'fs';
-import path from 'path';
-import { execFile } from 'child_process';
-import { promisify } from 'util';
-import { FFMPEG_PATH, FFPROBE } from './binaries.js';
-
-const execFileAsync = promisify(execFile);
-
-async function generateVoiceoverSegments(...) { ... }
-async function concatVoiceoverSegments(...) { ... }
-
-export { generateVoiceoverSegments, concatVoiceoverSegments };
-```
-
-**Anpassung in `server/remotion/render.js`:**
-
-- Beide Voiceover-Funktionen und `MAX_TTS_CHARS` entfernen.
-- `import { generateVoiceoverSegments, concatVoiceoverSegments } from './voiceover.js';` einfügen.
-
-**Anpassung in `server.js` / `server/routes/video.js`:**  
-Keine.
-
-**Testhinweis:**
-
-- Voiceover-Render starten.
-- Prüfen, dass `voiceover_sync.mp3` generiert wird und die `perSlideArray`-Werte im Log identisch sind.
-- Leere Segmente (Stille-Slides) bleiben an derselben Position.
+Zielgröße: `MojoBusVideo.tsx` ca. 150–250 Zeilen.
 
 ---
 
-## Schritt 10: `server/remotion/chrome.js` – Chrome/Chromium-Setup
+## Checkliste zum Abhaken
 
-**Neue Datei:** `server/remotion/chrome.js`
-
-**Wandert dorthin (exakt):**
-
-- `findAndFixChrome()`
-- `CHROME_PATH`
-- `CHROMIUM_OPTIONS`
-- `ensureChromeBinary()`
-
-**Imports/Exports in der neuen Datei:**
-
-```js
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { execSync } from 'child_process';
-import { ensureBrowser } from '@remotion/renderer';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-export const CHROMIUM_OPTIONS = { ... };
-export let CHROME_PATH = null; // bzw. const-Initialisierung wie bisher
-export function ensureChromeBinary() { ... }
-// Initialaufruf beibehalten
-ensureChromeBinary().catch(() => {});
-```
-
-**Anpassung in `server/remotion/render.js`:**
-
-- `findAndFixChrome`, `CHROME_PATH`, `CHROMIUM_OPTIONS`, `ensureChromeBinary()` entfernen.
-- `import { CHROME_PATH, CHROMIUM_OPTIONS } from './chrome.js';` einfügen.
-- `ensureBrowser` und `execSync` aus den Imports entfernen.
-
-**Anpassung in `server.js` / `server/routes/video.js`:**  
-Keine.
-
-**Testhinweis:**
-
-- Render starten.
-- Im Log muss weiterhin derselbe Chrome-Pfad gefunden und „Chrome bereit“ ausgegeben werden.
-
----
-
-## Schritt 11: `server/remotion/bundle.js` – Remotion-Bundle-Cache
-
-**Neue Datei:** `server/remotion/bundle.js`
-
-**Wandert dorthin (exakt):**
-
-- `bundleCache` / `isBundling` / `bundleQueue` / `bundleAttempts`
-- `getBundledEntry()`
-- `invalidateBundleCache()`
-
-**Imports/Exports in der neuen Datei:**
-
-```js
-import { bundle } from '@remotion/bundler';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-let bundleCache = null;
-let isBundling = false;
-let bundleQueue = [];
-let bundleAttempts = 0;
-
-export async function getBundledEntry() { ... }
-export function invalidateBundleCache() { ... }
-```
-
-**Anpassung in `server/remotion/render.js`:**
-
-- Caching-Variablen, `getBundledEntry`, `invalidateBundleCache` entfernen.
-- `import { getBundledEntry, invalidateBundleCache } from './bundle.js';` einfügen.
-- Re-Export beibehalten, damit `server/routes/video.js` weiter `renderer.invalidateBundleCache()` verwenden kann:
-  ```js
-  export { invalidateBundleCache } from './bundle.js';
-  ```
-- `bundle` aus den Imports entfernen.
-
-**Anpassung in `server.js` / `server/routes/video.js`:**
-
-- Keine, sofern `render.js` `invalidateBundleCache` weiter exportiert.
-- **Alternative:** `import { invalidateBundleCache } from '../remotion/bundle.js';` direkt in `video.js` einfügen und den Re-Export weglassen.
-
-**Testhinweis:**
-
-- Erster Render baut Bundle; zweiter Render nutzt Bundle-Cache (deutlich schneller).
-- Der Admin/Invalidate-Endpoint setzt den Cache weiterhin zurück.
-
----
-
-## Schritt 12: `server/remotion/MojoBusVideo.tsx` – Restkomponente aufgeräumt
-
-**Dies ist kein neues Modul, sondern die abschließende Bereinigung der Hauptkomponente.**
-
-**Was in `server/remotion/MojoBusVideo.tsx` bleibt:**
-
-- Nur die Hauptkomponente `MojoBusVideo` mit allen 15+ Layern.
-- Imports der zuvor extrahierten Module:
-  ```ts
-  import { getHookSeconds } from './duration';
-  import { MojoBusVideoProps } from './videoProps';
-  export { MojoBusVideoProps } from './videoProps';
-  import { HookDimOverlay } from './components/HookDimOverlay';
-  import { MediaRenderer, isVideo } from './components/MediaRenderer';
-  ```
-- `MediaRenderer` Aufrufe anpassen, falls nicht bereits in Schritt 6 passiert.
-
-**Anpassung in `server.js` / `server/routes/video.js`:**  
-Keine.
-
-**Testhinweis:**
-
-- Remotion-Player öffnen.
-- Visuelle Prüfung aller Schichten: Hook-Titel, Slideshow mit Übergängen, RouteMap, CTA, Lottie-Bus, Letterbox, ProgressBar, Waveform, Captions (Auto + manuell), Audio, Beat-Sync, Sticker/SFX.
-- Das generierte Video muss pixel-identisch zur Vorgängerversion aussehen.
-
----
-
-## Schritt 13: `server/remotion/render.js` – Render-Orchestrator aufgeräumt
-
-**Dies ist kein neues Modul, sondern die abschließende Bereinigung der Render-Datei.**
-
-**Was in `server/remotion/render.js` bleibt:**
-
-- `renderMojoBusVideo(params)`
-- `cleanupRender(outputPath)`
-- `cleanupOldRenders(maxAgeMs = 24h)`
-- Imports aller neuen Module:
-  ```js
-  import { OUTPUT_DIR, IMAGES_DIR, COMPOSITION_IDS } from './constants.js';
-  import { FFMPEG_PATH, FFPROBE_PATH, FFPROBE } from './binaries.js';
-  import { generateVoiceoverSegments, concatVoiceoverSegments } from './voiceover.js';
-  import { downloadAllImages, downloadAudioFile, downloadMapImage } from './mediaDownload.js';
-  import { startImageServer } from './mediaServer.js';
-  import { CHROME_PATH, CHROMIUM_OPTIONS } from './chrome.js';
-  import { getBundledEntry } from './bundle.js';
-  import { measureSlideVideoDurations } from './videoDuration.js';
-  import { generateAmbient } from './ambient.js';
-  import { generateSfx, SFX_TYPES } from './sfx.js';
-  import { normalizeRenderedVideo } from './audioNormalize.js';
-  ```
-
-**Anpassung in `server.js` / `server/routes/video.js`:**
-
-- `import remotionRenderer from '../remotion/render.js';` bleibt unverändert, da `renderMojoBusVideo`, `cleanupRender`, `cleanupOldRenders` und ggf. `invalidateBundleCache` weiterhin über `render.js` erreichbar sind.
-- **Alternative:** Falls gewünscht, die Cleanup-Funktionen direkt aus einem neuen `server/remotion/cleanup.js` exportieren und in `video.js` importieren.
-
-**Testhinweis (wichtiger End-to-End-Check):**
-
-1. In der App einen vollständigen Remotion-Render anstoßen (z. B. `/api/render-remotion`).
-2. Erfolg prüfen: `outputPath` zeigt auf `/tmp/remotion-renders/mojobus-<session>.mp4`.
-3. Dateigröße, Länge (Sekunden) und fertige MP4 mit Libx264/AAC vergleichen.
-4. Keine neuen Fehler in den Server-Logs.
-
----
-
-## Checkliste
-
-- [x] Schritt 1: `constants.js` erstellt, `render.js` nutzt Imports
-- [x] Schritt 2: `binaries.js` erstellt, `render.js` nutzt ffmpeg/ffprobe davon
-- [x] Schritt 3: `duration.ts` erstellt, `MojoBusVideo.tsx`/`index.tsx` angepasst
-- [x] Schritt 4: `components/HookDimOverlay.tsx` erstellt, `MojoBusVideo.tsx` importiert es
-- [x] Schritt 5: `videoProps.ts` erstellt, `MojoBusVideo.tsx` importiert/re-exportiert es
-- [x] Schritt 6: `components/MediaRenderer.tsx` erstellt, `isVideo` dort exportiert, Aufrufe in `MojoBusVideo.tsx` aktualisiert
-- [x] Schritt 7: `mediaServer.js` erstellt, `render.js` importiert `startImageServer`
-- [x] Schritt 8: `mediaDownload.js` erstellt, Download-Helpers in `render.js` entfernt
-- [x] Schritt 9: `voiceover.js` erstellt, Voiceover-Logik in `render.js` entfernt
-- [x] Schritt 10: `chrome.js` erstellt, Chrome-Setup in `render.js` entfernt
-- [x] Schritt 11: `bundle.js` erstellt, Bundle-Cache + `invalidateBundleCache` in `render.js` entfernt
-- [x] Schritt 12: `MojoBusVideo.tsx` enthält ausschließlich die Hauptkomponente
-- [x] Schritt 13: `render.js` enthält ausschließlich den Render-Orchestrator
-- [ ] `build_project` fehlerfrei
-- [ ] Ein vollständiger Remotion-Render im Browser erfolgreich und visuell unverändert
+- [x] Schritt 1: `server/remotion/config/renderConfig.ts` angelegt, Konstanten verschoben, Werte in `MojoBusVideo.tsx` ersetzt.
+- [ ] Schritt 1 getestet: Build läuft, ein Standard-Video sieht unverändert aus.
+- [ ] Schritt 2: `server/remotion/slidePlan.ts` angelegt, Slide-Berechnungen verschoben.
+- [ ] Schritt 2 getestet: RouteMap-Video rendert korrekt.
+- [ ] Schritt 3: `server/remotion/cutEffectsPlan.ts` angelegt, Cinematic-Plan verschoben.
+- [ ] Schritt 3 getestet: TikTok + YouTube Longform mit Effects rendern korrekt.
+- [ ] Schritt 4: `server/remotion/slideHelpers.ts` angelegt, Hero-Word + Previous-Image verschoben.
+- [ ] Schritt 4 getestet: `**wort**`-Zoom und `cardFlip`-Transition funktionieren.
+- [ ] Schritt 5: `server/remotion/components/AudioStack.tsx` angelegt, Audio-Sequenzen verschoben.
+- [ ] Schritt 5 getestet: Musik, Voiceover, Ambient, Sting, Bed hörbar wie vorher.
+- [ ] Schritt 6: `server/remotion/components/CutEffectsLayer.tsx` angelegt, Cut-Effekte verschoben.
+- [ ] Schritt 6 getestet: FlashCut, LightLeak, Sticker, SFX sichtbar/hörbar.
+- [ ] Schritt 7: `server/remotion/components/SlideshowLayer.tsx` angelegt, Slideshow verschoben.
+- [ ] Schritt 7 getestet: Slide-Folge, Transitionen und RouteMap stimmen.
+- [ ] Gesamttest: Zwei komplette Videos (TikTok + YouTube Longform) mit allen Features rendern und mit vorheriger Version visuell vergleichen.
+- [ ] `build_project` nach jedem Schritt fehlerfrei.
+- [ ] Nach Abschluss aller Schritte commit durchgeführt.

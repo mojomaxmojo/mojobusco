@@ -72,6 +72,24 @@ import { pickStickerForCut, StickerPop, stickerPopDuration } from './components/
 import { buildSfxCues, SfxLayer } from './components/SfxLayer';
 import { findHeroWordWindow } from './components/CaptionHeroWord';
 import { IntroAudioLayer } from './components/IntroAudioLayer';
+import {
+  TRANSITION_DURATION_SEC,
+  CTA_DURATION_SEC,
+  HOOK_EMOJI,
+  HOOK_DIM_OPACITY,
+  LOTTE_BUS_HOOK_SIZE,
+  LOTTE_BUS_CTA_SIZE,
+  PROGRESS_BAR_HEIGHT,
+  AUDIO_WAVEFORM_BARS,
+  AUDIO_WAVEFORM_HEIGHT,
+  AUDIO_WAVEFORM_OPACITY,
+  MUSIC_VOLUME,
+  AMBIENT_VOLUME,
+  BEAT_SYNC_FLASH_OPACITY,
+  SFX_VOLUME,
+  CINEMATIC_LETTERBOX_ENTER_SEC,
+  CINEMATIC_LETTERBOX_EXIT_SEC,
+} from './config/renderConfig';
 
 import { MojoBusVideoProps } from './videoProps';
 export { MojoBusVideoProps } from './videoProps';
@@ -178,7 +196,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
   const slidesFrames = slidesSec.map(s => Math.round(s * fps));
 
   const hookFrames = getHookSeconds(platform) * fps;
-  const ctaFrames  = 6 * fps;
+  const ctaFrames  = CTA_DURATION_SEC * fps;
 
   // Route-Dauer aus slidesFrames (enthält bereits RouteMap an routeVisualIndex)
   const routeDurFrames = hasRouteMap
@@ -222,11 +240,11 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
   const perSlide = Math.round((perSlideArray?.[0] || secondsPerImage) * fps);
 
   // ── Transition: 20 Frames (0.67s bei 30fps) — sanftes Überblenden
-  const TRANSITION_FRAMES = Math.round(fps * 0.67); // ~20 Frames @ 30fps
+  const TRANSITION_FRAMES = Math.round(fps * TRANSITION_DURATION_SEC); // ~20 Frames @ 30fps
 
   // Emoji standardmäßig AUS – roher Foster-Look. Das Bild + der Text sind der Hook,
   // ein Emoji darüber wirkt wie Template-Content und bricht die Authentizität.
-  const hookEmoji = '';
+  const hookEmoji = HOOK_EMOJI;
 
   const hasCaptions = captionStyle !== 'off' && captions.length > 0;
 
@@ -520,7 +538,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
            gut lesbar ist. Opacity 0.40 = Bild bleibt als visueller Hook wirksam,
            Text-Kontrast kommt zusätzlich vom radialen Gradient im HookTitle. */}
       <Sequence from={0} durationInFrames={hookFrames}>
-        <HookDimOverlay opacity={0.40} fps={fps} hookFrames={hookFrames} />
+        <HookDimOverlay opacity={HOOK_DIM_OPACITY} fps={fps} hookFrames={hookFrames} />
       </Sequence>
 
       {/* ══ SCHICHT 4: Hook Titel (plattformabhängige Dauer) ═══════════════════
@@ -564,7 +582,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
         <Sequence from={Math.round(fps * 0.4)} durationInFrames={hookFrames - Math.round(fps * 0.4)}>
           <AbsoluteFill style={{ pointerEvents: 'none' }}>
             <LottieBusIcon
-              size={180}
+              size={LOTTE_BUS_HOOK_SIZE}
               accentColor={accentColor}
               driveIn={true}
               driveInPath="curve-down"
@@ -661,7 +679,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
         >
           <AbsoluteFill style={{ pointerEvents: 'none' }}>
             <LottieBusIcon
-              size={175}
+              size={LOTTE_BUS_CTA_SIZE}
               accentColor={accentColor}
               driveIn={true}
               driveInPath="curve-down"
@@ -685,16 +703,16 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
       {fx.letterboxPct > 0 && (
         <CinematicLetterbox
           barPct={fx.letterboxPct}
-          enterFrames={Math.round(fps * 1.0)}
+          enterFrames={Math.round(fps * CINEMATIC_LETTERBOX_ENTER_SEC)}
           exitStartFrame={hookFrames + slideshowFrames}
-          exitFrames={Math.round(fps * 0.8)}
+          exitFrames={Math.round(fps * CINEMATIC_LETTERBOX_EXIT_SEC)}
         />
       )}
 
       {/* ══ SCHICHT 10: Progress Bar ══════════════════════════════════════════ */}
       <ProgressBar
         color={accentColor}
-        height={3}
+        height={PROGRESS_BAR_HEIGHT}
         position="top"
         startFrame={hookFrames}
         endFrame={hookFrames + slideshowFrames}
@@ -706,10 +724,10 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
           <AudioWaveformBar
             musicUrl={musicUrl}
             accentColor={accentColor}
-            numberOfBars={48}
+            numberOfBars={AUDIO_WAVEFORM_BARS}
             position="bottom"
-            height={40}
-            opacity={0.45}
+            height={AUDIO_WAVEFORM_HEIGHT}
+            opacity={AUDIO_WAVEFORM_OPACITY}
           />
         </Sequence>
       )}
@@ -718,7 +736,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
       {musicUrl && (
         <AudioLayer
           src={musicUrl}
-          volume={0.34}
+          volume={MUSIC_VOLUME}
           fadeInSec={0.4}
           duckWindows={[
             // Wenn ein Hook Bed aktiv ist, wird die Haupt-Musik während des
@@ -749,7 +767,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
       {ambientUrl && (
         <AudioLayer
           src={ambientUrl}
-          volume={0.15}
+          volume={AMBIENT_VOLUME}
           fadeInSec={0.5}
           fadeOutSec={3}
           duckWindows={videoDuckWindows}
@@ -786,7 +804,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
             musicUrl={musicUrl}
             beatThreshold={beatThreshold}
             accentColor={accentColor}
-            flashOpacity={0.15}
+            flashOpacity={BEAT_SYNC_FLASH_OPACITY}
             strength={beatSyncStrength}
             fallbackBeats={fallbackBeats}
           />
@@ -853,7 +871,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
         <SfxLayer
           cues={buildSfxCues(cutFx, slideDefs.map((_, i) => slideStartFrame(i)), transitionType)}
           sfxUrls={sfxUrls}
-          volume={0.5}
+          volume={SFX_VOLUME}
         />
       )}
 
