@@ -15,7 +15,7 @@ import {
   parsePinJson,
 } from './utils.js'
 import { generateWithKi } from './ai.js'
-import { getLifestyleConfig } from '../../src/config/prompts/index.js'
+import { getLifestyleConfig } from '../../../src/config/prompts/index.js'
 
 const router = express.Router()
 
