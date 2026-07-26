@@ -1,6 +1,5 @@
 import express from 'express'
 import multer from 'multer'
-import axios from 'axios'
 import {
   getLifestyleConfig,
   generateTripPrompt,
@@ -53,17 +52,15 @@ router.post('/api/generate-trip', (req, res, next) => {
   try {
     const lifestyleConfig = getLifestyleConfig(lifestyle)
 
-    // ===== BILDER ANALYSIEREN – Google Gemini 2.5 Flash via OpenRouter =====
+    // ===== BILDER ANALYSIEREN – Qwen 2.5 VL → Gemini 2.5 Flash via OpenRouter =====
     // Batching in 4er-Gruppen um Rate-Limits zu umgehen, bis zu 20 Bilder
-    // Fallback auf Groq wenn OPENROUTER_API_KEY fehlt
     const MAX_IMAGES_TO_ANALYZE = 20
     const MAX_IMAGE_BYTES = 2 * 1024 * 1024  // 2MB max pro Bild (schneller, weniger RAM)
     const BATCH_SIZE = 4  // 4 Bilder pro Batch paralell
     const imagesToAnalyze = images.slice(0, MAX_IMAGES_TO_ANALYZE)
-    const useGemini = !!process.env.OPENROUTER_API_KEY
-    console.log(`[KI] Analysiere ${imagesToAnalyze.length} von ${images.length} Bildern via ${useGemini ? 'Gemini 2.5 Flash (OpenRouter)' : 'Groq Llama-4 (Fallback)'} – Batching (4er-Gruppen)`)
+    console.log(`[KI] Analysiere ${imagesToAnalyze.length} von ${images.length} Bildern via Qwen 2.5 VL → Gemini 2.5 Flash (OpenRouter) – Batching (4er-Gruppen)`)
 
-    // Einzelnes Bild analysieren: Gemini preferred, Groq als Fallback
+    // Einzelnes Bild analysieren: Qwen 2.5 VL → Gemini 2.5 Flash via OpenRouter
     const analyzeOneBild = async (img, index) => {
       if (img.buffer.length > MAX_IMAGE_BYTES) {
         console.warn(`[KI] Bild ${index + 1} zu groß (${(img.buffer.length/1024/1024).toFixed(1)}MB > 2MB), überspringe`)
@@ -74,45 +71,13 @@ router.post('/api/generate-trip', (req, res, next) => {
       const sizeKB   = (img.size / 1024).toFixed(0)
       const prompt   = getTripImageAnalysisPrompt(lifestyleConfig, tripLength, tripType)
 
-      // ── Gemini 2.5 Flash via OpenRouter ─────────────────────────────────
-      if (useGemini) {
-        try {
-          console.log(`[KI] Gemini Bild ${index + 1}/${imagesToAnalyze.length}: ${sizeKB}KB`)
-          const r = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
-            model: 'google/gemini-2.5-flash',
-            messages: [{
-              role: 'user',
-              content: [
-                { type: 'text', text: prompt },
-                { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64}` } }
-              ]
-            }],
-            max_tokens: 150,
-            temperature: 0.7
-          }, {
-            headers: {
-              'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-              'Content-Type': 'application/json'
-            },
-            timeout: 60000
-          })
-          return r.data.choices[0].message.content
-        } catch (geminiErr) {
-          const status = geminiErr.response?.status
-          const msg    = geminiErr.response?.data?.error?.message || geminiErr.message
-          console.warn(`[KI] Gemini Bild ${index + 1} fehlgeschlagen (HTTP ${status}): ${msg} – versuche Groq Fallback`)
-          // Weiter zum Groq-Fallback
-        }
-      }
-
-      // ── Groq Llama-4-Scout Fallback ─────────────────────────────────────
+      console.log(`[KI] Vision Bild ${index + 1}/${imagesToAnalyze.length}: ${sizeKB}KB`)
       try {
-        console.log(`[KI] Groq Fallback Bild ${index + 1}/${imagesToAnalyze.length}: ${sizeKB}KB`)
-        return await analyzeImageBase64(base64, 'image/jpeg', prompt, 120)
-      } catch (groqErr) {
-        const status = groqErr.response?.status
-        const msg    = groqErr.response?.data?.error?.message || groqErr.message
-        console.warn(`[KI] Groq Bild ${index + 1} fehlgeschlagen (HTTP ${status}): ${msg}`)
+        return await analyzeImageBase64(base64, mimeType, prompt, 150)
+      } catch (visionErr) {
+        const status = visionErr.response?.status
+        const msg    = visionErr.response?.data?.error?.message || visionErr.message
+        console.warn(`[KI] Vision Bild ${index + 1} fehlgeschlagen (HTTP ${status}): ${msg}`)
         if (status === 429) return '(Rate-Limit – bitte erneut versuchen)'
         return '(Bild nicht analysierbar)'
       }
@@ -138,7 +103,7 @@ router.post('/api/generate-trip', (req, res, next) => {
       }
     }
 
-    console.log(`[KI] ${imageDescriptions.length} Bilder analysiert (${useGemini ? 'Gemini' : 'Groq'})`)
+    console.log(`[KI] ${imageDescriptions.length} Bilder analysiert (Qwen 2.5 VL → Gemini 2.5 Flash)`)
 
     // ===== TRIP-ZUSAMMENFASSUNG GENERIEREN =====
     const tripPrompt = generateTripPrompt({

@@ -6,70 +6,79 @@ const router = express.Router()
 
 // ══════════════════════════════════════════════════════════════════════
 // POST /api/tiktok/analyze-images
-// Analysiert Bild-URLs via Vision-KI (Groq → OpenRouter Fallback)
+// Analysiert Bild-URLs via Vision-KI (Qwen 2.5 VL → Gemini 2.5 Flash)
 // Body: { imageUrls: string[], existingContexts?: string[] }
 // Response: { descriptions: string[] }  – eine Beschreibung pro Bild
 // ══════════════════════════════════════════════════════════════════════
 
-// Eine Bild-URL analysieren – Groq Vision zuerst, dann OpenRouter Fallback
-async function analyzeOneImage(imageUrl, preferredModel = 'groq') {
-  // ── Versuch 1: Groq (Llama 4 Scout Vision) – kostenlos ──────────────
-  if (preferredModel !== 'claude' && process.env.GROQ_API_KEY) {
-    try {
-      const response = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
-        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'text', text: VISION_PROMPT },
-            { type: 'image_url', image_url: { url: imageUrl } }
-          ]
-        }],
-        max_tokens: 120,
-        temperature: 0.2,
-      }, {
-        headers: { 'Authorization': `Bearer ${process.env.GROQ_API_KEY}` },
-        timeout: 20000
-      })
-      // Zeilenumbrüche entfernen: mehrzeilige Beschreibungen zerschießen
-      // die "Bild N: ..."-Struktur im Text-Prompt
-      const desc = response.data.choices[0].message.content.trim().replace(/\s*\n+\s*/g, ' ')
-      console.log(`[Vision] Groq ✓: "${desc.substring(0, 60)}..."`)
-      return desc
-    } catch (err) {
-      console.warn(`[Vision] Groq fehlgeschlagen: ${err.response?.data?.error?.message || err.message} → Claude Fallback`)
-    }
+const OPENROUTER_BASE = 'https://openrouter.ai/api/v1/chat/completions'
+
+function getOpenRouterHeaders() {
+  return {
+    'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+    'HTTP-Referer': 'https://mojobus.co',
+    'X-Title': 'MojoBus',
+    'Content-Type': 'application/json'
+  }
+}
+
+function normalizeDesc(rawDesc) {
+  return (rawDesc || '').trim().replace(/\s*\n+\s*/g, ' ')
+}
+
+// Eine Bild-URL analysieren – Qwen zuerst, dann Gemini Fallback
+async function analyzeOneImage(imageUrl) {
+  if (!process.env.OPENROUTER_API_KEY) {
+    console.warn('[Vision] OPENROUTER_API_KEY fehlt')
+    return null
   }
 
-  // ── Versuch 2: Claude Sonnet via OpenRouter – Fallback ───────────────
-  if (process.env.OPENROUTER_API_KEY) {
-    try {
-      const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
-        model: 'anthropic/claude-sonnet-5',
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'text', text: VISION_PROMPT },
-            { type: 'image_url', image_url: { url: imageUrl } }
-          ]
-        }],
-        max_tokens: 120,
-        temperature: 0.2,
-      }, {
-        headers: {
-          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-          'HTTP-Referer': 'https://mojobus.co',
-          'X-Title': 'MojoBus',
-          'Content-Type': 'application/json'
-        },
-        timeout: 25000
-      })
-      const desc = response.data.choices[0].message.content.trim().replace(/\s*\n+\s*/g, ' ')
-      console.log(`[Vision] Claude ✓: "${desc.substring(0, 60)}..."`)
-      return desc
-    } catch (err) {
-      console.warn(`[Vision] Claude fehlgeschlagen: ${err.response?.data?.error?.message || err.message}`)
-    }
+  // ── Versuch 1: Qwen 2.5 VL 72B via OpenRouter ─────────────────────────
+  try {
+    const response = await axios.post(OPENROUTER_BASE, {
+      model: 'qwen/qwen2.5-vl-72b-instruct',
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'text', text: VISION_PROMPT },
+          { type: 'image_url', image_url: { url: imageUrl } }
+        ]
+      }],
+      max_tokens: 120,
+      temperature: 0.2,
+    }, {
+      headers: getOpenRouterHeaders(),
+      timeout: 25000
+    })
+    const desc = normalizeDesc(response.data.choices[0].message.content)
+    console.log(`[Vision] Qwen ✓: "${desc.substring(0, 60)}..."`)
+    return desc
+  } catch (err) {
+    console.warn(`[Vision] Qwen fehlgeschlagen: ${err.response?.data?.error?.message || err.message} → Gemini Fallback`)
+  }
+
+  // ── Versuch 2: Gemini 2.5 Flash via OpenRouter ───────────────────────
+  try {
+    const response = await axios.post(OPENROUTER_BASE, {
+      model: 'google/gemini-2.5-flash',
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'text', text: VISION_PROMPT },
+          { type: 'image_url', image_url: { url: imageUrl } }
+        ]
+      }],
+      max_tokens: 120,
+      temperature: 0.2,
+    }, {
+      headers: getOpenRouterHeaders(),
+      timeout: 25000
+    })
+    const desc = normalizeDesc(response.data.choices[0].message.content)
+    console.log(`[Vision] Gemini ✓: "${desc.substring(0, 60)}..."`)
+    return desc
+  } catch (err) {
+    console.warn(`[Vision] Gemini fehlgeschlagen: ${err.response?.data?.error?.message || err.message}`)
   }
 
   return null // kein Vision verfügbar
@@ -86,8 +95,8 @@ router.post('/api/tiktok/analyze-images', async (req, res) => {
   console.log(`[Vision] Analysiere ${maxImages} Bilder...`)
   const startTime = Date.now()
 
-  // Bilder sequenziell analysieren (nicht parallel) – verhindert Groq Rate-Limit bei vielen Bildern
-  // 300ms Pause zwischen den Requests reicht fuer Groq (1000 req/min Limit)
+  // Bilder sequenziell analysieren (nicht parallel) – verhindert Rate-Limits bei vielen Bildern
+  // 300ms Pause zwischen den Requests reicht fuer OpenRouter (1000 req/min Limit)
   const descriptions = []
   for (let i = 0; i < maxImages; i++) {
     const url = imageUrls[i]
@@ -110,7 +119,7 @@ router.post('/api/tiktok/analyze-images', async (req, res) => {
     const desc = await analyzeOneImage(url)
     descriptions.push(desc || existingContexts[i] || '')
 
-    // 300ms Pause zwischen Requests – Groq Rate-Limit-Schutz
+    // 300ms Pause zwischen Requests – OpenRouter Rate-Limit-Schutz
     if (i < maxImages - 1) {
       await new Promise(resolve => setTimeout(resolve, 300))
     }
