@@ -24,7 +24,7 @@ import {
 } from './utils/image-ffmpeg.js'
 import { generateWithModel } from './services/ai-content.js'
 import contentRouter from './routes/content/index.js'
-import createVideoRouter from './routes/video.js'
+import createVideoRouter from './routes/video/index.js'
 import tiktokRouter from './routes/tiktok/index.js'
 
 // ===== PROMPTS AUS src/config/prompts/ IMPORTIEREN =====

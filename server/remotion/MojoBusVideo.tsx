@@ -19,18 +19,17 @@
 import React from 'react';
 import { AbsoluteFill, Sequence, useVideoConfig } from 'remotion';
 
-import { ColorGradeOverlay, ColorGradeWrapper, lifestyleToGrade, type ColorGrade } from './components/ColorGradeOverlay';
+import { ColorGradeOverlay, ColorGradeWrapper, lifestyleToGrade } from './components/ColorGradeOverlay';
 import { HookTitle } from './components/HookTitle';
 import { LocationBadge } from './components/LocationBadge';
 import { MojoBusCTA } from './components/MojoBusCTA';
 import { ProgressBar } from './components/ProgressBar';
 import { StoryCaption } from './components/StoryCaption';
-import { PerSlideCaption } from './components/Captions';
 import { LoadFonts } from './components/Fonts';
 import { HookDimOverlay } from './components/HookDimOverlay';
 import { isVideo } from './components/MediaRenderer';
 import { getHookSeconds } from './duration';
-import { buildSlidePlan, type SlideDef } from './slidePlan';
+import { buildSlidePlan } from './slidePlan';
 import { buildCutEffectsPlan } from './cutEffectsPlan';
 import { buildHeroWordWindows, buildPreviousImageUrls } from './slideHelpers';
 import { AudioStack } from './components/AudioStack';
@@ -38,42 +37,27 @@ import { CutEffectsLayer } from './components/CutEffectsLayer';
 import { SlideshowLayer } from './components/SlideshowLayer';
 export { calculateDuration } from './duration';
 
-// ── NEU: 4 neue Skills ────────────────────────────────────────────────────
 import {
-  BeatSyncLayer,
-  AudioWaveformBar,
   generateFallbackBeats,
   useBeats,
 } from './components/BeatSyncLayer';
-import { BeatVelocityPunch } from './components/BeatVelocityPunch';
 import { pickDemoRoute } from './components/RouteMapLine';
-import { LottieBusIcon } from './components/LottieBusIcon';
 
-// ── NEU: Cinematic Effects (Letterbox) ───────────────────────────────────
-import { CinematicLetterbox } from './components/CinematicEffects';
 import {
   TRANSITION_DURATION_SEC,
   CTA_DURATION_SEC,
   HOOK_EMOJI,
   HOOK_DIM_OPACITY,
-  LOTTE_BUS_HOOK_SIZE,
-  LOTTE_BUS_CTA_SIZE,
   PROGRESS_BAR_HEIGHT,
-  AUDIO_WAVEFORM_BARS,
-  AUDIO_WAVEFORM_HEIGHT,
-  AUDIO_WAVEFORM_OPACITY,
-  MUSIC_VOLUME,
-  AMBIENT_VOLUME,
-  BEAT_SYNC_FLASH_OPACITY,
-  SFX_VOLUME,
-  CINEMATIC_LETTERBOX_ENTER_SEC,
-  CINEMATIC_LETTERBOX_EXIT_SEC,
 } from './config/renderConfig';
 
 import { MojoBusVideoProps } from './videoProps';
 export { MojoBusVideoProps } from './videoProps';
 
-// ── Haupt-Komponent ────────────────────────────────────────────────────────
+import { ShortsLayer } from './flows/ShortsLayer';
+import { LongformLayer } from './flows/LongformLayer';
+
+// ── Haupt-Komponent ────────────────────────────────────────────────────────────
 
 export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
   imageUrls,
@@ -82,6 +66,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
   location,
   country,
   lifestyle = 'mojobus',
+  aspectRatio = '16:9',
   musicUrl,
   secondsPerImage = 5,
   colorGrade,
@@ -236,49 +221,102 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
   const heroWordWindows = buildHeroWordWindows(slideDefs, captions, slideStartFrame);
   const previousImageUrls = buildPreviousImageUrls(slideDefs, images);
 
+  const mediaLayer = (
+    <>
+      <ColorGradeWrapper grade={grade}>
+        <SlideshowLayer
+          images={images}
+          slideDefs={slideDefs}
+          slideStartFrame={slideStartFrame}
+          transitionType={transitionType}
+          fx={fx}
+          cutFx={cutFx}
+          matchCutMap={matchCutMap}
+          whipDir={whipDir}
+          heroWordWindows={heroWordWindows}
+          previousImageUrls={previousImageUrls}
+          effectiveRouteCoords={effectiveRouteCoords}
+          mapImageUrl={mapImageUrl}
+          accentColor={accentColor}
+          keepOriginalAudio={keepOriginalAudio}
+          speedRampEnabled={speedRampEnabled}
+          platform={platform}
+          hookFrames={hookFrames}
+          slideshowFrames={slideshowFrames}
+          ctaFrames={ctaFrames}
+          transitionFrames={TRANSITION_FRAMES}
+          grade={grade}
+        />
+      </ColorGradeWrapper>
+      <ColorGradeOverlay grade={grade} />
+    </>
+  );
+
   return (
     <AbsoluteFill style={{ background: '#000' }}>
 
       {/* Fonts */}
       <LoadFonts />
 
-      {/* ══ SCHICHT 1+2: Bilder + Color Grade mit Beat Velocity Punch ═════ */}
-      <BeatVelocityPunch
-        enabled={beatVelocityPunch}
-        musicUrl={musicUrl}
-        beatThreshold={beatThreshold}
-        strength={beatSyncStrength}
-        fallbackBeats={fallbackBeats}
-      >
-        <ColorGradeWrapper grade={grade}>
-          <SlideshowLayer
-            images={images}
-            slideDefs={slideDefs}
-            slideStartFrame={slideStartFrame}
-            transitionType={transitionType}
-            fx={fx}
-            cutFx={cutFx}
-            matchCutMap={matchCutMap}
-            whipDir={whipDir}
-            heroWordWindows={heroWordWindows}
-            previousImageUrls={previousImageUrls}
-            effectiveRouteCoords={effectiveRouteCoords}
-            mapImageUrl={mapImageUrl}
-            accentColor={accentColor}
-            keepOriginalAudio={keepOriginalAudio}
-            speedRampEnabled={speedRampEnabled}
-            platform={platform}
-            hookFrames={hookFrames}
-            slideshowFrames={slideshowFrames}
-            ctaFrames={ctaFrames}
-            transitionFrames={TRANSITION_FRAMES}
-            grade={grade}
-          />
-        </ColorGradeWrapper>
-
-      {/* ══ SCHICHT 2: Color Grade Overlay ══════════════════════════════════ */}
-      <ColorGradeOverlay grade={grade} />
-      </BeatVelocityPunch>
+      {/* ══ PLATTFORMSPEZIFISCHE OVERLAYS ═══════════════════════════════════ */}
+      {aspectRatio === '9:16' || aspectRatio === '1:1' ? (
+        <ShortsLayer
+          title={title}
+          summary={summary}
+          location={location}
+          country={country}
+          lifestyle={lifestyle}
+          musicUrl={musicUrl}
+          platform={platform}
+          accentColor={accentColor}
+          hookFrames={hookFrames}
+          hookCaption={hookCaption}
+          ctaFrames={ctaFrames}
+          slideshowFrames={slideshowFrames}
+          hasCaptions={hasCaptions}
+          captions={captions}
+          captionStyle={captionStyle}
+          totalSlideCount={totalSlideCount}
+          routeVisualIndex={routeVisualIndex}
+          showRouteMap={showRouteMap}
+          slideDefs={slideDefs}
+          slideStartFrame={slideStartFrame}
+          slidesFrames={slidesFrames}
+          fps={fps}
+          beatSyncStrength={beatSyncStrength}
+          beatThreshold={beatThreshold}
+          showWaveformBar={showWaveformBar}
+          beatVelocityPunch={beatVelocityPunch}
+          fallbackBeats={fallbackBeats}
+          beatFrames={beatFrames}
+          lottieData={lottieData}
+          lottieBeatPulse={lottieBeatPulse}
+          lottieBeatPulseScale={lottieBeatPulseScale}
+          lottieBeatPulseDuration={lottieBeatPulseDuration}
+          lottieBeatPulseIntensity={lottieBeatPulseIntensity}
+          showLottieBus={showLottieBus}
+        >
+          {mediaLayer}
+        </ShortsLayer>
+      ) : (
+        <LongformLayer
+          platform={platform}
+          accentColor={accentColor}
+          hookFrames={hookFrames}
+          ctaFrames={ctaFrames}
+          slideshowFrames={slideshowFrames}
+          hasCaptions={hasCaptions}
+          captions={captions}
+          captionStyle={captionStyle}
+          totalSlideCount={totalSlideCount}
+          routeVisualIndex={routeVisualIndex}
+          showRouteMap={showRouteMap}
+          slideDefs={slideDefs}
+          fx={fx}
+        >
+          {mediaLayer}
+        </LongformLayer>
+      )}
 
       {/* ══ SCHICHT 3: Hook Abdunkelung (nur während Hook-Slide) ══════════════
            Gleichmäßiges dunkles Overlay damit der Hook-Text auf jedem Bild
@@ -320,52 +358,6 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
             topOffsetPct={locationBadgeTopPct}
           />
         </Sequence>
-      )}
-
-      {/* ══ SCHICHT 4b: Lottie Bus im Hook (Beat-Puls Branding) ════════════════
-           Bus fährt kurz nach Hook-Start im Beat ein, pulsiert synchron.
-           Nur wenn genug Hook-Dauer vorhanden ist (>1s). */}
-      {showLottieBus && hookFrames > fps && (
-        <Sequence from={Math.round(fps * 0.4)} durationInFrames={hookFrames - Math.round(fps * 0.4)}>
-          <AbsoluteFill style={{ pointerEvents: 'none' }}>
-            <LottieBusIcon
-              size={LOTTE_BUS_HOOK_SIZE}
-              accentColor={accentColor}
-              driveIn={true}
-              driveInPath="curve-down"
-              position="bottom-center"
-              platform={platform}
-              lottieData={lottieData}
-              lottieLoop={true}
-              beatFrames={beatFrames}
-              beatPulse={lottieBeatPulse}
-              beatPulseScale={lottieBeatPulseScale}
-              beatPulseDuration={lottieBeatPulseDuration}
-              beatPulseIntensity={lottieBeatPulseIntensity}
-            />
-          </AbsoluteFill>
-        </Sequence>
-      )}
-
-      {/* ══ Auto-Captions ══════════════════════════════════════════ */}
-      {/* ══ SCHICHT 6: Per-Slide Captions (dynamisch, synchron) ════════════════ */}
-      {hasCaptions && (
-        <PerSlideCaption
-          captions={(() => {
-            // Server liefert captions slide-indiziert (inkl. RouteMap) wenn
-            // slideLayouts gesetzt sind, sonst bild-indiziert. Wir normalisieren
-            // hier auf die finale Slide-Anzahl inkl. RouteMap.
-            if (captions.length === totalSlideCount) return captions;
-            const c = [...captions];
-            if (showRouteMap) c.splice(routeVisualIndex, 0, '');
-            return c;
-          })()}
-          slidesStartFrame={hookFrames}
-          slidesFrames={slideDefs.map(d => d.frames)}
-          style={captionStyle as 'tiktok' | 'chunked' | 'full-line'}
-          accentColor={accentColor}
-          platform={platform}
-        />
       )}
 
       {/* ══ SCHICHT 7: Summary Subtitle (Mitte, ohne Captions) ═══════════════ */}
@@ -418,44 +410,6 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
         />
       </Sequence>
 
-      {/* ══ NEU SCHICHT 9b: Lottie Bus in CTA ═══════════════════════════════ */}
-      {showLottieBus && (
-        <Sequence
-          from={hookFrames + slideshowFrames + Math.round(fps * 0.3)}
-          durationInFrames={ctaFrames}
-        >
-          <AbsoluteFill style={{ pointerEvents: 'none' }}>
-            <LottieBusIcon
-              size={LOTTE_BUS_CTA_SIZE}
-              accentColor={accentColor}
-              driveIn={true}
-              driveInPath="curve-down"
-              position="bottom-center"
-              platform={platform}
-              lottieData={lottieData}
-              lottieLoop={true}
-              beatFrames={beatFrames}
-              beatPulse={lottieBeatPulse}
-              beatPulseScale={lottieBeatPulseScale}
-              beatPulseDuration={lottieBeatPulseDuration}
-              beatPulseIntensity={lottieBeatPulseIntensity}
-            />
-          </AbsoluteFill>
-        </Sequence>
-      )}
-
-      {/* ══ NEU SCHICHT 9c: Cinematic Letterbox (Reels 6% / YouTube 8%) ══════
-           Balken fahren beim Hook rein (1s) und zur CTA raus (0.8s).
-           Liegt UNTER der ProgressBar – die Bar bleibt auf dem Balken sichtbar. */}
-      {fx.letterboxPct > 0 && (
-        <CinematicLetterbox
-          barPct={fx.letterboxPct}
-          enterFrames={Math.round(fps * CINEMATIC_LETTERBOX_ENTER_SEC)}
-          exitStartFrame={hookFrames + slideshowFrames}
-          exitFrames={Math.round(fps * CINEMATIC_LETTERBOX_EXIT_SEC)}
-        />
-      )}
-
       {/* ══ SCHICHT 10: Progress Bar ══════════════════════════════════════════ */}
       <ProgressBar
         color={accentColor}
@@ -464,20 +418,6 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
         startFrame={hookFrames}
         endFrame={hookFrames + slideshowFrames}
       />
-
-      {/* ══ NEU SCHICHT 10b: Waveform Bar (optional) ═════════════════════════ */}
-      {showWaveformBar && musicUrl && (
-        <Sequence from={hookFrames} durationInFrames={slideshowFrames}>
-          <AudioWaveformBar
-            musicUrl={musicUrl}
-            accentColor={accentColor}
-            numberOfBars={AUDIO_WAVEFORM_BARS}
-            position="bottom"
-            height={AUDIO_WAVEFORM_HEIGHT}
-            opacity={AUDIO_WAVEFORM_OPACITY}
-          />
-        </Sequence>
-      )}
 
       {/* ══ SCHICHT 11: Audio Stack (Musik, Voiceover, Ambient, Intro) ═══════ */}
       <AudioStack
@@ -495,21 +435,7 @@ export const MojoBusVideo: React.FC<MojoBusVideoProps> = ({
         videoDuckWindows={videoDuckWindows}
       />
 
-      {/* ══ NEU SCHICHT 12: Beat-Sync Flash Effekt ═══════════════════════════ */}
-      {beatSyncStrength > 0 && (
-        <Sequence from={hookFrames} durationInFrames={slideshowFrames}>
-          <BeatSyncLayer
-            musicUrl={musicUrl}
-            beatThreshold={beatThreshold}
-            accentColor={accentColor}
-            flashOpacity={BEAT_SYNC_FLASH_OPACITY}
-            strength={beatSyncStrength}
-            fallbackBeats={fallbackBeats}
-          />
-        </Sequence>
-      )}
-
-      {/* ══ NEU SCHICHT 13-15: Cut Effects (FlashCut, LightLeak, Sticker, SFX) ═ */}
+      {/* ══ SCHICHT 13-15: Cut Effects (FlashCut, LightLeak, Sticker, SFX) ═ */}
       <CutEffectsLayer
         cutFx={cutFx}
         slideDefs={slideDefs}

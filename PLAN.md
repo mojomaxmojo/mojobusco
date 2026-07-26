@@ -1249,25 +1249,25 @@ export { LongformLayer };
   - [x] Schritt 20: `server/routes/content/note.js` erstellt.
   - [x] Schritt 21: `server/routes/content/index.js` erstellt, `server/routes/content.js` gelöscht.
 
-- [ ] **Phase 7: Video-Routen**
-  - [ ] Schritt 22: `server/routes/video/helpers.js` erstellt.
-  - [ ] Schritt 23: `server/routes/video/xai.js` erstellt.
-  - [ ] Schritt 24: `server/routes/video/legacy-slideshow.js` erstellt.
-  - [ ] Schritt 25: `server/routes/video/transcode.js` erstellt.
-  - [ ] Schritt 26: `server/routes/video/music.js` erstellt.
-  - [ ] Schritt 27: `server/routes/video/remotion.js` erstellt.
-  - [ ] Schritt 28: `server/routes/video/index.js` erstellt, `server/routes/video.js` gelöscht.
+- [x ] **Phase 7: Video-Routen**
+  - [x ] Schritt 22: `server/routes/video/helpers.js` erstellt.
+  - [x ] Schritt 23: `server/routes/video/xai.js` erstellt.
+  - [ x] Schritt 24: `server/routes/video/legacy-slideshow.js` erstellt.
+  - [x ] Schritt 25: `server/routes/video/transcode.js` erstellt.
+  - [x ] Schritt 26: `server/routes/video/music.js` erstellt.
+  - [x ] Schritt 27: `server/routes/video/remotion.js` erstellt.
+  - [x ] Schritt 28: `server/routes/video/index.js` erstellt, `server/routes/video.js` gelöscht.
 
-- [ ] **Phase 8: Remotion-Render**
-  - [ ] Schritt 29: `server/remotion/render/utils.js` erstellt.
-  - [ ] Schritt 30: `server/remotion/render/thumbnail.js` erstellt.
-  - [ ] Schritt 31: `server/remotion/render/core.js` erstellt.
-  - [ ] Schritt 32: `server/remotion/render/index.js` erstellt, `server/remotion/render.js` gelöscht.
+- [x ] **Phase 8: Remotion-Render**
+  - [ x] Schritt 29: `server/remotion/render/utils.js` erstellt.
+  - [x ] Schritt 30: `server/remotion/render/thumbnail.js` erstellt.
+  - [x ] Schritt 31: `server/remotion/render/core.js` erstellt.
+  - [x ] Schritt 32: `server/remotion/render/index.js` erstellt, `server/remotion/render.js` gelöscht.
 
-- [ ] **Phase 9: Remotion-Flows**
-  - [ ] Schritt 33: `server/remotion/flows/ShortsLayer.tsx` erstellt.
-  - [ ] Schritt 34: `server/remotion/flows/LongformLayer.tsx` erstellt.
-  - [ ] Schritt 35: `server/remotion/MojoBusVideo.tsx` < 500 Zeilen.
+- [x ] **Phase 9: Remotion-Flows**
+  - [x ] Schritt 33: `server/remotion/flows/ShortsLayer.tsx` erstellt.
+  - [ x] Schritt 34: `server/remotion/flows/LongformLayer.tsx` erstellt.
+  - [x] Schritt 35: `server/remotion/MojoBusVideo.tsx` < 500 Zeilen.
 
 - [ ] **Abschluss**
   - [ ] `server.js` importiert nur noch `bot/middleware.js`, `routes/content/index.js`, `routes/video/index.js`, `routes/tiktok/index.js`, `routes/promotion/index.js`.

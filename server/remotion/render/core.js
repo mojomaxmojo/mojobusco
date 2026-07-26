@@ -1,42 +1,25 @@
-/**
- * render.js — Remotion Render-Orchestrator
- *
- * Bilder werden VOR dem Render heruntergeladen und über einen
- * lokalen HTTP-Server bereitgestellt (http://127.0.0.1:PORT/img-NNN.ext).
- * Chrome kann file:// URLs nicht laden (Sicherheitsrestriktionen),
- * aber localhost HTTP funktioniert immer.
- */
+import { renderMedia, selectComposition } from '@remotion/renderer'
+import { getBundledEntry } from '../bundle.js'
+import path from 'path'
+import { OUTPUT_DIR, IMAGES_DIR, COMPOSITION_IDS } from '../constants.js'
+import { FFMPEG_PATH, FFPROBE_PATH } from '../binaries.js'
+import { startImageServer } from '../mediaServer.js'
+import { downloadAllImages, downloadAudioFile, downloadMapImage } from '../mediaDownload.js'
+import fs from 'fs'
+import crypto from 'crypto'
 
-import { renderMedia, renderStill, selectComposition } from '@remotion/renderer';
-import { getBundledEntry, invalidateBundleCache } from './bundle.js';
-import path from 'path';
-import { OUTPUT_DIR, IMAGES_DIR, COMPOSITION_IDS } from './constants.js';
-import { FFMPEG_PATH, FFPROBE_PATH, FFPROBE } from './binaries.js';
-import { startImageServer } from './mediaServer.js';
-import { downloadAllImages, downloadAudioFile, downloadMapImage } from './mediaDownload.js';
-import fs from 'fs';
-import crypto from 'crypto';
-
-import { generateVoiceoverSegments, concatVoiceoverSegments } from './voiceover.js';
-
-// ── Video-Clip-Dauer (echte Länge statt Caption-Lesezeit) ──────────────────
-import { measureSlideVideoDurations } from './videoDuration.js';
-
-// ── Ambient Sounds (optional) ──────────────────────────────────────────────
-import { generateAmbient } from './ambient.js';
-
-// ── Sound-SFX (optional, Beta) ─────────────────────────────────────────────
-import { generateSfx, SFX_TYPES } from './sfx.js';
-
-// ── Audio Loudness-Normalisierung ─────────────────────────────────────────
-import { normalizeRenderedVideo } from './audioNormalize.js';
-import { CHROME_PATH, CHROMIUM_OPTIONS } from './chrome.js';
+import { generateVoiceoverSegments, concatVoiceoverSegments } from '../voiceover.js'
+import { measureSlideVideoDurations } from '../videoDuration.js'
+import { generateAmbient } from '../ambient.js'
+import { generateSfx, SFX_TYPES } from '../sfx.js'
+import { normalizeRenderedVideo } from '../audioNormalize.js'
+import { CHROME_PATH, CHROMIUM_OPTIONS } from '../chrome.js'
 import {
   groupImagesIntoSlides,
   findRouteSlideIndex,
   reduceToSlides,
   combineSlideTexts,
-} from './slideLayouts.js';
+} from '../slideLayouts.js'
 
 // ── Haupt-Render-Funktion ─────────────────────────────────────────────────
 
@@ -525,108 +508,4 @@ export async function renderMojoBusVideo(params) {
   return renderResult;
 }
 
-// ── Thumbnail-Render-Funktion ─────────────────────────────────────────────
-
-export async function renderMojoBusThumbnail(params) {
-  const {
-    imageUrl,
-    title = 'MojoBus Video',
-    thumbnailText = '',
-    accentColor = '#F59E0B',
-  } = params;
-
-  if (!imageUrl) {
-    throw new Error('Keine Bild-URL für Thumbnail übergeben');
-  }
-
-  const sessionId = crypto.randomBytes(8).toString('hex');
-  const sessionDir = path.join(IMAGES_DIR, sessionId);
-  const outputPath = path.join(OUTPUT_DIR, `mojobus-thumb-${sessionId}.jpg`);
-
-  fs.mkdirSync(sessionDir, { recursive: true });
-
-  let imageServer = null;
-
-  try {
-    // Bild herunterladen
-    const imageFilenames = await downloadAllImages([imageUrl], sessionDir);
-    if (!imageFilenames || imageFilenames.length === 0) {
-      throw new Error('Thumbnail-Bild konnte nicht heruntergeladen werden');
-    }
-
-    imageServer = await startImageServer(sessionDir);
-    const base = `http://127.0.0.1:${imageServer.port}`;
-    const httpImageUrl = `${base}/${imageFilenames[0]}`;
-
-    const bundleLocation = await getBundledEntry();
-
-    const inputProps = {
-      imageUrl: httpImageUrl,
-      title,
-      thumbnailText,
-      accentColor,
-    };
-
-    await renderStill({
-      composition: {
-        id: 'MojoBusVideo-Thumbnail',
-        width: 1920,
-        height: 1080,
-        fps: 1,
-        durationInFrames: 1,
-        defaultProps: inputProps,
-      },
-      serveUrl: bundleLocation,
-      output: outputPath,
-      inputProps,
-      imageFormat: 'jpeg',
-      jpegQuality: 90,
-      scale: 1,
-      ...(CHROME_PATH ? { browserExecutable: CHROME_PATH } : {}),
-      chromiumOptions: CHROMIUM_OPTIONS,
-    });
-
-    const sizeMB = (fs.statSync(outputPath).size / 1024 / 1024).toFixed(2);
-    console.log(`[Remotion] ✅ Thumbnail gerendert: ${outputPath} (${sizeMB}MB)`);
-
-    return { outputPath, fileSizeMB: sizeMB };
-  } catch (err) {
-    throw err;
-  } finally {
-    try {
-      if (imageServer) await imageServer.close();
-    } catch (e) {}
-    setTimeout(() => {
-      try { fs.rmSync(sessionDir, { recursive: true, force: true }); } catch (e) {}
-    }, 3000);
-  }
-}
-
-// ── Exports ───────────────────────────────────────────────────────────────
-
-export { invalidateBundleCache } from './bundle.js';
-
-export function cleanupRender(outputPath) {
-  try {
-    if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
-  } catch (err) {
-    console.warn('[Remotion] Cleanup:', err.message);
-  }
-}
-
-export function cleanupOldRenders(maxAgeMs = 24 * 60 * 60 * 1000) { // 24h statt 1h
-  try {
-    const now = Date.now();
-    for (const dir of [OUTPUT_DIR, IMAGES_DIR]) {
-      if (!fs.existsSync(dir)) continue;
-      for (const f of fs.readdirSync(dir)) {
-        const p = path.join(dir, f);
-        try {
-          if (now - fs.statSync(p).mtimeMs > maxAgeMs) {
-            fs.rmSync(p, { recursive: true, force: true });
-          }
-        } catch (e) {}
-      }
-    }
-  } catch (e) {}
-}
+export { renderMojoBusVideo }
