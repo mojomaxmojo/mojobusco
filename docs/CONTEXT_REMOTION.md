@@ -10,8 +10,10 @@
 | Datei | Zweck |
 |-------|-------|
 | `server/remotion/components/Thumbnail.tsx` | Dedizierte 1920×1080 Thumbnail-Composition für YouTube Longform |
-| `server/remotion/render.js` | Render-Engine: slide-genaue MP3s, ffprobe-Sync, concat, Video + Thumbnail |
-| `server/remotion/MojoBusVideo.tsx` | Remotion-Hauptkomponente |
+| `server/remotion/render/` | Render-Engine als Modul (`core.js`, `thumbnail.js`, `utils.js`, `index.js`). Video + Thumbnail, slide-genaue MP3s, ffprobe-Sync, concat |
+| `server/remotion/MojoBusVideo.tsx` | Remotion-Hauptkomponente (< 500 Zeilen); enthält gemeinsame Schichten und verzweigt auf ShortsLayer / LongformLayer |
+| `server/remotion/flows/ShortsLayer.tsx` | 9:16 / 1:1-spezifische Overlays (BeatSync, Waveform, LottieBus, BeatVelocityPunch, PerSlideCaption) |
+| `server/remotion/flows/LongformLayer.tsx` | 16:9-spezifische Overlays (CinematicLetterbox, PerSlideCaption) |
 | `server/remotion/components/CinematicEffects.tsx` | 6 Schnitt-Effekte (ZoomPunch, WhipPan, FlashCut, LightLeak, Letterbox, MatchCutZoom) |
 | `server/remotion/components/KenBurnsImage.tsx` | noise/breathing/focus-in/handheld + GammaFade |
 | `server/remotion/components/RouteMapLine.tsx` | Animierte Routen-Karte mit Puls-Ring + Labels |

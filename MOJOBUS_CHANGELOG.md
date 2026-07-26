@@ -119,6 +119,17 @@ System-Übersicht → `MOJOBUS_CONTEXT.md` Abschnitt "TikTok System"
 - UI: grün "Echte Route: N Stationen" / amber "Demo-Route"
 - Frontend-only (server/remotion unverändert, routeCoords floss bereits durch)
 
+### 26.07.2026 – Refactoring-Plan Schritt 35 + Start-Fehler behoben
+- `server/remotion/MojoBusVideo.tsx` verkleinert (< 500 Zeilen)
+  - Gemeinsame Schichten verbleiben in `MojoBusVideo.tsx`
+  - Shorts-spezifische Layer ausgelagert nach `server/remotion/flows/ShortsLayer.tsx`
+  - Longform-spezifische Layer ausgelagert nach `server/remotion/flows/LongformLayer.tsx`
+- `server/remotion/render/` in Module aufgeteilt (`core.js`, `thumbnail.js`, `utils.js`, `index.js`)
+- Bugfix Import-Pfade: `server/routes/content/*.js`, `server/routes/promotion/routes.js`, `server/routes/video/*.js` verwendeten falsche `../`-Pfade zu `src/`, `utils/`, `services/`, `config/`, `remotion/`
+- Bugfix `server/routes/video/transcode.js`: fehlender `execFile`-Import ergänzt
+- Bugfix doppelte Exports entfernt in `server/remotion/render/core.js`, `thumbnail.js`, `utils.js`
+- Deploy notwendig: `bash deploy-main.sh --force` + `systemctl restart ai-api` + Bundle-Invalidate
+
 ---
 
 ## Performance-Optimierungen (Juni 2026)
