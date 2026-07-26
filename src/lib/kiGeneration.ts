@@ -15,15 +15,18 @@
  */
 
 import { type LifestyleType, type GenderType } from '@/config/prompts/lifestyles';
+import { DEFAULT_TEXT_MODEL } from '@/config/ai-models';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
 // Re-export für einfachen Import
 export type { GenderType };
 
+export type TextModelTier = 'mini' | 'medium' | 'maxi';
+
 interface GenerateOptions {
   lifestyle: LifestyleType;
-  model?: 'llama4' | 'claude';
+  model?: TextModelTier;
   title?: string;
   description?: string;
   location?: string;
@@ -79,7 +82,7 @@ export async function generateMediaArticle(options: GenerateMediaOptions): Promi
   if (options.location) formData.append('location', options.location);
   if (options.text) formData.append('text', options.text);
   formData.append('lifestyle', options.lifestyle);
-  formData.append('model', options.model || 'llama4');
+  formData.append('model', options.model || DEFAULT_TEXT_MODEL);
   formData.append('gender', options.gender || 'neutral');
 
   const response = await fetch(`${API_BASE}/api/generate-media-article`, {
@@ -117,7 +120,7 @@ export async function generateTripArticle(options: GenerateTripOptions): Promise
   if (options.startDate) formData.append('startDate', options.startDate);
   if (options.endDate) formData.append('endDate', options.endDate);
   formData.append('lifestyle', options.lifestyle);
-  formData.append('model', options.model || 'llama4');
+  formData.append('model', options.model || DEFAULT_TEXT_MODEL);
   formData.append('gender', options.gender || 'neutral');
 
   const response = await fetch(`${API_BASE}/api/generate-trip`, {
@@ -153,7 +156,7 @@ export async function generateArticle(options: GenerateArticleOptions): Promise<
   if (options.location) formData.append('location', options.location);
   if (options.text) formData.append('text', options.text);
   formData.append('lifestyle', options.lifestyle);
-  formData.append('model', options.model || 'llama4');
+  formData.append('model', options.model || DEFAULT_TEXT_MODEL);
   formData.append('gender', options.gender || 'neutral');
 
   const response = await fetch(`${API_BASE}/api/generate-article`, {
@@ -192,7 +195,7 @@ export async function generatePlaceDescription(options: GeneratePlaceOptions): P
     formData.append('gps_lon', options.gps.longitude.toString());
   }
   formData.append('lifestyle', options.lifestyle);
-  formData.append('model', options.model || 'llama4');
+  formData.append('model', options.model || DEFAULT_TEXT_MODEL);
   formData.append('gender', options.gender || 'neutral');
 
   const response = await fetch(`${API_BASE}/api/generate-place`, {
@@ -228,7 +231,7 @@ export async function generateNote(options: GenerateNoteOptions): Promise<{
   if (options.location) formData.append('location', options.location);
   if (options.text) formData.append('text', options.text);
   formData.append('lifestyle', options.lifestyle);
-  formData.append('model', options.model || 'llama4');
+  formData.append('model', options.model || DEFAULT_TEXT_MODEL);
   formData.append('gender', options.gender || 'neutral');
 
   const response = await fetch(`${API_BASE}/api/generate-note`, {

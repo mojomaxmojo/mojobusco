@@ -16,6 +16,7 @@ import {
 } from './utils.js'
 import { generateWithKi } from './ai.js'
 import { getLifestyleConfig } from '../../../src/config/prompts/index.js'
+import { getTextModel, normalizeTextModel } from '../../../src/config/ai-models.js'
 
 const router = express.Router()
 
@@ -28,7 +29,7 @@ router.post('/api/promotion/generate-pin-text', async (req, res) => {
   const summary = sanitizeInput(req.body.summary) || ''
   const text = (req.body.text || '').trim()
   const template = sanitizeInput(req.body.template) || 'infographic'
-  const model = sanitizeInput(req.body.model) || 'llama4'
+  const model = sanitizeInput(req.body.model) || 'medium'
   const lifestyle = sanitizeInput(req.body.lifestyle) || 'perpetual-travelers'
   const imageUrl = (req.body.imageUrl || '').trim()
   // Für storyTag-Berechnung: Unix-Timestamp (Sekunden) des Artikels + Ort
@@ -113,7 +114,7 @@ AUSGABE: Antworte IMMER NUR mit validem JSON. Keine Markdown-Code-Blöcke. Keine
       storyTag: storyTagBerechnet,
       pinData: {
         template,
-        model: model === 'claude' ? 'claude-sonnet (OpenRouter)' : 'llama-4-scout',
+        model: getTextModel(normalizeTextModel(model)).label,
         ...pinData
       }
     })

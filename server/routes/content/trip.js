@@ -33,7 +33,7 @@ router.post('/api/generate-trip', (req, res, next) => {
 
   const title = sanitizeInput(req.body.title) || 'Meine Reise'
   const description = (req.body.description || '').trim()
-  const model = req.body.model || 'llama4'
+  const model = req.body.model || 'medium'
   const lifestyle = sanitizeInput(req.body.lifestyle) || 'mojobus'
   const gender = sanitizeInput(req.body.gender) || 'couple'
   const tripType = sanitizeInput(req.body.tripType) || ''

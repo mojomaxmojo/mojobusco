@@ -45,7 +45,7 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
   const [manualTags, setManualTags] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isGeneratingArticle, setIsGeneratingArticle] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<'llama4' | 'gpt4'>('llama4');
+  const [selectedModel, setSelectedModel] = useState<'mini' | 'medium' | 'maxi'>('medium');
   const [lifestyle, setLifestyle] = useState<'mojobus' | 'vanlife' | 'rvlife' | 'beachlife' | 'wohnmobil' | 'perpetual-travelers'>('mojobus');
   const [tripType, setTripType] = useState<TripType | ''>('');
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0, stage: '', status: '' });
@@ -122,7 +122,7 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
         }
         toast({
           title: 'Erfolg!',
-          description: `KI-Artikel generiert mit ${data.model === 'claude' ? 'Claude Sonnet 4.6' : 'Llama 4 Scout'} und in Felder eingefügt.`
+           description: `KI-Artikel generiert mit ${(data.model || 'MEDIUM').toUpperCase()} Modell und in Felder eingefügt.`
         });
       }
     } catch (error) {
@@ -1297,47 +1297,23 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
                  </p>
                </div>
                
-               {/* KI-Modell Auswahl */}
-               <div className="mt-4 space-y-3">
-                <Label className="text-sm font-medium">KI-Modell auswählen:</Label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div 
-                    className={`p-3 border rounded-lg cursor-pointer transition-all ${selectedModel === 'llama4' ? 'border-ocean-500 bg-ocean-50 dark:bg-ocean-950' : 'hover:border-gray-300'}`}
-                    onClick={() => setSelectedModel('llama4')}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl">🚀</span>
-                      <div>
-                        <p className="font-medium text-sm">Llama 4 Scout</p>
-                        <p className="text-xs text-muted-foreground">Schnell & Günstig</p>
-                      </div>
-                    </div>
-                    <div className="mt-2 text-xs text-muted-foreground">
-                      <p>✅ 1-2 Sekunden</p>
-                      <p>💰 ~$0.005 pro Artikel</p>
-                      <p>⭐ Gute Qualität</p>
-                    </div>
-                  </div>
-                  
-                  <div
-                    className={`p-3 border rounded-lg cursor-pointer transition-all ${selectedModel === 'claude' ? 'border-ocean-500 bg-ocean-50 dark:bg-ocean-950' : 'hover:border-gray-300'}`}
-                    onClick={() => setSelectedModel('claude')}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl">🤖</span>
-                      <div>
-                        <p className="font-medium text-sm">Claude Sonnet 4.6</p>
-                        <p className="text-xs text-muted-foreground">Neueste Premium Qualität</p>
-                      </div>
-                    </div>
-                    <div className="mt-2 text-xs text-muted-foreground">
-                      <p>⏱️ 3-6 Sekunden</p>
-                      <p>💰 ~$0.015 pro Artikel</p>
-                      <p>⭐⭐⭐⭐ Neueste menschliche Texte</p>
-                    </div>
-                  </div>
+                {/* KI-Modell Auswahl */}
+                <div className="mt-4 space-y-2">
+                  <Label className="text-sm font-medium">KI-Modell auswählen:</Label>
+                  <Select value={selectedModel} onValueChange={(v) => setSelectedModel(v as 'mini' | 'medium' | 'maxi')}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mini">Mini (Claude Sonnet 5)</SelectItem>
+                      <SelectItem value="medium">Medium (Claude Sonnet 5)</SelectItem>
+                      <SelectItem value="maxi">Maxi (Claude Sonnet 5)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Stufen sind zentral in src/config/ai-models.js konfigurierbar.
+                  </p>
                 </div>
-              </div>
               
               <Button
                 type="button"
@@ -1349,14 +1325,14 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
                 {isGeneratingArticle ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Generiere mit {selectedModel === 'claude' ? 'Claude 4.6' : 'Llama 4'}...
+                    Generiere mit {selectedModel.toUpperCase()} Modell...
                   </>
                 ) : (
                   <>
                     <Sparkles className="h-4 w-4 mr-2" />
                     KI-Artikel generieren ({lifestyle})
                     <span className="ml-2 text-xs text-muted-foreground">
-                      ({selectedModel === 'claude' ? 'Claude Sonnet 4.6' : 'Llama 4 Scout'})
+                      ({selectedModel.toUpperCase()} Modell)
                     </span>
                   </>
                 )}

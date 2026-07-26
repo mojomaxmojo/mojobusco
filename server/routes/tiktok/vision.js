@@ -1,12 +1,13 @@
 import express from 'express'
 import axios from 'axios'
 import { VISION_PROMPT } from './config.js'
+import { getVisionModels } from '../../../src/config/ai-models.js'
 
 const router = express.Router()
 
 // ══════════════════════════════════════════════════════════════════════
 // POST /api/tiktok/analyze-images
-// Analysiert Bild-URLs via Vision-KI (Qwen 2.5 VL → Gemini 2.5 Flash)
+// Analysiert Bild-URLs via Vision-KI (zentral konfiguriert in src/config/ai-models.js)
 // Body: { imageUrls: string[], existingContexts?: string[] }
 // Response: { descriptions: string[] }  – eine Beschreibung pro Bild
 // ══════════════════════════════════════════════════════════════════════
@@ -26,59 +27,42 @@ function normalizeDesc(rawDesc) {
   return (rawDesc || '').trim().replace(/\s*\n+\s*/g, ' ')
 }
 
-// Eine Bild-URL analysieren – Qwen zuerst, dann Gemini Fallback
+// Eine Bild-URL analysieren – konfigurierte Vision-Modelle nacheinander probieren
 async function analyzeOneImage(imageUrl) {
   if (!process.env.OPENROUTER_API_KEY) {
     console.warn('[Vision] OPENROUTER_API_KEY fehlt')
     return null
   }
 
-  // ── Versuch 1: Qwen 2.5 VL 72B via OpenRouter ─────────────────────────
-  try {
-    const response = await axios.post(OPENROUTER_BASE, {
-      model: 'qwen/qwen2.5-vl-72b-instruct',
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'text', text: VISION_PROMPT },
-          { type: 'image_url', image_url: { url: imageUrl } }
-        ]
-      }],
-      max_tokens: 120,
-      temperature: 0.2,
-    }, {
-      headers: getOpenRouterHeaders(),
-      timeout: 25000
-    })
-    const desc = normalizeDesc(response.data.choices[0].message.content)
-    console.log(`[Vision] Qwen ✓: "${desc.substring(0, 60)}..."`)
-    return desc
-  } catch (err) {
-    console.warn(`[Vision] Qwen fehlgeschlagen: ${err.response?.data?.error?.message || err.message} → Gemini Fallback`)
-  }
+  const visionModels = getVisionModels()
 
-  // ── Versuch 2: Gemini 2.5 Flash via OpenRouter ───────────────────────
-  try {
-    const response = await axios.post(OPENROUTER_BASE, {
-      model: 'google/gemini-2.5-flash',
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'text', text: VISION_PROMPT },
-          { type: 'image_url', image_url: { url: imageUrl } }
-        ]
-      }],
-      max_tokens: 120,
-      temperature: 0.2,
-    }, {
-      headers: getOpenRouterHeaders(),
-      timeout: 25000
-    })
-    const desc = normalizeDesc(response.data.choices[0].message.content)
-    console.log(`[Vision] Gemini ✓: "${desc.substring(0, 60)}..."`)
-    return desc
-  } catch (err) {
-    console.warn(`[Vision] Gemini fehlgeschlagen: ${err.response?.data?.error?.message || err.message}`)
+  for (let i = 0; i < visionModels.length; i++) {
+    const modelConfig = visionModels[i]
+    const isLast = i === visionModels.length - 1
+    try {
+      const response = await axios.post(OPENROUTER_BASE, {
+        model: modelConfig.id,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'text', text: VISION_PROMPT },
+            { type: 'image_url', image_url: { url: imageUrl } }
+          ]
+        }],
+        max_tokens: 120,
+        temperature: 0.2,
+      }, {
+        headers: getOpenRouterHeaders(),
+        timeout: 25000
+      })
+      const desc = normalizeDesc(response.data.choices[0].message.content)
+      console.log(`[Vision] ${modelConfig.label} ✓: "${desc.substring(0, 60)}..."`)
+      return desc
+    } catch (err) {
+      const msg = err.response?.data?.error?.message || err.message
+      const nextHint = isLast ? 'kein Fallback verfügbar' : `Fallback ${visionModels[i + 1].label}`
+      console.warn(`[Vision] ${modelConfig.label} fehlgeschlagen: ${msg} → ${nextHint}`)
+    }
   }
 
   return null // kein Vision verfügbar

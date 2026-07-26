@@ -35,7 +35,7 @@ router.post('/api/generate-note', (req, res, next) => {
   const location = sanitizeInput(req.body.location) || ''
   // text NICHT kürzen – User-Notiztext kann relevant lang sein
   const text = (req.body.text || '').trim()
-  const model = req.body.model || 'llama4'
+  const model = req.body.model || 'medium'
   const lifestyle = sanitizeInput(req.body.lifestyle) || 'mojobus'
   const gender = sanitizeInput(req.body.gender) || 'couple'
   const images = req.files

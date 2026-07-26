@@ -38,7 +38,7 @@ router.post('/api/generate-article', (req, res, next) => {
   const location = sanitizeInput(req.body.location) || 'Unbekannt'
   // text NICHT durch sanitizeInput kürzen – der User-Text kann länger als 500 Zeichen sein
   const text = (req.body.text || '').trim()
-  const model = req.body.model || 'llama4'
+  const model = req.body.model || 'medium'
   const lifestyle = sanitizeInput(req.body.lifestyle) || 'mojobus'
   const gender = sanitizeInput(req.body.gender) || 'couple' // Gender: neutral/male/female/couple
   const images = req.files

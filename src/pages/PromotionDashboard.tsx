@@ -93,7 +93,7 @@ export function PromotionDashboard() {
 
   // Template
   const [selectedTemplate, setSelectedTemplate] = useState<PinTemplateType>('infographic')
-  const [kiModel, setKiModel] = useState<'llama4' | 'claude'>('llama4')
+  const [kiModel, setKiModel] = useState<'mini' | 'medium' | 'maxi'>('medium')
   const [lifestyle, setLifestyle] = useState('mojobus')
 
   // Pin Data (from KI)
@@ -305,8 +305,8 @@ export function PromotionDashboard() {
       toast({
         title: 'Pin-Text generiert!',
         description: data.imageAnalyzed
-          ? `${kiModel === 'claude' ? 'Claude Sonnet' : 'Llama 4 Scout'} + Bildanalyse ✓ – altText & textOverlay bildbasiert`
-          : `${kiModel === 'claude' ? 'Claude Sonnet' : 'Llama 4 Scout'} hat den Pin-Text erstellt.`
+          ? `${kiModel.toUpperCase()} Modell + Bildanalyse ✓ – altText & textOverlay bildbasiert`
+          : `${kiModel.toUpperCase()} Modell hat den Pin-Text erstellt.`
       })
 
       // Automatisch nächster Schritt
@@ -828,11 +828,12 @@ export function PromotionDashboard() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <Label className="text-xs sm:text-sm">KI-Modell</Label>
-                  <Select value={kiModel} onValueChange={(v) => setKiModel(v as 'llama4' | 'claude')}>
+                  <Select value={kiModel} onValueChange={(v) => setKiModel(v as 'mini' | 'medium' | 'maxi')}>
                     <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="llama4">🦙 Llama 4 Scout (Groq)</SelectItem>
-                      <SelectItem value="claude">🔷 Claude Sonnet 4 (Anthropic)</SelectItem>
+                      <SelectItem value="mini">Mini (Claude Sonnet 5)</SelectItem>
+                      <SelectItem value="medium">Medium (Claude Sonnet 5)</SelectItem>
+                      <SelectItem value="maxi">Maxi (Claude Sonnet 5)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

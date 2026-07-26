@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { getVisionModels } from '../../../src/config/ai-models.js'
 
 // ── Hilfsfunktionen aus server.js duplizieren ────────────────────────────────
 
@@ -35,9 +36,11 @@ function getOpenRouterHeaders() {
   }
 }
 
+const VISION_PROMPT_TEXT = 'Beschreibe dieses Bild in 1-2 präzisen Sätzen auf Deutsch. Nenne: Was ist zu sehen? Ort/Landschaft/Fahrzeug/Person? Stimmung/Licht? Keine Marketing-Sprache, nur sachliche Beschreibung.'
+
 /**
  * Analysiert ein Bild via OpenRouter Vision-KI.
- * Reihenfolge: 1. Qwen 2.5 VL 72B, 2. Gemini 2.5 Flash.
+ * Modelle kommen aus src/config/ai-models.js.
  * Gibt eine kurze, präzise Bildbeschreibung zurück (1-2 Sätze).
  *
  * @param {string} imageUrl - Öffentliche Bild-URL
@@ -47,75 +50,43 @@ const analyzeImageWithVision = async (imageUrl) => {
   if (!imageUrl || !process.env.OPENROUTER_API_KEY) return null
 
   const startTime = Date.now()
+  const visionModels = getVisionModels()
 
-  // ── Versuch 1: Qwen 2.5 VL 72B via OpenRouter ─────────────────────────
-  try {
-    const response = await axios.post(OPENROUTER_BASE, {
-      model: 'qwen/qwen2.5-vl-72b-instruct',
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image_url',
-              image_url: { url: imageUrl }
-            },
-            {
-              type: 'text',
-              text: 'Beschreibe dieses Bild in 1-2 präzisen Sätzen auf Deutsch. Nenne: Was ist zu sehen? Ort/Landschaft/Fahrzeug/Person? Stimmung/Licht? Keine Marketing-Sprache, nur sachliche Beschreibung.'
-            }
-          ]
-        }
-      ],
-      max_tokens: 150,
-      temperature: 0.3
-    }, {
-      headers: getOpenRouterHeaders(),
-      timeout: 20000
-    })
+  for (let i = 0; i < visionModels.length; i++) {
+    const modelConfig = visionModels[i]
+    const isLast = i === visionModels.length - 1
+    try {
+      const response = await axios.post(OPENROUTER_BASE, {
+        model: modelConfig.id,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'image_url', image_url: { url: imageUrl } },
+              { type: 'text', text: VISION_PROMPT_TEXT }
+            ]
+          }
+        ],
+        max_tokens: 150,
+        temperature: 0.3
+      }, {
+        headers: getOpenRouterHeaders(),
+        timeout: 20000
+      })
 
-    const duration = Date.now() - startTime
-    const description = response.data.choices[0].message.content?.trim()
-    console.log(`[Promotion] Qwen Vision Bildanalyse in ${duration}ms: "${description?.substring(0, 80)}..."`)
-    return description || null
-  } catch (qwenErr) {
-    console.warn('[Promotion] Qwen Bildanalyse fehlgeschlagen:', qwenErr.response?.data?.error?.message || qwenErr.message)
+      const duration = Date.now() - startTime
+      const description = response.data.choices[0].message.content?.trim()
+      console.log(`[Promotion] ${modelConfig.label} Vision Bildanalyse in ${duration}ms: "${description?.substring(0, 80)}..."`)
+      return description || null
+    } catch (err) {
+      const msg = err.response?.data?.error?.message || err.message
+      const nextHint = isLast ? 'kein Fallback' : `→ ${visionModels[i + 1].label}`
+      console.warn(`[Promotion] ${modelConfig.label} Bildanalyse fehlgeschlagen: ${msg} ${nextHint}`)
+      if (isLast) return null
+    }
   }
 
-  // ── Versuch 2: Gemini 2.5 Flash via OpenRouter ───────────────────────
-  try {
-    const response = await axios.post(OPENROUTER_BASE, {
-      model: 'google/gemini-2.5-flash',
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image_url',
-              image_url: { url: imageUrl }
-            },
-            {
-              type: 'text',
-              text: 'Beschreibe dieses Bild in 1-2 präzisen Sätzen auf Deutsch. Nenne: Was ist zu sehen? Ort/Landschaft/Fahrzeug/Person? Stimmung/Licht? Keine Marketing-Sprache, nur sachliche Beschreibung.'
-            }
-          ]
-        }
-      ],
-      max_tokens: 150,
-      temperature: 0.3
-    }, {
-      headers: getOpenRouterHeaders(),
-      timeout: 20000
-    })
-
-    const duration = Date.now() - startTime
-    const description = response.data.choices[0].message.content?.trim()
-    console.log(`[Promotion] Gemini Vision Bildanalyse in ${duration}ms: "${description?.substring(0, 80)}..."`)
-    return description || null
-  } catch (geminiErr) {
-    console.warn('[Promotion] Gemini Bildanalyse fehlgeschlagen (nicht kritisch):', geminiErr.response?.data?.error?.message || geminiErr.message)
-    return null // Fehler ist nicht kritisch – Pin-Text wird ohne Bildanalyse generiert
-  }
+  return null
 }
 
 function parsePinJson(rawText) {

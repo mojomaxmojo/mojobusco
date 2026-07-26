@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { getVisionModels } from '../../../src/config/ai-models.js'
 
 const OPENROUTER_BASE = 'https://openrouter.ai/api/v1/chat/completions'
 
@@ -13,7 +14,7 @@ function getOpenRouterHeaders() {
 
 /**
  * Analysiert ein Base64-kodiertes Bild via OpenRouter Vision-KI.
- * Reihenfolge: 1. Qwen 2.5 VL 72B, 2. Gemini 2.5 Flash.
+ * Die Modelle kommen aus src/config/ai-models.js.
  *
  * @param {string} base64
  * @param {string} mimeType
@@ -27,55 +28,39 @@ export async function analyzeImageBase64(base64, mimeType, analysisPrompt, maxTo
   }
 
   const dataUrl = `data:${mimeType};base64,${base64}`
+  const visionModels = getVisionModels()
 
-  // ── Versuch 1: Qwen 2.5 VL 72B via OpenRouter ─────────────────────────
-  try {
-    const visionResponse = await axios.post(OPENROUTER_BASE, {
-      model: 'qwen/qwen2.5-vl-72b-instruct',
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'text', text: analysisPrompt },
-          { type: 'image_url', image_url: { url: dataUrl } }
-        ]
-      }],
-      max_tokens: maxTokens,
-      temperature: 0.7
-    }, {
-      headers: getOpenRouterHeaders(),
-      timeout: 30000
-    })
-    return visionResponse.data.choices[0].message.content
-  } catch (qwenErr) {
-    const status = qwenErr.response?.status
-    const msg = qwenErr.response?.data?.error?.message || qwenErr.message
-    console.warn(`[Vision] Qwen fehlgeschlagen (HTTP ${status}): ${msg} → Gemini Fallback`)
+  for (let i = 0; i < visionModels.length; i++) {
+    const modelConfig = visionModels[i]
+    const isLast = i === visionModels.length - 1
+    try {
+      const visionResponse = await axios.post(OPENROUTER_BASE, {
+        model: modelConfig.id,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'text', text: analysisPrompt },
+            { type: 'image_url', image_url: { url: dataUrl } }
+          ]
+        }],
+        max_tokens: maxTokens,
+        temperature: 0.7
+      }, {
+        headers: getOpenRouterHeaders(),
+        timeout: 30000
+      })
+      return visionResponse.data.choices[0].message.content
+    } catch (err) {
+      const status = err.response?.status
+      const msg = err.response?.data?.error?.message || err.message
+      const nextHint = isLast ? 'kein Fallback verfügbar' : `→ ${visionModels[i + 1].label}`
+      const level = isLast ? 'error' : 'warn'
+      console[level](`[Vision] ${modelConfig.label} fehlgeschlagen (HTTP ${status}): ${msg} ${nextHint}`)
+      if (isLast) throw err
+    }
   }
 
-  // ── Versuch 2: Gemini 2.5 Flash via OpenRouter ────────────────────────
-  try {
-    const visionResponse = await axios.post(OPENROUTER_BASE, {
-      model: 'google/gemini-2.5-flash',
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'text', text: analysisPrompt },
-          { type: 'image_url', image_url: { url: dataUrl } }
-        ]
-      }],
-      max_tokens: maxTokens,
-      temperature: 0.7
-    }, {
-      headers: getOpenRouterHeaders(),
-      timeout: 30000
-    })
-    return visionResponse.data.choices[0].message.content
-  } catch (geminiErr) {
-    const status = geminiErr.response?.status
-    const msg = geminiErr.response?.data?.error?.message || geminiErr.message
-    console.error(`[Vision] Gemini fehlgeschlagen (HTTP ${status}): ${msg}`)
-    throw geminiErr
-  }
+  throw new Error('Kein Vision-Modell verfügbar')
 }
 
 export default { analyzeImageBase64 }

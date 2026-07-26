@@ -6,9 +6,9 @@
  * GET /api/promotion/articles -> Artikel-Liste
  * POST /api/promotion/save-pin -> speichern
  * 
- * Verwendet die gleichen KI-Modelle wie server.js:
- * Claude Sonnet 4.6 (Anthropic)
- * Llama 4 Scout (Groq)
+ * Verwendet die zentrale KI-Modell-Verwaltung:
+ * Text-Modelle: mini / medium / maxi (aktuell alle Claude Sonnet 5)
+ * Vision-Modell: Qwen 2.5 VL 72B
  */
 
 export default {
@@ -19,7 +19,7 @@ export default {
 
         const title = sanitizeInput(req.body.title) || '';
         const template = sanitizeInput(req.body.template) || 'infographic';
-        const model = sanitizeInput(req.body.model) || 'llama4';
+        const model = sanitizeInput(req.body.model) || 'medium';
         const lifestyle = sanitizeInput(req.body.lifestyle) || 'perpetual-travelers';
 
         const templateConfig = TEMPLATES[template];
@@ -53,7 +53,7 @@ export default {
                 success: true,
                 pinData: {
                     template,
-                    model: model === 'claude' ? 'claude-sonnet-4-20250514' : 'llama-4-scout',
+                    model: model || 'medium',
                 ...pinData
                 }
             });

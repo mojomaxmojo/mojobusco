@@ -53,7 +53,7 @@ export function NoteForm({ editEvent }: { editEvent?: any }) {
   const [editingGpsImage, setEditingGpsImage] = useState<number | null>(null);
   const [showMapPicker, setShowMapPicker] = useState(false);
   const [isGeneratingNote, setIsGeneratingNote] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<'llama4' | 'claude'>('llama4');
+  const [selectedModel, setSelectedModel] = useState<'mini' | 'medium' | 'maxi'>('medium');
   const [lifestyle, setLifestyle] = useState<'mojobus' | 'vanlife' | 'rvlife' | 'beachlife' | 'wohnmobil' | 'perpetual-travelers'>('mojobus');
   const [tripType, setTripType] = useState<TripType | ''>('');
   const { toast } = useToast();
@@ -105,7 +105,7 @@ export function NoteForm({ editEvent }: { editEvent?: any }) {
         }
         toast({
           title: 'Erfolg!',
-          description: `KI-Notiz generiert mit ${selectedModel === 'claude' ? 'Claude Sonnet 4.6' : 'Llama 4 Scout'}`
+           description: `KI-Notiz generiert mit ${selectedModel.toUpperCase()} Modell`
         });
       }
     } catch (error) {
@@ -621,44 +621,21 @@ export function NoteForm({ editEvent }: { editEvent?: any }) {
           </div>
 
           {/* KI-Modell Auswahl */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <Label className="text-sm font-medium">KI-Modell auswählen:</Label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div
-                className={`p-3 border rounded-lg cursor-pointer transition-all ${selectedModel === 'llama4' ? 'border-ocean-500 bg-ocean-50 dark:bg-ocean-950' : 'hover:border-gray-300'}`}
-                onClick={() => setSelectedModel('llama4')}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">🚀</span>
-                  <div>
-                    <p className="font-medium text-sm">Llama 4 Scout</p>
-                    <p className="text-xs text-muted-foreground">Schnell & Günstig</p>
-                  </div>
-                </div>
-                <div className="mt-2 text-xs text-muted-foreground">
-                  <p>✅ 1-2 Sekunden</p>
-                  <p>💰 ~$0.005 pro Notiz</p>
-                  <p>⭐ Gute Qualität</p>
-                </div>
-              </div>
-              <div
-                className={`p-3 border rounded-lg cursor-pointer transition-all ${selectedModel === 'claude' ? 'border-ocean-500 bg-ocean-50 dark:bg-ocean-950' : 'hover:border-gray-300'}`}
-                onClick={() => setSelectedModel('claude')}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">🤖</span>
-                  <div>
-                    <p className="font-medium text-sm">Claude Sonnet 4.6</p>
-                    <p className="text-xs text-muted-foreground">Neueste Premium Qualität</p>
-                  </div>
-                </div>
-                <div className="mt-2 text-xs text-muted-foreground">
-                  <p>⏱️ 3-6 Sekunden</p>
-                  <p>💰 ~$0.015 pro Notiz</p>
-                  <p>⭐⭐⭐⭐ Neueste menschliche Texte</p>
-                </div>
-              </div>
-            </div>
+            <Select value={selectedModel} onValueChange={(v) => setSelectedModel(v as 'mini' | 'medium' | 'maxi')}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="mini">Mini (Claude Sonnet 5)</SelectItem>
+                <SelectItem value="medium">Medium (Claude Sonnet 5)</SelectItem>
+                <SelectItem value="maxi">Maxi (Claude Sonnet 5)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Stufen sind zentral in src/config/ai-models.js konfigurierbar.
+            </p>
           </div>
 
           <Button
@@ -671,12 +648,12 @@ export function NoteForm({ editEvent }: { editEvent?: any }) {
             {isGeneratingNote ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Generiere mit {selectedModel === 'claude' ? 'Claude 4.6' : 'Llama 4'}...
+                Generiere mit {selectedModel.toUpperCase()} Modell...
               </>
             ) : (
               <>
                 <Sparkles className="h-4 w-4 mr-2" />
-                KI-Notiz generieren ({selectedModel === 'claude' ? 'Claude Sonnet 4.6' : 'Llama 4 Scout'})
+                KI-Notiz generieren ({selectedModel.toUpperCase()} Modell)
               </>
             )}
           </Button>

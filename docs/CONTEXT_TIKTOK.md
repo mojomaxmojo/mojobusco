@@ -66,24 +66,25 @@
 | `/api/render-remotion/invalidate-bundle` | POST | Bundle-Cache leeren |
 | `/api/render-remotion/history` | GET | Abgeschlossene Jobs |
 | `/api/music/list` | GET | Musik-Tracks |
-| `/api/tiktok/generate-text` | POST | Foster-Texte (model: llama4/claude) |
+| `/api/tiktok/generate-text` | POST | Foster-Texte (model: mini/medium/maxi) |
 | `/api/tiktok/analyze-images` | POST | Vision-KI pro Bild |
 | `/api/tiktok/upload-media` | POST | Bild/Video-Upload + Content-Zeile für den Upload-Reiter in Schritt 1 |
 | `/api/tiktok/uploads/:filename` | GET | Ausgeliefertes Upload-File (wird nach 1h automatisch gelöscht) |
 
 ---
 
-## KI-Modelle (server/server.js)
+## KI-Modelle (zentral: `src/config/ai-models.js`)
 
-| Modell | Endpoint | Key | Zweck |
-|--------|----------|-----|-------|
-| Llama 4 Scout | Groq (`api.groq.com`) | `GROQ_API_KEY` | Standard (kostenlos) |
-| Claude Sonnet | OpenRouter (`openrouter.ai`) | `OPENROUTER_API_KEY` | TikTok-Texte (Fallback: Llama 4) |
-| Gemini 2.5 Flash | OpenRouter | `OPENROUTER_API_KEY` | Video-Analyse |
+| Stufe | Text-Modell | Vision-Modell | Provider |
+|-------|-------------|---------------|----------|
+| mini  | `anthropic/claude-sonnet-5` (OpenRouter) | `qwen/qwen2.5-vl-72b-instruct` | OpenRouter |
+| medium | `anthropic/claude-sonnet-5` (OpenRouter) | `qwen/qwen2.5-vl-72b-instruct` | OpenRouter |
+| maxi  | `anthropic/claude-sonnet-5` (OpenRouter) | `qwen/qwen2.5-vl-72b-instruct` | OpenRouter |
+
+**Vision-Fallback**: konfigurierbar in `src/config/ai-models.js` (`VISION_FALLBACK_MODEL`).
 
 **Claude-Config**: `max_tokens: 16384`, `reasoning: { effort: 'low' }`, `timeout: 90s`
-(claude-sonnet-latest → Reasoning-Modell, braucht großes Token-Budget)
-Automatischer Groq-Fallback wenn Claude leere Antwort liefert.
+(claude-sonnet-5 → Reasoning-Modell, braucht großes Token-Budget). Kein Groq-Fallback mehr.
 
 ---
 
