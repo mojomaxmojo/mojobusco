@@ -7,7 +7,7 @@ import crypto from 'crypto'
 import { execFile, spawn } from 'child_process'
 import { promisify } from 'util'
 const execFileAsync = promisify(execFile)
-import { FFMPEG, FFPROBE, MUSIC_DIR, TMP_DIR } from '../config/media-paths.js'
+import { FFMPEG, FFPROBE, MUSIC_DIR, TMP_DIR } from '../../config/media-paths.js'
 import {
   getLocalMusicFile,
   downloadImage,
@@ -15,7 +15,7 @@ import {
   buildFilterComplex,
   readJpegDimensions,
   runFfmpeg,
-} from '../utils/image-ffmpeg.js'
+} from '../../utils/image-ffmpeg.js'
 
 const router = express.Router()
 

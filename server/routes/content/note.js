@@ -5,8 +5,8 @@ import {
   generateNotePrompt,
   getNoteImageAnalysisPrompt,
 } from '../../../src/config/prompts/index.js'
-import { handleMulterError, sanitizeInput, validateApiKey, safelyParseJSON } from '../utils/http-helpers.js'
-import { generateWithModel } from '../services/ai-content.js'
+import { handleMulterError, sanitizeInput, validateApiKey, safelyParseJSON } from '../../utils/http-helpers.js'
+import { generateWithModel } from '../../services/ai-content.js'
 import { analyzeImageBase64 } from './vision.js'
 
 const upload = multer({

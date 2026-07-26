@@ -1,6 +1,6 @@
 import path from 'path'
 import fs from 'fs'
-import { MUSIC_DIR } from '../config/media-paths.js'
+import { MUSIC_DIR } from '../../config/media-paths.js'
 
 const XAI_LIFESTYLE_MAP = {
   mojobus: 'vintage US bus life, oldtimer bus on the road, slow travel couple',

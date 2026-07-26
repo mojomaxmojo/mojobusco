@@ -1,7 +1,7 @@
 import express from 'express'
 import path from 'path'
 import fs from 'fs'
-import { MUSIC_DIR } from '../config/media-paths.js'
+import { MUSIC_DIR } from '../../config/media-paths.js'
 
 const router = express.Router()
 

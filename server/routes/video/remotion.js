@@ -5,14 +5,14 @@ import crypto from 'crypto'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 const execFileAsync = promisify(execFile)
-import { FFMPEG, MUSIC_DIR } from '../config/media-paths.js'
+import { FFMPEG, MUSIC_DIR } from '../../config/media-paths.js'
 import { resolveIntroUrl } from './helpers.js'
 
 let remotionRenderer = null
 async function getRemotionRenderer() {
   if (!remotionRenderer) {
     try {
-      remotionRenderer = await import('../remotion/render/index.js')
+      remotionRenderer = await import('../../remotion/render/index.js')
       console.log('[Remotion] Render-Engine geladen ✓')
     } catch (err) {
       console.error('[Remotion] Render-Engine konnte nicht geladen werden:', err.message)
@@ -389,12 +389,12 @@ export default function createRemotionRouter(PORT) {
         ffmpegPath: FFMPEG,
         musicFiles: musicFiles.length,
         musicDir: MUSIC_DIR,
-        piperAvailable: (await import('../remotion/tts.js')).isPiperAvailable(),
+        piperAvailable: (await import('../../remotion/tts.js')).isPiperAvailable(),
         // Nur alle 60 Sekunden einen echten Request an Microsoft Edge TTS
         edgeTtsAvailable: await (async () => {
           const shouldHealthCheck = !global.__lastEdgeHealthCheck ||
             (Date.now() - global.__lastEdgeHealthCheck) > 60000;
-          const { isEdgeTtsAvailable } = await import('../remotion/edge.js');
+          const { isEdgeTtsAvailable } = await import('../../remotion/edge.js');
           const available = shouldHealthCheck
             ? await isEdgeTtsAvailable(false)
             : await isEdgeTtsAvailable(true);

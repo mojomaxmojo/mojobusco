@@ -6,7 +6,7 @@ import crypto from 'crypto'
 import { spawn } from 'child_process'
 import { promisify } from 'util'
 const execFileAsync = promisify(execFile)
-import { FFMPEG, FFPROBE, TMP_DIR } from '../config/media-paths.js'
+import { FFMPEG, FFPROBE, TMP_DIR } from '../../config/media-paths.js'
 
 const router = express.Router()
 
