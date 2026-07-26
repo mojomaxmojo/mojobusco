@@ -17,12 +17,14 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuthor } from '@/hooks/useAuthor';
 import { formatHeroSubtitle } from '@/config/about';
-import { Mail, Globe, Zap, Key, Sun, Compass, Heart } from 'lucide-react';
+import { Mail, Globe, Zap, Key, Sun, Compass, Heart, MessageCircle, Send } from 'lucide-react';
 import { useHead } from '@unhead/react';
 import { getZeitUnterwegsFormatiert } from '@/config/zeitwohnmobil';
 
 import { AUTHORS } from '@/config/nostr';
 import { useAboutContent } from '@/hooks/useAboutContent';
+import { Button } from '@/components/ui/button';
+import { ContactDMForm } from '@/components/contact/ContactDMForm';
 
 const MOJO = AUTHORS.find(a => a.id === 'mojo');
 const SUMSUM = AUTHORS.find(a => a.id === 'susanne');
@@ -113,6 +115,17 @@ export function About() {
             {traveler.badges.map((badge, i) => (
               <Badge key={i} variant="outline">{badge}</Badge>
             ))}
+          </div>
+          <div className="pt-2 border-t">
+            <ContactDMForm
+              defaultAuthorId={traveler.id as 'mojo' | 'susanne'}
+              trigger={
+                <Button variant="outline" size="sm" className="w-full gap-2">
+                  <MessageCircle className="h-4 w-4" />
+                  Nachricht senden
+                </Button>
+              }
+            />
           </div>
           <div className="pt-2 border-t">
             <div className="text-xs text-muted-foreground">Nostr Public Key</div>
@@ -262,6 +275,17 @@ export function About() {
                       <div className="text-sm">{aboutData.contact.websiteValue}</div>
                     </div>
                   </div>
+                </div>
+
+                <div className="flex justify-center pt-2">
+                  <ContactDMForm
+                    trigger={
+                      <Button className="gap-2">
+                        <Send className="h-4 w-4" />
+                        Nostr-DM senden
+                      </Button>
+                    }
+                  />
                 </div>
 
                 <div className="flex flex-wrap gap-2 pt-4 justify-center">
