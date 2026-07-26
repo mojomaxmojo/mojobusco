@@ -3,7 +3,7 @@ import multer from 'multer'
 import fs from 'fs'
 import path from 'path'
 import crypto from 'crypto'
-import { spawn } from 'child_process'
+import { spawn, execFile } from 'child_process'
 import { promisify } from 'util'
 const execFileAsync = promisify(execFile)
 import { FFMPEG, FFPROBE, TMP_DIR } from '../../config/media-paths.js'
