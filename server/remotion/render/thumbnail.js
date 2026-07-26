@@ -84,5 +84,3 @@ export async function renderMojoBusThumbnail(params) {
     }, 3000);
   }
 }
-
-export { renderMojoBusThumbnail }
