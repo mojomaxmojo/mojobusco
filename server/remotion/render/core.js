@@ -507,5 +507,3 @@ export async function renderMojoBusVideo(params) {
   if (renderError) throw renderError;
   return renderResult;
 }
-
-export { renderMojoBusVideo }
