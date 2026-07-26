@@ -26,5 +26,3 @@ export function cleanupOldRenders(maxAgeMs = 24 * 60 * 60 * 1000) { // 24h statt
     }
   } catch (e) {}
 }
-
-export { cleanupRender, cleanupOldRenders }
