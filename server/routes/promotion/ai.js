@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { getTextModel, normalizeTextModel } from '../../../src/config/ai-models.js'
+import { getTextModel, normalizeTextModel } from '../../config/ai-models.js'
 
 const OPENROUTER_BASE = 'https://openrouter.ai/api/v1/chat/completions'
 

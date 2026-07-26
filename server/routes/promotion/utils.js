@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { getVisionModels } from '../../../src/config/ai-models.js'
+import { getVisionModels } from '../../config/ai-models.js'
 
 // ── Hilfsfunktionen aus server.js duplizieren ────────────────────────────────
 

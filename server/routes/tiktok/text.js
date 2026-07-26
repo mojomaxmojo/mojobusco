@@ -1,7 +1,7 @@
 import express from 'express'
 import axios from 'axios'
 import { generateTikTokUserPrompt, FOSTER_HUNTINGTON_SYSTEM_PROMPT } from '../../../src/config/prompts/index.js'
-import { getTextModel, normalizeTextModel } from '../../../src/config/ai-models.js'
+import { getTextModel, normalizeTextModel } from '../../config/ai-models.js'
 
 const router = express.Router()
 

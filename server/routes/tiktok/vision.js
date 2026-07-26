@@ -1,7 +1,7 @@
 import express from 'express'
 import axios from 'axios'
 import { VISION_PROMPT } from './config.js'
-import { getVisionModels } from '../../../src/config/ai-models.js'
+import { getVisionModels } from '../../config/ai-models.js'
 
 const router = express.Router()
 

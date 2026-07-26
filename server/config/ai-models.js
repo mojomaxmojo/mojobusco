@@ -1,12 +1,12 @@
 /**
- * Zentrale KI-Modell-Verwaltung für MojoBus (Frontend-Version).
+ * Zentrale KI-Modell-Verwaltung für MojoBus (Server-Version).
  *
- * Hinweis: Der ai-api-Server verwendet server/config/ai-models.js.
+ * Hinweis: Das Frontend verwendet src/config/ai-models.js.
  * Beide Dateien müssen identisch gehalten werden, damit Frontend-Labels
  * und Server-Aufrufe zusammenpassen.
  *
  * Hier kannst du Modell-IDs anpassen, ohne in den Routen suchen zu müssen.
- * Änderungen werden nach einem neuen Build + Deploy aktiv.
+ * Änderungen werden nach Neustart des ai-api-Services aktiv.
  */
 
 /** @typedef {{ id: string, provider: 'openrouter' | 'groq', label: string }} ModelConfig */

@@ -16,7 +16,7 @@ import {
 } from './utils.js'
 import { generateWithKi } from './ai.js'
 import { getLifestyleConfig } from '../../../src/config/prompts/index.js'
-import { getTextModel, normalizeTextModel } from '../../../src/config/ai-models.js'
+import { getTextModel, normalizeTextModel } from '../../config/ai-models.js'
 
 const router = express.Router()
 
