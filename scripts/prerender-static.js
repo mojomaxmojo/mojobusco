@@ -233,6 +233,16 @@ async function main() {
 </html>`;
   writePrerenderFile('index.html', indexHtml);
 
+  const allLoadedEvents = [...lists.articles, ...lists.places, ...lists.trips, ...lists.media, ...lists.notes, ...lists.videos, ...lists.profiles];
+  const dedupedEvents = [...new Map(allLoadedEvents.map(e => [e.id, e])).values()];
+  try {
+    const cachePath = '/tmp/mojobus-prerender-events-cache.json';
+    fs.writeFileSync(cachePath, JSON.stringify(dedupedEvents), 'utf-8');
+    console.log(`[Prerender] Event-Cache geschrieben: ${dedupedEvents.length} Events → ${cachePath}`);
+  } catch (e) {
+    console.warn(`[Prerender] Cache konnte nicht geschrieben werden: ${e.message}`);
+  }
+
   const byType = {};
   for (const r of rendered) {
     byType[r.type] = (byType[r.type] || 0) + 1;

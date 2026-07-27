@@ -95,6 +95,27 @@ async function queryWithRetry(relay, filters, timeoutMs, retries = 2) {
   return [];
 }
 
+function sleep(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+async function loadCache() {
+  const cachePath = '/tmp/mojobus-prerender-events-cache.json';
+  try {
+    if (!fs.existsSync(cachePath)) return null;
+    const stat = fs.statSync(cachePath);
+    const ageMin = (Date.now() - stat.mtimeMs) / 60000;
+    if (ageMin > 120) return null; // max. 2h alt
+    const raw = fs.readFileSync(cachePath, 'utf-8');
+    const events = JSON.parse(raw);
+    console.log(`[Prerender-Missing] Lade ${events.length} Events aus Cache (${Math.round(ageMin)} Min alt)`);
+    return events;
+  } catch (e) {
+    console.warn(`[Prerender-Missing] Cache-Fehler: ${e.message}`);
+    return null;
+  }
+}
+
 async function fetchAllForKind(relay, kind) {
   const all = [];
   const seen = new Set();
@@ -121,17 +142,22 @@ async function fetchAllForKind(relay, kind) {
     const oldest = Math.min(...events.map(e => e.created_at));
     until = oldest - 1;
     if (events.length < MAX_PER_RELAY) break;
+    await sleep(200);
   }
   return all;
 }
 
 async function loadAllAuthorEvents(relay) {
+  const cached = await loadCache();
+  if (cached) return cached;
+
   const all = [];
   const kinds = [0, 1, 30023, 34235, 34236];
   for (const kind of kinds) {
     console.log(`[Prerender-Missing] Lade kind ${kind} von ${relay}...`);
     const events = await fetchAllForKind(relay, kind);
     all.push(...events);
+    await sleep(500);
   }
   return all;
 }
@@ -442,9 +468,11 @@ async function main() {
 
   // Schritt 1: Alle Autoren-Events von den Relays laden
   const allEvents = [];
-  for (const relay of RELAYS) {
+  for (let i = 0; i < RELAYS.length; i++) {
+    const relay = RELAYS[i];
     const events = await loadAllAuthorEvents(relay);
     allEvents.push(...events);
+    if (i < RELAYS.length - 1) await sleep(2000);
   }
   console.log(`[Prerender-Missing] ${allEvents.length} Events insgesamt geladen.`);
 
