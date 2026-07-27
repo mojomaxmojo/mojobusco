@@ -417,40 +417,56 @@ async function processManualUrl(url) {
   return [];
 }
 
-async function fetchMissingByReference(events) {
+async function fetchMissingByReference(events, cacheMap) {
   const generated = [];
   const { ids, naddrs, npubs } = getReferencedIds(events);
+  const MAX_REF = 100;
+
+  console.log(`[Prerender-Missing] Referenzen: ${ids.length} IDs, ${naddrs.length} naddrs, ${npubs.length} npubs`);
 
   // Referenzierte IDs (kind 1 mostly)
-  for (const id of ids) {
+  for (let i = 0; i < Math.min(ids.length, MAX_REF); i++) {
+    const id = ids[i];
     const noteId = nip19.noteEncode(id);
     if (fileExists(`${noteId}.html`)) continue;
+
+    // Im Cache vorhanden?
+    if (cacheMap.has(id)) {
+      const files = await generateFromEvent(cacheMap.get(id));
+      generated.push(...files);
+      continue;
+    }
+
+    console.log(`[Prerender-Missing] Lade fehlende ID ${i + 1}/${Math.min(ids.length, MAX_REF)}: ${noteId}`);
     const event = await fetchById(id, 1);
     if (!event) continue;
     const files = await generateFromEvent(event);
-    if (files.length) {
-      generated.push(...files);
-    }
+    generated.push(...files);
   }
 
   // Referenzierte naddrs
-  for (const { kind, pubkey, identifier } of naddrs) {
+  for (let i = 0; i < Math.min(naddrs.length, MAX_REF); i++) {
+    const { kind, pubkey, identifier } = naddrs[i];
     const naddr = nip19.naddrEncode({ kind, pubkey, identifier });
     let filename;
     if (kind === 30023) filename = `${naddr}.html`;
     if (kind === 0) filename = `${nip19.npubEncode(pubkey)}.html`;
-    // Für kind 1 nicht eindeutig; je nach Tag
     if (filename && fileExists(filename)) continue;
+
+    console.log(`[Prerender-Missing] Lade fehlende naddr ${i + 1}/${Math.min(naddrs.length, MAX_REF)}: ${naddr}`);
     const event = await fetchNaddr(kind, pubkey, identifier);
     if (!event) continue;
     const files = await generateFromEvent(event);
-    if (files.length) generated.push(...files);
+    generated.push(...files);
   }
 
   // Referenzierte Profile
-  for (const pubkey of npubs) {
+  for (let i = 0; i < Math.min(npubs.length, MAX_REF); i++) {
+    const pubkey = npubs[i];
     const npub = nip19.npubEncode(pubkey);
     if (fileExists(`${npub}.html`)) continue;
+
+    console.log(`[Prerender-Missing] Lade fehlendes Profil ${i + 1}/${Math.min(npubs.length, MAX_REF)}: ${npub}`);
     const event = await fetchProfile(pubkey);
     if (!event) continue;
     writeFile(`${npub}.html`, renderProfileHtml(event));
@@ -466,31 +482,41 @@ async function main() {
   const generated = [];
   const cliUrls = process.argv.slice(2).filter(arg => arg.startsWith('http'));
 
-  // Schritt 1: Alle Autoren-Events von den Relays laden
-  const allEvents = [];
-  for (let i = 0; i < RELAYS.length; i++) {
-    const relay = RELAYS[i];
-    const events = await loadAllAuthorEvents(relay);
-    allEvents.push(...events);
-    if (i < RELAYS.length - 1) await sleep(2000);
-  }
-  console.log(`[Prerender-Missing] ${allEvents.length} Events insgesamt geladen.`);
-
-  // Schritt 2: Fehlende referenzierte Events nachladen
-  const fromRefs = await fetchMissingByReference(allEvents);
-  generated.push(...fromRefs);
-
-  // Schritt 3: Manuelle URLs aus Datei
+  // Schritt 1: Manuelle URLs zuerst (auch von prerender-urls.txt)
   const fileUrls = await loadManualUrls();
   const manualUrls = [...fileUrls, ...cliUrls];
-  for (const url of manualUrls) {
-    try {
-      const files = await processManualUrl(url);
-      generated.push(...files);
-    } catch (e) {
-      console.error(`[Prerender-Missing] Fehler bei ${url}: ${e.message}`);
+  if (manualUrls.length) {
+    console.log(`[Prerender-Missing] Verarbeite ${manualUrls.length} manuelle URLs...`);
+    for (const url of manualUrls) {
+      try {
+        const files = await processManualUrl(url);
+        generated.push(...files);
+      } catch (e) {
+        console.error(`[Prerender-Missing] Fehler bei ${url}: ${e.message}`);
+      }
     }
   }
+
+  // Schritt 2: Referenzierte Events aus Cache laden/scannen
+  let allEvents = [];
+  const cached = await loadCache();
+  if (cached) {
+    allEvents = cached;
+  } else {
+    for (let i = 0; i < RELAYS.length; i++) {
+      const relay = RELAYS[i];
+      const events = await loadAllAuthorEvents(relay);
+      allEvents.push(...events);
+      if (i < RELAYS.length - 1) await sleep(2000);
+    }
+  }
+  // Duplikate entfernen
+  allEvents = [...new Map(allEvents.map(e => [e.id, e])).values()];
+  console.log(`[Prerender-Missing] ${allEvents.length} eindeutige Events insgesamt.`);
+
+  const cacheMap = new Map(allEvents.map(e => [e.id, e]));
+  const fromRefs = await fetchMissingByReference(allEvents, cacheMap);
+  generated.push(...fromRefs);
 
   // Deduplizieren
   const unique = [...new Set(generated)];
