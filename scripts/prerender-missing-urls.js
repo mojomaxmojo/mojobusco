@@ -398,6 +398,7 @@ async function main() {
   fs.mkdirSync(PRERENDER_DIR, { recursive: true });
 
   const generated = [];
+  const cliUrls = process.argv.slice(2).filter(arg => arg.startsWith('http'));
 
   // Schritt 1: Alle Autoren-Events von den Relays laden
   const allEvents = [];
@@ -411,8 +412,9 @@ async function main() {
   const fromRefs = await fetchMissingByReference(allEvents);
   generated.push(...fromRefs);
 
-  // Schritt 3: Manuelle URLs/Fallback verarbeiten
-  const manualUrls = await loadManualUrls();
+  // Schritt 3: Manuelle URLs aus Datei
+  const fileUrls = await loadManualUrls();
+  const manualUrls = [...fileUrls, ...cliUrls];
   for (const url of manualUrls) {
     try {
       const files = await processManualUrl(url);
