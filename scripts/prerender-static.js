@@ -8,6 +8,9 @@ import {
   AUTHOR_PUBKEYS,
   encodeNaddr,
   queryRelay,
+  isPlace,
+  isTrip,
+  isMedia,
 } from './prerender-helpers.js';
 import {
   renderArticleHtml,
@@ -30,22 +33,6 @@ import {
 
 const DEPLOY_DIR = '/home/nginx/domains/mojobus.co/public';
 const PRERENDER_DIR = path.join(DEPLOY_DIR, 'prerender');
-
-function isPlace(event) {
-  const tTags = new Set((event.tags?.filter(t => t[0] === 't').map(t => t[1]) || []).map(t => t.toLowerCase()));
-  const typeTag = (event.tags?.find(t => t[0] === 'type')?.[1] || '').toLowerCase();
-  return typeTag === 'place' || tTags.has('place') || tTags.has('camping') || tTags.has('stellplatz') || tTags.has('places');
-}
-
-function isTrip(event) {
-  const tTags = new Set((event.tags?.filter(t => t[0] === 't').map(t => t[1]) || []).map(t => t.toLowerCase()));
-  return tTags.has('trip') || tTags.has('trips') || tTags.has('travel') || tTags.has('reise');
-}
-
-function isMedia(event) {
-  const tTags = new Set((event.tags?.filter(t => t[0] === 't').map(t => t[1]) || []).map(t => t.toLowerCase()));
-  return tTags.has('media') || tTags.has('medien') || tTags.has('bilder') || tTags.has('images') || tTags.has('galerie');
-}
 
 function writePrerenderFile(filename, html) {
   fs.writeFileSync(path.join(PRERENDER_DIR, filename), html, 'utf-8');

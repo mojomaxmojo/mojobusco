@@ -76,6 +76,22 @@ export function getAuthorUrl(pubkey) {
   return `${BASE_URL}/${author.npub}`;
 }
 
+export function isPlace(event) {
+  const tTags = new Set((event.tags?.filter(t => t[0] === 't').map(t => t[1]) || []).map(t => t.toLowerCase()));
+  const typeTag = (event.tags?.find(t => t[0] === 'type')?.[1] || '').toLowerCase();
+  return typeTag === 'place' || tTags.has('place') || tTags.has('camping') || tTags.has('stellplatz') || tTags.has('places');
+}
+
+export function isTrip(event) {
+  const tTags = new Set((event.tags?.filter(t => t[0] === 't').map(t => t[1]) || []).map(t => t.toLowerCase()));
+  return tTags.has('trip') || tTags.has('trips') || tTags.has('travel') || tTags.has('reise');
+}
+
+export function isMedia(event) {
+  const tTags = new Set((event.tags?.filter(t => t[0] === 't').map(t => t[1]) || []).map(t => t.toLowerCase()));
+  return tTags.has('media') || tTags.has('medien') || tTags.has('bilder') || tTags.has('images') || tTags.has('galerie');
+}
+
 export async function queryRelay(relayUrl, filters, timeoutMs = 15000) {
   return new Promise((resolve) => {
     let ws;
