@@ -49,15 +49,30 @@ async function fetchById(id, kindHint) {
 
 async function fetchNaddr(kind, pubkey, identifier) {
   for (const relay of RELAYS) {
-    const events = await queryWithRetry(relay, [{
+    // Versuch 1: gezielter #d Filter
+    let events = await queryWithRetry(relay, [{
       kinds: [kind],
       authors: [pubkey],
       '#d': [identifier],
       limit: 1,
       since: 0,
       until: FAR_FUTURE,
-    }], 15000, 1);
+    }], 10000, 1);
     if (events.length) return events[0];
+
+    // Versuch 2: alle Events des Autors laden und nach d-Tag filtern
+    events = await queryWithRetry(relay, [{
+      kinds: [kind],
+      authors: [pubkey],
+      limit: MAX_PER_RELAY,
+      since: 0,
+      until: FAR_FUTURE,
+    }], 20000, 1);
+    const found = events.find(e => {
+      const dTag = e.tags?.find(t => t[0] === 'd')?.[1] || e.id;
+      return dTag === identifier;
+    });
+    if (found) return found;
   }
   return null;
 }
