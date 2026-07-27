@@ -308,7 +308,7 @@ export function renderVideoHtml(event) {
 </html>`;
 }
 
-export function renderMediaHtml(event) {
+export function renderMediaHtml(event, fileId = null) {
   const title = event.tags?.find(t => t[0] === 'title')?.[1] || 'Bildergalerie';
   const desc = event.content || '';
   const images = event.tags?.filter(t => t[0] === 'image').map(t => t[1]) || [];
@@ -317,8 +317,9 @@ export function renderMediaHtml(event) {
   const cleanDesc = stripMarkdown(desc, 300);
   const description = cleanDesc.substring(0, 160);
   const datePublished = formatDate(event.created_at);
-  const nevent = nip19.neventEncode({ id: event.id, author: event.pubkey });
-  const canonicalUrl = `${BASE_URL}/bild/${nevent}`;
+  const noteId = nip19.noteEncode(event.id);
+  const canonicalUrl = `${BASE_URL}/bild/${noteId}`;
+  const fileNameId = fileId || noteId;
 
   const jsonLd = buildImageLd({
     name: title,
@@ -346,4 +347,8 @@ export function renderMediaHtml(event) {
   <p><a href="${escapeHtml(canonicalUrl)}">Galerie auf MojoBus ansehen →</a></p>
 </body>
 </html>`;
+}
+
+export function renderMediaHtmlByNevent(event, nevent) {
+  return renderMediaHtml(event, nevent);
 }

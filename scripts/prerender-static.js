@@ -128,13 +128,17 @@ async function main() {
       if (seen.has(event.id)) continue;
       seen.add(event.id);
       try {
+        const noteId = nip19.noteEncode(event.id);
         const nevent = nip19.neventEncode({ id: event.id, relays: [relay], author: event.pubkey });
-        const filename = `bild-${nevent}.html`;
-        writePrerenderFile(filename, renderMediaHtml(event));
+        writePrerenderFile(`bild-${noteId}.html`, renderMediaHtml(event, noteId));
+        rendered.push({ type: 'Bild', identifier: noteId });
+        if (nevent !== noteId) {
+          writePrerenderFile(`bild-${nevent}.html`, renderMediaHtml(event, nevent));
+          rendered.push({ type: 'Bild (nevent)', identifier: nevent });
+        }
         lists.media.push(event);
-        rendered.push({ type: 'Bild', identifier: nevent });
       } catch (e) {
-        console.warn(`[Prerender] nevent fehlgeschlagen: ${e.message}`);
+        console.warn(`[Prerender] Bild-Encoding fehlgeschlagen: ${e.message}`);
       }
     }
 

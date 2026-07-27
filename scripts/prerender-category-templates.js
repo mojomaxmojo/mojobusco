@@ -101,13 +101,13 @@ function toTripItem(event) {
 }
 
 function toMediaItem(event) {
-  const nevent = nip19.neventEncode({ id: event.id, author: event.pubkey });
+  const noteId = nip19.noteEncode(event.id);
   const title = event.tags?.find(t => t[0] === 'title')?.[1] || 'Bildergalerie';
   return {
     name: title,
     description: stripMarkdown(event.content, 160),
     image: event.tags?.find(t => t[0] === 'image')?.[1] || DEFAULT_IMAGE,
-    url: `${BASE_URL}/bild/${nevent}`,
+    url: `${BASE_URL}/bild/${noteId}`,
   };
 }
 

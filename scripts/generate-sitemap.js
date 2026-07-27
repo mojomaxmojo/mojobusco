@@ -219,12 +219,12 @@ async function main() {
         continue;
       }
 
-      // Bilder/Media → /bild/{nevent}
+      // Bilder/Media → /bild/{note}
       if (tTags.has('media') || tTags.has('medien') || tTags.has('bilder') || tTags.has('images') || tTags.has('galerie')) {
         try {
-          const nevent = nip19.neventEncode({ id: event.id });
+          const noteId = nip19.noteEncode(event.id);
           allUrls.push({
-            loc: `${BASE_URL}/bild/${nevent}`,
+            loc: `${BASE_URL}/bild/${noteId}`,
             priority: '0.6',
             changefreq: 'monthly',
             lastmod: new Date(event.created_at * 1000).toISOString().split('T')[0],
