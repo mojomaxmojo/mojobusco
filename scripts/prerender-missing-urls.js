@@ -4,6 +4,8 @@ import { nip19 } from 'nostr-tools';
 import {
   BASE_URL,
   RELAYS,
+  MAX_PER_RELAY,
+  AUTHOR_PUBKEYS,
   escapeHtml,
   queryRelay,
   isPlace,
@@ -21,7 +23,9 @@ import {
 } from './prerender-entity-templates.js';
 
 const PRERENDER_DIR = '/home/nginx/domains/mojobus.co/public/prerender';
+
 const URLS_FILE = '/root/deploy-git/mojobusco/scripts/prerender-urls.txt';
+const EXTRA_IDS_FILE = '/root/deploy-git/mojobusco/scripts/prerender-extra-ids.txt';
 
 function fileExists(name) {
   return fs.existsSync(path.join(PRERENDER_DIR, name));
@@ -33,12 +37,9 @@ function writeFile(name, html) {
 
 async function fetchById(id, kindHint) {
   for (const relay of RELAYS) {
-    const filters = [];
-    if (kindHint != null) {
-      filters.push({ ids: [id], kinds: [kindHint], limit: 1 });
-    } else {
-      filters.push({ ids: [id], limit: 1 });
-    }
+    const filters = kindHint != null
+      ? [{ ids: [id], kinds: [kindHint], limit: 1 }]
+      : [{ ids: [id], limit: 1 }];
     const events = await queryRelay(relay, filters, 15000);
     if (events.length) return events[0];
   }
@@ -70,31 +71,191 @@ async function fetchProfile(pubkey) {
   return null;
 }
 
+function extractNip19References(content) {
+  const refs = new Set();
+  const regex = /\b(naddr|note|npub|nevent|nprofile|nrelay|nsec)1[0-9a-z]+\b/g;
+  let m;
+  while ((m = regex.exec(content || '')) !== null) {
+    refs.add(m[0]);
+  }
+  return [...refs];
+}
+
+async function loadAllAuthorEvents(relay) {
+  const all = [];
+  const kinds = [0, 1, 30023, 34235, 34236];
+  for (const kind of kinds) {
+    console.log(`[Prerender-Missing] Lade kind ${kind} von ${relay}...`);
+    const events = await queryRelay(relay, [{
+      kinds: [kind],
+      authors: AUTHOR_PUBKEYS,
+      limit: MAX_PER_RELAY,
+    }], 30000);
+    all.push(...events);
+  }
+  return all;
+}
+
+function getReferencedIds(events) {
+  const ids = new Set();
+  const naddrs = new Map(); // key: `${kind}:${pubkey}:${identifier}`
+  const npubs = new Set();
+
+  for (const event of events) {
+    // tags: e → event-id, a → naddr (kind:pubkey:d-tag), p → pubkey
+    for (const tag of event.tags || []) {
+      if (tag[0] === 'e' && tag[1]) ids.add(tag[1]);
+      if (tag[0] === 'p' && tag[1]) npubs.add(tag[1]);
+      if (tag[0] === 'a' && tag[1]) {
+        const [kind, pubkey, ...rest] = tag[1].split(':');
+        const identifier = rest.join(':');
+        if (kind && pubkey && identifier) {
+          naddrs.set(`${kind}:${pubkey}:${identifier}`, { kind: Number(kind), pubkey, identifier });
+        }
+      }
+    }
+    // Inhalte nach NIP-19 referenzen scannen
+    for (const ref of extractNip19References(event.content)) {
+      try {
+        const decoded = nip19.decode(ref);
+        if (decoded.type === 'note') ids.add(decoded.data);
+        if (decoded.type === 'nevent') ids.add(decoded.data.id);
+        if (decoded.type === 'npub') npubs.add(decoded.data);
+        if (decoded.type === 'naddr') {
+          naddrs.set(
+            `${decoded.data.kind}:${decoded.data.pubkey}:${decoded.data.identifier}`,
+            decoded.data
+          );
+        }
+      } catch {}
+    }
+  }
+
+  return { ids: [...ids], naddrs: [...naddrs.values()], npubs: [...npubs] };
+}
+
 function generateMediaFiles(event, relayHint) {
   const noteId = nip19.noteEncode(event.id);
-  const nevent = nip19.neventEncode({ id: event.id, relays: relayHint ? [relayHint] : undefined, author: event.pubkey });
   const files = [];
   if (!fileExists(`bild-${noteId}.html`)) {
     writeFile(`bild-${noteId}.html`, renderMediaHtml(event, noteId));
     files.push(`bild-${noteId}.html`);
   }
-  if (nevent !== noteId && !fileExists(`bild-${nevent}.html`)) {
-    writeFile(`bild-${nevent}.html`, renderMediaHtml(event, nevent));
-    files.push(`bild-${nevent}.html`);
-  }
+  try {
+    const nevent = nip19.neventEncode({ id: event.id, relays: relayHint ? [relayHint] : undefined, author: event.pubkey });
+    if (nevent !== noteId && !fileExists(`bild-${nevent}.html`)) {
+      writeFile(`bild-${nevent}.html`, renderMediaHtml(event, nevent));
+      files.push(`bild-${nevent}.html`);
+    }
+  } catch {}
   return files;
 }
 
-async function processUrl(url) {
+async function generateFromEvent(event) {
+  const generated = [];
+
+  if ([34236, 34235].includes(event.kind)) {
+    const dTag = event.tags?.find(t => t[0] === 'd')?.[1] || event.id;
+    try {
+      const naddr = nip19.naddrEncode({ kind: event.kind, pubkey: event.pubkey, identifier: dTag });
+      const filename = `video-${naddr}.html`;
+      if (!fileExists(filename)) {
+        writeFile(filename, renderVideoHtml(event));
+        generated.push(filename);
+      }
+    } catch {}
+    return generated;
+  }
+
+  if (event.kind === 30023) {
+    try {
+      const naddr = nip19.naddrEncode({ kind: event.kind, pubkey: event.pubkey, identifier: event.tags?.find(t => t[0] === 'd')?.[1] || event.id });
+      const filename = `${naddr}.html`;
+      if (!fileExists(filename)) {
+        writeFile(filename, renderArticleHtml(event));
+        generated.push(filename);
+      }
+    } catch {}
+    return generated;
+  }
+
+  if (event.kind === 0) {
+    try {
+      const npub = nip19.npubEncode(event.pubkey);
+      const filename = `${npub}.html`;
+      if (!fileExists(filename)) {
+        writeFile(filename, renderProfileHtml(event));
+        generated.push(filename);
+      }
+    } catch {}
+    return generated;
+  }
+
+  if (event.kind === 1) {
+    try {
+      const noteId = nip19.noteEncode(event.id);
+      if (isMedia(event)) {
+        return generateMediaFiles(event, RELAYS[0]);
+      }
+      if (isTrip(event)) {
+        const naddr = nip19.naddrEncode({ kind: event.kind || 1, pubkey: event.pubkey, identifier: event.id });
+        const filename = `trip-${naddr}.html`;
+        if (!fileExists(filename)) {
+          writeFile(filename, renderTripHtml(event));
+          generated.push(filename);
+        }
+        return generated;
+      }
+      if (isPlace(event)) {
+        const naddr = nip19.naddrEncode({ kind: event.kind || 1, pubkey: event.pubkey, identifier: event.id });
+        const filename = `${naddr}.html`;
+        if (!fileExists(filename)) {
+          writeFile(filename, renderPlaceHtml(event));
+          generated.push(filename);
+        }
+        return generated;
+      }
+      const filename = `${noteId}.html`;
+      if (!fileExists(filename)) {
+        writeFile(filename, renderNoteHtml(event));
+        generated.push(filename);
+      }
+    } catch {}
+    return generated;
+  }
+
+  return generated;
+}
+
+async function loadManualUrls() {
+  const urls = [];
+  if (fs.existsSync(URLS_FILE)) {
+    urls.push(...fs.readFileSync(URLS_FILE, 'utf-8')
+      .split('\n')
+      .map(line => line.trim())
+      .filter(Boolean));
+  }
+  if (fs.existsSync(EXTRA_IDS_FILE)) {
+    const lines = fs.readFileSync(EXTRA_IDS_FILE, 'utf-8')
+      .split('\n')
+      .map(line => line.trim())
+      .filter(Boolean);
+    for (const line of lines) {
+      if (line.startsWith('https://mojobus.co/')) {
+        urls.push(line);
+      }
+    }
+  }
+  return urls;
+}
+
+async function processManualUrl(url) {
   let pathPart;
   try {
     const u = new URL(url);
-    if (u.hostname !== 'mojobus.co' && u.hostname !== 'www.mojobus.co') {
-      console.warn(`[Missing] Überspringe externe URL: ${url}`);
-      return [];
-    }
+    if (u.hostname !== 'mojobus.co' && u.hostname !== 'www.mojobus.co') return [];
     pathPart = u.pathname;
-  } catch (e) {
+  } catch {
     console.warn(`[Missing] Ungültige URL: ${url}`);
     return [];
   }
@@ -106,21 +267,14 @@ async function processUrl(url) {
     let eventId;
     try {
       const decoded = nip19.decode(nipId);
-      if (decoded.type === 'note') eventId = decoded.data;
-      else if (decoded.type === 'nevent') eventId = decoded.data.id;
+      eventId = decoded.type === 'note' ? decoded.data : decoded.data.id;
     } catch (e) {
       console.warn(`[Missing] Bild-Decode fehlgeschlagen: ${nipId}`);
       return [];
     }
-    if (!eventId) return [];
     const event = await fetchById(eventId, 1);
-    if (!event) {
-      console.warn(`[Missing] Bild-Event nicht gefunden: ${nipId}`);
-      return [];
-    }
-    const generated = generateMediaFiles(event, RELAYS[0]);
-    console.log(`[Missing] Bild ${nipId} → ${generated.join(', ')}`);
-    return generated;
+    if (!event) return [];
+    return generateMediaFiles(event, RELAYS[0]);
   }
 
   // /trip/<naddr>
@@ -130,21 +284,15 @@ async function processUrl(url) {
     let decoded;
     try {
       decoded = nip19.decode(naddr);
-    } catch (e) {
-      console.warn(`[Missing] Trip naddr-Decode fehlgeschlagen: ${naddr}`);
+    } catch {
       return [];
     }
-    if (decoded.type !== 'naddr') return [];
     const { kind, pubkey, identifier } = decoded.data;
     const event = await fetchNaddr(kind, pubkey, identifier);
-    if (!event) {
-      console.warn(`[Missing] Trip nicht gefunden: ${naddr}`);
-      return [];
-    }
+    if (!event) return [];
     const filename = `trip-${naddr}.html`;
     if (fileExists(filename)) return [];
     writeFile(filename, renderTripHtml(event));
-    console.log(`[Missing] Trip ${naddr} → ${filename}`);
     return [filename];
   }
 
@@ -154,47 +302,15 @@ async function processUrl(url) {
     let decoded;
     try {
       decoded = nip19.decode(naddr);
-    } catch (e) {
-      console.warn(`[Missing] naddr-Decode fehlgeschlagen: ${naddr}`);
+    } catch {
       return [];
     }
-    if (decoded.type !== 'naddr') return [];
     const { kind, pubkey, identifier } = decoded.data;
     const event = await fetchNaddr(kind, pubkey, identifier);
-    if (!event) {
-      console.warn(`[Missing] naddr nicht gefunden: ${naddr}`);
-      return [];
-    }
-    let filename;
-    let html;
-    if (kind === 30023) {
-      filename = `${naddr}.html`;
-      html = renderArticleHtml(event);
-    } else if (kind === 0) {
-      const npub = nip19.npubEncode(pubkey);
-      filename = `${npub}.html`;
-      html = renderProfileHtml(event);
-    } else if (kind === 1) {
-      if (isPlace(event)) {
-        filename = `${naddr}.html`;
-        html = renderPlaceHtml(event);
-      } else if (isTrip(event)) {
-        filename = `trip-${naddr}.html`;
-        html = renderTripHtml(event);
-      } else if (isMedia(event)) {
-        return generateMediaFiles(event, RELAYS[0]);
-      } else {
-        filename = `${naddr}.html`;
-        html = renderNoteHtml(event);
-      }
-    } else {
-      console.warn(`[Missing] Unbekannte naddr-kind ${kind}: ${naddr}`);
-      return [];
-    }
-    if (fileExists(filename)) return [];
-    writeFile(filename, html);
-    console.log(`[Missing] ${naddr} → ${filename}`);
-    return [filename];
+    if (!event) return [];
+    const generated = await generateFromEvent(event);
+    // Name korrigieren falls naddr ≠ filename
+    return generated;
   }
 
   // /<note>
@@ -203,19 +319,16 @@ async function processUrl(url) {
     let eventId;
     try {
       eventId = nip19.decode(noteId).data;
-    } catch (e) {
-      console.warn(`[Missing] note-Decode fehlgeschlagen: ${noteId}`);
+    } catch {
       return [];
     }
     const event = await fetchById(eventId, 1);
-    if (!event) {
-      console.warn(`[Missing] note nicht gefunden: ${noteId}`);
-      return [];
-    }
-    if (fileExists(`${noteId}.html`)) return [];
-    writeFile(`${noteId}.html`, renderNoteHtml(event));
-    console.log(`[Missing] Note ${noteId} → ${noteId}.html`);
-    return [`${noteId}.html`];
+    if (!event) return [];
+    if (isMedia(event)) return generateMediaFiles(event, RELAYS[0]);
+    const filename = `${noteId}.html`;
+    if (fileExists(filename)) return [];
+    writeFile(filename, renderNoteHtml(event));
+    return [filename];
   }
 
   // /<npub>
@@ -224,57 +337,104 @@ async function processUrl(url) {
     let pubkey;
     try {
       pubkey = nip19.decode(npub).data;
-    } catch (e) {
-      console.warn(`[Missing] npub-Decode fehlgeschlagen: ${npub}`);
+    } catch {
       return [];
     }
     const event = await fetchProfile(pubkey);
-    if (!event) {
-      console.warn(`[Missing] Profil nicht gefunden: ${npub}`);
-      return [];
-    }
-    if (fileExists(`${npub}.html`)) return [];
-    writeFile(`${npub}.html`, renderProfileHtml(event));
-    console.log(`[Missing] Profil ${npub} → ${npub}.html`);
-    return [`${npub}.html`];
+    if (!event) return [];
+    const filename = `${npub}.html`;
+    if (fileExists(filename)) return [];
+    writeFile(filename, renderProfileHtml(event));
+    return [filename];
   }
 
-  console.warn(`[Missing] Unbekanntes URL-Muster: ${pathPart}`);
   return [];
+}
+
+async function fetchMissingByReference(events) {
+  const generated = [];
+  const { ids, naddrs, npubs } = getReferencedIds(events);
+
+  // Referenzierte IDs (kind 1 mostly)
+  for (const id of ids) {
+    const noteId = nip19.noteEncode(id);
+    if (fileExists(`${noteId}.html`)) continue;
+    const event = await fetchById(id, 1);
+    if (!event) continue;
+    const files = await generateFromEvent(event);
+    if (files.length) {
+      generated.push(...files);
+    }
+  }
+
+  // Referenzierte naddrs
+  for (const { kind, pubkey, identifier } of naddrs) {
+    const naddr = nip19.naddrEncode({ kind, pubkey, identifier });
+    let filename;
+    if (kind === 30023) filename = `${naddr}.html`;
+    if (kind === 0) filename = `${nip19.npubEncode(pubkey)}.html`;
+    // Für kind 1 nicht eindeutig; je nach Tag
+    if (filename && fileExists(filename)) continue;
+    const event = await fetchNaddr(kind, pubkey, identifier);
+    if (!event) continue;
+    const files = await generateFromEvent(event);
+    if (files.length) generated.push(...files);
+  }
+
+  // Referenzierte Profile
+  for (const pubkey of npubs) {
+    const npub = nip19.npubEncode(pubkey);
+    if (fileExists(`${npub}.html`)) continue;
+    const event = await fetchProfile(pubkey);
+    if (!event) continue;
+    writeFile(`${npub}.html`, renderProfileHtml(event));
+    generated.push(`${npub}.html`);
+  }
+
+  return generated;
 }
 
 async function main() {
   fs.mkdirSync(PRERENDER_DIR, { recursive: true });
 
-  if (!fs.existsSync(URLS_FILE)) {
-    console.log(`[Missing] ${URLS_FILE} nicht gefunden. Erstelle eine Datei mit einer URL pro Zeile.`);
-    process.exit(0);
-  }
-
-  const urls = fs.readFileSync(URLS_FILE, 'utf-8')
-    .split('\n')
-    .map(line => line.trim())
-    .filter(Boolean);
-
-  if (!urls.length) {
-    console.log('[Missing] Keine URLs in der Datei.');
-    process.exit(0);
-  }
-
   const generated = [];
-  for (const url of urls) {
+
+  // Schritt 1: Alle Autoren-Events von den Relays laden
+  const allEvents = [];
+  for (const relay of RELAYS) {
+    const events = await loadAllAuthorEvents(relay);
+    allEvents.push(...events);
+  }
+  console.log(`[Prerender-Missing] ${allEvents.length} Events insgesamt geladen.`);
+
+  // Schritt 2: Fehlende referenzierte Events nachladen
+  const fromRefs = await fetchMissingByReference(allEvents);
+  generated.push(...fromRefs);
+
+  // Schritt 3: Manuelle URLs/Fallback verarbeiten
+  const manualUrls = await loadManualUrls();
+  for (const url of manualUrls) {
     try {
-      const files = await processUrl(url);
+      const files = await processManualUrl(url);
       generated.push(...files);
     } catch (e) {
-      console.error(`[Missing] Fehler bei ${url}: ${e.message}`);
+      console.error(`[Prerender-Missing] Fehler bei ${url}: ${e.message}`);
     }
   }
 
-  console.log(`[Missing] ✅ ${generated.length} zusätzliche Prerender-Dateien generiert.`);
+  // Deduplizieren
+  const unique = [...new Set(generated)];
+
+  console.log(`[Prerender-Missing] ✅ ${unique.length} zusätzliche Prerender-Dateien generiert.`);
+  if (unique.length) {
+    for (const f of unique.slice(0, 20)) {
+      console.log(`[Prerender-Missing]    - ${f}`);
+    }
+    if (unique.length > 20) console.log(`[Prerender-Missing]    ... und ${unique.length - 20} weitere`);
+  }
 }
 
 main().catch(err => {
-  console.error('[Missing] Fehler:', err);
+  console.error('[Prerender-Missing] Fehler:', err);
   process.exit(1);
 });
