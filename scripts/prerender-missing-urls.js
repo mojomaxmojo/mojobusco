@@ -41,7 +41,7 @@ async function fetchById(id, kindHint) {
     const filters = kindHint != null
       ? [{ ids: [id], kinds: [kindHint], limit: 1, since: 0, until: FAR_FUTURE }]
       : [{ ids: [id], limit: 1, since: 0, until: FAR_FUTURE }];
-    const events = await queryRelay(relay, filters, 15000);
+    const events = await queryWithRetry(relay, filters, 15000, 1);
     if (events.length) return events[0];
   }
   return null;
@@ -49,14 +49,14 @@ async function fetchById(id, kindHint) {
 
 async function fetchNaddr(kind, pubkey, identifier) {
   for (const relay of RELAYS) {
-    const events = await queryRelay(relay, [{
+    const events = await queryWithRetry(relay, [{
       kinds: [kind],
       authors: [pubkey],
       '#d': [identifier],
       limit: 1,
       since: 0,
       until: FAR_FUTURE,
-    }], 15000);
+    }], 15000, 1);
     if (events.length) return events[0];
   }
   return null;
@@ -64,13 +64,13 @@ async function fetchNaddr(kind, pubkey, identifier) {
 
 async function fetchProfile(pubkey) {
   for (const relay of RELAYS) {
-    const events = await queryRelay(relay, [{
+    const events = await queryWithRetry(relay, [{
       kinds: [0],
       authors: [pubkey],
       limit: 1,
       since: 0,
       until: FAR_FUTURE,
-    }], 15000);
+    }], 15000, 1);
     if (events.length) return events[0];
   }
   return null;
@@ -86,18 +86,51 @@ function extractNip19References(content) {
   return [...refs];
 }
 
+async function queryWithRetry(relay, filters, timeoutMs, retries = 2) {
+  for (let i = 0; i <= retries; i++) {
+    const events = await queryRelay(relay, filters, timeoutMs);
+    if (events.length > 0 || i === retries) return events;
+    await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+  }
+  return [];
+}
+
+async function fetchAllForKind(relay, kind) {
+  const all = [];
+  const seen = new Set();
+  let until = FAR_FUTURE;
+  let iterations = 0;
+
+  while (iterations < 20) {
+    iterations++;
+    const events = await queryWithRetry(relay, [{
+      kinds: [kind],
+      authors: AUTHOR_PUBKEYS,
+      limit: MAX_PER_RELAY,
+      since: 0,
+      until,
+    }], 30000, 1);
+
+    const newEvents = events.filter(e => !seen.has(e.id));
+    if (!newEvents.length) break;
+    newEvents.forEach(e => seen.add(e.id));
+    all.push(...newEvents);
+
+    console.log(`[Prerender-Missing]  → ${relay} kind ${kind}: ${newEvents.length} (gesamt ${all.length})`);
+
+    const oldest = Math.min(...events.map(e => e.created_at));
+    until = oldest - 1;
+    if (events.length < MAX_PER_RELAY) break;
+  }
+  return all;
+}
+
 async function loadAllAuthorEvents(relay) {
   const all = [];
   const kinds = [0, 1, 30023, 34235, 34236];
   for (const kind of kinds) {
     console.log(`[Prerender-Missing] Lade kind ${kind} von ${relay}...`);
-    const events = await queryRelay(relay, [{
-      kinds: [kind],
-      authors: AUTHOR_PUBKEYS,
-      limit: MAX_PER_RELAY,
-      since: 0,
-      until: FAR_FUTURE,
-    }], 30000);
+    const events = await fetchAllForKind(relay, kind);
     all.push(...events);
   }
   return all;
