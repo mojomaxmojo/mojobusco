@@ -23,6 +23,7 @@ import {
 } from './prerender-entity-templates.js';
 
 const PRERENDER_DIR = '/home/nginx/domains/mojobus.co/public/prerender';
+const FAR_FUTURE = Math.floor(Date.now() / 1000) + 3600 * 24 * 365;
 
 const URLS_FILE = '/root/deploy-git/mojobusco/scripts/prerender-urls.txt';
 const EXTRA_IDS_FILE = '/root/deploy-git/mojobusco/scripts/prerender-extra-ids.txt';
@@ -38,8 +39,8 @@ function writeFile(name, html) {
 async function fetchById(id, kindHint) {
   for (const relay of RELAYS) {
     const filters = kindHint != null
-      ? [{ ids: [id], kinds: [kindHint], limit: 1 }]
-      : [{ ids: [id], limit: 1 }];
+      ? [{ ids: [id], kinds: [kindHint], limit: 1, since: 0, until: FAR_FUTURE }]
+      : [{ ids: [id], limit: 1, since: 0, until: FAR_FUTURE }];
     const events = await queryRelay(relay, filters, 15000);
     if (events.length) return events[0];
   }
@@ -53,6 +54,8 @@ async function fetchNaddr(kind, pubkey, identifier) {
       authors: [pubkey],
       '#d': [identifier],
       limit: 1,
+      since: 0,
+      until: FAR_FUTURE,
     }], 15000);
     if (events.length) return events[0];
   }
@@ -65,6 +68,8 @@ async function fetchProfile(pubkey) {
       kinds: [0],
       authors: [pubkey],
       limit: 1,
+      since: 0,
+      until: FAR_FUTURE,
     }], 15000);
     if (events.length) return events[0];
   }
@@ -90,6 +95,8 @@ async function loadAllAuthorEvents(relay) {
       kinds: [kind],
       authors: AUTHOR_PUBKEYS,
       limit: MAX_PER_RELAY,
+      since: 0,
+      until: FAR_FUTURE,
     }], 30000);
     all.push(...events);
   }

@@ -36,6 +36,7 @@ const AUTHOR_PUBKEYS = AUTHORS.map(a => a.pubkey);
 // ── Config ────────────────────────────────────────────────────────────────
 const SITEMAP_PATH = '/home/nginx/domains/mojobus.co/public/sitemap.xml';
 const BASE_URL = 'https://mojobus.co';
+const FAR_FUTURE = Math.floor(Date.now() / 1000) + 3600 * 24 * 365;
 
 const RELAYS = [
   'wss://relay.mojobus.co',
@@ -152,7 +153,7 @@ async function main() {
     console.log(`[Sitemap] Frage ab: ${relay}`);
 
     // ── Longform-Artikel (kind 30023) ──────────────────
-    const articles = await queryRelay(relay, [{ kinds: [30023], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS }]);
+    const articles = await queryRelay(relay, [{ kinds: [30023], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS, since: 0, until: FAR_FUTURE }]);
     console.log(`[Sitemap]  → ${articles.length} Longform-Events`);
 
     for (const event of articles) {
@@ -169,7 +170,7 @@ async function main() {
     }
 
     // ── Notes (kind 1) ──────────────────────────────────
-    const notes = await queryRelay(relay, [{ kinds: [1], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS }]);
+    const notes = await queryRelay(relay, [{ kinds: [1], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS, since: 0, until: FAR_FUTURE }]);
     console.log(`[Sitemap]  → ${notes.length} Kind-1-Events`);
 
     for (const event of notes) {

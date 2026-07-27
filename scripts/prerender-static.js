@@ -33,6 +33,7 @@ import {
 
 const DEPLOY_DIR = '/home/nginx/domains/mojobus.co/public';
 const PRERENDER_DIR = path.join(DEPLOY_DIR, 'prerender');
+const FAR_FUTURE = Math.floor(Date.now() / 1000) + 3600 * 24 * 365;
 
 function writePrerenderFile(filename, html) {
   fs.writeFileSync(path.join(PRERENDER_DIR, filename), html, 'utf-8');
@@ -55,7 +56,7 @@ async function main() {
   for (const relay of RELAYS) {
     console.log(`[Prerender] Frage ab: ${relay}`);
 
-    const articles = await queryRelay(relay, [{ kinds: [30023], authors: AUTHOR_PUBKEYS, limit: MAX_PER_RELAY }]);
+    const articles = await queryRelay(relay, [{ kinds: [30023], authors: AUTHOR_PUBKEYS, limit: MAX_PER_RELAY, since: 0, until: FAR_FUTURE }]);
     console.log(`[Prerender]  → ${articles.length} Artikel`);
     for (const event of articles) {
       if (seen.has(event.id)) continue;
@@ -73,6 +74,8 @@ async function main() {
       authors: AUTHOR_PUBKEYS,
       '#t': ['place', 'camping', 'stellplatz', 'places'],
       limit: MAX_PER_RELAY,
+      since: 0,
+      until: FAR_FUTURE,
     }]);
     console.log(`[Prerender]  → ${places.length} Orte`);
     for (const event of places) {
@@ -91,6 +94,8 @@ async function main() {
       authors: AUTHOR_PUBKEYS,
       '#t': ['trip', 'trips', 'travel', 'reise'],
       limit: MAX_PER_RELAY,
+      since: 0,
+      until: FAR_FUTURE,
     }]);
     console.log(`[Prerender]  → ${trips.length} Trips`);
     for (const event of trips) {
@@ -109,6 +114,8 @@ async function main() {
       authors: AUTHOR_PUBKEYS,
       '#t': ['media', 'medien', 'bilder', 'images'],
       limit: MAX_PER_RELAY,
+      since: 0,
+      until: FAR_FUTURE,
     }]);
     console.log(`[Prerender]  → ${mediaItems.length} Bilder`);
     for (const event of mediaItems) {
@@ -129,7 +136,7 @@ async function main() {
       }
     }
 
-    const notes = await queryRelay(relay, [{ kinds: [1], authors: AUTHOR_PUBKEYS, limit: MAX_PER_RELAY }]);
+    const notes = await queryRelay(relay, [{ kinds: [1], authors: AUTHOR_PUBKEYS, limit: MAX_PER_RELAY, since: 0, until: FAR_FUTURE }]);
     const pureNotes = notes.filter(event => !isPlace(event) && !isTrip(event) && !isMedia(event));
     console.log(`[Prerender]  → ${pureNotes.length} Notes`);
     for (const event of pureNotes) {
@@ -150,6 +157,8 @@ async function main() {
       kinds: [34236, 34235],
       authors: AUTHOR_PUBKEYS,
       limit: MAX_PER_RELAY,
+      since: 0,
+      until: FAR_FUTURE,
     }]);
     console.log(`[Prerender]  → ${videoEvents.length} Video-Events`);
     for (const event of videoEvents) {
@@ -171,6 +180,8 @@ async function main() {
       kinds: [0],
       authors: AUTHOR_PUBKEYS,
       limit: 10,
+      since: 0,
+      until: FAR_FUTURE,
     }]);
     console.log(`[Prerender]  → ${profiles.length} Profile`);
     for (const event of profiles) {
