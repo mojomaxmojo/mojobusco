@@ -1,0 +1,121 @@
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { nip19 } from 'nostr-tools';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const authorsData = JSON.parse(
+  fs.readFileSync(path.join(__dirname, '..', 'src', 'config', 'authors.json'), 'utf-8')
+);
+
+export const AUTHORS = authorsData.authors;
+export const AUTHOR_PUBKEYS = AUTHORS.map(a => a.pubkey);
+
+export const BASE_URL = 'https://mojobus.co';
+export const RELAYS = ['wss://relay.mojobus.co', 'wss://relay.primal.net'];
+export const MAX_PER_RELAY = 500;
+export const DEFAULT_IMAGE = `${BASE_URL}/og-image.jpg`;
+export const SITE_NAME = 'MojoBus – Perpetual Travelers';
+export const FEED_URL = `${BASE_URL}/feed.xml`;
+
+export function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+export function stripMarkdown(content, maxLength = 160) {
+  const text = (content || '')
+    .replace(/!\[.*?\]\(.*?\)/g, '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/[#*_~`>|]/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  if (!text) return '';
+  if (text.length <= maxLength) return text;
+  return text.slice(0, maxLength).trimEnd() + '...';
+}
+
+export function parseMetadata(content) {
+  try {
+    return JSON.parse(content);
+  } catch {
+    return null;
+  }
+}
+
+export function encodeNaddr(event) {
+  try {
+    const identifier = event.tags?.find(t => t[0] === 'd')?.[1] || event.id;
+    return nip19.naddrEncode({
+      kind: event.kind || 30023,
+      pubkey: event.pubkey,
+      identifier,
+    });
+  } catch (e) {
+    console.warn(`[Prerender] naddrEncode fehlgeschlagen: ${e.message}`);
+    return null;
+  }
+}
+
+export function formatDate(timestampSeconds) {
+  return new Date(timestampSeconds * 1000).toISOString();
+}
+
+export function getAuthorName(pubkey) {
+  return AUTHORS.find(a => a.pubkey === pubkey)?.name || '';
+}
+
+export function getAuthorUrl(pubkey) {
+  const author = AUTHORS.find(a => a.pubkey === pubkey);
+  if (!author) return BASE_URL;
+  return `${BASE_URL}/${author.npub}`;
+}
+
+export async function queryRelay(relayUrl, filters, timeoutMs = 15000) {
+  return new Promise((resolve) => {
+    let ws;
+    const timeout = setTimeout(() => {
+      if (ws) ws.close();
+      resolve([]);
+    }, timeoutMs);
+
+    try {
+      ws = new WebSocket(relayUrl);
+    } catch (e) {
+      resolve([]);
+      return;
+    }
+
+    const events = [];
+
+    ws.onopen = () => {
+      ws.send(JSON.stringify(['REQ', 'prerender-req', ...filters]));
+    };
+
+    ws.onmessage = (msg) => {
+      try {
+        const data = JSON.parse(msg.data);
+        if (data[0] === 'EVENT' && data[1] === 'prerender-req') {
+          events.push(data[2]);
+        }
+        if (data[0] === 'EOSE') {
+          clearTimeout(timeout);
+          ws.close();
+          resolve(events);
+        }
+      } catch (e) {
+        // ignore
+      }
+    };
+
+    ws.onerror = () => {
+      clearTimeout(timeout);
+      resolve([]);
+    };
+  });
+}
