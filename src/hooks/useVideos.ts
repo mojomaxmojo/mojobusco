@@ -122,6 +122,7 @@ export function useVideos() {
     let cancelled = false
     const base = getDataBaseUrl()
     const load = async () => {
+      let jsonTimestamp: number | null = null
       try {
         const [indexRes, videosRes] = await Promise.all([
           fetch(`${base}/data/index.json`),
@@ -130,7 +131,7 @@ export function useVideos() {
         if (cancelled) return
         if (indexRes.ok) {
           const idx = await indexRes.json()
-          setCronTimestamp(idx.generatedAtUnix || null)
+          jsonTimestamp = idx.generatedAtUnix || null
         }
         if (videosRes.ok) {
           const data = await videosRes.json()
@@ -139,7 +140,13 @@ export function useVideos() {
       } catch {
         // Fallback auf pure Relay-Query
       } finally {
-        if (!cancelled) setIsLoading(false)
+        // Wenn index.json fehlt oder keinen Timestamp hat, trotzdem Live-Query
+        // starten (letzte 90 Tage), damit /videos nicht leer bleibt.
+        if (!cancelled) {
+          const fallbackSince = Math.floor(Date.now() / 1000) - 60 * 60 * 24 * 90
+          setCronTimestamp(jsonTimestamp ?? fallbackSince)
+          setIsLoading(false)
+        }
       }
     }
     load()
