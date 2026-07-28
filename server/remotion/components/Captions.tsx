@@ -437,17 +437,27 @@ export const PerSlideCaption: React.FC<PerSlideCaptionProps> = ({
             justifyContent: 'center',
             alignItems: 'center',
             textAlign: 'center',
-            fontFamily: FONT_FAMILY_REGULAR,
-            fontSize: `${classicFontSizePx}px`,
-            fontWeight: FONT_WEIGHT.bold,
-            color: '#FFFFFF',
-            lineHeight,
-            WebkitTextStroke: `${strokeWidthPx}px ${strokeColor}`,
-            textShadow: `0 2px 8px rgba(0,0,0,0.7), 0 0 ${strokeWidthPx * 2}px rgba(0,0,0,0.5)`,
           }}
         >
           {youtubeLines.map((line, i) => (
-            <div key={`line-${i}`} style={{ whiteSpace: 'nowrap' }}>
+            <div
+              key={`line-${i}`}
+              style={{
+                whiteSpace: 'nowrap',
+                display: 'inline-block',
+                fontFamily: FONT_FAMILY_REGULAR,
+                fontSize: `${classicFontSizePx}px`,
+                fontWeight: FONT_WEIGHT.black,
+                color: '#FFFFFF',
+                lineHeight,
+                WebkitTextStroke: `${strokeWidthPx}px ${strokeColor}`,
+                textShadow: `0 2px 10px rgba(0,0,0,0.95), 0 0 ${strokeWidthPx * 2}px rgba(0,0,0,0.7)`,
+                background: 'rgba(0,0,0,0.55)',
+                padding: '0.12em 0.55em',
+                borderRadius: '0.18em',
+                marginBottom: '0.12em',
+              }}
+            >
               {line}
             </div>
           ))}
