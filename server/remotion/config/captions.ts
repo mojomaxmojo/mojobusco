@@ -36,7 +36,7 @@ export const YOUTUBE_LONGFORM_CAPTION = {
   /** Maximale Zeichen pro Zeile */
   maxCharsPerLine: 42,
   /** Schwarzer Outline-Stärke in px */
-  strokeWidthPx: 6,
+  strokeWidthPx: 3,
   /** Outline-Farbe */
   strokeColor: '#000000',
   /** Zeilenhöhe */
