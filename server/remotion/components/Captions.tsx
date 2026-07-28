@@ -63,6 +63,23 @@ interface WordHighlightCaptionsProps {
 // ── Hilfsfunktionen ───────────────────────────────────────────────────────
 
 /**
+ * Erzeugt einen gleichmäßigen Schatten-Outline aus mehreren text-shadow
+ * Offsets. Sauberer als WebkitTextStroke, weil die Füllung der Schrift
+ * nicht verfälscht wird.
+ */
+function textShadowOutline(width: number, color = '#000000'): string {
+  const shadows: string[] = [];
+  for (let x = -width; x <= width; x++) {
+    for (let y = -width; y <= width; y++) {
+      if (x !== 0 || y !== 0) {
+        shadows.push(`${x}px ${y}px 0 ${color}`);
+      }
+    }
+  }
+  return shadows.join(', ');
+}
+
+/**
  * Berechnet den Bounce-Scale für ein aktives Wort.
  * Am Anfang der Wort-Periode poppt das Wort rein (0.85 → 1.10 → 1.0),
  * danach bleibt es bei 1.0.
@@ -442,8 +459,7 @@ export const PerSlideCaption: React.FC<PerSlideCaptionProps> = ({
             fontWeight: FONT_WEIGHT.bold,
             color: '#FFFFFF',
             lineHeight,
-            WebkitTextStroke: `${strokeWidthPx}px ${strokeColor}`,
-            textShadow: `0 2px 8px rgba(0,0,0,0.8), 0 0 ${strokeWidthPx * 2}px rgba(0,0,0,0.6)`,
+            textShadow: `${textShadowOutline(strokeWidthPx)}, 0 4px 12px rgba(0,0,0,0.5)`,
           }}
         >
           {youtubeLines.map((line, i) => (
