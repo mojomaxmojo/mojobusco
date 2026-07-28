@@ -20,6 +20,7 @@ import { nip19 } from 'nostr-tools';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { memo, useState } from 'react';
 import { useHead } from '@unhead/react';
+import { canonicalUrl } from '@/lib/canonicalUrl';
 
 export function RVLife() {
   // SEO Meta Tags
@@ -30,13 +31,13 @@ export function RVLife() {
       { name: 'keywords', content: 'RV Life, Wohnmobil, Camper, Vanlife, Reisen, Camping, Roadtrip, Europa, Portugal, Spanien' },
       { property: 'og:title', content: 'RV Life & Wohnmobil Reisen - MojoBus' },
       { property: 'og:description', content: 'RV Life, Wohnmobil Reisen und Camper Abenteuer. Tipps, Geschichten und Inspiration fürs Leben auf Rädern.' },
-      { property: 'og:url', content: 'https://mojobus.co/artikel/rvlife' },
+      { property: 'og:url', content: canonicalUrl('/artikel/rvlife') },
       { property: 'og:type', content: 'website' },
       { name: 'twitter:title', content: 'RV Life & Wohnmobil Reisen - MojoBus' },
       { name: 'twitter:description', content: 'RV Life, Wohnmobil Reisen und Camper Abenteuer. Tipps, Geschichten und Inspiration fürs Leben auf Rädern.' },
     ],
     link: [
-      { rel: 'canonical', href: 'https://mojobus.co/artikel/rvlife' }
+      { rel: 'canonical', href: canonicalUrl('/artikel/rvlife') }
     ]
   });
 

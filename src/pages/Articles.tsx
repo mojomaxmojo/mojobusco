@@ -22,6 +22,7 @@ import { getAuthorRelayConfigByPubkey } from '@/config/relays';
 import { getListThumbnailUrl, getImagePlaceholder, generateSrcset, generateSizes } from '@/lib/imageUtils';
 import { MAIN_MENU } from '@/config/menu';
 import { SocialBar } from '@/components/SocialBar';
+import { canonicalUrl } from '@/lib/canonicalUrl';
 // @ts-nocheck
 // @ts-ignore
 import { useHead } from '@unhead/react';
@@ -134,11 +135,11 @@ function Articles() {
       { name: 'keywords', content: 'Vanlife, Camping, Perpetual Travelers, Nostr, Reiseberichte, Geschichten, Portugal, Spanien, Frankreich, Belgien, Luxemburg, Deutschland' },
       { property: 'og:title', content: pageTitle },
       { property: 'og:description', content: pageDescription },
-      { property: 'og:url', content: `https://mojobus.co/artikel${country ? '/' + country : ''}` },
+      { property: 'og:url', content: canonicalUrl(`/artikel${country ? '/' + country : ''}`) },
       { property: 'og:type', content: 'website' }
     ],
     link: [
-      { rel: 'canonical', href: `https://mojobus.co/artikel${country ? '/' + country : ''}` }
+      { rel: 'canonical', href: canonicalUrl(`/artikel${country ? '/' + country : ''}`) }
     ]
   });
 

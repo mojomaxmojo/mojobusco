@@ -19,6 +19,7 @@ import { nip19 } from 'nostr-tools';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { MAIN_MENU } from '@/config/menu';
 import { SocialBar } from '@/components/SocialBar';
+import { canonicalUrl } from '@/lib/canonicalUrl';
 // @ts-nocheck
 // @ts-ignore
 import { useHead } from '@unhead/react';
@@ -56,13 +57,13 @@ function Places() {
       { name: 'keywords', content: 'Campingplätze, Stellplätze, Wildcamping, Vanlife, Wohnmobil, Camping, Reisen, Europa' },
       { property: 'og:title', content: pageTitle },
       { property: 'og:description', content: pageDescription },
-      { property: 'og:url', content: `https://mojobus.co/plaetze${country ? '/' + country : ''}` },
+      { property: 'og:url', content: canonicalUrl(`/plaetze${country ? '/' + country : ''}`) },
       { property: 'og:type', content: 'website' },
       { name: 'twitter:title', content: pageTitle },
       { name: 'twitter:description', content: pageDescription },
     ],
     link: [
-      { rel: 'canonical', href: `https://mojobus.co/plaetze${country ? '/' + country : ''}` }
+      { rel: 'canonical', href: canonicalUrl(`/plaetze${country ? '/' + country : ''}`) }
     ]
   });
 

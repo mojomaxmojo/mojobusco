@@ -15,6 +15,7 @@ import type { NostrEvent } from '@nostrify/nostrify';
 import { useTrips, type Trip } from '@/hooks/useTrips';
 import { getGalleryThumbnailUrl } from '@/lib/imageUtils';
 import { useHead } from '@unhead/react';
+import { canonicalUrl } from '@/lib/canonicalUrl';
 import { DEFAULT_PERFORMANCE_CONFIG } from '@/config/performance';
 import { useToast } from '@/hooks/useToast';
 import type { ContentItem } from '@/components/ContentCard';
@@ -46,7 +47,7 @@ export function Home() {
   <SEOHead
     title="Startseite"
     description="Vanlife, Reisen und Abenteuer mit dem MojoBus. Perpetual Travelers – Geschichten, Orte und Tipps von unterwegs."
-    url="https://mojobus.co/"
+    url={canonicalUrl('/')}
     type="website"
     jsonLd={websiteJsonLd()}
   />
@@ -59,9 +60,9 @@ export function Home() {
       { property: 'og:description', content: 'Perpetual Travelers Blog. Unser Leben am Meer, vanlife, offgrid und Reisen.' },
       { property: 'og:type', content: 'website' }
     ],
-      link: [
-        { rel: 'canonical', href: 'https://mojobus.co' }
-      ]
+    link: [
+      { rel: 'canonical', href: canonicalUrl() }
+    ]
   });
 
   // PERFORMANCE-OPTIMIERUNG: Home-Spezifische Limits

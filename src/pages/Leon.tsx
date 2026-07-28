@@ -19,6 +19,7 @@ import { nip19 } from 'nostr-tools';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { useInView } from 'react-intersection-observer';
 import { useHead } from '@unhead/react';
+import { canonicalUrl } from '@/lib/canonicalUrl';
 
 export function Leon() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -87,11 +88,11 @@ export function Leon() {
       { name: 'keywords', content: 'Leon, Lionhunter, Hund, Vanlife, Hundegeschichten, MojoBus' },
       { property: 'og:title', content: pageTitle },
       { property: 'og:description', content: pageDescription },
-      { property: 'og:url', content: 'https://mojobus.co/artikel/leon' },
+      { property: 'og:url', content: canonicalUrl('/artikel/leon') },
       { property: 'og:type', content: 'website' }
     ],
     link: [
-      { rel: 'canonical', href: 'https://mojobus.co/artikel/leon' }
+      { rel: 'canonical', href: canonicalUrl('/artikel/leon') }
     ]
   });
 

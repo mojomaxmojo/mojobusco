@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useNostr } from '@/hooks/useNostr';
 import { useHead } from '@unhead/react';
+import { canonicalUrl } from '@/lib/canonicalUrl';
 
 const PlacesPage = () => {
   const { nostr } = useNostr();
@@ -64,18 +65,21 @@ const PlacesPage = () => {
     });
   }, [events]);
 
+  const pageTitle = 'Plätze - MojoBus';
+  const pageDescription = 'Alle Plätze sortiert nach Erstellungsdatum.';
+
   useHead({
-    title: 'Plätze - MojoBus Perpetual Travelers Blog',
+    title: `${pageTitle} Perpetual Travelers Blog`,
     meta: [
-      { name: 'description', content: 'Alle Plätze sortiert nach Erstellungsdatum.' },
+      { name: 'description', content: pageDescription },
       { name: 'keywords', content: 'orte' },
-      { property: 'og:title', content: 'Plätze - MojoBus' },
-{ property: 'og:url', content: 'https://mojobus.co/plaetze' },
+      { property: 'og:title', content: pageTitle },
+      { property: 'og:url', content: canonicalUrl('/plaetze') },
       { property: 'og:type', content: 'website' },
       { name: 'twitter:title', content: pageTitle },
       { name: 'twitter:description', content: pageDescription },
     ],
-    link: [{ rel: 'canonical', href: 'https://mojobus.co/plaetze' }]
+    link: [{ rel: 'canonical', href: canonicalUrl('/plaetze') }]
   });
 
   return (

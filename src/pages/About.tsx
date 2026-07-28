@@ -19,6 +19,7 @@ import { useAuthor } from '@/hooks/useAuthor';
 import { formatHeroSubtitle } from '@/config/about';
 import { Mail, Globe, Zap, Key, Sun, Compass, Heart, MessageCircle, Send } from 'lucide-react';
 import { useHead } from '@unhead/react';
+import { canonicalUrl } from '@/lib/canonicalUrl';
 import { getZeitUnterwegsFormatiert } from '@/config/zeitwohnmobil';
 
 import { AUTHORS } from '@/config/nostr';
@@ -55,12 +56,12 @@ export function About() {
       { name: 'description', content: aboutData.seo.description },
       { property: 'og:title', content: aboutData.seo.title },
       { property: 'og:description', content: aboutData.seo.description },
-      { property: 'og:url', content: 'https://mojobus.co/about' },
+      { property: 'og:url', content: canonicalUrl('/about') },
       { name: 'twitter:title', content: aboutData.seo.title },
       { name: 'twitter:description', content: aboutData.seo.description },
     ],
     link: [
-      { rel: 'canonical', href: 'https://mojobus.co/about' }
+      { rel: 'canonical', href: canonicalUrl('/about') }
     ]
   });
 

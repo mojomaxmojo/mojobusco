@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { useVideos, type VideoItem } from '@/hooks/useVideos'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
+import { canonicalUrl } from '@/lib/canonicalUrl'
 import { useNostrPublish } from '@/hooks/useNostrPublish'
 import { useNostrDelete } from '@/hooks/useNostrDelete'
 import { useToast } from '@/hooks/useToast'
@@ -422,9 +423,9 @@ export function Videos() {
       { name: 'description', content: 'Kurzvideos, Reels und Momente von Mojo & Susanne im Mojobus.' },
       { property: 'og:title', content: 'Videos – MojoBus' },
       { property: 'og:description', content: 'Kurzvideos, Reels und Momente von Mojo & Susanne im Mojobus.' },
-      { property: 'og:url', content: 'https://mojobus.co/videos' },
+      { property: 'og:url', content: canonicalUrl('/videos') },
     ],
-    link: [{ rel: 'canonical', href: 'https://mojobus.co/videos' }],
+    link: [{ rel: 'canonical', href: canonicalUrl('/videos') }],
   })
 
   // Ist der eingeloggte User ein autorisierter Autor?

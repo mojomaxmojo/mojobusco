@@ -18,6 +18,7 @@ import { useGpsContent, type MapMarker as GpsMapMarker } from '@/hooks/useGpsCon
 import { useTrips, calculateTripDistance, type Trip } from '@/hooks/useTrips';
 import { MapPin, RefreshCw, Loader2, Map as MapIcon, BarChart3, Route } from 'lucide-react';
 import { useHead } from '@unhead/react';
+import { canonicalUrl } from '@/lib/canonicalUrl';
 
 // World bounds - alle Marker anzeigen
 const WORLD_CENTER = {
@@ -43,13 +44,13 @@ export default function MapPage() {
       { name: 'keywords', content: 'Vanlife Karte, Reiseroute, Campingplätze Karte, Europa Reisen, Roadtrip, GPS Track' },
       { property: 'og:title', content: 'Vanlife Reise Karte & Trips - MojoBus' },
       { property: 'og:description', content: 'Interaktive Karte mit allen Vanlife-Stationen, Campingplätzen und Reiserouten durch Europa.' },
-      { property: 'og:url', content: 'https://mojobus.co/map' },
+      { property: 'og:url', content: canonicalUrl('/map') },
       { property: 'og:type', content: 'website' },
       { name: 'twitter:title', content: 'Vanlife Reise Karte & Trips - MojoBus' },
       { name: 'twitter:description', content: 'Interaktive Karte mit allen Vanlife-Stationen, Campingplätzen und Reiserouten durch Europa.' },
     ],
     link: [
-      { rel: 'canonical', href: 'https://mojobus.co/map' }
+      { rel: 'canonical', href: canonicalUrl('/map') }
     ]
   });
 

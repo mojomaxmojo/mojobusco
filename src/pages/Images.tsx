@@ -17,6 +17,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrDelete } from '@/hooks/useNostrDelete';
 import { useToast } from '@/hooks/useToast';
 import { generateSrcset, generateSizes, getGalleryThumbnailUrl, getImagePlaceholder } from '@/lib/imageUtils';
+import { canonicalUrl } from '@/lib/canonicalUrl';
 import { nip19 } from 'nostr-tools';
 import {
   AlertDialog,
@@ -177,11 +178,11 @@ function Images() {
       { name: 'keywords', content: 'Vanlife, Fotografie, Reisen, Portugal, Spanien, Frankreich, Belgien, Luxemburg, Deutschland' },
       { property: 'og:title', content: pageTitle },
       { property: 'og:description', content: pageDescription },
-      { property: 'og:url', content: `https://mojobus.co/bilder${country ? '/' + country : ''}` },
+      { property: 'og:url', content: canonicalUrl(`/bilder${country ? '/' + country : ''}`) },
       { property: 'og:type', content: 'website' }
     ],
     link: [
-      { rel: 'canonical', href: `https://mojobus.co/bilder${country ? '/' + country : ''}` }
+      { rel: 'canonical', href: canonicalUrl(`/bilder${country ? '/' + country : ''}`) }
     ]
   });
 

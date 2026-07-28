@@ -23,6 +23,7 @@ import { nip19 } from 'nostr-tools';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { AUTHORS } from '@/config/nostr';
 import { useHead } from '@unhead/react';
+import { canonicalUrl } from '@/lib/canonicalUrl';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrDelete } from '@/hooks/useNostrDelete';
 import { useToast } from '@/hooks/useToast';
@@ -61,12 +62,12 @@ export function Notes() {
       { name: 'description', content: pageDescription },
       { property: 'og:title', content: pageTitle },
       { property: 'og:description', content: pageDescription },
-      { property: 'og:url', content: `https://mojobus.co/notes${country ? '/' + country : ''}` },
+      { property: 'og:url', content: canonicalUrl(`/notes${country ? '/' + country : ''}`) },
       { name: 'twitter:title', content: pageTitle },
       { name: 'twitter:description', content: pageDescription },
     ],
     link: [
-      { rel: 'canonical', href: `https://mojobus.co/notes${country ? '/' + country : ''}` }
+      { rel: 'canonical', href: canonicalUrl(`/notes${country ? '/' + country : ''}`) }
     ]
   });
 

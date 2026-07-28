@@ -5,6 +5,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useHead } from '@unhead/react';
+import { canonicalUrl } from '@/lib/canonicalUrl';
 import {
   BarChart3,
   FileText,
@@ -110,7 +111,7 @@ function MapPageTemp() {
       { property: 'og:type', content: 'website' }
     ],
     link: [
-      { rel: 'canonical', href: 'https://mojobus.co/map' }
+      { rel: 'canonical', href: canonicalUrl('/map') }
     ]
   });
 

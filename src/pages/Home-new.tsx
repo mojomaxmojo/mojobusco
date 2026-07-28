@@ -16,6 +16,7 @@ import { memo } from 'react';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { getListThumbnailUrl, getImagePlaceholder, generateSrcset, generateSizes } from '@/lib/imageUtils';
 import { useHead } from '@unhead/react';
+import { canonicalUrl } from '@/lib/canonicalUrl';
 
 export function Home() {
   // SEO Meta Tags
@@ -26,14 +27,14 @@ export function Home() {
       { name: 'keywords', content: 'perpetual traveler, vanlife, offgrid, beachlife, reisen, camping, meer, strand, mobiles leben, nomaden' },
       { property: 'og:title', content: 'MojoBus - Perpetual Traveler Blog' },
       { property: 'og:description', content: 'Unser Leben am Meer. Vanlife, offgrid und Geschichten vom Strand. Perpetual Traveler Lifestyle mit Soul Leon (Lionhunter).' },
-      { property: 'og:url', content: 'https://mojobus.co/' },
+      { property: 'og:url', content: canonicalUrl('/') },
       { property: 'og:type', content: 'website' },
       { name: 'twitter:title', content: 'MojoBus - Perpetual Traveler Blog' },
       { name: 'twitter:description', content: 'Unser Leben am Meer. Vanlife, offgrid und Geschichten vom Strand. 🌊🚐✨' },
       { name: 'twitter:card', content: 'summary_large_image' },
     ],
     link: [
-      { rel: 'canonical', href: 'https://mojobus.co/' }
+      { rel: 'canonical', href: canonicalUrl('/') }
     ]
   });
 
