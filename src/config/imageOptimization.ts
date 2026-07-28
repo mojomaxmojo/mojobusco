@@ -10,15 +10,17 @@
 
 /**
  * Maximale Bildbreite nach der Optimierung (in Pixeln)
- * Bilder, die breiter sind, werden proportional verkleinert
+ * Bilder, die breiter sind, werden proportional verkleinert.
+ * 2560 px = ausreichend für 1920×1080 HD-Video inkl. Ken-Burns-Zoom.
  */
-export const IMAGE_OPTIMIZATION_MAX_WIDTH = 1600;
+export const IMAGE_OPTIMIZATION_MAX_WIDTH = 2560;
 
 /**
  * Maximale Bildhöhe nach der Optimierung (in Pixeln)
- * Bilder, die höher sind, werden proportional verkleinert
+ * Bilder, die höher sind, werden proportional verkleinert.
+ * 2560 px = ausreichend für 1080×1920 Shorts inkl. Zoom.
  */
-export const IMAGE_OPTIMIZATION_MAX_HEIGHT = 1600;
+export const IMAGE_OPTIMIZATION_MAX_HEIGHT = 2560;
 
 /**
  * WebP Qualität (0.0 - 1.0)
