@@ -711,7 +711,7 @@ export function PromotionDashboard() {
                     </div>
                     <div>
                       <Label className="text-xs sm:text-sm">Artikel-URL (optional)</Label>
-                      <Input value={articleLink} onChange={e => setArticleLink(e.target.value)} placeholder="https://mojobus.co/artikel/..." className="text-xs" />
+                      <Input value={articleLink} onChange={e => setArticleLink(e.target.value)} placeholder="https://mojobus.co/naddr1..." className="text-xs" />
                     </div>
 
                     <Button onClick={() => { if (articleTitle.trim()) setStep(2) }} className="w-full mt-2" size="lg">

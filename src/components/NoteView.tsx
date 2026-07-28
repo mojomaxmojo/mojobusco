@@ -16,6 +16,7 @@ const NoteContent = lazy(() => import('@/components/NoteContent'));
 
 import { SocialBar } from '@/components/SocialBar';
 import { extractNoteTags, extractNoteImages } from '@/hooks/useNotes';
+import { canonicalUrl as getCanonicalUrl, noteUrl, profileUrl, ogImageUrl } from '@/lib/canonicalUrl';
 import { Calendar, ArrowLeft, Hash, Edit, Trash2, MapPin, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import NotFound from '@/pages/NotFound';
@@ -124,9 +125,10 @@ export function NoteView({ eventId }: NoteViewProps) {
       'offgrid', 'camper', 'reiseblog', 'microblog', ...tags.slice(0, 10)
     ];
     
-    const canonicalUrl = `https://mojobus.co/${nip19.noteEncode(eventId)}`;
+    const canonicalHref = getCanonicalUrl(noteUrl(nip19.noteEncode(eventId)));
     const pubDate = new Date(note.created_at * 1000).toISOString();
     const authorNpub = nip19.npubEncode(note.pubkey);
+    const authorProfileUrl = getCanonicalUrl(profileUrl(authorNpub));
 
     // JSON-LD fuer Notes (BlogPosting)
     const jsonLd: Record<string, unknown> = {
@@ -137,22 +139,22 @@ export function NoteView({ eventId }: NoteViewProps) {
       'author': {
         '@type': 'Person',
         'name': authorName,
-        'url': `https://mojobus.co/${authorNpub}`,
+        'url': authorProfileUrl,
       },
       'publisher': {
         '@type': 'Organization',
         'name': 'MojoBus',
-        'url': 'https://mojobus.co',
+        'url': getCanonicalUrl(),
         'logo': {
           '@type': 'ImageObject',
-          'url': 'https://mojobus.co/og-image.jpg',
+          'url': ogImageUrl(),
           'width': 1200,
           'height': 630
         }
       },
       'datePublished': pubDate,
       'keywords': keywords.join(', '),
-      'url': canonicalUrl,
+      'url': canonicalHref,
     };
 
     // Breadcrumb Schema
@@ -160,15 +162,15 @@ export function NoteView({ eventId }: NoteViewProps) {
       '@context': 'https://schema.org',
       '@type': 'BreadcrumbList',
       'itemListElement': [
-        { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': 'https://mojobus.co' },
-        { '@type': 'ListItem', 'position': 2, 'name': 'Notes', 'item': 'https://mojobus.co/notes' },
-        { '@type': 'ListItem', 'position': 3, 'name': title, 'item': canonicalUrl }
+        { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': getCanonicalUrl() },
+        { '@type': 'ListItem', 'position': 2, 'name': 'Notes', 'item': getCanonicalUrl('/notes') },
+        { '@type': 'ListItem', 'position': 3, 'name': title, 'item': canonicalHref }
       ]
     };
 
     // Extrahiere erstes Bild aus Note fuer OG Image
     const images = extractNoteImages(note);
-    const ogImage = images[0] || 'https://mojobus.co/og-image.jpg';
+    const ogImage = images[0] || ogImageUrl();
 
     return {
       title: `${title} - MojoBus`,
@@ -178,7 +180,7 @@ export function NoteView({ eventId }: NoteViewProps) {
         { property: 'og:title', content: `${title} - MojoBus` },
         { property: 'og:description', content: description },
         { property: 'og:type', content: 'article' },
-        { property: 'og:url', content: canonicalUrl },
+        { property: 'og:url', content: canonicalHref },
         { property: 'og:site_name', content: 'MojoBus Perpetual Travelers' },
         { property: 'og:locale', content: 'de_DE' },
         { property: 'og:image', content: ogImage },
@@ -194,8 +196,8 @@ export function NoteView({ eventId }: NoteViewProps) {
         { name: 'language', content: 'de-DE' },
       ],
       link: [
-        { rel: 'canonical', href: canonicalUrl },
-        { rel: 'author', href: `https://mojobus.co/${authorNpub}` }
+        { rel: 'canonical', href: canonicalHref },
+        { rel: 'author', href: authorProfileUrl }
       ],
       script: [
         { type: 'application/ld+json', innerHTML: JSON.stringify(jsonLd) },

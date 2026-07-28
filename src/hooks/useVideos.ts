@@ -16,6 +16,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNostr } from '@/hooks/useNostr'
 import { NOSTR_CONFIG } from '@/config/nostr'
+import { SITE_URL } from '@/config/app'
 
 // Absolute Basis-URL für API/Daten – nötig in Capacitor WebView (file:// Kontext)
 function getDataBaseUrl(): string {
@@ -26,7 +27,7 @@ function getDataBaseUrl(): string {
       (window as any).__Capacitor?.isNative === true ||
       cap?.getPlatform?.() === 'android' ||
       cap?.getPlatform?.() === 'ios'
-    if (isNative) return 'https://mojobus.co'
+    if (isNative) return SITE_URL
   } catch { /* ignore */ }
   return '' // Browser: relative URLs funktionieren
 }

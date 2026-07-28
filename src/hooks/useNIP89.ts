@@ -12,15 +12,16 @@ import { useNostr } from '@nostrify/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCurrentUser } from './useCurrentUser';
 import { useToast } from './useToast';
+import { canonicalUrl } from '@/lib/canonicalUrl';
 
 // ============================================================================
 // KONFIGURATION
 // ============================================================================
 
-const APP_URL = 'https://mojobus.co';
+const APP_URL = canonicalUrl();
 const APP_NAME = 'MojoBus';
 const APP_ABOUT = 'Perpetual Travelers Blog – Artikel, Notes, Profile & Video';
-const APP_PICTURE = 'https://mojobus.co/mojobuslogo.png';
+const APP_PICTURE = canonicalUrl('/mojobuslogo.png');
 const HANDLER_D_TAG = 'mojobus-handler-v1';
 
 /** Relays auf denen die Handler-Events publiziert werden */

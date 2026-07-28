@@ -41,6 +41,7 @@ import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
 import { VanillaMap, type MapMarker, type MapPolyline } from '@/components/VanillaMap';
 import { generateImageUrl } from '@/config/imageService';
+import { canonicalUrl, tripUrl } from '@/lib/canonicalUrl';
 import { 
   ArrowLeft, MapPin, Camera, Calendar, Navigation, Pencil, Trash2
 } from '@/lib/icons';
@@ -240,7 +241,7 @@ export default function TripDetail() {
       <SEOHead
         title={tripTitle}
         description={tripDesc}
-        url={`https://mojobus.co/trips/${naddr}`}
+        url={canonicalUrl(tripUrl(naddr || ''))}
         type="article"
       />
       <div className="container mx-auto px-4">

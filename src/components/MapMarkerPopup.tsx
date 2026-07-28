@@ -68,12 +68,10 @@ export function MapMarkerPopup({ marker }: MapMarkerPopupProps) {
   }
 
   // Generate href based on content type
-  // Media (images) go to /bild/{nip19}, articles to /artikel/{nip19}, everything else to /{nip19}
+  // Media (images) go to /bild/{nip19}, everything else uses canonical /{naddr}
   let href = `/${naddr}`;
   if (marker.type === 'media') {
     href = `/bild/${naddr}`;
-  } else if (marker.type === 'article') {
-    href = `/artikel/${naddr}`;
   }
 
   return (

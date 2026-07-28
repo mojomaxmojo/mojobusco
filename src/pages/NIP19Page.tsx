@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useHead } from '@unhead/react';
+import { canonicalUrl as getCanonicalUrl, ogImageUrl, profileUrl } from '@/lib/canonicalUrl';
 import { AUTHORS } from '@/config/nostr';
 import NotFound from './NotFound';
 
@@ -38,11 +39,11 @@ const ProfileView = ({ pubkey }: { pubkey: string }) => {
         { property: 'og:title', content: `${displayName} - MojoBus Profile` },
         { property: 'og:description', content: metadata?.about || `Profil von ${displayName} auf MojoBus` },
         { property: 'og:type', content: 'profile' },
-        { property: 'og:image', content: metadata?.picture || 'https://mojobus.co/og-image.jpg' },
-        { property: 'profile:username', content: name },
+        { property: 'og:image', content: metadata?.picture || ogImageUrl() },
+        { property: 'og:type', content: 'profile' },
       ],
       link: [
-        { rel: 'canonical', href: `https://mojobus.co/${nip19.npubEncode(pubkey)}` }
+        { rel: 'canonical', href: getCanonicalUrl(profileUrl(nip19.npubEncode(pubkey))) }
       ]
     };
   });

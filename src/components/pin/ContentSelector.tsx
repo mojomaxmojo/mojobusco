@@ -15,6 +15,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { nip19 } from 'nostr-tools'
 import { useNostr } from '@nostrify/react'
 import { NOSTR_CONFIG } from '@/config/nostr'
+import { canonicalUrl, articleUrl, noteUrl, tripUrl, imageUrl } from '@/lib/canonicalUrl'
 
 // UI Components
 import { Card } from '@/components/ui/card'
@@ -176,7 +177,7 @@ export function ContentSelector({ onSelect, selected: selectedProp, mode = 'mult
               tags,
               createdAt: e.created_at,
               nip19: noteStr,
-              url: noteStr ? `https://mojobus.co/${noteStr}` : '',
+              url: noteStr ? canonicalUrl(noteUrl(noteStr)) : '',
               event: e,
             }
           })
@@ -221,7 +222,7 @@ export function ContentSelector({ onSelect, selected: selectedProp, mode = 'mult
               tags,
               createdAt: e.created_at,
               nip19: encodedId,
-              url: encodedId ? `https://mojobus.co/${encodedId}` : '',
+              url: encodedId ? canonicalUrl(imageUrl(encodedId)) : '',
               event: e,
             }
           })
@@ -268,7 +269,7 @@ export function ContentSelector({ onSelect, selected: selectedProp, mode = 'mult
             tags,
             createdAt: e.created_at,
             nip19: naddrStr,
-            url: naddrStr ? `https://mojobus.co/${naddrStr}` : '',
+            url: naddrStr ? canonicalUrl(articleUrl(naddrStr)) : '',
             event: e,
           }
 
@@ -324,7 +325,7 @@ export function ContentSelector({ onSelect, selected: selectedProp, mode = 'mult
               createdAt: e.created_at,
               nip19: naddrStr,
               // Trips haben eigene Route: /trip/<naddr>
-              url: naddrStr ? `https://mojobus.co/trip/${naddrStr}` : '',
+              url: naddrStr ? canonicalUrl(tripUrl(naddrStr)) : '',
               event: e,
             }
           })

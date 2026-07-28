@@ -9,6 +9,7 @@ export * from './rvlife';
 
 // Neue zentrale Konfigurationen
 export * from './app';
+export { SITE_URL } from './app';
 export * from './relays';
 export * from './blossom';
 export * from './imageService';

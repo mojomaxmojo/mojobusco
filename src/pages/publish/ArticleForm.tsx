@@ -28,6 +28,7 @@ import { Upload, UploadCloud, ImageIcon, Video, Music, File as FileIcon, Camera,
 import { extractGpsFromImage, formatCoordinatesSimple, reverseGeocode, mapCountryCode, type GpsData, type GpsStatus, type LocationData } from "@/lib/gpsExtraction";
 import { CONTENT_CATEGORIES, createRequiredTags, getOptionalTags, getTabConfig } from "@/config/contentCategories";
 import { resolveBildPlaceholders } from "./publishUtils";
+import { canonicalUrl, articleUrl } from "@/lib/canonicalUrl";
 import exifr from "exifr";
 
 export function ArticleForm({ editEvent }: { editEvent?: any }) {
@@ -830,7 +831,7 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
           relays: ['wss://relay.mojobus.co', 'wss://relay.primal.net'],
         };
         const naddr = nip19.naddrEncode(naddrData);
-        const articleUrl = `https://mojobus.co/artikel/${dTag}`;
+        const articleCanonicalUrl = canonicalUrl(articleUrl(naddr));
 
         const teaserSummary = summary.trim()
           ? summary.trim()
@@ -852,7 +853,7 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
         teaserParts.push(`📖 ${title.trim()}`);
         if (teaserSummary) teaserParts.push(teaserSummary);
         if (videoUrl && videoUrl.trim()) teaserParts.push(videoUrl);
-        teaserParts.push(`https://mojobus.co/artikel/${dTag}`);
+        teaserParts.push(articleCanonicalUrl);
         teaserParts.push(`nostr:${naddr}`);
 
         const teaserContent = teaserParts.join('\n\n');

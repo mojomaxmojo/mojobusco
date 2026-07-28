@@ -23,6 +23,7 @@ import { Label } from '@/components/ui/label';
 import { Video, Loader2, CheckCircle, Sparkles } from '@/lib/icons';
 import { useUploadFile } from '@/hooks/useUploadFile';
 import { useToast } from '@/hooks/useToast';
+import { canonicalUrl } from '@/lib/canonicalUrl';
 import { Badge } from '@/components/ui/badge';
 import {
   type SlideLayout,
@@ -335,7 +336,7 @@ export function RemotionVideoBlock({
           transitionType,
           beatVelocityPunch,
           showRouteMap,
-          websiteUrl: 'mojobus.co',
+          websiteUrl: canonicalUrl(),
           handle: '@mojobus',
           ...(slideLayout !== 'single' && {
             slideLayouts: Array(imageCount).fill(slideLayout),

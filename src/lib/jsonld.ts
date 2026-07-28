@@ -1,3 +1,5 @@
+import { canonicalUrl, ogImageUrl, logoUrl } from './canonicalUrl';
+
 /**
  * JSON-LD Structured Data Generators
  * Für Google Rich Results (Article, Place, Trip, BreadcrumbList)
@@ -39,7 +41,7 @@ export function articleJsonLd(data: JsonLdArticle): Record<string, unknown> {
     '@type': 'Article',
     headline: data.title,
     description: data.description || '',
-    image: data.image || 'https://mojobus.co/og-image.jpg',
+    image: data.image || ogImageUrl(),
     url: data.url,
     mainEntityOfPage: {
       '@type': 'WebPage',
@@ -48,14 +50,27 @@ export function articleJsonLd(data: JsonLdArticle): Record<string, unknown> {
     author: {
       '@type': 'Person',
       name: data.authorName || 'MojoBus',
-      url: data.authorUrl || 'https://mojobus.co',
+      url: data.authorUrl || canonicalUrl(),
     },
     publisher: {
       '@type': 'Organization',
       name: 'MojoBus',
       logo: {
         '@type': 'ImageObject',
-        url: 'https://mojobus.co/icon-192x192.png',
+        url: logoUrl(),
+      },
+    },
+    author: {
+      '@type': 'Person',
+      name: data.authorName || 'MojoBus',
+      url: data.authorUrl || canonicalUrl(),
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: 'MojoBus',
+      logo: {
+        '@type': 'ImageObject',
+        url: logoUrl(),
       },
     },
     datePublished: data.publishedAt || new Date().toISOString(),
@@ -72,7 +87,7 @@ export function placeJsonLd(data: JsonLdPlace): Record<string, unknown> {
     '@type': 'Place',
     name: data.name,
     description: data.description || '',
-    image: data.image || 'https://mojobus.co/og-image.jpg',
+    image: data.image || ogImageUrl(),
     url: data.url,
   };
 
@@ -120,13 +135,13 @@ export function websiteJsonLd(): Record<string, unknown> {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     name: 'MojoBus – Perpetual Travelers',
-    url: 'https://mojobus.co',
+    url: canonicalUrl(),
     description: 'Vanlife, Reisen und Abenteuer mit dem MojoBus. Perpetual Travelers Blog auf Nostr.',
     potentialAction: {
       '@type': 'SearchAction',
       target: {
         '@type': 'EntryPoint',
-        urlTemplate: 'https://mojobus.co/?q={search_term_string}',
+        urlTemplate: canonicalUrl('/?q={search_term_string}'),
       },
       'query-input': 'required name=search_term_string',
     },

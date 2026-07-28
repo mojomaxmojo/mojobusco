@@ -25,6 +25,7 @@ import { useNostrPublish } from '@/hooks/useNostrPublish'
 import { useNostrDelete } from '@/hooks/useNostrDelete'
 import { useNostr } from '@/hooks/useNostr'
 import { buildRouteFromContent, type RouteResult } from '@/lib/routeFromGps'
+import { canonicalUrl } from '@/lib/canonicalUrl'
 
 // UI Components
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -919,7 +920,7 @@ export function VideoPromotion() {
       captions,
       captionStyle,                    // 'full-line' = ganzer Satz auf einmal | 'chunked' = Karaoke 2-5 Wörter
       platform,                        // 'tiktok' | 'reels' | 'youtube' → Caption-Position (safe zone)
-      websiteUrl: 'mojobus.co',
+      websiteUrl: canonicalUrl(),
       handle: '@mojobus',
       noMusic,                     // true = kein Musik-Track
       musicUrl,                    // ausgewählter Track oder undefined → Server wählt zufällig

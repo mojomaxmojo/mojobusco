@@ -28,6 +28,7 @@ import { useToast } from '@/hooks/useToast';
 import { useUploadFile } from '@/hooks/useUploadFile';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { canonicalUrl, tripUrl } from '@/lib/canonicalUrl';
 import { useTrip } from '@/hooks/useTrips';
 import { GpsEditor } from '@/components/GpsEditor';
 import { GpsStatusIndicator } from '@/components/GpsStatusIndicator';
@@ -1272,7 +1273,7 @@ export function TripPublishForm() {
                  // Video-URL allein auf einer Zeile (Primal/Amethyst braucht isolierte URL)
                  if (slideshowVideoUrl) contentLines.push(slideshowVideoUrl);
                  // Trip-Link am Ende
-                 contentLines.push(`https://mojobus.co/trip/${tripNaddr}`);
+                 contentLines.push(canonicalUrl(tripUrl(tripNaddr)));
                  const teaserContent = contentLines.join('\n\n');
 
                 const teaserTags: string[][] = [

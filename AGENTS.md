@@ -16,24 +16,31 @@ Verzeichniss /projects/mojobusco/
 ## 📌 Kern-Regeln (immer gültig)
 
 1. **Config**: Alle neuen Konfigurationen → `src/config/`. Niemals hartcodierte Werte im Quellcode. Autoren-Daten ausschließlich in `src/config/authors.json` (Single Source of Truth).
-2. **Capacitor / absolute URLs**: Capacitor läuft im `file:///android_asset/`-Kontext → relative fetch-URLs schlagen fehl. **Jede** neue fetch-URL braucht den Prefix:
+2. **Canonical URLs / SEO**: Alle URLs, die auf externe Plattformen gepostet werden (Nostr, YouTube, TikTok, Pinterest, Instagram etc.) **MÜSSEN** die canonical URL des Projekts verwenden. Single Source of Truth: `src/lib/canonicalUrl.ts` und `src/config/app.ts` (`SITE_URL`).
+   - Artikel / Orte (kind 30023): `https://mojobus.co/{naddr}`
+   - Notes (kind 1): `https://mojobus.co/{note}`
+   - Trips: `https://mojobus.co/trip/{naddr}`
+   - Bilder / Media: `https://mojobus.co/bild/{note}`
+   - Profile: `https://mojobus.co/{npub}`
+   - Niemals veraltete oder nicht-existente Pfade wie `/artikel/{dTag}` oder `/trips/{naddr}` posten.
+3. **Capacitor / absolute URLs**: Capacitor läuft im `file:///android_asset/`-Kontext → relative fetch-URLs schlagen fehl. **Jede** neue fetch-URL braucht den Prefix:
    - API-Calls: `${getApiBaseUrl()}/api/...`
    - Daten-Dumps: `${getDataBaseUrl()}/data/...`
    - Musik: `${base}/server/music/datei.mp3` (statisch via Nginx, **nicht** `/api/music/`)
-3. **Pfade**: ffmpeg/ffprobe liegen unter `/usr/local/bin/` (CentminMod) – **nie** `/opt/bin/` hartcodieren.
-4. **TypeScript**: Niemals `any`. Immer korrekte Typen.
-5. **Loading-States**: Skeleton für strukturierten Content (Feeds, Profile). Spinner nur für Buttons/kurze Operationen.
-6. **Tests**: Nur schreiben wenn der User es explizit anfordert.
-7. **Validierung**: Nach jeder Änderung müssen `build_project` fehlerfrei durchlaufen.
-8. **Commits**: Nach jeder abgeschlossenen Änderung committen.
-9. **Sprache**: Antworten auf Deutsch.
-10. **Dateigröße**: Dateien unter ~500 Zeilen halten. Neue Features in
+4. **Pfade**: ffmpeg/ffprobe liegen unter `/usr/local/bin/` (CentminMod) – **nie** `/opt/bin/` hartcodieren.
+5. **TypeScript**: Niemals `any`. Immer korrekte Typen.
+6. **Loading-States**: Skeleton für strukturierten Content (Feeds, Profile). Spinner nur für Buttons/kurze Operationen.
+7. **Tests**: Nur schreiben wenn der User es explizit anfordert.
+8. **Validierung**: Nach jeder Änderung müssen `build_project` fehlerfrei durchlaufen.
+9. **Commits**: Nach jeder abgeschlossenen Änderung committen.
+10. **Sprache**: Antworten auf Deutsch.
+11. **Dateigröße**: Dateien unter ~500 Zeilen halten. Neue Features in
     passende Module oder neue Dateien – nicht in bestehende große Dateien stopfen.
-11. **Scope**: Nur das Angefragte umsetzen. Keine ungefragten Refactorings,
+12. **Scope**: Nur das Angefragte umsetzen. Keine ungefragten Refactorings,
     Umbenennungen oder "Verbesserungen" an fremdem Code.
-12. **Doku-Pflege**: Wenn eine Änderung Fakten aus MOJOBUS_CONTEXT.md oder
+13. **Doku-Pflege**: Wenn eine Änderung Fakten aus MOJOBUS_CONTEXT.md oder
     einer docs/CONTEXT_*.md betrifft, die Datei mit aktualisieren.
-13 **Video-Codec**: Ausgabe IMMER libx264 + aac + -movflags +faststart.
+14. **Video-Codec**: Ausgabe IMMER libx264 + aac + -movflags +faststart.
   NIEMALS HEVC/H.265/VP9 – Chromium headless (Remotion) und Teile der
   Browser können es nicht decodieren.
 ---

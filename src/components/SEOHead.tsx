@@ -6,6 +6,7 @@
  */
 
 import { useEffect } from 'react';
+import { canonicalUrl, ogImageUrl } from '@/lib/canonicalUrl';
 
 interface SEOHeadProps {
   /** Seitentitel (wird an " — MojoBus" rangehängt) */
@@ -30,7 +31,7 @@ export function SEOHead({
   title,
   description,
   image,
-  url = 'https://mojobus.co',
+  url = canonicalUrl(),
   author,
   publishedAt,
   type = 'website',
@@ -39,7 +40,7 @@ export function SEOHead({
   useEffect(() => {
     const fullTitle = title ? `${title} — MojoBus` : 'MojoBus – Perpetual Travelers Vanlife Blog';
     const desc = description || 'Vanlife, Reisen und Abenteuer mit dem MojoBus. Perpetual Travelers Blog auf Nostr.';
-    const img = image || 'https://mojobus.co/og-image.jpg';
+    const img = image || ogImageUrl();
     const pageUrl = url;
 
     // ── Title ──────────────────────────────────────────────────────
