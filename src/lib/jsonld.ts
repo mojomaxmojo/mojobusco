@@ -60,19 +60,6 @@ export function articleJsonLd(data: JsonLdArticle): Record<string, unknown> {
         url: logoUrl(),
       },
     },
-    author: {
-      '@type': 'Person',
-      name: data.authorName || 'MojoBus',
-      url: data.authorUrl || canonicalUrl(),
-    },
-    publisher: {
-      '@type': 'Organization',
-      name: 'MojoBus',
-      logo: {
-        '@type': 'ImageObject',
-        url: logoUrl(),
-      },
-    },
     datePublished: data.publishedAt || new Date().toISOString(),
     dateModified: data.updatedAt || data.publishedAt || new Date().toISOString(),
   };
