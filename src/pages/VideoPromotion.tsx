@@ -564,7 +564,7 @@ export function VideoPromotion() {
   const [uploading, setUploading] = useState(false)
   const [blossomUrl, setBlossomUrl] = useState('')
   const [publishedEventId, setPublishedEventId] = useState('')
-  // Checkbox: auf /videos publizieren (kind 34236 NIP-71)
+  // Checkbox: auf /videos publizieren (kind 34236/34235 NIP-71)
   const [publishToVideos, setPublishToVideos] = useState(true)
 
   // Remotion-Status beim Laden prüfen
@@ -1137,9 +1137,12 @@ export function VideoPromotion() {
         .filter(Boolean)
         .map((h: string) => ['t', h.replace('#', '')])
 
-      // kind 34236 = Addressable Short Video Event (NIP-71)
+      // kind 34236 = Addressable Short Video Event (NIP-71, 9:16)
+      // kind 34235 = Addressable Normal Video Event (NIP-71, 16:9)
       // Wird auf /videos angezeigt wenn publishToVideos=true
-      const kind = publishToVideos ? 34236 : 30078
+      const kind = publishToVideos
+        ? (VIDEO_FORMATS[format].aspectRatio === '9:16' ? 34236 : 34235)
+        : 30078
 
       const baseTags: string[][] = [
         ['d', dTag],
@@ -1165,7 +1168,7 @@ export function VideoPromotion() {
         ['l', 'tiktok-video', 'co.mojobus.app'],
       ] : []
 
-      // Event 1: kind 34236 (NIP-71) oder kind 30078
+      // Event 1: kind 34236/34235 (NIP-71) oder kind 30078
       const event = await publishEvent.mutateAsync({
         kind,
         tags: [...baseTags, ...appTags],
@@ -1196,8 +1199,8 @@ export function VideoPromotion() {
               `dim ${dimTag}`,
               ...(renderStatus?.videoDurationSec ? [`duration ${renderStatus.videoDurationSec}`] : []),
             ],
-            // Referenz auf das kind 34236 Event
-            ['a', `34236:${user?.pubkey}:${dTag}`, 'wss://relay.mojobus.co'],
+            // Referenz auf das NIP-71 Event
+            ['a', `${kind}:${user?.pubkey}:${dTag}`, 'wss://relay.mojobus.co'],
             ...hashtagTags,
           ]
 
@@ -1212,7 +1215,7 @@ export function VideoPromotion() {
             description: 'Auf relay.mojobus.co + im Nostr-Feed (Amethyst/Primal) sichtbar.',
           })
         } catch (kind1Err: any) {
-          // kind 1 Fehler nicht blockieren – kind 34236 wurde bereits gespeichert
+          // kind 1 Fehler nicht blockieren – NIP-71 Event wurde bereits gespeichert
           console.warn('[Publish] kind 1 fehlgeschlagen:', kind1Err.message)
           toast({
             title: '✅ Gespeichert',
@@ -1242,9 +1245,9 @@ export function VideoPromotion() {
   const loadNostrHistory = async () => {
     try {
       if (!user?.pubkey || !nostr) return
-      // kind 34236 = NIP-71 Short Video (neu), kind 30078 = App-intern (alt)
+      // kind 34236 = NIP-71 Short Video (9:16), kind 34235 = NIP-71 Normal Video (16:9), kind 30078 = App-intern (alt)
       const events = await nostr.query([{
-        kinds: [34236, 30078],
+        kinds: [34236, 34235, 30078],
         authors: [user.pubkey],
         limit: 100,
       }], { signal: AbortSignal.timeout(8000) })
@@ -2775,7 +2778,7 @@ export function VideoPromotion() {
                         🎬 Auf <span className="text-primary font-semibold">/videos</span> publizieren
                       </span>
                       <p className="text-[10px] text-muted-foreground">
-                        Video erscheint öffentlich auf mojobus.co/videos (Nostr kind 34236)
+                        Video erscheint öffentlich auf mojobus.co/videos (Nostr kind 34236/34235)
                       </p>
                     </div>
                   </label>
@@ -2955,7 +2958,7 @@ export function VideoPromotion() {
                     <tbody>
                       {history.map((job: any) => {
                         const meta = job.meta || {}
-                        // NIP-71 (kind 34236): kein meta.body – fullText aus hook/title
+                        // NIP-71 (kind 34236/34235): kein meta.body – fullText aus hook/title
                         // kind 30078: meta.body ist ein String mit Zeilenumbrüchen
                         const metaBodyLines = typeof meta.body === 'string' && meta.body
                           ? meta.body.split('\n').filter((l: string) => l.trim())
