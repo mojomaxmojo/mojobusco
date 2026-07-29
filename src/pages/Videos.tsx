@@ -12,27 +12,22 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useHead } from '@unhead/react'
-import { useQueryClient } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
+import { nip19 } from 'nostr-tools'
 import {
-  Loader2, Play, Pause, Clock, Film, Pencil, Trash2, Check, X,
+  Loader2, Play, Pause, Clock, Film, Pencil, Trash2, X,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from '@/components/ui/dialog'
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
   AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { useVideos, type VideoItem } from '@/hooks/useVideos'
+import { VideoEditDialog } from '@/components/video/VideoEditDialog'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { canonicalUrl } from '@/lib/canonicalUrl'
-import { useNostrPublish } from '@/hooks/useNostrPublish'
 import { useNostrDelete } from '@/hooks/useNostrDelete'
 import { useToast } from '@/hooks/useToast'
 import { AUTHORS } from '@/config/nostr'
@@ -66,109 +61,6 @@ function ExpandableDescription({ text }: { text: string }) {
   )
 }
 
-// ── VideoEditDialog ───────────────────────────────────────────────────────────
-
-interface EditDialogProps {
-  video: VideoItem
-  open: boolean
-  onClose: () => void
-}
-
-function VideoEditDialog({ video, open, onClose }: EditDialogProps) {
-  const [title, setTitle] = useState(video.title)
-  const [description, setDescription] = useState(video.description)
-  const [saving, setSaving] = useState(false)
-  const { mutateAsync: publish } = useNostrPublish()
-  const { toast } = useToast()
-  const queryClient = useQueryClient()
-
-  // Reset wenn Dialog öffnet
-  useEffect(() => {
-    if (open) {
-      setTitle(video.title)
-      setDescription(video.description)
-    }
-  }, [open, video])
-
-  const handleSave = async () => {
-    if (!title.trim()) return
-    setSaving(true)
-    try {
-      // Gleiches d-tag → Relay ersetzt das alte Event (Replaceable)
-      const dTag = video.event.tags.find((t) => t[0] === 'd')?.[1] ?? video.id
-
-      // Alle bestehenden Tags übernehmen, nur title + content ersetzen
-      const tags = video.event.tags.map((t) => {
-        if (t[0] === 'title') return ['title', title.trim()]
-        return t
-      })
-      // Falls kein title-Tag vorhanden war
-      if (!tags.some((t) => t[0] === 'title')) tags.push(['title', title.trim()])
-
-      await publish({
-        kind: video.kind,
-        content: description,
-        tags,
-        created_at: Math.floor(Date.now() / 1000),
-      })
-
-      toast({ title: 'Video aktualisiert', description: 'Änderungen wurden gespeichert.' })
-      queryClient.invalidateQueries({ queryKey: ['videos'] })
-      onClose()
-    } catch (e: any) {
-      toast({ title: 'Fehler', description: e.message, variant: 'destructive' })
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose() }}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Film className="h-4 w-4" /> Video bearbeiten
-          </DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 py-2">
-          <div className="space-y-1.5">
-            <Label htmlFor="vtitle">Titel</Label>
-            <Input
-              id="vtitle"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Video-Titel..."
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="vdesc">Beschreibung</Label>
-            <Textarea
-              id="vdesc"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Beschreibung..."
-              rows={4}
-            />
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Video-URL und Format können hier nicht geändert werden.
-            Replaceable Event – gleicher d-tag ersetzt das alte Event.
-          </p>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={saving}>
-            Abbrechen
-          </Button>
-          <Button onClick={handleSave} disabled={saving || !title.trim()}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
-            Speichern
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
 // ── VideoCard ─────────────────────────────────────────────────────────────────
 
 // Erkennt Capacitor-Native (Android/iOS WebView)
@@ -184,6 +76,15 @@ function isCapacitorNative(): boolean {
   } catch {
     return false
   }
+}
+
+function encodeVideoNaddr(video: VideoItem): string {
+  const dTag = video.event.tags.find((t: string[]) => t[0] === 'd')?.[1] ?? video.id
+  return nip19.naddrEncode({
+    kind: video.kind,
+    pubkey: video.pubkey,
+    identifier: dTag,
+  })
 }
 
 function VideoCard({ video, isAuthor }: { video: VideoItem; isAuthor: boolean }) {
@@ -367,7 +268,12 @@ function VideoCard({ video, isAuthor }: { video: VideoItem; isAuthor: boolean })
       <div className="mt-3 px-1 space-y-2">
         {/* Titel */}
         <h2 className="font-semibold text-base leading-snug line-clamp-2">
-          {video.title}
+          <Link
+            to={`/video/${encodeVideoNaddr(video)}`}
+            className="hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+          >
+            {video.title}
+          </Link>
         </h2>
 
         {/* Beschreibung mit "mehr lesen" */}

@@ -11,6 +11,7 @@
  *   - Bilder/Media:                  /bild/{note}
  *   - Profile:                       /{npub}
  *   - Videos-Übersicht:              /videos
+ *   - Einzelnes Video:               /video/{naddr}
  *
  * Niemals hartcodierte mojobus.co-Strings in Publish/Promotion-Komponenten
  * verwenden – immer diese Helper importieren.
@@ -63,6 +64,11 @@ export function authorUrl(pubkey: string, nip19: typeof import('nostr-tools').ni
 /** Videos-Übersicht – canonical: /videos */
 export function videosUrl(): string {
   return '/videos';
+}
+
+/** Einzelnes Video (NIP-71 addressable) – canonical: /video/{naddr} */
+export function videoUrl(naddr: string): string {
+  return `/video/${naddr}`;
 }
 
 /** Basis-OG-Bild */

@@ -35,6 +35,7 @@ const AUTHOR_PUBKEYS = AUTHORS.map(a => a.pubkey);
 
 // ── Config ────────────────────────────────────────────────────────────────
 const SITEMAP_PATH = '/home/nginx/domains/mojobus.co/public/sitemap.xml';
+const VIDEO_SITEMAP_PATH = '/home/nginx/domains/mojobus.co/public/sitemap-videos.xml';
 const BASE_URL = 'https://mojobus.co';
 const FAR_FUTURE = Math.floor(Date.now() / 1000) + 3600 * 24 * 365;
 
@@ -105,6 +106,16 @@ function encodeNaddr(event) {
   }
 }
 
+// ── XML Escaping ──────────────────────────────────────────────────────────
+function escapeXml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
 // ── Sitemap XML Generator ─────────────────────────────────────────────────
 function generateSitemapXml(urls) {
   let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
@@ -125,9 +136,60 @@ function generateSitemapXml(urls) {
   return xml;
 }
 
+// ── Video-Sitemap XML Generator ───────────────────────────────────────────
+function generateVideoSitemapXml(videos) {
+  let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+  xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">\n';
+
+  for (const v of videos) {
+    xml += '  <url>\n';
+    xml += `    <loc>${escapeXml(v.loc)}</loc>\n`;
+    xml += '    <video:video>\n';
+    if (v.thumbnail) xml += `      <video:thumbnail_loc>${escapeXml(v.thumbnail)}</video:thumbnail_loc>\n`;
+    xml += `      <video:title>${escapeXml(v.title)}</video:title>\n`;
+    xml += `      <video:description>${escapeXml(v.description)}</video:description>\n`;
+    xml += `      <video:content_loc>${escapeXml(v.videoUrl)}</video:content_loc>\n`;
+    if (v.duration) xml += `      <video:duration>${Math.round(v.duration)}</video:duration>\n`;
+    if (v.publicationDate) xml += `      <video:publication_date>${v.publicationDate}</video:publication_date>\n`;
+    xml += '    </video:video>\n';
+    xml += '  </url>\n';
+  }
+
+  xml += '</urlset>\n';
+  return xml;
+}
+
+// ── Video-Metadaten aus NIP-71 Event extrahieren ──────────────────────────
+function extractVideoMeta(event) {
+  const title = event.tags?.find(t => t[0] === 'title')?.[1] || 'MojoBus Video';
+  const description = event.content || '';
+  const thumbnail = event.tags?.find(t => t[0] === 'image')?.[1] || '';
+
+  const imetaTag = event.tags?.find(t => t[0] === 'imeta');
+  let videoUrl = '';
+  let duration = null;
+
+  if (imetaTag) {
+    const urlEntry = imetaTag.find(v => typeof v === 'string' && v.startsWith('url '));
+    if (urlEntry) videoUrl = urlEntry.replace('url ', '').trim();
+    const durEntry = imetaTag.find(v => typeof v === 'string' && v.startsWith('duration '));
+    if (durEntry) duration = parseFloat(durEntry.replace('duration ', '')) || null;
+  }
+
+  if (!videoUrl) {
+    videoUrl = event.tags?.find(t => t[0] === 'url')?.[1] || '';
+  }
+  if (!duration) {
+    const dur = event.tags?.find(t => t[0] === 'duration')?.[1];
+    if (dur) duration = parseFloat(dur) || null;
+  }
+
+  return { title, description, thumbnail, videoUrl, duration };
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────
 async function main() {
-  console.log('[Sitemap] Generiere Sitemap...');
+  console.log('[Sitemap] Generiere Sitemaps...');
 
   // ── Statische Pages (alle korrekten SPA-Routen) ──────────────────────
   const staticPages = [
@@ -139,6 +201,7 @@ async function main() {
     { loc: BASE_URL + '/plaetze',        priority: '0.9', changefreq: 'daily' },
     { loc: BASE_URL + '/bilder',         priority: '0.8', changefreq: 'daily' },
     { loc: BASE_URL + '/notes',          priority: '0.7', changefreq: 'daily' },
+    { loc: BASE_URL + '/videos',         priority: '0.8', changefreq: 'daily' },
     { loc: BASE_URL + '/map',            priority: '0.7', changefreq: 'weekly' },
     { loc: BASE_URL + '/map/trips',      priority: '0.7', changefreq: 'weekly' },
     { loc: BASE_URL + '/about',          priority: '0.5', changefreq: 'monthly' },
@@ -148,6 +211,7 @@ async function main() {
 
   const allUrls = [...staticPages];
   const seen = new Set(); // Deduplizierung
+  const videoUrls = []; // Für separate Video-Sitemap
 
   for (const relay of RELAYS) {
     console.log(`[Sitemap] Frage ab: ${relay}`);
@@ -166,6 +230,40 @@ async function main() {
         priority: '0.8',
         changefreq: 'monthly',
         lastmod: new Date(event.created_at * 1000).toISOString().split('T')[0],
+      });
+    }
+
+    // ── Videos (NIP-71: kind 34235 / 34236) ─────────────
+    const videoEvents = await queryRelay(relay, [{ kinds: [34235, 34236], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS, since: 0, until: FAR_FUTURE }]);
+    console.log(`[Sitemap]  → ${videoEvents.length} Video-Events`);
+
+    for (const event of videoEvents) {
+      if (seen.has(event.id)) continue;
+      seen.add(event.id);
+      const naddr = encodeNaddr(event);
+      if (!naddr) continue;
+
+      const meta = extractVideoMeta(event);
+      if (!meta.videoUrl) continue;
+
+      const loc = `${BASE_URL}/video/${naddr}`;
+      const lastmod = new Date(event.created_at * 1000).toISOString().split('T')[0];
+
+      allUrls.push({
+        loc,
+        priority: '0.7',
+        changefreq: 'weekly',
+        lastmod,
+      });
+
+      videoUrls.push({
+        loc,
+        title: meta.title,
+        description: meta.description,
+        thumbnail: meta.thumbnail,
+        videoUrl: meta.videoUrl,
+        duration: meta.duration,
+        publicationDate: new Date(event.created_at * 1000).toISOString(),
       });
     }
 
@@ -251,12 +349,17 @@ async function main() {
 
   // XML generieren
   const xml = generateSitemapXml(allUrls);
+  const videoXml = generateVideoSitemapXml(videoUrls);
 
   // Schreiben
   try {
     fs.writeFileSync(SITEMAP_PATH, xml, 'utf-8');
     console.log(`[Sitemap] ✅ Geschrieben: ${SITEMAP_PATH}`);
     console.log(`[Sitemap]   ${allUrls.length} URLs (${staticPages.length} statisch + ${allUrls.length - staticPages.length} dynamisch)`);
+
+    fs.writeFileSync(VIDEO_SITEMAP_PATH, videoXml, 'utf-8');
+    console.log(`[Sitemap] ✅ Video-Sitemap geschrieben: ${VIDEO_SITEMAP_PATH}`);
+    console.log(`[Sitemap]   ${videoUrls.length} Video-URLs`);
   } catch (err) {
     console.error(`[Sitemap] ❌ Fehler beim Schreiben: ${err.message}`);
     process.exit(1);

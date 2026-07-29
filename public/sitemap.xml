@@ -56,6 +56,13 @@
     <priority>0.7</priority>
   </url>
 
+  <!-- Videos -->
+  <url>
+    <loc>https://mojobus.co/videos</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+
   <!-- Karte -->
   <url>
     <loc>https://mojobus.co/map</loc>

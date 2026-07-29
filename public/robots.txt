@@ -7,6 +7,8 @@ Allow: /artikel
 Allow: /plaetze
 Allow: /bilder
 Allow: /notes
+Allow: /videos
+Allow: /video
 Allow: /map
 Allow: /about
 Allow: /feed.xml
@@ -35,3 +37,4 @@ Crawl-delay: 5
 
 # Sitemaps
 Sitemap: https://mojobus.co/sitemap.xml
+Sitemap: https://mojobus.co/sitemap-videos.xml

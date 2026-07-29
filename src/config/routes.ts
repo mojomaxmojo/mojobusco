@@ -20,6 +20,7 @@ export const ROUTES: Route[] = [
   { path: '/artikel/notes', component: 'Notes', title: 'Notes', category: 'notes' },
   { path: '/artikel/notes/:country', component: 'Notes', title: 'Notes aus Land', category: 'notes' },
   { path: '/videos', component: 'Videos', title: 'Videos', category: 'videos' },
+  { path: '/video/:naddr', component: 'VideoDetail', title: 'Video', category: 'videos' },
   { path: '/about', component: 'About', title: 'About' },
   { path: '/admin/about', component: 'AboutAdmin', title: 'About verwalten', requiresAuth: true },
   { path: '/profile', component: 'Profile', title: 'Profil', requiresAuth: true },

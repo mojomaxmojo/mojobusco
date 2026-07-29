@@ -5,6 +5,19 @@
 
 ---
 
+## 29.07.2026 – Video-SEO & Detailseiten
+
+- `/videos` in `public/sitemap.xml` und `robots.txt` aufgenommen.
+- Neue Route `/video/:naddr` mit Detailseite `src/pages/VideoDetail.tsx`.
+- Einzelne Videos bekommen canonical URL `/video/{naddr}` (`src/lib/canonicalUrl.ts`).
+- Titel im Video-Feed verlinkt auf die Detailseite.
+- `VideoEditDialog` nach `src/components/video/VideoEditDialog.tsx` ausgelagert (wiederverwendbar für Feed + Detail).
+- Detailseite mit Open Graph (`video.other`), JSON-LD `VideoObject`, Bearbeiten/Löschen für Autoren.
+- `scripts/generate-sitemap.js`: Abfrage von kind 34235/34236, Erzeugung von `/video/{naddr}` URLs in `sitemap.xml`.
+- Neue separate `sitemap-videos.xml` mit Google Video-Sitemap Format (Thumbnail, Titel, Dauer, Veröffentlichungsdatum).
+
+---
+
 ## 16.06.2026
 
 - AGENTS.md: MojoBus-Header ergänzt, Verweis auf MOJOBUS_CONTEXT.md

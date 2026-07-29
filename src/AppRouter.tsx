@@ -35,6 +35,7 @@ const BudgetPage = lazy(() => import("./pages/BudgetPage").then(m => ({ default:
 const VideoPromotion = lazy(() => import("./pages/VideoPromotion").then(m => ({ default: m.VideoPromotion })));
 const AboutAdmin = lazy(() => import("./pages/admin/AboutAdmin").then(m => ({ default: m.AboutAdmin })));
 const Videos = lazy(() => import("./pages/Videos").then(m => ({ default: m.Videos })));
+const VideoDetail = lazy(() => import("./pages/VideoDetail").then(m => ({ default: m.VideoDetail })));
 const NotFound = lazy(() => import("./pages/NotFound").then(m => ({ default: m.default })));
 
 function App() {
@@ -68,6 +69,7 @@ function App() {
               <Route path="/artikel/notes" element={<Notes />} />
               <Route path="/artikel/notes/:country" element={<Notes />} />
               <Route path="/videos" element={<Videos />} />
+              <Route path="/video/:naddr" element={<VideoDetail />} />
 <Route path="/about" element={<About />} />
                <Route path="/admin/about" element={<AboutAdmin />} />
                <Route path="/profile" element={<Profile />} />
