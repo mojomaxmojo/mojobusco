@@ -15,6 +15,8 @@
 - `ArticleForm.tsx`: Berichte posten den Teaser jetzt automatisch, keine manuelle Bestätigung mehr nötig.
 - `TripPublishForm.tsx`: Trips posten den Teaser jetzt automatisch, Inline-Logik durch Utility ersetzt.
 - Checkbox „Teaser-Note veröffentlichen" (default aktiv) in allen drei Publish-Formularen.
+- `VideoPromotion.tsx`: TikTok-/Video-Export nutzt jetzt ebenfalls `createLongformTeaser` für den Kind-1-Feed-Post.
+- `createLongformTeaser` erweitert um `video`-Typ, `videoDuration` und `videoDimensions` für vollständige Video-Metadaten.
 - Build erfolgreich.
 
 ---

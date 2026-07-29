@@ -6,7 +6,7 @@ import {
   MAX_TEASER_TAGS,
   type LongformTeaserType,
 } from '@/config/longformTeaser';
-import { canonicalUrl, articleUrl, placeUrl, tripUrl } from '@/lib/canonicalUrl';
+import { canonicalUrl, articleUrl, placeUrl, tripUrl, videoUrl } from '@/lib/canonicalUrl';
 
 export interface LongformTeaserInput {
   /** Art des Longform-Inhalts. */
@@ -27,6 +27,10 @@ export interface LongformTeaserInput {
   imageUrl?: string | null;
   /** URL eines optionalen Videos. */
   videoUrl?: string | null;
+  /** Optionale Videodauer in Sekunden (für imeta-Tag). */
+  videoDuration?: number | null;
+  /** Optionale Video-Dimensionen wie "1080x1920" (für imeta-Tag). */
+  videoDimensions?: string | null;
   /** Vom Nutzer gewählte Tags. */
   tags?: string[];
   /** Vom Nutzer gewähltes Land. */
@@ -82,6 +86,8 @@ function buildCanonicalUrl(type: LongformTeaserType, naddr: string): string {
       return canonicalUrl(placeUrl(naddr));
     case 'trip':
       return canonicalUrl(tripUrl(naddr));
+    case 'video':
+      return canonicalUrl(videoUrl(naddr));
     case 'article':
     default:
       return canonicalUrl(articleUrl(naddr));
@@ -168,12 +174,19 @@ export function createLongformTeaser(input: LongformTeaserInput): LongformTeaser
   }
 
   if (input.videoUrl?.trim()) {
-    tags.push([
+    const videoImeta: string[] = [
       'imeta',
       `url ${input.videoUrl.trim()}`,
       'm video/mp4',
       `alt ${input.title.trim()}`,
-    ]);
+    ];
+    if (input.videoDimensions?.trim()) {
+      videoImeta.push(`dim ${input.videoDimensions.trim()}`);
+    }
+    if (input.videoDuration && input.videoDuration > 0) {
+      videoImeta.push(`duration ${input.videoDuration}`);
+    }
+    tags.push(videoImeta);
   }
 
   for (const tag of thematicTags) {

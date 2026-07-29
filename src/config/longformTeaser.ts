@@ -34,11 +34,12 @@ export const BANNED_TEASER_TAGS = new Set([
 ]);
 
 /** Unterstützte Inhaltstypen für Teaser. */
-export type LongformTeaserType = 'article' | 'place' | 'trip';
+export type LongformTeaserType = 'article' | 'place' | 'trip' | 'video';
 
 /** Basis-Hashtags pro Inhaltstyp (werden nur ergänzt, wenn nicht bereits vorhanden). */
 export const DEFAULT_TEASER_TAGS: Record<LongformTeaserType, string[]> = {
   article: ['vanlife'],
   place: ['camping', 'vanlife'],
   trip: ['reisen', 'vanlife'],
+  video: ['video', 'vanlife'],
 };

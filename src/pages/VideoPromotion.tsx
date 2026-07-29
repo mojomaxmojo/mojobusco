@@ -26,6 +26,7 @@ import { useNostrDelete } from '@/hooks/useNostrDelete'
 import { useNostr } from '@/hooks/useNostr'
 import { buildRouteFromContent, type RouteResult } from '@/lib/routeFromGps'
 import { canonicalUrl } from '@/lib/canonicalUrl'
+import { createLongformTeaser } from '@/lib/createLongformTeaser'
 
 // UI Components
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -1178,36 +1179,33 @@ export function VideoPromotion() {
       setPublishedEventId(event.id)
 
       // Event 2: kind 1 (Short Text Note) – für Amethyst, Primal, Damus etc.
-      // Video-URL MUSS direkt im content stehen damit Clients es als Video rendern
       if (publishToVideos) {
         try {
-          const hashtagText = hashtags.split(' ').filter(Boolean).join(' ')
-          const kind1Content = [
-            description,
-            '',
-            mp4Url,   // ← URL direkt im Text = Amethyst/Primal rendert Video
-            '',
-            hashtagText,
-          ].filter(Boolean).join('\n')
+          if (!user?.pubkey) throw new Error('Kein eingeloggter Benutzer')
 
-          const kind1Tags: string[][] = [
-            ['r', mp4Url],
-            // imeta damit Clients die Dimensionen kennen
-            ['imeta',
-              `url ${mp4Url}`,
-              'm video/mp4',
-              `dim ${dimTag}`,
-              ...(renderStatus?.videoDurationSec ? [`duration ${renderStatus.videoDurationSec}`] : []),
-            ],
-            // Referenz auf das NIP-71 Event
-            ['a', `${kind}:${user?.pubkey}:${dTag}`, 'wss://relay.mojobus.co'],
-            ...hashtagTags,
-          ]
+          const videoHashtags = hashtags
+            .split(' ')
+            .filter(Boolean)
+            .map((h: string) => h.replace('#', ''))
+
+          const teaser = createLongformTeaser({
+            type: 'video',
+            title: hookText || 'MojoBus Video',
+            body: description,
+            pubkey: user.pubkey,
+            dTag,
+            kind,
+            imageUrl: thumbnailUrl,
+            videoUrl: mp4Url,
+            videoDuration: renderStatus?.videoDurationSec || null,
+            videoDimensions: dimTag,
+            tags: videoHashtags,
+          })
 
           await publishEvent.mutateAsync({
             kind: 1,
-            tags: kind1Tags,
-            content: kind1Content,
+            tags: teaser.tags,
+            content: teaser.content,
           })
 
           toast({
