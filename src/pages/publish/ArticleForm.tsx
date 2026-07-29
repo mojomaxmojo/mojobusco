@@ -29,6 +29,7 @@ import { extractGpsFromImage, formatCoordinatesSimple, reverseGeocode, mapCountr
 import { CONTENT_CATEGORIES, createRequiredTags, getOptionalTags, getTabConfig } from "@/config/contentCategories";
 import { resolveBildPlaceholders } from "./publishUtils";
 import { canonicalUrl, articleUrl } from "@/lib/canonicalUrl";
+import { createLongformTeaser } from "@/lib/createLongformTeaser";
 import exifr from "exifr";
 
 export function ArticleForm({ editEvent }: { editEvent?: any }) {
@@ -73,13 +74,9 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
   const [slideshowProgress, setSlideshowProgress] = useState(0);
   const [slideshowStatus, setSlideshowStatus] = useState<'idle' | 'running' | 'completed' | 'failed'>('idle');
   const [slideshowVideoUrl, setSlideshowVideoUrl] = useState<string | null>(null);
-  // Teaser-Note State (Kein Auto-Publish – manuell nach Veröffentlichung)
+  // Teaser-Note State
   const [publishTeaserNote, setPublishTeaserNote] = useState(true);
-  const [teaserPreview, setTeaserPreview] = useState<{ content: string; tags: string[][]; naddr: string; hasImage: boolean; hasVideo: boolean } | null>(null);
   const [isPublishingTeaser, setIsPublishingTeaser] = useState(false);
-  const [teaserPublished, setTeaserPublished] = useState(false);
-  const [teaserError, setTeaserError] = useState<string | null>(null);
-  const [lastPublishedDTag, setLastPublishedDTag] = useState<string | null>(null);
 
   const { toast } = useToast();
   const { mutateAsync: publishEvent } = useNostrPublish();
@@ -817,75 +814,48 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
       tags: finalTags,
     });
 
-    // Schritt 2: Teaser-Note VORBEREITEN (nicht auto-publizieren!)
-    // Wird nach dem Publish als Preview + manueller Button angezeigt
-    // Auch beim Editieren – damit Teaser aktualisiert werden kann
-    // ─────────────────────────────────────────────────────────
-    if (currentUser?.pubkey) {
+    // Schritt 2: Teaser-Note (Kind 1) automatisch ins Nostr-Netzwerk posten
+    if (publishTeaserNote && currentUser?.pubkey) {
+      setIsPublishingTeaser(true);
       try {
-        const { nip19 } = await import('nostr-tools');
-        const naddrData = {
-          kind: 30023,
-          pubkey: currentUser.pubkey,
-          identifier: dTag,
-          relays: ['wss://relay.mojobus.co', 'wss://relay.primal.net'],
-        };
-        const naddr = nip19.naddrEncode(naddrData);
-        const articleCanonicalUrl = canonicalUrl(articleUrl(naddr));
-
-        const teaserSummary = summary.trim()
-          ? summary.trim()
-          : content
-              .replace(/!\[.*?\]\(.*?\)/g, '')
-              .replace(/^#{1,6}\s+/gm, '')
-              .replace(/\*\*|__|\*|_|~~|`/g, '')
-              .replace(/\n+/g, ' ')
-              .trim()
-              .slice(0, 150)
-              .trim() + (content.replace(/\s+/g, ' ').trim().length > 150 ? '…' : '');
-
         const videoMatch = content.match(
           /(https?:\/\/[^\s)]+\.mp4[^\s)]*|https?:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+|https?:\/\/youtu\.be\/[\w-]+|https?:\/\/[^\s)]+\.m3u8[^\s)]*)/i
         );
         const videoUrl = generatedVideoUrl || slideshowVideoUrl || videoMatch?.[1] || null;
 
-        const teaserParts: string[] = [];
-        teaserParts.push(`📖 ${title.trim()}`);
-        if (teaserSummary) teaserParts.push(teaserSummary);
-        if (videoUrl && videoUrl.trim()) teaserParts.push(videoUrl);
-        teaserParts.push(articleCanonicalUrl);
-        teaserParts.push(`nostr:${naddr}`);
-
-        const teaserContent = teaserParts.join('\n\n');
-
-        const mojobusBannedTags = new Set([
-          'artikel', 'article', 'mojobus', 'medien', 'media',
-          'bilder', 'images', 'notes', 'note', 'location', 'places', 'place'
-        ]);
-        const thematicTags = displayTagsWithoutCountry
-          .filter(t => !mojobusBannedTags.has(t))
-          .slice(0, 8);
-
-        const teaserTags: string[][] = [
-          ['a', `30023:${currentUser.pubkey}:${dTag}`, 'wss://relay.mojobus.co'],
-          ...(image ? [['imeta', `url ${image}`, 'alt', title.trim()]] : []),
-        ];
-        thematicTags.forEach(t => teaserTags.push(['t', t]));
-        if (selectedCountry) teaserTags.push(['t', selectedCountry]);
-
-        // Preview speichern für manuellen Publish
-        setTeaserPreview({
-          content: teaserContent,
-          tags: teaserTags,
-          naddr,
-          hasImage: !!image,
-          hasVideo: !!videoUrl,
+        const teaser = createLongformTeaser({
+          type: 'article',
+          title: title.trim(),
+          body: content.trim(),
+          summary: summary.trim(),
+          pubkey: currentUser.pubkey,
+          dTag,
+          kind: 30023,
+          imageUrl: image,
+          videoUrl,
+          tags: displayTagsWithoutCountry,
+          country: selectedCountry,
         });
-        setLastPublishedDTag(dTag);
-        setTeaserPublished(false);
-        setTeaserError(null);
-      } catch (err) {
-        console.warn('[Article] Teaser-Vorbereitung fehlgeschlagen:', err);
+
+        await publishEvent({
+          kind: 1,
+          content: teaser.content,
+          tags: teaser.tags,
+        });
+
+        toast({
+          title: '✅ Teaser-Note veröffentlicht!',
+          description: 'Erscheint im Nostr-Feed bei Primal, Amethyst & Damus',
+        });
+      } catch (teaserErr: any) {
+        console.warn('[Article] Teaser-Post fehlgeschlagen:', teaserErr);
+        toast({
+          title: '⚠️ Bericht gespeichert',
+          description: 'Teaser-Note konnte nicht gepostet werden.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsPublishingTeaser(false);
       }
     }
 
@@ -893,83 +863,27 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
       title: 'Erfolg!',
       description: editEvent
         ? 'Bericht erfolgreich aktualisiert.'
-        : 'Bericht veröffentlicht! 🚀 Teaser-Note vorbereiten...'
+        : 'Bericht veröffentlicht!'
     });
 
-    // KEIN Reset/Redirect hier – Teaser-Box wird angezeigt, User entscheidet selbst
-  };
+    // Reset + Redirect
+    setTitle('');
+    setSummary('');
+    setContent('');
+    setImage('');
+    setCategory('');
+    setTags([]);
+    setLocation('');
+    setSelectedCountry('');
+    setPublishedAt('');
+    setImageFile(null);
+    setImageGps(null);
+    setImageGpsStatus('not_found');
+    setEditingImageGps(false);
 
-  // Manueller Teaser-Note Publish
-  const publishTeaserNoteHandler = async () => {
-    if (!teaserPreview || !lastPublishedDTag) return;
-    setIsPublishingTeaser(true);
-    setTeaserError(null);
-
-    try {
-      await publishEvent({
-        kind: 1,
-        content: teaserPreview.content,
-        tags: teaserPreview.tags,
-      });
-
-      setTeaserPublished(true);
-      toast({ title: '✅ Teaser-Note veröffentlicht!', description: 'Erscheint im Nostr-Feed bei Primal, Amethyst & Damus' });
-
-      // Reset + Redirect nach erfolgreicher Teaser-Publikation
-      setTimeout(() => {
-        if (editEvent) {
-          // Edit-Modus: Zurück zur Übersicht, Formular nicht resetten (User will evtl. weiter editieren)
-          navigate('/artikel');
-        } else {
-          // Neu-Modus: Formular resetten
-          setTitle('');
-          setSummary('');
-          setContent('');
-          setImage('');
-          setCategory('');
-          setTags([]);
-          setLocation('');
-          setSelectedCountry('');
-          setPublishedAt('');
-          setImageFile(null);
-          setImageGps(null);
-          setImageGpsStatus('not_found');
-          setEditingImageGps(false);
-          setTeaserPreview(null);
-          navigate('/artikel');
-        }
-      }, 1500);
-    } catch (err: any) {
-      setTeaserError(err.message || 'Unbekannter Fehler');
-      toast({ title: '❌ Teaser fehlgeschlagen', description: err.message, variant: 'destructive' });
-    } finally {
-      setIsPublishingTeaser(false);
-    }
-  };
-
-  // Teaser überspringen
-  const skipTeaser = () => {
-    if (editEvent) {
-      // Edit-Modus: Einfach zurück ohne Reset
+    setTimeout(() => {
       navigate('/artikel');
-    } else {
-      // Neu-Modus: Formular resetten
-      setTitle('');
-      setSummary('');
-      setContent('');
-      setImage('');
-      setCategory('');
-      setTags([]);
-      setLocation('');
-      setSelectedCountry('');
-      setPublishedAt('');
-      setImageFile(null);
-      setImageGps(null);
-      setImageGpsStatus('not_found');
-      setEditingImageGps(false);
-      setTeaserPreview(null);
-      navigate('/artikel');
-    }
+    }, 1000);
   };
 
   return (
@@ -1746,101 +1660,17 @@ Schreibe deinen Artikel hier...
           </div>
         </div>
 
-        {/* ── Teaser-Note Preview + Manueller Publish ── */}
-        {teaserPreview && (
-          <div className="p-4 border-2 rounded-lg border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-950/30 space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="text-xl">📢</span>
-              <div>
-                <p className="font-semibold text-sm text-green-700 dark:text-green-300">
-                  Teaser-Note im Nostr-Feed teilen
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Erscheint bei Primal, Amethyst & Damus — NICHT auf mojobus.co
-                </p>
-              </div>
-            </div>
-
-            {/*Preview des Teaser-Inhalts */}
-            <div className="bg-white dark:bg-gray-900 border border-green-200 dark:border-green-800 rounded-lg p-3 text-xs text-gray-700 dark:text-gray-300 space-y-1.5">
-              {teaserPreview.hasImage && (
-                <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
-                  <span>🖼️</span>
-                  <span className="text-xs">Titelbild wird angezeigt</span>
-                </div>
-              )}
-              {teaserPreview.hasVideo && (
-                <div className="flex items-center gap-1.5 text-purple-600 dark:text-purple-400">
-                  <span>🎬</span>
-                  <span className="text-xs">Video wird eingebettet</span>
-                </div>
-              )}
-              <pre className="whitespace-pre-wrap font-sans text-xs leading-relaxed break-words">
-                {teaserPreview.content}
-              </pre>
-              <div className="flex flex-wrap gap-1 pt-1">
-                {teaserPreview.tags.filter(t => t[0] === 't').map(t => (
-                  <span key={t[1]} className="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-gray-600 dark:text-gray-400">
-                    #{t[1]}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Buttons */}
-            {teaserPublished ? (
-              <div className="flex items-center gap-2 text-green-600 dark:text-green-400 text-sm font-medium">
-                <CheckCircle className="h-4 w-4" />
-                <span>✅ Teaser-Note veröffentlicht! Weiterleitung...</span>
-              </div>
-            ) : (
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  onClick={publishTeaserNoteHandler}
-                  disabled={isPublishingTeaser}
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                >
-                  {isPublishingTeaser ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Wird veröffentlicht...
-                    </>
-                  ) : (
-                    <>
-                      🚀 Im Nostr-Feed teilen
-                    </>
-                  )}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={skipTeaser}
-                >
-                  Überspringen
-                </Button>
-              </div>
-            )}
-
-            {/*Fehler-Anzeige */}
-            {teaserError && (
-              <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-2">
-                <p className="text-xs text-red-600 dark:text-red-400">
-                  ❌ Fehler: {teaserError}
-                </p>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={publishTeaserNoteHandler}
-                  className="mt-1 text-xs h-6"
-                >
-                  🔄 Erneut versuchen
-                </Button>
-              </div>
-            )}
+        <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
+          <div className="space-y-0.5">
+            <Label htmlFor="article-publish-teaser" className="text-sm font-medium">Teaser-Note veröffentlichen</Label>
+            <p className="text-xs text-muted-foreground">Erscheint im Nostr-Feed bei Primal, Amethyst & Damus</p>
           </div>
-        )}
+          <Switch
+            id="article-publish-teaser"
+            checked={publishTeaserNote}
+            onCheckedChange={setPublishTeaserNote}
+          />
+        </div>
 
         <Button
           onClick={handleSubmit}
@@ -1848,7 +1678,7 @@ Schreibe deinen Artikel hier...
           disabled={!title.trim() || !content.trim() || isPublishingTeaser}
         >
           <FileText className="h-4 w-4 mr-2" />
-          {editEvent ? 'Bericht aktualisieren' : 'Bericht veröffentlichen'}
+          {isPublishingTeaser ? 'Wird veröffentlicht...' : (editEvent ? 'Bericht aktualisieren' : 'Bericht veröffentlichen')}
         </Button>      </CardContent>
     </Card>
   );

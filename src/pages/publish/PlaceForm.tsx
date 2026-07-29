@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/useToast";
 import { useUploadFile } from "@/hooks/useUploadFile";
 import { useNostrPublish } from "@/hooks/useNostrPublish";
+import { createLongformTeaser } from "@/lib/createLongformTeaser";
+import { placeUrl, canonicalUrl } from "@/lib/canonicalUrl";
 import { ImageOptimizationToggle } from "@/components/ImageOptimizationToggle";
 import { GpsEditor } from "@/components/GpsEditor";
 import { GpsStatusIndicator } from "@/components/GpsStatusIndicator";
@@ -58,10 +60,12 @@ export function PlaceForm({ editEvent }: { editEvent?: any }) {
    const [selectedCountry, setSelectedCountry] = useState<string>('');
    const [isUploading, setIsUploading] = useState(false);
    const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
-  const [lifestyle, setLifestyle] = useState<'mojobus' | 'vanlife' | 'rvlife' | 'beachlife' | 'wohnmobil' | 'perpetual-travelers'>('mojobus');
-    const [selectedModel, setSelectedModel] = useState<'mini' | 'medium' | 'maxi'>('medium');
-    const [tripType, setTripType] = useState<TripType | ''>('');
-  const { toast } = useToast();
+   const [lifestyle, setLifestyle] = useState<'mojobus' | 'vanlife' | 'rvlife' | 'beachlife' | 'wohnmobil' | 'perpetual-travelers'>('mojobus');
+     const [selectedModel, setSelectedModel] = useState<'mini' | 'medium' | 'maxi'>('medium');
+     const [tripType, setTripType] = useState<TripType | ''>('');
+   const [publishTeaserNote, setPublishTeaserNote] = useState(true);
+   const [isPublishingTeaser, setIsPublishingTeaser] = useState(false);
+   const { toast } = useToast();
   const { mutateAsync: publishEvent } = useNostrPublish();
   const { mutateAsync: uploadFile } = useUploadFile();
   const { gender, user: currentUser } = useCurrentUser(); // Gender für KI-Generierung (Mojo=male, Susanne=female)
@@ -660,37 +664,90 @@ export function PlaceForm({ editEvent }: { editEvent?: any }) {
       countryTags.forEach(tag => tags.push(['t', tag]));
     }
 
-    publishEvent({
-      kind: 30023, // Long-form event for places
-      content,
-      tags
-    });
+    const handlePublishPlace = async () => {
+      try {
+        await publishEvent({
+          kind: 30023, // Long-form event for places
+          content,
+          tags
+        });
 
-    toast({
-      title: 'Erfolg!',
-      description: 'Ort erfolgreich gespeichert.'
-    });
+        toast({
+          title: 'Erfolg!',
+          description: 'Ort erfolgreich gespeichert.'
+        });
 
-    // Reset form and redirect
-    setName('');
-    setDescription('');
-    setLocation('');
-    setCoordinates({ lat: '', lng: '' });
-    setCategory('');
-    setRating(5);
-    setFacilities([]);
-    setBestFor([]);
-       setPrice('');
-       setVisitDate('');
-    setImageFile(null);
-    setImageGps(null);
-    setImageGpsStatus('not_found');
-    setEditingImageGps(false);
+        // Teaser-Note (Kind 1) automatisch posten, wenn aktiviert
+        if (publishTeaserNote && currentUser?.pubkey) {
+          setIsPublishingTeaser(true);
+          try {
+            const allImages = [image, ...additionalImages].filter(Boolean);
+            const firstImage = allImages[0] || null;
+            const teaser = createLongformTeaser({
+              type: 'place',
+              title: name.trim(),
+              body: description.trim() || placeSummary,
+              summary: placeSummary,
+              pubkey: currentUser.pubkey,
+              dTag,
+              kind: 30023,
+              imageUrl: firstImage,
+              tags: manualTagsWithoutCountry,
+              country: selectedCountry,
+            });
 
-    // Redirect to plaetze page after successful publish
-    setTimeout(() => {
-      navigate('/plaetze');
-    }, 1000);
+            await publishEvent({
+              kind: 1,
+              content: teaser.content,
+              tags: teaser.tags,
+            });
+
+            toast({
+              title: '✅ Teaser veröffentlicht!',
+              description: 'Der Ort erscheint im Nostr-Feed.',
+            });
+          } catch (teaserErr: any) {
+            console.warn('[Place] Teaser-Post fehlgeschlagen:', teaserErr);
+            toast({
+              title: '⚠️ Ort gespeichert',
+              description: 'Teaser-Note konnte nicht gepostet werden.',
+              variant: 'destructive',
+            });
+          } finally {
+            setIsPublishingTeaser(false);
+          }
+        }
+
+        // Reset form and redirect
+        setName('');
+        setDescription('');
+        setLocation('');
+        setCoordinates({ lat: '', lng: '' });
+        setCategory('');
+        setRating(5);
+        setFacilities([]);
+        setBestFor([]);
+        setPrice('');
+        setVisitDate('');
+        setImageFile(null);
+        setImageGps(null);
+        setImageGpsStatus('not_found');
+        setEditingImageGps(false);
+
+        // Redirect to plaetze page after successful publish
+        setTimeout(() => {
+          navigate('/plaetze');
+        }, 1000);
+      } catch (err: any) {
+        toast({
+          title: 'Fehler',
+          description: err.message || 'Ort konnte nicht gespeichert werden.',
+          variant: 'destructive',
+        });
+      }
+    };
+
+    handlePublishPlace();
   };
 
   return (
@@ -1210,9 +1267,21 @@ Beschreibe hier den Ort, was macht ihn besonders...
           country={selectedCountry}
         />
 
-        <Button onClick={handleSubmit} className="w-full" disabled={!name.trim()}>
+        <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
+          <div className="space-y-0.5">
+            <Label htmlFor="place-publish-teaser" className="text-sm font-medium">Teaser-Note veröffentlichen</Label>
+            <p className="text-xs text-muted-foreground">Erscheint im Nostr-Feed bei Primal, Amethyst & Damus</p>
+          </div>
+          <Switch
+            id="place-publish-teaser"
+            checked={publishTeaserNote}
+            onCheckedChange={setPublishTeaserNote}
+          />
+        </div>
+
+        <Button onClick={handleSubmit} className="w-full" disabled={!name.trim() || isPublishingTeaser}>
           <Map className="h-4 w-4 mr-2" />
-          Ort speichern
+          {isPublishingTeaser ? 'Wird veröffentlicht...' : 'Ort speichern'}
         </Button>
       </CardContent>
     </Card>

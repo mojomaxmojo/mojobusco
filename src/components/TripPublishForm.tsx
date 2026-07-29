@@ -13,7 +13,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import exifr from 'exifr';
 import { RemotionVideoBlock } from '@/components/RemotionVideoBlock';
-import { TeaserPreviewBox, type TeaserPreviewData } from '@/components/TeaserPreviewBox';
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -23,12 +23,13 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { nip19 } from 'nostr-tools';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/useToast';
 import { useUploadFile } from '@/hooks/useUploadFile';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { canonicalUrl, tripUrl } from '@/lib/canonicalUrl';
+import { createLongformTeaser } from '@/lib/createLongformTeaser';
 import { useTrip } from '@/hooks/useTrips';
 import { GpsEditor } from '@/components/GpsEditor';
 import { GpsStatusIndicator } from '@/components/GpsStatusIndicator';
@@ -386,7 +387,7 @@ export function TripPublishForm() {
   // Hooks
   const { toast } = useToast();
   const { mutateAsync: uploadFile } = useUploadFile();
-  const { mutate: publishEvent } = useNostrPublish();
+  const { mutateAsync: publishEvent } = useNostrPublish();
   const { gender, user } = useCurrentUser(); // Gender für KI-Generierung (Mojo=male, Susanne=female)
 
   // KI-Artikelgenerierung für Trips
@@ -1058,44 +1059,8 @@ export function TripPublishForm() {
   };
 
   // Publish trip
-  // Teaser-Note State (nach Trip-Publish anzeigen)
-  const [showTeaserBox, setShowTeaserBox] = useState(false);
-  const [tripTeaserPreview, setTripTeaserPreview] = useState<TeaserPreviewData | null>(null);
-  const [isTripTeaserPublished, setIsTripTeaserPublished] = useState(false);
-
-  const publishTeaserForTrip = async () => {
-    if (!tripTeaserPreview) return;
-    setIsPublishing(true);
-    try {
-      await publishEvent({
-        kind: 1,
-        content: tripTeaserPreview.content,
-        tags: tripTeaserPreview.tags,
-      }, {
-        onSuccess: () => {
-          setIsTripTeaserPublished(true);
-          setIsPublishing(false);
-        },
-        onError: (err) => {
-          toast({ title: '❌ Teaser fehlgeschlagen', description: err?.message || err, variant: 'destructive' });
-          setIsPublishing(false);
-        },
-      });
-    } catch (err: any) {
-      toast({ title: '❌ Teaser fehlgeschlagen', description: err?.message || err, variant: 'destructive' });
-      setIsPublishing(false);
-    }
-  };
-
-  const skipTripTeaser = () => {
-    setShowTeaserBox(false);
-    setTripTeaserPreview(null);
-    setStations([]);
-    setTripData({ title: '', summary: '', country: '', tripType: '' });
-    setEditDtag(null);
-    setCurrentStep('upload');
-    setTimeout(() => navigate('/map/trips'), 500);
-  };
+  // Teaser-Note State
+  const [publishTeaserNote, setPublishTeaserNote] = useState(true);
 
   const handlePublish = async () => {
     // First upload all images and get updated stations
@@ -1216,113 +1181,26 @@ export function TripPublishForm() {
     
     // Publish
     setIsPublishing(true);
-    
-    const doPublish = async (retryCount = 0) => {
+
+    const doPublish = async (retryCount = 0): Promise<boolean> => {
       try {
-        await new Promise<void>((resolve, reject) => {
-          publishEvent({
-            kind: 30025, // Trip events (Kind 30025 - Parameterized Replaceable)
-            content,
-            tags
-          }, {
-             onSuccess: () => {
-               toast({
-                 title: isEditMode ? 'Trip aktualisiert!' : 'Trip veröffentlicht!',
-                 description: isEditMode 
-                   ? 'Dein Trip wurde erfolgreich aktualisiert.' 
-                   : 'Dein Trip wurde erfolgreich veröffentlicht.',
-               });
-               
-                 // Teaser-Note vorbereiten
-                 // naddr berechnen (für korrekten Trip-Link)
-                 let tripNaddr = dTag; // Fallback: dTag
-                 try {
-                   if (user?.pubkey) {
-                     tripNaddr = nip19.naddrEncode({
-                       kind: 30025,
-                       pubkey: user.pubkey,
-                       identifier: dTag,
-                     });
-                   }
-                 } catch (e) {
-                   console.warn('[Trip Teaser] naddr encode failed, using dTag as fallback:', e);
-                 }
-                 
-                 // Erstes Bild: aus allen uploadedStations (nicht nur gpsStations)
-                 const firstStation = uploadedStations.find(s => s.uploadedUrl);
-                 const firstImageUrl = firstStation?.uploadedUrl;
-                 
-                 // Kurze Zusammenfassung: max 120 Zeichen damit Bild NICHT hinter "more" verschwindet
-                 const teaserSummary = tripData.summary.trim().slice(0, 120) + (tripData.summary.trim().length > 120 ? '…' : '');
-                 
-                 // Content-Struktur für Primal/Amethyst:
-                 // - Titel zuerst (kurz, kein langer Text davor)
-                 // - SOFORT danach Bild-URL allein auf einer Zeile → erscheint direkt unter Titel
-                 // - Kurzer Text
-                 // - Video-URL allein auf einer Zeile → wird als Video-Player gerendert
-                 // - Trip-Link ganz am Ende
-                 // Wichtig: URLs müssen ALLEIN auf einer Zeile stehen (kein Text daneben)
-                 const contentLines: string[] = [];
-                 contentLines.push(`🗺️ ${tripData.title || 'Trip'}`);
-                 // Bild SOFORT nach Titel (vor allem Text) – so bleibt es im sichtbaren Bereich
-                 if (firstImageUrl) contentLines.push(firstImageUrl);
-                 // Kurzer Teaser-Text danach
-                 if (teaserSummary) contentLines.push(teaserSummary);
-                 // Stats-Zeile
-                 contentLines.push(`📍 ${gpsStations.length} Stationen · 🛣️ ${Math.round(totalDistance)} km`);
-                 // Video-URL allein auf einer Zeile (Primal/Amethyst braucht isolierte URL)
-                 if (slideshowVideoUrl) contentLines.push(slideshowVideoUrl);
-                 // Trip-Link am Ende
-                 contentLines.push(canonicalUrl(tripUrl(tripNaddr)));
-                 const teaserContent = contentLines.join('\n\n');
-
-                const teaserTags: string[][] = [
-                  ['t', 'trip'],
-                  ['t', 'reisen'],
-                ];
-                if (tripData.tripType) teaserTags.push(['t', tripData.tripType]);
-                if (tripData.country) {
-                  const countryTags = getCountryTag(tripData.country);
-                  countryTags.forEach(tag => teaserTags.push(['t', tag]));
-                }
-                // imeta für Bild – URL muss exakt mit Content übereinstimmen
-                if (firstImageUrl) {
-                  teaserTags.push([
-                    'imeta',
-                    `url ${firstImageUrl}`,
-                    `m image/jpeg`,
-                    `alt ${tripData.title || 'Trip'}`,
-                  ]);
-                }
-                // imeta für Video – m video/mp4 damit Primal/Amethyst es als Video rendert
-                if (slideshowVideoUrl) {
-                  teaserTags.push([
-                    'imeta',
-                    `url ${slideshowVideoUrl}`,
-                    `m video/mp4`,
-                    `alt ${tripData.title || 'Trip'} – Slideshow`,
-                  ]);
-                }
-
-                setTripTeaserPreview({
-                  content: teaserContent,
-                  tags: teaserTags,
-                  hasImage: !!firstImageUrl,
-                  hasVideo: !!slideshowVideoUrl,
-                });
-               setShowTeaserBox(true);
-               setIsTripTeaserPublished(false);
-               
-               resolve();
-             },
-            onError: (error) => {
-              reject(error);
-            }
-          });
+        await publishEvent({
+          kind: 30025, // Trip events (Kind 30025 - Parameterized Replaceable)
+          content,
+          tags,
         });
+
+        toast({
+          title: isEditMode ? 'Trip aktualisiert!' : 'Trip veröffentlicht!',
+          description: isEditMode
+            ? 'Dein Trip wurde erfolgreich aktualisiert.'
+            : 'Dein Trip wurde erfolgreich veröffentlicht.',
+        });
+
+        return true;
       } catch (error: any) {
         console.error('[Trip Publish] Error:', error);
-        
+
         // Retry up to 3 times
         if (retryCount < 3) {
           console.log(`[Trip Publish] Retrying... (${retryCount + 1}/3)`);
@@ -1333,18 +1211,75 @@ export function TripPublishForm() {
           await new Promise(r => setTimeout(r, 2000)); // Wait 2 seconds
           return doPublish(retryCount + 1);
         }
-        
+
         toast({
           title: 'Fehler beim Veröffentlichen',
           description: `Der Trip konnte nicht veröffentlicht werden: ${error?.message || 'Unbekannter Fehler'}. Bitte versuche es später erneut.`,
-          variant: 'destructive'
+          variant: 'destructive',
         });
-      } finally {
-        setIsPublishing(false);
+        return false;
       }
     };
-    
-    await doPublish();
+
+    const success = await doPublish();
+    setIsPublishing(false);
+
+    if (!success) return;
+
+    // Teaser-Note (Kind 1) automatisch posten
+    if (publishTeaserNote && user?.pubkey) {
+      try {
+        const firstStation = uploadedStations.find(s => s.uploadedUrl);
+        const firstImageUrl = firstStation?.uploadedUrl;
+        const teaserSummary = tripData.summary.trim().slice(0, 120) + (tripData.summary.trim().length > 120 ? '…' : '');
+
+        const tripTeaserTags = [
+          'trip',
+          'reisen',
+          ...(tripData.tripType ? [tripData.tripType] : []),
+        ];
+
+        const teaser = createLongformTeaser({
+          type: 'trip',
+          title: tripData.title.trim() || 'Trip',
+          body: tripData.summary.trim(),
+          summary: teaserSummary,
+          pubkey: user.pubkey,
+          dTag,
+          kind: 30025,
+          imageUrl: firstImageUrl,
+          videoUrl: slideshowVideoUrl,
+          tags: tripTeaserTags,
+          country: tripData.country,
+        });
+
+        await publishEvent({
+          kind: 1,
+          content: teaser.content,
+          tags: teaser.tags,
+        });
+
+        toast({
+          title: '✅ Teaser-Note veröffentlicht!',
+          description: 'Erscheint im Nostr-Feed bei Primal, Amethyst & Damus',
+        });
+      } catch (teaserErr: any) {
+        console.warn('[Trip] Teaser-Post fehlgeschlagen:', teaserErr);
+        toast({
+          title: '⚠️ Trip gespeichert',
+          description: 'Teaser-Note konnte nicht gepostet werden.',
+          variant: 'destructive',
+        });
+      }
+    }
+
+    // Reset + Redirect
+    setStations([]);
+    setTripData({ title: '', summary: '', country: '', tripType: '' });
+    setEditDtag(null);
+    setSlideshowVideoUrl(null);
+    setCurrentStep('upload');
+    navigate('/map/trips');
   };
 
   // Render step content
@@ -2215,36 +2150,18 @@ export function TripPublishForm() {
         </div>
       )}
 
-      {/* Teaser-Box nach Trip-Publish */}
-      {showTeaserBox && tripTeaserPreview && (
-        <TeaserPreviewBox
-          preview={tripTeaserPreview}
-          buttonLabel="🚀 Trip im Nostr-Feed teilen"
-          publishedLabel="✅ Trip-Teaser veröffentlicht!"
-          infoText="Erscheint bei Primal, Amethyst & Damus mit Titel, Bild, Video-Link"
-          isPublished={isTripTeaserPublished}
-          onSuccess={() => {
-            setIsTripTeaserPublished(true);
-            // Nach 1.5s zurück zur Übersicht
-            setTimeout(() => {
-              setStations([]);
-              setTripData({ title: '', summary: '', country: '', tripType: '' });
-              setEditDtag(null);
-              setCurrentStep('upload');
-              navigate('/map/trips');
-            }, 1500);
-          }}
-        />
-      )}
-
-      {/* Skip Teaser Button (angezeigt nach Trip-Publish) */}
-      {showTeaserBox && !isTripTeaserPublished && (
-        <div className="mt-2">
-          <Button variant="outline" onClick={skipTripTeaser} className="w-full">
-            Überspringen &amp; zurück
-          </Button>
+      {/* Teaser-Note Option */}
+      <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
+        <div className="space-y-0.5">
+          <Label htmlFor="trip-publish-teaser" className="text-sm font-medium">Teaser-Note veröffentlichen</Label>
+          <p className="text-xs text-muted-foreground">Erscheint im Nostr-Feed bei Primal, Amethyst & Damus</p>
         </div>
-      )}
+        <Switch
+          id="trip-publish-teaser"
+          checked={publishTeaserNote}
+          onCheckedChange={setPublishTeaserNote}
+        />
+      </div>
     </div>
   );
 

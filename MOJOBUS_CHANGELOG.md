@@ -5,6 +5,20 @@
 
 ---
 
+## Aktuelle Sitzung – Konsistente Longform-Teaser
+
+- Neue zentrale Konfiguration `src/config/longformTeaser.ts` für Teaser-Regeln.
+- Neue Utility `src/lib/createLongformTeaser.ts` erzeugt konsistente Kind-1-Teaser für Longform-Inhalte.
+- Struktur: Titel (Normalschrift) → Bild-URL → Summary → canonical URL → `nostr:{naddr}`.
+- Tags: `a`-Referenz, `r`-Tag, `imeta` für Bild/Video, thematische `t`-Tags, Länder-Tag.
+- `PlaceForm.tsx`: Plätze (`/plaetze`) posten jetzt optional einen Teaser-Note (Kind 1) ins Nostr-Netzwerk.
+- `ArticleForm.tsx`: Berichte posten den Teaser jetzt automatisch, keine manuelle Bestätigung mehr nötig.
+- `TripPublishForm.tsx`: Trips posten den Teaser jetzt automatisch, Inline-Logik durch Utility ersetzt.
+- Checkbox „Teaser-Note veröffentlichen" (default aktiv) in allen drei Publish-Formularen.
+- Build erfolgreich.
+
+---
+
 ## 29.07.2026 – Video-SEO & Detailseiten
 
 - `/videos` in `public/sitemap.xml` und `robots.txt` aufgenommen.
