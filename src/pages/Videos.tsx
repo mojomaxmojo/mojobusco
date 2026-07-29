@@ -12,10 +12,11 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useHead } from '@unhead/react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { nip19 } from 'nostr-tools'
 import {
-  Loader2, Play, Pause, Clock, Film, Pencil, Trash2, X,
+  Loader2, Play, Pause, Clock, Film, Pencil, Trash2,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
