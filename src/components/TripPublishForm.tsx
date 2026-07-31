@@ -1264,6 +1264,7 @@ export function TripPublishForm() {
 
     // Teaser-Note (Kind 1) automatisch posten
     if (publishTeaserNote && user?.pubkey) {
+      const teaserLoggerPrefix = '[Trip Teaser]';
       try {
         const firstStation = uploadedStations.find(s => s.uploadedUrl);
         const firstImageUrl = firstStation?.uploadedUrl;
@@ -1274,6 +1275,15 @@ export function TripPublishForm() {
           'reisen',
           ...(tripData.tripType ? [tripData.tripType] : []),
         ];
+
+        console.log(`${teaserLoggerPrefix} Erstelle Teaser...`, {
+          title: tripData.title.trim(),
+          summaryLength: teaserSummary.length,
+          imageUrl: firstImageUrl,
+          videoUrl: slideshowVideoUrl,
+          tags: tripTeaserTags,
+          country: tripData.country
+        });
 
         const teaser = createLongformTeaser({
           type: 'trip',
@@ -1289,21 +1299,38 @@ export function TripPublishForm() {
           country: tripData.country,
         });
 
-        await publishEvent({
+        console.log(`${teaserLoggerPrefix} Teaser erstellt:`, {
+          contentLength: teaser.content.length,
+          tagCount: teaser.tags.length,
+          tags: teaser.tags,
+          naddr: teaser.naddr
+        });
+
+        const publishResult = await publishEvent({
           kind: 1,
           content: teaser.content,
           tags: teaser.tags,
         });
+
+        console.log(`${teaserLoggerPrefix} publishEvent result:`, publishResult);
 
         toast({
           title: '✅ Teaser-Note veröffentlicht!',
           description: 'Erscheint im Nostr-Feed bei Primal, Amethyst & Damus',
         });
       } catch (teaserErr: any) {
-        console.warn('[Trip] Teaser-Post fehlgeschlagen:', teaserErr);
+        const errorMessage = teaserErr?.message || 'Unbekannter Fehler';
+        const errorStack = teaserErr?.stack || '';
+        console.error(`${teaserLoggerPrefix} Teaser-Post fehlgeschlagen:`, teaserErr);
+        console.error(`${teaserLoggerPrefix} Details:`, {
+          message: errorMessage,
+          stack: errorStack,
+          fullError: JSON.stringify(teaserErr, Object.getOwnPropertyNames(teaserErr))
+        });
+
         toast({
           title: '⚠️ Trip gespeichert',
-          description: 'Teaser-Note konnte nicht gepostet werden.',
+          description: `Teaser-Note konnte nicht gepostet werden: ${errorMessage}`,
           variant: 'destructive',
         });
       }
