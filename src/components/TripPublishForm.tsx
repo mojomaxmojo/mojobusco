@@ -376,6 +376,8 @@ export function TripPublishForm() {
   // KI-Artikelgenerierung state
   const [isGeneratingArticle, setIsGeneratingArticle] = useState(false);
   const [generatingProgress, setGeneratingProgress] = useState(0);
+  const [progressMessage, setProgressMessage] = useState('');
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<'mini' | 'medium' | 'maxi'>('medium');
   const [lifestyle, setLifestyle] = useState<'mojobus' | 'vanlife' | 'rvlife' | 'beachlife' | 'wohnmobil' | 'perpetual-travelers'>('mojobus');
   const [tripLength, setTripLength] = useState<'short' | 'medium' | 'long'>('medium');
@@ -401,149 +403,183 @@ export function TripPublishForm() {
       return;
     }
 
+    if (activeJobId) {
+      toast({
+        title: 'Bitte warten',
+        description: 'Es läuft bereits eine Generierung.',
+      });
+      return;
+    }
+
     setIsGeneratingArticle(true);
-    setGeneratingProgress(0);
+    setGeneratingProgress(5);
+    setProgressMessage('Bilder werden vorbereitet...');
 
-    // Hilfsfunktion: Response sicher als JSON parsen – zeigt echten Fehlertext wenn kein JSON
-    const safeJson = async (response: Response) => {
-      const text = await response.text();
-      try {
-        return JSON.parse(text);
-      } catch {
-        // Server hat kein JSON gesendet (z.B. nginx 413, HTML-Fehlerseite, leere Antwort)
-        const preview = text.slice(0, 300).replace(/<[^>]+>/g, '').trim();
-        throw new Error(
-          `Server HTTP ${response.status}: ${preview || 'Keine Antwort vom Server'}`
-        );
-      }
-    };
-    
     try {
-      // ── Hilfsfunktion: FormData für einen Versuch bauen ──────────────────
-      const buildFormData = async (maxImgBytes: number, maxImgs: number) => {
-        const fd = new FormData();
-        const stationsWithFiles = stations.filter(s => s.file).slice(0, maxImgs);
+      const fd = new FormData();
+      const stationsWithFiles = stations.filter(s => s.file).slice(0, 20);
 
-        for (const station of stationsWithFiles) {
-          const compressed = await compressImageForUpload(station.file, maxImgBytes);
-          fd.append('images', compressed);
-        }
-
-        fd.append('title',        tripData.title || 'Meine Reise');
-        fd.append('description',  tripData.summary || '');
-        fd.append('locations',    JSON.stringify(stations.map(s => s.location || s.title)));
-        fd.append('startDate',    stations[0]?.date || '');
-        fd.append('endDate',      stations[stations.length - 1]?.date || '');
-        fd.append('model',        selectedModel);
-        fd.append('lifestyle',    lifestyle);
-        fd.append('tripType',     tripData.tripType || '');
-        fd.append('country',      tripData.country || '');
-        fd.append('tripLength',   tripLength);
-        fd.append('gender',       gender || 'neutral');
-        fd.append('stationDescriptions', JSON.stringify(
-          stations.map(s => ({ location: s.location || s.title, description: s.description || '' }))
-                  .filter(s => s.description)
-        ));
-        return { fd, count: stationsWithFiles.length };
-      };
-
-      // ── Versuchs-Stufen ───────────────────────────────────────────────────
-      // Gemini 2.5 Flash (OpenRouter): kein Rate-Limit, alle 12 Bilder möglich
-      // Stufe 1: 2MB × 12 Bilder (~24MB) – Gemini kann das
-      // Stufe 2: 1MB × 8 Bilder  (~8MB)  – Fallback bei NetworkError
-      // Stufe 3: 512KB × 5 Bilder (~2.5MB) – letzter Versuch
-      const attempts = [
-        { maxImgBytes: 2 * 1024 * 1024, maxImgs: 12, label: '12 Bilder' },
-        { maxImgBytes: 1 * 1024 * 1024, maxImgs: 10, label: '10 Bilder (kleiner)' },
-        { maxImgBytes: 512 * 1024,      maxImgs: 6,  label: '6 Bilder (minimal)' },
-      ];
-
-      let response: Response | null = null;
-      let data: any = null;
-      let lastError = '';
-
-      for (let attempt = 0; attempt < attempts.length; attempt++) {
-        const { maxImgBytes, maxImgs, label } = attempts[attempt];
-
-        toast({
-          title: attempt === 0 ? '🗜️ Bilder werden vorbereitet...' : `🔄 Versuch ${attempt + 1}/3 (${label})`,
-          description: attempt === 0
-            ? `${Math.min(stations.filter(s => s.file).length, maxImgs)} Bilder komprimieren...`
-            : 'Kleinere Dateigröße wird versucht...',
-        });
-
-        const { fd, count } = await buildFormData(maxImgBytes, maxImgs);
-        console.log(`[KI] Versuch ${attempt + 1}: ${count} Bilder, max ${maxImgBytes/1024}KB/Bild`);
-        setGeneratingProgress(10 + attempt * 5);
-
-        try {
-          response = await fetch('/api/generate-trip', { method: 'POST', body: fd });
-          // Kein NetworkError → Antwort verarbeiten
-          data = await safeJson(response);
-          if (!response.ok) throw new Error(data.error || `Server HTTP ${response.status}`);
-          break; // ✅ Erfolg
-        } catch (fetchErr: any) {
-          lastError = fetchErr?.message || 'Netzwerkfehler';
-          console.warn(`[KI] Versuch ${attempt + 1} fehlgeschlagen: ${lastError}`);
-          if (attempt === attempts.length - 1) {
-            // Alle Versuche gescheitert
-            throw new Error(
-              `Alle ${attempts.length} Versuche fehlgeschlagen. Letzter Fehler: ${lastError}\n` +
-              `Tipp: Stelle sicher dass der Server läuft (https://mojobus.co/api/health).`
-            );
-          }
-          // Nächste Stufe versuchen
-        }
+      for (const station of stationsWithFiles) {
+        const compressed = await compressImageForUpload(station.file, 2 * 1024 * 1024);
+        fd.append('images', compressed);
       }
 
-      setGeneratingProgress(90);
-      
-      if (data.article) {
-        // Zusammenfassung in Trip-Summary einfügen
-        setTripData(prev => ({
-          ...prev,
-          summary: data.article
-        }));
+      fd.append('title',        tripData.title || 'Meine Reise');
+      fd.append('description',  tripData.summary || '');
+      fd.append('locations',    JSON.stringify(stations.map(s => s.location || s.title)));
+      fd.append('startDate',    stations[0]?.date || '');
+      fd.append('endDate',      stations[stations.length - 1]?.date || '');
+      fd.append('model',        selectedModel);
+      fd.append('lifestyle',    lifestyle);
+      fd.append('tripType',     tripData.tripType || '');
+      fd.append('country',      tripData.country || '');
+      fd.append('tripLength',   tripLength);
+      fd.append('gender',       gender || 'neutral');
+      fd.append('stationDescriptions', JSON.stringify(
+        stations.map(s => ({ location: s.location || s.title, description: s.description || '' }))
+                .filter(s => s.description)
+      ));
 
-        // Bild-Captions in die jeweiligen Stationen einfügen
-        if (data.captions && data.captions.length > 0) {
-          const newAiIds = new Set<string>();
-          setStations(prev => prev.map((station, index) => {
-            const caption = data.captions[index];
-            if (caption) {
-              newAiIds.add(station.id);
-              return { ...station, description: caption };
-            }
-            return station;
-          }));
-          setAiGeneratedCaptions(newAiIds);
-          console.log(`[KI] ${data.captions.length} Bild-Captions in Stationen eingefügt`);
-        }
+      const response = await fetch('/api/generate-trip', { method: 'POST', body: fd });
+      const data = await response.json().catch(() => ({ error: 'Keine Antwort vom Server' }));
 
-        setGeneratingProgress(100);
-        
-        toast({
-          title: 'Fertig!',
-           description: `Zusammenfassung + ${data.captions?.length || 0} Bild-Texte generiert (${selectedModel.toUpperCase()} Modell)`
-        });
-        
-        setTimeout(() => {
-          setGeneratingProgress(0);
-        }, 1000);
+      if (!response.ok) {
+        throw new Error(data.error || `Server HTTP ${response.status}`);
       }
+
+      setActiveJobId(data.jobId);
+      setProgressMessage('Job gestartet...');
+
     } catch (error: any) {
-      console.error('[KI] Generierung fehlgeschlagen:', error);
+      console.error('[KI] Job-Start fehlgeschlagen:', error);
+      setIsGeneratingArticle(false);
       setGeneratingProgress(0);
-      const errMsg = error?.message || 'KI-Generierung fehlgeschlagen. Bitte versuche es erneut.';
+      setProgressMessage('');
+      const errMsg = error?.message || 'KI-Generierung konnte nicht gestartet werden.';
       toast({
         title: 'KI-Fehler',
         description: errMsg.length > 200 ? errMsg.slice(0, 197) + '...' : errMsg,
         variant: 'destructive'
       });
-    } finally {
-      setIsGeneratingArticle(false);
     }
   };
+
+  /**
+   * Bricht den aktiven Generierungs-Job ab.
+   */
+  const cancelGeneration = async () => {
+    if (!activeJobId) return;
+
+    try {
+      await fetch(`/api/generate-trip/${activeJobId}/cancel`, { method: 'POST' });
+    } catch (err) {
+      console.warn('[KI] Cancel fehlgeschlagen:', err);
+    }
+
+    setActiveJobId(null);
+    setIsGeneratingArticle(false);
+    setGeneratingProgress(0);
+    setProgressMessage('');
+  };
+
+  /**
+   * Polling für den aktiven Job. Wird gestartet, sobald activeJobId gesetzt ist.
+   * Beim Verlassen der Komponente wird der Job abgebrochen.
+   */
+  useEffect(() => {
+    if (!activeJobId) return;
+
+    let cancelled = false;
+
+    const poll = async () => {
+      try {
+        const response = await fetch(`/api/generate-trip/${activeJobId}`);
+        if (!response.ok) {
+          if (cancelled) return;
+          const data = await response.json().catch(() => ({ error: 'Status-Abruf fehlgeschlagen' }));
+          throw new Error(data.error || `Server HTTP ${response.status}`);
+        }
+
+        const status = await response.json();
+        if (cancelled) return;
+
+        setGeneratingProgress(status.progress || 0);
+        setProgressMessage(status.message || '');
+
+        if (status.status === 'completed' && status.result) {
+          setActiveJobId(null);
+          setIsGeneratingArticle(false);
+          setGeneratingProgress(100);
+
+          // Zusammenfassung / Content in Trip-Summary einfügen
+          setTripData(prev => ({
+            ...prev,
+            summary: status.result.article
+          }));
+
+          // Bild-Captions in die jeweiligen Stationen einfügen
+          if (status.result.captions && status.result.captions.length > 0) {
+            const newAiIds = new Set<string>();
+            setStations(prev => prev.map((station, index) => {
+              const caption = status.result.captions[index];
+              if (caption) {
+                newAiIds.add(station.id);
+                return { ...station, description: caption };
+              }
+              return station;
+            }));
+            setAiGeneratedCaptions(newAiIds);
+            console.log(`[KI] ${status.result.captions.length} Bild-Captions in Stationen eingefügt`);
+          }
+
+          setTimeout(() => {
+            setGeneratingProgress(0);
+            setProgressMessage('');
+          }, 1000);
+
+          toast({
+            title: 'Fertig!',
+            description: `Zusammenfassung + ${status.result.captions?.length || 0} Bild-Texte generiert (${selectedModel.toUpperCase()} Modell)`
+          });
+
+        } else if (status.status === 'failed') {
+          setActiveJobId(null);
+          setIsGeneratingArticle(false);
+          setGeneratingProgress(0);
+          setProgressMessage('');
+          throw new Error(status.error || 'KI-Generierung fehlgeschlagen');
+
+        } else if (status.status === 'cancelled') {
+          setActiveJobId(null);
+          setIsGeneratingArticle(false);
+          setGeneratingProgress(0);
+          setProgressMessage('');
+        }
+
+      } catch (error: any) {
+        if (cancelled) return;
+        console.error('[KI] Polling-Fehler:', error);
+        setActiveJobId(null);
+        setIsGeneratingArticle(false);
+        setGeneratingProgress(0);
+        setProgressMessage('');
+        toast({
+          title: 'KI-Fehler',
+          description: error?.message || 'KI-Generierung fehlgeschlagen',
+          variant: 'destructive'
+        });
+      }
+    };
+
+    poll();
+    const interval = setInterval(poll, 2000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      cancelGeneration();
+    };
+  }, [activeJobId]);
   
   const navigate = useNavigate();
   
@@ -1642,10 +1678,7 @@ export function TripPublishForm() {
                 {isGeneratingArticle ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    {generatingProgress < 10 && 'Bilder komprimieren...'}
-                    {generatingProgress >= 10 && generatingProgress < 90 && `Gemini analysiert ${stations.filter(s=>s.file).length} Bilder...`}
-                    {generatingProgress >= 90 && generatingProgress < 100 && 'Foster-Text generieren...'}
-                    {generatingProgress >= 100 && '✓ Fertig!'}
+                    {progressMessage || 'KI arbeitet...'}
                   </>
                 ) : (
                   <>
@@ -1657,8 +1690,20 @@ export function TripPublishForm() {
                   </>
                 )}
               </Button>
-              {isGeneratingArticle && generatingProgress > 0 && (
-                <Progress value={generatingProgress} className="h-1.5" />
+              {isGeneratingArticle && (
+                <>
+                  <Progress value={generatingProgress} className="h-1.5" />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={cancelGeneration}
+                    disabled={!activeJobId}
+                    className="w-full"
+                  >
+                    Generierung abbrechen
+                  </Button>
+                </>
               )}
             </div>
           </div>

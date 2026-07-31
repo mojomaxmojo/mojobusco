@@ -54,6 +54,11 @@ import { botMiddleware, getBotCacheStats, clearBotCache } from './bot/middleware
 
 // ── Pinterest Promotion API ────────────────────────────────
 import promotionRouter from './routes/promotion/index.js'
+import { initJobDatabase, cleanupOldJobs } from './services/job-store.js'
+import { cleanupOldTempImages } from './services/temp-images.js'
+
+// Datenbank für asynchrone Trip-Generierung initialisieren
+initJobDatabase()
 
 const app = express()
 const PORT = process.env.PORT || 3002
@@ -136,4 +141,21 @@ app.listen(PORT, () => {
   console.log(`[Server] ANTHROPIC_API_KEY: ${process.env.ANTHROPIC_API_KEY ? '✓ Konfiguriert' : '✗ Fehlt!'}`)
   console.log(`[Server] OPENROUTER_API_KEY: ${process.env.OPENROUTER_API_KEY ? '✓ Konfiguriert (für Video-Analyse)' : '✗ Fehlt (Video-Analyse nicht verfügbar)'}`)
   console.log(`[Server] XAI_API_KEY: ${process.env.XAI_API_KEY ? '✓ Konfiguriert (Grok Imagine Video 720p)' : '✗ Fehlt (Video-Generierung nicht verfügbar)'}`)
+
+  // Alte, abgeschlossene/abgebrochene Jobs und temporäre Bilder aufräumen
+  const ONE_HOUR = 60 * 60 * 1000
+  const cleanup = () => {
+    try {
+      const deletedJobs = cleanupOldJobs(ONE_HOUR)
+      if (deletedJobs > 0) {
+        console.log(`[Cleanup] ${deletedJobs} alte Jobs gelöscht`)
+      }
+      cleanupOldTempImages(ONE_HOUR)
+    } catch (err) {
+      console.error('[Cleanup] Fehler beim Aufräumen:', err)
+    }
+  }
+
+  cleanup()
+  setInterval(cleanup, ONE_HOUR)
 })

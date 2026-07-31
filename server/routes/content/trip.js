@@ -1,14 +1,17 @@
+/**
+ * Asynchrone Trip-Generierungs-Endpunkte.
+ *
+ * POST /api/generate-trip        -> Startet einen neuen Job, gibt sofort jobId zurück
+ * GET  /api/generate-trip/:jobId -> Fragt Status und Ergebnis ab
+ * POST /api/generate-trip/:jobId/cancel -> Bricht Job ab
+ */
+
 import express from 'express'
 import multer from 'multer'
-import {
-  getLifestyleConfig,
-  generateTripPrompt,
-  generateTripCaptionPrompt,
-  getTripImageAnalysisPrompt,
-} from '../../../src/config/prompts/index.js'
+import { createJob, getJob, updateJob, deleteJob, cancelJob } from '../../services/job-store.js'
+import { runTripGenerationJob } from '../../services/trip-generation-runner.js'
+import { saveTempImage, cleanupTempImages } from '../../services/temp-images.js'
 import { handleMulterError, sanitizeInput, validateApiKey, safelyParseJSON } from '../../utils/http-helpers.js'
-import { generateWithModel } from '../../services/ai-content.js'
-import { analyzeImageBase64 } from './vision.js'
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -21,6 +24,31 @@ const upload = multer({
 
 const router = express.Router()
 
+/**
+ * Hilfsfunktion zum Erzeugen einer eindeutigen Job-ID.
+ */
+function generateJobId() {
+  const timestamp = Date.now()
+  const random = Math.random().toString(36).slice(2, 8)
+  return `tripgen-${timestamp}-${random}`
+}
+
+/**
+ * Extrahiert die Dateiendung aus dem Originalnamen einer Multer-Datei.
+ */
+function getImageExtension(file) {
+  if (!file.originalname) return 'jpg'
+  const parts = file.originalname.split('.')
+  if (parts.length < 2) return 'jpg'
+  const ext = parts.pop().toLowerCase()
+  const allowed = ['jpg', 'jpeg', 'png', 'webp', 'gif']
+  return allowed.includes(ext) ? ext : 'jpg'
+}
+
+/**
+ * POST /api/generate-trip
+ * Startet einen neuen Generierungs-Job.
+ */
 router.post('/api/generate-trip', (req, res, next) => {
   upload.array('images', 30)(req, res, (err) => {
     if (err) return handleMulterError(err, req, res, next)
@@ -31,194 +59,102 @@ router.post('/api/generate-trip', (req, res, next) => {
     return res.status(500).json({ error: 'Server-Konfigurationsfehler' })
   }
 
-  const title = sanitizeInput(req.body.title) || 'Meine Reise'
-  const description = (req.body.description || '').trim()
-  const model = req.body.model || 'medium'
-  const lifestyle = sanitizeInput(req.body.lifestyle) || 'mojobus'
-  const gender = sanitizeInput(req.body.gender) || 'couple'
-  const tripType = sanitizeInput(req.body.tripType) || ''
-  const country = sanitizeInput(req.body.country) || ''
-  const tripLength = sanitizeInput(req.body.tripLength) || 'medium'
-  const startDate = sanitizeInput(req.body.startDate) || ''
-  const endDate = sanitizeInput(req.body.endDate) || ''
-  const locations = safelyParseJSON(req.body.locations) || []
-  const stationDescriptions = safelyParseJSON(req.body.stationDescriptions) || []
   const images = req.files || []
+  if (images.length === 0) {
+    return res.status(400).json({ error: 'Mindestens ein Bild erforderlich.' })
+  }
 
-  console.log(`[KI] Generiere Trip: "${title}", Bilder: ${images.length}, Stationen: ${stationDescriptions.length}, Modell: ${model}, Lifestyle: ${lifestyle}, Länge: ${tripLength}`)
-  if (tripType) console.log(`[KI] Trip-Typ: ${tripType}`)
-  if (country) console.log(`[KI] Land: ${country}`)
+  const jobId = generateJobId()
 
   try {
-    const lifestyleConfig = getLifestyleConfig(lifestyle)
+    createJob(jobId)
 
-    // ===== BILDER ANALYSIEREN – Qwen 2.5 VL → Gemini 2.5 Flash via OpenRouter =====
-    // Batching in 4er-Gruppen um Rate-Limits zu umgehen, bis zu 20 Bilder
-    const MAX_IMAGES_TO_ANALYZE = 20
-    const MAX_IMAGE_BYTES = 2 * 1024 * 1024  // 2MB max pro Bild (schneller, weniger RAM)
-    const BATCH_SIZE = 4  // 4 Bilder pro Batch paralell
-    const imagesToAnalyze = images.slice(0, MAX_IMAGES_TO_ANALYZE)
-    console.log(`[KI] Analysiere ${imagesToAnalyze.length} von ${images.length} Bildern via Qwen 2.5 VL → Gemini 2.5 Flash (OpenRouter) – Batching (4er-Gruppen)`)
-
-    // Einzelnes Bild analysieren: Qwen 2.5 VL → Gemini 2.5 Flash via OpenRouter
-    const analyzeOneBild = async (img, index) => {
-      if (img.buffer.length > MAX_IMAGE_BYTES) {
-        console.warn(`[KI] Bild ${index + 1} zu groß (${(img.buffer.length/1024/1024).toFixed(1)}MB > 2MB), überspringe`)
-        return '(Bild übersprungen – zu groß)'
-      }
-      const base64   = img.buffer.toString('base64')
-      const mimeType = img.mimetype || 'image/jpeg'
-      const sizeKB   = (img.size / 1024).toFixed(0)
-      const prompt   = getTripImageAnalysisPrompt(lifestyleConfig, tripLength, tripType)
-
-      console.log(`[KI] Vision Bild ${index + 1}/${imagesToAnalyze.length}: ${sizeKB}KB`)
-      try {
-        return await analyzeImageBase64(base64, mimeType, prompt, 150)
-      } catch (visionErr) {
-        const status = visionErr.response?.status
-        const msg    = visionErr.response?.data?.error?.message || visionErr.message
-        console.warn(`[KI] Vision Bild ${index + 1} fehlgeschlagen (HTTP ${status}): ${msg}`)
-        if (status === 429) return '(Rate-Limit – bitte erneut versuchen)'
-        return '(Bild nicht analysierbar)'
-      }
-    }
-
-    // ── Batching: 4 Bilder parallel, dann nächste Gruppe ──
-    let imageDescriptions = []
-    for (let batchStart = 0; batchStart < imagesToAnalyze.length; batchStart += BATCH_SIZE) {
-      const batchEnd = Math.min(batchStart + BATCH_SIZE, imagesToAnalyze.length)
-      const batch = imagesToAnalyze.slice(batchStart, batchEnd)
-      console.log(`[KI] Batch ${Math.floor(batchStart / BATCH_SIZE) + 1}: Bilder ${batchStart + 1}-${batchEnd} (${batchEnd - batchStart} Bilder)`)
-
-      const batchResults = await Promise.allSettled(
-        batch.map((img, i) => analyzeOneBild(img, batchStart + i))
-      )
-      const batchDescriptions = batchResults.map(r => r.status === 'fulfilled' ? r.value : '(Fehler)')
-      imageDescriptions.push(...batchDescriptions)
-
-      // Pause zwischen Batches um Rate-Limits zu beachten
-      if (batchEnd < imagesToAnalyze.length) {
-        console.log(`[KI] Pause zwischen Batches...`)
-        await new Promise(r => setTimeout(r, 2000))
-      }
-    }
-
-    console.log(`[KI] ${imageDescriptions.length} Bilder analysiert (Qwen 2.5 VL → Gemini 2.5 Flash)`)
-
-    // ===== TRIP-ZUSAMMENFASSUNG GENERIEREN =====
-    const tripPrompt = generateTripPrompt({
-      title,
-      description,
-      locations,
-      text: description,
-      imageDescriptions,
-      lifestyleConfig,
-      country,
-      stations: locations,
-      stationDescriptions,
-      tripType,
-      tripLength,
-      gender
+    // Temporär Bilder auf Platte speichern, damit der Runner sie später lesen kann
+    const tempImagePaths = images.map((file, index) => {
+      const ext = getImageExtension(file)
+      return saveTempImage(jobId, index, file.buffer, ext)
     })
 
-    const tripMaxTokens = tripLength === 'short' ? 500 : tripLength === 'medium' ? 1400 : 2800
-
-    console.log(`[KI] Generiere Trip-Text (${tripLength}, max ${tripMaxTokens} Tokens)...`)
-    const article = await generateWithModel(tripPrompt, model, lifestyle, {
-      maxTokens: tripMaxTokens,
-      temperature: 0.85
-    })
-    console.log(`[KI] Trip-Text fertig: ${article.length} Zeichen`)
-
-    // ===== BILD-CAPTIONS FÜR STATIONEN GENERIEREN =====
-    // Jede Station bekommt einen kurzen Foster-Bildtext (20-100 Wörter)
-    // Nur wenn Stationen vorhanden
-    let captions = []
-    if (imagesToAnalyze.length > 0) {
-      console.log(`[KI] Generiere ${imagesToAnalyze.length} Bild-Captions...`)
-
-      // Captions sequentiell generieren (nicht parallel - Groq Rate-Limits)
-      // Kurze Pause zwischen den Anfragen um Rate-Limit zu vermeiden
-      for (let i = 0; i < imagesToAnalyze.length; i++) {
-        const station = stationDescriptions[i] || {}
-        const stationLocation = station.location || locations[i] || `Station ${i + 1}`
-        const userDescription = station.description || ''
-
-        const captionPrompt = generateTripCaptionPrompt({
-          imageDescription: imageDescriptions[i] || '',
-          stationTitle: stationLocation,
-          stationLocation,
-          userDescription,
-          tripTitle: title,
-          lifestyleConfig,
-          gender,
-          stationIndex: i,
-          totalStations: imagesToAnalyze.length
-        })
-
-        try {
-          const caption = await generateWithModel(captionPrompt, model, lifestyle, {
-            maxTokens: 120,
-            temperature: 0.8
-          })
-          captions.push(caption.trim())
-          console.log(`[KI] Caption ${i + 1}/${imagesToAnalyze.length} fertig`)
-          // Kleine Pause zwischen Caption-Anfragen (Groq Rate-Limit)
-          if (i < imagesToAnalyze.length - 1) {
-            await new Promise(r => setTimeout(r, 300))
-          }
-        } catch (captionErr) {
-          const capStatus = captionErr.response?.status
-          console.warn(`[KI] Caption ${i + 1} fehlgeschlagen (HTTP ${capStatus}):`, captionErr.response?.data?.error?.message || captionErr.message)
-          captions.push('') // Leerer String als Fallback
-          // Bei Rate-Limit: länger warten
-          if (capStatus === 429) {
-            console.log('[KI] Caption Rate-Limit, warte 5s...')
-            await new Promise(r => setTimeout(r, 5000))
-          }
-        }
-      }
-
-      // Für Bilder die nicht analysiert wurden (>MAX): leere Captions
-      for (let i = imagesToAnalyze.length; i < images.length; i++) {
-        captions.push('')
-      }
+    const params = {
+      tempImagePaths,
+      title: sanitizeInput(req.body.title) || 'Meine Reise',
+      description: (req.body.description || '').trim(),
+      model: req.body.model || 'medium',
+      lifestyle: sanitizeInput(req.body.lifestyle) || 'mojobus',
+      gender: sanitizeInput(req.body.gender) || 'couple',
+      tripType: sanitizeInput(req.body.tripType) || '',
+      country: sanitizeInput(req.body.country) || '',
+      tripLength: sanitizeInput(req.body.tripLength) || 'medium',
+      locations: safelyParseJSON(req.body.locations) || [],
+      stationDescriptions: safelyParseJSON(req.body.stationDescriptions) || []
     }
 
-    console.log(`[KI] Trip fertig: ${article.length} Zeichen, ${captions.length} Captions`)
+    console.log(`[KI] Job ${jobId} gestartet: "${params.title}", ${images.length} Bilder, Modell: ${params.model}, Länge: ${params.tripLength}`)
 
-    res.json({
-      article,
-      captions,
-      imageCount: images.length,
-      analyzedCount: imagesToAnalyze.length,
-      tripLength,
-      lifestyle
+    // Job im Hintergrund starten – NICHT awaiten
+    runTripGenerationJob(jobId, params).catch(err => {
+      console.error(`[KI] Unbehandelter Fehler in Job ${jobId}:`, err)
+      updateJob(jobId, {
+        status: 'failed',
+        error: 'Interner Serverfehler im Job-Runner'
+      })
+      cleanupTempImages(jobId)
     })
+
+    res.status(202).json({ jobId, status: 'queued' })
 
   } catch (error) {
-    // Detailliertes Logging für Debugging
-    const errData = error.response?.data
-    const httpStatus = error.response?.status
-    const errMsg = error.message || 'Unbekannter Fehler'
-    console.error(`[KI] Fehler bei Trip-Generierung (HTTP ${httpStatus || 'no-response'}):`, errData || errMsg)
-    if (errData) console.error('[KI] API-Antwort:', JSON.stringify(errData).slice(0, 500))
-
-    // Sprechende Fehlermeldung ans Frontend
-    let userError = 'Fehler bei Trip-Generierung. Bitte versuche es erneut.'
-    if (httpStatus === 429 || errData?.error?.type === 'rate_limit_exceeded') {
-      userError = 'Groq API-Limit erreicht. Bitte 30 Sekunden warten und erneut versuchen.'
-    } else if (httpStatus === 413 || errMsg.includes('too large') || errMsg.includes('image_too_large')) {
-      userError = 'Ein oder mehrere Bilder sind zu groß für die KI-Analyse. Bitte kleinere Bilder verwenden (max. 4MB pro Bild für Groq).'
-    } else if (error.code === 'ECONNABORTED' || errMsg.includes('timeout')) {
-      userError = 'Zeitüberschreitung bei der KI-Analyse. Versuche es mit weniger Bildern (max. 6).'
-    } else if (errData?.error?.message) {
-      userError = `KI-Fehler: ${errData.error.message}`
-    } else if (errMsg && errMsg !== 'Unbekannter Fehler') {
-      userError = `Fehler: ${errMsg}`
-    }
-
-    res.status(httpStatus || 500).json({ error: userError })
+    console.error(`[KI] Fehler beim Starten von Job ${jobId}:`, error)
+    deleteJob(jobId)
+    cleanupTempImages(jobId)
+    res.status(500).json({ error: 'Job konnte nicht gestartet werden.' })
   }
 })
+
+/**
+ * GET /api/generate-trip/:jobId
+ * Liest den aktuellen Status eines Jobs.
+ */
+router.get('/api/generate-trip/:jobId', (req, res) => {
+  const { jobId } = req.params
+  const job = getJob(jobId)
+
+  if (!job) {
+    return res.status(404).json({ error: 'Job nicht gefunden' })
+  }
+
+  res.json({
+    jobId: job.id,
+    status: job.status,
+    progress: job.progress,
+    message: job.message,
+    completedImages: job.completedImages,
+    totalImages: job.totalImages,
+    completedCaptions: job.completedCaptions,
+    totalCaptions: job.totalCaptions,
+    result: job.result,
+    error: job.error
+  })
+})
+
+/**
+ * POST /api/generate-trip/:jobId/cancel
+ * Bricht einen laufenden Job ab.
+ */
+router.post('/api/generate-trip/:jobId/cancel', (req, res) => {
+  const { jobId } = req.params
+  const job = getJob(jobId)
+
+  if (!job) {
+    return res.status(404).json({ error: 'Job nicht gefunden' })
+  }
+
+  if (job.status === 'completed' || job.status === 'failed' || job.status === 'cancelled') {
+    return res.json({ jobId, status: job.status })
+  }
+
+  cancelJob(jobId)
+  res.json({ jobId, status: 'cancelled' })
+})
+
 export default router

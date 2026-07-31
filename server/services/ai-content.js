@@ -21,6 +21,7 @@ const generateWithModel = async (prompt, model = 'medium', lifestyle = 'mojobus'
   // Defaults die pro Tab überschrieben werden können
   const maxTokens = options.maxTokens || 700
   const temperature = options.temperature || 0.8
+  const callTimeout = options.timeout || 60000
 
   const tier = normalizeTextModel(model)
   const modelConfig = getTextModel(tier)
@@ -43,7 +44,7 @@ const generateWithModel = async (prompt, model = 'medium', lifestyle = 'mojobus'
       ]
     }, {
       headers: getOpenRouterHeaders(),
-      timeout: 60000
+      timeout: callTimeout
     })
 
     const duration = Date.now() - startTime

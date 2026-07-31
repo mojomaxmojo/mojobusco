@@ -98,22 +98,35 @@ export async function generateMediaArticle(options: GenerateMediaOptions): Promi
   return response.json();
 }
 
+export interface TripGenerationResult {
+  article: string;
+  captions: string[];
+}
+
+export interface TripJobStatus {
+  jobId: string;
+  status: 'queued' | 'analyzing' | 'generating_summary' | 'generating_captions' | 'completed' | 'failed' | 'cancelled';
+  progress: number;
+  message: string;
+  completedImages?: number;
+  totalImages?: number;
+  completedCaptions?: number;
+  totalCaptions?: number;
+  result?: TripGenerationResult;
+  error?: string;
+}
+
 /**
- * Generiert einen Trip-Artikel mit Stationen
+ * Startet die asynchrone Generierung eines Trip-Artikels.
  * Tab: "Trips"
  */
-export async function generateTripArticle(options: GenerateTripOptions): Promise<{
-  article: string;
-  hashtags: string;
-  lifestyle: string;
-  imageDescriptions: string[];
-}> {
+export async function startTripGeneration(options: GenerateTripOptions): Promise<{ jobId: string }> {
   const formData = new FormData();
-  
-  options.images.forEach((image, index) => {
+
+  options.images.forEach((image) => {
     formData.append('images', image);
   });
-  
+
   if (options.title) formData.append('title', options.title);
   if (options.description) formData.append('description', options.description);
   if (options.locations) formData.append('locations', JSON.stringify(options.locations));
@@ -130,10 +143,63 @@ export async function generateTripArticle(options: GenerateTripOptions): Promise
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || 'Fehler bei der Generierung');
+    throw new Error(error.error || 'Fehler beim Starten der Generierung');
   }
 
   return response.json();
+}
+
+/**
+ * Fragt den aktuellen Status eines Trip-Generierungs-Jobs ab.
+ */
+export async function getTripGenerationStatus(jobId: string): Promise<TripJobStatus> {
+  const response = await fetch(`${API_BASE}/api/generate-trip/${jobId}`);
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Fehler beim Abrufen des Status');
+  }
+
+  return response.json();
+}
+
+/**
+ * Bricht einen laufenden Trip-Generierungs-Job ab.
+ */
+export async function cancelTripGeneration(jobId: string): Promise<void> {
+  await fetch(`${API_BASE}/api/generate-trip/${jobId}/cancel`, {
+    method: 'POST'
+  });
+}
+
+/**
+ * Generiert einen Trip-Artikel mit Stationen (asynchron mit Polling).
+ * Tab: "Trips"
+ */
+export async function generateTripArticle(options: GenerateTripOptions): Promise<TripGenerationResult> {
+  const { jobId } = await startTripGeneration(options);
+
+  return new Promise((resolve, reject) => {
+    const interval = setInterval(async () => {
+      try {
+        const status = await getTripGenerationStatus(jobId);
+
+        if (status.status === 'completed' && status.result) {
+          clearInterval(interval);
+          resolve(status.result);
+        } else if (status.status === 'failed') {
+          clearInterval(interval);
+          reject(new Error(status.error || 'Fehler bei der Generierung'));
+        } else if (status.status === 'cancelled') {
+          clearInterval(interval);
+          reject(new Error('Generierung wurde abgebrochen'));
+        }
+      } catch (err) {
+        clearInterval(interval);
+        reject(err);
+      }
+    }, 2000);
+  });
 }
 
 /**
