@@ -45,6 +45,19 @@ export interface LongformTeaserResult {
 }
 
 /**
+ * Gibt einen lesbaren deutschen Bezeichner für den Inhaltstyp zurück.
+ */
+function typeLabel(type: LongformTeaserType): string {
+  switch (type) {
+    case 'place': return 'Ort';
+    case 'trip': return 'Trip';
+    case 'video': return 'Video';
+    case 'article':
+    default: return 'Artikel';
+  }
+}
+
+/**
  * Erzeugt eine saubere Plaintext-Summary aus Markdown/HTML.
  */
 function buildSummary(body: string, explicitSummary?: string): string {
@@ -154,8 +167,7 @@ export function createLongformTeaser(input: LongformTeaserInput): LongformTeaser
     contentLines.push(input.videoUrl.trim());
   }
 
-  contentLines.push(canonical);
-  contentLines.push(`nostr:${naddr}`);
+  contentLines.push(`[Zum ${typeLabel(input.type)} auf mojobus.co](${canonical})`);
 
   const content = contentLines.join('\n\n');
 
