@@ -7,6 +7,7 @@ import {
   type LongformTeaserType,
 } from '@/config/longformTeaser';
 import { canonicalUrl, articleUrl, placeUrl, tripUrl, videoUrl } from '@/lib/canonicalUrl';
+import { nip19 } from 'nostr-tools';
 
 export interface LongformTeaserInput {
   /** Art des Longform-Inhalts. */
@@ -68,7 +69,6 @@ function buildSummary(body: string, explicitSummary?: string): string {
  * Erzeugt ein NIP-19 naddr aus den Original-Event-Daten.
  */
 function buildNaddr(kind: number, pubkey: string, dTag: string): string {
-  const { nip19 } = require('nostr-tools');
   return nip19.naddrEncode({
     kind,
     pubkey,
