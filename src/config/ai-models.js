@@ -32,16 +32,16 @@ export const TEXT_MODELS = {
 
 /** @type {ModelConfig} */
 export const VISION_PRIMARY_MODEL = {
-  id: 'qwen/qwen2.5-vl-72b-instruct',
+  id: 'google/gemini-2.5-flash',
   provider: 'openrouter',
-  label: 'Qwen 2.5 VL 72B'
+  label: 'Gemini 2.5 Flash'
 }
 
 /** @type {ModelConfig | null} */
 export const VISION_FALLBACK_MODEL = {
-  id: 'google/gemini-2.5-flash',
+  id: 'qwen/qwen2.5-vl-72b-instruct',
   provider: 'openrouter',
-  label: 'Gemini 2.5 Flash'
+  label: 'Qwen 2.5 VL 72B'
 }
 
 /** Standard-Modellstufe für Textgenerierung */
