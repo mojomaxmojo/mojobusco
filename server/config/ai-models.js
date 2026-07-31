@@ -32,13 +32,20 @@ export const TEXT_MODELS = {
 
 /** @type {ModelConfig} */
 export const VISION_PRIMARY_MODEL = {
+  id: 'openai/gpt-4o-mini',
+  provider: 'openrouter',
+  label: 'GPT-4o mini'
+}
+
+/** @type {ModelConfig | null} */
+export const VISION_FALLBACK_MODEL = {
   id: 'google/gemini-3-flash-preview',
   provider: 'openrouter',
   label: 'Gemini 3 Flash Preview'
 }
 
 /** @type {ModelConfig | null} */
-export const VISION_FALLBACK_MODEL = {
+export const VISION_SECONDARY_FALLBACK_MODEL = {
   id: 'google/gemini-2.5-flash',
   provider: 'openrouter',
   label: 'Gemini 2.5 Flash'
@@ -79,6 +86,9 @@ export function getVisionModels() {
   const models = [VISION_PRIMARY_MODEL]
   if (VISION_FALLBACK_MODEL) {
     models.push(VISION_FALLBACK_MODEL)
+  }
+  if (VISION_SECONDARY_FALLBACK_MODEL) {
+    models.push(VISION_SECONDARY_FALLBACK_MODEL)
   }
   return models
 }
