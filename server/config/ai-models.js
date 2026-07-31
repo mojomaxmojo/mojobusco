@@ -32,9 +32,9 @@ export const TEXT_MODELS = {
 
 /** @type {ModelConfig} */
 export const VISION_PRIMARY_MODEL = {
-  id: 'qwen/qwen2.5-vl-72b-instruct',
+  id: 'qwen/qwen3.5-flash-02-23',
   provider: 'openrouter',
-  label: 'Qwen 2.5 VL 72B'
+  label: 'Qwen 3.5 Flash'
 }
 
 /** @type {ModelConfig | null} */
