@@ -134,7 +134,13 @@ app.post('/api/bot-cache/clear', (req, res) => {
 // Alle Routen: /api/promotion/*
 app.use(promotionRouter)
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
+  // Langsame Endpunkte (z.B. Vision-Analyse mit 20 Bildern) dürfen nicht
+  // nach dem Node-Standard-Timeout von 2 Minuten abgebrochen werden.
+  server.timeout = 600000 // 10 Minuten
+  server.keepAliveTimeout = 65000
+  server.headersTimeout = 66000
+
   console.log(`[Server] Backend läuft auf Port ${PORT}`)
   console.log(`[Server] Node.js Heap: ${Math.round(process.memoryUsage().heapTotal / 1024 / 1024)}MB benutzt`)
   console.log(`[Server] GROQ_API_KEY: ${process.env.GROQ_API_KEY ? '✓ Konfiguriert' : '✗ Fehlt!'}`)
