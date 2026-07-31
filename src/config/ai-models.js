@@ -32,9 +32,9 @@ export const TEXT_MODELS = {
 
 /** @type {ModelConfig} */
 export const VISION_PRIMARY_MODEL = {
-  id: 'openai/gpt-4o-mini',
+  id: 'openai/gpt-4o-mini-2024-07-18',
   provider: 'openrouter',
-  label: 'GPT-4o mini'
+  label: 'GPT-4o mini (2024-07-18)'
 }
 
 /** @type {ModelConfig | null} */
