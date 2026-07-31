@@ -32,9 +32,16 @@ export const TEXT_MODELS = {
 
 /** @type {ModelConfig} */
 export const VISION_PRIMARY_MODEL = {
-  id: 'qwen/qwen3.5-flash-02-23',
+  id: 'google/gemini-3-flash-preview',
   provider: 'openrouter',
-  label: 'Qwen 3.5 Flash'
+  label: 'Gemini 3 Flash Preview'
+}
+
+/** @type {ModelConfig | null} */
+export const VISION_FALLBACK_MODEL = {
+  id: 'google/gemini-2.5-flash',
+  provider: 'openrouter',
+  label: 'Gemini 2.5 Flash'
 }
 
 /** @type {ModelConfig | null} */
