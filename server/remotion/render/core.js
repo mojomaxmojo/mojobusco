@@ -430,7 +430,7 @@ export async function renderMojoBusVideo(params) {
       imageFormat: 'jpeg',
       // 4-Core VPS: 3 parallele Chrome-Tabs, FFmpeg-Threads separat begrenzt
       concurrency: renderConcurrency,
-      ffmpegOverride: (args) => [...args, '-threads', '1'],
+      ffmpegOverride: ({ args }) => [...args, '-threads', '1'],
       // Globaler Sicherheitsnetz-Timeout für delayRender()-Aufrufe (Default 30000ms).
       // Etwas großzügiger als Default, da OffthreadVideo bei großen MP4s (>20MB)
       // auf einer VPS mit Software-Rendering (SwiftShader) mehr Zeit zum Extrahieren

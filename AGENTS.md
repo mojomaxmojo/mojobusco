@@ -29,7 +29,7 @@ Verzeichniss /projects/mojobusco/
    - API-Calls: `${getApiBaseUrl()}/api/...`
    - Daten-Dumps: `${getDataBaseUrl()}/data/...`
    - Musik: `${base}/server/music/datei.mp3` (statisch via Nginx, **nicht** `/api/music/`)
-4. **Pfade**: ffmpeg/ffprobe liegen unter `/usr/local/bin/` (CentminMod) – **nie** `/opt/bin/` hartcodieren.
+4. **Pfade**: ffmpeg/ffprobe liegen unter `/usr/local/bin/ffmpeg` (CentminMod) – **nie** `/opt/bin/` hartcodieren.
 5. **TypeScript**: Niemals `any`. Immer korrekte Typen.
 6. **Loading-States**: Skeleton für strukturierten Content (Feeds, Profile). Spinner nur für Buttons/kurze Operationen.
 7. **Tests**: Nur schreiben wenn der User es explizit anfordert.
