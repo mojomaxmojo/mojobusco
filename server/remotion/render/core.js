@@ -436,10 +436,12 @@ export async function renderMojoBusVideo(params) {
       // auf einer VPS mit Software-Rendering (SwiftShader) mehr Zeit zum Extrahieren
       // des Frames braucht als bei reinen Bildern.
       timeoutInMilliseconds: 60000,
-      // OffthreadVideo cached extrahierte Frames zwischen Aufrufen — bei mehreren
-      // Video-Clips (mehrere MB pro Clip) reicht der Remotion-Default (~512MB)
-      // ggf. nicht aus. 2GB Puffer für Video-Slideshows mit mehreren Clips.
-      offthreadVideoCacheSizeInBytes: 2 * 1024 * 1024 * 1024,
+      // Bilder benötigen keinen großen Video-Cache; niedriger Wert reduziert
+      // Speicherdruck auf der 8GB-VPS.
+      offthreadVideoCacheSizeInBytes: 256 * 1024 * 1024,
+      // Verhindert paralleles FFmpeg-Encoding während des Renderings, damit die
+      // knappen CPU-Ressourcen nicht zwischen Chrome-Workern und FFmpeg streiten.
+      disallowParallelEncoding: true,
       // numberOfSharedAudioTags: verhindert Audio-Glitches bei Sequence-Wechseln.
       // Remotion alloziert Audio-Tags vorab statt sie bei jedem Wechsel neu zu erstellen.
       // Maximale gleichzeitige Audio-Elemente:
