@@ -155,7 +155,7 @@ export async function renderMojoBusVideo(params) {
     // sonst schießt die Server-Last hoch (mehrere Chrome-Renderer + FFmpeg-Decoding
     // gleichzeitig). Reine Bild-Slideshows sind günstiger → mehr Parallelität ok.
     const hasVideoClips = measuredVideoDurations.some(d => d != null);
-    renderConcurrency = hasVideoClips ? 2 : 3;
+    renderConcurrency = 3;
     console.log(`[Remotion] Concurrency=${renderConcurrency} (${hasVideoClips ? 'Video-Clips erkannt' : 'nur Bilder'})`);
     const effectiveVideoDurations = measuredVideoDurations.map((measured, i) => {
       if (measured == null) return null;
@@ -427,17 +427,21 @@ export async function renderMojoBusVideo(params) {
       crf: 28,
       pixelFormat: 'yuv420p',
       x264Preset: 'medium',
-      // 4-Core VPS: MP4/Video-Clips=2 (teurer pro Frame), reine Bilder=3
+      imageFormat: 'jpeg',
+      // 4-Core VPS: 3 parallele Chrome-Tabs, FFmpeg-Threads separat begrenzt
       concurrency: renderConcurrency,
+      ffmpegOverride: ({ args }) => [...args, '-threads', '1'],
       // Globaler Sicherheitsnetz-Timeout für delayRender()-Aufrufe (Default 30000ms).
       // Etwas großzügiger als Default, da OffthreadVideo bei großen MP4s (>20MB)
       // auf einer VPS mit Software-Rendering (SwiftShader) mehr Zeit zum Extrahieren
       // des Frames braucht als bei reinen Bildern.
       timeoutInMilliseconds: 60000,
-      // OffthreadVideo cached extrahierte Frames zwischen Aufrufen — bei mehreren
-      // Video-Clips (mehrere MB pro Clip) reicht der Remotion-Default (~512MB)
-      // ggf. nicht aus. 2GB Puffer für Video-Slideshows mit mehreren Clips.
-      offthreadVideoCacheSizeInBytes: 2 * 1024 * 1024 * 1024,
+      // Bilder benötigen keinen großen Video-Cache; niedriger Wert reduziert
+      // Speicherdruck auf der 8GB-VPS.
+      offthreadVideoCacheSizeInBytes: 256 * 1024 * 1024,
+      // Verhindert paralleles FFmpeg-Encoding während des Renderings, damit die
+      // knappen CPU-Ressourcen nicht zwischen Chrome-Workern und FFmpeg streiten.
+      disallowParallelEncoding: true,
       // numberOfSharedAudioTags: verhindert Audio-Glitches bei Sequence-Wechseln.
       // Remotion alloziert Audio-Tags vorab statt sie bei jedem Wechsel neu zu erstellen.
       // Maximale gleichzeitige Audio-Elemente:
