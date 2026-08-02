@@ -155,7 +155,7 @@ export async function renderMojoBusVideo(params) {
     // sonst schießt die Server-Last hoch (mehrere Chrome-Renderer + FFmpeg-Decoding
     // gleichzeitig). Reine Bild-Slideshows sind günstiger → mehr Parallelität ok.
     const hasVideoClips = measuredVideoDurations.some(d => d != null);
-    renderConcurrency = 3;
+    renderConcurrency = 6;
     console.log(`[Remotion] Concurrency=${renderConcurrency} (${hasVideoClips ? 'Video-Clips erkannt' : 'nur Bilder'})`);
     const effectiveVideoDurations = measuredVideoDurations.map((measured, i) => {
       if (measured == null) return null;
@@ -428,8 +428,9 @@ export async function renderMojoBusVideo(params) {
       pixelFormat: 'yuv420p',
       x264Preset: 'medium',
       imageFormat: 'jpeg',
-      // 4-Core VPS: 3 parallele Chrome-Tabs, FFmpeg-Threads separat begrenzt
-      concurrency: renderConcurrency,
+    // 4-Core VPS: Mehrere kleine Frame-Blöcke verteilen teure Abschnitte
+    // (z. B. Lottie/Effekte) gleichmäßiger über die Worker.
+    concurrency: renderConcurrency,
       ffmpegOverride: ({ args }) => [...args, '-threads', '1'],
       // Globaler Sicherheitsnetz-Timeout für delayRender()-Aufrufe (Default 30000ms).
       // Etwas großzügiger als Default, da OffthreadVideo bei großen MP4s (>20MB)
