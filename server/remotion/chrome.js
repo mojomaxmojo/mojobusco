@@ -51,12 +51,8 @@ const CHROMIUM_OPTIONS = {
     '--disable-dev-shm-usage',
     '--disable-gpu',
     '--disable-gpu-sandbox',
-    '--allow-file-access-from-files',    // Fallback falls doch file:// genutzt
-    '--disable-web-security',             // Erlaubt cross-origin bei localhost
-    '--disable-background-timer-throttling',
-    '--disable-renderer-backgrounding',
-    '--disable-background-networking',
-    '--disable-features=TranslateUI',
+    '--allow-file-access-from-files',  // Fallback falls doch file:// genutzt
+    '--disable-web-security',           // Erlaubt cross-origin bei localhost
   ],
 };
 
