@@ -461,7 +461,7 @@ export async function renderMojoBusVideo(params) {
           lastPct = pct;
         }
       },
-      verbose: true,
+      verbose: false,
     });
 
     const dur = ((Date.now() - startTime) / 1000).toFixed(1);
