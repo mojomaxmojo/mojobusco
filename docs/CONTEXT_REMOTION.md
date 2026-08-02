@@ -144,7 +144,7 @@ In `server/remotion/render/core.js`:
 
 | Einstellung | Wert | Begründung |
 |---|---|---|
-| `concurrency` | `4` | 4 parallele Chrome-Tabs für bessere Auslastung |
+| `concurrency` | `3` | Remotion limitiert auf Anzahl CPU-Kerne (3 auf diesem System) |
 | `imageFormat` | `jpeg` | Schneller als PNG |
 | `x264Preset` | `medium` | Kompromiss Geschwindigkeit/Qualität |
 | `crf` | `28` | Social-Media-optimale Dateigröße |
