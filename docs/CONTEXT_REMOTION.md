@@ -120,6 +120,53 @@ Nach dem Remotion-Render wird die Audiospur mittels Zwei-Pass-ffmpeg-loudnorm au
 - Bei Fehlern bleibt das Originalvideo unverändert (graceful degradation)
 - Konfiguration in `src/config/audio.js` (Single Source of Truth)
 
+## Server-Hardware / Performance / GLIBC 2.35
+
+**VPS**: KVM, 4 vCPUs, 8 GB RAM, AlmaLinux 9.8 (CentminMod)
+
+### GLIBC 2.35 Problem
+Ab Remotion v4.0 benötigt der integrierte **Compositor** (`@remotion/compositor-linux-x64-gnu`)
+mindestens **glibc 2.35**. AlmaLinux 9.8 liefert eine ältere Version, deshalb startet der
+Compositor nicht und Remotion fällt auf den langsamen Software-Fallback zurück.
+
+Fehler im Log:
+```
+Compositor exited with code 1 ... GLIBC_2.35' not found
+```
+
+**Folgen**:
+- Rendering ist deutlich langsamer (~4 FPS statt 20–50 FPS)
+- CPU-Load bleibt niedrig (~1,7–2,2 statt 3–4), weil der Fallback schlechter parallelisiert
+- Keine schnelle Lösung ohne Server-Neuaufsetzung oder Remotion v3.x (mit Breaking Changes)
+
+### Aktuelle Render-Einstellungen (Workaround)
+In `server/remotion/render/core.js`:
+
+| Einstellung | Wert | Begründung |
+|---|---|---|
+| `concurrency` | `4` | 4 parallele Chrome-Tabs für bessere Auslastung |
+| `imageFormat` | `jpeg` | Schneller als PNG |
+| `x264Preset` | `medium` | Kompromiss Geschwindigkeit/Qualität |
+| `crf` | `28` | Social-Media-optimale Dateigröße |
+| `ffmpegOverride -threads` | `1` | Verhindert, dass FFmpeg alle CPUs frisst |
+| `disallowParallelEncoding` | `false` | FFmpeg darf parallel encodieren |
+| `offthreadVideoCacheSizeInBytes` | `256 MB` | Reduziert Speicherdruck auf 8 GB RAM |
+| `timeoutInMilliseconds` | `60000` | Mehr Zeit für teure Frames |
+
+**Systemd-Limit**: `CPUQuota=300%` im `ai-api.service` verhindert, dass die Load über 4 steigt.
+
+### Prüfen
+```bash
+# GLIBC-Version
+ldd --version
+
+# Chrome-Version
+node_modules/.remotion/chrome-headless-shell/linux64/chrome-headless-shell-linux64/chrome-headless-shell --version
+
+# Remotion-Versionen
+npx remotion versions
+```
+
 ## Debug
 
 ```bash
