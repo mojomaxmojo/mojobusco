@@ -14,6 +14,7 @@
   "dependencies": {
     "@remotion/bundler": "^4.0.476",
     "@remotion/captions": "^4.0.476",
+    "@remotion/cli": "^4.0.476",
     "@remotion/google-fonts": "^4.0.476",
     "@remotion/lottie": "^4.0.476",
     "@remotion/media-utils": "^4.0.476",

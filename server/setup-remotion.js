@@ -20,19 +20,20 @@ import path from 'path';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PKG_PATH = path.join(__dirname, 'package.json');
 
-const REMOTION_VERSION = '4.0.451'; // Aktuelle stabile Version
+const REMOTION_VERSION = '4.0.476'; // Muss mit package.json übereinstimmen
 
 const REMOTION_PACKAGES = {
   'remotion': REMOTION_VERSION,
   '@remotion/bundler': REMOTION_VERSION,
+  '@remotion/cli': REMOTION_VERSION,
   '@remotion/renderer': REMOTION_VERSION,
   '@remotion/google-fonts': REMOTION_VERSION,
   '@remotion/motion-blur': REMOTION_VERSION,
   '@remotion/captions': REMOTION_VERSION,
-  'react': '18.3.1',
-  'react-dom': '18.3.1',
-  '@types/react': '18.3.0',
-  '@types/react-dom': '18.3.0',
+  'react': '19.2.7',
+  'react-dom': '19.2.7',
+  '@types/react': '19.2.17',
+  '@types/react-dom': '19.2.3',
 };
 
 // ── Farben für Terminal-Output ───────────────────────────────────────────
