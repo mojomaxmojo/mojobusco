@@ -155,7 +155,9 @@ export async function renderMojoBusVideo(params) {
     // sonst schießt die Server-Last hoch (mehrere Chrome-Renderer + FFmpeg-Decoding
     // gleichzeitig). Reine Bild-Slideshows sind günstiger → mehr Parallelität ok.
     const hasVideoClips = measuredVideoDurations.some(d => d != null);
-    renderConcurrency = 3;
+    renderConcurrency = hasVideoClips ? 2 : 3;
+    // Ziel: Load konstant ~3 bei reinen Bildern. Bei Video-Clips bleibt es bei 2,
+    // da OffthreadVideo + FFmpeg-Decoding pro Frame teurer sind.
     console.log(`[Remotion] Concurrency=${renderConcurrency} (${hasVideoClips ? 'Video-Clips erkannt' : 'nur Bilder'})`);
     const effectiveVideoDurations = measuredVideoDurations.map((measured, i) => {
       if (measured == null) return null;
