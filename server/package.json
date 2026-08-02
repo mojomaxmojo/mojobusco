@@ -12,17 +12,17 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@remotion/bundler": "4.0.451",
-    "@remotion/captions": "4.0.451",
-    "@remotion/cli": "4.0.451",
-    "@remotion/google-fonts": "4.0.451",
-    "@remotion/lottie": "4.0.451",
-    "@remotion/media-utils": "4.0.451",
-    "@remotion/motion-blur": "4.0.451",
-    "@remotion/noise": "4.0.451",
-    "@remotion/renderer": "4.0.451",
-    "@remotion/shapes": "4.0.451",
-    "@remotion/transitions": "4.0.451",
+    "@remotion/bundler": "4.0.503",
+    "@remotion/captions": "4.0.503",
+    "@remotion/cli": "4.0.503",
+    "@remotion/google-fonts": "4.0.503",
+    "@remotion/lottie": "4.0.503",
+    "@remotion/media-utils": "4.0.503",
+    "@remotion/motion-blur": "4.0.503",
+    "@remotion/noise": "4.0.503",
+    "@remotion/renderer": "4.0.503",
+    "@remotion/shapes": "4.0.503",
+    "@remotion/transitions": "4.0.503",
     "@rspack/core": "^2.0.8",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
@@ -37,7 +37,7 @@
     "nostr-tools": "^2.23.3",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "remotion": "4.0.451",
+    "remotion": "4.0.503",
     "ws": "^8.20.0"
   }
 }

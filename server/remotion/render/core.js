@@ -155,9 +155,7 @@ export async function renderMojoBusVideo(params) {
     // sonst schießt die Server-Last hoch (mehrere Chrome-Renderer + FFmpeg-Decoding
     // gleichzeitig). Reine Bild-Slideshows sind günstiger → mehr Parallelität ok.
     const hasVideoClips = measuredVideoDurations.some(d => d != null);
-    renderConcurrency = hasVideoClips ? 2 : 3;
-    // Ziel: Load konstant ~3 bei reinen Bildern. Bei Video-Clips bleibt es bei 2,
-    // da OffthreadVideo + FFmpeg-Decoding pro Frame teurer sind.
+    renderConcurrency = 4;
     console.log(`[Remotion] Concurrency=${renderConcurrency} (${hasVideoClips ? 'Video-Clips erkannt' : 'nur Bilder'})`);
     const effectiveVideoDurations = measuredVideoDurations.map((measured, i) => {
       if (measured == null) return null;
@@ -441,9 +439,9 @@ export async function renderMojoBusVideo(params) {
       // Bilder benötigen keinen großen Video-Cache; niedriger Wert reduziert
       // Speicherdruck auf der 8GB-VPS.
       offthreadVideoCacheSizeInBytes: 256 * 1024 * 1024,
-      // Verhindert paralleles FFmpeg-Encoding während des Renderings, damit die
-      // knappen CPU-Ressourcen nicht zwischen Chrome-Workern und FFmpeg streiten.
-      disallowParallelEncoding: true,
+      // Parallel-Encoding erlauben, damit FFmpeg während des Renderings arbeiten
+      // kann und die knappen CPU-Ressourcen besser ausgelastet werden.
+      disallowParallelEncoding: false,
       // numberOfSharedAudioTags: verhindert Audio-Glitches bei Sequence-Wechseln.
       // Remotion alloziert Audio-Tags vorab statt sie bei jedem Wechsel neu zu erstellen.
       // Maximale gleichzeitige Audio-Elemente:

@@ -20,7 +20,7 @@ import path from 'path';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PKG_PATH = path.join(__dirname, 'package.json');
 
-const REMOTION_VERSION = '4.0.451'; // Muss mit package.json übereinstimmen
+const REMOTION_VERSION = '4.0.503'; // Muss mit package.json übereinstimmen
 
 const REMOTION_PACKAGES = {
   'remotion': REMOTION_VERSION,
