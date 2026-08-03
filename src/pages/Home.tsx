@@ -5,18 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useLongformArticles, usePlaces, extractArticleMetadata } from '@/hooks/useLongformArticles';
-import { useNotes } from '@/hooks/useNotes';
-import { useNostr } from '@nostrify/react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { NOSTR_CONFIG } from '@/config/nostr';
+import { useHomeNotes } from '@/hooks/useHomeNotes';
+import { useHomeMedia } from '@/hooks/useHomeMedia';
+import { useQueryClient } from '@tanstack/react-query';
 import { Compass, Sun, Anchor, RefreshCw } from 'lucide-react';
 import { lazy, Suspense } from 'react';
-import type { NostrEvent } from '@nostrify/nostrify';
 import { useTrips, type Trip } from '@/hooks/useTrips';
 import { getGalleryThumbnailUrl } from '@/lib/imageUtils';
 import { useHead } from '@unhead/react';
 import { canonicalUrl } from '@/lib/canonicalUrl';
-import { DEFAULT_PERFORMANCE_CONFIG } from '@/config/performance';
 import { useToast } from '@/hooks/useToast';
 import type { ContentItem } from '@/components/ContentCard';
 
@@ -39,7 +36,6 @@ function isVideoUrl(url: string): boolean {
 }
 
 export function Home() {
-  const { nostr } = useNostr();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -88,10 +84,10 @@ export function Home() {
         queryKey: ['places'],
       });
       await queryClient.invalidateQueries({
-        queryKey: ['home-notes'],
+        queryKey: ['preloaded', 'notes'],
       });
       await queryClient.invalidateQueries({
-        queryKey: ['home-media'],
+        queryKey: ['preloaded', 'bilder'],
       });
 
       toast({
@@ -116,66 +112,13 @@ export function Home() {
     limit: 15, // Optimiert für Home-Seite (nur 6 Elemente werden angezeigt)
   });
 
-  const { data: noteEvents = [] } = useQuery({
-    queryKey: ['home-notes', NOSTR_CONFIG.authorPubkeys],
-    queryFn: async ({ signal }) => {
-      const events = await nostr.query([
-        {
-          kinds: [NOSTR_CONFIG.kinds.note],
-          authors: NOSTR_CONFIG.authorPubkeys,
-          '#t': ['note', 'notiz'],
-          limit: 15, // Optimiert für Home-Seite (nur 6 Elemente werden angezeigt)
-        }
-      ], { signal: AbortSignal.any([signal!, AbortSignal.timeout(DEFAULT_PERFORMANCE_CONFIG.relay.queryTimeout)]) });
-      return events;
-    },
-    staleTime: DEFAULT_PERFORMANCE_CONFIG.cache.staleTime,
-  });
+  const { data: noteEvents = [], isLoading: notesLoading } = useHomeNotes();
 
   const tripsQuery = useTrips();
   const { data: tripsData = [] } = tripsQuery;
-  const { data: imageEvents = [] } = useQuery({
-    queryKey: ['home-media', NOSTR_CONFIG.authorPubkeys],
-    queryFn: async ({ signal }) => {
-      const events = await nostr.query([
-        {
-          kinds: [1, 30023], // Text notes und longform articles
-          authors: NOSTR_CONFIG.authorPubkeys,
-          '#t': ['medien', 'media', 'bilder', 'images'],
-          limit: 15, // Optimiert für Home-Seite (nur 6 Elemente werden angezeigt)
-        }
-      ], { signal: AbortSignal.any([signal!, AbortSignal.timeout(DEFAULT_PERFORMANCE_CONFIG.relay.queryTimeout)]) }); // Aus Performance-Konfiguration
+  const { data: imageEvents = [], isLoading: mediaLoading } = useHomeMedia();
 
-      console.log('[Home Page] Image Events Query:', {
-        total: events.length,
-        limit: 15,
-        timeout: DEFAULT_PERFORMANCE_CONFIG.relay.queryTimeout,
-        optimization: 'Home-Spezifisches Limit (vorher 100 Events)',
-      });
-
-      return events.filter((event) => {
-        const content = event.content.toLowerCase();
-        return content.includes('.jpg') ||
-               content.includes('.jpeg') ||
-               content.includes('.png') ||
-               content.includes('.gif') ||
-               content.includes('.webp') ||
-               content.includes('.mp4') ||
-               content.includes('.webm') ||
-               content.includes('.mov') ||
-               content.includes('imgur.com') ||
-               content.includes('i.imgur.com') ||
-               content.includes('cdn.blossom') ||
-               content.includes('nostr.build') ||
-               content.includes('relay.mojobus.co') ||
-               content.includes('relays.mojobus.co') ||
-               content.includes('blossom.primal.net');
-      });
-    },
-    staleTime: DEFAULT_PERFORMANCE_CONFIG.cache.staleTime,
-  });
-
-  const isLoading = articlesLoading || placesLoading || tripsQuery.isLoading;
+  const isLoading = articlesLoading || placesLoading || tripsQuery.isLoading || notesLoading || mediaLoading;
 
   const contentItems: ContentItem[] = [];
 
