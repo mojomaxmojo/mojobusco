@@ -12,6 +12,7 @@ import {
   isTrip,
   isMedia,
   getBuiltAssets,
+  isTeaserForLongform,
 } from './prerender-helpers.js';
 import {
   renderArticleHtml,
@@ -153,7 +154,9 @@ async function main() {
           writePrerenderFile(`bild-${nevent}.html`, renderMediaHtml(event, nevent));
           rendered.push({ type: 'Bild (nevent)', identifier: nevent });
         }
-        lists.media.push(event);
+        if (!isTeaserForLongform(event)) {
+          lists.media.push(event);
+        }
       } catch (e) {
         console.warn(`[Prerender] Bild-Encoding fehlgeschlagen: ${e.message}`);
       }
@@ -169,7 +172,9 @@ async function main() {
         const noteId = nip19.noteEncode(event.id);
         const filename = `${noteId}.html`;
         writePrerenderFile(filename, renderNoteHtml(event));
-        lists.notes.push(event);
+        if (!isTeaserForLongform(event)) {
+          lists.notes.push(event);
+        }
         rendered.push({ type: 'Note', identifier: noteId });
       } catch (e) {
         console.warn(`[Prerender] noteEncode fehlgeschlagen: ${e.message}`);

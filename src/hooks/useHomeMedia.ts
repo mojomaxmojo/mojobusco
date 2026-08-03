@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { usePreloadedData } from '@/hooks/usePreloadedData';
 import { NOSTR_CONFIG } from '@/config/nostr';
+import { isTeaserForLongform } from '@/lib/nostrEventUtils';
 import type { NostrEvent } from '@nostrify/nostrify';
 
 /**
@@ -50,6 +51,9 @@ export function useHomeMedia() {
     },
     liveTimeout: 6000,
     transformEvent: (event: NostrEvent) => {
+      // Teaser-Notes für Longform-Inhalte sollen auf der Home-Seite nicht
+      // zusätzlich als eigenständige Media-Einträge erscheinen.
+      if (isTeaserForLongform(event)) return null;
       return hasMediaContent(event) ? event : null;
     },
   });
@@ -58,7 +62,7 @@ export function useHomeMedia() {
     if (!rawMedia?.length) return [];
 
     return rawMedia
-      .filter((event: NostrEvent) => hasMediaContent(event))
+      .filter((event: NostrEvent) => !isTeaserForLongform(event) && hasMediaContent(event))
       .sort((a, b) => b.created_at - a.created_at);
   }, [rawMedia]);
 

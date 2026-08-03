@@ -93,6 +93,20 @@ export function isMedia(event) {
 }
 
 /**
+ * Prüft, ob ein Kind-1-Event ein Teaser für einen Longform-Inhalt ist.
+ * Teaser enthalten einen 'a'-Tag, der auf das Original-Event verweist,
+ * z. B. ['a', '30025:<pubkey>:<d-tag>', '<relay>'].
+ */
+export function isTeaserForLongform(event) {
+  return event.tags?.some(
+    (tag) =>
+      tag[0] === 'a' &&
+      tag[1] &&
+      /^(30023|30025|34235|34236):/.test(tag[1])
+  ) ?? false;
+}
+
+/**
  * Extrahiert die gebauten CSS/JS-Asset-Tags aus der Vite-index.html.
  * Wird benötigt, damit Prerender-Shells auf die korrekten hashed Assets verweisen.
  *

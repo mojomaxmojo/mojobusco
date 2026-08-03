@@ -139,6 +139,16 @@ export function renderHomePage({ articles = [], places = [], notes = [], media =
     ...trips.slice(0, 6).map(toTripItem),
   ];
 
+  // Sicherheitsnetz: Duplikate anhand Event-ID entfernen (z. B. wenn ein Event
+  // aus Versehen in mehreren Listen landet).
+  const seenIds = new Set();
+  const uniqueItems = allItems.filter((item) => {
+    if (!item?.event?.id) return true;
+    if (seenIds.has(item.event.id)) return false;
+    seenIds.add(item.event.id);
+    return true;
+  });
+
   const jsonLd = [
     {
       '@context': 'https://schema.org',
@@ -153,14 +163,14 @@ export function renderHomePage({ articles = [], places = [], notes = [], media =
     title,
     description,
     canonicalUrl,
-    image: allItems[0]?.image || DEFAULT_IMAGE,
+    image: uniqueItems[0]?.image || DEFAULT_IMAGE,
     imageAlt: title,
     ogType: 'website',
     jsonLd,
   });
 
-  const listHtml = allItems.length
-    ? allItems.map(item => `
+  const listHtml = uniqueItems.length
+    ? uniqueItems.map(item => `
     <li style="margin-bottom:1.5rem">
       <a href="${escapeHtml(item.url)}">
         ${item.image ? `<img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}" style="max-width:200px;display:block" />` : ''}
