@@ -17,6 +17,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrDelete } from '@/hooks/useNostrDelete';
 import { useToast } from '@/hooks/useToast';
 import { generateSrcset, generateSizes, getGalleryThumbnailUrl, getImagePlaceholder } from '@/lib/imageUtils';
+import { VideoFramePreview } from '@/components/VideoFramePreview';
 import { canonicalUrl } from '@/lib/canonicalUrl';
 import { nip19 } from 'nostr-tools';
 import {
@@ -493,15 +494,13 @@ function ImageCardComponent({
          <div onClick={handleImageClick} className="cursor-pointer">
             {images.length > 0 && (
                <div className="w-full bg-gray-100 dark:bg-gray-800 relative aspect-[3/4]">
-                  {isVideoUrl(images[0]) ? (
-                    <video
-                      src={images[0]}
-                      className="w-full h-full object-cover"
-                      controls
-                      preload="none"
-                      playsInline
-                    />
-                  ) : (
+                   {isVideoUrl(images[0]) ? (
+                     // Einzelnes Frame als Vorschau (8s-Zeitpunkt, nur Metadaten-Download)
+                     <VideoFramePreview
+                       url={images[0]}
+                       className="w-full h-full object-cover"
+                     />
+                   ) : (
                    <>
                      <img
                        src={getGalleryThumbnailUrl(images[0])}

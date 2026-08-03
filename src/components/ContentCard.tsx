@@ -8,6 +8,7 @@ import { genUserName } from '@/lib/genUserName';
 import { nip19 } from 'nostr-tools';
 import { getGalleryThumbnailUrl, getImagePlaceholder, generateSrcset, generateSizes } from '@/lib/imageUtils';
 import { SocialBar } from '@/components/SocialBar';
+import { VideoFramePreview } from '@/components/VideoFramePreview';
 import { MapPin, Play } from 'lucide-react';
 import type { NostrEvent } from '@nostrify/nostrify';
 import type { Trip } from '@/hooks/useTrips';
@@ -81,12 +82,10 @@ export const ContentCard = memo(function ContentCard({ item }: { item: ContentIt
         {thumbnailUrl ? (
           <div className="relative aspect-[4/3] overflow-hidden bg-muted">
             {isVideoUrl(thumbnailUrl) ? (
-              <video
-                src={thumbnailUrl}
+              // Einzelnes Frame als Vorschau (8s-Zeitpunkt, nur Metadaten-Download)
+              <VideoFramePreview
+                url={thumbnailUrl}
                 className="w-full h-full object-cover"
-                controls
-                preload="none"
-                playsInline
               />
             ) : (
               <img

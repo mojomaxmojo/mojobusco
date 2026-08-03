@@ -34,6 +34,19 @@ export const videoConfig = {
     preload: 'none' as const, // 'none' verhindert Vorabladen großer Videos
   },
 
+  // Vorschau-Frame für Cards/Feeds (statt weißer Fläche oder Volldownload).
+  // preload="metadata" holt nur Metadaten + ein Frame (wenige KB; unsere MP4s
+  // sind +faststart, das moov-Atom liegt vorne → sehr effizient).
+  preview: {
+    preload: 'metadata' as const,
+    // Zeitpunkt (Sekunden) des Vorschau-Frames via Media-Fragment "#t=".
+    // Der Browser holt per Range-Request nur die Daten um diesen Zeitpunkt
+    // (faststart-MP4: moov-Atom vorne → effizient). Bei kürzeren Videos wird
+    // automatisch das letzte Frame gezeigt. Hinweis: Safari ignoriert #t ggf.
+    // und zeigt das erste Frame – ebenfalls ok.
+    frameTime: 8,
+  },
+
   // YouTube-spezifische Einstellungen
   youtube: {
     noCookie: true,    // youtube-nocookie.com für Privacy

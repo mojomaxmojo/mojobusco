@@ -26,6 +26,7 @@ import {
   AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { useVideos, type VideoItem } from '@/hooks/useVideos'
+import { VideoFramePreview } from '@/components/VideoFramePreview'
 import { VideoEditDialog } from '@/components/video/VideoEditDialog'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { canonicalUrl } from '@/lib/canonicalUrl'
@@ -187,14 +188,24 @@ function VideoCard({ video, isAuthor }: { video: VideoItem; isAuthor: boolean })
           />
         )}
 
-        {/* Thumbnail anzeigen wenn noch nicht gestartet oder nicht im Viewport */}
-        {(!inView || !started) && video.thumbnailUrl && (
-          <img
-            src={video.thumbnailUrl}
-            alt={video.title}
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
+        {/* Thumbnail anzeigen wenn noch nicht gestartet oder nicht im Viewport.
+            Fehlt der NIP-71-image-Tag, wird ein einzelnes Frame (8s) als Vorschau
+            geladen statt einer schwarzen Fläche (nur Metadaten-Download). */}
+        {(!inView || !started) && (
+          video.thumbnailUrl ? (
+            <img
+              src={video.thumbnailUrl}
+              alt={video.title}
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+          ) : (
+            <VideoFramePreview
+              url={video.videoUrl}
+              className="w-full h-full object-cover"
+              showPlayOverlay={false}
+            />
+          )
         )}
 
         {/* Play/Pause Overlay */}
