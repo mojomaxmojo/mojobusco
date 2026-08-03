@@ -9,15 +9,10 @@ export function PrerenderCleaner() {
     const el = document.getElementById('prerendered-content');
     if (!el) return;
 
-    // Sanftes Ausblenden, um harte Sprünge zu vermeiden
-    el.style.transition = 'opacity 200ms ease';
-    el.style.opacity = '0';
-
-    const timer = setTimeout(() => {
-      el.remove();
-    }, 250);
-
-    return () => clearTimeout(timer);
+    // Sofort ausblenden, damit kein sichtbares Flackern entsteht.
+    // Das statische HTML ist nur für den ersten Paint da; React übernimmt sofort.
+    el.style.display = 'none';
+    el.remove();
   }, []);
 
   return null;
