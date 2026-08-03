@@ -161,6 +161,8 @@ export const RELAYS: RelayConfig[] = [
 
 export const RELAY_PRESETS = {
   // MojoBus Preset - Hauptkonfiguration für MojoBus Blog
+  // Erstbesucher: Nur ein Relay primär (schnellerer Aufbau).
+  // Primal steht als Backup in der Liste, falls relay.mojobus.co ausfällt.
   mojobus: {
     name: 'MojoBus',
     description: 'MojoBus Relay (relay.mojobus.co)',
@@ -168,8 +170,8 @@ export const RELAY_PRESETS = {
       'wss://relay.mojobus.co',
       'wss://relay.primal.net',
     ],
-    maxRelays: 2,
-    queryTimeout: 3000, // 3s ist ausreichend nach Optimierung auf ~60 Events (statt 230)
+    maxRelays: 1,
+    queryTimeout: 2000, // 2s primärer Timeout (schnellerer Failover für Erstbesucher)
   },
 
   // Fast Preset - Maximale Performance mit einem schnellen Relay

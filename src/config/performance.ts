@@ -90,8 +90,9 @@ export const RELAY_PERFORMANCE_CONFIG = {
   enableDeduplication: true,
 
   // Max. Anzahl an Relays für Queries (aus relayUrls)
-  // Empfehlung: 1 für maximale Performance, 2-3 für Zuverlässigkeit
-  maxRelaysForQueries: 2, // Erhöht auf 2 für MojoBus Relays
+  // 1 = schnellster Start für Erstbesucher (relay.mojobus.co primär).
+  // Primal ist in relayUrls als Backup hinterlegt.
+  maxRelaysForQueries: 1,
 
   // Batched Queries: Alle nötigen Events in einem Request
   // Reduziert Anzahl an Requests signifikant
@@ -542,7 +543,7 @@ export const PERFORMANCE_PRESETS = {
     ...BUNDLE_CONFIG,
     itemsPerPage: 25,
     queryTimeout: 2000, // Faktisch 5000ms mit 2.5x Multiplikator
-    maxRelaysForQueries: 2, // Erhöht auf 2 für MojoBus Relays
+    maxRelaysForQueries: 1,
     lazyLoading: { ...IMAGE_CONFIG.lazyLoading, enabled: true },
     memoization: { ...RENDER_CONFIG.memoization, enabled: true },
   },
@@ -558,7 +559,7 @@ export const PERFORMANCE_PRESETS = {
     ...BUNDLE_CONFIG,
     itemsPerPage: 30,
     queryTimeout: 3200, // Faktisch 8000ms mit 2.5x Multiplikator
-    maxRelaysForQueries: 3,
+    maxRelaysForQueries: 2,
     lazyLoading: { ...IMAGE_CONFIG.lazyLoading, enabled: true },
     memoization: { ...RENDER_CONFIG.memoization, enabled: true },
   },

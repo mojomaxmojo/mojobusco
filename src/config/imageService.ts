@@ -49,8 +49,11 @@ export const ENABLE_IMAGE_SERVICE = import.meta.env.VITE_ENABLE_IMAGE_SERVICE !=
 /**
  * Standard-Bildqualität (1-100)
  * Kann in imageUtils.ts überschrieben werden
+ *
+ * Auf 80 reduziert für schnelleres Laden auf mobilen Verbindungen.
+ * Hero/Header-Bilder überschreiben dies gezielt mit höherer Qualität.
  */
-export const DEFAULT_IMAGE_QUALITY = 85;
+export const DEFAULT_IMAGE_QUALITY = 80;
 
 /**
  * Standard-Bildformat
