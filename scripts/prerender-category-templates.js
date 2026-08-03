@@ -5,16 +5,10 @@ import {
   escapeHtml,
   stripMarkdown,
   encodeNaddr,
-  getPrerenderImageUrl,
+  formatDate,
 } from './prerender-helpers.js';
-import { buildHead, buildItemListLd, buildBreadcrumbLd, buildShell } from './prerender-meta.js';
+import { buildHead, buildItemListLd, buildBreadcrumbLd } from './prerender-meta.js';
 import { nip19 } from 'nostr-tools';
-
-// Assets aus dem Vite-Build; werden von prerender-static.js gesetzt.
-let prerenderAssets = { css: [], scripts: [] };
-export function setPrerenderAssets(assets) {
-  prerenderAssets = assets || { css: [], scripts: [] };
-}
 
 function buildBreadcrumb(name, url) {
   return [
@@ -50,13 +44,13 @@ function renderListPage({ title, description, canonicalUrl, items, listName }) {
     </li>`).join('')
     : '<li>Noch keine Einträge vorhanden.</li>';
 
-  const bodyContent = `
+  return `${head}
   <h1>${escapeHtml(title.split(' — ')[0])}</h1>
   <p>${escapeHtml(description)}</p>
   <ul>${listHtml}</ul>
-  <p><a href="${escapeHtml(canonicalUrl)}">${escapeHtml(title.split(' — ')[0])} auf MojoBus ansehen →</a></p>`;
-
-  return buildShell({ head, bodyContent, assets: prerenderAssets });
+  <p><a href="${escapeHtml(canonicalUrl)}">${escapeHtml(title.split(' — ')[0])} auf MojoBus ansehen →</a></p>
+</body>
+</html>`;
 }
 
 function toArticleItem(event) {
@@ -125,128 +119,6 @@ function toVideoItem(event) {
     image: event.tags?.find(t => t[0] === 'image')?.[1] || DEFAULT_IMAGE,
     url: `${BASE_URL}/videos`,
   };
-}
-
-function toHomeCard(event, type) {
-  let url;
-  let name;
-  if (type === 'article') {
-    const naddr = encodeNaddr(event);
-    url = naddr ? `${BASE_URL}/${naddr}` : `${BASE_URL}/artikel`;
-    name = event.tags?.find(t => t[0] === 'title')?.[1] || 'Artikel';
-  } else if (type === 'place') {
-    if (event.kind === 30023) {
-      const naddr = encodeNaddr(event);
-      url = naddr ? `${BASE_URL}/${naddr}` : `${BASE_URL}/plaetze`;
-    } else {
-      url = `${BASE_URL}/${nip19.noteEncode(event.id)}`;
-    }
-    name = event.tags?.find(t => t[0] === 'name')?.[1] || event.tags?.find(t => t[0] === 'title')?.[1] || 'Ort';
-  } else if (type === 'trip') {
-    const naddr = encodeNaddr({ ...event, kind: event.kind || 30023 });
-    url = naddr ? `${BASE_URL}/trip/${naddr}` : `${BASE_URL}/map/trips`;
-    name = event.tags?.find(t => t[0] === 'title')?.[1] || 'Reisebericht';
-  } else if (type === 'media') {
-    url = `${BASE_URL}/bild/${nip19.noteEncode(event.id)}`;
-    name = event.tags?.find(t => t[0] === 'title')?.[1] || 'Bildergalerie';
-  } else {
-    url = `${BASE_URL}/${nip19.noteEncode(event.id)}`;
-    name = 'Note';
-  }
-
-  const description = stripMarkdown(
-    event.tags?.find(t => t[0] === 'summary')?.[1] || event.content,
-    120
-  );
-  const rawImage = event.tags?.find(t => t[0] === 'image')?.[1] || DEFAULT_IMAGE;
-  const image = getPrerenderImageUrl(rawImage);
-
-  return {
-    event,
-    type,
-    name,
-    description,
-    image,
-    url,
-    date: event.created_at,
-  };
-}
-
-export function renderHomePage({ articles = [], places = [], notes = [], media = [], trips = [] } = {}) {
-  const canonicalUrl = `${BASE_URL}/`;
-  const title = 'MojoBus – Perpetual Travelers Blog';
-  const description = 'Vanlife, Reisen und Abenteuer mit dem MojoBus. Perpetual Travelers – Geschichten, Orte und Tipps von unterwegs.';
-
-  const candidates = [
-    ...articles.slice(0, 6).map(e => toHomeCard(e, 'article')),
-    ...places.slice(0, 6).map(e => toHomeCard(e, 'place')),
-    ...notes.slice(0, 6).map(e => toHomeCard(e, 'note')),
-    ...media.slice(0, 6).map(e => toHomeCard(e, 'media')),
-    ...trips.slice(0, 6).map(e => toHomeCard(e, 'trip')),
-  ];
-
-  // Duplikate anhand Event-ID entfernen (z. B. Teaser, die in mehreren Listen landen)
-  const seenIds = new Set();
-  const uniqueCandidates = candidates.filter((item) => {
-    if (!item?.event?.id) return true;
-    if (seenIds.has(item.event.id)) return false;
-    seenIds.add(item.event.id);
-    return true;
-  });
-
-  // Nach Datum sortieren, aktuelle 6 Items anzeigen
-  const items = uniqueCandidates
-    .sort((a, b) => b.date - a.date)
-    .slice(0, 6);
-
-  const jsonLd = [
-    {
-      '@context': 'https://schema.org',
-      '@type': 'WebSite',
-      name: 'MojoBus – Perpetual Travelers',
-      url: BASE_URL,
-    },
-    buildBreadcrumbLd([{ name: 'Startseite', item: canonicalUrl }]),
-  ];
-
-  const head = buildHead({
-    title,
-    description,
-    canonicalUrl,
-    image: items[0]?.image || DEFAULT_IMAGE,
-    imageAlt: title,
-    ogType: 'website',
-    jsonLd,
-  });
-
-  const cardsHtml = items.length
-    ? items.map(item => `
-      <article style="border-radius:1rem;overflow:hidden;background:#fff;border:1px solid #e5e7eb;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
-        <a href="${escapeHtml(item.url)}" style="display:block;text-decoration:none;color:inherit;">
-          ${item.image ? `<img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}" loading="eager" decoding="async" style="width:100%;aspect-ratio:4/3;object-fit:cover;display:block;" />` : ''}
-          <div style="padding:1rem;">
-            <h3 style="margin:0 0 0.5rem;font-size:1.125rem;font-weight:600;line-height:1.3;">${escapeHtml(item.name)}</h3>
-            <p style="margin:0;font-size:0.875rem;color:#6b7280;line-height:1.5;">${escapeHtml(item.description)}</p>
-          </div>
-        </a>
-      </article>`).join('')
-    : '<p style="text-align:center;color:#6b7280;">Noch keine Inhalte veröffentlicht.</p>';
-
-  const bodyContent = `
-  <div style="font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:1200px;margin:0 auto;padding:2rem 1rem;">
-    <div style="text-align:center;margin-bottom:3rem;">
-      <h1 style="font-size:2.5rem;font-weight:700;margin:0 0 1rem;background:linear-gradient(135deg,#0ea5c7,#e11d53);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Perpetual Travelers</h1>
-      <p style="font-size:1.25rem;color:#6b7280;margin:0 0 1.5rem;">Unser Leben am Meer</p>
-      <p style="font-size:1rem;color:#6b7280;max-width:600px;margin:0 auto 2rem;">${escapeHtml(description)}</p>
-      <a href="${escapeHtml(`${BASE_URL}/artikel`)}" style="display:inline-block;background:#0ea5c7;color:#fff;padding:0.75rem 1.5rem;border-radius:0.75rem;text-decoration:none;font-weight:500;">Entdecke unsere Geschichten</a>
-    </div>
-
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.5rem;">
-      ${cardsHtml}
-    </div>
-  </div>`;
-
-  return buildShell({ head, bodyContent, assets: prerenderAssets });
 }
 
 export function renderArtikelPage(articles) {
@@ -354,12 +226,12 @@ export function renderAboutPage() {
       </a>
     </li>`).join('');
 
-  const bodyContent = `
+  return `${head}
   <h1>${escapeHtml(title)}</h1>
   <p>${escapeHtml(description)}</p>
   <h2>Die Macher</h2>
   <ul>${membersHtml}</ul>
-  <p><a href="${escapeHtml(canonicalUrl)}">Mehr über MojoBus →</a></p>`;
-
-  return buildShell({ head, bodyContent, assets: prerenderAssets });
+  <p><a href="${escapeHtml(canonicalUrl)}">Mehr über MojoBus →</a></p>
+</body>
+</html>`;
 }

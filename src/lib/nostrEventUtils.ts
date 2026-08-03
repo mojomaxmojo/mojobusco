@@ -88,20 +88,6 @@ export function extractTitle(content: string): string {
  * Entfernt HTML-Tags, Markdown-Formatierung, Hashtags und Bilder.
  * Gibt den ersten Absatz zurück (max 200 Zeichen).
  */
-/**
- * Prüft, ob ein Event ein Teaser für einen Longform-Inhalt ist.
- * Teaser-Notes (Kind 1) enthalten typischerweise einen 'a'-Tag, der auf das
- * Original-Event verweist, z. B. ['a', '30025:<pubkey>:<d-tag>', '<relay>'].
- */
-export function isTeaserForLongform(event: { tags?: string[][] }): boolean {
-  return event.tags?.some(
-    (tag) =>
-      tag[0] === 'a' &&
-      tag[1] &&
-      /^(30023|30025|34235|34236):/.test(tag[1])
-  ) ?? false;
-}
-
 export function extractSummary(content: string): string {
   if (!content) return '';
 

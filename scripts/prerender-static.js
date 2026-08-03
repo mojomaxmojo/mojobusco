@@ -11,8 +11,6 @@ import {
   isPlace,
   isTrip,
   isMedia,
-  getBuiltAssets,
-  isTeaserForLongform,
 } from './prerender-helpers.js';
 import {
   renderArticleHtml,
@@ -22,7 +20,6 @@ import {
   renderTripHtml,
   renderVideoHtml,
   renderMediaHtml,
-  setPrerenderAssets as setEntityAssets,
 } from './prerender-entity-templates.js';
 import {
   renderArtikelPage,
@@ -32,25 +29,11 @@ import {
   renderPlaetzePage,
   renderTripsPage,
   renderAboutPage,
-  renderHomePage,
-  setPrerenderAssets as setCategoryAssets,
 } from './prerender-category-templates.js';
 
 const DEPLOY_DIR = '/home/nginx/domains/mojobus.co/public';
 const PRERENDER_DIR = path.join(DEPLOY_DIR, 'prerender');
 const FAR_FUTURE = Math.floor(Date.now() / 1000) + 3600 * 24 * 365;
-
-function resolveIndexHtmlPath() {
-  const candidates = [
-    process.env.MOJOBUS_INDEX_HTML,
-    path.join(DEPLOY_DIR, 'index.html'),
-    path.join(process.cwd(), 'dist', 'index.html'),
-  ].filter(Boolean);
-  for (const p of candidates) {
-    if (fs.existsSync(p)) return p;
-  }
-  return candidates[0];
-}
 
 function writePrerenderFile(filename, html) {
   fs.writeFileSync(path.join(PRERENDER_DIR, filename), html, 'utf-8');
@@ -58,13 +41,6 @@ function writePrerenderFile(filename, html) {
 
 async function main() {
   fs.mkdirSync(PRERENDER_DIR, { recursive: true });
-
-  // Assets aus dem gebauten Vite-Index laden und an Templates übergeben
-  const indexHtmlPath = resolveIndexHtmlPath();
-  const assets = getBuiltAssets(indexHtmlPath);
-  setCategoryAssets(assets);
-  setEntityAssets(assets);
-  console.log(`[Prerender] Assets aus ${indexHtmlPath} geladen: ${assets.css.length} CSS, ${assets.scripts.length} JS`);
 
   const existing = fs.readdirSync(PRERENDER_DIR);
   for (const f of existing) {
@@ -154,9 +130,7 @@ async function main() {
           writePrerenderFile(`bild-${nevent}.html`, renderMediaHtml(event, nevent));
           rendered.push({ type: 'Bild (nevent)', identifier: nevent });
         }
-        if (!isTeaserForLongform(event)) {
-          lists.media.push(event);
-        }
+        lists.media.push(event);
       } catch (e) {
         console.warn(`[Prerender] Bild-Encoding fehlgeschlagen: ${e.message}`);
       }
@@ -172,9 +146,7 @@ async function main() {
         const noteId = nip19.noteEncode(event.id);
         const filename = `${noteId}.html`;
         writePrerenderFile(filename, renderNoteHtml(event));
-        if (!isTeaserForLongform(event)) {
-          lists.notes.push(event);
-        }
+        lists.notes.push(event);
         rendered.push({ type: 'Note', identifier: noteId });
       } catch (e) {
         console.warn(`[Prerender] noteEncode fehlgeschlagen: ${e.message}`);
@@ -228,7 +200,6 @@ async function main() {
   }
 
   const categories = [
-    { key: 'home', filename: 'home.html', render: () => renderHomePage(lists) },
     { key: 'artikel', filename: 'category-artikel.html', render: () => renderArtikelPage(lists.articles) },
     { key: 'notes', filename: 'category-notes.html', render: () => renderNotesPage(lists.notes) },
     { key: 'bilder', filename: 'category-bilder.html', render: () => renderBilderPage(lists.media) },
@@ -249,8 +220,6 @@ async function main() {
     }
   }
 
-  // Fallback index.html im Prerender-Ordner (falls jemand /prerender/index.html direkt aufruft)
-  // leitet zur kanonischen Startseite weiter.
   const indexHtml = `<!DOCTYPE html>
 <html lang="de">
 <head>

@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { usePreloadedData } from '@/hooks/usePreloadedData';
 import { NOSTR_CONFIG } from '@/config/nostr';
-import { isTeaserForLongform } from '@/lib/nostrEventUtils';
 import type { NostrEvent } from '@nostrify/nostrify';
 
 /**
@@ -25,9 +24,6 @@ export function useHomeNotes() {
     },
     liveTimeout: 6000,
     transformEvent: (event: NostrEvent) => {
-      // Teaser-Notes für Longform-Inhalte sollen auf der Home-Seite nicht
-      // zusätzlich als eigenständige Notes erscheinen.
-      if (isTeaserForLongform(event)) return null;
       const tags = event.tags?.filter(t => t[0] === 't').map(t => t[1]) || [];
       const isNote = tags.some(t => ['note', 'notiz'].includes(t));
       return isNote ? event : null;
@@ -39,7 +35,6 @@ export function useHomeNotes() {
 
     return rawNotes
       .filter((event: NostrEvent) => {
-        if (isTeaserForLongform(event)) return false;
         const tags = event.tags?.filter(t => t[0] === 't').map(t => t[1]) || [];
         return tags.some(t => ['note', 'notiz'].includes(t));
       })

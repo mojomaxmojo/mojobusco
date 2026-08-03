@@ -6,7 +6,7 @@
 // ============================================================================
 // CACHE-KONFIGURATION
 // ============================================================================
-const CACHE_VERSION = 20; // Cache Version erhöhen (war 19, jetzt 20) - Prerender-Shell für echte Nutzer
+const CACHE_VERSION = 19; // Cache Version erhöhen (war 18, jetzt 19) - staleWhileRevalidate NetworkError Fix
 const CACHE_NAME = `mojobus-v${CACHE_VERSION}`; // Version aus Konfiguration
 
 // Cache-Zeiten (in Sekunden)

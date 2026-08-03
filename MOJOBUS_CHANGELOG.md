@@ -5,21 +5,6 @@
 
 ---
 
-## Aktuelle Sitzung – Prerendering für echte Nutzer
-
-- `scripts/prerender-helpers.js`: `getBuiltAssets()` liest gebaute CSS/JS-URLs aus `index.html`.
-- `scripts/prerender-meta.js`: `buildShell()` baut vollständige App-Shell mit `#prerendered-content`, `#root` und Vite-Assets.
-- `scripts/prerender-category-templates.js` & `scripts/prerender-entity-templates.js`: Templates nutzen `buildShell()`; neue `renderHomePage()`.
-- `scripts/prerender-static.js`: Home-Seite als `home.html` generiert; Assets an alle Templates übergeben.
-- `src/components/PrerenderCleaner.tsx`: Blendet statischen Inhalt nach React-Mount aus.
-- `src/App.tsx`: `<PrerenderCleaner />` eingebunden.
-- `mojobus.co.ssl.conf`: Nginx liefert `/`, Kategorieseiten und NIP19-Entitäten für alle Besucher aus `/prerender/`.
-- `public/sw.js`: Cache-Version auf 20 erhöht.
-- Reine SEO-Landingpages entfallen; die Shell-Version dient Bots und Menschen gleichermaßen.
-- Build erfolgreich.
-
----
-
 ## Aktuelle Sitzung – Bilder aus Nostr-Content responsive & lazy laden
 
 - `src/pages/Notes.tsx`: Note-Bilder nutzen jetzt `getGalleryThumbnailUrl()` + `decoding="async"` statt Roh-URLs.

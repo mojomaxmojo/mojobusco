@@ -92,63 +92,6 @@ export function isMedia(event) {
   return tTags.has('media') || tTags.has('medien') || tTags.has('bilder') || tTags.has('images') || tTags.has('galerie');
 }
 
-/**
- * Prüft, ob ein Kind-1-Event ein Teaser für einen Longform-Inhalt ist.
- * Teaser enthalten einen 'a'-Tag, der auf das Original-Event verweist,
- * z. B. ['a', '30025:<pubkey>:<d-tag>', '<relay>'].
- */
-/**
- * Optimiert eine Bild-URL für das statische Prerender-Grid.
- * Nutzt images.weserv.nl mit fester Größe, falls es sich um eine externe URL handelt.
- */
-export function getPrerenderImageUrl(imageUrl) {
-  if (!imageUrl) return '';
-  try {
-    const url = new URL(imageUrl);
-    if (url.hostname.includes('images.weserv.nl')) return imageUrl;
-    // 600px Breite, qualität 80, passend für Home-Karten
-    return `https://images.weserv.nl/?url=${encodeURIComponent(imageUrl)}&w=600&h=450&fit=cover&q=80`;
-  } catch (e) {
-    return imageUrl;
-  }
-}
-
-export function isTeaserForLongform(event) {
-  return event.tags?.some(
-    (tag) =>
-      tag[0] === 'a' &&
-      tag[1] &&
-      /^(30023|30025|34235|34236):/.test(tag[1])
-  ) ?? false;
-}
-
-/**
- * Extrahiert die gebauten CSS/JS-Asset-Tags aus der Vite-index.html.
- * Wird benötigt, damit Prerender-Shells auf die korrekten hashed Assets verweisen.
- *
- * Unterstützt:
- *   - inline <style type="text/tailwindcss"> (Shakespeare/Vite-Build)
- *   - <link rel="stylesheet" href="..."> (falls vorhanden)
- *   - <script type="module" src="...">
- */
-export function getBuiltAssets(indexHtmlPath) {
-  const resolvedPath = indexHtmlPath || path.join(__dirname, '..', 'dist', 'index.html');
-  let html = '';
-  try {
-    html = fs.readFileSync(resolvedPath, 'utf-8');
-  } catch (e) {
-    console.warn(`[Prerender] Konnte index.html nicht lesen (${resolvedPath}): ${e.message}`);
-    return { css: [], scripts: [] };
-  }
-
-  const linkCss = [...html.matchAll(/<link[^>]*rel="stylesheet"[^>]*href="[^"]+"[^>]*>/gi)].map(m => m[0]);
-  const inlineStyle = [...html.matchAll(/<style[^>]*type="text\/tailwindcss"[^>]*>[\s\S]*?<\/style>/gi)].map(m => m[0]);
-  const css = [...linkCss, ...inlineStyle];
-  const scripts = [...html.matchAll(/<script[^>]*type="module"[^>]*src="[^"]+"[^>]*><\/script>/gi)].map(m => m[0]);
-
-  return { css, scripts };
-}
-
 export async function queryRelay(relayUrl, filters, timeoutMs = 15000) {
   return new Promise((resolve) => {
     let ws;
