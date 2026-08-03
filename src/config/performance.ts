@@ -79,20 +79,19 @@ export const CACHE_CONFIG = {
 export const RELAY_PERFORMANCE_CONFIG = {
   // Query Timeout in Millisekunden (Basis-Wert)
   // WICHTIG: Hooks verwenden queryTimeout * 2.5 für faktischen Timeout
-  // Faktischer Timeout = 2000ms * 2.5 = 5000ms (5 Sekunden)
-  // Empfehlung: 2000ms für gute Balance
+  // Faktischer Timeout = 3000ms * 2.5 = 7500ms (7,5 Sekunden)
+  // Empfehlung: 3000ms für gute Balance zwischen Zuverlässigkeit und Geschwindigkeit
   // Kürzere Werte = schnellere Fehlerbehandlung, aber mehr Timeouts
   // Längere Werte = mehr Erfolgswahrscheinlichkeit, aber längere Ladezeiten
-  queryTimeout: 2000,
+  queryTimeout: 3000,
 
   // Aktiviere Event-Deduplizierung
   // Reduziert doppelte Events von mehreren Relays
   enableDeduplication: true,
 
   // Max. Anzahl an Relays für Queries (aus relayUrls)
-  // 1 = schnellster Start für Erstbesucher (relay.mojobus.co primär).
-  // Primal ist in relayUrls als Backup hinterlegt.
-  maxRelaysForQueries: 1,
+  // 2 Relays parallel (relay.mojobus.co + primal) für Zuverlässigkeit.
+  maxRelaysForQueries: 2,
 
   // Batched Queries: Alle nötigen Events in einem Request
   // Reduziert Anzahl an Requests signifikant
@@ -533,7 +532,7 @@ export const PERFORMANCE_PRESETS = {
   },
 
   // Balanced - Ausgewogene Performance & UX
-  // Faktischer Timeout: 2000ms * 2.5 = 5000ms
+  // Faktischer Timeout: 3000ms * 2.5 = 7500ms
   balanced: {
     name: 'Balanced',
     description: 'Ausgewogene Konfiguration für gute Performance und UX',
@@ -542,8 +541,8 @@ export const PERFORMANCE_PRESETS = {
     ...IMAGE_CONFIG,
     ...BUNDLE_CONFIG,
     itemsPerPage: 25,
-    queryTimeout: 2000, // Faktisch 5000ms mit 2.5x Multiplikator
-    maxRelaysForQueries: 1,
+    queryTimeout: 3000, // Faktisch 7500ms mit 2.5x Multiplikator
+    maxRelaysForQueries: 2,
     lazyLoading: { ...IMAGE_CONFIG.lazyLoading, enabled: true },
     memoization: { ...RENDER_CONFIG.memoization, enabled: true },
   },
