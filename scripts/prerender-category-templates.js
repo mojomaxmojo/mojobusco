@@ -5,10 +5,15 @@ import {
   escapeHtml,
   stripMarkdown,
   encodeNaddr,
-  formatDate,
 } from './prerender-helpers.js';
-import { buildHead, buildItemListLd, buildBreadcrumbLd } from './prerender-meta.js';
+import { buildHead, buildItemListLd, buildBreadcrumbLd, buildShell } from './prerender-meta.js';
 import { nip19 } from 'nostr-tools';
+
+// Assets aus dem Vite-Build; werden von prerender-static.js gesetzt.
+let prerenderAssets = { css: [], scripts: [] };
+export function setPrerenderAssets(assets) {
+  prerenderAssets = assets || { css: [], scripts: [] };
+}
 
 function buildBreadcrumb(name, url) {
   return [
@@ -44,13 +49,13 @@ function renderListPage({ title, description, canonicalUrl, items, listName }) {
     </li>`).join('')
     : '<li>Noch keine Einträge vorhanden.</li>';
 
-  return `${head}
+  const bodyContent = `
   <h1>${escapeHtml(title.split(' — ')[0])}</h1>
   <p>${escapeHtml(description)}</p>
   <ul>${listHtml}</ul>
-  <p><a href="${escapeHtml(canonicalUrl)}">${escapeHtml(title.split(' — ')[0])} auf MojoBus ansehen →</a></p>
-</body>
-</html>`;
+  <p><a href="${escapeHtml(canonicalUrl)}">${escapeHtml(title.split(' — ')[0])} auf MojoBus ansehen →</a></p>`;
+
+  return buildShell({ head, bodyContent, assets: prerenderAssets });
 }
 
 function toArticleItem(event) {
@@ -119,6 +124,59 @@ function toVideoItem(event) {
     image: event.tags?.find(t => t[0] === 'image')?.[1] || DEFAULT_IMAGE,
     url: `${BASE_URL}/videos`,
   };
+}
+
+export function renderHomePage({ articles = [], places = [], notes = [], media = [], trips = [] } = {}) {
+  const canonicalUrl = `${BASE_URL}/`;
+  const title = 'MojoBus – Perpetual Travelers Blog';
+  const description = 'Vanlife, Reisen und Abenteuer mit dem MojoBus. Perpetual Travelers – Geschichten, Orte und Tipps von unterwegs.';
+
+  const allItems = [
+    ...articles.slice(0, 6).map(toArticleItem),
+    ...places.slice(0, 6).map(toPlaceItem),
+    ...notes.slice(0, 6).map(toNoteItem),
+    ...media.slice(0, 6).map(toMediaItem),
+    ...trips.slice(0, 6).map(toTripItem),
+  ];
+
+  const jsonLd = [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      name: 'MojoBus – Perpetual Travelers',
+      url: BASE_URL,
+    },
+    buildBreadcrumbLd([{ name: 'Startseite', item: canonicalUrl }]),
+  ];
+
+  const head = buildHead({
+    title,
+    description,
+    canonicalUrl,
+    image: allItems[0]?.image || DEFAULT_IMAGE,
+    imageAlt: title,
+    ogType: 'website',
+    jsonLd,
+  });
+
+  const listHtml = allItems.length
+    ? allItems.map(item => `
+    <li style="margin-bottom:1.5rem">
+      <a href="${escapeHtml(item.url)}">
+        ${item.image ? `<img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}" style="max-width:200px;display:block" />` : ''}
+        <h3>${escapeHtml(item.name)}</h3>
+        <p>${escapeHtml(item.description)}</p>
+      </a>
+    </li>`).join('')
+    : '<li>Noch keine Einträge vorhanden.</li>';
+
+  const bodyContent = `
+  <h1>${escapeHtml(title)}</h1>
+  <p>${escapeHtml(description)}</p>
+  <ul>${listHtml}</ul>
+  <p><a href="${escapeHtml(canonicalUrl)}">Startseite auf MojoBus ansehen →</a></p>`;
+
+  return buildShell({ head, bodyContent, assets: prerenderAssets });
 }
 
 export function renderArtikelPage(articles) {
@@ -226,12 +284,12 @@ export function renderAboutPage() {
       </a>
     </li>`).join('');
 
-  return `${head}
+  const bodyContent = `
   <h1>${escapeHtml(title)}</h1>
   <p>${escapeHtml(description)}</p>
   <h2>Die Macher</h2>
   <ul>${membersHtml}</ul>
-  <p><a href="${escapeHtml(canonicalUrl)}">Mehr über MojoBus →</a></p>
-</body>
-</html>`;
+  <p><a href="${escapeHtml(canonicalUrl)}">Mehr über MojoBus →</a></p>`;
+
+  return buildShell({ head, bodyContent, assets: prerenderAssets });
 }

@@ -481,6 +481,12 @@ main() {
     restore_map_for_production
     build_project
     deploy_files "$1" "$2"
+
+    # Prerender-Shells direkt nach dem Deploy neu generieren,
+    # damit die Asset-Hashes in den Prerender-HTMLs sofort zum neuen Build passen.
+    info_msg "Generiere Prerender-Shells..."
+    node "$PROJECT_DIR/scripts/prerender-static.js" >> "$LOG_FILE" 2>&1 || warn_msg "Prerender-Generierung fehlgeschlagen – Cron übernimmt Aktualisierung"
+
     restore_dev_config
     verify_deployment
     restart_server

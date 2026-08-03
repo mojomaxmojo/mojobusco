@@ -30,6 +30,8 @@ nginx -t && systemctl reload nginx
 node scripts/generate-site-data.js
 ```
 
+`deploy-main.sh` ruft seit der Prerender-Shell-Umstellung direkt nach dem Kopieren von `dist/` `node scripts/prerender-static.js` auf, damit die Asset-Hashes in den Prerender-HTMLs sofort zum neuen Build passen.
+
 ## Deploy-Matrix (je nach Änderung)
 
 | Änderung | Nötige Schritte |
@@ -61,10 +63,16 @@ cd ~/Mojobus-APK/mojobusco && git pull origin main && npm run apk
 **Ablauf**:
 1. Cron 6:00 → `prerender-static.js` → HTML mit NIP-19 Dateinamen
 2. Cron 6:15 → `generate-site-data.js` → JSON-Dumps `/data/`
-3. Bot/User → Nginx liefert statisches HTML (kein Relay!)
+3. Nginx liefert für `/`, Kategorieseiten und NIP19-Entitäten zuerst die Prerender-Shell aus (kein Relay!)
 4. Fehlt Prerender → Fallback auf SPA → lädt vom Relay
 
-**SW v21**: staleWhileRevalidate für `/data/`, Cache-First für `/prerender/`.
+**Prerender-Shell** (seit 2025-01):
+- Die Prerender-HTMLs enthalten statischen Inhalt in `#prerendered-content` **und** den React-Mount-Punkt `#root` mit den gebauten Vite-Assets.
+- Menschliche Besucher sehen sofort Inhalt; React übernimmt anschließend im Hintergrund.
+- `src/components/PrerenderCleaner.tsx` blendet den statischen Inhalt nach dem Mount aus.
+- Die reinen SEO-Landingpages wurden durch die Shell-Version ersetzt.
+
+**SW v22**: staleWhileRevalidate für `/data/`, Cache-First für `/prerender/`.
 SW-Version wird bei jedem Deploy automatisch erhöht (`bump_sw_version()` in `deploy-main.sh`).
 
 ---

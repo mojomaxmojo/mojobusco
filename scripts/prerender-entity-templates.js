@@ -17,7 +17,14 @@ import {
   buildProfileLd,
   buildVideoLd,
   buildImageLd,
+  buildShell,
 } from './prerender-meta.js';
+
+// Assets aus dem Vite-Build; werden von prerender-static.js gesetzt.
+let prerenderAssets = { css: [], scripts: [] };
+export function setPrerenderAssets(assets) {
+  prerenderAssets = assets || { css: [], scripts: [] };
+}
 
 function imageTag(image, alt) {
   if (!image || image === DEFAULT_IMAGE) return '';
@@ -66,14 +73,14 @@ export function renderArticleHtml(event) {
     jsonLd,
   });
 
-  return `${head}
+  const bodyContent = `
   <h1>${escapeHtml(title)}</h1>
   <p>${escapeHtml(description)}</p>
   ${imageTag(image, title)}
   <div>${escapeHtml(contentText)}</div>
-  <p><a href="${escapeHtml(canonicalUrl)}">Weiterlesen auf MojoBus →</a></p>
-</body>
-</html>`;
+  <p><a href="${escapeHtml(canonicalUrl)}">Weiterlesen auf MojoBus →</a></p>`;
+
+  return buildShell({ head, bodyContent, assets: prerenderAssets });
 }
 
 export function renderNoteHtml(event) {
@@ -116,13 +123,13 @@ export function renderNoteHtml(event) {
     jsonLd,
   });
 
-  return `${head}
+  const bodyContent = `
   <h1>${escapeHtml(title)}</h1>
   <p>${escapeHtml(description)}</p>
   ${images.slice(0, 1).map(url => imageTag(url, title)).join('')}
-  <p><a href="${escapeHtml(canonicalUrl)}">Auf MojoBus ansehen →</a></p>
-</body>
-</html>`;
+  <p><a href="${escapeHtml(canonicalUrl)}">Auf MojoBus ansehen →</a></p>`;
+
+  return buildShell({ head, bodyContent, assets: prerenderAssets });
 }
 
 export function renderProfileHtml(event) {
@@ -152,13 +159,13 @@ export function renderProfileHtml(event) {
     jsonLd,
   });
 
-  return `${head}
+  const bodyContent = `
   ${imageTag(picture, name)}
   <h1>${escapeHtml(name)}</h1>
   <p>${escapeHtml(about)}</p>
-  <p><a href="${escapeHtml(canonicalUrl)}">Profil auf MojoBus ansehen →</a></p>
-</body>
-</html>`;
+  <p><a href="${escapeHtml(canonicalUrl)}">Profil auf MojoBus ansehen →</a></p>`;
+
+  return buildShell({ head, bodyContent, assets: prerenderAssets });
 }
 
 export function renderPlaceHtml(event) {
@@ -208,14 +215,14 @@ export function renderPlaceHtml(event) {
     jsonLd,
   });
 
-  return `${head}
+  const bodyContent = `
   <h1>${escapeHtml(name)}</h1>
   ${location ? `<p>📍 ${escapeHtml(location)}</p>` : ''}
   <p>${escapeHtml(cleanDesc)}</p>
   ${imageTag(image, name)}
-  <p><a href="${escapeHtml(canonicalUrl)}">Auf MojoBus ansehen →</a></p>
-</body>
-</html>`;
+  <p><a href="${escapeHtml(canonicalUrl)}">Auf MojoBus ansehen →</a></p>`;
+
+  return buildShell({ head, bodyContent, assets: prerenderAssets });
 }
 
 export function renderTripHtml(event) {
@@ -250,13 +257,13 @@ export function renderTripHtml(event) {
     jsonLd,
   });
 
-  return `${head}
+  const bodyContent = `
   <h1>${escapeHtml(title)}</h1>
   <p>${escapeHtml(cleanDesc)}</p>
   ${imageTag(image, title)}
-  <p><a href="${escapeHtml(canonicalUrl)}">Weiterlesen auf MojoBus →</a></p>
-</body>
-</html>`;
+  <p><a href="${escapeHtml(canonicalUrl)}">Weiterlesen auf MojoBus →</a></p>`;
+
+  return buildShell({ head, bodyContent, assets: prerenderAssets });
 }
 
 export function renderVideoHtml(event) {
@@ -298,14 +305,14 @@ export function renderVideoHtml(event) {
     jsonLd,
   });
 
-  return `${head}
+  const bodyContent = `
   <h1>${escapeHtml(title)}</h1>
   <p>${escapeHtml(cleanDesc.substring(0, 160))}</p>
   ${thumbnailUrl !== DEFAULT_IMAGE ? imageTag(thumbnailUrl, title) : ''}
   ${videoUrl ? `<video src="${escapeHtml(videoUrl)}" poster="${escapeHtml(thumbnailUrl)}" controls style="max-width:400px"></video>` : ''}
-  <p><a href="${escapeHtml(canonicalUrl)}">Video auf MojoBus ansehen →</a></p>
-</body>
-</html>`;
+  <p><a href="${escapeHtml(canonicalUrl)}">Video auf MojoBus ansehen →</a></p>`;
+
+  return buildShell({ head, bodyContent, assets: prerenderAssets });
 }
 
 export function renderMediaHtml(event, fileId = null) {
@@ -340,13 +347,13 @@ export function renderMediaHtml(event, fileId = null) {
     jsonLd,
   });
 
-  return `${head}
+  const bodyContent = `
   <h1>${escapeHtml(title)}</h1>
   <p>${escapeHtml(cleanDesc)}</p>
   ${images.slice(0, 3).map(url => imageTag(url, title)).join('')}
-  <p><a href="${escapeHtml(canonicalUrl)}">Galerie auf MojoBus ansehen →</a></p>
-</body>
-</html>`;
+  <p><a href="${escapeHtml(canonicalUrl)}">Galerie auf MojoBus ansehen →</a></p>`;
+
+  return buildShell({ head, bodyContent, assets: prerenderAssets });
 }
 
 export function renderMediaHtmlByNevent(event, nevent) {

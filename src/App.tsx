@@ -16,6 +16,7 @@ import { DEFAULT_APP_CONFIG as DEFAULT_RELAY_CONFIG } from '@/config/relays';
 import { APP_SETTINGS, NOSTR_CONFIG, THEME_CONFIG } from '@/config';
 import { DEFAULT_PERFORMANCE_CONFIG } from '@/config/performance';
 import { ServiceWorkerStatus } from '@/components/ServiceWorkerStatus';
+import { PrerenderCleaner } from '@/components/PrerenderCleaner';
 import AppRouter from './AppRouter';
 
 const head = createHead({
@@ -57,6 +58,7 @@ export function App() {
                 <TooltipProvider>
                   <Toaster />
                   <ServiceWorkerStatus />
+                  <PrerenderCleaner />
                   <Suspense>
                     <AppRouter />
                   </Suspense>

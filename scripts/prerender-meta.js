@@ -1,5 +1,29 @@
 import { BASE_URL, DEFAULT_IMAGE, FEED_URL, SITE_NAME, escapeHtml } from './prerender-helpers.js';
 
+/**
+ * Baut aus Head, Body-Inhalt und gebauten Assets eine vollständige App-Shell.
+ * Die Shell enthält:
+ *   - sichtbaren statischen Inhalt in #prerendered-content
+ *   - React-Mount-Punkt #root
+ *   - gebautes CSS/JS aus dem Vite-Build
+ */
+export function buildShell({ head, bodyContent, assets }) {
+  const { css = [], scripts = [] } = assets || {};
+  const cssHtml = css.length ? `\n  ${css.join('\n  ')}` : '';
+  const scriptsHtml = scripts.length ? `\n  ${scripts.join('\n  ')}` : '';
+
+  // CSS direkt vor </head> einfügen, damit statischer Inhalt nicht ungestylt blinkt
+  const headWithCss = cssHtml ? head.replace('</head>', `${cssHtml}\n</head>`) : head;
+
+  return `${headWithCss}
+  <div id="prerendered-content">
+    ${bodyContent}
+  </div>
+  <div id="root"></div>${scriptsHtml}
+</body>
+</html>`;
+}
+
 export function buildWebSiteLd({ name, url }) {
   return {
     '@context': 'https://schema.org',
