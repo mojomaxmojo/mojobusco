@@ -118,6 +118,29 @@ export const RELAY_PERFORMANCE_CONFIG = {
 } as const;
 
 // ============================================================================
+// FIRST PAINT (Erstbesucher ohne Cache)
+// ============================================================================
+
+export const FIRST_PAINT_CONFIG = {
+  // Kurzer Timeout für den ersten Render, wenn kein JSON-Dump/Cache verfügbar ist.
+  // Nach Ablauf wird gerendert, was bis dahin vom Relay ank – Relays streamen
+  // neueste Events zuerst, für die ersten Cards reicht das. Der Rest lädt
+  // anschließend progressiv im Hintergrund nach (kein Skeleton-Blocker).
+  firstPaintTimeout: 2000,
+
+  // Limit der Fast-Query (bewusst klein: neueste Events kommen zuerst,
+  // für die sichtbaren Cards genügen wenige Events)
+  firstPaintLimit: 15,
+
+  // Anzahl der Content-Cards auf der Home-Seite
+  homeCardCount: 3,
+
+  // Timeout für das progressive Nachladen im Hintergrund
+  // (entspricht dem bisherigen faktischen Wert: queryTimeout * 2.5)
+  progressiveTimeout: 7500,
+} as const;
+
+// ============================================================================
 // IMAGE OPTIMIZATION
 // ============================================================================
 
@@ -639,6 +662,14 @@ export const DEFAULT_PERFORMANCE_CONFIG = {
     enableBatchedQueries: RELAY_PERFORMANCE_CONFIG.enableBatchedQueries,
     maxEventsPerBatch: RELAY_PERFORMANCE_CONFIG.maxEventsPerBatch,
     retry: RELAY_PERFORMANCE_CONFIG.retry,
+  },
+
+  // First Paint (Erstbesucher ohne Cache)
+  firstPaint: {
+    firstPaintTimeout: FIRST_PAINT_CONFIG.firstPaintTimeout,
+    firstPaintLimit: FIRST_PAINT_CONFIG.firstPaintLimit,
+    homeCardCount: FIRST_PAINT_CONFIG.homeCardCount,
+    progressiveTimeout: FIRST_PAINT_CONFIG.progressiveTimeout,
   },
 
   // Image Optimization

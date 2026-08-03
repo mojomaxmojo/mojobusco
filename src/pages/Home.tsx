@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { useLongformArticles, usePlaces, extractArticleMetadata } from '@/hooks/useLongformArticles';
+import { usePreloadedArticles, usePlaces, extractArticleMetadata } from '@/hooks/useLongformArticles';
 import { useHomeNotes } from '@/hooks/useHomeNotes';
 import { useHomeMedia } from '@/hooks/useHomeMedia';
 import { useQueryClient } from '@tanstack/react-query';
@@ -15,6 +15,7 @@ import { getGalleryThumbnailUrl } from '@/lib/imageUtils';
 import { useHead } from '@unhead/react';
 import { canonicalUrl } from '@/lib/canonicalUrl';
 import { useToast } from '@/hooks/useToast';
+import { FIRST_PAINT_CONFIG } from '@/config/performance';
 import type { ContentItem } from '@/components/ContentCard';
 
 const ContentCard = lazy(() => import('@/components/ContentCard').then(m => ({ default: m.ContentCard })));
@@ -61,12 +62,14 @@ export function Home() {
     ]
   });
 
-  // PERFORMANCE-OPTIMIERUNG: Home-Spezifische Limits
-  // Wir zeigen nur 6 Elemente auf der Home-Seite, laden aber:
-  // VORHER: 230 Events (50 Artikel + 60 Plätze + 20 Notes + 100 Bilder) ❌
-  // NACHHER: ~60 Events (15 Artikel + 15 Plätze + 15 Notes + 15 Bilder) ✅
-  // Das spart ~74% Bandbreite und Ladezeit!
-  // Die dedizierten Seiten (/artikel, /plaetze) nutzen ihre eigenen Limits.
+  // PERFORMANCE-OPTIMIERUNG: First-Paint-Strategie für Erstbesucher ohne Cache
+  // - Artikel/Plätze/Notes/Bilder kommen primär aus JSON-Dumps (/data/*.json, ~100 ms)
+  // - Fehlt ein Dump, greift ein 2s-Fast-Fallback (statt bisher 6–10s); der Rest
+  //   lädt progressiv im Hintergrund nach (siehe usePreloadedData)
+  // - Trips blockieren den First Paint nicht (zweistufiger Hook, siehe useTrips)
+  // - Gerendert werden nur 3 Cards (FIRST_PAINT_CONFIG.homeCardCount) – dafür
+  //   reichen die ersten Relay-Events, da Relays neueste zuerst liefern
+  // Die dedizierten Seiten (/artikel, /plaetze) nutzen ihre eigenen Hooks/Limits.
 
   // Refresh-Funktion: Invalidiere und hole alle Daten neu
   const handleRefresh = async () => {
@@ -78,16 +81,19 @@ export function Home() {
 
       // Invalidiere alle relevanten Queries
       await queryClient.invalidateQueries({
-        queryKey: ['longform-articles'],
+        queryKey: ['preloaded', 'articles'],
       });
       await queryClient.invalidateQueries({
-        queryKey: ['places'],
+        queryKey: ['preloaded', 'places'],
       });
       await queryClient.invalidateQueries({
         queryKey: ['preloaded', 'notes'],
       });
       await queryClient.invalidateQueries({
         queryKey: ['preloaded', 'bilder'],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ['trips'],
       });
 
       toast({
@@ -103,14 +109,10 @@ export function Home() {
     }
   };
 
-  const { data: articles, isLoading: articlesLoading } = useLongformArticles({
-    kinds: [30023],
-    limit: 15, // Optimiert für Home-Seite (nur 6 Elemente werden angezeigt)
-  });
+  // Hybrid-Hook: /data/articles.json sofort, Relay nur für neue Events (siehe usePreloadedData)
+  const { data: articles, isLoading: articlesLoading } = usePreloadedArticles();
 
-  const { data: places, isLoading: placesLoading } = usePlaces({
-    limit: 15, // Optimiert für Home-Seite (nur 6 Elemente werden angezeigt)
-  });
+  const { data: places, isLoading: placesLoading } = usePlaces();
 
   const { data: noteEvents = [], isLoading: notesLoading } = useHomeNotes();
 
@@ -118,7 +120,9 @@ export function Home() {
   const { data: tripsData = [] } = tripsQuery;
   const { data: imageEvents = [], isLoading: mediaLoading } = useHomeMedia();
 
-  const isLoading = articlesLoading || placesLoading || tripsQuery.isLoading || notesLoading || mediaLoading;
+  // First-Paint: Trips blockieren den Render bewusst NICHT – sie laufen
+  // zweistufig im Hintergrund nach und werden beim Eintreffen einsortiert.
+  const isLoading = articlesLoading || placesLoading || notesLoading || mediaLoading;
 
   const contentItems: ContentItem[] = [];
 
@@ -184,7 +188,7 @@ export function Home() {
 
   const recentItems = contentItems
     .sort((a, b) => b.date - a.date)
-    .slice(0, 6);
+    .slice(0, FIRST_PAINT_CONFIG.homeCardCount);
 
   return (
     <div className="min-h-screen">
@@ -243,7 +247,7 @@ export function Home() {
 
             {isLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {[1, 2, 3, 4, 5, 6].map(i => (
+                {Array.from({ length: FIRST_PAINT_CONFIG.homeCardCount }, (_, i) => i + 1).map(i => (
                   <div key={i} className="fade-in-up" style={{ animationDelay: `${i * 100}ms` }}>
                     <Card className="overflow-hidden border-2 border-primary/20 rounded-2xl flex flex-col">
                       {/* Image skeleton: exact aspect ratio wie ContentCard */}

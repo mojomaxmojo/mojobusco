@@ -4,7 +4,9 @@
  * 1. Lädt statisches JSON von /data/{name}.json UND /data/index.json PARALLEL
  * 2. Holt im Hintergrund neue Events seit letztem Cron via Relay-Query
  * 3. Merged beides → sofort vollständig + live aktuell
- * 4. Fallback auf pure Live-Queries wenn JSON nicht existiert
+ * 4. Fallback wenn JSON fehlt (zweistufig, First-Paint-Strategie):
+ *    a) FAST: kurzer Timeout (2s), kleines Limit → Rendern mit dem, was ank
+ *    b) FULL: voller Timeout, limit 1000 → progressives Nachladen im Hintergrund
  *
  * Performance-Fix: Promise.all() für parallele Fetches statt sequentiell
  * Spart ~200–350ms beim ersten Seitenaufruf
@@ -13,6 +15,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNostr } from '@/hooks/useNostr';
 import { useQuery } from '@tanstack/react-query';
+import { FIRST_PAINT_CONFIG } from '@/config/performance';
 
 interface PreloadedDataOptions {
   /** Name der JSON-Datei (ohne .json) – z.B. 'articles' → /data/articles.json */
@@ -24,6 +27,10 @@ interface PreloadedDataOptions {
   };
   /** Timeout für Live-Query (default: 8000ms) */
   liveTimeout?: number;
+  /** Timeout für die Fast-Fallback-Query beim First Paint (default: 2000ms) */
+  firstPaintTimeout?: number;
+  /** Limit der Fast-Fallback-Query – Relays liefern neueste Events zuerst (default: 15) */
+  firstPaintLimit?: number;
   /** Transform-Funktion für Events → Data-Einträge */
   transformEvent?: (event: any) => any;
 }
@@ -39,7 +46,14 @@ interface PreloadedDataResult<T> {
 }
 
 export function usePreloadedData<T = any>(options: PreloadedDataOptions): PreloadedDataResult<T> {
-  const { name, liveFilter, liveTimeout = 8000, transformEvent } = options;
+  const {
+    name,
+    liveFilter,
+    liveTimeout = 8000,
+    firstPaintTimeout = FIRST_PAINT_CONFIG.firstPaintTimeout,
+    firstPaintLimit = FIRST_PAINT_CONFIG.firstPaintLimit,
+    transformEvent,
+  } = options;
   const { nostr } = useNostr();
   const [cronTimestamp, setCronTimestamp] = useState<number | undefined>(undefined);
 
@@ -111,9 +125,41 @@ export function usePreloadedData<T = any>(options: PreloadedDataOptions): Preloa
     retry: false,
   });
 
-  // ── 3. Fallback: Pure Live-Query wenn kein statisches JSON ────────────
-  const fallbackQuery = useQuery({
-    queryKey: ['preloaded-fallback', name],
+  // ── 3a. Fallback FAST: kurzer First-Paint-Timeout (Erstbesucher) ──────
+  // Läuft nur wenn das statische JSON fertig geladen wurde UND nicht verfügbar
+  // ist. Nach max. firstPaintTimeout (2s) wird mit dem gerendert, was ank –
+  // Relays streamen neueste Events zuerst, das reicht für die ersten Cards.
+  const fallbackFastQuery = useQuery({
+    queryKey: ['preloaded-fallback-fast', name],
+    queryFn: async ({ signal }) => {
+      if (!liveFilter) return [];
+      const abortSignal = AbortSignal.any([signal, AbortSignal.timeout(firstPaintTimeout)]);
+
+      const filter: any = {
+        kinds: liveFilter.kinds,
+        limit: firstPaintLimit,
+      };
+      if (liveFilter.authors) filter.authors = liveFilter.authors;
+
+      const events = await nostr.query([filter], { signal: abortSignal });
+      if (!events || events.length === 0) return [];
+
+      if (transformEvent) {
+        return events.map(transformEvent).filter(Boolean);
+      }
+      return events;
+    },
+    enabled: staticQuery.isFetched && !isPreloaded && !!liveFilter,
+    staleTime: 1000 * 60 * 30,  // 30 Min
+    gcTime: 1000 * 60 * 60,     // 1h
+    retry: false,               // kein Retry – Geschwindigkeit zählt, Full-Query folgt
+  });
+
+  // ── 3b. Fallback FULL: progressives Nachladen im Hintergrund ──────────
+  // Startet erst nach der Fast-Query und lädt den vollständigen Bestand nach.
+  // Blockiert niemals den First Paint (nicht Teil von isLoading).
+  const fallbackFullQuery = useQuery({
+    queryKey: ['preloaded-fallback-full', name],
     queryFn: async ({ signal }) => {
       if (!liveFilter) return [];
       const abortSignal = AbortSignal.any([signal, AbortSignal.timeout(liveTimeout)]);
@@ -132,7 +178,7 @@ export function usePreloadedData<T = any>(options: PreloadedDataOptions): Preloa
       }
       return events;
     },
-    enabled: !isPreloaded && !!liveFilter,
+    enabled: !isPreloaded && !!liveFilter && fallbackFastQuery.isFetched,
     staleTime: 1000 * 60 * 30,  // 30 Min
     gcTime: 1000 * 60 * 60,     // 1h
     retry: true,
@@ -159,11 +205,24 @@ export function usePreloadedData<T = any>(options: PreloadedDataOptions): Preloa
       return Array.from(seen.values());
     }
 
-    return (fallbackQuery.data as T[]) || [];
-  }, [isPreloaded, staticQuery.data, liveQuery.data, fallbackQuery.data]);
+    // Fallback: Fast- + Full-Query progressive mergen (Dedupe per id/identifier)
+    const fastData = (fallbackFastQuery.data as T[]) || [];
+    const fullData = (fallbackFullQuery.data as T[]) || [];
+    if (fullData.length === 0) return fastData;
+    if (fastData.length === 0) return fullData;
 
-  const isLoading = staticQuery.isLoading || fallbackQuery.isLoading;
-  const error = staticQuery.error || liveQuery.error || fallbackQuery.error || null;
+    const seen = new Map<string, T>();
+    for (const item of [...fullData, ...fastData]) {
+      const key = (item as any)?.id || (item as any)?.identifier;
+      if (key) seen.set(key, item);
+    }
+    return Array.from(seen.values());
+  }, [isPreloaded, staticQuery.data, liveQuery.data, fallbackFastQuery.data, fallbackFullQuery.data]);
+
+  // First-Paint: nur statisches JSON + Fast-Fallback blockieren den Render.
+  // Die Full-Query läuft bewusst im Hintergrund nach.
+  const isLoading = staticQuery.isLoading || fallbackFastQuery.isLoading;
+  const error = staticQuery.error || liveQuery.error || fallbackFastQuery.error || fallbackFullQuery.error || null;
 
   return {
     data,

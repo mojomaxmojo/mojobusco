@@ -30,7 +30,7 @@
 | `routes.ts` | Routen-Definitionen |
 | `mainMenu.ts` | Hauptnavigation Desktop + Mobile |
 | `cache.ts` | Cache-Zeiten (24h Listen, 7d Profile, 1y Bilder) |
-| `performance.ts` | Infinite Scroll, Cache, Relay-Config |
+| `performance.ts` | Infinite Scroll, Cache, Relay-Config, **First-Paint** (`FIRST_PAINT_CONFIG`: 2s Fast-Timeout, Limit 15, 3 Home-Cards) |
 | `imageService.ts` | Bildoptimierung (weserv/imgproxy/Cloudflare) |
 | `prompts/tiktok.js` | TikTok-Prompt (**darf bearbeitet werden**) |
 | `prompts/*.js` (Rest) | ⛔ **TABU – niemals ändern** |
@@ -43,7 +43,7 @@ Autoren prüfen: `cat src/config/authors.json | jq '.authors[] | {name, pubkey, 
 
 | Datei | Zweck |
 |-------|-------|
-| `src/hooks/usePreloadedData.ts` | Hybrid-Hook: JSON-Dump sofort + Live-Relay im Hintergrund |
+| `src/hooks/usePreloadedData.ts` | Hybrid-Hook: JSON-Dump sofort + Live-Relay im Hintergrund; Fallback zweistufig (2s Fast + Full progressiv) |
 | `src/hooks/useVideos.ts` | Lädt kind 34236+34235, Hybrid-Hook, Capacitor-kompatibel |
 | `src/pages/VideoPromotion.tsx` | Social-Video-Generator (TikTok/Reels/YouTube Shorts + Longform UI) |
 | `src/pages/Videos.tsx` | Video-Feed (kind 34236 NIP-71, 9:16 + 16:9) |
@@ -78,12 +78,20 @@ Nach Deploy ausführen: `node scripts/generate-site-data.js`
 
 | Hook | Quelle | Beschreibung |
 |------|--------|-------------|
-| `usePreloadedArticles()` | `/data/articles.json` + Relay | Artikel-Liste |
+| `usePreloadedArticles()` | `/data/articles.json` + Relay | Artikel-Liste (auch Home) |
 | `usePlaces()` | `/data/places.json` + Relay | Plätze-Liste |
 | `useNotes()` | `/data/notes.json` + Relay | Notes + Infinite Scroll |
 | Images.tsx | `/data/bilder.json` + Relay | Bilder-Feed |
 | `useVideos()` | `/data/videos.json` + Relay | Video-Feed (kind 34236) |
+| `useTrips()` | nur Relay, zweistufig | Trips (kind 30025): 2s Fast (limit 15) + 10s Full (limit 100) im Hintergrund |
 | `useLongformArticle()` | nur Relay | Detailseiten (voller content) |
+
+**First-Paint-Strategie (Erstbesucher ohne Cache):** Fällt ein JSON-Dump aus,
+läuft der Relay-Fallback in `usePreloadedData` zweistufig: FAST (2s, Limit 15 –
+Relays liefern neueste zuerst) rendert sofort, FULL (voller Timeout, Limit 1000)
+lädt im Hintergrund nach und blockiert nie `isLoading`. Home rendert nur
+`FIRST_PAINT_CONFIG.homeCardCount` (3) Cards; Trips sind dort nicht Teil des
+blockierenden `isLoading`. Werte: `src/config/performance.ts`.
 
 ---
 

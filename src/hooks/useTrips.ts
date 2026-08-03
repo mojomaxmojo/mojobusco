@@ -5,10 +5,12 @@
  * Parses waypoint tags and returns structured Trip data
  */
 
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNostr } from '@/hooks/useNostr';
 import { nip19 } from 'nostr-tools';
 import { DEFAULT_CACHE_CONFIG } from '@/config/cache';
+import { FIRST_PAINT_CONFIG } from '@/config/performance';
 import type { NostrEvent } from '@nostrify/nostrify';
 
 /**
@@ -234,12 +236,48 @@ function validateTripEvent(event: NostrEvent): boolean {
 }
 
 /**
- * Hook to load all Trips from Nostr
+ * Hook to load all Trips from Nostr (Kind 30025)
+ *
+ * First-Paint-Strategie (Erstbesucher ohne Cache), zweistufig:
+ * 1. FAST: kurzer Timeout (2s), kleines Limit – Relays liefern neueste Events
+ *    zuerst, das reicht für die ersten Cards. Blockiert max. 2s.
+ * 2. FULL: bisheriges Verhalten (10s, limit 100) lädt im Hintergrund nach
+ *    und merged – blockiert niemals den First Paint.
  */
 export function useTrips() {
   const { nostr } = useNostr();
 
-  return useQuery({
+  // Stufe 1: Fast-Query (First Paint)
+  const fastQuery = useQuery({
+    queryKey: ['trips', 'fast'],
+    queryFn: async (c) => {
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(FIRST_PAINT_CONFIG.firstPaintTimeout)]);
+
+      const events = await nostr.query(
+        [
+          {
+            kinds: [30025],
+            limit: FIRST_PAINT_CONFIG.firstPaintLimit,
+          },
+        ],
+        { signal }
+      );
+
+      return events
+        .filter(validateTripEvent)
+        .map(parseTripEvent)
+        .filter((t): t is Trip => t !== null)
+        .sort((a, b) => b.createdAt - a.createdAt);
+    },
+    staleTime: DEFAULT_CACHE_CONFIG.lists.staleTime,
+    gcTime: DEFAULT_CACHE_CONFIG.lists.gcTime,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    retry: false, // kein Retry – Geschwindigkeit zählt, Full-Query folgt
+  });
+
+  // Stufe 2: Full-Query (progressives Nachladen im Hintergrund)
+  const fullQuery = useQuery({
     queryKey: ['trips'],
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(10000)]);
@@ -268,11 +306,34 @@ export function useTrips() {
 
       return trips;
     },
+    enabled: fastQuery.isFetched,
     staleTime: DEFAULT_CACHE_CONFIG.lists.staleTime,
     gcTime: DEFAULT_CACHE_CONFIG.lists.gcTime,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
   });
+
+  // Merge: Fast + Full (Dedupe per Event-ID, neueste zuerst)
+  const data = useMemo(() => {
+    const fast = fastQuery.data ?? [];
+    const full = fullQuery.data ?? [];
+    if (full.length === 0) return fast;
+    if (fast.length === 0) return full;
+
+    const seen = new Map<string, Trip>();
+    for (const trip of [...full, ...fast]) {
+      seen.set(trip.id, trip);
+    }
+    return Array.from(seen.values()).sort((a, b) => b.createdAt - a.createdAt);
+  }, [fastQuery.data, fullQuery.data]);
+
+  return {
+    ...fullQuery,
+    data,
+    // First-Paint: sobald die Fast-Query durch ist, gilt der Hook als geladen –
+    // die Full-Query läuft bewusst nur im Hintergrund nach.
+    isLoading: fastQuery.isLoading && data.length === 0,
+  };
 }
 
 /**
