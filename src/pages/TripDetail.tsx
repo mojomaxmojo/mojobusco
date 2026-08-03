@@ -387,6 +387,7 @@ export default function TripDetail() {
                     autoPlay={false}
                     loop
                     playsInline
+                    preload="none"
                     className="w-full rounded-xl shadow-md"
                     style={{ maxHeight: '560px' }}
                     onError={(e) => {

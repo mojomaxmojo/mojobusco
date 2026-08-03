@@ -153,7 +153,7 @@ export function TeaserPreviewBox({
               src={videoUrl}
               controls
               playsInline
-              preload="metadata"
+              preload="none"
               className="w-full"
               style={{ display: 'block', maxHeight: '280px' }}
             >

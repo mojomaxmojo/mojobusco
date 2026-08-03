@@ -85,7 +85,8 @@ export const ContentCard = memo(function ContentCard({ item }: { item: ContentIt
                 src={thumbnailUrl}
                 className="w-full h-full object-cover"
                 controls
-                loading="lazy"
+                preload="none"
+                playsInline
               />
             ) : (
               <img

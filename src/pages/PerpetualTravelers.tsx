@@ -94,7 +94,7 @@ export function PerpetualTravelers() {
       {videoUrl && (
         <div className="mt-6">
           <h2 className="text-xl font-semibold">Generiertes Video:</h2>
-          <video src={videoUrl} controls />
+          <video src={videoUrl} controls preload="none" playsInline />
         </div>
       )}
     </div>

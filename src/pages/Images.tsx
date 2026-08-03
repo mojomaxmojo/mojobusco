@@ -493,14 +493,15 @@ function ImageCardComponent({
          <div onClick={handleImageClick} className="cursor-pointer">
             {images.length > 0 && (
                <div className="w-full bg-gray-100 dark:bg-gray-800 relative aspect-[3/4]">
-                 {isVideoUrl(images[0]) ? (
-                   <video
-                     src={images[0]}
-                     className="w-full h-full object-cover"
-                     controls
-                     loading="lazy"
-                   />
-                 ) : (
+                  {isVideoUrl(images[0]) ? (
+                    <video
+                      src={images[0]}
+                      className="w-full h-full object-cover"
+                      controls
+                      preload="none"
+                      playsInline
+                    />
+                  ) : (
                    <>
                      <img
                        src={getGalleryThumbnailUrl(images[0])}

@@ -392,14 +392,15 @@ export function ImageDetail() {
                    className={`relative group ${isVideoUrl(images[0]) ? 'cursor-default' : 'cursor-pointer'}`}
                    onClick={() => !isVideoUrl(images[0]) && openFullscreen(0)}
                  >
-                   {isVideoUrl(images[0]) ? (
-                     <video
-                       src={images[0]}
-                       controls
-                       className="w-full bg-gray-100 dark:bg-gray-900 max-h-[800px]"
-                       loading="eager"
-                     />
-                   ) : (
+                    {isVideoUrl(images[0]) ? (
+                      <video
+                        src={images[0]}
+                        controls
+                        preload="none"
+                        playsInline
+                        className="w-full bg-gray-100 dark:bg-gray-900 max-h-[800px]"
+                      />
+                    ) : (
                      <img
                        src={getArticleHeaderUrl(images[0])}
                        srcSet={generateSrcset(images[0], 'gallery')}
@@ -440,14 +441,15 @@ export function ImageDetail() {
                          className={`relative rounded-lg overflow-hidden ${isVideoUrl(img) ? 'bg-gray-900' : 'cursor-pointer'}`}
                          onClick={() => !isVideoUrl(img) && openFullscreen(index + 1)}
                        >
-                         {isVideoUrl(img) ? (
-                           <video
-                             src={img}
-                             className="w-full h-32 object-cover"
-                             controls
-                             loading="lazy"
-                           />
-                         ) : (
+                          {isVideoUrl(img) ? (
+                            <video
+                              src={img}
+                              className="w-full h-32 object-cover"
+                              controls
+                              preload="none"
+                              playsInline
+                            />
+                          ) : (
                            <>
                              <img
                                src={getGalleryThumbnailUrl(img)}
