@@ -27,7 +27,7 @@ import { canonicalUrl } from '@/lib/canonicalUrl';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrDelete } from '@/hooks/useNostrDelete';
 import { useToast } from '@/hooks/useToast';
-import { generateSrcset, generateSizes } from '@/lib/imageUtils';
+import { generateSrcset, generateSizes, getGalleryThumbnailUrl } from '@/lib/imageUtils';
 import { SocialBar } from '@/components/SocialBar';
 import {
   AlertDialog,
@@ -376,12 +376,13 @@ const NoteCard = memo(function NoteCard({ note }: { note: NostrEvent }) {
               {images.slice(0, 2).map((img, idx) => (
                 <div key={idx} className="rounded-lg overflow-hidden">
                   <img
-                    src={img}
+                    src={getGalleryThumbnailUrl(img)}
                     srcSet={generateSrcset(img)}
                     sizes={generateSizes('card')}
                     alt=""
                     className="w-full h-24 object-cover"
                     loading="lazy"
+                    decoding="async"
                   />
                 </div>
               ))}

@@ -6,6 +6,7 @@ import { genUserName } from '@/lib/genUserName';
 import { cn } from '@/lib/utils';
 import { VideoEmbed, isVideoContent } from './VideoEmbed';
 import ReactMarkdown from 'react-markdown';
+import { generateSrcset, generateSizes, getGalleryThumbnailUrl } from '@/lib/imageUtils';
 
 interface NoteContentProps {
   event: NostrEvent;
@@ -22,6 +23,21 @@ const isMediaUrl = (url: string): boolean => {
          lower.includes('imgur.com') ||
          lower.includes('mojobus.co') ||
          lower.includes('cdn.blossom');
+};
+
+// Helper to check if URL is an image URL (not video)
+const isImageUrl = (url: string): boolean => {
+  const lower = url.toLowerCase();
+  const hasImageExtension = lower.match(/\.(jpg|jpeg|png|gif|webp)$/i) !== null;
+  const isImageHosting = lower.includes('nostr.build') ||
+                         lower.includes('imgur.com') ||
+                         lower.includes('mojobus.co') ||
+                         lower.includes('cdn.blossom') ||
+                         lower.includes('blossom');
+  // Exclude video hosting URLs by checking against video extensions
+  const isVideoUrl = lower.match(/\.(mp4|webm|mov|avi|mkv)$/i) !== null;
+
+  return (hasImageExtension || isImageHosting) && !isVideoUrl;
 };
 
 /** Parses content of text note events with Markdown support. */
@@ -55,6 +71,20 @@ export function NoteContent({
             // Hide media URLs if hideImageLinks is true
             if (hideImageLinks && href && isMediaUrl(href)) {
               return null;
+            }
+            // Check if it's an image URL -> render optimized image
+            if (href && isImageUrl(href)) {
+              return (
+                <img
+                  src={getGalleryThumbnailUrl(href)}
+                  srcSet={generateSrcset(href, 'gallery')}
+                  sizes={generateSizes('hero')}
+                  alt={typeof children === 'string' ? children : 'Bild'}
+                  className="w-full h-auto rounded-lg my-4"
+                  loading="lazy"
+                  decoding="async"
+                />
+              );
             }
             // Check if it's a video URL
             if (href && isVideoContent(href)) {
@@ -103,6 +133,20 @@ export function NoteContent({
               >
                 {children}
               </a>
+            );
+          },
+          img: ({ src, alt }) => {
+            if (!src) return null;
+            return (
+              <img
+                src={getGalleryThumbnailUrl(src)}
+                srcSet={generateSrcset(src, 'gallery')}
+                sizes={generateSizes('hero')}
+                alt={alt || ''}
+                className="w-full h-auto rounded-lg my-4"
+                loading="lazy"
+                decoding="async"
+              />
             );
           },
           code: ({ children }) => <code className="bg-muted px-1.5 py-0.5 rounded text-sm">{children}</code>,

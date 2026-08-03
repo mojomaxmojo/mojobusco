@@ -5,6 +5,16 @@
 
 ---
 
+## Aktuelle Sitzung – Bilder aus Nostr-Content responsive & lazy laden
+
+- `src/pages/Notes.tsx`: Note-Bilder nutzen jetzt `getGalleryThumbnailUrl()` + `decoding="async"` statt Roh-URLs.
+- `src/components/NoteContent.tsx`: Bild-URLs in Markdown/Notes werden jetzt als optimierte `<img>` mit `srcSet`, `sizes`, `loading="lazy"` und `decoding="async"` gerendert. `hideImageLinks` bleibt funktional.
+- `src/pages/ImageDetail.tsx`: Avatar-Thumb und Vollbild-Ansicht mit `decoding="async"` ergänzt, Vollbild-`sizes` auf `100vw` korrigiert.
+- `src/components/TripPublishForm.tsx`: Keine Änderung nötig – alle dortigen `<img>` zeigen lokale `station.preview`-Blob-URLs, keine Nostr-Content-Bilder.
+- Build erfolgreich.
+
+---
+
 ## Aktuelle Sitzung – Konsistente Longform-Teaser
 
 - Neue zentrale Konfiguration `src/config/longformTeaser.ts` für Teaser-Regeln.

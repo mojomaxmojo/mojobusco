@@ -348,6 +348,7 @@ export function ImageDetail() {
                         alt={metadata.name || 'Autor'}
                         className="w-full h-full object-cover"
                         loading="lazy"
+                        decoding="async"
                       />
                     </div>
                   ) : (
@@ -569,9 +570,11 @@ export function ImageDetail() {
             <img
               src={getArticleHeaderUrl(images[currentImageIndex])}
               srcSet={generateSrcset(images[currentImageIndex], 'gallery')}
-              sizes="99vw"
+              sizes="100vw"
               alt={`Bild ${currentImageIndex + 1}`}
               className="w-full h-full max-w-[99vw] object-contain"
+              loading="eager"
+              decoding="async"
               onClick={() => setIsImageFullscreen(false)}
             />
           )}
