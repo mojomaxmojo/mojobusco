@@ -331,7 +331,7 @@ export function VideoDetail() {
               className="w-full h-full object-cover"
               playsInline
               controls
-              preload="metadata"
+              preload="none"
               onEnded={() => setPlaying(false)}
               onPlay={() => setPlaying(true)}
               onPause={() => setPlaying(false)}

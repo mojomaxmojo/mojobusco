@@ -90,6 +90,7 @@ function encodeVideoNaddr(video: VideoItem): string {
 
 function VideoCard({ video, isAuthor }: { video: VideoItem; isAuthor: boolean }) {
   const [playing, setPlaying] = useState(false)
+  const [started, setStarted] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -101,7 +102,7 @@ function VideoCard({ video, isAuthor }: { video: VideoItem; isAuthor: boolean })
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
-  // IntersectionObserver – Video nur laden wenn im Viewport
+  // IntersectionObserver – Thumbnail nur laden wenn im Viewport
   // Capacitor: wird übersprungen, da inView bereits true ist
   useEffect(() => {
     if (isCapacitorNative()) return // In App nicht nötig
@@ -120,12 +121,20 @@ function VideoCard({ video, isAuthor }: { video: VideoItem; isAuthor: boolean })
 
   const handlePlay = useCallback(() => {
     const v = videoRef.current
-    if (!v) return
     if (playing) {
-      v.pause()
+      v?.pause()
       setPlaying(false)
     } else {
-      v.play()
+      // Erst bei Play das Video-Element erzeugen → verhindert Vorabladen
+      setStarted(true)
+      // play() nach kurzem Timeout, damit das Element gerendert ist
+      setTimeout(() => {
+        videoRef.current?.play().catch(() => {
+          // Autoplay blockiert oder Video nicht verfügbar
+          setStarted(false)
+          setPlaying(false)
+        })
+      }, 0)
       setPlaying(true)
     }
   }, [playing])
@@ -159,21 +168,27 @@ function VideoCard({ video, isAuthor }: { video: VideoItem; isAuthor: boolean })
           ${isShort ? 'aspect-[9/16]' : 'aspect-video'}`}
         onClick={handlePlay}
       >
-        {/* Video – nur laden wenn im Viewport */}
-        {inView && (
+        {/* Video – nur laden wenn im Viewport UND User auf Play geklickt hat */}
+        {inView && started && (
           <video
             ref={videoRef}
             src={video.videoUrl}
             poster={video.thumbnailUrl || undefined}
             className="w-full h-full object-cover"
             playsInline
-            preload="metadata"
-            onEnded={() => setPlaying(false)}
+            preload="none"
+            autoPlay
+            onEnded={() => {
+              setPlaying(false)
+              setStarted(false)
+            }}
+            onPause={() => setPlaying(false)}
+            onPlay={() => setPlaying(true)}
           />
         )}
 
-        {/* Thumbnail wenn noch nicht im Viewport */}
-        {!inView && video.thumbnailUrl && (
+        {/* Thumbnail anzeigen wenn noch nicht gestartet oder nicht im Viewport */}
+        {(!inView || !started) && video.thumbnailUrl && (
           <img
             src={video.thumbnailUrl}
             alt={video.title}

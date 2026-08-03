@@ -31,7 +31,7 @@ export const videoConfig = {
     muted: false,
     loop: false,
     playsInline: true, // Für Mobile
-    preload: 'metadata' as const, // metadata, none, auto
+    preload: 'none' as const, // 'none' verhindert Vorabladen großer Videos
   },
 
   // YouTube-spezifische Einstellungen
