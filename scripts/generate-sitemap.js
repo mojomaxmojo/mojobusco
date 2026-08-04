@@ -141,11 +141,23 @@ function generateVideoSitemapXml(videos) {
   let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
   xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">\n';
 
+  // Google meldet eine LEERE urlset als Fehler ("Fehlendes XML-Tag: url").
+  // Fallback: /videos als normaler Eintrag (ohne video:video) → Datei bleibt
+  // valide, auch wenn gerade keine Video-Events gefunden wurden.
+  if (videos.length === 0) {
+    xml += '  <url>\n';
+    xml += `    <loc>${BASE_URL}/videos</loc>\n`;
+    xml += '    <changefreq>daily</changefreq>\n';
+    xml += '    <priority>0.8</priority>\n';
+    xml += '  </url>\n';
+  }
+
   for (const v of videos) {
     xml += '  <url>\n';
     xml += `    <loc>${escapeXml(v.loc)}</loc>\n`;
     xml += '    <video:video>\n';
-    if (v.thumbnail) xml += `      <video:thumbnail_loc>${escapeXml(v.thumbnail)}</video:thumbnail_loc>\n`;
+    // thumbnail_loc ist bei Google PFLICHT – Fallback auf og-image
+    xml += `      <video:thumbnail_loc>${escapeXml(v.thumbnail || `${BASE_URL}/og-image.jpg`)}</video:thumbnail_loc>\n`;
     xml += `      <video:title>${escapeXml(v.title)}</video:title>\n`;
     xml += `      <video:description>${escapeXml(v.description)}</video:description>\n`;
     xml += `      <video:content_loc>${escapeXml(v.videoUrl)}</video:content_loc>\n`;
@@ -259,7 +271,8 @@ async function main() {
       videoUrls.push({
         loc,
         title: meta.title,
-        description: meta.description,
+        // Google-Pflicht: description darf nicht leer sein
+        description: (meta.description || '').trim() || meta.title,
         thumbnail: meta.thumbnail,
         videoUrl: meta.videoUrl,
         duration: meta.duration,

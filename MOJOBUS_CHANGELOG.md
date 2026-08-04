@@ -5,6 +5,35 @@
 
 ---
 
+## Aktuelle Sitzung – Fix: Google-Fehler „Fehlendes XML-Tag" in Video-Sitemap
+
+**Fehler (Search Console)**: `sitemap-videos.xml` – „Fehlendes XML-Tag",
+übergeordnetes Tag `urlset`, fehlendes Tag `url`, Zeile 3.
+
+**Ursachen (zwei Ebenen)**:
+1. `scripts/generate-sitemap.js`: Wenn die Relay-Query keine Video-Events
+   (kind 34235/34236) findet, erzeugte `generateVideoSitemapXml()` eine
+   **leere `<urlset>`** ohne einziges `<url>` → exakt der gemeldete Fehler.
+2. Live-Zustand: `/sitemap-videos.xml` lieferte die SPA-`index.html`
+   (Nginx `try_files`-Fallback), weil die Datei auf dem Server fehlte.
+
+**Fixes**:
+- `generateVideoSitemapXml()`: Bei 0 Videos wird `/videos` als normaler
+  `<url>`-Eintrag (ohne `video:video`) geschrieben → immer valide.
+- `video:thumbnail_loc` ist Google-Pflicht → Fallback `og-image.jpg`,
+  wenn das Event kein `image`-Tag hat (vorher wurde das Tag weggelassen).
+- `video:description` (Pflicht, nicht-leer) → Fallback auf Titel.
+- Neu: `public/sitemap-videos.xml` als statische Fallback-Datei im Repo →
+  jeder Deploy liefert valides XML, der Cron überschreibt mit der
+  Vollversion. Verhindert auch den HTML-Fallback-Folgefehler.
+- `docs/CONTEXT_DEPLOY.md`: Sitemap-Fakten ergänzt.
+
+**Nebenbefund (nicht geändert, nur dokumentiert)**: Die live
+`sitemap.xml` ist die statische Repo-Version (12 URLs), nicht die
+Cron-Version → Cron-Lauf bzw. Deploy-Reihenfolge auf dem VPS prüfen.
+
+---
+
 ## Aktuelle Sitzung – Performance: Vendor-Chunks aufgelöst, TBT-Mikrofixes, Async-CSS-Experiment (revertiert)
 
 **Chunk-Umbau (vite.config.ts, `699f8f6`):**
