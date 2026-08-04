@@ -4,12 +4,14 @@ import { ScrollToTop } from "./components/ScrollToTop";
 import { Header } from "./components/Header";
 import { Footer } from "./components/Footer";
 import { PageLoader } from "./components/ui/loading-spinner";
+import { Home } from "./pages/Home";
 
-// 🔥 PERFORMANCE: Lazy Load für alle Pages
+// 🔥 PERFORMANCE: Lazy Load für Pages außer Home
+// Home wird eager geladen, damit der Footer auf der Landing Page sofort an der
+// finalen Position gerendert wird und kein Suspense-Fallback-Shift entsteht.
 // Pages werden erst geladen, wenn sie benötigt werden
-// Reduziert Initial Bundle Size und beschleunigt First Contentful Paint
+// (Außnahme: Home, siehe oben – Landing Page eager für CLS-Stabilität)
 
-const Home = lazy(() => import("./pages/Home").then(m => ({ default: m.Home })));
 const Articles = lazy(() => import("./pages/Articles").then(m => ({ default: m.default })));
 const DIY = lazy(() => import("./pages/DIY").then(m => ({ default: m.DIY })));
 const Leon = lazy(() => import("./pages/Leon").then(m => ({ default: m.Leon })));

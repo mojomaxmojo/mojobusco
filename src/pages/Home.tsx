@@ -3,7 +3,7 @@ import { websiteJsonLd } from '@/lib/jsonld';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { CardSkeleton } from '@/components/CardSkeleton';
 import { usePreloadedArticles, usePlaces, extractArticleMetadata } from '@/hooks/useLongformArticles';
 import { useHomeNotes } from '@/hooks/useHomeNotes';
 import { useHomeMedia } from '@/hooks/useHomeMedia';
@@ -249,32 +249,7 @@ export function Home() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {Array.from({ length: FIRST_PAINT_CONFIG.homeCardCount }, (_, i) => i + 1).map(i => (
                   <div key={i} className="fade-in-up" style={{ animationDelay: `${i * 100}ms` }}>
-                    <Card className="overflow-hidden border-2 border-primary/20 rounded-2xl flex flex-col">
-                      {/* Image skeleton: exact aspect ratio wie ContentCard */}
-                      <div className="aspect-[4/3] bg-muted animate-pulse" />
-                      {/* CardHeader skeleton: title + summary */}
-                      <div className="space-y-4 pt-6 px-6">
-                        <div className="h-6 bg-muted animate-pulse rounded-md w-3/4" />
-                        <div className="space-y-2">
-                          <div className="h-4 bg-muted animate-pulse rounded-md w-full" />
-                          <div className="h-4 bg-muted animate-pulse rounded-md w-5/6" />
-                        </div>
-                      </div>
-                      {/* CardContent skeleton: author + date */}
-                      <div className="flex-1 pb-6 px-6 pt-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="h-4 w-24 bg-muted animate-pulse rounded-md" />
-                            <span className="text-muted-foreground/50">•</span>
-                            <div className="h-4 w-20 bg-muted animate-pulse rounded-md" />
-                          </div>
-                        </div>
-                      </div>
-                      {/* SocialBar skeleton */}
-                      <div className="px-6 pb-6 pt-0">
-                        <div className="h-8 bg-muted animate-pulse rounded-lg w-full" />
-                      </div>
-                    </Card>
+                    <CardSkeleton />
                   </div>
                 ))}
               </div>
@@ -282,7 +257,7 @@ export function Home() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {recentItems.map((item, index) => (
                   <div key={item.event.id} className="fade-in-up" style={{ animationDelay: `${index * 100}ms` }}>
-                    <Suspense fallback={<Card className="border-2 border-primary/20 rounded-2xl"><CardContent className="py-16 text-center"><LoadingSpinner size="sm" text="" /></CardContent></Card>}>
+                    <Suspense fallback={<CardSkeleton />}>
                       <ContentCard item={item} />
                     </Suspense>
                   </div>
