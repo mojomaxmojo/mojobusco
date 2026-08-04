@@ -1,5 +1,20 @@
 # Vendor-Chunk Optimierung - Cache-Strategie
 
+> ⚠️ **UPDATE (Performance-Session, Commit `699f8f6`):**
+> - **`radix-vendor` existiert nicht mehr.** Die erzwungene Bündelung aller
+>   `@radix-ui`-Pakete wurde entfernt (TBT-Problem: der 188-kB-Monolith musste
+>   wegen des Header-Imports von `dropdown-menu`/`collapsible` komplett eager
+>   evaluiert werden). Rollup splittet Radix jetzt automatisch per Route in
+>   kleine Chunks (`tabs-*.js`, `switch-*.js`, `alert-dialog-*.js`, ...).
+>   → Die unten stehenden Cache-Regeln für `radix-vendor-*` sind obsolet
+>   (matchen nichts mehr, schaden aber auch nicht).
+> - **`nostr-vendor` enthält kein `@getalby`/`webln` mehr.** Die Wallet-SDK
+>   wird in `useNWC.ts` lazy via `await import()` geladen (eigener Chunk).
+>   `ngeohash`/`dijkstrajs` wurden als tote Deps entfernt.
+> - Cache-Strategie pauschal: **Alle `/assets/*` mit Hash im Namen sind
+>   immutable** (1 Jahr) – die fein abgestuften Regeln unten sind nur noch
+>   historische Referenz.
+
 ## Übersicht
 
 Die Vendor-Chunk Optimierung verbessert das Caching durch intelligente Gruppierung von Bibliotheken basierend auf ihrer Änderungshäufigkeit.
@@ -29,7 +44,7 @@ Diese Chunks ändern sich nur bei Bibliotheks-Updates.
 
 | Chunk | Inhalt | Empfohlenes Cache |
 |-------|--------|-------------------|
-| `radix-vendor.js` | Radix UI Komponenten | `max-age=86400` (24 Stunden) |
+| ~~`radix-vendor.js`~~ | **ENTFERNT** (siehe Update oben) – Rollup splittet Radix per Route | – |
 | `cv-vendor.js` | class-variance-authority | `max-age=86400` (24 Stunden) |
 | `css-utils-vendor` | clsx, tailwind-merge | `max-age=86400` (24 Stunden) |
 
@@ -45,7 +60,7 @@ Diese Chunks sind domain-spezifisch und ändern sich bei Feature-Updates.
 
 | Chunk | Inhalt | Empfohlenes Cache |
 |-------|--------|-------------------|
-| `nostr-vendor.js` | Nostr-Bibliotheken (@nostrify, nostr-tools) | `max-age=3600` (1 Stunde) |
+| `nostr-vendor.js` | Nostr-Bibliotheken (@nostrify, nostr-tools, @noble/@scure) – **ohne** @getalby/webln (lazy) | `max-age=3600` (1 Stunde) |
 
 **Warum?**
 - Domain-spezifisch (Nostr-Integration)

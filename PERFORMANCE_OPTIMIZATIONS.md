@@ -70,27 +70,29 @@ Dieses Dokument fasst alle Performance-Optimierungen zusammen, die für MojoBus 
 
 ---
 
-### 4. Vendor-Chunk Optimierung (50% kleinere Initial Bundle Size)
+### 4. Vendor-Chunk Optimierung (überarbeitet, Commit `699f8f6`)
 
-**Status:** ✅ Konfiguriert
+**Status:** ✅ Umgesetzt (aktualisiert)
 
 **Was wurde gemacht:**
-- Detaillierte Vendor-Chunk Optimierung nach Änderungshäufigkeit
-- Stable Vendor Chunks (React, Icons, Query) → 1 Jahr Cache
-- Semi-Stable Vendor Chunks (Radix, CV, CSS Utils) → 24 Stunden Cache
-- Feature Vendor Chunks (Nostr) → 1 Stunde Cache
-- Conditional Vendor Chunks (Tiptap, Charts, etc.) → On-Demand Loading
-- App Code Chunks → No Cache
+- `radix-vendor`-Monolith **entfernt** (188 kB, wurde wegen Header-Import komplett eager evaluiert, ~39 KiB ungenutzt beim Start) → Rollup splittet Radix jetzt automatisch per Route
+- `@getalby/sdk` + `webln` aus `nostr-vendor` entfernt → werden in `useNWC.ts` lazy via `await import()` geladen (nur bei Wallet-Connect/Zap)
+- `nostr-vendor`: 228,6 → 179,8 kB raw
+- `LoginDialog`/`SignupDialog` lazy (`React.lazy` in `LoginArea.tsx`)
+- Tote Deps (`ngeohash`, `dijkstrajs`) aus der Config entfernt
+- `NostrProvider`: `resetQueries()` beim initialen Mount übersprungen (kein Doppel-Fetch/Re-Render-Sturm mehr beim App-Start)
+- `Home.tsx`: Datenaufbereitung in `useMemo` gekapselt
 
-**Performance-Gewinn:**
-- 🎯 50% kleinere Initial Bundle Size
-- 🎯 Besseres Long-Term-Caching
-- 🎯 On-Demand Loading für schwere Libraries
-- 🎯 Intelligente Cache-Strategie
+**Gemessenes Ergebnis (ehrlich):**
+- Eager JS: ~899 → ~799 kB raw
+- TBT: 460 → 431 ms (geringer als erhofft – react-vendor/nostr-vendor Evaluierung dominiert und ist nicht wegchunkbar)
+- Async-CSS-Experiment (Critical CSS + non-blocking Haupt-CSS) wurde getestet und **revertiert**: FCP/LCP dieser SPA ist JS-gated, CSS war nie auf dem kritischen Pfad (Details + Lektion: `MOJOBUS_CHANGELOG.md`)
 
 **Dateien:**
 - `vite.config.ts` (Manual Chunks Konfiguration)
-- `scripts/analyze-bundle.mjs` (Bundle-Analyse-Skript)
+- `src/hooks/useNWC.ts` (lazy @getalby/sdk)
+- `src/components/auth/LoginArea.tsx` (lazy Dialoge)
+- `src/components/NostrProvider.tsx` (resetQueries-Gate)
 - `VENDOR_CHUNK_OPTIMIZATION.md` (Vollständige Dokumentation)
 
 ---
@@ -131,7 +133,7 @@ Dieses Dokument fasst alle Performance-Optimierungen zusammen, die für MojoBus 
 | Query-Batching | 60-70% weniger parallele Requests | ✅ |
 | Lazy-Loading | 40-50% schnelleres Laden | ✅ |
 | Icon Tree-Shaking | 15-25% kleinere Icon-Chunks | ✅ |
-| Vendor-Chunk Optimierung | 50% kleinere Initial Bundle | ✅ Konfiguriert |
+| Vendor-Chunk Optimierung | ~100 kB weniger eager JS; Radix per Route gesplittet | ✅ (überarbeitet) |
 
 **Erwartetes Gesamtergebnis:**
 - 🚀 **Wesentlich schnelleres Laden** (FCP: ~0.5s mit Cache, ~1.8s ohne Cache)

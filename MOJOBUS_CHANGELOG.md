@@ -5,6 +5,29 @@
 
 ---
 
+## Aktuelle Sitzung – Performance: Vendor-Chunks aufgelöst, TBT-Mikrofixes, Async-CSS-Experiment (revertiert)
+
+**Chunk-Umbau (vite.config.ts, `699f8f6`):**
+- `radix-vendor`-Regel aus `manualChunks` entfernt. Der erzwungene Monolith (188 kB) musste komplett eager evaluiert werden, weil der Header `dropdown-menu`/`collapsible` importiert (Lighthouse: ~39 KiB ungenutztes JS beim Start). Rollup splittet Radix jetzt automatisch per Route.
+- `@getalby/sdk` + `webln` aus `nostr-vendor` entfernt (nostr-vendor 228,6 → 179,8 kB). SDK wird in `useNWC.ts` jetzt via `await import('@getalby/sdk')` an den 2 Nutzungsstellen (`addConnection`, `sendPayment`) lazy geladen; `LN` nur noch als `import type`.
+- `ngeohash`/`dijkstrajs` aus Config entfernt (tote Deps, kein Import im Code).
+- `LoginDialog`/`SignupDialog` in `LoginArea.tsx` via `React.lazy` + `Suspense` (Mounted-State-Pattern, Close-Animation bleibt). Achtung Fallstrick: `AccountSwitcher`-Callback muss ebenfalls den Mounted-State setzen.
+- Effekt: Eager JS ~899 → ~799 kB raw. TBT-Messung nur −29 ms (460 → 431 ms) – weniger als erhofft, weil das eager-Radix in den `index`-Chunk umzog (228 → 365 kB) statt zu verschwinden und react/nostr-vendor die Evaluierungszeit dominieren.
+
+**Async-CSS-Experiment (`3e280ce`) + Revert (`aee4539`) – LEKTION:**
+- Haupt-CSS via Vite-Plugin (`async-css`, preload+onload-Pattern) non-blocking gemacht + großes Critical-CSS inline in index.html (1:1 aus deployed CSS extrahiert).
+- Ergebnis: **schlechter** (FCP 1,76 → 2,17 s, TBT 431 → 664 ms) → komplett revertiert.
+- Erkenntnis: FCP/LCP dieser SPA ist **JS-gated** (HTML 400 ms → JS-Download ~1 s → JS-Eval ~1 s → React-Render). Das CSS (470 ms) war nie auf dem kritischen Pfad – Lighthouse-„Render-blocking"-Ersparnis gilt für HTML-gerenderte Seiten, nicht für SPAs mit leerem `#root`. Der rel-Swap triggerte zusätzlich Full-Page-Recalc mitten in der Hydration.
+- **Fazit für die Zukunft: Keine CSS-Optimierungen für FCP bei diesem Setup. Einziger verbleibender großer FCP/LCP-Hebel wäre statisch gerenderter Hero-HTML in index.html (Prerender).**
+
+**TBT-Mikrofixes (`0612ddb`):**
+- `NostrProvider.tsx`: `queryClient.resetQueries()` wird beim initialen Mount übersprungen (`isInitialMount`-Ref). Bisher: Doppel-Fetches aller JSON-Dumps + Re-Render-Sturm bei jedem App-Start. Bei echtem Config-Wechsel (Login/Logout) bleibt der Reset aktiv.
+- `Home.tsx`: `contentItems`-Aufbau + Sortierung in `useMemo` gekapselt (vorher Vollberechnung mit `extractArticleMetadata`/Regex/Sortierung bei jedem der ~5–6 Renders während des Ladens).
+
+**Verbleibende offene Hebel (dokumentiert):** `content-visibility` für Below-Fold-Sections, Logo-WebP, Prerender-Hero (großer FCP-Hebel), `/data/*.json`-Dumps verschlanken (Verdacht für Teile der 560 ms „Unattributable" im Lighthouse-Report).
+
+---
+
 ## Aktuelle Sitzung – Bilder aus Nostr-Content responsive & lazy laden
 
 - `src/pages/Notes.tsx`: Note-Bilder nutzen jetzt `getGalleryThumbnailUrl()` + `decoding="async"` statt Roh-URLs.
