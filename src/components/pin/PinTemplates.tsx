@@ -216,12 +216,14 @@ export async function renderPinTemplate(
 
     // Template-spezifisches Overlay
     if (template === 'mojobus-story') {
-      // Story: sanftes Gradient-Overlay, Bild dominiert
+      // Story: Hook-Zone oben (10–35%) für Haupttext, Rest bleibt Bild-dominiert
       const g = ctx.createLinearGradient(0, 0, 0, PIN_H)
-      g.addColorStop(0,   'rgba(0,0,0,0.08)')
-      g.addColorStop(0.5, 'rgba(0,0,0,0.0)')
-      g.addColorStop(0.72,'rgba(0,0,0,0.45)')
-      g.addColorStop(1,   'rgba(0,0,0,0.82)')
+      g.addColorStop(0,   'rgba(0,0,0,0.62)')  // oben stark für Textlesbarkeit
+      g.addColorStop(0.15,'rgba(0,0,0,0.35)')  // bis zur Hook-Zone
+      g.addColorStop(0.38,'rgba(0,0,0,0.10)')  // Ende Hook-Zone
+      g.addColorStop(0.55,'rgba(0,0,0,0.0)')
+      g.addColorStop(0.78,'rgba(0,0,0,0.32)')
+      g.addColorStop(1,   'rgba(0,0,0,0.68)')
       ctx.fillStyle = g
       ctx.fillRect(0, 0, PIN_W, PIN_H)
     } else {
@@ -750,7 +752,8 @@ function renderRoute(ctx: CanvasRenderingContext2D, d: PinData) {
 // ═══════════════════════════════════════════════════════════
 
 function renderMojoBusStory(ctx: CanvasRenderingContext2D, d: PinData) {
-  // Das Bild dominiert komplett – nur subtile Text-Elemente unten
+  // HOOK-ZONE: Haupttext/Titel wird im oberen Drittel (10–35% von oben)
+  // platziert, damit er sofort im Feed erkannt wird.
 
   // Kleines Brand-Tag oben links
   const storyTag = d.storyTag || 'mojobus.co'
@@ -760,53 +763,60 @@ function renderMojoBusStory(ctx: CanvasRenderingContext2D, d: PinData) {
   ctx.textAlign = 'left'
   ctx.fillText(storyTag.substring(0, 22), 78, 89)
 
-  // Story-Text unten (Hauptbereich)
-  const textAreaY = PIN_H - 460
+  // ── HOOK-ZONE: oberes Drittel ──
+  const hookZoneTop = Math.round(PIN_H * 0.10)      // 150px
+  const hookZoneBottom = Math.round(PIN_H * 0.38)   // 570px
+  const maxHookHeight = hookZoneBottom - hookZoneTop
 
-  // Gradient-Bereich für Text
-  const tg = ctx.createLinearGradient(0, textAreaY - 60, 0, PIN_H - 95)
-  tg.addColorStop(0, 'rgba(0,0,0,0)')
-  tg.addColorStop(1, 'rgba(0,0,0,0.72)')
+  // Subtiler Hintergrund für die Hook-Zone (nur leicht abdunkeln)
+  const tg = ctx.createLinearGradient(0, hookZoneTop - 40, 0, hookZoneBottom + 20)
+  tg.addColorStop(0, 'rgba(0,0,0,0.45)')
+  tg.addColorStop(0.25,'rgba(0,0,0,0.18)')
+  tg.addColorStop(1,  'rgba(0,0,0,0)')
   ctx.fillStyle = tg
-  ctx.fillRect(0, textAreaY - 60, PIN_W, PIN_H - 95 - (textAreaY - 60))
+  ctx.fillRect(0, hookZoneTop - 40, PIN_W, maxHookHeight + 60)
 
-  // Haupt-Story-Zeile
+  // Haupt-Story-Zeile (große Zeile auf dem Bild)
   const mainText = d.textOverlay || ''
+  let currentY = hookZoneTop + 10
   if (mainText) {
-    setShadow(ctx, 8, 'rgba(0,0,0,0.8)')
+    setShadow(ctx, 8, 'rgba(0,0,0,0.85)')
     ctx.fillStyle = BRAND.white
-    ctx.font = 'bold 52px Arial'
+    ctx.font = 'bold 56px Arial'
     ctx.textAlign = 'left'
-    drawWrappedText(ctx, mainText, 65, textAreaY + 10, 870, 62, 2)
+    const lineHeight = 66
+    const maxLines = Math.min(3, Math.floor((hookZoneBottom - currentY - 80) / lineHeight))
+    currentY = drawWrappedText(ctx, mainText, 65, currentY, 870, lineHeight, maxLines)
     clearShadow(ctx)
   }
 
   // Akzentlinie
-  const lineY = textAreaY + (mainText ? 90 : 20)
-  const lg = ctx.createLinearGradient(65, lineY, 500, lineY)
+  const lineY = currentY + 18
+  const lg = ctx.createLinearGradient(65, lineY, 480, lineY)
   lg.addColorStop(0, BRAND.tealLight)
   lg.addColorStop(1, 'rgba(34,211,238,0)')
   ctx.fillStyle = lg
   ctx.fillRect(65, lineY, 420, 3)
 
-  // Sub-Text
+  // Sub-Text (zweiter Satz, unter der Akzentlinie)
   const subText = d.subOverlay || ''
   if (subText) {
-    ctx.fillStyle = 'rgba(255,255,255,0.88)'
+    ctx.fillStyle = 'rgba(255,255,255,0.92)'
     ctx.font = '30px Arial'
     ctx.textAlign = 'left'
-    drawWrappedText(ctx, subText, 65, lineY + 28, 870, 42, 3)
+    const subY = lineY + 28
+    const subLineHeight = 40
+    const maxSubLines = Math.max(1, Math.floor((hookZoneBottom - subY) / subLineHeight))
+    drawWrappedText(ctx, subText, 65, subY, 870, subLineHeight, maxSubLines)
   }
 
-  // Pin-Titel (kleine Ergänzung)
+  // Pin-Titel (klein, unten im Bild – optional für Kontext)
   if (d.pinTitle) {
-    const titleY = lineY + (subText ? 145 : 45)
-    if (titleY < PIN_H - 110) {
-      ctx.fillStyle = 'rgba(255,255,255,0.55)'
-      ctx.font = '22px Arial'
-      ctx.textAlign = 'left'
-      drawWrappedText(ctx, d.pinTitle, 65, titleY, 870, 30, 2)
-    }
+    const titleY = PIN_H - 145
+    ctx.fillStyle = 'rgba(255,255,255,0.60)'
+    ctx.font = '22px Arial'
+    ctx.textAlign = 'left'
+    drawWrappedText(ctx, d.pinTitle, 65, titleY, 870, 30, 2)
   }
 }
 
