@@ -35,6 +35,14 @@ const NostrProvider: React.FC<NostrProviderProps> = (props) => {
   // Track seen event IDs for deduplication
   const seenEvents = useRef<Map<string, NostrEvent>>(new Map());
 
+  // Initialer Mount? → resetQueries() dort überspringen.
+  // Beim App-Start laufen die Queries (statische JSON-Dumps) gerade erst an –
+  // ein Reset würde Doppel-Fetches, doppeltes JSON.parse und einen
+  // Re-Render-Zyklus mitten im First-Paint-Fenster auslösen (TBT).
+  // Bei echtem Config-Wechsel (Login/Logout, Relay-Wechsel) bleibt der Reset
+  // weiterhin aktiv und korrekt.
+  const isInitialMount = useRef(true);
+
   // Initialize refs when config changes
   useEffect(() => {
     // Verwende autor-spezifische Konfiguration, falls verfügbar
@@ -62,7 +70,12 @@ const NostrProvider: React.FC<NostrProviderProps> = (props) => {
     // Shared configuration
     enableDeduplication.current = config.enableDeduplication || false;
 
-    queryClient.resetQueries();
+    // Nur bei echtem Config-Wechsel zurücksetzen – nicht beim initialen Mount
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+    } else {
+      queryClient.resetQueries();
+    }
 
     console.log('[NostrProvider] Config updated:', {
       author: authorRelays.authorId,

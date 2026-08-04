@@ -9,7 +9,7 @@ import { useHomeNotes } from '@/hooks/useHomeNotes';
 import { useHomeMedia } from '@/hooks/useHomeMedia';
 import { useQueryClient } from '@tanstack/react-query';
 import { Compass, Sun, Anchor, RefreshCw } from 'lucide-react';
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useMemo } from 'react';
 import { useTrips, type Trip } from '@/hooks/useTrips';
 import { getGalleryThumbnailUrl } from '@/lib/imageUtils';
 import { useHead } from '@unhead/react';
@@ -124,71 +124,77 @@ export function Home() {
   // zweistufig im Hintergrund nach und werden beim Eintreffen einsortiert.
   const isLoading = articlesLoading || placesLoading || notesLoading || mediaLoading;
 
-  const contentItems: ContentItem[] = [];
+  // Memoized: Aufbau + Sortierung lief bisher bei JEDEM Render erneut
+  // (5 Datenquellen resolven zeitversetzt → ~5–6 Vollberechnungen mit
+  // extractArticleMetadata/Regex/Sortierung mitten im First-Paint-Fenster).
+  // Jetzt nur noch neu berechnen, wenn sich eine Datenquelle ändert.
+  const recentItems = useMemo(() => {
+    const contentItems: ContentItem[] = [];
 
-  if (articles && Array.isArray(articles)) {
-    articles.forEach((event) => {
-      const metadata = extractArticleMetadata(event);
-      contentItems.push({
-        type: 'article',
-        event,
-        date: event.created_at,
-        thumbnailUrl: metadata.image ? getGalleryThumbnailUrl(metadata.image) : undefined
+    if (articles && Array.isArray(articles)) {
+      articles.forEach((event) => {
+        const metadata = extractArticleMetadata(event);
+        contentItems.push({
+          type: 'article',
+          event,
+          date: event.created_at,
+          thumbnailUrl: metadata.image ? getGalleryThumbnailUrl(metadata.image) : undefined
+        });
       });
-    });
-  }
+    }
 
-  if (places && Array.isArray(places)) {
-    places.forEach((event) => {
-      const metadata = extractArticleMetadata(event);
-      contentItems.push({
-        type: 'place',
-        event,
-        date: event.created_at,
-        thumbnailUrl: metadata.image ? getGalleryThumbnailUrl(metadata.image) : undefined
+    if (places && Array.isArray(places)) {
+      places.forEach((event) => {
+        const metadata = extractArticleMetadata(event);
+        contentItems.push({
+          type: 'place',
+          event,
+          date: event.created_at,
+          thumbnailUrl: metadata.image ? getGalleryThumbnailUrl(metadata.image) : undefined
+        });
       });
-    });
-  }
+    }
 
-  if (noteEvents && Array.isArray(noteEvents)) {
-    noteEvents.forEach((event) => {
-      const imageUrl = extractFirstImageUrl(event.content);
-      contentItems.push({
-        type: 'note',
-        event,
-        date: event.created_at,
-        thumbnailUrl: imageUrl ? (isVideoUrl(imageUrl) ? imageUrl : getGalleryThumbnailUrl(imageUrl)) : undefined
+    if (noteEvents && Array.isArray(noteEvents)) {
+      noteEvents.forEach((event) => {
+        const imageUrl = extractFirstImageUrl(event.content);
+        contentItems.push({
+          type: 'note',
+          event,
+          date: event.created_at,
+          thumbnailUrl: imageUrl ? (isVideoUrl(imageUrl) ? imageUrl : getGalleryThumbnailUrl(imageUrl)) : undefined
+        });
       });
-    });
-  }
+    }
 
-  if (tripsData && Array.isArray(tripsData)) {
-    tripsData.forEach((trip: Trip) => {
-      contentItems.push({
-        type: 'trip' as const,
-        event: trip.event,
-        date: trip.createdAt,
-        thumbnailUrl: trip.image ? getGalleryThumbnailUrl(trip.image) : undefined,
-        parsedData: trip
+    if (tripsData && Array.isArray(tripsData)) {
+      tripsData.forEach((trip: Trip) => {
+        contentItems.push({
+          type: 'trip' as const,
+          event: trip.event,
+          date: trip.createdAt,
+          thumbnailUrl: trip.image ? getGalleryThumbnailUrl(trip.image) : undefined,
+          parsedData: trip
+        });
       });
-    });
-  }
+    }
 
-  if (imageEvents && Array.isArray(imageEvents)) {
-    imageEvents.forEach((event) => {
-      const imageUrl = extractFirstImageUrl(event.content);
-      contentItems.push({
-        type: 'image',
-        event,
-        date: event.created_at,
-        thumbnailUrl: imageUrl ? (isVideoUrl(imageUrl) ? imageUrl : getGalleryThumbnailUrl(imageUrl)) : undefined
+    if (imageEvents && Array.isArray(imageEvents)) {
+      imageEvents.forEach((event) => {
+        const imageUrl = extractFirstImageUrl(event.content);
+        contentItems.push({
+          type: 'image',
+          event,
+          date: event.created_at,
+          thumbnailUrl: imageUrl ? (isVideoUrl(imageUrl) ? imageUrl : getGalleryThumbnailUrl(imageUrl)) : undefined
+        });
       });
-    });
-  }
+    }
 
-  const recentItems = contentItems
-    .sort((a, b) => b.date - a.date)
-    .slice(0, FIRST_PAINT_CONFIG.homeCardCount);
+    return contentItems
+      .sort((a, b) => b.date - a.date)
+      .slice(0, FIRST_PAINT_CONFIG.homeCardCount);
+  }, [articles, places, noteEvents, tripsData, imageEvents]);
 
   return (
     <div className="min-h-screen">
