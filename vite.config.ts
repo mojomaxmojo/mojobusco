@@ -4,32 +4,6 @@ import react from "@vitejs/plugin-react-swc";
 import { defineConfig } from "vitest/config";
 import { DEFAULT_PERFORMANCE_CONFIG } from "./src/config/performance.config";
 
-// ── Async-CSS Plugin (FCP/LCP-Optimierung) ─────────────────────────────────
-// Vite injiziert das Haupt-CSS als render-blockierendes
-//   <link rel="stylesheet" href="/assets/index-*.css">
-// Module-Scripts warten auf das CSSOM → blockiertes CSS verzögert den
-// JS-Start und damit FCP/LCP (Lighthouse: ~740 ms).
-// Das Plugin wandelt den Link im Build in das preload+onload Pattern um
-// (non-blocking, hohe Priorität). Above-the-fold wird durch das inline
-// Critical CSS in index.html abgedeckt → kein FOUC.
-// noscript-Fallback bleibt erhalten. Dev-Modus unverändert.
-const asyncCssPlugin = {
-  name: 'async-css',
-  apply: 'build' as const,
-  enforce: 'post' as const,
-  transformIndexHtml: {
-    order: 'post' as const,
-    handler(html: string): string {
-      return html.replace(
-        /<link\s+rel="stylesheet"[^>]*?href="(\/assets\/[^"]+\.css)"[^>]*>/g,
-        (_match, href: string) =>
-          `<link rel="preload" as="style" href="${href}" onload="this.onload=null;this.rel='stylesheet'">` +
-          `<noscript><link rel="stylesheet" href="${href}"></noscript>`
-      );
-    },
-  },
-};
-
 // https://vitejs.dev/config/
 export default defineConfig(() => ({
   server: {
@@ -38,7 +12,6 @@ export default defineConfig(() => ({
   },
   plugins: [
     react(),
-    asyncCssPlugin,
   ],
   optimizeDeps: {
     include: [
