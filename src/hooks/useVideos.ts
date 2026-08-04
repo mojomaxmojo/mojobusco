@@ -49,23 +49,35 @@ export interface VideoItem {
   event: any             // Originales Nostr-Event für Bearbeiten/Löschen
 }
 
+function parseImetaValue(tag: string[], prefix: string): string | undefined {
+  return tag.find((v: string) => typeof v === 'string' && v.startsWith(prefix))?.slice(prefix.length)
+}
+
+function findVideoImeta(tags: string[][]): string[] | undefined {
+  const imetaTags = tags.filter((t: string[]) => t[0] === 'imeta')
+  if (imetaTags.length === 0) return undefined
+
+  // Bevorzuge ein imeta-Tag, das explizit als Video markiert ist (m video/*)
+  const videoMeta = imetaTags.find((t) => {
+    const mime = parseImetaValue(t, 'm ')
+    return mime?.startsWith('video/')
+  })
+
+  // Fallback: erstes imeta-Tag mit einer URL (manchmal fehlt das m-Feld)
+  return videoMeta ?? imetaTags.find((t) => parseImetaValue(t, 'url '))
+}
+
 export function parseVideoEvent(e: any): VideoItem | null {
   if (!e?.tags) return null
 
-  // imeta-Tag: Video-URL + Dimensionen + Dauer
-  const imetaTag = e.tags.find((t: string[]) => t[0] === 'imeta')
-  let videoUrl = ''
-  let durationSec: number | null = null
-  let dim = ''
+  const tags: string[][] = Array.isArray(e.tags) ? e.tags : []
 
-  if (imetaTag) {
-    const urlEntry = imetaTag.find((v: string) => typeof v === 'string' && v.startsWith('url '))
-    if (urlEntry) videoUrl = urlEntry.replace('url ', '').trim()
-    const durEntry = imetaTag.find((v: string) => typeof v === 'string' && v.startsWith('duration '))
-    if (durEntry) durationSec = parseFloat(durEntry.replace('duration ', '')) || null
-    const dimEntry = imetaTag.find((v: string) => typeof v === 'string' && v.startsWith('dim '))
-    if (dimEntry) dim = dimEntry.replace('dim ', '').trim()
-  }
+  // NIP-71 erlaubt mehrere imeta-Tags (z.B. Bild + Video). Wir suchen gezielt
+  // das Video-imeta, nicht einfach das erste imeta-Tag.
+  const imetaTag = findVideoImeta(tags)
+  let videoUrl = imetaTag ? parseImetaValue(imetaTag, 'url ')?.trim() : ''
+  let durationSec: number | null = imetaTag ? parseFloat(parseImetaValue(imetaTag, 'duration ') || '') || null : null
+  const dim = imetaTag ? parseImetaValue(imetaTag, 'dim ')?.trim() || '' : ''
 
   if (!videoUrl) return null
 
@@ -78,15 +90,15 @@ export function parseVideoEvent(e: any): VideoItem | null {
   if (e.kind === 34236) aspectRatio = '9:16'
   if (e.kind === 34235) aspectRatio = '16:9'
 
-  // Dauer auch direkt aus duration-Tag
+  // Dauer auch direkt aus duration-Tag (NIP-71 Fallback)
   if (!durationSec) {
-    const dur = e.tags.find((t: string[]) => t[0] === 'duration')?.[1]
+    const dur = tags.find((t: string[]) => t[0] === 'duration')?.[1]
     if (dur) durationSec = parseFloat(dur) || null
   }
 
-  const title = e.tags.find((t: string[]) => t[0] === 'title')?.[1] || 'MojoBus Video'
-  const thumbnailUrl = e.tags.find((t: string[]) => t[0] === 'image')?.[1] || ''
-  const hashtags = e.tags
+  const title = tags.find((t: string[]) => t[0] === 'title')?.[1] || 'MojoBus Video'
+  const thumbnailUrl = tags.find((t: string[]) => t[0] === 'image')?.[1] || ''
+  const hashtags = tags
     .filter((t: string[]) => t[0] === 't')
     .map((t: string[]) => t[1])
     .filter(Boolean)
