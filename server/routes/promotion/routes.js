@@ -88,14 +88,25 @@ AUSGABE: Antworte IMMER NUR mit validem JSON. Keine Markdown-Code-Blöcke. Keine
   const prompt = templateConfig.prompt({ title, summary, text, lifestyle: lc })
 
   try {
-    const result = await generateWithKi(prompt, systemPrompt, model, 600, 0.8)
+    // 1200 Tokens sind nötig, damit längere Prompts (Story, Infografik)
+    // plus das JSON-Objekt nicht von der KI abgeschnitten werden.
+    const result = await generateWithKi(prompt, systemPrompt, model, 1200, 0.8)
+
+    if (!result || typeof result !== 'string') {
+      console.error('[Promotion] KI hat leeren oder ungültigen Inhalt zurückgegeben:', typeof result, result)
+      return res.status(502).json({
+        error: 'KI gab keinen gültigen Text zurück',
+        rawText: result ? String(result).substring(0, 500) : null
+      })
+    }
+
     const pinData = parsePinJson(result)
 
     if (!pinData) {
-      console.error('[Promotion] KI hat kein valides JSON zurückgegeben:', result.substring(0, 200))
+      console.error('[Promotion] KI hat kein valides JSON zurückgegeben:', result.substring(0, 500))
       return res.status(502).json({
         error: 'KI gab kein gültiges JSON zurück',
-        rawText: result.substring(0, 500)
+        rawText: result.substring(0, 1000)
       })
     }
 

@@ -90,23 +90,83 @@ const analyzeImageWithVision = async (imageUrl) => {
 }
 
 function parsePinJson(rawText) {
+  // Sicherheit: KI kann theoretisch null/undefined/number liefern
+  if (rawText == null) return null
+  if (typeof rawText !== 'string') {
+    // Manche Provider packen den Text in ein Objekt
+    if (typeof rawText === 'object' && rawText.content != null && typeof rawText.content === 'string') {
+      rawText = rawText.content
+    } else {
+      return null
+    }
+  }
+
   try {
     // Code-Block entfernen falls vorhanden
     const jsonStr = rawText
-      .replace(/```json\s*/g, '')
-      .replace(/```\s*/g, '')
+      .replace(/```json\s*/gi, '')
+      .replace(/```\s*/gi, '')
       .trim()
     return JSON.parse(jsonStr)
   } catch (e) {
-    // Fallback: versuche JSON im Text zu finden
-    const match = rawText.match(/\{[\s\S]*\}/)
-    if (match) {
+    // Fallback: extrahiere das erste gültige JSON-Objekt aus dem Text.
+    // Wir zählen geschweifte Klammern, damit '{'/'}' innerhalb von Strings
+    // oder abgeschnittener Output am Ende nicht alles zerstören.
+    const extracted = extractBalancedJson(rawText)
+    if (extracted) {
       try {
-        return JSON.parse(match[0])
+        return JSON.parse(extracted)
       } catch {}
     }
     return null
   }
+}
+
+/**
+ * Extrahiert das erste balancierte JSON-Objekt aus einem String.
+ * Ignoriert Code-Blöcke und Markdown.
+ */
+function extractBalancedJson(text) {
+  let start = -1
+  let depth = 0
+  let inString = false
+  let escape = false
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i]
+
+    if (inString) {
+      if (escape) {
+        escape = false
+        continue
+      }
+      if (ch === '\\') {
+        escape = true
+        continue
+      }
+      if (ch === '"') inString = false
+      continue
+    }
+
+    if (ch === '"') {
+      inString = true
+      continue
+    }
+
+    if (ch === '{') {
+      if (start === -1) start = i
+      depth++
+    } else if (ch === '}') {
+      if (start !== -1) {
+        depth--
+        if (depth === 0) {
+          return text.slice(start, i + 1)
+        }
+      }
+    }
+  }
+
+  return null
 }
 
 export {
