@@ -1,7 +1,9 @@
 import { useState, useCallback } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useToast } from '@/hooks/useToast';
-import { LN } from '@getalby/sdk';
+// Nur Typ-Import (wird beim Compile gelöscht) – die SDK wird lazy geladen,
+// damit @getalby/sdk nicht im initialen Bundle/Eval landet (TBT-Optimierung)
+import type { LN } from '@getalby/sdk';
 
 export interface NWCConnection {
   connectionString: string;
@@ -61,6 +63,9 @@ export function useNWCInternal() {
     }
 
     try {
+      // SDK erst bei tatsächlicher Nutzung laden (lazy chunk)
+      const { LN } = await import('@getalby/sdk');
+
       let timeoutId: NodeJS.Timeout | undefined;
       const testPromise = new Promise((resolve, reject) => {
         try {
@@ -164,6 +169,9 @@ export function useNWCInternal() {
     if (!connection.connectionString) {
       throw new Error('Invalid connection: missing connection string');
     }
+
+    // SDK erst bei tatsächlicher Nutzung laden (lazy chunk)
+    const { LN } = await import('@getalby/sdk');
 
     let client: LN;
     try {

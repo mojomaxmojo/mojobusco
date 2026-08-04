@@ -23,8 +23,6 @@ export default defineConfig(() => ({
       'buffer',
       '@nostrify/react',
       '@nostrify/nostrify',
-      'dijkstrajs',
-      'ngeohash',
     ],
     force: true,
   },
@@ -72,31 +70,29 @@ export default defineConfig(() => ({
           ) return 'milkdown-vendor';
 
           // ── 3. Nostr + Krypto-Stack (~200 kB) ─────────────────────────
-          // Alle deps von nostr-tools zusammen → kein Circular möglich
+          // Nur was beim Start wirklich gebraucht wird (NostrProvider/Login).
+          // NICHT hier: @getalby + webln (Wallet → wird in useNWC.ts lazy
+          // via await import() geladen), ngeohash + dijkstrajs (tote Deps,
+          // werden nirgends importiert).
           if (
             id.includes('/node_modules/nostr-tools/') ||
             id.includes('/node_modules/nostr-wasm/') ||
             id.includes('/node_modules/@nostrify/') ||
             id.includes('/node_modules/@jsr/') ||
             id.includes('/node_modules/@noble/') ||
-            id.includes('/node_modules/@scure/') ||
-            id.includes('/node_modules/ngeohash/') ||
-            id.includes('/node_modules/dijkstrajs/') ||
-            id.includes('/node_modules/@getalby/') ||
-            id.includes('/node_modules/webln/')
+            id.includes('/node_modules/@scure/')
           ) return 'nostr-vendor';
 
-          // ── 4. Radix UI + ALLE seine direkten Deps ────────────────────
-          // vaul und cmdk importieren Radix → müssen mit rein!
-          // aria-hidden, @floating-ui, get-nonce sind Radix-interne Deps
-          if (
-            id.includes('/node_modules/@radix-ui/') ||
-            id.includes('/node_modules/@floating-ui/') ||
-            id.includes('/node_modules/aria-hidden/') ||
-            id.includes('/node_modules/get-nonce/') ||
-            id.includes('/node_modules/vaul/') ||
-            id.includes('/node_modules/cmdk/')
-          ) return 'radix-vendor';
+          // ── 4. Radix UI: KEIN manueller Chunk mehr ─────────────────────
+          // Früher: Alle @radix-ui Pakete in einem 'radix-vendor' Chunk
+          // (188 kB) → musste komplett eager evaluiert werden, weil der
+          // Header dropdown-menu/collapsible importiert (TBT-Problem:
+          // ~39 KiB ungenutztes JS beim Start, Lighthouse).
+          // Jetzt: Rollup splittet automatisch per Route. Header-Radix
+          // (dropdown, collapsible) landet in kleinem Shared-Chunk,
+          // dialog/select/accordion/etc. in ihren Lazy-Page-Chunks.
+          // Das alte Circular-Problem (vaul/cmdk) betraf nur den damaligen
+          // Catch-All-Ansatz – ohne Catch-All löst Rollup das korrekt.
 
           // ── 5. React Query (~50 kB) ────────────────────────────────────
           if (id.includes('/node_modules/@tanstack/')) return 'react-query-vendor';
