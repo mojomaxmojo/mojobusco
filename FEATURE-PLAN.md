@@ -704,7 +704,7 @@ Shakespeare.
 - [x] **Schritt 5**: Header, Footer und Account-Menü zeigen auf
       `/en/...`-Seiten englische Texte, Links bleiben im `/en/`-Kontext;
       deutsche Seiten unverändert
-- [ ] **Schritt 6**: Checkbox + Hintergrund-Übersetzung in `ArticleForm.tsx`
+- [x] **Schritt 6**: Checkbox + Hintergrund-Übersetzung in `ArticleForm.tsx`
       eingebaut und getestet — DE-Artikel weiterhin normal veröffentlicht,
       EN-Version erscheint automatisch unter `/en/artikel`
 - [ ] **Schritt 7**: Gleiches Muster übertragen auf `PlaceForm.tsx`,

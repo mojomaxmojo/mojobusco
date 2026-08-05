@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/useToast";
 import { useUploadFile } from "@/hooks/useUploadFile";
 import { useNostrPublish } from "@/hooks/useNostrPublish";
+import { useAutoTranslate } from "@/hooks/useAutoTranslate";
 import { ImageOptimizationToggle } from "@/components/ImageOptimizationToggle";
 import { GpsEditor } from "@/components/GpsEditor";
 import { GpsStatusIndicator } from "@/components/GpsStatusIndicator";
@@ -20,6 +21,7 @@ import { CountrySelector, getCountryTag } from "@/components/CountrySelector";
 import { ARTICLE_CATEGORIES, DIY_CATEGORIES, DIY_TAGS, NATURE_CATEGORIES, NATURE_TAGS, TAG_GROUPS } from "@/config";
 import { TRIP_TYPES, type TripType } from "@/config/tags";
 import { RV_LIFE_CONFIG } from "@/config/rvlife";
+import { AUTO_TRANSLATE_STORAGE_KEY } from "@/config/translation";
 import { MilkdownEditor } from "@/components/MilkdownEditor";
 import { RemotionVideoBlock } from "@/components/RemotionVideoBlock";
 import { SlideshowBlock } from "@/components/SlideshowBlock";
@@ -78,11 +80,18 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
   const [publishTeaserNote, setPublishTeaserNote] = useState(true);
   const [isPublishingTeaser, setIsPublishingTeaser] = useState(false);
 
+  // Auto-Übersetzung (DE→EN) State
+  const [autoTranslateEn, setAutoTranslateEn] = useState(() => {
+    const stored = localStorage.getItem(AUTO_TRANSLATE_STORAGE_KEY);
+    return stored === null ? true : stored !== 'false';
+  });
+
   const { toast } = useToast();
   const { mutateAsync: publishEvent } = useNostrPublish();
   const { mutateAsync: uploadFile } = useUploadFile();
   const { gender, user: currentUser } = useCurrentUser(); // Gender für KI-Generierung (Mojo=male, Susanne=female)
   const navigate = useNavigate();
+  const { translateAndPublish } = useAutoTranslate();
 
   // Hilfsfunktion: Bild-URLs aus Markdown-Content extrahieren
   // Format: ![alt](https://...) oder ![alt](https://...)
@@ -865,6 +874,15 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
         ? 'Bericht erfolgreich aktualisiert.'
         : 'Bericht veröffentlicht!'
     });
+
+    // Auto-Übersetzung (DE→EN): EN-Version im Hintergrund veröffentlichen
+    if (autoTranslateEn && currentUser?.pubkey) {
+      translateAndPublish({
+        type: 'article', kind: 30023, originalDTag: dTag,
+        pubkey: currentUser.pubkey, title, summary, content,
+        baseTags: finalTags, publishTeaser: publishTeaserNote,
+      });
+    }
 
     // Reset + Redirect
     setTitle('');
@@ -1669,6 +1687,21 @@ Schreibe deinen Artikel hier...
             id="article-publish-teaser"
             checked={publishTeaserNote}
             onCheckedChange={setPublishTeaserNote}
+          />
+        </div>
+
+        <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
+          <div className="space-y-0.5">
+            <Label htmlFor="article-auto-translate" className="text-sm font-medium">🇬🇧 Automatisch ins Englische übersetzen</Label>
+            <p className="text-xs text-muted-foreground">Erstellt automatisch eine englische Version unter mojobus.co/en/…</p>
+          </div>
+          <Switch
+            id="article-auto-translate"
+            checked={autoTranslateEn}
+            onCheckedChange={(checked) => {
+              setAutoTranslateEn(checked);
+              localStorage.setItem(AUTO_TRANSLATE_STORAGE_KEY, String(checked));
+            }}
           />
         </div>
 
