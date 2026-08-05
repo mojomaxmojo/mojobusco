@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/useToast";
 import { useUploadFile } from "@/hooks/useUploadFile";
 import { useNostrPublish } from "@/hooks/useNostrPublish";
+import { useAutoTranslate } from "@/hooks/useAutoTranslate";
+import { AUTO_TRANSLATE_STORAGE_KEY } from "@/config/translation";
 import { ImageOptimizationToggle } from "@/components/ImageOptimizationToggle";
 import { GpsEditor } from "@/components/GpsEditor";
 import { GpsStatusIndicator } from "@/components/GpsStatusIndicator";
@@ -33,6 +35,7 @@ import { Progress } from "@/components/ui/progress";
 import { Upload, UploadCloud, ImageIcon, Video, Music, File as FileIcon, Camera, MapPin, Calendar, Tag, Battery, Sun, Wrench, Hammer, Cpu, Mountain, Lightbulb, Dog, Trees, Droplets, Waves, Eye, Loader2, CheckCircle, Route, Sparkles, FileText, MessageSquare, Map } from "@/lib/icons";
 import { extractGpsFromImage, formatCoordinatesSimple, reverseGeocode, mapCountryCode, type GpsData, type GpsStatus, type LocationData } from "@/lib/gpsExtraction";
 import { createCorrectedPreview } from "./publishUtils";
+import type { NostrEvent } from "@nostrify/nostrify";
 import exifr from "exifr";
 
 export function NoteForm({ editEvent }: { editEvent?: any }) {
@@ -56,11 +59,19 @@ export function NoteForm({ editEvent }: { editEvent?: any }) {
   const [selectedModel, setSelectedModel] = useState<'mini' | 'medium' | 'maxi'>('medium');
   const [lifestyle, setLifestyle] = useState<'mojobus' | 'vanlife' | 'rvlife' | 'beachlife' | 'wohnmobil' | 'perpetual-travelers'>('mojobus');
   const [tripType, setTripType] = useState<TripType | ''>('');
+
+  // Auto-Übersetzung (DE→EN) State
+  const [autoTranslateEn, setAutoTranslateEn] = useState(() => {
+    const stored = localStorage.getItem(AUTO_TRANSLATE_STORAGE_KEY);
+    return stored === null ? true : stored !== 'false';
+  });
+
   const { toast } = useToast();
   const { mutateAsync: publishEvent } = useNostrPublish();
   const { mutateAsync: uploadFile } = useUploadFile();
   const { gender } = useCurrentUser(); // Gender für KI-Generierung (Mojo=male, Susanne=female)
   const navigate = useNavigate();
+  const { translateAndPublish } = useAutoTranslate();
 
   // KI-Notiz generieren (Foster Huntington Stil)
   const generateNoteWithAI = async () => {
@@ -503,7 +514,7 @@ export function NoteForm({ editEvent }: { editEvent?: any }) {
       content: articleContent,
       tags: eventTags
     }, {
-      onSuccess: () => {
+      onSuccess: (data: NostrEvent) => {
         setIsPublishing(false);
         setPublishProgress({ stage: 'success', status: 'Erfolgreich veröffentlicht!' });
 
@@ -511,6 +522,15 @@ export function NoteForm({ editEvent }: { editEvent?: any }) {
           title: 'Erfolg!',
           description: 'Note erfolgreich veroeffentlicht.'
         });
+
+        // Auto-Übersetzung (DE→EN): EN-Version im Hintergrund veröffentlichen
+        if (autoTranslateEn) {
+          translateAndPublish({
+            type: 'note', kind: 1, originalEventId: data.id,
+            pubkey: data.pubkey, title: '', summary: '',
+            content: articleContent, baseTags: eventTags, publishTeaser: false,
+          });
+        }
 
         // Reset form and redirect
         setContent('');
@@ -998,6 +1018,21 @@ export function NoteForm({ editEvent }: { editEvent?: any }) {
           location={location}
           country={selectedCountry}
         />
+
+        <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
+          <div className="space-y-0.5">
+            <Label htmlFor="note-auto-translate" className="text-sm font-medium">🇬🇧 Automatisch ins Englische übersetzen</Label>
+            <p className="text-xs text-muted-foreground">Erstellt automatisch eine englische Version unter mojobus.co/en/…</p>
+          </div>
+          <Switch
+            id="note-auto-translate"
+            checked={autoTranslateEn}
+            onCheckedChange={(checked) => {
+              setAutoTranslateEn(checked);
+              localStorage.setItem(AUTO_TRANSLATE_STORAGE_KEY, String(checked));
+            }}
+          />
+        </div>
 
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">

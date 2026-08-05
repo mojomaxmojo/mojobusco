@@ -27,9 +27,11 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/useToast';
 import { useUploadFile } from '@/hooks/useUploadFile';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
+import { useAutoTranslate } from '@/hooks/useAutoTranslate';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { canonicalUrl, tripUrl } from '@/lib/canonicalUrl';
 import { createLongformTeaser } from '@/lib/createLongformTeaser';
+import { AUTO_TRANSLATE_STORAGE_KEY } from '@/config/translation';
 import { useTrip } from '@/hooks/useTrips';
 import { GpsEditor } from '@/components/GpsEditor';
 import { GpsStatusIndicator } from '@/components/GpsStatusIndicator';
@@ -391,6 +393,7 @@ export function TripPublishForm() {
   const { mutateAsync: uploadFile } = useUploadFile();
   const { mutateAsync: publishEvent } = useNostrPublish();
   const { gender, user } = useCurrentUser(); // Gender für KI-Generierung (Mojo=male, Susanne=female)
+  const { translateAndPublish } = useAutoTranslate();
 
   // KI-Artikelgenerierung für Trips
   const generateArticleWithAI = async () => {
@@ -1098,6 +1101,12 @@ export function TripPublishForm() {
   // Teaser-Note State
   const [publishTeaserNote, setPublishTeaserNote] = useState(true);
 
+  // Auto-Übersetzung (DE→EN) State
+  const [autoTranslateEn, setAutoTranslateEn] = useState(() => {
+    const stored = localStorage.getItem(AUTO_TRANSLATE_STORAGE_KEY);
+    return stored === null ? true : stored !== 'false';
+  });
+
   const handlePublish = async () => {
     // First upload all images and get updated stations
     const uploadedStations = await uploadImages();
@@ -1232,6 +1241,15 @@ export function TripPublishForm() {
             ? 'Dein Trip wurde erfolgreich aktualisiert.'
             : 'Dein Trip wurde erfolgreich veröffentlicht.',
         });
+
+        // Auto-Übersetzung (DE→EN): EN-Version im Hintergrund veröffentlichen
+        if (autoTranslateEn && user?.pubkey) {
+          translateAndPublish({
+            type: 'trip', kind: 30025, originalDTag: dTag,
+            pubkey: user.pubkey, title: tripData.title, summary: tripData.summary,
+            content, baseTags: tags, publishTeaser: publishTeaserNote,
+          });
+        }
 
         return true;
       } catch (error: any) {
@@ -2232,6 +2250,22 @@ export function TripPublishForm() {
           id="trip-publish-teaser"
           checked={publishTeaserNote}
           onCheckedChange={setPublishTeaserNote}
+        />
+      </div>
+
+      {/* Auto-Übersetzung Option */}
+      <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
+        <div className="space-y-0.5">
+          <Label htmlFor="trip-auto-translate" className="text-sm font-medium">🇬🇧 Automatisch ins Englische übersetzen</Label>
+          <p className="text-xs text-muted-foreground">Erstellt automatisch eine englische Version unter mojobus.co/en/…</p>
+        </div>
+        <Switch
+          id="trip-auto-translate"
+          checked={autoTranslateEn}
+          onCheckedChange={(checked) => {
+            setAutoTranslateEn(checked);
+            localStorage.setItem(AUTO_TRANSLATE_STORAGE_KEY, String(checked));
+          }}
         />
       </div>
     </div>

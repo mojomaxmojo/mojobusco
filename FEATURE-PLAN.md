@@ -707,7 +707,7 @@ Shakespeare.
 - [x] **Schritt 6**: Checkbox + Hintergrund-Übersetzung in `ArticleForm.tsx`
       eingebaut und getestet — DE-Artikel weiterhin normal veröffentlicht,
       EN-Version erscheint automatisch unter `/en/artikel`
-- [ ] **Schritt 7**: Gleiches Muster übertragen auf `PlaceForm.tsx`,
+- [x] **Schritt 7**: Gleiches Muster übertragen auf `PlaceForm.tsx`,
       `TripPublishForm.tsx`, `NoteForm.tsx` — je einzeln getestet
 - [ ] **Schritt 8**: SEO-Pairing in `prerender-helpers.js`,
       `prerender-meta.js`, `prerender-entity-templates.js`,
