@@ -27,33 +27,33 @@ export function canonicalUrl(path = ''): string {
 }
 
 /** Artikel (Longform kind 30023) – canonical: /{naddr} */
-export function articleUrl(naddr: string): string {
-  return `/${naddr}`;
+export function articleUrl(naddr: string, lang: 'de' | 'en' = 'de'): string {
+  return lang === 'en' ? `/en/${naddr}` : `/${naddr}`;
 }
 
 /** Note (kind 1) – canonical: /{note} */
-export function noteUrl(noteId: string): string {
-  return `/${noteId}`;
+export function noteUrl(noteId: string, lang: 'de' | 'en' = 'de'): string {
+  return lang === 'en' ? `/en/${noteId}` : `/${noteId}`;
 }
 
 /** Trip – canonical: /trip/{naddr} */
-export function tripUrl(naddr: string): string {
-  return `/trip/${naddr}`;
+export function tripUrl(naddr: string, lang: 'de' | 'en' = 'de'): string {
+  return lang === 'en' ? `/en/trip/${naddr}` : `/trip/${naddr}`;
 }
 
 /** Bild/Media – canonical: /bild/{note} */
-export function imageUrl(noteId: string): string {
-  return `/bild/${noteId}`;
+export function imageUrl(noteId: string, lang: 'de' | 'en' = 'de'): string {
+  return lang === 'en' ? `/en/bild/${noteId}` : `/bild/${noteId}`;
 }
 
 /** Ort/Place – canonical: /{naddr} (kind 30023) oder /{note} (kind 1) */
-export function placeUrl(encodedId: string): string {
-  return `/${encodedId}`;
+export function placeUrl(encodedId: string, lang: 'de' | 'en' = 'de'): string {
+  return lang === 'en' ? `/en/${encodedId}` : `/${encodedId}`;
 }
 
 /** Profil – canonical: /{npub} */
-export function profileUrl(npub: string): string {
-  return `/${npub}`;
+export function profileUrl(npub: string, lang: 'de' | 'en' = 'de'): string {
+  return lang === 'en' ? `/en/${npub}` : `/${npub}`;
 }
 
 /** Autoren-URL aus Pubkey – canonical: /{npub} */
@@ -67,8 +67,8 @@ export function videosUrl(): string {
 }
 
 /** Einzelnes Video (NIP-71 addressable) – canonical: /video/{naddr} */
-export function videoUrl(naddr: string): string {
-  return `/video/${naddr}`;
+export function videoUrl(naddr: string, lang: 'de' | 'en' = 'de'): string {
+  return lang === 'en' ? `/en/video/${naddr}` : `/video/${naddr}`;
 }
 
 /** Basis-OG-Bild */

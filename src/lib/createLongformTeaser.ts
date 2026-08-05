@@ -36,6 +36,8 @@ export interface LongformTeaserInput {
   tags?: string[];
   /** Vom Nutzer gewähltes Land. */
   country?: string | null;
+  /** Sprache der Teaser-Version (für `/en/`-canonical-URLs). Default: 'de'. */
+  lang?: 'de' | 'en';
 }
 
 export interface LongformTeaserResult {
@@ -93,17 +95,17 @@ function buildNaddr(kind: number, pubkey: string, dTag: string): string {
 /**
  * Ermittelt die canonical URL für den Teaser basierend auf dem Inhaltstyp.
  */
-function buildCanonicalUrl(type: LongformTeaserType, naddr: string): string {
+function buildCanonicalUrl(type: LongformTeaserType, naddr: string, lang: 'de' | 'en' = 'de'): string {
   switch (type) {
     case 'place':
-      return canonicalUrl(placeUrl(naddr));
+      return canonicalUrl(placeUrl(naddr, lang));
     case 'trip':
-      return canonicalUrl(tripUrl(naddr));
+      return canonicalUrl(tripUrl(naddr, lang));
     case 'video':
-      return canonicalUrl(videoUrl(naddr));
+      return canonicalUrl(videoUrl(naddr, lang));
     case 'article':
     default:
-      return canonicalUrl(articleUrl(naddr));
+      return canonicalUrl(articleUrl(naddr, lang));
   }
 }
 
@@ -147,7 +149,7 @@ function buildThematicTags(
  */
 export function createLongformTeaser(input: LongformTeaserInput): LongformTeaserResult {
   const naddr = buildNaddr(input.kind, input.pubkey, input.dTag);
-  const canonical = buildCanonicalUrl(input.type, naddr);
+  const canonical = buildCanonicalUrl(input.type, naddr, input.lang ?? 'de');
   const summary = buildSummary(input.body, input.summary);
   const country = input.country?.trim() || null;
   const thematicTags = buildThematicTags(input.type, input.tags ?? [], country);
