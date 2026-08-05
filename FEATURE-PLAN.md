@@ -691,7 +691,7 @@ Shakespeare.
       `src/config/i18n/navigation.ts`, `src/hooks/useLanguage.ts` erstellt;
       `src/lib/canonicalUrl.ts` und `src/lib/createLongformTeaser.ts` um
       optionalen `lang`-Parameter ergänzt; Build läuft fehlerfrei durch
-- [ ] **Schritt 2**: `src/config/prompts/translation.js` +
+- [x] **Schritt 2**: `src/config/prompts/translation.js` +
       `server/routes/content/translate.js` erstellt, `server/routes/content/index.js`
       um 2 Zeilen ergänzt, `/api/translate-content` liefert per curl/Test
       eine englische Übersetzung zurück
