@@ -98,8 +98,9 @@ export async function botMiddleware(req, res, next) {
 
         if (event) {
           const meta = extractEventMetadata(event)
+          const isEnPath = pathname.startsWith('/en/')
           const keywords = [
-            'vanlife', 'perpetual travelers', 'meer', 'portugal',
+            isEnPath ? 'vanlife, travel' : 'vanlife', 'perpetual travelers', 'meer', 'portugal',
             ...(meta.tTags || [])
           ].join(', ')
 

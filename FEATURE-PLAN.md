@@ -715,7 +715,7 @@ Shakespeare.
       `generate-sitemap.js` ergänzt + Sprachlink in `ArticleView.tsx`;
       Sitemap und Prerender-HTML zeigen korrekte `hreflang`-Alternates
       inkl. `/en/`-Präfix
-- [ ] **Schritt 9**: `server/bot/config.js` um `/en/`-Meta-Einträge
+- [x] **Schritt 9**: `server/bot/config.js` um `/en/`-Meta-Einträge
       ergänzt, `mojobus.co.ssl.conf` um `/en/`-Rewrite-Regeln ergänzt,
       nach VPS-Deploy liefern Social-Media-Crawler für `/en/...`-Seiten
       englische Vorschau-Inhalte

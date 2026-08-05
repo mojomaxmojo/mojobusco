@@ -203,6 +203,48 @@ const STATIC_PAGE_META = {
     image: DEFAULT_OG_IMAGE,
     type: 'website',
   },
+  '/en/': {
+    title: 'MojoBus — Perpetual Travelers | Our Life by the Sea',
+    description: 'Stories, tips and insights into our life between sand and horizon. Vanlife, Portugal, off-grid, solar.',
+    image: DEFAULT_OG_IMAGE,
+    type: 'website',
+  },
+  '/en/artikel': {
+    title: 'Travel Reports & Articles — MojoBus',
+    description: 'All travel reports by Mojo & Susanne. Vanlife by the sea, Portugal, Spain, off-grid and more.',
+    image: DEFAULT_OG_IMAGE,
+    type: 'website',
+  },
+  '/en/plaetze': {
+    title: 'Secret Campsites & Places — MojoBus',
+    description: 'Our best campsites and favourite places by the sea. GPS coordinates, tips and reviews.',
+    image: DEFAULT_OG_IMAGE,
+    type: 'website',
+  },
+  '/en/bilder': {
+    title: 'Photo Gallery — MojoBus Perpetual Travelers',
+    description: 'Photos from our life by the sea. Beaches, sunsets, vanlife and off-grid adventures.',
+    image: DEFAULT_OG_IMAGE,
+    type: 'website',
+  },
+  '/en/notes': {
+    title: 'Notes & Thoughts — MojoBus',
+    description: 'Short thoughts and notes from our everyday life by the sea.',
+    image: DEFAULT_OG_IMAGE,
+    type: 'website',
+  },
+  '/en/about': {
+    title: 'About us — Mojo & Susanne | MojoBus',
+    description: 'We are Mojo & Susanne. For years we have been living as perpetual travelers between sand and horizon.',
+    image: DEFAULT_OG_IMAGE,
+    type: 'profile',
+  },
+  '/en/map': {
+    title: 'Our Travel Map — MojoBus',
+    description: 'All our routes, campsites and visited places on one interactive map.',
+    image: DEFAULT_OG_IMAGE,
+    type: 'website',
+  },
 }
 
 export {
