@@ -31,12 +31,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useHead } from '@unhead/react';
 import { nip19, type AddressPointer } from 'nostr-tools';
 import { canonicalUrl as getCanonicalUrl, articleUrl, profileUrl, ogImageUrl } from '@/lib/canonicalUrl';
 import { getArticleHeaderUrl, generateSrcset, generateSizes, getResponsiveImageUrl } from '@/lib/imageUtils';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
+import { getEventLanguage } from '@/lib/translationTags';
+import { useNostr } from '@/hooks/useNostr';
+import { NOSTR_CONFIG } from '@/config/nostr';
 
 interface ArticleViewProps {
   naddr: AddressPointer;
@@ -261,6 +265,38 @@ export function ArticleView({ naddr }: ArticleViewProps) {
   const { toast } = useToast();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
+  // ── Übersetzungs-Pendant (Schritt 8: SEO-Pairing / Sprachlink) ─────────
+  const { nostr } = useNostr();
+  const articleLang = article ? getEventLanguage(article) : 'de';
+  const lang: 'de' | 'en' = articleLang === 'en' ? 'en' : 'de';
+  const otherLang: 'de' | 'en' = lang === 'de' ? 'en' : 'de';
+
+  const pairIdentifier = useMemo(() => {
+    if (!article) return null;
+    const id = article.tags.find(([name]) => name === 'd')?.[1] || naddr.identifier;
+    return id.endsWith('-en') ? id.slice(0, -3) : `${id}-en`;
+  }, [article, naddr.identifier]);
+
+  const { data: pairEvent } = useQuery({
+    queryKey: ['article-translation-pair', pairIdentifier, naddr.pubkey],
+    queryFn: async (c) => {
+      if (!pairIdentifier) return null;
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(1500)]);
+      const events = await nostr.query(
+        [{ kinds: [NOSTR_CONFIG.kinds.longform], authors: [naddr.pubkey], '#d': [pairIdentifier], limit: 1 }],
+        { signal }
+      );
+      return events[0] || null;
+    },
+    enabled: !!pairIdentifier,
+    staleTime: 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+  const pairNaddr = pairEvent
+    ? nip19.naddrEncode({ kind: NOSTR_CONFIG.kinds.longform, pubkey: naddr.pubkey, identifier: pairIdentifier! })
+    : null;
+
   // Check if current user is author
   const isAuthor = user?.pubkey === naddr.pubkey;
 
@@ -437,7 +473,12 @@ export function ArticleView({ naddr }: ArticleViewProps) {
       meta: metaEntries,
       link: [
         { rel: 'canonical', href: canonicalHref },
-        { rel: 'author', href: authorProfileUrl, title: authorName }
+        { rel: 'author', href: authorProfileUrl, title: authorName },
+        ...(pairNaddr ? [
+          { rel: 'alternate', href: getCanonicalUrl(lang === 'de' ? `/en/${pairNaddr}` : `/${pairNaddr}`), hreflang: otherLang },
+          { rel: 'alternate', href: getCanonicalUrl(lang === 'de' ? `/${nip19.naddrEncode(naddr)}` : `/en/${nip19.naddrEncode(naddr)}`), hreflang: articleLang },
+          { rel: 'alternate', href: getCanonicalUrl(lang === 'de' ? `/${nip19.naddrEncode(naddr)}` : `/en/${nip19.naddrEncode(naddr)}`), hreflang: 'x-default' },
+        ] : []),
       ],
       script: [
         {
@@ -607,6 +648,18 @@ export function ArticleView({ naddr }: ArticleViewProps) {
 
              {/* Divider */}
             </div>
+
+            {/* Sprachlink zur Übersetzung (Schritt 8) */}
+            {pairNaddr && (
+              <div className="mb-4">
+                <Link
+                  to={lang === 'de' ? `/en/${pairNaddr}` : `/${pairNaddr}`}
+                  className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                >
+                  {lang === 'de' ? '🇬🇧 English version' : '🇩🇪 Deutsche Version'}
+                </Link>
+              </div>
+            )}
 
             {/* Breadcrumbs */}
             <Breadcrumbs items={[

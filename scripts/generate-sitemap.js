@@ -24,6 +24,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { nip19 } from 'nostr-tools';
+import { buildLocalizedUrl, findTranslationPair, getEventLangFromTags } from './prerender-helpers.js';
 
 // ── Autoren aus zentraler JSON-Config (Single Source of Truth) ────────────
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -119,7 +120,7 @@ function escapeXml(str) {
 // ── Sitemap XML Generator ─────────────────────────────────────────────────
 function generateSitemapXml(urls) {
   let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
-  xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+  xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n';
 
   for (const url of urls) {
     xml += '  <url>\n';
@@ -128,6 +129,11 @@ function generateSitemapXml(urls) {
     xml += `    <changefreq>${url.changefreq}</changefreq>\n`;
     if (url.lastmod) {
       xml += `    <lastmod>${url.lastmod}</lastmod>\n`;
+    }
+    if (url.alternates && url.alternates.length) {
+      for (const alt of url.alternates) {
+        xml += `    <xhtml:link rel="alternate" hreflang="${escapeXml(alt.hreflang)}" href="${escapeXml(alt.href)}" />\n`;
+      }
     }
     xml += '  </url>\n';
   }
@@ -199,6 +205,50 @@ function extractVideoMeta(event) {
   return { title, description, thumbnail, videoUrl, duration };
 }
 
+// ── Sitemap-Pfad & Priorität für ein Kind-1-Event ermitteln ───────────────
+function buildNoteEntry(event) {
+  const tTags = new Set((event.tags?.filter(t => t[0] === 't').map(t => t[1]) || []).map(t => t.toLowerCase()));
+  const typeTag = (event.tags?.find(t => t[0] === 'type')?.[1] || '').toLowerCase();
+
+  // Orte mit type=place → /{naddr} (wenn kind 30023) oder /{note}
+  if (typeTag === 'place' || tTags.has('place') || tTags.has('camping') || tTags.has('stellplatz')) {
+    if (event.kind === 30023) {
+      const naddr = encodeNaddr(event);
+      return naddr ? { path: `/${naddr}`, priority: '0.7' } : null;
+    }
+    try {
+      return { path: `/${nip19.noteEncode(event.id)}`, priority: '0.7' };
+    } catch {
+      return null;
+    }
+  }
+
+  // Trips → /trip/{naddr}
+  if (tTags.has('trip') || tTags.has('trips') || tTags.has('travel') || tTags.has('reise')) {
+    const naddr = encodeNaddr(event);
+    return naddr ? { path: `/trip/${naddr}`, priority: '0.7' } : null;
+  }
+
+  // Bilder/Media → /bild/{note}
+  if (tTags.has('media') || tTags.has('medien') || tTags.has('bilder') || tTags.has('images') || tTags.has('galerie')) {
+    try {
+      return { path: `/bild/${nip19.noteEncode(event.id)}`, priority: '0.6' };
+    } catch {
+      return null;
+    }
+  }
+
+  // Reine Notes → /{note}
+  if (event.kind === 1) {
+    try {
+      return { path: `/${nip19.noteEncode(event.id)}`, priority: '0.5' };
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────
 async function main() {
   console.log('[Sitemap] Generiere Sitemaps...');
@@ -221,7 +271,13 @@ async function main() {
     { loc: BASE_URL + '/feed.xml',       priority: '0.4', changefreq: 'hourly' },
   ];
 
-  const allUrls = [...staticPages];
+  // Für jede statische Seite zusätzlich das `/en/`-Pendant mit gleicher priority/changefreq
+  const enStaticPages = staticPages.map(page => {
+    const path = page.loc.slice(BASE_URL.length) || '/';
+    return { ...page, loc: buildLocalizedUrl(path, 'en') };
+  });
+
+  const allUrls = [...staticPages, ...enStaticPages];
   const seen = new Set(); // Deduplizierung
   const videoUrls = []; // Für separate Video-Sitemap
 
@@ -237,11 +293,23 @@ async function main() {
       seen.add(event.id);
       const naddr = encodeNaddr(event);
       if (!naddr) continue;
+      const lang = getEventLangFromTags(event);
+      const path = `/${naddr}`;
+      const pair = findTranslationPair(articles, event);
+      let alternates;
+      if (pair) {
+        const pairNaddr = encodeNaddr(pair);
+        const pairLang = getEventLangFromTags(pair);
+        if (pairNaddr) {
+          alternates = [{ hreflang: pairLang, href: buildLocalizedUrl(`/${pairNaddr}`, pairLang) }];
+        }
+      }
       allUrls.push({
-        loc: `${BASE_URL}/${naddr}`,
+        loc: buildLocalizedUrl(path, lang),
         priority: '0.8',
         changefreq: 'monthly',
         lastmod: new Date(event.created_at * 1000).toISOString().split('T')[0],
+        ...(alternates ? { alternates } : {}),
       });
     }
 
@@ -258,7 +326,18 @@ async function main() {
       const meta = extractVideoMeta(event);
       if (!meta.videoUrl) continue;
 
-      const loc = `${BASE_URL}/video/${naddr}`;
+      const lang = getEventLangFromTags(event);
+      const path = `/video/${naddr}`;
+      const pair = findTranslationPair(videoEvents, event);
+      let alternates;
+      if (pair) {
+        const pairNaddr = encodeNaddr(pair);
+        const pairLang = getEventLangFromTags(pair);
+        if (pairNaddr) {
+          alternates = [{ hreflang: pairLang, href: buildLocalizedUrl(`/video/${pairNaddr}`, pairLang) }];
+        }
+      }
+      const loc = buildLocalizedUrl(path, lang);
       const lastmod = new Date(event.created_at * 1000).toISOString().split('T')[0];
 
       allUrls.push({
@@ -266,6 +345,7 @@ async function main() {
         priority: '0.7',
         changefreq: 'weekly',
         lastmod,
+        ...(alternates ? { alternates } : {}),
       });
 
       videoUrls.push({
@@ -288,75 +368,28 @@ async function main() {
       if (seen.has(event.id)) continue;
       seen.add(event.id);
 
-      const tTags = new Set((event.tags?.filter(t => t[0] === 't').map(t => t[1]) || []).map(t => t.toLowerCase()));
-      const typeTag = (event.tags?.find(t => t[0] === 'type')?.[1] || '').toLowerCase();
+      const entry = buildNoteEntry(event);
+      if (!entry) continue;
 
-      // Orte mit type=place → /{naddr} (wenn kind 30023) oder /{note}
-      if (typeTag === 'place' || tTags.has('place') || tTags.has('camping') || tTags.has('stellplatz')) {
-        if (event.kind === 30023) {
-          const naddr = encodeNaddr(event);
-          if (naddr) {
-            allUrls.push({
-              loc: `${BASE_URL}/${naddr}`,
-              priority: '0.7',
-              changefreq: 'monthly',
-              lastmod: new Date(event.created_at * 1000).toISOString().split('T')[0],
-            });
-          }
-        } else {
-          try {
-            const note = nip19.noteEncode(event.id);
-            allUrls.push({
-              loc: `${BASE_URL}/${note}`,
-              priority: '0.7',
-              changefreq: 'monthly',
-              lastmod: new Date(event.created_at * 1000).toISOString().split('T')[0],
-            });
-          } catch {}
+      const lang = getEventLangFromTags(event);
+      const path = entry.path;
+      const pair = findTranslationPair(notes, event);
+      let alternates;
+      if (pair) {
+        const pairEntry = buildNoteEntry(pair);
+        const pairLang = getEventLangFromTags(pair);
+        if (pairEntry) {
+          alternates = [{ hreflang: pairLang, href: buildLocalizedUrl(pairEntry.path, pairLang) }];
         }
-        continue;
       }
 
-      // Trips → /trip/{naddr}
-      if (tTags.has('trip') || tTags.has('trips') || tTags.has('travel') || tTags.has('reise')) {
-        const naddr = encodeNaddr(event);
-        if (naddr) {
-          allUrls.push({
-            loc: `${BASE_URL}/trip/${naddr}`,
-            priority: '0.7',
-            changefreq: 'monthly',
-            lastmod: new Date(event.created_at * 1000).toISOString().split('T')[0],
-          });
-        }
-        continue;
-      }
-
-      // Bilder/Media → /bild/{note}
-      if (tTags.has('media') || tTags.has('medien') || tTags.has('bilder') || tTags.has('images') || tTags.has('galerie')) {
-        try {
-          const noteId = nip19.noteEncode(event.id);
-          allUrls.push({
-            loc: `${BASE_URL}/bild/${noteId}`,
-            priority: '0.6',
-            changefreq: 'monthly',
-            lastmod: new Date(event.created_at * 1000).toISOString().split('T')[0],
-          });
-        } catch {}
-        continue;
-      }
-
-      // Reine Notes → /{note}
-      if (event.kind === 1) {
-        try {
-          const note = nip19.noteEncode(event.id);
-          allUrls.push({
-            loc: `${BASE_URL}/${note}`,
-            priority: '0.5',
-            changefreq: 'monthly',
-            lastmod: new Date(event.created_at * 1000).toISOString().split('T')[0],
-          });
-        } catch {}
-      }
+      allUrls.push({
+        loc: buildLocalizedUrl(path, lang),
+        priority: entry.priority,
+        changefreq: 'monthly',
+        lastmod: new Date(event.created_at * 1000).toISOString().split('T')[0],
+        ...(alternates ? { alternates } : {}),
+      });
     }
   }
 

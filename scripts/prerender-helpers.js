@@ -135,3 +135,50 @@ export async function queryRelay(relayUrl, filters, timeoutMs = 15000) {
     };
   });
 }
+
+/**
+ * Baut eine lokalisierte absolute URL mit optionalem `/en/`-Präfix.
+ * Zentrale Stelle für die `/en/`-Präfix-Logik in allen Prerender-Skripten.
+ */
+export function buildLocalizedUrl(path, lang) {
+  return `${BASE_URL}${lang === 'en' ? '/en' : ''}${path}`;
+}
+
+/**
+ * Ermittelt die Sprache eines Content-Events aus seinem `l`-Tag.
+ * Fehlt das Tag (Bestandsdaten), wird `'de'` zurückgegeben.
+ * Serverseitiges Äquivalent zu `getEventLanguage()` aus `src/lib/translationTags.ts`.
+ */
+export function getEventLangFromTags(event) {
+  const langTag = event.tags?.find(t => t[0] === 'l');
+  return langTag?.[1] || 'de';
+}
+
+/**
+ * Sucht im übergebenen Array nach dem Übersetzungs-Pendant eines Events.
+ * - Addressable Events (mit `d`-Tag): Partner mit passendem d-Tag-Suffix
+ *   (`<original>-en` bzw. umgekehrt), gleicher `kind` + `pubkey`.
+ * - Notes (kein `d`-Tag): Partner über den `e`-Tag-Marker `translation-of`.
+ * Gibt das Pendant-Event zurück oder `null`.
+ */
+export function findTranslationPair(events, event) {
+  if (!event || !Array.isArray(events)) return null;
+  const sameKindPubkey = events.filter(e => e.pubkey === event.pubkey && e.kind === event.kind);
+  const dTag = event.tags?.find(t => t[0] === 'd')?.[1];
+
+  for (const cand of sameKindPubkey) {
+    if (cand.id === event.id) continue;
+
+    if (dTag) {
+      const candDTag = cand.tags?.find(t => t[0] === 'd')?.[1];
+      if (!candDTag) continue;
+      if (candDTag === `${dTag}-en` || dTag === `${candDTag}-en`) return cand;
+    } else {
+      // Notes: EN-Version referenziert das Original per `['e', id, '', 'translation-of']`
+      const refs = cand.tags?.filter(t => t[0] === 'e' && t[3] === 'translation-of') || [];
+      const ownRefs = event.tags?.filter(t => t[0] === 'e' && t[3] === 'translation-of') || [];
+      if (refs.some(r => r[1] === event.id) || ownRefs.some(r => r[1] === cand.id)) return cand;
+    }
+  }
+  return null;
+}

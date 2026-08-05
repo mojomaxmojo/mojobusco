@@ -9,6 +9,9 @@ import {
   formatDate,
   getAuthorName,
   getAuthorUrl,
+  buildLocalizedUrl,
+  findTranslationPair,
+  getEventLangFromTags,
 } from './prerender-helpers.js';
 import {
   buildHead,
@@ -24,7 +27,7 @@ function imageTag(image, alt) {
   return `<img src="${escapeHtml(image)}" alt="${escapeHtml(alt || '')}" style="max-width:600px" />`;
 }
 
-export function renderArticleHtml(event) {
+export function renderArticleHtml(event, allEventsOfType = []) {
   const title = event.tags?.find(t => t[0] === 'title')?.[1] || 'Artikel';
   const summary = event.tags?.find(t => t[0] === 'summary')?.[1] || '';
   const image = event.tags?.find(t => t[0] === 'image')?.[1] || DEFAULT_IMAGE;
@@ -32,7 +35,14 @@ export function renderArticleHtml(event) {
   const publishedTag = event.tags?.find(t => t[0] === 'published_at')?.[1];
   const publishedAtSeconds = publishedTag ? Number(publishedTag) : event.created_at;
   const naddr = encodeNaddr(event);
-  const canonicalUrl = naddr ? `${BASE_URL}/${naddr}` : `${BASE_URL}/artikel`;
+  const lang = getEventLangFromTags(event);
+  const pair = findTranslationPair(allEventsOfType, event);
+  const pairLang = pair ? getEventLangFromTags(pair) : null;
+  const pairNaddr = pair ? encodeNaddr(pair) : null;
+  const path = naddr ? `/${naddr}` : '/artikel';
+  const canonicalUrl = buildLocalizedUrl(path, lang);
+  const alternateUrl = pairNaddr && pairLang ? buildLocalizedUrl(`/${pairNaddr}`, pairLang) : null;
+  const alternateLang = pairLang;
   const authorName = event.tags?.find(t => t[0] === 'author')?.[1] || getAuthorName(event.pubkey);
   const description = stripMarkdown(summary, 160) || stripMarkdown(event.content, 160);
   const contentText = stripMarkdown(event.content, 500);
@@ -49,6 +59,7 @@ export function renderArticleHtml(event) {
     authorName,
     authorUrl: getAuthorUrl(event.pubkey),
     keywords: [...new Set(['vanlife', 'wohnmobil', 'reisen', 'camping', ...tags])],
+    inLanguage: lang,
   });
 
   const head = buildHead({
@@ -64,6 +75,9 @@ export function renderArticleHtml(event) {
     modifiedAt: dateModified,
     tags,
     jsonLd,
+    lang,
+    alternateUrl,
+    alternateLang,
   });
 
   return `${head}
@@ -76,14 +90,23 @@ export function renderArticleHtml(event) {
 </html>`;
 }
 
-export function renderNoteHtml(event) {
+export function renderNoteHtml(event, allEventsOfType = []) {
   const contentText = stripMarkdown(event.content, 300);
   const images = event.tags?.filter(t => t[0] === 'image').map(t => t[1]) || [];
   const mainImage = images[0] || DEFAULT_IMAGE;
   const tags = event.tags?.filter(t => t[0] === 't').map(t => t[1]) || [];
   const authorName = getAuthorName(event.pubkey);
   const noteId = nip19.noteEncode(event.id);
-  const canonicalUrl = `${BASE_URL}/${noteId}`;
+  const lang = getEventLangFromTags(event);
+  const pair = findTranslationPair(allEventsOfType, event);
+  const pairLang = pair ? getEventLangFromTags(pair) : null;
+  let pairNoteId = null;
+  if (pair) {
+    try { pairNoteId = nip19.noteEncode(pair.id); } catch (e) { pairNoteId = null; }
+  }
+  const canonicalUrl = buildLocalizedUrl(`/${noteId}`, lang);
+  const alternateUrl = pairNoteId && pairLang ? buildLocalizedUrl(`/${pairNoteId}`, pairLang) : null;
+  const alternateLang = pairLang;
   const title = `Note von ${authorName || event.pubkey.substring(0, 8)}`;
   const description = stripMarkdown(event.content, 160);
   const datePublished = formatDate(event.created_at);
@@ -99,6 +122,7 @@ export function renderNoteHtml(event) {
     authorName,
     authorUrl: getAuthorUrl(event.pubkey),
     keywords: [...new Set(['vanlife', 'notes', 'microblog', 'reisen', ...tags])],
+    inLanguage: lang,
   });
 
   const head = buildHead({
@@ -114,6 +138,9 @@ export function renderNoteHtml(event) {
     modifiedAt: dateModified,
     tags,
     jsonLd,
+    lang,
+    alternateUrl,
+    alternateLang,
   });
 
   return `${head}
@@ -161,7 +188,7 @@ export function renderProfileHtml(event) {
 </html>`;
 }
 
-export function renderPlaceHtml(event) {
+export function renderPlaceHtml(event, allEventsOfType = []) {
   const name = event.tags?.find(t => t[0] === 'name')?.[1] || event.tags?.find(t => t[0] === 'title')?.[1] || 'Ort';
   const desc = event.content || '';
   const image = event.tags?.find(t => t[0] === 'image')?.[1] || DEFAULT_IMAGE;
@@ -173,19 +200,36 @@ export function renderPlaceHtml(event) {
   const cleanDesc = stripMarkdown(desc, 300);
   const description = cleanDesc.substring(0, 160);
   const datePublished = formatDate(event.created_at);
+  const lang = getEventLangFromTags(event);
+  const pair = findTranslationPair(allEventsOfType, event);
+  const pairLang = pair ? getEventLangFromTags(pair) : null;
 
-  let canonicalUrl;
+  let path;
   if (event.kind === 30023) {
     const naddr = encodeNaddr(event);
-    canonicalUrl = naddr ? `${BASE_URL}/${naddr}` : `${BASE_URL}/plaetze`;
+    path = naddr ? `/${naddr}` : '/plaetze';
   } else {
     try {
       const note = nip19.noteEncode(event.id);
-      canonicalUrl = `${BASE_URL}/${note}`;
+      path = `/${note}`;
     } catch {
-      canonicalUrl = `${BASE_URL}/plaetze`;
+      path = '/plaetze';
     }
   }
+  const canonicalUrl = buildLocalizedUrl(path, lang);
+
+  let alternateUrl = null;
+  if (pair && pairLang) {
+    let pairPath = null;
+    if (pair.kind === 30023) {
+      const pairNaddr = encodeNaddr(pair);
+      pairPath = pairNaddr ? `/${pairNaddr}` : '/plaetze';
+    } else {
+      try { pairPath = `/${nip19.noteEncode(pair.id)}`; } catch { pairPath = '/plaetze'; }
+    }
+    alternateUrl = buildLocalizedUrl(pairPath, pairLang);
+  }
+  const alternateLang = pairLang;
 
   const jsonLd = buildPlaceLd({
     name,
@@ -194,6 +238,7 @@ export function renderPlaceHtml(event) {
     url: canonicalUrl,
     lat,
     lon,
+    inLanguage: lang,
   });
 
   const head = buildHead({
@@ -206,6 +251,9 @@ export function renderPlaceHtml(event) {
     ogType: 'website',
     publishedAt: datePublished,
     jsonLd,
+    lang,
+    alternateUrl,
+    alternateLang,
   });
 
   return `${head}
@@ -218,7 +266,7 @@ export function renderPlaceHtml(event) {
 </html>`;
 }
 
-export function renderTripHtml(event) {
+export function renderTripHtml(event, allEventsOfType = []) {
   const title = event.tags?.find(t => t[0] === 'title')?.[1] || 'Reisebericht';
   const desc = event.content || event.tags?.find(t => t[0] === 'summary')?.[1] || '';
   const image = event.tags?.find(t => t[0] === 'image')?.[1] || DEFAULT_IMAGE;
@@ -226,7 +274,14 @@ export function renderTripHtml(event) {
   const cleanDesc = stripMarkdown(desc, 300);
   const description = cleanDesc.substring(0, 160);
   const naddr = encodeNaddr({ ...event, kind: event.kind || 30023 });
-  const canonicalUrl = naddr ? `${BASE_URL}/trip/${naddr}` : `${BASE_URL}/map/trips`;
+  const lang = getEventLangFromTags(event);
+  const pair = findTranslationPair(allEventsOfType, event);
+  const pairLang = pair ? getEventLangFromTags(pair) : null;
+  const path = naddr ? `/trip/${naddr}` : '/map/trips';
+  const canonicalUrl = buildLocalizedUrl(path, lang);
+  const pairNaddr = pair ? encodeNaddr({ ...pair, kind: pair.kind || 30023 }) : null;
+  const alternateUrl = pairNaddr && pairLang ? buildLocalizedUrl(`/trip/${pairNaddr}`, pairLang) : null;
+  const alternateLang = pairLang;
   const datePublished = formatDate(event.created_at);
 
   const jsonLd = buildArticleLd({
@@ -236,6 +291,7 @@ export function renderTripHtml(event) {
     url: canonicalUrl,
     datePublished,
     dateModified: datePublished,
+    inLanguage: lang,
   });
 
   const head = buildHead({
@@ -248,6 +304,9 @@ export function renderTripHtml(event) {
     ogType: 'article',
     publishedAt: datePublished,
     jsonLd,
+    lang,
+    alternateUrl,
+    alternateLang,
   });
 
   return `${head}

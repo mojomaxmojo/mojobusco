@@ -709,7 +709,7 @@ Shakespeare.
       EN-Version erscheint automatisch unter `/en/artikel`
 - [x] **Schritt 7**: Gleiches Muster übertragen auf `PlaceForm.tsx`,
       `TripPublishForm.tsx`, `NoteForm.tsx` — je einzeln getestet
-- [ ] **Schritt 8**: SEO-Pairing in `prerender-helpers.js`,
+- [x] **Schritt 8**: SEO-Pairing in `prerender-helpers.js`,
       `prerender-meta.js`, `prerender-entity-templates.js`,
       `prerender-category-templates.js`, `prerender-static.js`,
       `generate-sitemap.js` ergänzt + Sprachlink in `ArticleView.tsx`;

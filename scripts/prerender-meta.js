@@ -22,7 +22,7 @@ export function buildBreadcrumbLd(items) {
   };
 }
 
-export function buildArticleLd({ headline, description, image, url, datePublished, dateModified, authorName, authorUrl, keywords }) {
+export function buildArticleLd({ headline, description, image, url, datePublished, dateModified, authorName, authorUrl, keywords, inLanguage }) {
   return {
     '@context': 'https://schema.org',
     '@type': 'Article',
@@ -31,6 +31,7 @@ export function buildArticleLd({ headline, description, image, url, datePublishe
     image,
     url,
     mainEntityOfPage: { '@type': 'WebPage', '@id': url },
+    inLanguage: inLanguage || 'de',
     author: { '@type': 'Person', name: authorName || 'MojoBus', url: authorUrl || BASE_URL },
     publisher: {
       '@type': 'Organization',
@@ -43,7 +44,7 @@ export function buildArticleLd({ headline, description, image, url, datePublishe
   };
 }
 
-export function buildPlaceLd({ name, description, image, url, lat, lon }) {
+export function buildPlaceLd({ name, description, image, url, lat, lon, inLanguage }) {
   const ld = {
     '@context': 'https://schema.org',
     '@type': 'Place',
@@ -51,6 +52,7 @@ export function buildPlaceLd({ name, description, image, url, lat, lon }) {
     description,
     image,
     url,
+    inLanguage: inLanguage || 'de',
   };
   if (lat != null && lon != null) {
     ld.geo = {
@@ -73,7 +75,7 @@ export function buildProfileLd({ name, description, image, url }) {
   };
 }
 
-export function buildVideoLd({ name, description, thumbnailUrl, contentUrl, uploadDate, duration }) {
+export function buildVideoLd({ name, description, thumbnailUrl, contentUrl, uploadDate, duration, inLanguage }) {
   const ld = {
     '@context': 'https://schema.org',
     '@type': 'VideoObject',
@@ -83,6 +85,7 @@ export function buildVideoLd({ name, description, thumbnailUrl, contentUrl, uplo
     contentUrl,
     embedUrl: contentUrl,
     uploadDate,
+    inLanguage: inLanguage || 'de',
     publisher: {
       '@type': 'Organization',
       name: 'MojoBus',
@@ -95,7 +98,7 @@ export function buildVideoLd({ name, description, thumbnailUrl, contentUrl, uplo
   return ld;
 }
 
-export function buildImageLd({ name, description, contentUrl, url }) {
+export function buildImageLd({ name, description, contentUrl, url, inLanguage }) {
   return {
     '@context': 'https://schema.org',
     '@type': 'ImageObject',
@@ -103,6 +106,7 @@ export function buildImageLd({ name, description, contentUrl, url }) {
     description,
     contentUrl,
     url,
+    inLanguage: inLanguage || 'de',
   };
 }
 
@@ -146,6 +150,9 @@ export function buildHead(options) {
     videoUrl = '',
     videoWidth = '1920',
     videoHeight = '1080',
+    lang = 'de',
+    alternateUrl = null,
+    alternateLang = null,
   } = options;
 
   const safeTitle = escapeHtml(title);
@@ -207,7 +214,7 @@ export function buildHead(options) {
   }
 
   return `<!DOCTYPE html>
-<html lang="de">
+<html lang="${escapeHtml(lang)}">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -217,7 +224,7 @@ export function buildHead(options) {
   ${safeAuthor ? `<meta name="author" content="${safeAuthor}" />\n` : ''}  <meta property="og:type" content="${escapeHtml(ogType)}" />
   <meta property="og:site_name" content="${safeSiteName}" />
   <meta property="og:locale" content="${safeLocale}" />
-  <meta property="og:title" content="${safeTitle}" />
+  ${alternateLang ? `  <meta property="og:locale:alternate" content="${escapeHtml(alternateLang === 'de' ? 'de_DE' : 'en_US')}" />\n` : ''}  <meta property="og:title" content="${safeTitle}" />
   <meta property="og:description" content="${safeDesc}" />
   <meta property="og:url" content="${safeCanonical}" />
   <meta property="og:image" content="${safeImage}" />
@@ -230,7 +237,8 @@ export function buildHead(options) {
   ${safeImageAlt ? `<meta name="twitter:image:alt" content="${safeImageAlt}" />\n` : ''}${twitterVideoMeta}  <meta name="robots" content="index, follow, max-image-preview:large" />
   <link rel="canonical" href="${safeCanonical}" />
   <link rel="alternate" type="application/rss+xml" title="MojoBus RSS Feed" href="${FEED_URL}" />
-  <link rel="alternate" href="${safeCanonical}" hreflang="de" />
+  <link rel="alternate" href="${safeCanonical}" hreflang="${escapeHtml(lang)}" />
+  ${alternateUrl && alternateLang ? `  <link rel="alternate" href="${escapeHtml(alternateUrl)}" hreflang="${escapeHtml(alternateLang)}" />\n` : ''}  <link rel="alternate" href="${safeCanonical}" hreflang="x-default" />
   ${redirectScript}
 ${jsonLdMeta}</head>
 <body>`;

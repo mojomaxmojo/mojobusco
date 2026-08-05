@@ -64,7 +64,7 @@ async function main() {
       const naddr = encodeNaddr(event);
       if (!naddr) continue;
       const filename = `${naddr}.html`;
-      writePrerenderFile(filename, renderArticleHtml(event));
+      writePrerenderFile(filename, renderArticleHtml(event, articles));
       lists.articles.push(event);
       rendered.push({ type: 'Artikel', identifier: naddr });
     }
@@ -84,7 +84,7 @@ async function main() {
       const naddr = encodeNaddr(event);
       if (!naddr) continue;
       const filename = `${naddr}.html`;
-      writePrerenderFile(filename, renderPlaceHtml(event));
+      writePrerenderFile(filename, renderPlaceHtml(event, places));
       lists.places.push(event);
       rendered.push({ type: 'Ort', identifier: naddr });
     }
@@ -104,7 +104,7 @@ async function main() {
       const naddr = encodeNaddr({ ...event, kind: event.kind || 30023 });
       if (!naddr) continue;
       const filename = `trip-${naddr}.html`;
-      writePrerenderFile(filename, renderTripHtml(event));
+      writePrerenderFile(filename, renderTripHtml(event, trips));
       lists.trips.push(event);
       rendered.push({ type: 'Trip', identifier: naddr });
     }
@@ -145,7 +145,7 @@ async function main() {
       try {
         const noteId = nip19.noteEncode(event.id);
         const filename = `${noteId}.html`;
-        writePrerenderFile(filename, renderNoteHtml(event));
+        writePrerenderFile(filename, renderNoteHtml(event, pureNotes));
         lists.notes.push(event);
         rendered.push({ type: 'Note', identifier: noteId });
       } catch (e) {
@@ -200,23 +200,29 @@ async function main() {
   }
 
   const categories = [
-    { key: 'artikel', filename: 'category-artikel.html', render: () => renderArtikelPage(lists.articles) },
-    { key: 'notes', filename: 'category-notes.html', render: () => renderNotesPage(lists.notes) },
-    { key: 'bilder', filename: 'category-bilder.html', render: () => renderBilderPage(lists.media) },
-    { key: 'videos', filename: 'category-videos.html', render: () => renderVideosPage(lists.videos) },
-    { key: 'plaetze', filename: 'category-plaetze.html', render: () => renderPlaetzePage(lists.places) },
-    { key: 'trips', filename: 'category-map-trips.html', render: () => renderTripsPage(lists.trips) },
-    { key: 'about', filename: 'category-about.html', render: renderAboutPage },
+    { key: 'artikel', deName: 'category-artikel.html', renderDe: () => renderArtikelPage(lists.articles, 'de'), renderEn: () => renderArtikelPage(lists.articles, 'en') },
+    { key: 'notes', deName: 'category-notes.html', renderDe: () => renderNotesPage(lists.notes, 'de'), renderEn: () => renderNotesPage(lists.notes, 'en') },
+    { key: 'bilder', deName: 'category-bilder.html', renderDe: () => renderBilderPage(lists.media, 'de'), renderEn: () => renderBilderPage(lists.media, 'en') },
+    { key: 'videos', deName: 'category-videos.html', renderDe: () => renderVideosPage(lists.videos, 'de'), renderEn: () => renderVideosPage(lists.videos, 'en') },
+    { key: 'plaetze', deName: 'category-plaetze.html', renderDe: () => renderPlaetzePage(lists.places, 'de'), renderEn: () => renderPlaetzePage(lists.places, 'en') },
+    { key: 'trips', deName: 'category-map-trips.html', renderDe: () => renderTripsPage(lists.trips, 'de'), renderEn: () => renderTripsPage(lists.trips, 'en') },
+    { key: 'about', deName: 'category-about.html', renderDe: () => renderAboutPage('de'), renderEn: () => renderAboutPage('en') },
   ];
 
   for (const category of categories) {
-    try {
-      const html = category.render();
-      writePrerenderFile(category.filename, html);
-      rendered.push({ type: `Kategorie ${category.key}`, identifier: category.filename });
-      console.log(`[Prerender]  → ${category.filename} generiert`);
-    } catch (e) {
-      console.warn(`[Prerender] Kategorie ${category.key} fehlgeschlagen: ${e.message}`);
+    const entries = [
+      { filename: category.deName, render: category.renderDe },
+      { filename: category.deName.replace(/\.html$/, '-en.html'), render: category.renderEn },
+    ];
+    for (const { filename, render } of entries) {
+      try {
+        const html = render();
+        writePrerenderFile(filename, html);
+        rendered.push({ type: `Kategorie ${category.key}`, identifier: filename });
+        console.log(`[Prerender]  → ${filename} generiert`);
+      } catch (e) {
+        console.warn(`[Prerender] Kategorie ${category.key} fehlgeschlagen: ${e.message}`);
+      }
     }
   }
 

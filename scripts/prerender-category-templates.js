@@ -6,21 +6,23 @@ import {
   stripMarkdown,
   encodeNaddr,
   formatDate,
+  buildLocalizedUrl,
+  getEventLangFromTags,
 } from './prerender-helpers.js';
 import { buildHead, buildItemListLd, buildBreadcrumbLd } from './prerender-meta.js';
 import { nip19 } from 'nostr-tools';
 
-function buildBreadcrumb(name, url) {
+function buildBreadcrumb(name, url, lang = 'de') {
   return [
-    { name: 'Startseite', item: BASE_URL },
+    { name: lang === 'en' ? 'Home' : 'Startseite', item: BASE_URL },
     { name, item: url },
   ];
 }
 
-function renderListPage({ title, description, canonicalUrl, items, listName }) {
+function renderListPage({ title, description, canonicalUrl, items, listName }, lang = 'de') {
   const jsonLd = [
     buildItemListLd(items, canonicalUrl, listName),
-    buildBreadcrumbLd(buildBreadcrumb(title.split(' — ')[0], canonicalUrl)),
+    buildBreadcrumbLd(buildBreadcrumb(title.split(' — ')[0], canonicalUrl, lang)),
   ];
 
   const head = buildHead({
@@ -121,73 +123,94 @@ function toVideoItem(event) {
   };
 }
 
-export function renderArtikelPage(articles) {
+export function renderArtikelPage(articles = [], lang = 'de') {
+  const isEn = lang === 'en';
   return renderListPage({
-    title: 'Artikel — MojoBus',
-    description: 'Vanlife-, Reise- und Abenteuer-Artikel aus dem MojoBus Blog.',
-    canonicalUrl: `${BASE_URL}/artikel`,
-    items: articles.slice(0, 50).map(toArticleItem),
+    title: isEn ? 'Articles — MojoBus' : 'Artikel — MojoBus',
+    description: isEn
+      ? 'Vanlife, travel and adventure articles from the MojoBus blog.'
+      : 'Vanlife-, Reise- und Abenteuer-Artikel aus dem MojoBus Blog.',
+    canonicalUrl: buildLocalizedUrl('/artikel', lang),
+    items: articles.filter(e => getEventLangFromTags(e) === lang).slice(0, 50).map(toArticleItem),
     listName: 'MojoBus Artikel',
-  });
+  }, lang);
 }
 
-export function renderNotesPage(notes) {
+export function renderNotesPage(notes = [], lang = 'de') {
+  const isEn = lang === 'en';
   return renderListPage({
     title: 'Notes — MojoBus',
-    description: 'Microblog-Notes vom MojoBus unterwegs.',
-    canonicalUrl: `${BASE_URL}/notes`,
-    items: notes.slice(0, 50).map(toNoteItem),
+    description: isEn
+      ? 'Microblog notes from MojoBus on the road.'
+      : 'Microblog-Notes vom MojoBus unterwegs.',
+    canonicalUrl: buildLocalizedUrl('/notes', lang),
+    items: notes.filter(e => getEventLangFromTags(e) === lang).slice(0, 50).map(toNoteItem),
     listName: 'MojoBus Notes',
-  });
+  }, lang);
 }
 
-export function renderBilderPage(images) {
+export function renderBilderPage(images = [], lang = 'de') {
+  const isEn = lang === 'en';
   return renderListPage({
-    title: 'Bilder — MojoBus',
-    description: 'Fotos und Bildergalerien vom MojoBus Vanlife.',
-    canonicalUrl: `${BASE_URL}/bilder`,
-    items: images.slice(0, 50).map(toMediaItem),
+    title: isEn ? 'Photos — MojoBus' : 'Bilder — MojoBus',
+    description: isEn
+      ? 'Photos and image galleries from MojoBus vanlife.'
+      : 'Fotos und Bildergalerien vom MojoBus Vanlife.',
+    canonicalUrl: buildLocalizedUrl('/bilder', lang),
+    items: images.filter(e => getEventLangFromTags(e) === lang).slice(0, 50).map(toMediaItem),
     listName: 'MojoBus Bilder',
-  });
+  }, lang);
 }
 
-export function renderVideosPage(videos) {
+export function renderVideosPage(videos = [], lang = 'de') {
+  const isEn = lang === 'en';
   return renderListPage({
     title: 'Videos — MojoBus',
-    description: 'MojoBus Videos, Reels und Kurzclips aus dem Vanlife.',
-    canonicalUrl: `${BASE_URL}/videos`,
-    items: videos.slice(0, 50).map(toVideoItem),
+    description: isEn
+      ? 'MojoBus videos, reels and short clips from vanlife.'
+      : 'MojoBus Videos, Reels und Kurzclips aus dem Vanlife.',
+    canonicalUrl: buildLocalizedUrl('/videos', lang),
+    items: videos.filter(e => getEventLangFromTags(e) === lang).slice(0, 50).map(toVideoItem),
     listName: 'MojoBus Videos',
-  });
+  }, lang);
 }
 
-export function renderPlaetzePage(places) {
+export function renderPlaetzePage(places = [], lang = 'de') {
+  const isEn = lang === 'en';
   return renderListPage({
-    title: 'Orte & Stellplätze — MojoBus',
-    description: 'Campingplätze, Stellplätze und Orte für Vanlife-Reisende.',
-    canonicalUrl: `${BASE_URL}/plaetze`,
-    items: places.slice(0, 50).map(toPlaceItem),
+    title: isEn ? 'Places & Campsites — MojoBus' : 'Orte & Stellplätze — MojoBus',
+    description: isEn
+      ? 'Campsites, pitches and places for vanlife travelers.'
+      : 'Campingplätze, Stellplätze und Orte für Vanlife-Reisende.',
+    canonicalUrl: buildLocalizedUrl('/plaetze', lang),
+    items: places.filter(e => getEventLangFromTags(e) === lang).slice(0, 50).map(toPlaceItem),
     listName: 'MojoBus Orte',
-  });
+  }, lang);
 }
 
-export function renderTripsPage(trips) {
+export function renderTripsPage(trips = [], lang = 'de') {
+  const isEn = lang === 'en';
   return renderListPage({
-    title: 'Reisen & Trips — MojoBus',
-    description: 'Reiseberichte, Routen und Trips mit dem MojoBus.',
-    canonicalUrl: `${BASE_URL}/map/trips`,
-    items: trips.slice(0, 50).map(toTripItem),
+    title: isEn ? 'Travel & Trips — MojoBus' : 'Reisen & Trips — MojoBus',
+    description: isEn
+      ? 'Travel reports, routes and trips with MojoBus.'
+      : 'Reiseberichte, Routen und Trips mit dem MojoBus.',
+    canonicalUrl: buildLocalizedUrl('/map/trips', lang),
+    items: trips.filter(e => getEventLangFromTags(e) === lang).slice(0, 50).map(toTripItem),
     listName: 'MojoBus Trips',
-  });
+  }, lang);
 }
 
-export function renderAboutPage() {
-  const canonicalUrl = `${BASE_URL}/about`;
-  const title = 'Über MojoBus';
-  const description = 'MojoBus – Perpetual Travelers Blog. Vanlife, Reisen, Abenteuer und Geschichten vom Strand.';
+export function renderAboutPage(lang = 'de') {
+  const isEn = lang === 'en';
+  const canonicalUrl = buildLocalizedUrl('/about', lang);
+  const title = isEn ? 'About MojoBus' : 'Über MojoBus';
+  const description = isEn
+    ? 'MojoBus – Perpetual Travelers blog. Vanlife, travel, adventure and stories from the beach.'
+    : 'MojoBus – Perpetual Travelers Blog. Vanlife, Reisen, Abenteuer und Geschichten vom Strand.';
   const memberItems = AUTHORS.map(author => ({
     name: author.name,
-    description: `Profil von ${author.name}`,
+    description: isEn ? `Profile of ${author.name}` : `Profil von ${author.name}`,
     image: DEFAULT_IMAGE,
     url: `${BASE_URL}/${author.npub}`,
   }));
@@ -205,7 +228,7 @@ export function renderAboutPage() {
         url: m.url,
       })),
     },
-    buildBreadcrumbLd(buildBreadcrumb(title, canonicalUrl)),
+    buildBreadcrumbLd(buildBreadcrumb(title, canonicalUrl, lang)),
   ];
 
   const head = buildHead({
@@ -216,6 +239,7 @@ export function renderAboutPage() {
     imageAlt: 'MojoBus Logo',
     ogType: 'website',
     jsonLd,
+    lang,
   });
 
   const membersHtml = memberItems.map(m => `
@@ -229,9 +253,9 @@ export function renderAboutPage() {
   return `${head}
   <h1>${escapeHtml(title)}</h1>
   <p>${escapeHtml(description)}</p>
-  <h2>Die Macher</h2>
+  <h2>${isEn ? 'The Team' : 'Die Macher'}</h2>
   <ul>${membersHtml}</ul>
-  <p><a href="${escapeHtml(canonicalUrl)}">Mehr über MojoBus →</a></p>
+  <p><a href="${escapeHtml(canonicalUrl)}">${isEn ? 'More about MojoBus' : 'Mehr über MojoBus'} →</a></p>
 </body>
 </html>`;
 }
