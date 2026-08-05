@@ -15,6 +15,9 @@ import { MAIN_MENU } from './menu';
 
 export interface MainMenuItem {
   label: string;
+  /** i18n-Wörterbuch-Schlüssel (siehe src/config/i18n/navigation.ts) für die
+   *  aktive Sprache; fällt auf `label` zurück, wenn nicht gesetzt */
+  labelKey?: string;
   icon?: string;
   emoji?: string;
   path?: string;
@@ -50,11 +53,12 @@ const NATURE_ITEMS: MainMenuItem[] = Object.values(MAIN_MENU.nature).map(cat => 
 // ── Hauptmenü ─────────────────────────────────────────────────────────────
 
 export const MAIN_MENU_CONFIG: MainMenuItem[] = [
-  { label: 'Home', path: '/', icon: 'Home' },
+  { label: 'Home', labelKey: 'nav_home', path: '/', icon: 'Home' },
 
   // ── Artikel ────────────────────────────────────────────────────────────
   {
     label: 'Artikel',
+    labelKey: 'nav_articles',
     icon: 'FileText',
     children: [
       { label: 'Alle Artikel', path: '/artikel', icon: 'FileText' },
@@ -71,6 +75,7 @@ export const MAIN_MENU_CONFIG: MainMenuItem[] = [
   // ── Plätze ─────────────────────────────────────────────────────────────
   {
     label: 'Plätze',
+    labelKey: 'nav_places',
     icon: 'MapPin',
     children: [
       { label: 'Alle Plätze', path: '/plaetze', icon: 'MapPin' },
@@ -93,6 +98,7 @@ export const MAIN_MENU_CONFIG: MainMenuItem[] = [
   // ── Trips ──────────────────────────────────────────────────────────────
   {
     label: 'Trips',
+    labelKey: 'nav_trips',
     emoji: '🛣️',
     icon: 'Route',
     children: [
@@ -104,6 +110,7 @@ export const MAIN_MENU_CONFIG: MainMenuItem[] = [
   // ── Bilder ─────────────────────────────────────────────────────────────
   {
     label: 'Bilder',
+    labelKey: 'nav_media',
     icon: 'Camera',
     children: [
       { label: 'Alle Bilder', path: '/bilder', icon: 'Images' },
@@ -115,19 +122,20 @@ export const MAIN_MENU_CONFIG: MainMenuItem[] = [
   },
 
   // ── Videos ─────────────────────────────────────────────────────────────
-  { label: 'Videos', path: '/videos', icon: 'Film', emoji: '🎬' },
+  { label: 'Videos', labelKey: 'nav_videos', path: '/videos', icon: 'Film', emoji: '🎬' },
 
   // ── About ──────────────────────────────────────────────────────────────
-  { label: 'About', path: '/about', icon: 'Info' },
+  { label: 'About', labelKey: 'nav_about', path: '/about', icon: 'Info' },
 ];
 
 // ── Account-Menü (eingeloggt) ─────────────────────────────────────────────
 
 export const ACCOUNT_MENU_ITEMS: MainMenuItem[] = [
-  { label: 'Beitrag erstellen', path: '/veroeffentlichen', icon: 'PenSquare' },
-  { label: 'Profil', path: '/profile', icon: 'User' },
-  { label: 'Einstellungen', path: '/settings', icon: 'Settings' },
-  { label: 'Haushaltsbuch', path: '/budget', icon: 'Wallet' },
+  { label: 'Beitrag erstellen', labelKey: 'account_publish', path: '/veroeffentlichen', icon: 'PenSquare' },
+  { label: 'Profil', labelKey: 'account_profile', path: '/profile', icon: 'User' },
+  { label: 'Einstellungen', labelKey: 'account_settings', path: '/settings', icon: 'Settings' },
+  { label: 'Haushaltsbuch', labelKey: 'account_budget', path: '/budget', icon: 'Wallet' },
+  // Kein labelKey: interne Tools, bleiben Deutsch (Scope-Entscheidung FEATURE-PLAN.md)
   { label: 'Pinterest Promotion', path: '/promotion', icon: 'Pin' },
   { label: '🎬 TikTok Promotion', path: '/promotion/tiktok', icon: 'Video' },
   { label: '📝 About verwalten', path: '/admin/about', icon: 'Info' },

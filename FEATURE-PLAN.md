@@ -701,7 +701,7 @@ Shakespeare.
 - [x] **Schritt 4**: `/en/...`-Routen in `src/AppRouter.tsx` erreichbar für
       alle öffentlichen Inhaltsseiten, interne Tool-Routen bleiben ohne
       `/en/`-Zugriff
-- [ ] **Schritt 5**: Header, Footer und Account-Menü zeigen auf
+- [x] **Schritt 5**: Header, Footer und Account-Menü zeigen auf
       `/en/...`-Seiten englische Texte, Links bleiben im `/en/`-Kontext;
       deutsche Seiten unverändert
 - [ ] **Schritt 6**: Checkbox + Hintergrund-Übersetzung in `ArticleForm.tsx`

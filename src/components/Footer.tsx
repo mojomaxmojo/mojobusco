@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
+import { useLanguage } from '@/hooks/useLanguage';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
+  const { t, localizePath } = useLanguage();
 
   return (
     <footer className="border-t border-primary/20 bg-gradient-to-b from-background to-primary/5 min-h-[200px] contain-layout">
@@ -20,7 +22,7 @@ export function Footer() {
               <span className="font-bold text-2xl gradient-text">MojoBus</span>
             </div>
             <p className="text-base text-muted-foreground leading-relaxed">
-              Perpetual Travelers – Unser Leben am Meer. Freiheit, Abenteuer und Einfachheit zwischen Sand und Horizont.
+              {t('footer_tagline')}
             </p>
             <div className="flex gap-2 flex-wrap">
               <span className="text-xs bg-primary/10 text-primary px-4 py-2 rounded-full border border-primary/20 font-medium hover:bg-primary/20 transition-colors cursor-default">#offgridlife</span>
@@ -33,26 +35,26 @@ export function Footer() {
 
           {/* Navigation */}
           <div className="space-y-8">
-            <h3 className="font-bold text-xl">Navigation</h3>
+            <h3 className="font-bold text-xl">{t('footer_nav_heading')}</h3>
             <nav className="flex flex-col space-y-4">
-              <Link to="/" className="text-base text-muted-foreground hover:text-primary transition-all duration-300 hover:translate-x-1">
-                Home
+              <Link to={localizePath('/')} className="text-base text-muted-foreground hover:text-primary transition-all duration-300 hover:translate-x-1">
+                {t('nav_home')}
               </Link>
-              <Link to="/artikel" className="text-base text-muted-foreground hover:text-primary transition-all duration-300 hover:translate-x-1">
-                Artikel
+              <Link to={localizePath('/artikel')} className="text-base text-muted-foreground hover:text-primary transition-all duration-300 hover:translate-x-1">
+                {t('nav_articles')}
               </Link>
-              <Link to="/notes" className="text-base text-muted-foreground hover:text-primary transition-all duration-300 hover:translate-x-1">
-                Notes
+              <Link to={localizePath('/notes')} className="text-base text-muted-foreground hover:text-primary transition-all duration-300 hover:translate-x-1">
+                {t('nav_notes')}
               </Link>
-              <Link to="/about" className="text-base text-muted-foreground hover:text-primary transition-all duration-300 hover:translate-x-1">
-                About
+              <Link to={localizePath('/about')} className="text-base text-muted-foreground hover:text-primary transition-all duration-300 hover:translate-x-1">
+                {t('nav_about')}
               </Link>
             </nav>
           </div>
 
           {/* Contact */}
           <div className="space-y-8">
-            <h3 className="font-bold text-xl">Kontakt</h3>
+            <h3 className="font-bold text-xl">{t('footer_contact_heading')}</h3>
             <div className="text-sm text-muted-foreground space-y-4">
               <p className="flex items-center gap-3 text-base">
                 <span className="text-primary text-xl">⚡</span>
@@ -67,7 +69,7 @@ export function Footer() {
         </div>
 
         <div className="mt-16 pt-8 border-t border-primary/20 text-center text-sm text-muted-foreground">
-          <p>© {currentYear} MojoBus. Veröffentlicht auf Nostr – dezentral und zensurresistent.</p>
+          <p>{t('footer_copyright', { year: String(currentYear) })}</p>
         </div>
       </div>
     </footer>

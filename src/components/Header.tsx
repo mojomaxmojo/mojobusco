@@ -18,6 +18,7 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { MAIN_MENU_CONFIG, ACCOUNT_MENU_ITEMS, resolveSource } from '@/config/mainMenu';
 import type { MainMenuItem } from '@/config/mainMenu';
+import { useLanguage } from '@/hooks/useLanguage';
 
 // ── Icon Lookup ────────────────────────────────────────────────────────────
 
@@ -54,6 +55,7 @@ function hasChildren(item: MainMenuItem): boolean {
 export function Header() {
   const { user } = useCurrentUser();
   const { logout } = useLoginActions();
+  const { t, lang, localizePath } = useLanguage();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileExpanded, setMobileExpanded] = useState<Set<string>>(new Set());
 
@@ -165,7 +167,7 @@ export function Header() {
       <header className="sticky top-0 z-50 w-full border-b border-primary/20 glass-effect shadow-lg">
       <div className="container mx-auto px-4">
         <div className="flex h-14 items-center">
-          <Link to="/" className="inline-flex items-center hover:scale-105 transition-transform duration-300">
+          <Link to={localizePath('/')} className="inline-flex items-center hover:scale-105 transition-transform duration-300">
             <img
               src="/mojobuslogo.png"
               alt="MojoBus Logo"
@@ -185,7 +187,7 @@ export function Header() {
                     <DropdownMenuTrigger asChild>
                       <button className="flex items-center gap-2 text-foreground hover:text-primary px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 hover:bg-primary/10 hover:shadow-md">
                         <MenuIcon icon={item.icon} emoji={item.emoji} />
-                        {item.label}
+                        {item.labelKey ? t(item.labelKey) : item.label}
                         <ChevronDown className="h-3 w-3 transition-transform duration-200 group-hover:rotate-180" />
                       </button>
                     </DropdownMenuTrigger>
@@ -198,11 +200,11 @@ export function Header() {
               return (
                 <Link
                   key={item.label}
-                  to={item.path!}
+                  to={localizePath(item.path!)}
                   className="flex items-center gap-2 text-foreground hover:text-primary px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 hover:bg-primary/10 hover:shadow-md"
                 >
                   <MenuIcon icon={item.icon} emoji={item.emoji} />
-                  {item.label}
+                  {item.labelKey ? t(item.labelKey) : item.label}
                 </Link>
               );
             })}
@@ -215,23 +217,23 @@ export function Header() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="default" className="hover:bg-primary/10 transition-all duration-300 rounded-xl">
                     <User className="h-4 w-4 mr-2" />
-                    Account
+                    {t('account_menu')}
                     <ChevronDown className="h-3 w-3 ml-2 transition-transform duration-200" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="shadow-xl border-primary/20">
                   {ACCOUNT_MENU_ITEMS.map((item) => (
                     <DropdownMenuItem key={item.label} asChild>
-                      <Link to={item.path!} className="flex items-center gap-2">
+                      <Link to={localizePath(item.path!)} className="flex items-center gap-2">
                         <MenuIcon icon={item.icon} emoji={item.emoji} />
-                        {item.label}
+                        {item.labelKey ? t(item.labelKey) : item.label}
                       </Link>
                     </DropdownMenuItem>
                   ))}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={logout} className="flex items-center gap-2 text-red-600">
                     <LogOut className="h-4 w-4" />
-                    Ausloggen
+                    {t('account_logout')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -287,7 +289,7 @@ export function Header() {
                       <CollapsibleTrigger asChild>
                         <button className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg w-full text-left">
                           <MenuIcon icon={item.icon} emoji={item.emoji} className="h-5 w-5 shrink-0" />
-                          <span className="text-gray-900 dark:text-gray-100 flex-1">{item.label}</span>
+                          <span className="text-gray-900 dark:text-gray-100 flex-1">{item.labelKey ? t(item.labelKey) : item.label}</span>
                           <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
                         </button>
                       </CollapsibleTrigger>
@@ -301,12 +303,12 @@ export function Header() {
                 return (
                   <Link
                     key={item.label}
-                    to={item.path!}
+                    to={localizePath(item.path!)}
                     onClick={handleMobileMenuClick}
                     className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg"
                   >
                     <MenuIcon icon={item.icon} emoji={item.emoji} className="h-5 w-5 shrink-0" />
-                    <span className="text-gray-900 dark:text-gray-100">{item.label}</span>
+                    <span className="text-gray-900 dark:text-gray-100">{item.labelKey ? t(item.labelKey) : item.label}</span>
                   </Link>
                 );
               })}
@@ -318,12 +320,12 @@ export function Header() {
                     {ACCOUNT_MENU_ITEMS.map((item) => (
                       <Link
                         key={item.label}
-                        to={item.path!}
+                        to={localizePath(item.path!)}
                         onClick={handleMobileMenuClick}
                         className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg"
                       >
                         <MenuIcon icon={item.icon} emoji={item.emoji} className="h-5 w-5 shrink-0" />
-                        <span className="text-gray-900 dark:text-gray-100">{item.label}</span>
+                        <span className="text-gray-900 dark:text-gray-100">{item.labelKey ? t(item.labelKey) : item.label}</span>
                       </Link>
                     ))}
                     <button
@@ -331,7 +333,7 @@ export function Header() {
                       className="flex items-center gap-3 p-3 hover:bg-red-50 dark:hover:bg-red-900 rounded-lg w-full text-left"
                     >
                       <LogOut className="h-5 w-5 text-red-600" />
-                      <span className="text-red-600">Ausloggen</span>
+                      <span className="text-red-600">{t('account_logout')}</span>
                     </button>
                   </>
                 ) : (
