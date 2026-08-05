@@ -40,6 +40,38 @@ const Videos = lazy(() => import("./pages/Videos").then(m => ({ default: m.Video
 const VideoDetail = lazy(() => import("./pages/VideoDetail").then(m => ({ default: m.VideoDetail })));
 const NotFound = lazy(() => import("./pages/NotFound").then(m => ({ default: m.default })));
 
+// Schritt 4 — Öffentliche Inhaltsseiten, die zusätzlich unter `/en/...` erreichbar
+// sein müssen. Diese werden weiter unten zweimal gemappt (einmal ohne Präfix,
+// einmal mit `/en`), statt jede Zeile händisch zu duplizieren. Interne
+// Redaktions-Tools stehen NICHT hier und bleiben daher ohne `/en/`-Zugriff.
+const PUBLIC_ROUTE_DEFINITIONS: { path: string; element: JSX.Element }[] = [
+  { path: "/", element: <Home /> },
+  { path: "/artikel", element: <Articles /> },
+  { path: "/artikel/:country", element: <Articles /> },
+  { path: "/artikel/diy", element: <DIY /> },
+  { path: "/artikel/diy/:category", element: <DIY /> },
+  { path: "/artikel/leon", element: <Leon /> },
+  { path: "/artikel/rvlife", element: <RVLife /> },
+  { path: "/artikel/rvlife/:category", element: <RVLife /> },
+  { path: "/plaetze", element: <Places /> },
+  { path: "/plaetze/:country", element: <Places /> },
+  { path: "/map", element: <MapPage /> },
+  { path: "/map/trips", element: <TripsPage /> },
+  { path: "/trip/:naddr", element: <TripDetail /> },
+  { path: "/bilder", element: <Images /> },
+  { path: "/bilder/:country", element: <Images /> },
+  { path: "/bilder/natur/:category", element: <Images /> },
+  { path: "/bild/:nip19", element: <ImageDetail /> },
+  { path: "/notes", element: <Notes /> },
+  { path: "/notes/:country", element: <Notes /> },
+  { path: "/artikel/notes", element: <Notes /> },
+  { path: "/artikel/notes/:country", element: <Notes /> },
+  { path: "/videos", element: <Videos /> },
+  { path: "/video/:naddr", element: <VideoDetail /> },
+  { path: "/about", element: <About /> },
+  { path: "/:nip19", element: <NIP19Page /> },
+];
+
 function App() {
   return (
     <BrowserRouter>
@@ -49,30 +81,13 @@ function App() {
         <main className="flex-1">
           <Suspense fallback={<PageLoader text="Seite wird geladen..." />}>
             <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/artikel" element={<Articles />} />
-              <Route path="/artikel/:country" element={<Articles />} />
-              <Route path="/artikel/diy" element={<DIY />} />
-              <Route path="/artikel/diy/:category" element={<DIY />} />
-              <Route path="/artikel/leon" element={<Leon />} />
-              <Route path="/artikel/rvlife" element={<RVLife />} />
-              <Route path="/artikel/rvlife/:category" element={<RVLife />} />
-              <Route path="/plaetze" element={<Places />} />
-              <Route path="/plaetze/:country" element={<Places />} />
-              <Route path="/map" element={<MapPage />} />
-              <Route path="/map/trips" element={<TripsPage />} />
-              <Route path="/trip/:naddr" element={<TripDetail />} />
-              <Route path="/bilder" element={<Images />} />
-              <Route path="/bilder/:country" element={<Images />} />
-              <Route path="/bilder/natur/:category" element={<Images />} />
-              <Route path="/bild/:nip19" element={<ImageDetail />} />
-              <Route path="/notes" element={<Notes />} />
-              <Route path="/notes/:country" element={<Notes />} />
-              <Route path="/artikel/notes" element={<Notes />} />
-              <Route path="/artikel/notes/:country" element={<Notes />} />
-              <Route path="/videos" element={<Videos />} />
-              <Route path="/video/:naddr" element={<VideoDetail />} />
-<Route path="/about" element={<About />} />
+              {PUBLIC_ROUTE_DEFINITIONS.map(r => (
+                <Route key={r.path} path={r.path} element={r.element} />
+              ))}
+              {PUBLIC_ROUTE_DEFINITIONS.map(r => (
+                <Route key={'en-' + r.path} path={'/en' + (r.path === '/' ? '' : r.path)} element={r.element} />
+              ))}
+              {/* Interne Redaktions-Tools – bewusst KEIN /en/‑Zugriff */}
                <Route path="/admin/about" element={<AboutAdmin />} />
                <Route path="/profile" element={<Profile />} />
               <Route path="/settings" element={<Settings />} />
@@ -84,7 +99,6 @@ function App() {
                 <Route path="/perpetual-travelers" element={<PerpetualTravelers />} />
                 <Route path="/promotion" element={<PromotionDashboard />} />
                 <Route path="/promotion/tiktok" element={<VideoPromotion />} />
-               <Route path="/:nip19" element={<NIP19Page />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>

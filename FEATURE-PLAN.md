@@ -698,7 +698,7 @@ Shakespeare.
 - [x] **Schritt 3**: `src/hooks/useAutoTranslate.ts` erstellt (inkl.
        EN-Teaser-Note), Build läuft fehlerfrei durch, noch keine UI-Änderung
        sichtbar
-- [ ] **Schritt 4**: `/en/...`-Routen in `src/AppRouter.tsx` erreichbar für
+- [x] **Schritt 4**: `/en/...`-Routen in `src/AppRouter.tsx` erreichbar für
       alle öffentlichen Inhaltsseiten, interne Tool-Routen bleiben ohne
       `/en/`-Zugriff
 - [ ] **Schritt 5**: Header, Footer und Account-Menü zeigen auf
