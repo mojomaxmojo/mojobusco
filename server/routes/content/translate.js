@@ -18,8 +18,9 @@ router.post('/api/translate-content', async (req, res) => {
     return res.status(400).json({ error: 'Inhalt (content) ist erforderlich.' })
   }
 
-  // maxTokens dynamisch, analog zu server/routes/content/article.js (Zeile 144)
-  const maxTokens = Math.min(4000, Math.ceil(content.length / 3))
+  // maxTokens dynamisch, analog zu server/routes/content/article.js (Zeile 144),
+  // mit Mindestwert, damit auch kurze Inhalte das vollständige JSON erzeugen können
+  const maxTokens = Math.max(500, Math.min(4000, Math.ceil(content.length / 3)))
 
   console.log(`[Translate] Starte DE→EN-Übersetzung (type: ${type || 'unbekannt'}, Zeichen: ${content.length}, maxTokens: ${maxTokens})`)
 
