@@ -695,9 +695,9 @@ Shakespeare.
       `server/routes/content/translate.js` erstellt, `server/routes/content/index.js`
       um 2 Zeilen ergänzt, `/api/translate-content` liefert per curl/Test
       eine englische Übersetzung zurück
-- [ ] **Schritt 3**: `src/hooks/useAutoTranslate.ts` erstellt (inkl.
-      EN-Teaser-Note), Build läuft fehlerfrei durch, noch keine UI-Änderung
-      sichtbar
+- [x] **Schritt 3**: `src/hooks/useAutoTranslate.ts` erstellt (inkl.
+       EN-Teaser-Note), Build läuft fehlerfrei durch, noch keine UI-Änderung
+       sichtbar
 - [ ] **Schritt 4**: `/en/...`-Routen in `src/AppRouter.tsx` erreichbar für
       alle öffentlichen Inhaltsseiten, interne Tool-Routen bleiben ohne
       `/en/`-Zugriff
