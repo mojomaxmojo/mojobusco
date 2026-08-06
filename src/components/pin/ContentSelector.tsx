@@ -66,6 +66,11 @@ function isPlaceEvent(e: any): boolean {
 // ═══════════════════════════════════════════════════════════
 
 function isMediaEvent(e: any): boolean {
+  // Automatisch erzeugte Teaser-Notes (Verweis auf Artikel/Ort/Trip/Video)
+  // sind kein eigenständiger Medien-Post, auch wenn der Content eine
+  // Bild-URL enthält (siehe createLongformTeaser.ts)
+  if (isTeaserNote(e)) return false;
+
   const hasMediaTag = e.tags?.some((t: any[]) =>
     t[0] === 't' && ['medien', 'media', 'bilder', 'images'].includes(t[1])
   )
@@ -80,7 +85,7 @@ function isMediaEvent(e: any): boolean {
   return hasMediaTag || hasMediaType || hasImageUrls
 }
 
-import { extractImagesFromEvent, extractTitle, extractSummary, isVideoUrl } from '@/lib/nostrEventUtils';
+import { extractImagesFromEvent, extractTitle, extractSummary, isVideoUrl, isTeaserNote } from '@/lib/nostrEventUtils';
 
 // ═══════════════════════════════════════════════════════════
 

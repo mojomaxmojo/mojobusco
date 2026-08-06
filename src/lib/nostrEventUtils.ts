@@ -16,6 +16,21 @@ export function isVideoUrl(url: string): boolean {
   return /\.(mp4|webm|mov|avi|mkv)(\?|#|$)/i.test(url);
 }
 
+/**
+ * Prüft, ob es sich um eine automatisch erzeugte Longform-Teaser-Note
+ * handelt (siehe `createLongformTeaser.ts`). Teaser-Notes sind reine
+ * Verweis-Posts auf einen Artikel/Ort/Trip/Video und enthalten dafür ein
+ * eindeutiges `a`-Tag im Format `kind:pubkey:dTag` (Adressierung des
+ * Original-Events). Sie sollen NICHT als eigenständiger Medien-/Bild-Post
+ * behandelt werden, auch wenn ihr Content zufällig eine Bild-URL enthält
+ * (z. B. das Titelbild des Artikels als eigene Zeile).
+ */
+export function isTeaserNote(event: { tags?: string[][] }): boolean {
+  return (event.tags || []).some(
+    (t) => t[0] === 'a' && /^\d+:[0-9a-f]{64}:/.test(t[1] || '')
+  );
+}
+
 export function extractImagesFromEvent(event: { tags?: string[][]; content?: string }): string[] {
   const images: string[] = [];
 

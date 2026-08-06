@@ -156,7 +156,20 @@ function isTrip(event) {
   return tripTag && titleTag;
 }
 
+/**
+ * Prüft, ob es sich um eine automatisch erzeugte Longform-Teaser-Note
+ * handelt (siehe src/lib/createLongformTeaser.ts). Teaser-Notes sind reine
+ * Verweis-Posts auf einen Artikel/Ort/Trip/Video (erkennbar am `a`-Tag
+ * `kind:pubkey:dTag`) und dürfen nicht als eigenständiger Medien-Post im
+ * bilder.json landen, auch wenn ihr Content eine Bild-URL enthält.
+ */
+function isTeaserNote(event) {
+  const tags = event.tags || [];
+  return tags.some(t => t[0] === 'a' && /^\d+:[0-9a-f]{64}:/.test(t[1] || ''));
+}
+
 function isMedia(event) {
+  if (isTeaserNote(event)) return false;
   const tags = event.tags || [];
   const mediaTag = tags.some(t => t[0] === 't' && ['media', 'medien', 'bilder', 'images', 'galerie'].includes(t[1]));
   const imageTags = tags.filter(t => t[0] === 'image');

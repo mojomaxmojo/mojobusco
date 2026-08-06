@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/useToast';
 import { generateSrcset, generateSizes, getGalleryThumbnailUrl, getImagePlaceholder } from '@/lib/imageUtils';
 import { VideoFramePreview } from '@/components/VideoFramePreview';
 import { canonicalUrl } from '@/lib/canonicalUrl';
+import { isTeaserNote } from '@/lib/nostrEventUtils';
 import { nip19 } from 'nostr-tools';
 import {
   AlertDialog,
@@ -84,6 +85,10 @@ function Images() {
     const imageEvents = allImageEvents.filter((event: ImageEvent) => {
       // kind:30023 sind Artikel – niemals auf der Bilder-Seite anzeigen
       if (event.kind === 30023) return false;
+
+      // Automatisch erzeugte Teaser-Notes (Verweis auf Artikel/Ort/Trip/Video)
+      // sind kein eigenständiger Medien-Post – nie auf der Bilder-Seite anzeigen
+      if (isTeaserNote(event)) return false;
 
       // type=media Tag → definitiv ein Medien-Post (aus bilder.json oder Live-Relay)
       const hasMediaType = event.tags.some(tag => tag[0] === 'type' && tag[1] === 'media');

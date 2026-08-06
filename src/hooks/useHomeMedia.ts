@@ -1,13 +1,21 @@
 import { useMemo } from 'react';
 import { usePreloadedData } from '@/hooks/usePreloadedData';
 import { NOSTR_CONFIG } from '@/config/nostr';
+import { isTeaserNote } from '@/lib/nostrEventUtils';
 import type { NostrEvent } from '@nostrify/nostrify';
 
 /**
  * Prüft, ob der Event-Content oder Tags eine Bild-/Media-URL enthalten.
  * Entspricht exakt der Filterlogik aus der ursprünglichen Home.tsx.
+ *
+ * Automatisch erzeugte Teaser-Notes (siehe `createLongformTeaser.ts`) werden
+ * explizit ausgeschlossen: Sie enthalten die Bild-URL des Original-Artikels
+ * als eigene Zeile im Content, sind aber kein eigenständiger Medien-Post und
+ * sollen nicht zusätzlich als `/bild/{note}`-Karte auf der Home erscheinen.
  */
 function hasMediaContent(event: NostrEvent): boolean {
+  if (isTeaserNote(event)) return false;
+
   const content = event.content.toLowerCase();
 
   return (
