@@ -33,6 +33,7 @@ function renderListPage({ title, description, canonicalUrl, items, listName }, l
     imageAlt: title,
     ogType: 'website',
     jsonLd,
+    lang,
   });
 
   const listHtml = items.length
