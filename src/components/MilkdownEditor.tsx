@@ -29,6 +29,18 @@ import {
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { ToastAction } from '@/components/ui/toast';
+import { useToast } from '@/hooks/useToast';
 import { useUploadFile } from '@/hooks/useUploadFile';
 
 // Error Boundary Component
@@ -69,6 +81,7 @@ interface MilkdownEditorProps {
   minHeight?: string;
   maxLength?: number;
   onImageUpload?: (url: string) => void;
+  onImageMetaChange?: (url: string, meta: { alt?: string; caption?: string; note?: string }) => void;
 }
 
 function MilkdownEditorInner({
@@ -78,17 +91,53 @@ function MilkdownEditorInner({
   minHeight = '400px',
   maxLength,
   onImageUpload,
+  onImageMetaChange,
 }: MilkdownEditorProps) {
   const { mutateAsync: uploadFile, isPending: isUploading } = useUploadFile();
+  const { toast } = useToast();
   const initialValueRef = useRef(content);
   const lastExternalValue = useRef(content);
   const onImageUploadRef = useRef(onImageUpload);
+  const onImageMetaChangeRef = useRef(onImageMetaChange);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+
+  // Bild-Metadaten-Dialog (Alt-Text, Caption, Freitext)
+  const [editingImageUrl, setEditingImageUrl] = useState<string | null>(null);
+  const [altText, setAltText] = useState('');
+  const [captionText, setCaptionText] = useState('');
+  const [noteText, setNoteText] = useState('');
+  const imageMetaStoreRef = useRef<Record<string, { alt?: string; caption?: string; note?: string }>>({});
 
   // Keep refs updated
   useEffect(() => {
     onImageUploadRef.current = onImageUpload;
   }, [onImageUpload]);
+
+  useEffect(() => {
+    onImageMetaChangeRef.current = onImageMetaChange;
+  }, [onImageMetaChange]);
+
+  const openImageMetaDialog = useCallback((url: string) => {
+    const existing = imageMetaStoreRef.current[url] || {};
+    setAltText(existing.alt || '');
+    setCaptionText(existing.caption || '');
+    setNoteText(existing.note || '');
+    setEditingImageUrl(url);
+  }, []);
+
+  const saveImageMeta = () => {
+    if (!editingImageUrl) return;
+    const meta = { alt: altText, caption: captionText, note: noteText };
+    imageMetaStoreRef.current[editingImageUrl] = meta;
+    if (onImageMetaChangeRef.current) {
+      onImageMetaChangeRef.current(editingImageUrl, meta);
+    }
+    setEditingImageUrl(null);
+    toast({
+      title: 'Bild-Details gespeichert',
+      description: 'Die Metadaten wurden übernommen.',
+    });
+  };
 
   const { get } = useEditor((root) => {
     return Editor.make()
@@ -133,6 +182,19 @@ function MilkdownEditorInner({
                 if (onImageUploadRef.current) {
                   onImageUploadRef.current(url);
                 }
+
+                toast({
+                  title: 'Bild hochgeladen',
+                  description: 'Möchtest du Details (Alt-Text, Caption, Freitext) hinzufügen?',
+                  action: (
+                    <ToastAction
+                      altText="Details hinzufügen"
+                      onClick={() => openImageMetaDialog(url)}
+                    >
+                      Details hinzufügen
+                    </ToastAction>
+                  ),
+                });
               } catch (error) {
                 // Silently fail - upload errors are handled by useUploadFile
               } finally {
@@ -243,6 +305,19 @@ function MilkdownEditorInner({
       if (onImageUpload) {
         onImageUpload(url);
       }
+
+      toast({
+        title: 'Bild hochgeladen',
+        description: 'Möchtest du Details (Alt-Text, Caption, Freitext) hinzufügen?',
+        action: (
+          <ToastAction
+            altText="Details hinzufügen"
+            onClick={() => openImageMetaDialog(url)}
+          >
+            Details hinzufügen
+          </ToastAction>
+        ),
+      });
     } catch {
       // Silently fail - upload errors are handled by useUploadFile
     } finally {
@@ -476,6 +551,53 @@ function MilkdownEditorInner({
           </div>
         )}
       </div>
+
+      {/* Bild-Metadaten-Dialog (Alt-Text, Caption, Freitext) */}
+      <Dialog open={!!editingImageUrl} onOpenChange={(open) => { if (!open) setEditingImageUrl(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Bild-Details</DialogTitle>
+            <DialogDescription>
+              Optional: Alt-Text, Caption und Freitext für dieses Bild.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="img-alt">Alt-Text (SEO, kurz)</Label>
+              <Input
+                id="img-alt"
+                value={altText}
+                onChange={(e) => setAltText(e.target.value)}
+                placeholder="z.B. Sonnenuntergang am Strand"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="img-caption">Caption (unter dem Bild sichtbar)</Label>
+              <Input
+                id="img-caption"
+                value={captionText}
+                onChange={(e) => setCaptionText(e.target.value)}
+                placeholder="z.B. Abends am Strand"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="img-note">Freitext (nur für die KI)</Label>
+              <Textarea
+                id="img-note"
+                value={noteText}
+                onChange={(e) => setNoteText(e.target.value)}
+                placeholder="z.B. Das war der Tag mit dem Motorschaden"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingImageUrl(null)}>
+              Abbrechen
+            </Button>
+            <Button onClick={saveImageMeta}>Speichern</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

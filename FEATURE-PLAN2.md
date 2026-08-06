@@ -430,7 +430,7 @@ GPS-Handling, Teaser-Note, Video-/Slideshow-Generator) wird verändert.
       `alt`; `ArticleView.tsx` rendert `<!--caption:-->`-Kommentare als
       kursive Bildunterschrift; bestehende Artikel ohne Caption sehen
       weiterhin unverändert aus
-- [ ] **Schritt 4**: `MilkdownEditor.tsx` bietet nach jedem Bild-Upload
+- [x] **Schritt 4**: `MilkdownEditor.tsx` bietet nach jedem Bild-Upload
       einen „Details hinzufügen"-Dialog mit Alt-Text/Caption/Freitext-Feld,
       gibt die Werte per `onImageMetaChange` an die aufrufende Komponente
       zurück; noch kein Effekt auf generierte Artikel
