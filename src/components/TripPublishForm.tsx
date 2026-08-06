@@ -29,6 +29,8 @@ import { useUploadFile } from '@/hooks/useUploadFile';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useAutoTranslate } from '@/hooks/useAutoTranslate';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { PerspectiveSelector } from '@/components/PerspectiveSelector';
+import { type GenderType } from '@/config/prompts/lifestyles';
 import { canonicalUrl, tripUrl } from '@/lib/canonicalUrl';
 import { createLongformTeaser } from '@/lib/createLongformTeaser';
 import { AUTO_TRANSLATE_STORAGE_KEY } from '@/config/translation';
@@ -392,7 +394,13 @@ export function TripPublishForm() {
   const { toast } = useToast();
   const { mutateAsync: uploadFile } = useUploadFile();
   const { mutateAsync: publishEvent } = useNostrPublish();
-  const { gender, user } = useCurrentUser(); // Gender für KI-Generierung (Mojo=male, Susanne=female)
+  const { gender: autoGender, user } = useCurrentUser(); // Automatisch erkannte Perspektive (Mojo=male, Susanne=female)
+  const [perspectiveTouched, setPerspectiveTouched] = useState(false);
+  const [perspective, setPerspective] = useState<GenderType>(autoGender);
+  useEffect(() => {
+    if (!perspectiveTouched) setPerspective(autoGender);
+  }, [autoGender, perspectiveTouched]);
+  const gender = perspective;
   const { translateAndPublish } = useAutoTranslate();
 
   // KI-Artikelgenerierung für Trips
@@ -1787,7 +1795,13 @@ export function TripPublishForm() {
               </p>
             )}
           </div>
-          
+
+          {/* Perspektive (Ich/Wir) */}
+          <PerspectiveSelector
+            value={perspective}
+            onChange={(v) => { setPerspective(v); setPerspectiveTouched(true); }}
+          />
+
           <CountrySelector
             selectedCountry={tripData.country}
             onCountryChange={(country) => setTripData(prev => ({ ...prev, country }))}

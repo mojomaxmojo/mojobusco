@@ -60,8 +60,12 @@ export const generateNotePrompt = (params) => {
   }
 
   // Trip-Type Block (wenn gesetzt)
+  // "strand"/"ort": kein Fortbewegungsmittel, keine Reise – nur der Ort selbst.
+  const isStationaryTripType = tripType === 'strand' || tripType === 'ort'
   const tripTypeBlock = tripType
-    ? `\nART DER REISE: ${tripType.toUpperCase()}. Schreibe so dass der Text nach ${tripType} klingt – nicht nach Roadtrip oder Vanlife wenn das nicht zutrifft.\n`
+    ? (isStationaryTripType
+        ? `\nWICHTIG: Keine Reise, kein Trip. Beschreibe NUR diesen ${tripType === 'strand' ? 'Strand' : 'Ort'} – kein Ankommen, kein Losfahren, keine Weiterreise.\n`
+        : `\nART DER REISE: ${tripType.toUpperCase()}. Schreibe so dass der Text nach ${tripType} klingt – nicht nach Roadtrip oder Vanlife wenn das nicht zutrifft.\n`)
     : ''
 
   return `Du schreibst wie Foster Huntington. Eine Notiz für die ${lifestyleConfig.community}.

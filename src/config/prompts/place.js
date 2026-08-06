@@ -62,8 +62,14 @@ export const generatePlacePrompt = (params) => {
     : null
 
   // Trip-Type Block
+  // "strand" und "ort" sind Sonderfälle: kein Fortbewegungsmittel, keine
+  // Anreise-Info – nur ein Signal an die KI, ausschließlich den Ort/Strand
+  // selbst zu beschreiben, ohne Bewegung, Ankunft oder Weiterfahrt.
+  const isStationaryTripType = tripType === 'strand' || tripType === 'ort'
   const tripTypeBlock = tripType
-    ? `\nKONTEXT: Dieser Platz wurde per ${tripType} erreicht oder ist typisch für ${tripType}-Reisende. Erwähne das wenn es passt.\n`
+    ? (isStationaryTripType
+        ? `\nWICHTIG: Beschreibe NUR diesen ${tripType === 'strand' ? 'Strand' : 'Ort'}. Keine Anreise, kein Ankommen, keine Erwähnung wie man hierher kam oder wohin es weitergeht. Nur der Ort selbst, genau jetzt.\n`
+        : `\nKONTEXT: Dieser Platz wurde per ${tripType} erreicht oder ist typisch für ${tripType}-Reisende. Erwähne das wenn es passt.\n`)
     : ''
 
   // Kontext kompakt zusammenbauen

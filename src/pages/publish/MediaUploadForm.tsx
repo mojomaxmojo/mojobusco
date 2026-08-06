@@ -14,6 +14,8 @@ import { GpsEditor } from "@/components/GpsEditor";
 import { GpsStatusIndicator } from "@/components/GpsStatusIndicator";
 import { LocationPicker } from "@/components/LocationPicker";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { PerspectiveSelector } from "@/components/PerspectiveSelector";
+import { type GenderType } from "@/config/prompts/lifestyles";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { CountrySelector, getCountryTag } from "@/components/CountrySelector";
@@ -58,7 +60,13 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
   const { toast } = useToast();
   const { mutateAsync: uploadFile } = useUploadFile();
   const { mutateAsync: publishEvent } = useNostrPublish();
-  const { gender } = useCurrentUser(); // Gender für KI-Generierung (Mojo=male, Susanne=female)
+  const { gender: autoGender } = useCurrentUser(); // Automatisch erkannte Perspektive (Mojo=male, Susanne=female)
+  const [perspectiveTouched, setPerspectiveTouched] = useState(false);
+  const [perspective, setPerspective] = useState<GenderType>(autoGender);
+  useEffect(() => {
+    if (!perspectiveTouched) setPerspective(autoGender);
+  }, [autoGender, perspectiveTouched]);
+  const gender = perspective;
   const navigate = useNavigate();
 
   // Wird von SlideshowBlock aufgerufen sobald das Video auf Blossom fertig ist
@@ -1268,9 +1276,17 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
                      <SelectItem value="perpetual-travelers">🌍 Perpetual Travelers - Permanent Reisende</SelectItem>
                    </SelectContent>
                  </Select>
-                 <p className="text-xs text-muted-foreground">
-                   Foster Huntington Stil - ehrlich, direkt, authentisch
-                 </p>
+                  <p className="text-xs text-muted-foreground">
+                    Foster Huntington Stil - ehrlich, direkt, authentisch
+                  </p>
+                </div>
+
+               {/* Perspektive (Ich/Wir) */}
+               <div className="mt-3">
+                 <PerspectiveSelector
+                   value={perspective}
+                   onChange={(v) => { setPerspective(v); setPerspectiveTouched(true); }}
+                 />
                </div>
 
                {/* Art der Reise */}

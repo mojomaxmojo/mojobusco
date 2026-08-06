@@ -36,8 +36,12 @@ export const generateMediaPrompt = (params) => {
   const genderAddition = getGenderPromptAddition(gender)
 
   // Trip-Type Block
+  // "strand"/"ort": kein Fortbewegungsmittel, keine Reise – nur der Ort selbst.
+  const isStationaryTripType = tripType === 'strand' || tripType === 'ort'
   const tripTypeBlock = tripType
-    ? `\nART DER REISE: ${tripType.toUpperCase()}. Schreibe so dass der Text nach ${tripType} klingt – nicht nach Roadtrip wenn es kein Auto-Trip ist.\n`
+    ? (isStationaryTripType
+        ? `\nWICHTIG: Keine Reise, kein Trip. Beschreibe NUR diesen ${tripType === 'strand' ? 'Strand' : 'Ort'} – kein Ankommen, kein Losfahren, keine Weiterreise.\n`
+        : `\nART DER REISE: ${tripType.toUpperCase()}. Schreibe so dass der Text nach ${tripType} klingt – nicht nach Roadtrip wenn es kein Auto-Trip ist.\n`)
     : ''
 
   // Kontext kompakt – nur was relevant ist

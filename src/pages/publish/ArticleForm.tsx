@@ -15,6 +15,8 @@ import { GpsEditor } from "@/components/GpsEditor";
 import { GpsStatusIndicator } from "@/components/GpsStatusIndicator";
 import { LocationPicker } from "@/components/LocationPicker";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { PerspectiveSelector } from "@/components/PerspectiveSelector";
+import { type GenderType } from "@/config/prompts/lifestyles";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { CountrySelector, getCountryTag } from "@/components/CountrySelector";
@@ -91,7 +93,14 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
   const { toast } = useToast();
   const { mutateAsync: publishEvent } = useNostrPublish();
   const { mutateAsync: uploadFile } = useUploadFile();
-  const { gender, user: currentUser } = useCurrentUser(); // Gender für KI-Generierung (Mojo=male, Susanne=female)
+  const { gender: autoGender, user: currentUser } = useCurrentUser(); // Automatisch erkannte Perspektive (Mojo=male, Susanne=female)
+  const [perspectiveTouched, setPerspectiveTouched] = useState(false);
+  const [perspective, setPerspective] = useState<GenderType>(autoGender);
+  // Solange der User die Perspektive nicht manuell geändert hat, folgt sie der Auto-Erkennung
+  useEffect(() => {
+    if (!perspectiveTouched) setPerspective(autoGender);
+  }, [autoGender, perspectiveTouched]);
+  const gender = perspective;
   const navigate = useNavigate();
   const { translateAndPublish } = useAutoTranslate();
 
@@ -1209,6 +1218,12 @@ Schreibe deinen Artikel hier...
               Foster Huntington Stil - ehrlich, direkt, authentisch
             </p>
           </div>
+
+          {/* Perspektive (Ich/Wir) */}
+          <PerspectiveSelector
+            value={perspective}
+            onChange={(v) => { setPerspective(v); setPerspectiveTouched(true); }}
+          />
 
           {/* Art der Reise */}
           <div className="space-y-2">

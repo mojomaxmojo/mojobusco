@@ -187,6 +187,10 @@ export const TRIP_TYPES = [
   { id: 'boot', label: 'Boot', icon: '⛵' },
   { id: 'flug', label: 'Flug', icon: '✈️' },
   { id: 'wandern', label: 'Wandern', icon: '🥾' },
+  // Kein Fahrzeug, keine Bewegung – Signal an die KI: nur DIESEN Ort/Strand
+  // beschreiben, keine Weiterfahrt, keine Ankunfts-/Abreise-Dramaturgie.
+  { id: 'strand', label: 'Strand', icon: '🏖️' },
+  { id: 'ort', label: 'Ort (nur diesen Ort beschreiben)', icon: '📍' },
 ] as const;
 
 export type TripType = typeof TRIP_TYPES[number]['id'];

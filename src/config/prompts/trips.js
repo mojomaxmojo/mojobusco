@@ -101,6 +101,30 @@ const tripTypeConfig = {
         rhythm: 'Langsam. Jeder Zug überlegt. Dann: der Moment wo es fließt.',
         gear: 'Kletterschuhe, Gurt, Seil, Chalk, Karabiner',
         avoid: 'Kein Fahrzeug – vertikal unterwegs'
+    },
+    // ── Sonderfälle: KEINE Bewegung, KEINE Reise ──────────────────────────
+    // "strand" und "ort" sind kein Fortbewegungsmittel. Sie markieren:
+    // Es wird NUR der aktuelle Ort/Strand beschrieben. Kein Ankommen, kein
+    // Losfahren, keine Weiterreise, kein "morgen geht's weiter".
+    // stationary: true wird von generatePlacePrompt/-Article/-Note/-Media
+    // ausgelesen um Ankunfts-/Abreise-Dramaturgie explizit zu verbieten.
+    strand: {
+        vehicle: null,
+        stationary: true,
+        movement: 'Keine. Du bist da. Du bleibst wo du bist.',
+        senses: 'Sand, Wind, Salzluft, Wellenrauschen, Sonne oder Wolken auf der Haut',
+        rhythm: 'Kein Rhythmus der Bewegung – der Rhythmus der Gezeiten, der Wellen, des Tages.',
+        gear: 'Handtuch, vielleicht ein Stuhl, nichts weiter',
+        avoid: 'Kein Fahrzeug, kein Ankommen, kein Losfahren, keine Weiterreise – nur der Strand, genau jetzt'
+    },
+    ort: {
+        vehicle: null,
+        stationary: true,
+        movement: 'Keine. Du bist an diesem Ort. Das ist alles.',
+        senses: 'Was gerade da ist – Geräusche, Licht, Temperatur, Geruch dieses einen Orts',
+        rhythm: 'Kein Reise-Rhythmus. Der Ort steht für sich.',
+        gear: '',
+        avoid: 'Kein Fahrzeug, kein Ankommen, kein Losfahren, keine Weiterreise – nur dieser Ort, genau jetzt'
     }
 }
 
@@ -195,7 +219,8 @@ export const generateTripPrompt = (params) => {
     const tripTypeMeta = tripType && tripTypeConfig[tripType] ? tripTypeConfig[tripType] : null
 
     // Fahrzeug: tripType überschreibt lifestyleConfig.vehicle wenn vorhanden
-    const effectiveVehicle = tripTypeMeta ? tripTypeMeta.vehicle : lifestyleConfig.vehicle
+    // (stationary Typen wie strand/ort haben KEIN Fahrzeug → vehicle bleibt null)
+    const effectiveVehicle = tripTypeMeta && tripTypeMeta.vehicle ? tripTypeMeta.vehicle : (tripTypeMeta?.stationary ? null : lifestyleConfig.vehicle)
 
     // Kontext kompakt zusammenbauen
     let contextLines = [
@@ -269,7 +294,23 @@ export const generateTripPrompt = (params) => {
 
     // Trip-Type spezifischer Prompt-Block
     let tripTypeBlock = ''
-    if (tripTypeMeta) {
+    if (tripTypeMeta && tripTypeMeta.stationary) {
+        // Sonderfall strand/ort: KEINE Reise, KEINE Bewegung.
+        tripTypeBlock = `
+    ART DER REISE: ${tripType.toUpperCase()} – DAS IST KEINE REISE. ES IST EIN ORT.
+    ${tripTypeMeta.avoid.toUpperCase()}.
+    - Zustand: ${tripTypeMeta.movement}
+    - Sinneseindrücke: ${tripTypeMeta.senses}
+    - Rhythmus: ${tripTypeMeta.rhythm}
+
+    WICHTIG – STRIKT BEACHTEN:
+    - Beschreibe NUR diesen einen Ort/Strand. Keine Route, keine Stationen, keine Weiterfahrt.
+    - KEIN Ankommen erwähnen ("Wir kamen an...", "Endlich da...").
+    - KEIN Losfahren oder Abreisen erwähnen ("Morgen geht's weiter...", "Zeit zu fahren...").
+    - KEIN Fahrzeug, kein Motor, kein Lenkrad – außer der User erwähnt es explizit.
+    - Kein Gefühl von Bewegung im Text. Der Text steht so still wie der Ort selbst.
+    - Das ist näher an einer Platz-Beschreibung als an einem Reisebericht: was ist da, was nicht, wie fühlt es sich an hier zu sein.`
+    } else if (tripTypeMeta) {
         tripTypeBlock = `
     ART DER REISE: ${tripType.toUpperCase()}
     ${tripTypeMeta.avoid.toUpperCase()}.
@@ -321,7 +362,9 @@ ${genderAddition}
     FOSTER'S THEMEN${tripLength !== 'short' ? ' (in längeren Trips hast du Raum für mehrere)' : ''}:
     ${fosterHuntingtonStyle.themes.map(t => `- ${t}`).join('\n')}
     - Zusätzlich bei Trips: ${tripTypeMeta
-        ? `die ${tripTypeMeta.vehicle} als Ort. ${tripTypeMeta.movement} als Zustand. Ankommen ohne Drama.`
+        ? (tripTypeMeta.stationary
+            ? `${tripTypeMeta.movement} Kein Ankommen, keine Bewegung – nur der Ort, wie er gerade ist.`
+            : `die ${tripTypeMeta.vehicle} als Ort. ${tripTypeMeta.movement} als Zustand. Ankommen ohne Drama.`)
         : 'die Straße als Ort. Das Fahren als Zustand. Ankommen ohne Drama – einfach da. Motor aus. Kennen wir.'
     }
     - Wiederholte Orte: wir waren hier schon. Was hat sich verändert. Was ist gleich geblieben. Beides beiläufig.
@@ -357,7 +400,7 @@ ${genderAddition}
     - Wenn der User Stationen nennt: verwende sie als Anker. Aber mach keine Liste daraus.
     - Wenn der User eine Route nennt: sie ist das Rückgrat. Aber beschreibe sie nicht wie ein Navi.
     - Probleme/Herausforderungen nur wenn sie aus dem Kontext kommen
-    - Das Fortbewegungsmittel (${effectiveVehicle}) gehört in den Text: Geräusche, Macken, wie es sich anfühlt
+    ${effectiveVehicle ? `- Das Fortbewegungsmittel (${effectiveVehicle}) gehört in den Text: Geräusche, Macken, wie es sich anfühlt` : '- Kein Fortbewegungsmittel im Text – es wird nicht gefahren, nur beschrieben'}
     - Jede Station braucht ein konkretes Bild: etwas das man sieht, hört, riecht, fühlt
 
     WIE STATIONEN FLIESSEN (nicht auflisten):
@@ -412,17 +455,19 @@ export const getTripImageAnalysisPrompt = (lifestyleConfig, tripLength = 'medium
 
     // Fokus-Beschreibung je nach Trip-Type
     const vehicleFocus = tripTypeMeta
-        ? `${tripTypeMeta.vehicle} (${tripType})`
+        ? (tripTypeMeta.vehicle ? `${tripTypeMeta.vehicle} (${tripType})` : `Ort (${tripType})`)
         : lifestyleConfig.vehicle
 
     // Was soll die Analyse hervorheben?
     const focusHint = tripTypeMeta
-        ? `FOKUS: Wo ist das? Was passiert? Ist die Person unterwegs, in Bewegung, pausierend? Sichtbar: ${tripTypeMeta.gear}.`
+        ? (tripTypeMeta.stationary
+            ? `FOKUS: Wo ist das? Wie sieht der Ort aus? Kein Fahrzeug, keine Bewegung – nur der Ort selbst.`
+            : `FOKUS: Wo ist das? Was passiert? Ist die Person unterwegs, in Bewegung, pausierend? Sichtbar: ${tripTypeMeta.gear}.`)
         : `FOKUS: Wo ist das? Was passiert? Ist das Fahrzeug unterwegs oder steht es?`
 
     // Hauptobjekte je nach Trip-Type
     const mainObjects = tripTypeMeta
-        ? `Personen, ${tripTypeMeta.vehicle}, Tiere, Landschaft, Weg/Pfad/Gelände`
+        ? (tripTypeMeta.vehicle ? `Personen, ${tripTypeMeta.vehicle}, Tiere, Landschaft, Weg/Pfad/Gelände` : `Personen, Tiere, Landschaft, Umgebung, Details des Orts`)
         : `Fahrzeug, Personen, Tiere, Landschaft, Straße`
 
     const basePrompt = `Beschreibe dieses Bild sachlich für einen ${vehicleFocus}-Trip-Bericht.

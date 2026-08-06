@@ -186,8 +186,12 @@ export const generateArticlePrompt = (params) => {
     }
 
     // Trip-Type Block (wenn gesetzt)
+    // "strand"/"ort": kein Fortbewegungsmittel, keine Reise – nur der Ort selbst.
+    const isStationaryTripType = tripType === 'strand' || tripType === 'ort'
     const tripTypeBlock = tripType
-        ? `\n    ART DER REISE: ${tripType.toUpperCase()}. Der Text soll sich nach ${tripType} anfühlen, nicht nach einem generischen Roadtrip.\n    Wenn es kein Fahrzeug-Trip ist (Wandern, Spaziergang, Radfahren, Boot, Flug): KEIN Lenkrad, kein Van, keine Schiebetür.\n`
+        ? (isStationaryTripType
+            ? `\n    WICHTIG: Das ist KEINE Reise, kein Trip. Beschreibe NUR diesen ${tripType === 'strand' ? 'Strand' : 'Ort'} – wie er gerade ist.\n    Keine Anreise, kein Ankommen, kein Losfahren, keine Weiterreise erwähnen. Kein Fahrzeug, kein Lenkrad, keine Schiebetür – außer der User erwähnt es explizit.\n`
+            : `\n    ART DER REISE: ${tripType.toUpperCase()}. Der Text soll sich nach ${tripType} anfühlen, nicht nach einem generischen Roadtrip.\n    Wenn es kein Fahrzeug-Trip ist (Wandern, Spaziergang, Radfahren, Boot, Flug): KEIN Lenkrad, kein Van, keine Schiebetür.\n`)
         : ''
 
     return `Du schreibst wie Foster Huntington. Einen ${length.label}form-Artikel für die ${lifestyleConfig.community}.

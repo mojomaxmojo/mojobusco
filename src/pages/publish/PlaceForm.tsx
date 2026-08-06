@@ -17,6 +17,8 @@ import { GpsEditor } from "@/components/GpsEditor";
 import { GpsStatusIndicator } from "@/components/GpsStatusIndicator";
 import { LocationPicker } from "@/components/LocationPicker";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { PerspectiveSelector } from "@/components/PerspectiveSelector";
+import { type GenderType } from "@/config/prompts/lifestyles";
 import { useNostr } from "@nostrify/react";
 import { useQuery } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -80,7 +82,13 @@ export function PlaceForm({ editEvent }: { editEvent?: any }) {
    const { toast } = useToast();
   const { mutateAsync: publishEvent } = useNostrPublish();
   const { mutateAsync: uploadFile } = useUploadFile();
-  const { gender, user: currentUser } = useCurrentUser(); // Gender für KI-Generierung (Mojo=male, Susanne=female)
+  const { gender: autoGender, user: currentUser } = useCurrentUser(); // Automatisch erkannte Perspektive (Mojo=male, Susanne=female)
+  const [perspectiveTouched, setPerspectiveTouched] = useState(false);
+  const [perspective, setPerspective] = useState<GenderType>(autoGender);
+  useEffect(() => {
+    if (!perspectiveTouched) setPerspective(autoGender);
+  }, [autoGender, perspectiveTouched]);
+  const gender = perspective;
   const navigate = useNavigate();
   const { translateAndPublish } = useAutoTranslate();
 
@@ -1088,6 +1096,12 @@ Beschreibe hier den Ort, was macht ihn besonders...
               Foster Huntington Stil - ehrlich, direkt, authentisch
             </p>
           </div>
+
+          {/* Perspektive (Ich/Wir) */}
+          <PerspectiveSelector
+            value={perspective}
+            onChange={(v) => { setPerspective(v); setPerspectiveTouched(true); }}
+          />
 
           {/* Art der Reise */}
           <div className="space-y-2">
