@@ -418,7 +418,7 @@ GPS-Handling, Teaser-Note, Video-/Slideshow-Generator) wird verändert.
       Alt/Caption/Note als HTML-Kommentare) und `src/lib/imagePlacementZones.ts`
       (Wortfenster-Berechnung) erstellt; Build läuft fehlerfrei durch,
       nichts sichtbar verändert
-- [ ] **Schritt 2**: `src/config/prompts/articles.js` um Prioritäts-Kette
+- [x] **Schritt 2**: `src/config/prompts/articles.js` um Prioritäts-Kette
       (note > caption > Vision-Beschreibung > alt) und optionale
       Zonen-Verteilung im Bildplatzierungs-Abschnitt erweitert;
       `server/routes/content/article.js` liest `markdownImageMeta` aus dem

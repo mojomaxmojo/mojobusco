@@ -68,6 +68,34 @@ const lengthConfig = {
 }
 
 /**
+ * Zonen-Verteilungs-Hilfsfunktion (lokale JS-Variante der .ts-Datei
+ * `src/lib/imagePlacementZones.ts`, 1:1 identische Logik).
+ *
+ * Berechnet für jedes Bild ein Wortfenster (Start–Ende), damit die KI die
+ * Bilder grob gleichmäßig über den Artikel verteilt.
+ *
+ * Zielintervall = totalWords / (imageCount + 1). Zone für Bild i (0-basiert)
+ * ist [interval * (i+1) * 0.7, interval * (i+1) * 1.3] (±30% Toleranz),
+ * geclamped auf [0, totalWords].
+ *
+ * @param {number} totalWords - Geschätzte Gesamtwortzahl des Artikels
+ * @param {number} imageCount - Anzahl der zu verteilenden Bilder
+ * @returns {Array<{imageIndex: number, wordStart: number, wordEnd: number}>}
+ */
+export function computePlacementZones(totalWords, imageCount) {
+  if (imageCount <= 0 || totalWords <= 0) return []
+  const interval = totalWords / (imageCount + 1)
+  const zones = []
+  for (let i = 0; i < imageCount; i++) {
+    const ideal = interval * (i + 1)
+    const wordStart = Math.min(totalWords, Math.max(0, ideal * 0.7))
+    const wordEnd = Math.min(totalWords, Math.max(0, ideal * 1.3))
+    zones.push({ imageIndex: i, wordStart, wordEnd })
+  }
+  return zones
+}
+
+/**
  * Generiert den Foster Huntington Prompt für Berichte
  *
  * @param {Object} params
@@ -87,7 +115,8 @@ export const generateArticlePrompt = (params) => {
         country,
         articleLength = 'long',
         gender = 'neutral',
-        tripType = ''
+        tripType = '',
+        placementZones
     } = params
 
     // Normalisieren: imageObjects bevorzugen, imageDescriptions als Fallback
@@ -215,7 +244,7 @@ ${tripTypeBlock}
     ${images.map((img, i) => {
         const num = i + 1
         const placeholder = img.url ? `[BILD_${num}]` : `(Titelbild ${num} – kein Platzhalter)`
-        return `${num}. ${placeholder} – ${img.description}`
+        return `${num}. ${placeholder} – ${img.note ? `[Autor sagt: "${img.note}"] ` : ''}${img.caption ? `[Bildunterschrift: "${img.caption}"] ` : ''}${img.description}${img.alt && img.alt !== img.description ? ` (Alt-Text: "${img.alt}")` : ''}`
     }).join('\n')}
 
     BILDPLATZIERUNG – WICHTIG:
@@ -231,9 +260,13 @@ ${tripTypeBlock}
     [BILD_1]
 
     Am nächsten Morgen Nebel. Die Kirche noch da, der Rest verschwunden."
-
+${placementZones && placementZones.length > 0 ? `
+    ZONEN-VERTEILUNG (jedes Bild hat ein vorgesehenes Wortfenster):
+    ${placementZones.map(z => `[BILD_${z.imageIndex + 1}] soll etwa zwischen Wort ${z.wordStart} und Wort ${z.wordEnd} stehen — suche dort die inhaltlich beste Stelle.`).join('\n    ')}
+    Jedes Bild MUSS platziert werden — wähle innerhalb seines Wortfensters die am wenigsten schlechte Stelle, auch wenn kein perfekter Szenen-Fit da ist.` : `
     Wenn ein Bild inhaltlich nirgendwo passt: lass den Platzhalter weg.
-    Lieber kein Platzhalter als ein falscher.` : `
+    Lieber kein Platzhalter als ein falscher.`}`
+    : `
     Alle Bilder sind Titelbilder ohne Platzhalter. Beschreibe nur den Text.`}
 
     ${text ? `WAS DER AUTOR SAGT (HÖCHSTE PRIORITÄT – das ist passiert, bau den Artikel darauf):\n"${text}"` : ''}

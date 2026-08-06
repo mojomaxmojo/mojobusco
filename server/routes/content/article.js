@@ -7,6 +7,7 @@ import {
   generateArticleSummaryPrompt,
   generateArticleTitlesPrompt,
   getArticleImageAnalysisPrompt,
+  computePlacementZones,
 } from '../../../src/config/prompts/index.js'
 import { handleMulterError, sanitizeInput, validateApiKey, safelyParseJSON } from '../../utils/http-helpers.js'
 import { generateWithModel } from '../../services/ai-content.js'
@@ -51,6 +52,8 @@ router.post('/api/generate-article', (req, res, next) => {
   const tripType = sanitizeInput(req.body.tripType) || ''
   // Bild-URLs aus dem MilkdownEditor-Markdown (bereits hochgeladen, öffentlich erreichbar)
   const markdownImageUrls = safelyParseJSON(req.body.markdownImageUrls) || []
+  // Bild-Metadaten pro Markdown-Bild ({alt, caption, note}), parallel zu markdownImageUrls
+  const markdownImageMeta = safelyParseJSON(req.body.markdownImageMeta) || []
 
   // Mindestens Titelbild ODER Markdown-Bilder erforderlich
   if ((!images || images.length === 0) && markdownImageUrls.length === 0) {
@@ -119,10 +122,20 @@ router.post('/api/generate-article', (req, res, next) => {
       ...uploadedImageDescriptions.map(desc => ({ url: null, description: desc })),
       ...markdownUrlsToAnalyze.map((url, i) => ({
         url,
-        description: markdownImageDescriptions[i] || ''
+        description: markdownImageDescriptions[i] || '',
+        alt: markdownImageMeta[i]?.alt,
+        caption: markdownImageMeta[i]?.caption,
+        note: markdownImageMeta[i]?.note
       })).filter(obj => obj.description)
     ]
     console.log(`[KI] Gesamt ${imageObjects.length} Bilder für Prompt (${uploadedImageDescriptions.length} Titel, ${markdownImageDescriptions.length} Markdown)`)
+
+    // Berichte: maxTokens abhängig von articleLength
+    const articleMaxTokens = articleLength === 'short' ? 500 : articleLength === 'medium' ? 1200 : 2500
+
+    // Wortzahl-Schätzung aus articleMaxTokens (≈ 0.75 Wörter pro Token) für die gleichmäßige Bildverteilung
+    const totalWords = Math.round(articleMaxTokens * 0.75)
+    const placementZones = computePlacementZones(totalWords, imageObjects.length)
 
     // Foster Huntington Prompt für Berichte - importiert aus src/config/prompts/articles.js
     const prompt = generateArticlePrompt({
@@ -131,6 +144,7 @@ router.post('/api/generate-article', (req, res, next) => {
       location,
       text,
       imageObjects,  // neu: [{url, description}] statt imageDescriptions[]
+      placementZones,
       lifestyleConfig,
       category,
       tags,
@@ -139,9 +153,6 @@ router.post('/api/generate-article', (req, res, next) => {
       gender,
       tripType
     })
-
-    // Berichte: maxTokens abhängig von articleLength
-    const articleMaxTokens = articleLength === 'short' ? 500 : articleLength === 'medium' ? 1200 : 2500
 
     // Schritt 1: Artikel generieren
     console.log(`[KI] Generiere Artikel (${articleLength}, max ${articleMaxTokens} Tokens)...`)
