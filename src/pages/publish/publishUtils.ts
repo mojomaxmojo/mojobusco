@@ -145,7 +145,7 @@ export interface UploadProgress {
  */
 export function resolveBildPlaceholders(
   text: string,
-  imageObjects: Array<{ url: string | null; description: string }>
+  imageObjects: Array<{ url: string | null; description: string; alt?: string; caption?: string }>
 ): string {
   let result = text;
   const urlImages = imageObjects
@@ -155,11 +155,13 @@ export function resolveBildPlaceholders(
 
   for (const img of urlImages) {
     const placeholder = `[BILD_${img.num}]`;
-    const markdownImg = `\n\n![](${img.url})\n\n`;
+    const altText = (img.alt || img.description || '').replace(/[[\]]/g, '').slice(0, 200);
+    const captionLine = img.caption ? `\n<!--caption:${img.caption.replace(/-->/g, '')}-->` : '';
+    const markdownImg = `\n\n![${altText}](${img.url})${captionLine}\n\n`;
     if (result.includes(placeholder)) {
       result = result.replace(placeholder, markdownImg);
     } else {
-      orphaned.push(`![](${img.url})`);
+      orphaned.push(`![${altText}](${img.url})${captionLine}`);
     }
   }
 

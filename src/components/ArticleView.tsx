@@ -177,9 +177,26 @@ function normalizeVideoHtml(content: string): string {
   return result;
 }
 
+/**
+ * Wandelt Bild-Plus-Caption-Zeilen (<!--caption:...-->) in ein
+ * reines-Markdown-Caption-Pattern direkt nach dem Bild um, das vom
+ * p-Renderer über einen Zero-Width-Marker als Bildunterschrift erkannt wird.
+ * Beispiel:
+ *   ![Alt](https://...jpg)
+ *   <!--caption:Testunterschrift-->
+ *   → ![Alt](https://...jpg)
+ *     \u200Bcaption\u200B *Testunterschrift*
+ */
+function convertImageCaptionsToFigure(content: string): string {
+  return content.replace(
+    /(!\[[^\]]*\]\([^)]+\))\s*\n\s*<!--caption:([^>]*)-->/g,
+    (_m, imgMd, caption) => `${imgMd}\n\n\u200Bcaption\u200B *${caption.trim()}*\n\n`
+  );
+}
+
 // Custom component for rendering text with links and videos while preserving markdown
 function MarkdownWithLinks({ content }: { content: string }) {
-  const normalizedContent = normalizeVideoHtml(content);
+  const normalizedContent = normalizeVideoHtml(convertImageCaptionsToFigure(content));
   return (
     <div className="prose prose-slate dark:prose-invert prose-lg max-w-none">
       <ReactMarkdown
@@ -211,6 +228,19 @@ function MarkdownWithLinks({ content }: { content: string }) {
                 const url = extractVideoUrl(nonEmpty[0]);
                 if (url) return <div className="my-4"><VideoEmbed url={url} autoLoad /></div>;
               }
+            }
+
+            // Caption-Erkennung: Absatz mit Zero-Width-Marker nach einem Bild
+            const captionMarker = '\u200Bcaption\u200B';
+            const childrenArr = Array.isArray(children) ? children : [children];
+            if (childrenArr.some(c => typeof c === 'string' && c.includes(captionMarker))) {
+              return (
+                <p className="text-sm text-muted-foreground italic text-center mt-[-0.5rem]">
+                  {childrenArr.map((c, i) =>
+                    typeof c === 'string' ? c.replaceAll(captionMarker, '') : c
+                  )}
+                </p>
+              );
             }
 
             return <p>{children}</p>;

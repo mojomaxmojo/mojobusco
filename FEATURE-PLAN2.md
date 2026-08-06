@@ -425,7 +425,7 @@ GPS-Handling, Teaser-Note, Video-/Slideshow-Generator) wird verändert.
       Request, mergt es in `imageObjects`, berechnet Wortfenster via
       lokaler `computePlacementZones()`; curl-Test liefert Artikel mit
       grob gleichmäßig verteilten `[BILD_N]`-Platzhaltern
-- [ ] **Schritt 3**: `resolveBildPlaceholders()` in `publishUtils.ts`
+- [x] **Schritt 3**: `resolveBildPlaceholders()` in `publishUtils.ts`
       schreibt Alt-Text/Caption ins finale Markdown-Bild statt leerem
       `alt`; `ArticleView.tsx` rendert `<!--caption:-->`-Kommentare als
       kursive Bildunterschrift; bestehende Artikel ohne Caption sehen
