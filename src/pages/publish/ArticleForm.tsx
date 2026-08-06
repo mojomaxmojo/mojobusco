@@ -56,6 +56,8 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
   const [articleLength, setArticleLength] = useState<'short' | 'medium' | 'long'>('medium');
   const [titleSuggestions, setTitleSuggestions] = useState<string[]>([]); // 3 KI-Titel-Vorschläge
   const [tripType, setTripType] = useState<TripType | ''>('');
+  // Bild-Metadaten (Alt-Text/Caption/Freitext) aus dem MilkdownEditor, keyed by Bild-URL
+  const [imageMetaMap, setImageMetaMap] = useState<Record<string, { alt?: string; caption?: string; note?: string }>>({});
   // Grok Imagine Video (xAI) State
   const [videoEnabled, setVideoEnabled] = useState(false);
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
@@ -399,6 +401,9 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
       if (markdownImageUrls.length > 0) {
         formData.append('markdownImageUrls', JSON.stringify(markdownImageUrls));
         console.log(`[KI] ${markdownImageUrls.length} Bild-URL(s) aus Editor mitgeschickt`);
+        // Bild-Metadaten pro Bild-URL (Alt-Text/Caption/Freitext) parallel mitschicken
+        const markdownImageMeta = markdownImageUrls.map(u => imageMetaMap[u] || {});
+        formData.append('markdownImageMeta', JSON.stringify(markdownImageMeta));
       }
 
       const response = await fetch('/api/generate-article', {
@@ -898,6 +903,7 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
     setImageGps(null);
     setImageGpsStatus('not_found');
     setEditingImageGps(false);
+    setImageMetaMap({});
 
     setTimeout(() => {
       navigate('/artikel');
@@ -1129,6 +1135,7 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
           <MilkdownEditor
             content={content}
             onChange={setContent}
+            onImageMetaChange={(url, meta) => setImageMetaMap(prev => ({ ...prev, [url]: meta }))}
             placeholder={`# Überschrift
 
 Schreibe deinen Artikel hier...

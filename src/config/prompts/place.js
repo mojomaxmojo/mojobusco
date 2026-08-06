@@ -126,7 +126,7 @@ BILDER ALS KONTEXT:
 ${images.map((img, i) => {
   const num = i + 1
   const placeholder = img.url ? `[BILD_${num}]` : `(Titelbild ${num} – kein Platzhalter)`
-  return `${num}. ${placeholder} – ${img.description}`
+  return `${num}. ${placeholder} – ${img.note ? `[Autor sagt: "${img.note}"] ` : ''}${img.caption ? `[Bildunterschrift: "${img.caption}"] ` : ''}${img.description}${img.alt && img.alt !== img.description ? ` (Alt-Text: "${img.alt}")` : ''}`
 }).join('\n')}
 
 ${images.some(img => img.url) ? `BILDPLATZIERUNG:

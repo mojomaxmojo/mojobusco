@@ -53,6 +53,8 @@ router.post('/api/generate-place', (req, res, next) => {
   // Zusätzliche Bild-URLs: hochgeladene Zusatzbilder + Markdown-Bilder aus description
   const additionalImageUrls = safelyParseJSON(req.body.additionalImageUrls) || []
   const markdownImageUrls = safelyParseJSON(req.body.markdownImageUrls) || []
+  // Bild-Metadaten pro Markdown-Bild ({alt, caption, note}), parallel zu markdownImageUrls
+  const markdownImageMeta = safelyParseJSON(req.body.markdownImageMeta) || []
 
   // Mindestens Titelbild ODER andere Bilder erforderlich
   const hasUploadedImages = images && images.length > 0
@@ -134,7 +136,10 @@ router.post('/api/generate-place', (req, res, next) => {
       })).filter(obj => obj.description),
       ...markdownUrlsToAnalyze.map((url, i) => ({
         url,
-        description: markdownImageDescriptions[i] || ''
+        description: markdownImageDescriptions[i] || '',
+        alt: markdownImageMeta[i]?.alt,
+        caption: markdownImageMeta[i]?.caption,
+        note: markdownImageMeta[i]?.note
       })).filter(obj => obj.description)
     ]
     console.log(`[KI] Gesamt ${imageObjects.length} Bilder für Platz-Prompt`)

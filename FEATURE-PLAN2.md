@@ -434,7 +434,7 @@ GPS-Handling, Teaser-Note, Video-/Slideshow-Generator) wird verändert.
       einen „Details hinzufügen"-Dialog mit Alt-Text/Caption/Freitext-Feld,
       gibt die Werte per `onImageMetaChange` an die aufrufende Komponente
       zurück; noch kein Effekt auf generierte Artikel
-- [ ] **Schritt 5**: `ArticleForm.tsx` sammelt die Bild-Metadaten und
+- [x] **Schritt 5**: `ArticleForm.tsx` sammelt die Bild-Metadaten und
       schickt sie beim KI-Generieren mit; generierter Artikel verteilt
       Bilder gleichmäßig über die Wortzahl, kein Bild geht verloren,
       Alt-Text/Caption erscheinen im fertigen Artikel; `PlaceForm.tsx`

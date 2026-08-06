@@ -37,6 +37,7 @@ import { Progress } from "@/components/ui/progress";
 import { Upload, UploadCloud, ImageIcon, Video, Music, File as FileIcon, Camera, MapPin, Calendar, Tag, Battery, Sun, Wrench, Hammer, Cpu, Mountain, Lightbulb, Dog, Trees, Droplets, Waves, Eye, Loader2, CheckCircle, Route, Sparkles, FileText, MessageSquare, Map } from "@/lib/icons";
 import { extractGpsFromImage, formatCoordinatesSimple, reverseGeocode, mapCountryCode, type GpsData, type GpsStatus, type LocationData } from "@/lib/gpsExtraction";
 import { extractGpsCrossPlatform, getCurrentPosition, positionToGpsData, isCapacitorNative } from "@/lib/capacitorGps";
+import { resolveBildPlaceholders } from "./publishUtils";
 import exifr from "exifr";
 
 export function PlaceForm({ editEvent }: { editEvent?: any }) {
@@ -67,6 +68,8 @@ export function PlaceForm({ editEvent }: { editEvent?: any }) {
      const [tripType, setTripType] = useState<TripType | ''>('');
    const [publishTeaserNote, setPublishTeaserNote] = useState(true);
    const [isPublishingTeaser, setIsPublishingTeaser] = useState(false);
+   // Bild-Metadaten (Alt-Text/Caption/Freitext) aus dem MilkdownEditor, keyed by Bild-URL
+   const [imageMetaMap, setImageMetaMap] = useState<Record<string, { alt?: string; caption?: string; note?: string }>>({});
 
    // Auto-Übersetzung (DE→EN) State
    const [autoTranslateEn, setAutoTranslateEn] = useState(() => {
@@ -147,6 +150,9 @@ export function PlaceForm({ editEvent }: { editEvent?: any }) {
        if (markdownImageUrls.length > 0) {
          formData.append('markdownImageUrls', JSON.stringify(markdownImageUrls));
          console.log(`[KI] ${markdownImageUrls.length} Markdown-Bild-URL(s) aus Editor mitgeschickt`);
+         // Bild-Metadaten pro Bild-URL (Alt-Text/Caption/Freitext) parallel mitschicken
+         const markdownImageMeta = markdownImageUrls.map(u => imageMetaMap[u] || {});
+         formData.append('markdownImageMeta', JSON.stringify(markdownImageMeta));
        }
 
        const response = await fetch('/api/generate-place', {
@@ -752,6 +758,7 @@ export function PlaceForm({ editEvent }: { editEvent?: any }) {
         setImageGps(null);
         setImageGpsStatus('not_found');
         setEditingImageGps(false);
+        setImageMetaMap({});
 
         // Redirect to plaetze page after successful publish
         setTimeout(() => {
@@ -1022,6 +1029,7 @@ export function PlaceForm({ editEvent }: { editEvent?: any }) {
           <MilkdownEditor
             content={description}
             onChange={setDescription}
+            onImageMetaChange={(url, meta) => setImageMetaMap(prev => ({ ...prev, [url]: meta }))}
             placeholder={`# Erlebnis-Bericht
 
 Beschreibe hier den Ort, was macht ihn besonders...
