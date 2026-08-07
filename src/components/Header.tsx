@@ -55,7 +55,9 @@ function hasChildren(item: MainMenuItem): boolean {
 export function Header() {
   const { user } = useCurrentUser();
   const { logout } = useLoginActions();
-  const { t, lang, localizePath } = useLanguage();
+  const { t, lang, localizePath, switchLanguagePath } = useLanguage();
+  const otherLangPath = switchLanguagePath(window.location.pathname);
+  const switchFlag = lang === 'de' ? '🇬🇧' : '🇩🇪';
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileExpanded, setMobileExpanded] = useState<Set<string>>(new Set());
 
@@ -210,6 +212,15 @@ export function Header() {
             })}
           </nav>
 
+          <Link
+            to={otherLangPath}
+            className="hidden md:flex items-center gap-2 text-foreground hover:text-primary px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 hover:bg-primary/10 mr-2"
+            title={t('lang_switch_to')}
+          >
+            <span className="text-lg">{switchFlag}</span>
+            <span className="hidden lg:inline">{t('lang_switch_to')}</span>
+          </Link>
+
           {/* ═══════ DESKTOP USER ═══════ */}
           <div className="hidden md:flex items-center gap-4">
             {user ? (
@@ -312,6 +323,15 @@ export function Header() {
                   </Link>
                 );
               })}
+
+              <Link
+                to={otherLangPath}
+                onClick={handleMobileMenuClick}
+                className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg border-t pt-4 mt-2"
+              >
+                <span className="text-lg">{switchFlag}</span>
+                <span className="text-gray-900 dark:text-gray-100">{t('lang_switch_to')}</span>
+              </Link>
 
               {/* Mobile Login / Account */}
               <div className="border-t pt-4 mt-4 space-y-2">

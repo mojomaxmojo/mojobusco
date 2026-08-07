@@ -455,7 +455,7 @@ Kein Code-Schritt, nur Verifikation aller vorherigen Schritte zusammen.
       fix auf `'de'`), Build läuft fehlerfrei
 - [x] **Schritt 5**: `DIY.tsx`, `Leon.tsx`, `RVLife.tsx` gefiltert, Build
       läuft fehlerfrei
-- [ ] **Schritt 6**: Sprach-Umschalter (🇬🇧/🇩🇪 + `lang_switch_to`-Text) in
+- [x] **Schritt 6**: Sprach-Umschalter (🇬🇧/🇩🇪 + `lang_switch_to`-Text) in
       `Header.tsx` Desktop + Mobile ergänzt, nutzt bestehende
       `switchLanguagePath()`, Build läuft fehlerfrei
 - [ ] **Schritt 7**: End-zu-Ende getestet – alle deutschen Seiten zeigen
