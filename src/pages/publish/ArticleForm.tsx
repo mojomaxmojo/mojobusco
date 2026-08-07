@@ -937,9 +937,9 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
             <span className="text-xs text-muted-foreground">Artikellänge:</span>
             <div className="flex gap-1">
               {([
-                { value: 'short', label: 'Kurz', words: '200-400' },
-                { value: 'medium', label: 'Mittel', words: '500-1000' },
-                { value: 'long', label: 'Lang', words: '1000-2500' }
+                { value: 'short', label: 'Kurz', words: '500-1000' },
+                { value: 'medium', label: 'Mittel', words: '1000-2000' },
+                { value: 'long', label: 'Lang', words: '2000-3000' }
               ] as const).map((len) => (
                 <button
                   key={len.value}

@@ -22,7 +22,7 @@ import { fosterHuntingtonStyle, getGenderPromptAddition } from './lifestyles.js'
  */
 const lengthConfig = {
     short: {
-        words: '200-400',
+        words: '500-1000',
         label: 'Kurz',
         scenes: '1-2',
         description: 'Ein Moment. Vielleicht zwei. Wie ein Tagebucheintrag.',
@@ -35,7 +35,7 @@ const lengthConfig = {
         structureNote: 'Kein Intro. Kein Fazit. Nur die Mitte. Wie ein Polaroid mit Text auf der Rückseite.'
     },
     medium: {
-        words: '500-1000',
+        words: '1000-2000',
         label: 'Mittel',
         scenes: '2-4',
         description: 'Mehrere Momente die zusammengehören. Eine Geschichte mit Raum zum Atmen.',
@@ -49,7 +49,7 @@ const lengthConfig = {
         structureNote: 'Starte mitten in einer Szene. Erzähle in Momenten. Ende leise – ein Bild, ein Detail, ein offener Gedanke.'
     },
     long: {
-        words: '1000-2500',
+        words: '2000-3000',
         label: 'Lang',
         scenes: '4-8',
         description: 'Langform. Szenen, Abschweifungen, Widersprüche, Atmosphäre. Wie ein Kapitel aus einem Buch.',
