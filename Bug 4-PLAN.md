@@ -445,7 +445,7 @@ Kein Code-Schritt, nur Verifikation aller vorherigen Schritte zusammen.
 
 ## Checkliste
 
-- [ ] **Schritt 1**: `Home.tsx` – alle 5 Datenquellen nach
+- [x] **Schritt 1**: `Home.tsx` – alle 5 Datenquellen nach
       `getEventLanguage() === lang` gefiltert, Build läuft fehlerfrei
 - [ ] **Schritt 2**: `Articles.tsx` + `Places.tsx` gefiltert, Build läuft
       fehlerfrei

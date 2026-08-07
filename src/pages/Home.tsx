@@ -19,6 +19,7 @@ import { FIRST_PAINT_CONFIG } from '@/config/performance';
 import type { ContentItem } from '@/components/ContentCard';
 import { useLanguage } from '@/hooks/useLanguage';
 import { translateHome } from '@/config/i18n/home';
+import { getEventLanguage } from '@/lib/translationTags';
 
 const ContentCard = lazy(() => import('@/components/ContentCard').then(m => ({ default: m.ContentCard })));
 
@@ -137,6 +138,7 @@ export function Home() {
 
     if (articles && Array.isArray(articles)) {
       articles.forEach((event) => {
+        if (getEventLanguage(event) !== lang) return;
         const metadata = extractArticleMetadata(event);
         contentItems.push({
           type: 'article',
@@ -149,6 +151,7 @@ export function Home() {
 
     if (places && Array.isArray(places)) {
       places.forEach((event) => {
+        if (getEventLanguage(event) !== lang) return;
         const metadata = extractArticleMetadata(event);
         contentItems.push({
           type: 'place',
@@ -161,6 +164,7 @@ export function Home() {
 
     if (noteEvents && Array.isArray(noteEvents)) {
       noteEvents.forEach((event) => {
+        if (getEventLanguage(event) !== lang) return;
         const imageUrl = extractFirstImageUrl(event.content);
         contentItems.push({
           type: 'note',
@@ -173,6 +177,7 @@ export function Home() {
 
     if (tripsData && Array.isArray(tripsData)) {
       tripsData.forEach((trip: Trip) => {
+        if (getEventLanguage(trip.event) !== lang) return;
         contentItems.push({
           type: 'trip' as const,
           event: trip.event,
@@ -185,6 +190,7 @@ export function Home() {
 
     if (imageEvents && Array.isArray(imageEvents)) {
       imageEvents.forEach((event) => {
+        if (getEventLanguage(event) !== lang) return;
         const imageUrl = extractFirstImageUrl(event.content);
         contentItems.push({
           type: 'image',
@@ -198,7 +204,7 @@ export function Home() {
     return contentItems
       .sort((a, b) => b.date - a.date)
       .slice(0, FIRST_PAINT_CONFIG.homeCardCount);
-  }, [articles, places, noteEvents, tripsData, imageEvents]);
+  }, [articles, places, noteEvents, tripsData, imageEvents, lang]);
 
   return (
     <div className="min-h-screen">
