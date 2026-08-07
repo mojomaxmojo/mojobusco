@@ -329,6 +329,6 @@ Kein Code-Schritt, nur Verifikation aller vorherigen Schritte zusammen.
 - [x] **Schritt 5**: Die 7 fest verdrahteten UI-Texte (Überschrift,
       Kontakt-Card, 2 Buttons, 2 Badges) zeigen auf `/en/about` Englisch
       über `translateAbout()`, `/about` bleibt unverändert Deutsch
-- [ ] **Schritt 6**: End-zu-Ende getestet – Build fehlerfrei, `/about`
+- [x] **Schritt 6**: End-zu-Ende getestet – Build fehlerfrei, `/about`
       und `/en/about` beide vollständig konsistent in ihrer jeweiligen
       Sprache, Admin-Bereich unverändert Deutsch-only
