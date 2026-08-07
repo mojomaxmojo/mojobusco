@@ -301,7 +301,7 @@ ARTIKEL-TITEL: "${data.title || ''}"
 ZUSAMMENFASSUNG: "${data.summary || ''}"
 TEXT-AUSZUG: "${(data.text || '').substring(0, 1000)}"
 
-BRAND: MojoBus – 10m US-Oldtimer-Bus, Mojo & Susanne, dauerhaft unterwegs, kein Urlaub – das ist das Leben.
+BRAND: MojoBus – 10m US-Oldtimer-Bus, Max & Susanne, dauerhaft unterwegs, kein Urlaub – das ist das Leben.
 TON: Ehrlich. Knapp. Keine Ausrufezeichen. Keine Klischees. Keine Motivation-Poster-Sprüche.
 
 AUFGABE:

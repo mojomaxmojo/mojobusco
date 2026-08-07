@@ -169,7 +169,7 @@ const STATIC_PAGE_META = {
   },
   '/artikel': {
     title: 'Reiseberichte & Artikel — MojoBus',
-    description: 'Alle Reiseberichte von Mojo & Susanne. Vanlife am Meer, Portugal, Spanien, Offgrid und mehr.',
+    description: 'Alle Reiseberichte von Max & Susanne. Vanlife am Meer, Portugal, Spanien, Offgrid und mehr.',
     image: DEFAULT_OG_IMAGE,
     type: 'website',
   },
@@ -211,7 +211,7 @@ const STATIC_PAGE_META = {
   },
   '/en/artikel': {
     title: 'Travel Reports & Articles — MojoBus',
-    description: 'All travel reports by Mojo & Susanne. Vanlife by the sea, Portugal, Spain, off-grid and more.',
+    description: 'All travel reports by Max & Susanne. Vanlife by the sea, Portugal, Spain, off-grid and more.',
     image: DEFAULT_OG_IMAGE,
     type: 'website',
   },

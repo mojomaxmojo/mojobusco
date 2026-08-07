@@ -101,7 +101,7 @@ function buildBotHtml(meta) {
     },
     "author": {
       "@type": "Person",
-      "name": "Mojo & Susanne",
+      "name": "Max & Susanne",
       "url": "${SITE_URL}/about"
     }
   }

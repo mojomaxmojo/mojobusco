@@ -22,7 +22,7 @@ interface MojoBusCTAProps {
 const LIFESTYLE_MESSAGES: Record<string, { cta: string; tagline: string; emoji: string }> = {
   mojobus: {
     cta: 'FOLGE UNSEREM ABENTEUER',
-    tagline: 'Mojo & Susanne · Unterwegs im Oldtimer',
+    tagline: 'Max & Susanne · Unterwegs im Oldtimer',
     emoji: '🚌',
   },
   vanlife: {
