@@ -1268,7 +1268,7 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
                      <SelectValue placeholder="Wähle deinen Lifestyle" />
                    </SelectTrigger>
                    <SelectContent>
-                     <SelectItem value="mojobus">🚌 Mojobus - Mojo &amp; Susanne, US-Oldtimer</SelectItem>
+                     <SelectItem value="mojobus">🚌 Mojobus - Max &amp; Susanne, US-Oldtimer</SelectItem>
                      <SelectItem value="vanlife">🚐 Vanlife - Van-Life auf Rädern</SelectItem>
                      <SelectItem value="rvlife">🚗 RVlife - Recreational Vehicle</SelectItem>
                      <SelectItem value="beachlife">🏖️ Beachlife - Strand &amp; Surf Lifestyle</SelectItem>

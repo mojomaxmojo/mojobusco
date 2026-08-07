@@ -20,7 +20,7 @@ const lifestyleOptions = [
   {
     value: 'mojobus' as LifestyleType,
     label: '🚌 Mojobus',
-    description: 'Mojo & Susanne – US-Oldtimer unterwegs'
+    description: 'Max & Susanne – US-Oldtimer unterwegs'
   },
   {
     value: 'vanlife' as LifestyleType,

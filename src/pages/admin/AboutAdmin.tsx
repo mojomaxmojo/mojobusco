@@ -146,7 +146,7 @@ export function AboutAdmin() {
     return (
       <div className="min-h-screen py-16">
         <div className="container mx-auto px-4 max-w-2xl text-center space-y-4">
-          <p className="text-muted-foreground">Nur Mojo und Susanne können die About-Seite bearbeiten.</p>
+          <p className="text-muted-foreground">Nur Max und Susanne können die About-Seite bearbeiten.</p>
           <Button variant="outline" onClick={() => navigate('/about')}>
             <ArrowLeft className="h-4 w-4 mr-2" /> Zurück zur About-Seite
           </Button>

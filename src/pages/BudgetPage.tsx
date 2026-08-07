@@ -310,7 +310,7 @@ function BudgetPageContent() {
           <Lock className="h-4 w-4" />
           <AlertTitle>Zugriff verweigert</AlertTitle>
           <AlertDescription>
-            Das Haushaltsbuch ist nur für autorisierte Benutzer (Mojo & Susanne) verfügbar.
+            Das Haushaltsbuch ist nur für autorisierte Benutzer (Max & Susanne) verfügbar.
             Bitte logge dich mit einem autorisierten Nostr-Account ein.
           </AlertDescription>
         </Alert>

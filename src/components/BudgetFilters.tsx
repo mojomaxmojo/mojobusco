@@ -273,7 +273,7 @@ export function BudgetFilters({ filters, onChange, onReset }: BudgetFiltersProps
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="both">Alle</SelectItem>
-            <SelectItem value="mojo">Mojo</SelectItem>
+            <SelectItem value="mojo">Max</SelectItem>
             <SelectItem value="susanne">Susanne</SelectItem>
           </SelectContent>
         </Select>
@@ -338,7 +338,7 @@ export function BudgetFilters({ filters, onChange, onReset }: BudgetFiltersProps
             
             {filters.payer && (
               <Badge variant="outline">
-                {filters.payer === 'mojo' ? 'Mojo' : 'Susanne'}
+                {filters.payer === 'mojo' ? 'Max' : 'Susanne'}
               </Badge>
             )}
             
