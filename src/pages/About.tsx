@@ -21,6 +21,9 @@ import { Mail, Globe, Zap, Key, Sun, Compass, Heart, MessageCircle, Send } from 
 import { useHead } from '@unhead/react';
 import { canonicalUrl } from '@/lib/canonicalUrl';
 import { getZeitUnterwegsFormatiert } from '@/config/zeitwohnmobil';
+import { getZeitUnterwegsFormatiertEn } from '@/config/zeitwohnmobil';
+import { useLanguage } from '@/hooks/useLanguage';
+import { EN_ABOUT_DATA } from '@/config/aboutEn';
 
 import { AUTHORS } from '@/config/nostr';
 import { useAboutContent } from '@/hooks/useAboutContent';
@@ -41,13 +44,15 @@ export function About() {
   const sumsumMeta = sumsumAuthor.data?.metadata;
 
   // ── Dynamische About-Inhalte (kind 30078 mit Fallback) ──────────────────
-  const { data: aboutData } = useAboutContent();
+  const { data: rawAboutData } = useAboutContent();
+  const { lang, localizePath } = useLanguage();
+  const aboutData = lang === 'en' ? EN_ABOUT_DATA : rawAboutData;
 
   // {zeit} im Hero-Subtitle ersetzen
   const heroSubtitle = useMemo(() => {
-    const zeitStr = getZeitUnterwegsFormatiert();
+    const zeitStr = lang === 'en' ? getZeitUnterwegsFormatiertEn() : getZeitUnterwegsFormatiert();
     return formatHeroSubtitle(aboutData.hero.subtitle, zeitStr);
-  }, [aboutData.hero.subtitle]);
+  }, [aboutData.hero.subtitle, lang]);
 
   // SEO Meta Tags
   useHead({
@@ -56,12 +61,12 @@ export function About() {
       { name: 'description', content: aboutData.seo.description },
       { property: 'og:title', content: aboutData.seo.title },
       { property: 'og:description', content: aboutData.seo.description },
-      { property: 'og:url', content: canonicalUrl('/about') },
+      { property: 'og:url', content: canonicalUrl(localizePath('/about')) },
       { name: 'twitter:title', content: aboutData.seo.title },
       { name: 'twitter:description', content: aboutData.seo.description },
     ],
     link: [
-      { rel: 'canonical', href: canonicalUrl('/about') }
+      { rel: 'canonical', href: canonicalUrl(localizePath('/about')) }
     ]
   });
 

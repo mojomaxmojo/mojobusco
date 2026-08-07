@@ -322,7 +322,7 @@ Kein Code-Schritt, nur Verifikation aller vorherigen Schritte zusammen.
 - [x] **Schritt 3**: `src/config/i18n/about.ts` mit `ABOUT_STRINGS` +
       `translateAbout()` erstellt, Build läuft fehlerfrei durch, noch
       keine sichtbare Änderung
-- [ ] **Schritt 4**: `About.tsx` wählt je nach `useLanguage()`-Ergebnis
+- [x] **Schritt 4**: `About.tsx` wählt je nach `useLanguage()`-Ergebnis
       zwischen `EN_ABOUT_DATA` und der dynamischen Nostr-Quelle;
       Hero/Sektionen/Säulen/Reisende/Kontakt/SEO zeigen auf `/en/about`
       Englisch, `/about` bleibt unverändert Deutsch
