@@ -293,7 +293,7 @@ Kein Code-Schritt, nur Verifikation aller vorherigen Schritte zusammen.
       mit `https://mojobus.co/`
 - [x] **Schritt 4**: Die 3 Toast-Meldungen des Refresh-Buttons zeigen
       auf `/en` Englisch, auf `/` weiterhin Deutsch
-- [ ] **Schritt 5**: Die 3 internen Links (`/artikel` ×2, `/about`)
+- [x] **Schritt 5**: Die 3 internen Links (`/artikel` ×2, `/about`)
       nutzen `localizePath()` und bleiben auf `/en` im `/en`-Kontext
 - [ ] **Schritt 6**: End-zu-Ende getestet – Build fehlerfrei, `/` und
       `/en` beide vollständig konsistent in ihrer jeweiligen Sprache,

@@ -229,7 +229,7 @@ export function Home() {
                 size="lg"
                 className="gap-3 shadow-lg text-base px-8 py-6 rounded-xl"
               >
-                <Link to="/artikel">
+                <Link to={localizePath('/artikel')}>
                   <Compass className="h-6 w-6" />
                   {th('cta_discover')}
                 </Link>
@@ -291,7 +291,7 @@ export function Home() {
                   size="lg"
                   className="hover:bg-primary hover:text-primary-foreground transition-all duration-300 px-10 py-7 rounded-xl shadow-md hover:shadow-xl"
                 >
-                  <Link to="/artikel">{th('view_all')}</Link>
+                  <Link to={localizePath('/artikel')}>{th('view_all')}</Link>
                 </Button>
               </div>
             )}
@@ -385,7 +385,7 @@ export function Home() {
                 variant="outline"
                 className="hover:bg-primary hover:text-primary-foreground transition-all duration-300 shadow-lg hover:shadow-2xl px-10 py-7 rounded-xl text-lg"
               >
-                <Link to="/about">{th('cta2_link')}</Link>
+                <Link to={localizePath('/about')}>{th('cta2_link')}</Link>
               </Button>
             </div>
           </div>
