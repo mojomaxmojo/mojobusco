@@ -280,7 +280,7 @@ oben. Nach Deploy: `ai-api`-Neustart erforderlich.
       (unabhängig vom Token-Budget) ersetzt; Deploy + Neustart; 4
       Bilder in einem Lang-Artikel verteilen sich gleichmäßig über den
       Text statt sich am Ende zu häufen.
-- [ ] **Schritt 5** (optional): Auto-Retry bei
+- [x] **Schritt 5** (optional): Auto-Retry bei
       `finish_reason === 'length'` in `generateWithModel()` ergänzt;
       Deploy + Neustart; bei extremem Input (sehr langer Freitext +
       viele Bild-Notizen) wird der Artikel trotzdem vollständig

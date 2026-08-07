@@ -13,24 +13,24 @@ function getOpenRouterHeaders() {
   }
 }
 
+// Multiplikator für den Auto-Retry bei einer abgeschnittenen Antwort (finish_reason: length)
+const MAX_RETRY_MULTIPLIER = 1.5
+
 // ===== KI-MODELL FUNKTION =====
 const generateWithModel = async (prompt, model = 'medium', lifestyle = 'mojobus', options = {}) => {
   const startTime = Date.now()
   const lifestyleConfig = getLifestyleConfig(lifestyle)
 
   // Defaults die pro Tab überschrieben werden können
-  const maxTokens = options.maxTokens || 700
+  const baseMaxTokens = options.maxTokens || 700
   const temperature = options.temperature || 0.8
   const callTimeout = options.timeout || 60000
 
   const tier = normalizeTextModel(model)
   const modelConfig = getTextModel(tier)
 
-  try {
-    if (!process.env.OPENROUTER_API_KEY) {
-      throw new Error('OPENROUTER_API_KEY fehlt')
-    }
-
+  // Ein einzelner Modell-Aufruf mit einem konkreten Token-Budget.
+  const attempt = async (maxTokens) => {
     const response = await axios.post(OPENROUTER_BASE, {
       model: modelConfig.id,
       max_tokens: maxTokens,
@@ -58,7 +58,24 @@ const generateWithModel = async (prompt, model = 'medium', lifestyle = 'mojobus'
     } else {
       console.log(`[KI] finish_reason: ${finishReason}, usage: ${JSON.stringify(usage)}`)
     }
-    return response.data.choices[0].message.content
+    return { content: response.data.choices[0].message.content, finishReason }
+  }
+
+  try {
+    if (!process.env.OPENROUTER_API_KEY) {
+      throw new Error('OPENROUTER_API_KEY fehlt')
+    }
+
+    let result = await attempt(baseMaxTokens)
+
+    // Auto-Retry: Bei abgeschnittener Antwort einmal mit erhöhtem Budget erneut versuchen
+    if (result.finishReason === 'length') {
+      const retryMaxTokens = Math.round(baseMaxTokens * MAX_RETRY_MULTIPLIER)
+      console.warn(`[KI] Retry mit erhöhtem Token-Budget nach finish_reason: length (maxTokens: ${baseMaxTokens} → ${retryMaxTokens})...`)
+      result = await attempt(retryMaxTokens)
+    }
+
+    return result.content
 
   } catch (error) {
     console.error(`[KI] Fehler mit ${tier} (${modelConfig.id}):`, error.response?.data || error.message)
