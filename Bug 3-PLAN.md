@@ -284,7 +284,7 @@ Kein Code-Schritt, nur Verifikation aller vorherigen Schritte zusammen.
 - [x] **Schritt 1**: `src/config/i18n/home.ts` mit `HOME_STRINGS` +
       `translateHome()` erstellt, Build läuft fehlerfrei durch, noch
       keine sichtbare Änderung
-- [ ] **Schritt 2**: Sichtbare JSX-Texte in `Home.tsx` (Hero, Buttons,
+- [x] **Schritt 2**: Sichtbare JSX-Texte in `Home.tsx` (Hero, Buttons,
       3 Säulen, zweite CTA-Sektion, Empty-State) zeigen auf `/en`
       Englisch über `th()`, `/` bleibt unverändert Deutsch
 - [ ] **Schritt 3**: SEO-Meta-Tags (`title`, `description`, `keywords`,

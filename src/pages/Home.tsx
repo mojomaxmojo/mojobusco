@@ -17,6 +17,8 @@ import { canonicalUrl } from '@/lib/canonicalUrl';
 import { useToast } from '@/hooks/useToast';
 import { FIRST_PAINT_CONFIG } from '@/config/performance';
 import type { ContentItem } from '@/components/ContentCard';
+import { useLanguage } from '@/hooks/useLanguage';
+import { translateHome } from '@/config/i18n/home';
 
 const ContentCard = lazy(() => import('@/components/ContentCard').then(m => ({ default: m.ContentCard })));
 
@@ -39,6 +41,8 @@ function isVideoUrl(url: string): boolean {
 export function Home() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { lang, localizePath } = useLanguage();
+  const th = (key: string) => translateHome(lang, key);
 
   // SEO Meta Tags
   <SEOHead
@@ -212,10 +216,10 @@ export function Home() {
                 <span className="gradient-text">Perpetual Travelers</span>
               </h1>
               <h2 className="text-3xl md:text-5xl font-serif text-muted-foreground leading-relaxed">
-                Unser Leben am Meer
+                {th('hero_subtitle')}
               </h2>
               <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-                Geschichten, Tipps und Einblicke in unser Leben zwischen Sand und Horizont
+                {th('hero_tagline')}
               </p>
             </div>
 
@@ -227,7 +231,7 @@ export function Home() {
               >
                 <Link to="/artikel">
                   <Compass className="h-6 w-6" />
-                  Entdecke unsere Geschichten
+                  {th('cta_discover')}
                 </Link>
               </Button>
               <Button
@@ -235,10 +239,10 @@ export function Home() {
                 variant="outline"
                 onClick={handleRefresh}
                 className="gap-3 hover:bg-primary/10 hover:border-primary transition-all duration-300 text-base px-8 py-6 rounded-xl"
-                title="Inhalte aktualisieren"
+                title={th('refresh_tooltip')}
               >
                 <RefreshCw className="h-6 w-6" />
-                Aktualisieren
+                {th('refresh_button')}
               </Button>
             </div>
           </div>
@@ -273,7 +277,7 @@ export function Home() {
               <Card className="border-dashed border-2 border-primary/30">
                 <CardContent className="py-20 text-center">
                   <p className="text-muted-foreground text-lg">
-                    Noch keine Inhalte veröffentlicht. Schau bald wieder vorbei! 🌊
+                    {th('empty_state')}
                   </p>
                 </CardContent>
               </Card>
@@ -287,7 +291,7 @@ export function Home() {
                   size="lg"
                   className="hover:bg-primary hover:text-primary-foreground transition-all duration-300 px-10 py-7 rounded-xl shadow-md hover:shadow-xl"
                 >
-                  <Link to="/artikel">Alle Inhalte anzeigen</Link>
+                  <Link to="/artikel">{th('view_all')}</Link>
                 </Button>
               </div>
             )}
@@ -308,11 +312,11 @@ export function Home() {
                       <Sun className="h-20 w-20 text-primary relative z-10 group-hover:scale-110 transition-transform duration-500" />
                     </div>
                   </div>
-                  <CardTitle className="text-center text-2xl font-bold group-hover:text-primary transition-colors">Freiheit</CardTitle>
+                  <CardTitle className="text-center text-2xl font-bold group-hover:text-primary transition-colors">{th('pillar_freedom_title')}</CardTitle>
                 </CardHeader>
                 <CardContent className="pb-8">
                   <p className="text-center text-muted-foreground text-lg leading-relaxed">
-                    Das Rauschen der Wellen ist unser Wecker, Sonnenuntergänge sind unser Alltag.
+                    {th('pillar_freedom_text')}
                   </p>
                 </CardContent>
               </Card>
@@ -325,11 +329,11 @@ export function Home() {
                       <Compass className="h-20 w-20 text-primary relative z-10 group-hover:scale-110 transition-transform duration-500" />
                     </div>
                   </div>
-                  <CardTitle className="text-center text-2xl font-bold group-hover:text-primary transition-colors">Abenteuer</CardTitle>
+                  <CardTitle className="text-center text-2xl font-bold group-hover:text-primary transition-colors">{th('pillar_adventure_title')}</CardTitle>
                 </CardHeader>
                 <CardContent className="pb-8">
                   <p className="text-center text-muted-foreground text-lg leading-relaxed">
-                    Jeder Tag bringt neue Orte, neue Begegnungen und das Gefühl, wirklich frei zu sein.
+                    {th('pillar_adventure_text')}
                   </p>
                 </CardContent>
               </Card>
@@ -342,11 +346,11 @@ export function Home() {
                       <Anchor className="h-20 w-20 text-primary relative z-10 group-hover:scale-110 transition-transform duration-500" />
                     </div>
                   </div>
-                  <CardTitle className="text-center text-2xl font-bold group-hover:text-primary transition-colors">Einfachheit</CardTitle>
+                  <CardTitle className="text-center text-2xl font-bold group-hover:text-primary transition-colors">{th('pillar_simplicity_title')}</CardTitle>
                 </CardHeader>
                 <CardContent className="pb-8">
                   <p className="text-center text-muted-foreground text-lg leading-relaxed">
-                    Minimalistisch unterwegs mit Solarstrom – autark und unabhängig.
+                    {th('pillar_simplicity_text')}
                   </p>
                 </CardContent>
               </Card>
@@ -365,13 +369,13 @@ export function Home() {
           <div className="max-w-4xl mx-auto text-center space-y-10 fade-in-up">
             <div className="space-y-6">
               <h2 className="text-4xl md:text-6xl font-bold tracking-tight leading-tight">
-                <span className="gradient-text">Vielleicht ruft es auch dich</span>
+                <span className="gradient-text">{th('cta2_heading')}</span>
               </h2>
               <p className="text-2xl md:text-3xl text-muted-foreground font-serif leading-relaxed">
-                Nach Abenteuer, Einfachheit und Freiheit. 🌊🚐✨
+                {th('cta2_tagline')}
               </p>
               <p className="text-muted-foreground text-lg leading-relaxed max-w-2xl mx-auto">
-                Auf Nostr teilen wir unsere Reise – dezentral, zensurresistent und direkt.
+                {th('cta2_text')}
               </p>
             </div>
             <div className="pt-4">
@@ -381,7 +385,7 @@ export function Home() {
                 variant="outline"
                 className="hover:bg-primary hover:text-primary-foreground transition-all duration-300 shadow-lg hover:shadow-2xl px-10 py-7 rounded-xl text-lg"
               >
-                <Link to="/about">Mehr über uns erfahren</Link>
+                <Link to="/about">{th('cta2_link')}</Link>
               </Button>
             </div>
           </div>
