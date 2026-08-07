@@ -453,7 +453,7 @@ Kein Code-Schritt, nur Verifikation aller vorherigen Schritte zusammen.
       fehlerfrei
 - [x] **Schritt 4**: `TripsPage.tsx` + `Videos.tsx` gefiltert (Videos:
       fix auf `'de'`), Build läuft fehlerfrei
-- [ ] **Schritt 5**: `DIY.tsx`, `Leon.tsx`, `RVLife.tsx` gefiltert, Build
+- [x] **Schritt 5**: `DIY.tsx`, `Leon.tsx`, `RVLife.tsx` gefiltert, Build
       läuft fehlerfrei
 - [ ] **Schritt 6**: Sprach-Umschalter (🇬🇧/🇩🇪 + `lang_switch_to`-Text) in
       `Header.tsx` Desktop + Mobile ergänzt, nutzt bestehende

@@ -20,9 +20,12 @@ import type { NostrEvent } from '@nostrify/nostrify';
 import { useInView } from 'react-intersection-observer';
 import { useHead } from '@unhead/react';
 import { canonicalUrl } from '@/lib/canonicalUrl';
+import { getEventLanguage } from '@/lib/translationTags';
+import { useLanguage } from '@/hooks/useLanguage';
 
 export function Leon() {
   const [searchTerm, setSearchTerm] = useState('');
+  const { lang } = useLanguage();
 
   // Alle Leon-Artikel abrufen mit Infinite Scroll
   const { data: articles, isLoading, error, hasNextPage, fetchNextPage, isFetchingNextPage } = useInfiniteLongformArticles({
@@ -46,8 +49,8 @@ export function Leon() {
 
   // Flatten all pages
   const allArticles = React.useMemo(() => {
-    return articles?.pages.flat() || [];
-  }, [articles]);
+    return (articles?.pages.flat() || []).filter(a => getEventLanguage(a) === lang);
+  }, [articles, lang]);
 
   // Filter Leon articles by tags (client-side filtering like RVLife)
   const leonArticles = React.useMemo(() => {

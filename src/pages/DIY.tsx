@@ -19,6 +19,8 @@ import { getListThumbnailUrl, getImagePlaceholder, generateSrcset, generateSizes
 import { DEFAULT_PERFORMANCE_CONFIG } from '@/config/performance';
 import { useHead } from '@unhead/react';
 import { canonicalUrl } from '@/lib/canonicalUrl';
+import { getEventLanguage } from '@/lib/translationTags';
+import { useLanguage } from '@/hooks/useLanguage';
 
 export function DIY() {
   // SEO Meta Tags
@@ -40,12 +42,13 @@ export function DIY() {
   });
 
   const [searchQuery, setSearchQuery] = useState('');
+  const { lang } = useLanguage();
   const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useInfiniteLongformArticles({
     '#t': ['diy'],
     limit: DEFAULT_PERFORMANCE_CONFIG.infiniteScroll.itemsPerPage,
   });
 
-  const flattenData = data?.pages.flat() || [];
+  const flattenData = (data?.pages.flat() || []).filter(a => getEventLanguage(a) === lang);
   const [searchParams] = useSearchParams();
 
   // Parse Suchparameter aus URL

@@ -21,6 +21,8 @@ import type { NostrEvent } from '@nostrify/nostrify';
 import { memo, useState } from 'react';
 import { useHead } from '@unhead/react';
 import { canonicalUrl } from '@/lib/canonicalUrl';
+import { getEventLanguage } from '@/lib/translationTags';
+import { useLanguage } from '@/hooks/useLanguage';
 
 export function RVLife() {
   // SEO Meta Tags
@@ -43,6 +45,7 @@ export function RVLife() {
 
   const { category } = useParams<{ category: string }>();
   const [searchTerm, setSearchTerm] = useState('');
+  const { lang } = useLanguage();
 
   // Alle RV Life Artikel mit relevanten Tags abrufen
   const { data: articles, isLoading, error } = useLongformArticles({
@@ -55,6 +58,8 @@ export function RVLife() {
 
   // Filtere Artikel, die RV Life Kategorien haben
   const displayArticles = articles?.filter(article => {
+    if (getEventLanguage(article) !== lang) return false;
+
     const metadata = extractArticleMetadata(article);
 
     // Extrahiere Tags aus Nostr-Event für bessere Filterung
