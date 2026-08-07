@@ -17,6 +17,8 @@ import { useNotes, extractNoteTags, extractNoteImages } from '@/hooks/useNotes';
 import { useAuthor } from '@/hooks/useAuthor';
 import { genUserName } from '@/lib/genUserName';
 import { filterEventsByCountry, countries } from '@/lib/countryDetection';
+import { getEventLanguage } from '@/lib/translationTags';
+import { useLanguage } from '@/hooks/useLanguage';
 import { Calendar, Search, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { nip19 } from 'nostr-tools';
@@ -44,6 +46,7 @@ import { Loader2 } from 'lucide-react';
 
 export function Notes() {
   const { country } = useParams();
+  const { lang } = useLanguage();
 
   const currentCountry = country ? countries[country as keyof typeof countries] : null;
 
@@ -102,7 +105,7 @@ export function Notes() {
 
   // Filter notes by author, country and search query mit intelligenter Erkennung
   const filteredNotes = useMemo(() => {
-    let filtered = [...notes];
+    let filtered = [...notes].filter(n => getEventLanguage(n) === lang);
 
     // Country filter mit intelligenter Erkennung
     if (currentCountry) {
@@ -129,7 +132,7 @@ export function Notes() {
     }
 
     return filtered.sort((a, b) => b.created_at - a.created_at);
-  }, [notes, searchQuery, selectedAuthor, currentCountry, country]);
+  }, [notes, searchQuery, selectedAuthor, currentCountry, country, lang]);
 
   return (
     <>

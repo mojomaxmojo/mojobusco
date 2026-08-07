@@ -449,7 +449,7 @@ Kein Code-Schritt, nur Verifikation aller vorherigen Schritte zusammen.
       `getEventLanguage() === lang` gefiltert, Build läuft fehlerfrei
 - [x] **Schritt 2**: `Articles.tsx` + `Places.tsx` gefiltert, Build läuft
       fehlerfrei
-- [ ] **Schritt 3**: `Notes.tsx` + `Images.tsx` gefiltert, Build läuft
+- [x] **Schritt 3**: `Notes.tsx` + `Images.tsx` gefiltert, Build läuft
       fehlerfrei
 - [ ] **Schritt 4**: `TripsPage.tsx` + `Videos.tsx` gefiltert (Videos:
       fix auf `'de'`), Build läuft fehlerfrei

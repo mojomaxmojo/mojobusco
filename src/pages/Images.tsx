@@ -12,6 +12,8 @@ import { Calendar, User, Eye, Camera, Trash2, Loader2 } from 'lucide-react';
 import { NOSTR_CONFIG } from '@/config/nostr';
 import { useAuthor } from '@/hooks/useAuthor';
 import { filterEventsByCountry, countries } from '@/lib/countryDetection';
+import { getEventLanguage } from '@/lib/translationTags';
+import { useLanguage } from '@/hooks/useLanguage';
 import { MAIN_MENU } from '@/config/menu';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrDelete } from '@/hooks/useNostrDelete';
@@ -48,6 +50,7 @@ interface ImageEvent {
 
 function Images() {
   const { country } = useParams();
+  const { lang } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const [visibleCount, setVisibleCount] = useState(30);
@@ -110,12 +113,14 @@ function Images() {
       return hasImageUrls && content.length < 500;
     });
 
+    const languageFilteredEvents = imageEvents.filter((event: ImageEvent) => getEventLanguage(event as any) === lang);
+
     if (currentCountry) {
-      return filterEventsByCountry(imageEvents, country);
+      return filterEventsByCountry(languageFilteredEvents, country);
     }
 
     if (isNatureRoute && natureCategory) {
-      return imageEvents.filter((event: ImageEvent) => {
+      return languageFilteredEvents.filter((event: ImageEvent) => {
         const hasNatureTag = event.tags.some(tag => tag[0] === 't' && tag[1] === natureCategory);
         const categoryConfig = MAIN_MENU.nature[natureCategory as keyof typeof MAIN_MENU.nature];
         if (categoryConfig && categoryConfig.tags) {
@@ -129,8 +134,8 @@ function Images() {
       });
     }
 
-    return [...imageEvents].sort((a, b) => b.created_at - a.created_at);
-  }, [allImageEvents, country, currentCountry, isNatureRoute, natureCategory]);
+    return [...languageFilteredEvents].sort((a, b) => b.created_at - a.created_at);
+  }, [allImageEvents, country, currentCountry, isNatureRoute, natureCategory, lang]);
 
   const extractImages = (content: string, tags?: string[][]): string[] => {
     const results: string[] = [];
