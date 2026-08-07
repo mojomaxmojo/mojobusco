@@ -275,7 +275,7 @@ oben. Nach Deploy: `ai-api`-Neustart erforderlich.
       `server/routes/content/article.js` auf 2500/5000/7500 erhöht;
       Deploy + Neustart; Testartikel mit Länge "Lang" hat deutlich mehr
       als 500 Wörter, keine Abschneide-Warnung mehr im Log.
-- [ ] **Schritt 4**: `totalWords`-Berechnung in
+- [x] **Schritt 4**: `totalWords`-Berechnung in
       `server/routes/content/article.js` durch `targetWordsMid`
       (unabhängig vom Token-Budget) ersetzt; Deploy + Neustart; 4
       Bilder in einem Lang-Artikel verteilen sich gleichmäßig über den

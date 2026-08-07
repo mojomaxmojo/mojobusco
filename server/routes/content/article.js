@@ -133,9 +133,11 @@ router.post('/api/generate-article', (req, res, next) => {
     // Berichte: maxTokens abhängig von articleLength
     const articleMaxTokens = articleLength === 'short' ? 2500 : articleLength === 'medium' ? 5000 : 7500
 
-    // Wortzahl-Schätzung aus articleMaxTokens (≈ 0.75 Wörter pro Token) für die gleichmäßige Bildverteilung
-    const totalWords = Math.round(articleMaxTokens * 0.75)
-    const placementZones = computePlacementZones(totalWords, imageObjects.length)
+    // Ziel-Wortzahl aus der gewählten Artikellänge (Mittelwert der Zielspanne),
+    // UNABHÄNGIG vom Token-Budget – damit Bild-Verteilung stabil bleibt,
+    // auch wenn das Token-Budget später nochmal angepasst wird
+    const targetWordsMid = articleLength === 'short' ? 750 : articleLength === 'medium' ? 1500 : 2500
+    const placementZones = computePlacementZones(targetWordsMid, imageObjects.length)
 
     // Foster Huntington Prompt für Berichte - importiert aus src/config/prompts/articles.js
     const prompt = generateArticlePrompt({
