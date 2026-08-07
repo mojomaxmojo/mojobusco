@@ -358,9 +358,9 @@ export function Videos() {
   useHead({
     title: 'Videos – MojoBus',
     meta: [
-      { name: 'description', content: 'Kurzvideos, Reels und Momente von Mojo & Susanne im Mojobus.' },
+      { name: 'description', content: 'Kurzvideos, Reels und Momente von Max & Susanne im Mojobus.' },
       { property: 'og:title', content: 'Videos – MojoBus' },
-      { property: 'og:description', content: 'Kurzvideos, Reels und Momente von Mojo & Susanne im Mojobus.' },
+      { property: 'og:description', content: 'Kurzvideos, Reels und Momente von Max & Susanne im Mojobus.' },
       { property: 'og:url', content: canonicalUrl('/videos') },
     ],
     link: [{ rel: 'canonical', href: canonicalUrl('/videos') }],

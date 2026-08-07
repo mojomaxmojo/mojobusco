@@ -16,7 +16,7 @@ export const ABOUT_STRINGS: Record<'de' | 'en', Record<string, string>> = {
       'Habt ihr Fragen zu unserem 10m-US-Wohnmobil, unserem autarken Setup mit Solarstrom oder dem zensurfreien Schreiben auf Nostr? Schreibt uns einfach eine E-Mail oder kontaktiert uns direkt über unsere Nostr-Keys!',
     message_button: 'Nachricht senden',
     dm_button: 'Nostr-DM senden',
-    badge_names: '🚐 Mojo & SumSum',
+    badge_names: '🚐 Max & SumSum',
     badge_tagline: 'Auf zu neuen Horizonten',
   },
   en: {
@@ -26,7 +26,7 @@ export const ABOUT_STRINGS: Record<'de' | 'en', Record<string, string>> = {
       'Do you have questions about our 10m US motorhome, our self-sufficient solar setup, or writing censorship-free on Nostr? Just send us an email or reach out directly via our Nostr keys!',
     message_button: 'Send a message',
     dm_button: 'Send Nostr DM',
-    badge_names: '🚐 Mojo & SumSum',
+    badge_names: '🚐 Max & SumSum',
     badge_tagline: 'Onward to new horizons',
   },
 };

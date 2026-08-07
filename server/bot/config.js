@@ -192,8 +192,8 @@ const STATIC_PAGE_META = {
     type: 'website',
   },
   '/about': {
-    title: 'Über uns — Mojo & Susanne | MojoBus',
-    description: 'Wir sind Mojo & Susanne. Seit Jahren leben wir als Perpetual Travelers zwischen Sand und Horizont.',
+    title: 'Über uns — Max & Susanne | MojoBus',
+    description: 'Wir sind Max & Susanne. Seit Jahren leben wir als Perpetual Travelers zwischen Sand und Horizont.',
     image: DEFAULT_OG_IMAGE,
     type: 'profile',
   },
@@ -234,8 +234,8 @@ const STATIC_PAGE_META = {
     type: 'website',
   },
   '/en/about': {
-    title: 'About us — Mojo & Susanne | MojoBus',
-    description: 'We are Mojo & Susanne. For years we have been living as perpetual travelers between sand and horizon.',
+    title: 'About us — Max & Susanne | MojoBus',
+    description: 'We are Max & Susanne. For years we have been living as perpetual travelers between sand and horizon.',
     image: DEFAULT_OG_IMAGE,
     type: 'profile',
   },
