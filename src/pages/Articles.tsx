@@ -11,6 +11,8 @@ import { useAuthors } from '@/hooks/useAuthors';
 import { genUserName } from '@/lib/genUserName';
 import { RelaySelector } from '@/components/RelaySelector';
 import { filterEventsByCountry } from '@/lib/countryDetection';
+import { getEventLanguage } from '@/lib/translationTags';
+import { useLanguage } from '@/hooks/useLanguage';
 import { COUNTRIES } from '@/config';
 import { Search, Calendar, User, Wrench, Dog, MapPin, Loader2 } from 'lucide-react';
 import { useState, useMemo, memo, useEffect } from 'react';
@@ -30,6 +32,7 @@ import { useHead } from '@unhead/react';
 function Articles() {
   const { country } = useParams();
   const { data: articles, isLoading } = usePreloadedArticles();
+  const { lang } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState(null);
   const [selectedAuthor, setSelectedAuthor] = useState(null);
@@ -68,7 +71,7 @@ function Articles() {
 
   // Filter articles mit intelligenter Ländererkennung
   const filteredArticles = useMemo(() => {
-    let filtered = [...articles];
+    let filtered = [...articles].filter(a => getEventLanguage(a) === lang);
 
     // Country filter mit intelligenter Erkennung
     if (currentCountry) {
@@ -101,7 +104,7 @@ function Articles() {
     }
 
     return filtered.sort((a, b) => b.created_at - a.created_at);
-  }, [articles, searchQuery, selectedTag, selectedAuthor, currentCountry, country]);
+  }, [articles, searchQuery, selectedTag, selectedAuthor, currentCountry, country, lang]);
 
   // 🔥 OPTIMIZATION 2: Cache Artikel-Metadata um Duplikate zu vermeiden
   // Wird für jedes ArticleCard wiederverwendet statt neu berechnet

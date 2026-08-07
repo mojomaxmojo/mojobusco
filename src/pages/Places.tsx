@@ -15,6 +15,8 @@ import { genUserName } from '@/lib/genUserName';
 import { getAuthorRelayConfigByPubkey } from '@/config/relays';
 import { getListThumbnailUrl, getImagePlaceholder, generateSrcset, generateSizes } from '@/lib/imageUtils';
 import { filterEventsByCountry, countries } from '@/lib/countryDetection';
+import { getEventLanguage } from '@/lib/translationTags';
+import { useLanguage } from '@/hooks/useLanguage';
 import { nip19 } from 'nostr-tools';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { MAIN_MENU } from '@/config/menu';
@@ -27,6 +29,7 @@ import { useHead } from '@unhead/react';
 function Places() {
   const { country } = useParams();
   const { data: events, isLoading } = usePlaces();
+  const { lang } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [visibleCount, setVisibleCount] = useState(30);
 
@@ -68,9 +71,10 @@ function Places() {
   });
 
   // Filter Events nach Country
+  const languageFilteredEvents = (events || []).filter(e => getEventLanguage(e) === lang);
   const filteredEvents = currentCountry
-    ? filterEventsByCountry(events || [], currentCountry)
-    : events || [];
+    ? filterEventsByCountry(languageFilteredEvents, currentCountry)
+    : languageFilteredEvents;
 
   // Filter Events nach Search Query
   const searchedEvents = searchQuery
