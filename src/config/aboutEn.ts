@@ -83,7 +83,7 @@ Nostr belongs to no one – just like the road. There are no middlemen here. Onl
   travelers: [
     {
       id: 'mojo',
-      name: 'mojo',
+      name: 'Max',
       bio: `Navigating the 10-meter colossus through narrow cliff roads while the solar inverter hums quietly in the background – that's my comfort zone.
 
 No fixed residence, no hamster wheel. I am the tech brain of our off-grid setup and a passionate advocate of digital and physical freedom. When I'm not servicing our US diesel or optimizing our solar-powered network, I lose myself in the endless expanses of Nostr and Bitcoin. For me, freedom is not a theoretical concept but a state you have to reclaim every day in both real and digital life. Our soul dog Leon is my eternal co-pilot in spirit.`,
@@ -111,6 +111,6 @@ I am Susanne (SumSum). I love pristine nature, the rough sea and the art of crea
   seo: {
     title: 'About Us - MojoBus Perpetual Travelers Blog',
     description:
-      'Meet Mojo and SumSum – perpetual travelers in the MojoBus. Our story, Leon and life in freedom.',
+      'Meet Max and SumSum – perpetual travelers in the MojoBus. Our story, Leon and life in freedom.',
   },
 };
