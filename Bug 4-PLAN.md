@@ -458,7 +458,7 @@ Kein Code-Schritt, nur Verifikation aller vorherigen Schritte zusammen.
 - [x] **Schritt 6**: Sprach-Umschalter (🇬🇧/🇩🇪 + `lang_switch_to`-Text) in
       `Header.tsx` Desktop + Mobile ergänzt, nutzt bestehende
       `switchLanguagePath()`, Build läuft fehlerfrei
-- [ ] **Schritt 7**: End-zu-Ende getestet – alle deutschen Seiten zeigen
+- [x] **Schritt 7**: End-zu-Ende getestet – alle deutschen Seiten zeigen
       nur Deutsch, alle englischen Seiten zeigen nur Englisch,
       Sprach-Umschalter funktioniert auf allen getesteten Seiten, keine
       Regression an Admin-/internen Tools oder `ArticleView.tsx`
