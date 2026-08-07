@@ -53,16 +53,16 @@ export function Home() {
     jsonLd={websiteJsonLd()}
   />
   useHead({
-    title: 'MojoBus - Perpetual Travelers Blog',
+    title: th('seo_title'),
     meta: [
-      { name: 'description', content: 'Perpetual Travelers Blog. Unser Leben am Meer, vanlife, offgrid und Reisen. Geschichten, Tipps und Einblicke vom Strand.' },
-      { name: 'keywords', content: 'Vanlife, Reisen, Portugal, Spanien, Frankreich, Offgrid, Solar, RV' },
-      { property: 'og:title', content: 'MojoBus - Perpetual Travelers Blog' },
-      { property: 'og:description', content: 'Perpetual Travelers Blog. Unser Leben am Meer, vanlife, offgrid und Reisen.' },
+      { name: 'description', content: th('seo_description') },
+      { name: 'keywords', content: th('seo_keywords') },
+      { property: 'og:title', content: th('seo_title') },
+      { property: 'og:description', content: th('seo_og_description') },
       { property: 'og:type', content: 'website' }
     ],
     link: [
-      { rel: 'canonical', href: canonicalUrl() }
+      { rel: 'canonical', href: canonicalUrl(localizePath('/')) }
     ]
   });
 

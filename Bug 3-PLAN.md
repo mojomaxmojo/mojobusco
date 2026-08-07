@@ -287,7 +287,7 @@ Kein Code-Schritt, nur Verifikation aller vorherigen Schritte zusammen.
 - [x] **Schritt 2**: Sichtbare JSX-Texte in `Home.tsx` (Hero, Buttons,
       3 Säulen, zweite CTA-Sektion, Empty-State) zeigen auf `/en`
       Englisch über `th()`, `/` bleibt unverändert Deutsch
-- [ ] **Schritt 3**: SEO-Meta-Tags (`title`, `description`, `keywords`,
+- [x] **Schritt 3**: SEO-Meta-Tags (`title`, `description`, `keywords`,
       `og:title`, `og:description`) und `canonical`-URL zeigen auf
       `/en` Englisch bzw. `https://mojobus.co/en`, `/` bleibt Deutsch
       mit `https://mojobus.co/`
