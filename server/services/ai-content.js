@@ -35,6 +35,7 @@ const generateWithModel = async (prompt, model = 'medium', lifestyle = 'mojobus'
       model: modelConfig.id,
       max_tokens: maxTokens,
       temperature,
+      reasoning: { effort: 'low' },
       messages: [
         {
           role: 'system',
@@ -49,6 +50,14 @@ const generateWithModel = async (prompt, model = 'medium', lifestyle = 'mojobus'
 
     const duration = Date.now() - startTime
     console.log(`[KI] ${modelConfig.label} via OpenRouter generiert in ${duration}ms (tier: ${tier}, maxTokens: ${maxTokens})`)
+
+    const finishReason = response.data.choices?.[0]?.finish_reason
+    const usage = response.data.usage
+    if (finishReason === 'length') {
+      console.warn(`[KI] ⚠️ Antwort abgeschnitten (finish_reason: length)! tier: ${tier}, maxTokens: ${maxTokens}, usage: ${JSON.stringify(usage)}`)
+    } else {
+      console.log(`[KI] finish_reason: ${finishReason}, usage: ${JSON.stringify(usage)}`)
+    }
     return response.data.choices[0].message.content
 
   } catch (error) {

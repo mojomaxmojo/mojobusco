@@ -267,7 +267,7 @@ oben. Nach Deploy: `ai-api`-Neustart erforderlich.
       (Zeile 940-942) auf 500-1000 / 1000-2000 / 2000-3000 geändert;
       Build läuft fehlerfrei, UI zeigt neue Wortzahlen an den
       Längen-Buttons.
-- [ ] **Schritt 2**: `reasoning: { effort: 'low' }` in
+- [x] **Schritt 2**: `reasoning: { effort: 'low' }` in
       `server/services/ai-content.js` ergänzt; `finish_reason` +
       `usage` werden geloggt; Deploy + `ai-api`-Neustart durchgeführt;
       Log zeigt neue `finish_reason`-Zeile bei einem Testartikel.
