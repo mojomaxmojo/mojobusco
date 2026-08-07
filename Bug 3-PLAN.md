@@ -295,6 +295,6 @@ Kein Code-Schritt, nur Verifikation aller vorherigen Schritte zusammen.
       auf `/en` Englisch, auf `/` weiterhin Deutsch
 - [x] **Schritt 5**: Die 3 internen Links (`/artikel` ×2, `/about`)
       nutzen `localizePath()` und bleiben auf `/en` im `/en`-Kontext
-- [ ] **Schritt 6**: End-zu-Ende getestet – Build fehlerfrei, `/` und
+- [x] **Schritt 6**: End-zu-Ende getestet – Build fehlerfrei, `/` und
       `/en` beide vollständig konsistent in ihrer jeweiligen Sprache,
       keine Regression an anderen Seiten
