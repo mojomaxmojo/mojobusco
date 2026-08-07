@@ -24,6 +24,7 @@ import { getZeitUnterwegsFormatiert } from '@/config/zeitwohnmobil';
 import { getZeitUnterwegsFormatiertEn } from '@/config/zeitwohnmobil';
 import { useLanguage } from '@/hooks/useLanguage';
 import { EN_ABOUT_DATA } from '@/config/aboutEn';
+import { translateAbout } from '@/config/i18n/about';
 
 import { AUTHORS } from '@/config/nostr';
 import { useAboutContent } from '@/hooks/useAboutContent';
@@ -46,6 +47,7 @@ export function About() {
   // ── Dynamische About-Inhalte (kind 30078 mit Fallback) ──────────────────
   const { data: rawAboutData } = useAboutContent();
   const { lang, localizePath } = useLanguage();
+  const ta = (key: string) => translateAbout(lang, key);
   const aboutData = lang === 'en' ? EN_ABOUT_DATA : rawAboutData;
 
   // {zeit} im Hero-Subtitle ersetzen
@@ -128,7 +130,7 @@ export function About() {
               trigger={
                 <Button variant="outline" size="sm" className="w-full gap-2">
                   <MessageCircle className="h-4 w-4" />
-                  Nachricht senden
+                  {ta('message_button')}
                 </Button>
               }
             />
@@ -231,7 +233,7 @@ export function About() {
 
             {/* ═══════ DIE REISENDEN ═══════ */}
             <div className="space-y-6">
-              <h2 className="text-3xl font-bold text-center">Die Reisenden</h2>
+              <h2 className="text-3xl font-bold text-center">{ta('travelers_heading')}</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {aboutData.travelers.map((traveler) => (
                   <TravelerCard key={traveler.id} traveler={traveler} />
@@ -243,9 +245,9 @@ export function About() {
             <Card className="border-2 bg-gradient-to-br from-muted/50 to-background">
               <div className="h-1 bg-gradient-to-r from-primary via-accent to-primary" />
               <CardHeader className="text-center">
-                <CardTitle className="text-2xl">🚐 Kontakt eures Zuhauses auf Rädern</CardTitle>
+                <CardTitle className="text-2xl">{ta('contact_card_title')}</CardTitle>
                 <CardDescription className="text-sm max-w-xl mx-auto">
-                  Habt ihr Fragen zu unserem 10m-US-Wohnmobil, unserem autarken Setup mit Solarstrom oder dem zensurfreien Schreiben auf Nostr? Schreibt uns einfach eine E-Mail oder kontaktiert uns direkt über unsere Nostr-Keys!
+                  {ta('contact_card_description')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -288,7 +290,7 @@ export function About() {
                     trigger={
                       <Button className="gap-2">
                         <Send className="h-4 w-4" />
-                        Nostr-DM senden
+                        {ta('dm_button')}
                       </Button>
                     }
                   />
@@ -296,10 +298,10 @@ export function About() {
 
                 <div className="flex flex-wrap gap-2 pt-4 justify-center">
                   <Badge variant="secondary" className="gap-1 text-sm px-3 py-1">
-                    🚐 Mojo & SumSum
+                    {ta('badge_names')}
                   </Badge>
                   <Badge variant="outline" className="gap-1 text-sm px-3 py-1">
-                    Auf zu neuen Horizonten
+                    {ta('badge_tagline')}
                   </Badge>
                 </div>
               </CardContent>

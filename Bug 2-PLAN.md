@@ -326,7 +326,7 @@ Kein Code-Schritt, nur Verifikation aller vorherigen Schritte zusammen.
       zwischen `EN_ABOUT_DATA` und der dynamischen Nostr-Quelle;
       Hero/Sektionen/Säulen/Reisende/Kontakt/SEO zeigen auf `/en/about`
       Englisch, `/about` bleibt unverändert Deutsch
-- [ ] **Schritt 5**: Die 7 fest verdrahteten UI-Texte (Überschrift,
+- [x] **Schritt 5**: Die 7 fest verdrahteten UI-Texte (Überschrift,
       Kontakt-Card, 2 Buttons, 2 Badges) zeigen auf `/en/about` Englisch
       über `translateAbout()`, `/about` bleibt unverändert Deutsch
 - [ ] **Schritt 6**: End-zu-Ende getestet – Build fehlerfrei, `/about`
