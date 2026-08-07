@@ -317,7 +317,7 @@ Kein Code-Schritt, nur Verifikation aller vorherigen Schritte zusammen.
 - [x] **Schritt 1**: `src/config/aboutEn.ts` mit `EN_ABOUT_DATA` erstellt
       (Typ aus `about.ts` wiederverwendet), Build läuft fehlerfrei durch,
       noch keine sichtbare Änderung
-- [ ] **Schritt 2**: `getZeitUnterwegsFormatiertEn()` additiv in
+- [x] **Schritt 2**: `getZeitUnterwegsFormatiertEn()` additiv in
       `src/config/zeitwohnmobil.ts` ergänzt, Build läuft fehlerfrei durch
 - [ ] **Schritt 3**: `src/config/i18n/about.ts` mit `ABOUT_STRINGS` +
       `translateAbout()` erstellt, Build läuft fehlerfrei durch, noch

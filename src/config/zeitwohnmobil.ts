@@ -57,6 +57,27 @@ export function getZeitUnterwegsFormatiert(jetzt: Date = new Date()): string {
 }
 
 /**
+ * Gibt eine formatierte Zusammenfassung auf Englisch zurück
+ * z.B. "10 years, 3 months and 5 days"
+ */
+export function getZeitUnterwegsFormatiertEn(jetzt: Date = new Date()): string {
+  const gesamtTage = getTageUnterwegs(jetzt)
+  const jahre = Math.floor(gesamtTage / 365.25)
+  const restTage = gesamtTage - Math.floor(jahre * 365.25)
+  const monate = Math.floor(restTage / 30.44)
+  const tage = Math.floor(restTage - monate * 30.44)
+  const teile: string[] = []
+  if (jahre > 0) teile.push(`${jahre} year${jahre !== 1 ? 's' : ''}`)
+  if (monate > 0) teile.push(`${monate} month${monate !== 1 ? 's' : ''}`)
+  if (tage > 0 || teile.length === 0) teile.push(`${tage} day${tage !== 1 ? 's' : ''}`)
+  if (teile.length > 1) {
+    const last = teile.pop()
+    return teile.join(', ') + ' and ' + last
+  }
+  return teile[0] || '0 days'
+}
+
+/**
  * Gibt das Startdatum formatiert zurück
  * z.B. "11. Juni 2015"
  */
