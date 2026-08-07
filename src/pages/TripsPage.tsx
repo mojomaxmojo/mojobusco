@@ -18,6 +18,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useTrips, calculateTripDistance, type Trip } from '@/hooks/useTrips';
 import { useAuthor } from '@/hooks/useAuthor';
 import { generateImageUrl } from '@/config/imageService';
+import { getEventLanguage } from '@/lib/translationTags';
+import { useLanguage } from '@/hooks/useLanguage';
 
 // Generate a user name from pubkey
 function genUserName(pubkey: string): string {
@@ -155,6 +157,8 @@ function TripSkeleton() {
  */
 export default function TripsPage() {
   const { data: trips = [], isLoading, error, refetch } = useTrips();
+  const { lang } = useLanguage();
+  const languageTrips = trips.filter(trip => getEventLanguage(trip.event) === lang);
   const [hoveredTripId, setHoveredTripId] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(30);
   const { ref, inView } = useInView({ threshold: 0.1, rootMargin: '200px' });
@@ -163,12 +167,12 @@ export default function TripsPage() {
     if (inView) setVisibleCount(prev => prev + 30);
   }, [inView]);
 
-  const visibleTrips = trips.slice(0, visibleCount);
-  const hasMore = visibleTrips.length < trips.length;
+  const visibleTrips = languageTrips.slice(0, visibleCount);
+  const hasMore = visibleTrips.length < languageTrips.length;
   
   // Map markers from all trips
   const mapMarkers: MapMarker[] = useMemo(() => {
-    return trips.flatMap(trip => 
+    return languageTrips.flatMap(trip => 
       trip.waypoints.map((wp, idx) => ({
         id: `${trip.id}-${idx}`,
         lat: wp.lat,
@@ -179,13 +183,13 @@ export default function TripsPage() {
         type: 'trip' as const,
       }))
     );
-  }, [trips]);
+  }, [languageTrips]);
   
   // Map polylines from all trips
   const mapPolylines: MapPolyline[] = useMemo(() => {
     const colors = ['#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#84cc16'];
     
-    return trips.map((trip, idx) => {
+    return languageTrips.map((trip, idx) => {
       const isHovered = hoveredTripId === trip.id;
       const isDimmed = hoveredTripId && hoveredTripId !== trip.id;
       
@@ -196,15 +200,15 @@ export default function TripsPage() {
         opacity: isDimmed ? 0.3 : 0.9,
       };
     });
-  }, [trips, hoveredTripId]);
+  }, [languageTrips, hoveredTripId]);
   
   // Stats
   const stats = useMemo(() => {
-    const totalPhotos = trips.reduce((sum, t) => sum + t.photos.length, 0);
-    const totalGpsPoints = trips.reduce((sum, t) => sum + t.waypoints.length, 0);
-    const totalDistance = trips.reduce((sum, t) => sum + (t.distance ? parseInt(t.distance) : calculateTripDistance(t.waypoints)), 0);
+    const totalPhotos = languageTrips.reduce((sum, t) => sum + t.photos.length, 0);
+    const totalGpsPoints = languageTrips.reduce((sum, t) => sum + t.waypoints.length, 0);
+    const totalDistance = languageTrips.reduce((sum, t) => sum + (t.distance ? parseInt(t.distance) : calculateTripDistance(t.waypoints)), 0);
     return { totalPhotos, totalGpsPoints, totalDistance };
-  }, [trips]);
+  }, [languageTrips]);
   
   // Handle loading state
   if (isLoading) {
@@ -252,7 +256,7 @@ export default function TripsPage() {
   }
   
   // Handle empty state
-  if (trips.length === 0) {
+  if (languageTrips.length === 0) {
     return (
       <>
         {/* Page Header */}
@@ -305,7 +309,7 @@ export default function TripsPage() {
               <div>
                 <h1 className="text-3xl font-bold">🛣️ Trips</h1>
                 <p className="text-muted-foreground">
-                  {trips.length} Reise-Abenteuer entdecken
+                  {languageTrips.length} Reise-Abenteuer entdecken
                 </p>
               </div>
             </div>
@@ -323,7 +327,7 @@ export default function TripsPage() {
               <div>
                 <h2 className="text-lg font-bold">Travelers Around the World</h2>
                 <p className="text-sm text-muted-foreground">
-                  {stats.totalGpsPoints} GPS-Punkte in {trips.length} Trips
+                  {stats.totalGpsPoints} GPS-Punkte in {languageTrips.length} Trips
                 </p>
               </div>
             </div>
@@ -353,7 +357,7 @@ export default function TripsPage() {
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4">
           <Card className="p-4 text-center">
-            <p className="text-2xl font-bold text-primary">{trips.length}</p>
+            <p className="text-2xl font-bold text-primary">{languageTrips.length}</p>
             <p className="text-sm text-muted-foreground">Trips</p>
           </Card>
           <Card className="p-4 text-center">

@@ -451,7 +451,7 @@ Kein Code-Schritt, nur Verifikation aller vorherigen Schritte zusammen.
       fehlerfrei
 - [x] **Schritt 3**: `Notes.tsx` + `Images.tsx` gefiltert, Build läuft
       fehlerfrei
-- [ ] **Schritt 4**: `TripsPage.tsx` + `Videos.tsx` gefiltert (Videos:
+- [x] **Schritt 4**: `TripsPage.tsx` + `Videos.tsx` gefiltert (Videos:
       fix auf `'de'`), Build läuft fehlerfrei
 - [ ] **Schritt 5**: `DIY.tsx`, `Leon.tsx`, `RVLife.tsx` gefiltert, Build
       läuft fehlerfrei

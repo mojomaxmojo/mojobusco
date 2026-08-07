@@ -33,6 +33,7 @@ import { canonicalUrl } from '@/lib/canonicalUrl'
 import { useNostrDelete } from '@/hooks/useNostrDelete'
 import { useToast } from '@/hooks/useToast'
 import { AUTHORS } from '@/config/nostr'
+import { getEventLanguage } from '@/lib/translationTags'
 
 // ── Autorencheck ──────────────────────────────────────────────────────────────
 
@@ -350,6 +351,10 @@ export function Videos() {
   const { videos, isLoading } = useVideos()
   const { user } = useCurrentUser()
 
+  // /videos hat bewusst kein /en-Pendant – nur deutsche Videos anzeigen,
+  // damit keine per Auto-Translate erzeugten EN-Videos auftauchen.
+  const deVideos = videos.filter(v => getEventLanguage(v.event) === 'de')
+
   useHead({
     title: 'Videos – MojoBus',
     meta: [
@@ -402,7 +407,7 @@ export function Videos() {
         )}
 
         {/* Leer */}
-        {!isLoading && (!videos || videos.length === 0) && (
+        {!isLoading && (!deVideos || deVideos.length === 0) && (
           <div className="text-center py-20 text-muted-foreground">
             <Film className="w-14 h-14 mx-auto mb-4 opacity-20" />
             <p className="font-semibold text-lg">Noch keine Videos</p>
@@ -413,7 +418,7 @@ export function Videos() {
         )}
 
         {/* Vertikaler Scroll-Feed – ein Video nach dem anderen */}
-        {videos?.map((video) => (
+        {deVideos.map((video) => (
           <VideoCard
             key={video.id}
             video={video}
