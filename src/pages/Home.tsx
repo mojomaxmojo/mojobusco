@@ -79,8 +79,8 @@ export function Home() {
   const handleRefresh = async () => {
     try {
       toast({
-        title: 'Aktualisiere Inhalte...',
-        description: 'Lade frische Daten von Nostr',
+        title: th('toast_refreshing_title'),
+        description: th('toast_refreshing_desc'),
       });
 
       // Invalidiere alle relevanten Queries
@@ -101,13 +101,13 @@ export function Home() {
       });
 
       toast({
-        title: '✅ Inhalte aktualisiert',
-        description: 'Frühe Inhalte werden angezeigt',
+        title: th('toast_success_title'),
+        description: th('toast_success_desc'),
       });
     } catch (error) {
       toast({
-        title: '❌ Aktualisierung fehlgeschlagen',
-        description: 'Bitte versuche es erneut',
+        title: th('toast_error_title'),
+        description: th('toast_error_desc'),
         variant: 'destructive',
       });
     }

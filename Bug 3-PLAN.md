@@ -291,7 +291,7 @@ Kein Code-Schritt, nur Verifikation aller vorherigen Schritte zusammen.
       `og:title`, `og:description`) und `canonical`-URL zeigen auf
       `/en` Englisch bzw. `https://mojobus.co/en`, `/` bleibt Deutsch
       mit `https://mojobus.co/`
-- [ ] **Schritt 4**: Die 3 Toast-Meldungen des Refresh-Buttons zeigen
+- [x] **Schritt 4**: Die 3 Toast-Meldungen des Refresh-Buttons zeigen
       auf `/en` Englisch, auf `/` weiterhin Deutsch
 - [ ] **Schritt 5**: Die 3 internen Links (`/artikel` ×2, `/about`)
       nutzen `localizePath()` und bleiben auf `/en` im `/en`-Kontext
