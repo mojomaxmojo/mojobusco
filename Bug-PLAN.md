@@ -271,7 +271,7 @@ oben. Nach Deploy: `ai-api`-Neustart erforderlich.
       `server/services/ai-content.js` ergänzt; `finish_reason` +
       `usage` werden geloggt; Deploy + `ai-api`-Neustart durchgeführt;
       Log zeigt neue `finish_reason`-Zeile bei einem Testartikel.
-- [ ] **Schritt 3**: `articleMaxTokens` in
+- [x] **Schritt 3**: `articleMaxTokens` in
       `server/routes/content/article.js` auf 2500/5000/7500 erhöht;
       Deploy + Neustart; Testartikel mit Länge "Lang" hat deutlich mehr
       als 500 Wörter, keine Abschneide-Warnung mehr im Log.

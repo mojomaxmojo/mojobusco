@@ -131,7 +131,7 @@ router.post('/api/generate-article', (req, res, next) => {
     console.log(`[KI] Gesamt ${imageObjects.length} Bilder für Prompt (${uploadedImageDescriptions.length} Titel, ${markdownImageDescriptions.length} Markdown)`)
 
     // Berichte: maxTokens abhängig von articleLength
-    const articleMaxTokens = articleLength === 'short' ? 500 : articleLength === 'medium' ? 1200 : 2500
+    const articleMaxTokens = articleLength === 'short' ? 2500 : articleLength === 'medium' ? 5000 : 7500
 
     // Wortzahl-Schätzung aus articleMaxTokens (≈ 0.75 Wörter pro Token) für die gleichmäßige Bildverteilung
     const totalWords = Math.round(articleMaxTokens * 0.75)
