@@ -3,7 +3,7 @@
  *
  * Unterstützt drei Gender-Modi:
  * - 'neutral'  → Keine geschlechtsspezifischen Marker (default)
- * - 'male'     → Männliche Perspektive (Mojo: "Ich hab", "mein Hund", "ein Typ")
+ * - 'male'     → Männliche Perspektive (Max: "Ich hab", "mein Hund", "ein Typ")
  * - 'female'   → Weibliche Perspektive (Susanne: "Ich hab", "meine Hündin", "eine Frau")
  *
  * WICHTIG: Der Stil ändert sich NICHT. Foster bleibt Foster.
@@ -34,14 +34,14 @@ export const genderConfig = {
     promptAddition: ''
   },
   male: {
-    label: 'Männlich (Mojo)',
+    label: 'Männlich (Max)',
     pronoun: 'ich',
     possessive: 'mein',
     article: 'ein',
     adjEnding: 'er',
     description: 'Männliche Perspektive. Grammatisch maskulin wo nötig.',
     promptAddition: `
-PERSPEKTIVE: Männlich. Mojo – dauerhaft unterwegs mit einem 10m US-Oldtimer-Bus.
+PERSPEKTIVE: Männlich. Max – dauerhaft unterwegs mit einem 10m US-Oldtimer-Bus.
 Grammatisch maskulin wo es natürlich vorkommt. Nicht forcieren.
 "Ich bin losgefahren", "unterwegs", "ein Typ am Nebentisch".
 KEIN "Van". Das Fahrzeug heißt Bus, Oldtimer, oder einfach "er" (der Bus). Nie Van, nie Camper.`
@@ -74,16 +74,16 @@ WAS SICH NICHT ÄNDERT:
 KEIN "Van". Das Fahrzeug heißt Bus, Oldtimer, oder einfach "er" (der Bus). Nie Van, nie Camper.`
   },
   couple: {
-    label: 'Paar (Mojo & Susanne)',
+    label: 'Paar (Max & Susanne)',
     pronoun: 'wir',
     possessive: 'unser/unsere',
     article: 'zwei',
     adjEnding: 'e',
-    description: 'Zwei Personen dauerhaft unterwegs. Mojo & Susanne im 10m US-Oldtimer-Bus.',
+    description: 'Zwei Personen dauerhaft unterwegs. Max & Susanne im 10m US-Oldtimer-Bus.',
     promptAddition: `
-PERSPEKTIVE: Zwei Personen – Mojo und Susanne – dauerhaft unterwegs im 10m US-Oldtimer-Bus.
+PERSPEKTIVE: Zwei Personen – Max und Susanne – dauerhaft unterwegs im 10m US-Oldtimer-Bus.
 "Wir" ist der natürliche Erzähler. "Ich" darf auftauchen wenn es ein persönlicher Gedanke ist.
-Namen dürfen fallen: "Susanne macht Kaffee." oder "Mojo schaut auf die Karte." – das reicht. Kein Erklären wer wer ist.
+Namen dürfen fallen: "Susanne macht Kaffee." oder "Max schaut auf die Karte." – das reicht. Kein Erklären wer wer ist.
 
 WAS DAS BEDEUTET:
 - Nicht allein. Zu zweit. Aber trotzdem Foster. Gleiche Stille, gleiche Kürze, gleicher Rhythmus.
@@ -400,7 +400,7 @@ export function getGenderPromptAddition(gender: GenderType = 'neutral'): string 
 
 /**
  * Erkennt Gender basierend auf Pubkey
- * Mojo = male, Susanne = female
+ * Max = male, Susanne = female
  *
  * @param pubkey - Der Nostr Pubkey (hex)
  * @returns 'male' | 'female' | 'neutral'

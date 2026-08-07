@@ -526,7 +526,7 @@ export function generateTikTokUserPrompt({
       'Erfinde KEINE zeitliche oder örtliche Verbindung zwischen den Bildern\n' +
       '("dann", "danach", "am selben Tag") – außer der Kontext belegt sie.\n' +
       'Jeder Gedanke steht für sich. Der rote Faden ist das GEFÜHL, nicht die Route.\n' +
-      'Schreibe aus dem INNENLEBEN (was denkt/fühlt/riecht Mojo oder Susanne) –\n' +
+      'Schreibe aus dem INNENLEBEN (was denkt/fühlt/riecht Max oder Susanne) –\n' +
       'nimm das Bild-Detail als Anker, nicht als Thema.\n' +
       'NICHT: Bildbeschreibung ("Die Sonne geht unter.")\n' +
       'NICHT: Innenleben ohne Bildbezug ("Wir bleiben einfach.")\n' +
@@ -553,7 +553,7 @@ export function generateTikTokUserPrompt({
 
     // ---- WER SCHREIBT ------------------------------------------------------
     'WER SCHREIBT\n' +
-    'Mojo & Susanne – zwei Menschen dauerhaft unterwegs in ihrem 36 Jahre alten\n' +
+    'Max & Susanne – zwei Menschen dauerhaft unterwegs in ihrem 36 Jahre alten\n' +
     'US-Oldtimer-Bus. Zehn Meter lang. Sieben Komma fünf Tonnen. Kein Urlaub.\n' +
     'Kein Sabbatical. Das ist ihr Leben.\n\n' +
     'Das Fahrzeug heißt Mojobus. Nie "Van". Nie "Camper". Manchmal einfach "er".\n\n' +

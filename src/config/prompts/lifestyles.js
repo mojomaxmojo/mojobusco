@@ -3,9 +3,9 @@
  *
  * Unterstützt vier Gender/Perspektiv-Modi:
  * - 'neutral'  → Keine geschlechtsspezifischen Marker (default)
- * - 'male'     → Männliche Perspektive (Mojo: "Ich hab", "mein Hund", "ein Typ")
+ * - 'male'     → Männliche Perspektive (Max: "Ich hab", "mein Hund", "ein Typ")
  * - 'female'   → Weibliche Perspektive (Susanne: "Ich hab", "meine Hündin", "eine Frau")
- * - 'couple'   → Zwei Personen dauerhaft unterwegs (Mojo & Susanne, "wir")
+ * - 'couple'   → Zwei Personen dauerhaft unterwegs (Max & Susanne, "wir")
  *
  * WICHTIG: Der Stil ändert sich NICHT. Foster bleibt Foster.
  * Was sich ändert: grammatisches Geschlecht, Erfahrungs-Details,
@@ -79,7 +79,7 @@ ${LEON_RULE}`
     adjEnding: 'er',
     description: 'Männliche Perspektive. Grammatisch maskulin wo nötig.',
     promptAddition: `
-PERSPEKTIVE: Männlich. Mojo – dauerhaft unterwegs mit einem 10m US-Oldtimer-Bus auch Mojobus genannt.
+PERSPEKTIVE: Männlich. Max – dauerhaft unterwegs mit einem 10m US-Oldtimer-Bus auch Mojobus genannt.
 Grammatisch maskulin wo es natürlich vorkommt. Nicht forcieren.
 "Ich bin losgefahren", "unterwegs", "ein Typ am Nebentisch".
 KEIN "Van". Das Fahrzeug heißt Mojobus, Oldtimer, oder einfach "er" (der Bus). Nie Van, nie Camper.
@@ -120,16 +120,16 @@ ${AGE_ATTITUDE_NOTE}
 ${LEON_RULE}`
   },
   couple: {
-    label: 'Paar (Mojo & Susanne)',
+    label: 'Paar (Max & Susanne)',
     pronoun: 'wir',
     possessive: 'unser/unsere',
     article: 'zwei',
     adjEnding: 'e',
-    description: 'Zwei Personen dauerhaft unterwegs. Mojo & Susanne im 10m US-Oldtimer-Bus genannt Mojobus.',
+    description: 'Zwei Personen dauerhaft unterwegs. Max & Susanne im 10m US-Oldtimer-Bus genannt Mojobus.',
     promptAddition: `
-PERSPEKTIVE: Zwei Personen – Mojo und Susanne – dauerhaft unterwegs im 10m US-Oldtimer-Bus genannt Mojobus.
+PERSPEKTIVE: Zwei Personen – Max und Susanne – dauerhaft unterwegs im 10m US-Oldtimer-Bus genannt Mojobus.
 "Wir" ist der natürliche Erzähler. "Ich" darf auftauchen wenn es ein persönlicher Gedanke ist.
-Namen dürfen fallen: "Susanne macht Kaffee." oder "Mojo schaut auf die Karte." – das reicht. Kein Erklären wer wer ist.
+Namen dürfen fallen: "Susanne macht Kaffee." oder "Max schaut auf die Karte." – das reicht. Kein Erklären wer wer ist.
 
 WAS DAS BEDEUTET:
 - Nicht allein. Zu zweit. Aber trotzdem Foster. Gleiche Stille, gleiche Kürze, gleicher Rhythmus.
@@ -183,7 +183,7 @@ export const lifestyleTypes = ['mojobus', 'vanlife', 'rvlife', 'beachlife', 'woh
 export const lifestyleExamples = {
 
   // ============================================================
-  // MOJOBUS – Mojo & Susanne, 10m US-Oldtimer-Bus, dauerhaft unterwegs
+  // MOJOBUS – Max & Susanne, 10m US-Oldtimer-Bus, dauerhaft unterwegs
   // ============================================================
   mojobus: {
     neutral: {
@@ -467,7 +467,7 @@ export function getGenderPromptAddition(gender = 'neutral') {
 
 /**
  * Erkennt Gender basierend auf Nostr Pubkey (hex)
- * Mojo = male, Susanne = female, Unbekannt = neutral
+ * Max = male, Susanne = female, Unbekannt = neutral
  *
  * @param {string} pubkey - Der Nostr Public Key (hex)
  * @returns {'male' | 'female' | 'neutral'}
@@ -481,7 +481,7 @@ export function detectGenderFromPubkey(pubkey) {
 
 /**
  * Erkennt Gender basierend auf Nostr npub (bech32)
- * Mojo = male, Susanne = female, Unbekannt = neutral
+ * Max = male, Susanne = female, Unbekannt = neutral
  *
  * @param {string} npub - Der Nostr npub (z.B. npub1f4vym...)
  * @returns {'male' | 'female' | 'neutral'}
