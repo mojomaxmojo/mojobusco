@@ -281,7 +281,7 @@ Kein Code-Schritt, nur Verifikation aller vorherigen Schritte zusammen.
 
 ## Checkliste
 
-- [ ] **Schritt 1**: `src/config/i18n/home.ts` mit `HOME_STRINGS` +
+- [x] **Schritt 1**: `src/config/i18n/home.ts` mit `HOME_STRINGS` +
       `translateHome()` erstellt, Build läuft fehlerfrei durch, noch
       keine sichtbare Änderung
 - [ ] **Schritt 2**: Sichtbare JSX-Texte in `Home.tsx` (Hero, Buttons,
