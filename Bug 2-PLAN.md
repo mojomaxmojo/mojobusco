@@ -319,7 +319,7 @@ Kein Code-Schritt, nur Verifikation aller vorherigen Schritte zusammen.
       noch keine sichtbare Änderung
 - [x] **Schritt 2**: `getZeitUnterwegsFormatiertEn()` additiv in
       `src/config/zeitwohnmobil.ts` ergänzt, Build läuft fehlerfrei durch
-- [ ] **Schritt 3**: `src/config/i18n/about.ts` mit `ABOUT_STRINGS` +
+- [x] **Schritt 3**: `src/config/i18n/about.ts` mit `ABOUT_STRINGS` +
       `translateAbout()` erstellt, Build läuft fehlerfrei durch, noch
       keine sichtbare Änderung
 - [ ] **Schritt 4**: `About.tsx` wählt je nach `useLanguage()`-Ergebnis
