@@ -7,6 +7,99 @@ import { generateWithModel } from '../../services/ai-content.js'
 
 const router = express.Router()
 
+/**
+ * Wandelt gängige JSON-Escape-Sequenzen (\n, \t, \\, \") in ihre echten
+ * Zeichen um. Wird auf Feldwerte angewendet, die per extractField() aus
+ * nicht-striktem "JSON" extrahiert wurden (dort bleiben Escapes sonst
+ * als literale Backslash-Zeichen im String stehen).
+ */
+function unescapeJsonLikeString(value) {
+  return value
+    .replace(/\\n/g, '\n')
+    .replace(/\\t/g, '\t')
+    .replace(/\\"/g, '"')
+    .replace(/\\\\/g, '\\')
+}
+
+/**
+ * Extrahiert ein Feld ("title"/"summary"/"content") robust aus einer rohen
+ * KI-Antwort, auch wenn der Wert selbst ungeschützte Anführungszeichen enthält
+ * (z.B. `"warm" January`), die reguläres JSON.parse zum Scheitern bringen.
+ *
+ * Nutzt die feste Feldreihenfolge aus dem Prompt (title → summary → content):
+ * der Wert reicht vom öffnenden Quote nach dem Feldnamen bis zum letzten
+ * Quote vor dem nächsten Feld (bzw. vor dem abschließenden "}" beim letzten
+ * Feld).
+ */
+function extractField(raw, fieldName, nextFieldName) {
+  const startMarker = new RegExp(`"${fieldName}"\\s*:\\s*"`)
+  const startMatch = startMarker.exec(raw)
+  if (!startMatch) return null
+
+  const valueStart = startMatch.index + startMatch[0].length
+  let valueEnd
+
+  if (nextFieldName) {
+    const nextMarker = new RegExp(`"\\s*,\\s*"${nextFieldName}"\\s*:`)
+    const nextMatch = nextMarker.exec(raw.slice(valueStart))
+    // Das schließende Quote des aktuellen Werts ist das erste Zeichen des Matches
+    valueEnd = nextMatch ? valueStart + nextMatch.index : raw.length
+  } else {
+    // Letztes Feld: bis zum letzten Quote vor dem abschließenden "}"
+    const closing = raw.lastIndexOf('}')
+    const searchEnd = closing >= 0 ? closing : raw.length
+    const lastQuote = raw.lastIndexOf('"', searchEnd)
+    valueEnd = lastQuote > valueStart ? lastQuote : raw.length
+  }
+
+  if (valueEnd <= valueStart) return null
+  return unescapeJsonLikeString(raw.slice(valueStart, valueEnd))
+}
+
+/**
+ * Parst die Übersetzungs-Antwort der KI. Versucht zuerst striktes JSON.parse
+ * (Idealfall, wenn die KI sauber escaped hat). Schlägt das fehl (z.B. wegen
+ * ungeschützter Anführungszeichen im Fließtext), wird jedes Feld einzeln
+ * anhand der bekannten Feldreihenfolge extrahiert – ohne dass der Rohtext
+ * dafür valides JSON sein muss.
+ */
+function parseTranslationResponse(raw) {
+  const cleaned = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim()
+
+  // 1. Versuch: striktes JSON.parse
+  try {
+    return JSON.parse(cleaned)
+  } catch {
+    // weiter zu Fallbacks
+  }
+
+  // 2. Versuch: JSON-Objekt im Text suchen und parsen
+  const match = cleaned.match(/\{[\s\S]*\}/)
+  if (match) {
+    try {
+      return JSON.parse(match[0])
+    } catch {
+      // weiter zu Fallback 3
+    }
+  }
+
+  // 3. Versuch: Felder einzeln anhand fester Reihenfolge extrahieren.
+  // Robust gegen ungeschützte Anführungszeichen innerhalb der Werte.
+  const title = extractField(cleaned, 'title', 'summary')
+  const summary = extractField(cleaned, 'summary', 'content')
+  const content = extractField(cleaned, 'content', null)
+
+  if (content) {
+    return {
+      title: title || '',
+      summary: summary || '',
+      content,
+    }
+  }
+
+  return null
+}
+
 // POST /api/translate-content
 // Erzeugt im Hintergrund eine englische (EN) Version eines deutschsprachigen
 // Inhalts (Artikel/Platz/Trip/Note). Isolierter Endpunkt – bestehende Routen
@@ -19,8 +112,11 @@ router.post('/api/translate-content', async (req, res) => {
   }
 
   // maxTokens dynamisch, analog zu server/routes/content/article.js (Zeile 144),
-  // mit Mindestwert, damit auch kurze Inhalte das vollständige JSON erzeugen können
-  const maxTokens = Math.max(500, Math.min(4000, Math.ceil(content.length / 3)))
+  // mit Mindestwert, damit auch kurze Inhalte das vollständige JSON erzeugen können.
+  // Divisor 2.5 statt 3: EN-Übersetzungen inkl. JSON-Overhead (title/summary/content)
+  // waren in der Praxis oft länger als die reine content.length/3-Schätzung, was
+  // unnötige Auto-Retries (finish_reason: length) provozierte.
+  const maxTokens = Math.max(500, Math.min(4000, Math.ceil(content.length / 2.5)))
 
   console.log(`[Translate] Starte DE→EN-Übersetzung (type: ${type || 'unbekannt'}, Zeichen: ${content.length}, maxTokens: ${maxTokens})`)
 
@@ -40,17 +136,7 @@ router.post('/api/translate-content', async (req, res) => {
     console.log(`[Translate] KI-Antwort erhalten (${raw.length} Zeichen)`)
 
     // JSON aus der Antwort parsen (Muster wie in server/routes/tiktok/text.js Zeilen 98–108)
-    let result
-    try {
-      const jsonStr = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
-      result = JSON.parse(jsonStr)
-    } catch {
-      // Fallback: JSON im Text suchen
-      const match = raw.match(/\{[\s\S]*\}/)
-      if (match) {
-        try { result = JSON.parse(match[0]) } catch {}
-      }
-    }
+    const result = parseTranslationResponse(raw)
 
     if (!result || typeof result.content !== 'string') {
       console.error('[Translate] KI-Antwort konnte nicht geparst werden:', raw.substring(0, 500))
