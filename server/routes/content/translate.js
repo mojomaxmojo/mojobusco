@@ -111,12 +111,18 @@ router.post('/api/translate-content', async (req, res) => {
     return res.status(400).json({ error: 'Inhalt (content) ist erforderlich.' })
   }
 
-  // maxTokens dynamisch, analog zu server/routes/content/article.js (Zeile 144),
-  // mit Mindestwert, damit auch kurze Inhalte das vollständige JSON erzeugen können.
-  // Divisor 2.5 statt 3: EN-Übersetzungen inkl. JSON-Overhead (title/summary/content)
-  // waren in der Praxis oft länger als die reine content.length/3-Schätzung, was
-  // unnötige Auto-Retries (finish_reason: length) provozierte.
-  const maxTokens = Math.max(500, Math.min(4000, Math.ceil(content.length / 2.5)))
+  // maxTokens dynamisch, mit echtem Sicherheitspuffer statt knapper Schätzung.
+  // Beobachteter Praxiswert (Log 08.08.): 5047 Zeichen DE-Input brauchten
+  // tatsächlich 2178 Completion-Tokens für die EN-Antwort (Verhältnis ~2,32
+  // Zeichen/Token) – bei einem völlig normalen 600-Wörter-Artikel mit 6 Bildern,
+  // kein Ausreißer. Reine Verhältnis-Divisoren (/3, /2.5) lagen beide unter dem
+  // tatsächlichen Bedarf und lösten finish_reason: length aus.
+  // Neue Formel: /1.8 (statt /2.5) für ~30% Headroom über dem beobachteten
+  // Bedarf + fester Puffer von 400 Tokens für title/summary sowie den
+  // zusätzlichen Escaping-Overhead (\") aus der Prompt-Regel. Cap von 4000 auf
+  // 8000 angehoben, damit auch lange Artikel (article.js: bis 7500 Tokens
+  // Ausgangstext) nicht erneut knapp werden.
+  const maxTokens = Math.max(500, Math.min(8000, Math.ceil(content.length / 1.8) + 400))
 
   console.log(`[Translate] Starte DE→EN-Übersetzung (type: ${type || 'unbekannt'}, Zeichen: ${content.length}, maxTokens: ${maxTokens})`)
 
