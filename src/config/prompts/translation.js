@@ -17,6 +17,7 @@ REGLEN:
 - Nackte Video-/Bild-URLs (https://...) unverändert lassen.
 - GPS-Zahlenwerte und Koordinaten NICHT verändern.
 - Übersetze ausschließlich den Fließtext.
+- WICHTIG für gültiges JSON: Jedes doppelte Anführungszeichen (") innerhalb von title, summary oder content MUSS als \" escaped werden (z.B. bei Zitaten oder wörtlicher Rede wie "warm" → \"warm\"). Ein einziges unescaptes " macht die gesamte Antwort ungültig.
 
 Antworte AUSSCHLIESSLICH mit einem gültigen JSON-Objekt in genau dieser Struktur (keine weiteren Texte, kein Markdown-Codeblock):
 {
