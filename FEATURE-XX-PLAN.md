@@ -325,18 +325,18 @@ führt `handleSaveImageMetaDialog` für Uploads exakt nur `saveImageMeta()` aus
 
 ## Checkliste
 
-- [ ] **Schritt 1**: `src/lib/editorImageClick.ts` mit `getImageUrlFromClickTarget()`
+- [x] **Schritt 1**: `src/lib/editorImageClick.ts` mit `getImageUrlFromClickTarget()`
       und `isImageUrlInMarkdown()` erstellt; Build läuft fehlerfrei, nichts sichtbar verändert
-- [ ] **Schritt 2**: `MilkdownEditor.tsx` — neuer Handler `handleEditorImageClick`
+- [x] **Schritt 2**: `MilkdownEditor.tsx` — neuer Handler `handleEditorImageClick`
       + `onClick` am `.milkdown-content`-Container (Zeile ~535); Klick auf ein
       eingefügtes Bild öffnet den „Details"-Toast erneut; bestehende
       Upload-Toasts unverändert
-- [ ] **Schritt 3**: `contentRef` + Sync-Effekt ergänzt; `openImageMetaDialog`
+- [x] **Schritt 3**: `contentRef` + Sync-Effekt ergänzt; `openImageMetaDialog`
       (Zeile 120–126) liest gespeicherte Werte zusätzlich per `contentRef.current`
       aus dem Markdown (`extractImagesWithMeta`), **Dependency-Array bleibt `[]`**
       (kein Stale-Closure-Risiko im `uploader`-Callback); Vorbelegung stimmt auch
       im Edit-Modus und nach Seiten-Reload
-- [ ] **Schritt 4**: `isReeditMode`-Flag + `handleSaveImageMetaDialog()`
+- [x] **Schritt 4**: `isReeditMode`-Flag + `handleSaveImageMetaDialog()`
       schreiben bearbeitete Alt/Caption/Freitext per `injectImageMeta()` nur im
       Re-Edit-Pfad zurück ins Editor-Markdown; Upload-Pfad bleibt durch
       `setIsReeditMode(false)`-Sicherheitsnetz an beiden Upload-Toast-Stellen

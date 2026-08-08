@@ -42,6 +42,8 @@ import { Label } from '@/components/ui/label';
 import { ToastAction } from '@/components/ui/toast';
 import { useToast } from '@/hooks/useToast';
 import { useUploadFile } from '@/hooks/useUploadFile';
+import { getImageUrlFromClickTarget, isImageUrlInMarkdown } from '@/lib/editorImageClick';
+import { extractImagesWithMeta, injectImageMeta } from '@/lib/imageMetadata';
 
 // Error Boundary Component
 interface ErrorBoundaryProps {
@@ -97,12 +99,14 @@ function MilkdownEditorInner({
   const { toast } = useToast();
   const initialValueRef = useRef(content);
   const lastExternalValue = useRef(content);
+  const contentRef = useRef(content);
   const onImageUploadRef = useRef(onImageUpload);
   const onImageMetaChangeRef = useRef(onImageMetaChange);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   // Bild-Metadaten-Dialog (Alt-Text, Caption, Freitext)
   const [editingImageUrl, setEditingImageUrl] = useState<string | null>(null);
+  const [isReeditMode, setIsReeditMode] = useState(false);
   const [altText, setAltText] = useState('');
   const [captionText, setCaptionText] = useState('');
   const [noteText, setNoteText] = useState('');
@@ -117,13 +121,38 @@ function MilkdownEditorInner({
     onImageMetaChangeRef.current = onImageMetaChange;
   }, [onImageMetaChange]);
 
+  useEffect(() => {
+    contentRef.current = content;
+  }, [content]);
+
   const openImageMetaDialog = useCallback((url: string) => {
+    // Neu: gespeicherte Metadaten zusätzlich aus dem Markdown nachlesen
+    // (per Ref, damit auch im mounted-once uploader-Callback stets der
+    // aktuelle Content gelesen wird — kein Stale-Closure-Risiko)
+    const fromMarkdown = extractImagesWithMeta(contentRef.current).find((img) => img.url === url);
+    if (fromMarkdown) {
+      imageMetaStoreRef.current[url] = { ...imageMetaStoreRef.current[url], ...fromMarkdown };
+    }
     const existing = imageMetaStoreRef.current[url] || {};
     setAltText(existing.alt || '');
     setCaptionText(existing.caption || '');
     setNoteText(existing.note || '');
     setEditingImageUrl(url);
-  }, []);
+  }, []); // Dependency-Array bewusst leer — Stabilität für den uploader-Callback bleibt erhalten
+
+  const handleEditorImageClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const url = getImageUrlFromClickTarget(e.target);
+    if (!url || !isImageUrlInMarkdown(content, url)) return;
+    toast({
+      title: 'Bild-Details bearbeiten',
+      description: 'Möchtest du Alt-Text, Caption oder Freitext ändern?',
+      action: (
+        <ToastAction altText="Details bearbeiten" onClick={() => { setIsReeditMode(true); openImageMetaDialog(url); }}>
+          Details bearbeiten
+        </ToastAction>
+      ),
+    });
+  };
 
   const saveImageMeta = () => {
     if (!editingImageUrl) return;
@@ -137,6 +166,21 @@ function MilkdownEditorInner({
       title: 'Bild-Details gespeichert',
       description: 'Die Metadaten wurden übernommen.',
     });
+  };
+
+  const handleSaveImageMetaDialog = () => {
+    // editingImageUrl vor saveImageMeta() zwischenspeichern —
+    // saveImageMeta() setzt editingImageUrl auf null.
+    const currentImageUrl = editingImageUrl;
+    // Bestehende Logik unverändert: Store + onImageMetaChange + Toast + Dialog schließen
+    saveImageMeta();
+    // Nur im Re-Edit-Pfad zusätzlich: Alt/Caption/Note ins Editor-Markdown zurückschreiben
+    if (isReeditMode && currentImageUrl) {
+      const meta = imageMetaStoreRef.current[currentImageUrl] || {};
+      const updated = injectImageMeta(content, currentImageUrl, meta);
+      if (updated !== content) onChange(updated);
+    }
+    setIsReeditMode(false);
   };
 
   const { get } = useEditor((root) => {
@@ -189,7 +233,7 @@ function MilkdownEditorInner({
                   action: (
                     <ToastAction
                       altText="Details hinzufügen"
-                      onClick={() => openImageMetaDialog(url)}
+                      onClick={() => { setIsReeditMode(false); openImageMetaDialog(url); }}
                     >
                       Details hinzufügen
                     </ToastAction>
@@ -312,7 +356,7 @@ function MilkdownEditorInner({
         action: (
           <ToastAction
             altText="Details hinzufügen"
-            onClick={() => openImageMetaDialog(url)}
+            onClick={() => { setIsReeditMode(false); openImageMetaDialog(url); }}
           >
             Details hinzufügen
           </ToastAction>
@@ -535,6 +579,7 @@ function MilkdownEditorInner({
       <div 
         className="milkdown-content min-h-[400px] max-h-[800px] overflow-y-auto bg-white dark:bg-gray-950"
         style={{ minHeight }}
+        onClick={handleEditorImageClick}
       >
         <Milkdown />
       </div>
@@ -594,7 +639,7 @@ function MilkdownEditorInner({
             <Button variant="outline" onClick={() => setEditingImageUrl(null)}>
               Abbrechen
             </Button>
-            <Button onClick={saveImageMeta}>Speichern</Button>
+            <Button onClick={handleSaveImageMetaDialog}>Speichern</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
