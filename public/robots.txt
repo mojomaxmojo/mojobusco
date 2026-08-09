@@ -12,6 +12,7 @@ Allow: /video
 Allow: /map
 Allow: /about
 Allow: /feed.xml
+Allow: /feed-en.xml
 
 # Prerendered statische Seiten für Crawler (ohne JS)
 Allow: /prerender/

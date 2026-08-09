@@ -1,4 +1,4 @@
-import { BASE_URL, DEFAULT_IMAGE, FEED_URL, SITE_NAME, escapeHtml } from './prerender-helpers.js';
+import { BASE_URL, DEFAULT_IMAGE, FEED_URL, FEED_URL_EN, SITE_NAME, escapeHtml } from './prerender-helpers.js';
 
 export function buildWebSiteLd({ name, url }) {
   return {
@@ -138,7 +138,6 @@ export function buildHead(options) {
     imageWidth = '1200',
     imageHeight = '630',
     ogType = 'website',
-    locale = 'de_DE',
     twitterCard = 'summary_large_image',
     author = '',
     publishedAt = '',
@@ -155,6 +154,12 @@ export function buildHead(options) {
     alternateLang = null,
   } = options;
 
+  // og:locale muss zur tatsächlichen Sprache der Seite passen (Facebook/
+  // LinkedIn nutzen dieses Feld zur Sprachauswahl bei Previews). Vorher war
+  // hier "de_DE" hartcodiert, wodurch jede /en/-Seite als deutsch markiert
+  // wurde.
+  const locale = lang === 'en' ? 'en_US' : 'de_DE';
+
   const safeTitle = escapeHtml(title);
   const safeDesc = escapeHtml(description);
   const safeImageAlt = escapeHtml(imageAlt);
@@ -164,6 +169,14 @@ export function buildHead(options) {
   const safeAuthor = escapeHtml(author);
   const safeCanonical = escapeHtml(canonicalUrl);
   const safeImage = escapeHtml(image);
+  const safeLang = escapeHtml(lang);
+
+  // x-default sollte projektweit konsistent auf EINE Version zeigen
+  // (hier: die deutsche Version als Hauptsprache), statt dass sich jede
+  // Sprachvariante selbst zum Default erklärt.
+  const xDefaultUrl = lang === 'de'
+    ? safeCanonical
+    : (alternateUrl && alternateLang === 'de' ? escapeHtml(alternateUrl) : safeCanonical);
 
   const redirectScript = `<script>if (window.location.pathname.startsWith('/prerender/')) window.location.replace("${safeCanonical}");</script>`;
 
@@ -214,13 +227,13 @@ export function buildHead(options) {
   }
 
   return `<!DOCTYPE html>
-<html lang="${escapeHtml(lang)}">
+<html lang="${safeLang}">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${safeTitle}</title>
   <meta name="description" content="${safeDesc}" />
-  ${safeKeywords ? `<meta name="keywords" content="${safeKeywords}" />\n` : ''}  <meta name="language" content="de" />
+  ${safeKeywords ? `<meta name="keywords" content="${safeKeywords}" />\n` : ''}  <meta name="language" content="${safeLang}" />
   ${safeAuthor ? `<meta name="author" content="${safeAuthor}" />\n` : ''}  <meta property="og:type" content="${escapeHtml(ogType)}" />
   <meta property="og:site_name" content="${safeSiteName}" />
   <meta property="og:locale" content="${safeLocale}" />
@@ -234,11 +247,11 @@ export function buildHead(options) {
   <meta name="twitter:title" content="${safeTitle}" />
   <meta name="twitter:description" content="${safeDesc}" />
   <meta name="twitter:image" content="${safeImage}" />
-  ${safeImageAlt ? `<meta name="twitter:image:alt" content="${safeImageAlt}" />\n` : ''}${twitterVideoMeta}  <meta name="robots" content="index, follow, max-image-preview:large" />
+  ${safeImageAlt ? `<meta name="twitter:image:alt" content="${safeImageAlt}" />\n` : ''}${twitterVideoMeta}  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
   <link rel="canonical" href="${safeCanonical}" />
-  <link rel="alternate" type="application/rss+xml" title="MojoBus RSS Feed" href="${FEED_URL}" />
-  <link rel="alternate" href="${safeCanonical}" hreflang="${escapeHtml(lang)}" />
-  ${alternateUrl && alternateLang ? `  <link rel="alternate" href="${escapeHtml(alternateUrl)}" hreflang="${escapeHtml(alternateLang)}" />\n` : ''}  <link rel="alternate" href="${safeCanonical}" hreflang="x-default" />
+  <link rel="alternate" type="application/rss+xml" title="MojoBus RSS Feed" href="${lang === 'en' ? FEED_URL_EN : FEED_URL}" />
+  <link rel="alternate" href="${safeCanonical}" hreflang="${safeLang}" />
+  ${alternateUrl && alternateLang ? `  <link rel="alternate" href="${escapeHtml(alternateUrl)}" hreflang="${escapeHtml(alternateLang)}" />\n` : ''}  <link rel="alternate" href="${xDefaultUrl}" hreflang="x-default" />
   ${redirectScript}
 ${jsonLdMeta}</head>
 <body>`;

@@ -254,28 +254,38 @@ async function main() {
   console.log('[Sitemap] Generiere Sitemaps...');
 
   // ── Statische Pages (alle korrekten SPA-Routen) ──────────────────────
+  // lastmod ist bei ALLEN statischen Seiten gesetzt (Freshness-Signal für
+  // Google). Vorher fehlte es bei den meisten Einträgen komplett.
+  const today = new Date().toISOString().split('T')[0];
   const staticPages = [
-    { loc: BASE_URL + '/',               priority: '1.0', changefreq: 'daily',   lastmod: new Date().toISOString().split('T')[0] },
-    { loc: BASE_URL + '/artikel',        priority: '0.9', changefreq: 'daily',   lastmod: new Date().toISOString().split('T')[0] },
-    { loc: BASE_URL + '/artikel/diy',    priority: '0.8', changefreq: 'weekly' },
-    { loc: BASE_URL + '/artikel/rvlife', priority: '0.8', changefreq: 'weekly' },
-    { loc: BASE_URL + '/artikel/leon',   priority: '0.8', changefreq: 'weekly' },
-    { loc: BASE_URL + '/plaetze',        priority: '0.9', changefreq: 'daily' },
-    { loc: BASE_URL + '/bilder',         priority: '0.8', changefreq: 'daily' },
-    { loc: BASE_URL + '/notes',          priority: '0.7', changefreq: 'daily' },
-    { loc: BASE_URL + '/videos',         priority: '0.8', changefreq: 'daily' },
-    { loc: BASE_URL + '/map',            priority: '0.7', changefreq: 'weekly' },
-    { loc: BASE_URL + '/map/trips',      priority: '0.7', changefreq: 'weekly' },
-    { loc: BASE_URL + '/about',          priority: '0.5', changefreq: 'monthly' },
-    { loc: BASE_URL + '/perpetual-travelers', priority: '0.6', changefreq: 'weekly' },
-    { loc: BASE_URL + '/feed.xml',       priority: '0.4', changefreq: 'hourly' },
+    { loc: BASE_URL + '/',               priority: '1.0', changefreq: 'daily',   lastmod: today },
+    { loc: BASE_URL + '/artikel',        priority: '0.9', changefreq: 'daily',   lastmod: today },
+    { loc: BASE_URL + '/artikel/diy',    priority: '0.8', changefreq: 'weekly',  lastmod: today },
+    { loc: BASE_URL + '/artikel/rvlife', priority: '0.8', changefreq: 'weekly',  lastmod: today },
+    { loc: BASE_URL + '/artikel/leon',   priority: '0.8', changefreq: 'weekly',  lastmod: today },
+    { loc: BASE_URL + '/plaetze',        priority: '0.9', changefreq: 'daily',   lastmod: today },
+    { loc: BASE_URL + '/bilder',         priority: '0.8', changefreq: 'daily',   lastmod: today },
+    { loc: BASE_URL + '/notes',          priority: '0.7', changefreq: 'daily',   lastmod: today },
+    { loc: BASE_URL + '/videos',         priority: '0.8', changefreq: 'daily',   lastmod: today },
+    { loc: BASE_URL + '/map',            priority: '0.7', changefreq: 'weekly',  lastmod: today },
+    { loc: BASE_URL + '/map/trips',      priority: '0.7', changefreq: 'weekly',  lastmod: today },
+    { loc: BASE_URL + '/about',          priority: '0.5', changefreq: 'monthly', lastmod: today },
+    { loc: BASE_URL + '/perpetual-travelers', priority: '0.6', changefreq: 'weekly', lastmod: today },
+    { loc: BASE_URL + '/feed.xml',       priority: '0.4', changefreq: 'hourly',  lastmod: today },
   ];
 
-  // Für jede statische Seite zusätzlich das `/en/`-Pendant mit gleicher priority/changefreq
-  const enStaticPages = staticPages.map(page => {
-    const path = page.loc.slice(BASE_URL.length) || '/';
-    return { ...page, loc: buildLocalizedUrl(path, 'en') };
-  });
+  // Für jede statische Seite zusätzlich das `/en/`-Pendant mit gleicher
+  // priority/changefreq. Ausnahme: feed.xml liegt NICHT unter /en/feed.xml,
+  // sondern als eigenständige Datei unter /feed-en.xml (siehe
+  // generate-feed.js) – daher separat behandelt statt über das generische
+  // /en/-Präfix-Mapping.
+  const enStaticPages = staticPages
+    .filter(page => !page.loc.endsWith('/feed.xml'))
+    .map(page => {
+      const path = page.loc.slice(BASE_URL.length) || '/';
+      return { ...page, loc: buildLocalizedUrl(path, 'en') };
+    });
+  enStaticPages.push({ loc: BASE_URL + '/feed-en.xml', priority: '0.4', changefreq: 'hourly', lastmod: today });
 
   const allUrls = [...staticPages, ...enStaticPages];
   const seen = new Set(); // Deduplizierung

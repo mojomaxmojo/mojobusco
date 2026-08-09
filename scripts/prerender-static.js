@@ -56,8 +56,21 @@ async function main() {
   for (const relay of RELAYS) {
     console.log(`[Prerender] Frage ab: ${relay}`);
 
-    const articles = await queryRelay(relay, [{ kinds: [30023], authors: AUTHOR_PUBKEYS, limit: MAX_PER_RELAY, since: 0, until: FAR_FUTURE }]);
-    console.log(`[Prerender]  → ${articles.length} Artikel`);
+    // kind:30023 enthält ZWEI unterschiedliche Content-Typen: echte
+    // Longform-Artikel UND Orte/Stellplätze (siehe PlaceForm.tsx – Orte
+    // werden ebenfalls als kind:30023 mit Tag ['type','place'] gepostet).
+    // Vorher wurden hier ALLE kind:30023-Events pauschal mit
+    // renderArticleHtml gerendert – Orte bekamen dadurch die falschen
+    // SEO-Meta-Daten (Article- statt Place-JSON-LD, falsche Keywords,
+    // fehlende Geo-Koordinaten) und landeten fälschlich in lists.articles
+    // statt lists.places (→ falsche category-artikel.html / category-
+    // plaetze.html Zuordnung). Erkennung erfolgt über isPlace() – dieselbe
+    // Funktion, die auch renderPlaceHtml()/generate-sitemap.js verwenden.
+    const longformEvents = await queryRelay(relay, [{ kinds: [30023], authors: AUTHOR_PUBKEYS, limit: MAX_PER_RELAY, since: 0, until: FAR_FUTURE }]);
+    const articles = longformEvents.filter(e => !isPlace(e));
+    const placesFromArticles = longformEvents.filter(e => isPlace(e));
+    console.log(`[Prerender]  → ${articles.length} Artikel, ${placesFromArticles.length} Orte (kind:30023)`);
+
     for (const event of articles) {
       if (seen.has(event.id)) continue;
       seen.add(event.id);
@@ -69,7 +82,7 @@ async function main() {
       rendered.push({ type: 'Artikel', identifier: naddr });
     }
 
-    const places = await queryRelay(relay, [{
+    const placesFromNotes = await queryRelay(relay, [{
       kinds: [1],
       authors: AUTHOR_PUBKEYS,
       '#t': ['place', 'camping', 'stellplatz', 'places'],
@@ -77,16 +90,39 @@ async function main() {
       since: 0,
       until: FAR_FUTURE,
     }]);
-    console.log(`[Prerender]  → ${places.length} Orte`);
+    const places = [...placesFromArticles, ...placesFromNotes];
+    console.log(`[Prerender]  → ${places.length} Orte gesamt (30023 + kind:1)`);
     for (const event of places) {
       if (seen.has(event.id)) continue;
       seen.add(event.id);
-      const naddr = encodeNaddr(event);
-      if (!naddr) continue;
-      const filename = `${naddr}.html`;
+
+      // WICHTIG: Der Dateiname muss exakt der kanonischen URL entsprechen,
+      // die renderPlaceHtml() (siehe prerender-entity-templates.js) und
+      // generate-sitemap.js für dieses Event berechnen. Orte werden sowohl
+      // als kind:30023 (→ naddr) als auch als kind:1 (→ note) gepostet.
+      // Ein Mismatch führt dazu, dass Nginx den Bot-Rewrite auf eine nie
+      // erzeugte Datei zeigt → 404 → Fallback auf index.html → kein
+      // indexierbarer Content für Google.
+      let filename;
+      let identifier;
+      if (event.kind === 30023) {
+        const naddr = encodeNaddr(event);
+        if (!naddr) continue;
+        filename = `${naddr}.html`;
+        identifier = naddr;
+      } else {
+        try {
+          const noteId = nip19.noteEncode(event.id);
+          filename = `${noteId}.html`;
+          identifier = noteId;
+        } catch (e) {
+          console.warn(`[Prerender] Ort noteEncode fehlgeschlagen: ${e.message}`);
+          continue;
+        }
+      }
       writePrerenderFile(filename, renderPlaceHtml(event, places));
       lists.places.push(event);
-      rendered.push({ type: 'Ort', identifier: naddr });
+      rendered.push({ type: 'Ort', identifier });
     }
 
     const trips = await queryRelay(relay, [{

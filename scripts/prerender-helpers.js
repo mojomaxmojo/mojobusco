@@ -17,6 +17,7 @@ export const MAX_PER_RELAY = 500;
 export const DEFAULT_IMAGE = `${BASE_URL}/og-image.jpg`;
 export const SITE_NAME = 'MojoBus – Perpetual Travelers';
 export const FEED_URL = `${BASE_URL}/feed.xml`;
+export const FEED_URL_EN = `${BASE_URL}/feed-en.xml`;
 
 export function escapeHtml(str) {
   if (!str) return '';
