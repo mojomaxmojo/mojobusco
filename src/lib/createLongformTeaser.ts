@@ -47,15 +47,15 @@ export interface LongformTeaserResult {
 }
 
 /**
- * Gibt einen lesbaren deutschen Bezeichner für den Inhaltstyp zurück.
+ * Gibt ein zum Inhaltstyp passendes Emoji zurück (für den dezenten Abschluss-Hinweis).
  */
-function typeLabel(type: LongformTeaserType): string {
+function typeEmoji(type: LongformTeaserType): string {
   switch (type) {
-    case 'place': return 'Ort';
-    case 'trip': return 'Trip';
-    case 'video': return 'Video';
+    case 'place': return '📍';
+    case 'trip': return '🧭';
+    case 'video': return '🎥';
     case 'article':
-    default: return 'Artikel';
+    default: return '📖';
   }
 }
 
@@ -143,9 +143,11 @@ function buildThematicTags(
  *
  *   <Summary>
  *
- *   <canonical URL>
+ *   <Video-URL alleinstehend, optional>
  *
- *   nostr:<naddr>
+ *   <Emoji> mojobus.co   (dezenter Hinweis, ohne https:// → keine Link-Preview-Karte)
+ *
+ * Die canonical URL landet zusätzlich als 'r'-Tag im Event.
  */
 export function createLongformTeaser(input: LongformTeaserInput): LongformTeaserResult {
   const naddr = buildNaddr(input.kind, input.pubkey, input.dTag);
@@ -169,7 +171,7 @@ export function createLongformTeaser(input: LongformTeaserInput): LongformTeaser
     contentLines.push(input.videoUrl.trim());
   }
 
-  contentLines.push(`[Zum ${typeLabel(input.type)} auf mojobus.co](${canonical})`);
+  contentLines.push(`${typeEmoji(input.type)} mojobus.co`);
 
   const content = contentLines.join('\n\n');
 
