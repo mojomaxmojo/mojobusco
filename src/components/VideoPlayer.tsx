@@ -65,9 +65,13 @@ export function VideoPlayer({
 
   return (
     <div className={`relative w-full ${className}`}>
-      {/* Loading Skeleton */}
+      {/* Loading Skeleton – pointer-events-none, damit Klicks auf den nativen
+          Play-Button des darunterliegenden <video controls> durchgereicht
+          werden. Ohne das blockiert der Overlay jeden Klick, und da
+          preload="none" ist, feuert loadstart/canplay nie automatisch →
+          das Skeleton würde für immer pulsieren, ohne dass das Video startet. */}
       {isLoading && (
-        <div className="absolute inset-0 z-10">
+        <div className="absolute inset-0 z-10 pointer-events-none">
           <Skeleton className="w-full h-full rounded-lg" />
         </div>
       )}
