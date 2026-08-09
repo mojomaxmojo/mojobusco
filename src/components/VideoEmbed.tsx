@@ -33,13 +33,13 @@ export function VideoEmbed({
   }
 
   // Direktes Video
+  const isDirectVideo = isVideoUrl(url);
   if (isDirectVideo && videoConfig.autoEmbed.direct) {
     return (
       <VideoPlayer
         src={url}
         title={title}
         className={className}
-        aspectRatio={aspectRatio}
       />
     );
   }
