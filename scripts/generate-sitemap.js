@@ -24,7 +24,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { nip19 } from 'nostr-tools';
-import { buildLocalizedUrl, findTranslationPair, getEventLangFromTags, isMojobusKind1 } from './prerender-helpers.js';
+import { buildLocalizedUrl, findTranslationPair, getEventLangFromTags, isMojobusKind1, encodeTripNaddr } from './prerender-helpers.js';
 
 // ── Autoren aus zentraler JSON-Config (Single Source of Truth) ────────────
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -231,12 +231,6 @@ function buildNoteEntry(event) {
     }
   }
 
-  // Trips → /trip/{naddr}
-  if (tTags.has('trip') || tTags.has('trips') || tTags.has('travel') || tTags.has('reise')) {
-    const naddr = encodeNaddr(event);
-    return naddr ? { path: `/trip/${naddr}`, priority: '0.7' } : null;
-  }
-
   // Bilder/Media → /bild/{note}
   if (tTags.has('media') || tTags.has('medien') || tTags.has('bilder') || tTags.has('images') || tTags.has('galerie')) {
     try {
@@ -375,6 +369,41 @@ async function main() {
         videoUrl: meta.videoUrl,
         duration: meta.duration,
         publicationDate: new Date(event.created_at * 1000).toISOString(),
+      });
+    }
+
+    // ── Trips (kind 30025) ──────────────────────────────
+    // Trips werden ausschließlich über TripPublishForm.tsx als kind:30025
+    // erzeugt – kein "Fremd-Client mit gleichem Hashtag"-Fall wie bei
+    // kind:1, daher genügt der authors-Filter (kein isMojobusKind1() nötig).
+    const tripEvents = await queryRelay(relay, [{
+      kinds: [30025], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS,
+      since: 0, until: FAR_FUTURE,
+    }]);
+    console.log(`[Sitemap]  → ${tripEvents.length} Trip-Events (kind 30025)`);
+
+    for (const event of tripEvents) {
+      if (seen.has(event.id)) continue;
+      seen.add(event.id);
+      const naddr = encodeTripNaddr(event);
+      if (!naddr) continue;
+      const lang = getEventLangFromTags(event);
+      const path = `/trip/${naddr}`;
+      const pair = findTranslationPair(tripEvents, event);
+      let alternates;
+      if (pair) {
+        const pairNaddr = encodeTripNaddr(pair);
+        const pairLang = getEventLangFromTags(pair);
+        if (pairNaddr) {
+          alternates = [{ hreflang: pairLang, href: buildLocalizedUrl(`/trip/${pairNaddr}`, pairLang) }];
+        }
+      }
+      allUrls.push({
+        loc: buildLocalizedUrl(path, lang),
+        priority: '0.7',
+        changefreq: 'weekly',
+        lastmod: new Date(event.created_at * 1000).toISOString().split('T')[0],
+        ...(alternates ? { alternates } : {}),
       });
     }
 
