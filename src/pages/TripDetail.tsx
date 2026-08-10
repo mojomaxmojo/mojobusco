@@ -233,8 +233,8 @@ export default function TripDetail() {
     return <NotFound />;
   }
 
-  const tripTitle = trip?.tripData?.title || 'Reise';
-  const tripDesc = trip?.tripData?.summary || 'Reisebericht auf MojoBus';
+  const tripTitle = trip?.title || 'Reise';
+  const tripDesc = trip?.summary || 'Reisebericht auf MojoBus';
 
   return (
     <div className="min-h-screen py-8">

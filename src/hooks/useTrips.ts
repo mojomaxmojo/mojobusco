@@ -11,6 +11,7 @@ import { useNostr } from '@/hooks/useNostr';
 import { nip19 } from 'nostr-tools';
 import { DEFAULT_CACHE_CONFIG } from '@/config/cache';
 import { FIRST_PAINT_CONFIG } from '@/config/performance';
+import { NOSTR_CONFIG } from '@/config/nostr';
 import type { NostrEvent } from '@nostrify/nostrify';
 
 /**
@@ -257,6 +258,7 @@ export function useTrips() {
         [
           {
             kinds: [30025],
+            authors: NOSTR_CONFIG.authorPubkeys,
             limit: FIRST_PAINT_CONFIG.firstPaintLimit,
           },
         ],
@@ -287,6 +289,7 @@ export function useTrips() {
         [
           {
             kinds: [30025],
+            authors: NOSTR_CONFIG.authorPubkeys,
             limit: 100,
           },
         ],
