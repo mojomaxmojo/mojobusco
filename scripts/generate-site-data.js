@@ -28,7 +28,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { nip19 } from 'nostr-tools';
-import { isMojobusKind1 } from './prerender-helpers.js';
+import { isMojobusKind1, isTripEvent } from './prerender-helpers.js';
 
 // ── Autoren aus zentraler JSON-Config (Single Source of Truth) ────────────
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -190,6 +190,7 @@ async function main() {
 
   const allEvents = [];
   const allVideoEvents = [];
+  const allTripEvents = [];
   const seenIds = new Set();
 
   for (const relay of RELAYS) {
@@ -209,6 +210,10 @@ async function main() {
     const videos = await queryRelay(relay, [{ kinds: [34236, 34235], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS }]);
     console.log(`[SiteData]  → ${videos.length} Video-Events (kind 34236/34235)`);
 
+    // Trips (kind 30025) – echte Trip-Events statt kind:1-Teaser-Notes
+    const tripEvents = await queryRelay(relay, [{ kinds: [30025], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS }]);
+    console.log(`[SiteData]  → ${tripEvents.length} Trip-Events (kind 30025)`);
+
     for (const event of [...articles, ...notes]) {
       if (!seenIds.has(event.id)) {
         seenIds.add(event.id);
@@ -220,6 +225,13 @@ async function main() {
       if (!seenIds.has(event.id)) {
         seenIds.add(event.id);
         allVideoEvents.push(event);
+      }
+    }
+
+    for (const event of tripEvents) {
+      if (!seenIds.has(event.id)) {
+        seenIds.add(event.id);
+        allTripEvents.push(event);
       }
     }
   }
@@ -248,9 +260,7 @@ async function main() {
     .filter(e => isPlace(e) && (e.kind === 30023 || isMojobusKind1(e)))
     .map(extractMeta);
 
-  const metaTrips = allEvents
-    .filter(e => e.kind === 1 && isTrip(e) && isMojobusKind1(e))
-    .map(extractMeta);
+  const metaTrips = allTripEvents.map(extractMeta);
 
   const metaBilder = allEvents
     .filter(e => e.kind === 1 && isMedia(e) && isMojobusKind1(e))
@@ -307,6 +317,16 @@ async function main() {
     content: e.content ? e.content.substring(0, 300) : '', // Foster-Sätze als Beschreibung
   });
 
+  // Trips (kind 30025): relevante Tags für Listenseite/SEO behalten
+  const RELEVANT_TAGS_TRIP = new Set(['d', 'title', 'summary', 'image', 'waypoint', 'distance', 'distance_unit', 'video', 'country', 'category', 'trip_type', 't', 'l', 'L']);
+  const stripTrip = (e) => ({
+    id: e.id,
+    pubkey: e.pubkey,
+    kind: e.kind,
+    created_at: e.created_at,
+    tags: (e.tags || []).filter(t => RELEVANT_TAGS_TRIP.has(t[0])),
+  });
+
   const stripNote = (e) => {
     const tags = (e.tags || []).filter(t => RELEVANT_TAGS_KIND1.has(t[0]));
 
@@ -344,7 +364,7 @@ async function main() {
   // isMojobusKind1() für kind:1-Events) – siehe Kommentar dort.
   writeJSON('articles.json', allEvents.filter(e => e.kind === 30023 && !isPlace(e)).map(stripArticle));
   writeJSON('places.json', allEvents.filter(e => isPlace(e) && (e.kind === 30023 || isMojobusKind1(e))).map(stripArticle));
-  writeJSON('trips.json', allEvents.filter(e => e.kind === 1 && isTrip(e) && isMojobusKind1(e)).map(stripNote));
+  writeJSON('trips.json', allTripEvents.map(stripTrip));
   // Bilder + Notes: 200 Zeichen Content (für Vorschautext in der Karte)
   writeJSON('bilder.json', allEvents.filter(e => e.kind === 1 && isMedia(e) && isMojobusKind1(e)).map(stripNote));
   writeJSON('notes.json', allEvents.filter(e => e.kind === 1 && isNote(e) && isMojobusKind1(e)).map(stripNote));
