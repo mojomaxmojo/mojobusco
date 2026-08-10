@@ -7,6 +7,7 @@ import {
   MAX_PER_RELAY,
   AUTHOR_PUBKEYS,
   encodeNaddr,
+  encodeTripNaddr,
   queryRelay,
   isPlace,
   isTrip,
@@ -131,20 +132,15 @@ async function main() {
       rendered.push({ type: 'Ort', identifier });
     }
 
-    const tripsRaw = await queryRelay(relay, [{
-      kinds: [1],
-      authors: AUTHOR_PUBKEYS,
-      '#t': ['trip', 'trips', 'travel', 'reise'],
-      limit: MAX_PER_RELAY,
-      since: 0,
-      until: FAR_FUTURE,
+    const trips = await queryRelay(relay, [{
+      kinds: [30025], authors: AUTHOR_PUBKEYS, limit: MAX_PER_RELAY,
+      since: 0, until: FAR_FUTURE,
     }]);
-    const trips = tripsRaw.filter(isMojobusKind1);
-    console.log(`[Prerender]  → ${trips.length} Trips (${tripsRaw.length - trips.length} Fremd-Posts ausgefiltert)`);
+    console.log(`[Prerender]  → ${trips.length} Trips (kind:30025)`);
     for (const event of trips) {
       if (seen.has(event.id)) continue;
       seen.add(event.id);
-      const naddr = encodeNaddr({ ...event, kind: event.kind || 30023 });
+      const naddr = encodeTripNaddr(event);
       if (!naddr) continue;
       const filename = `trip-${naddr}.html`;
       writePrerenderFile(filename, renderTripHtml(event, trips));
