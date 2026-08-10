@@ -22,7 +22,7 @@ interface SEOHeadProps {
   /** Artikel: Veröffentlichungsdatum (ISO) */
   publishedAt?: string;
   /** Seiten-Typ: article, website, place, trip */
-  type?: 'article' | 'website' | 'place';
+  type?: 'article' | 'website' | 'place' | 'trip';
   /** JSON-LD Structured Data (optional, wird in <script type="application/ld+json"> eingefügt) */
   jsonLd?: Record<string, unknown>;
 }
