@@ -51,7 +51,36 @@ Autoren prüfen: `cat src/config/authors.json | jq '.authors[] | {name, pubkey, 
 | `public/sw.js` | Service Worker v21: staleWhileRevalidate + Cache-First |
 | `scripts/generate-site-data.js` | Slim-JSON-Dumps ohne content (Cron 6:15) |
 | `scripts/prerender-static.js` | Statische HTML-Seiten mit NIP-19 Dateinamen (Cron 6:00) |
+| `scripts/generate-sitemap.js` | `sitemap.xml` + `sitemap-videos.xml` (Cron 6:00) |
+| `scripts/generate-feed.js` | `feed.xml` (DE) + `feed-en.xml` (EN), getrennt nach `l`-Tag (Cron alle 6h) |
+| `scripts/prerender-helpers.js` | Gemeinsame Helfer aller Prerender-Skripte: `isMojobusKind1()`, `isTeaserNote()`, `isPlace/isTrip/isMedia`, `encodeNaddr`, `findTranslationPair` |
+| `scripts/prerender-meta.js` | SEO-Head-Baustein (`buildHead`) + JSON-LD-Builder für alle Prerender-Templates |
+| `scripts/prerender-entity-templates.js` | HTML-Templates je Event-Typ (Artikel, Note, Ort, Trip, Video, Bild, Profil) |
+| `scripts/prerender-category-templates.js` | HTML-Templates für Kategorie-/Listenseiten (`/artikel`, `/notes`, `/plaetze`, ...) |
 | `mojobus.co.ssl.conf` | Nginx: Bot-Prerender, Brotli, `/data/` max-age=86400 |
+
+**Wichtig – `isMojobusKind1()` (`scripts/prerender-helpers.js`)**: Alle
+kind:1-Queries in den Prerender-/Sitemap-/Site-Data-Skripten MÜSSEN mit
+`isMojobusKind1(event)` gefiltert werden, bevor das Event als Note/Ort/
+Trip/Media verarbeitet wird. Grund: Die Autoren-Pubkeys werden auch in
+anderen Nostr-Clients (Primal, Amethyst, Damus) für private Notes,
+Replies und Reposts genutzt, die nichts mit mojobus.co zu tun haben.
+Kriterium: Event hat entweder das Tag `['t','mojobus']` (alle über
+`/veroeffentlichen` erstellten Posts) oder ist eine automatisch erzeugte
+Teaser-Note mit `a`-Tag-Verweis auf ein Original-Event (`isTeaserNote()`).
+Ohne diesen Filter landen Fremd-Posts fälschlich in Sitemap, RSS-Feed
+und Prerendering. **Neue kind:1-Queries in diesen Skripten immer mit
+diesem Filter versehen.**
+
+**Bekannter, noch offener Bug (nicht Teil der bisherigen Fixes)**: Trips
+werden in `prerender-static.js`/`generate-sitemap.js`/
+`generate-site-data.js` aktuell noch über **kind:1**-Teaser-Notes
+(`#t trip`) verarbeitet, statt über die echten **kind:30025**-Trip-Events
+(`TripPublishForm.tsx`). Das erzeugt ungültige naddr-Links (`kind:1`
+statt `kind:30025`) und dünnen SEO-Content (nur Teaser-Text statt
+Wegpunkte/Distanz/Fotos). Migrationsplan siehe `FEATURE-XXX-PLAN.md`
+(7 Schritte, inkl. 3 zusammenhängender Frontend-Bugfixes in
+`TripDetail.tsx`, `useTrips.ts`, `SEOHead.tsx`) – noch nicht umgesetzt.
 
 Server-seitige Dateien (`server/`) → `docs/CONTEXT_REMOTION.md` bzw. `docs/CONTEXT_TIKTOK.md`.
 
@@ -62,15 +91,22 @@ Server-seitige Dateien (`server/`) → `docs/CONTEXT_REMOTION.md` bzw. `docs/CON
 | Datei | Inhalt |
 |-------|--------|
 | `articles.json` | kind-30023, kein content, Tags: title/summary/image/d/t |
-| `places.json` | kind-30023 type=place, kein content |
-| `notes.json` | kind-1, content max 200 Zeichen |
-| `bilder.json` | kind-1 mit image-Tag, content max 200 Zeichen |
-| `trips.json` | kind-1 Trips, content max 200 Zeichen |
+| `places.json` | kind-30023 type=place ODER kind-1 (nur `isMojobusKind1()`-gefiltert), kein/wenig content |
+| `notes.json` | kind-1, nur `isMojobusKind1()`-gefiltert, content max 200 Zeichen |
+| `bilder.json` | kind-1 mit image-Tag, nur `isMojobusKind1()`-gefiltert, content max 200 Zeichen |
+| `trips.json` | kind-1 Trips (`#t trip`), nur `isMojobusKind1()`-gefiltert, content max 200 Zeichen. **Hinweis**: sollte laut `TripPublishForm.tsx` eigentlich kind-30025 sein – noch nicht migriert, siehe `FEATURE-XXX-PLAN.md`. Wird von keinem Frontend-Hook konsumiert (`useTrips()` fragt direkt kind:30025 vom Relay ab). |
 | `videos.json` | kind 34236+34235, imeta/image/duration/title, content max 300 Zeichen |
 | `index.json` | Timestamp `generatedAtUnix`, Anzahlen, Dauer |
 
 **Wichtig**: `useLongformArticle()`, `useNote()` → **nur Relay** (Detailseiten brauchen vollen content).
 Nach Deploy ausführen: `node scripts/generate-site-data.js`
+
+**Feeds (`/feed.xml` + `/feed-en.xml`)**: RSS 2.0, getrennt nach `l`-Tag
+(DE/EN) statt einem gemischtsprachigen Feed. Nur kind-30023-Artikel ohne
+`isPlace()` (Orte werden ausgefiltert, sonst landen sie fälschlich als
+"Artikel" im Feed). `<enclosure>` nutzt den echten MIME-Type der
+Bild-Endung + versucht die echte Byte-Größe per HEAD-Request zu holen.
+Generiert von `scripts/generate-feed.js` (Cron alle 6h).
 
 ---
 
@@ -83,7 +119,7 @@ Nach Deploy ausführen: `node scripts/generate-site-data.js`
 | `useNotes()` | `/data/notes.json` + Relay | Notes + Infinite Scroll |
 | Images.tsx | `/data/bilder.json` + Relay | Bilder-Feed |
 | `useVideos()` | `/data/videos.json` + Relay | Video-Feed (kind 34236) |
-| `useTrips()` | nur Relay, zweistufig | Trips (kind 30025): 2s Fast (limit 15) + 10s Full (limit 100) im Hintergrund |
+| `useTrips()` | nur Relay, zweistufig | Trips (kind 30025): 2s Fast (limit 15) + 10s Full (limit 100) im Hintergrund. **Bekannter Bug**: Query filtert nicht nach `authors` – jeder Nostr-User kann theoretisch auf `/map/trips` erscheinen. Fix geplant in `FEATURE-XXX-PLAN.md` Schritt 6. |
 | `useLongformArticle()` | nur Relay | Detailseiten (voller content) |
 
 **First-Paint-Strategie (Erstbesucher ohne Cache):** Fällt ein JSON-Dump aus,

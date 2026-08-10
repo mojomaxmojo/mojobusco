@@ -45,6 +45,14 @@ Verzeichniss /projects/mojobusco/
 14. **Video-Codec**: Ausgabe IMMER libx264 + aac + -movflags +faststart.
   NIEMALS HEVC/H.265/VP9 – Chromium headless (Remotion) und Teile der
   Browser können es nicht decodieren.
+15. **kind:1-Fremd-Content-Filter (Prerender/Sitemap/Site-Data-Skripte)**:
+    Jede neue oder geänderte kind:1-Relay-Query in `scripts/generate-site-data.js`,
+    `scripts/generate-sitemap.js` oder `scripts/prerender-static.js` MUSS
+    mit `isMojobusKind1(event)` aus `scripts/prerender-helpers.js` gefiltert
+    werden, bevor das Event als Note/Ort/Trip/Media verarbeitet wird.
+    Grund: Die Autoren-Pubkeys werden auch in anderen Nostr-Clients
+    (Primal, Amethyst) für private Posts genutzt, die nichts mit
+    mojobus.co zu tun haben. `#t`-Hashtag-Filter allein reicht nicht.
 ---
 
 ## 🗂️ Kontext nach Aufgabe (nur die relevante Datei lesen!)

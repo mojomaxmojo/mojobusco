@@ -5,6 +5,77 @@
 
 ---
 
+## Aktuelle Sitzung – SEO-Audit: kind:1-Fremd-Content-Filter + Meta-Fixes
+
+**Ausgangspunkt**: SEO-Review von `generate-site-data.js`,
+`prerender-static.js`, `generate-sitemap.js`, `generate-feed.js`,
+`prerender-meta.js`.
+
+**Kritischer Bug 1 – Orte (kind:30023) fälschlich als Artikel gerendert**:
+`PlaceForm.tsx` postet Orte auch als kind:30023 (Tag `type=place`), nicht
+nur als kind:1. `prerender-static.js` behandelte bisher ALLE
+kind:30023-Events pauschal als Artikel (`renderArticleHtml`) → Orte
+bekamen falsches JSON-LD (Article statt Place, keine Geo-Daten) und
+landeten in der falschen Kategorie-Liste. Gleicher Bug in
+`generate-feed.js` (Orte im RSS-Feed als "Artikel"). Fix: `isPlace()`-
+Filter vor dem Rendern/Feed-Eintrag angewendet.
+
+**Kritischer Bug 2 – Dateiname-Mismatch bei kind:1-Orten**:
+`prerender-static.js` erzeugte für kind:1-Orte einen Dateinamen mit
+`naddr`, obwohl die kanonische URL (`renderPlaceHtml()`,
+`generate-sitemap.js`) für kind:1 ein `note1...` erwartet → 404 auf dem
+von Nginx gerouteten Bot-Pfad. Fix: Dateiname folgt jetzt derselben
+kind-Prüfung wie die URL-Berechnung.
+
+**Kritischer Bug 3 – Fremd-Content in Sitemap/Prerender/JSON-Dumps**:
+Alle 3 Skripte behandelten JEDES kind:1-Event der Autoren-Pubkeys als
+Website-Content, unabhängig davon, ob es tatsächlich über mojobus.co
+veröffentlicht wurde. Autoren nutzen ihre Pubkeys auch in anderen
+Nostr-Clients (Primal, Amethyst) – das erklärte die Diskrepanz zwischen
+172 "Kind-1-Events" in der Sitemap und den korrekten ≤50 Einträgen in
+den Frontend-Listenseiten. Fix: Neue zentrale Funktion
+`isMojobusKind1()` in `prerender-helpers.js` (Kriterium: Tag
+`['t','mojobus']` ODER Teaser-Note mit `a`-Tag-Verweis, `isTeaserNote()`)
+– angewendet in `generate-sitemap.js::buildNoteEntry()`,
+`prerender-static.js` (alle kind:1-Queries: Places-aus-Notes, Trips,
+Media, Notes) und `generate-site-data.js` (trips/bilder/notes.json).
+
+**Weitere Meta-/SEO-Fixes (`prerender-meta.js`)**:
+- `og:locale` war hartcodiert `de_DE` für ALLE Seiten (auch `/en/`) →
+  jetzt aus `lang` abgeleitet (`de_DE`/`en_US`).
+- `<meta name="language">` war hartcodiert `de` → jetzt aus `lang`.
+- robots-Meta ergänzt um `max-snippet:-1`, `max-video-preview:-1`.
+- `hreflang x-default` zeigte auf sich selbst → zeigt jetzt konsistent
+  auf die deutsche Version.
+- RSS-Alternate-Link jetzt sprachabhängig (`feed.xml`/`feed-en.xml`).
+
+**`generate-feed.js`**:
+- Feed in DE (`feed.xml`) und EN (`feed-en.xml`) getrennt statt einem
+  gemischtsprachigen Feed mit `<language>de</language>`.
+- `<enclosure>` nutzt jetzt echten MIME-Type (statt immer `image/jpeg`)
+  und versucht die echte Byte-Größe per HEAD-Request zu ermitteln.
+- Eindeutige Fallback-GUID bei fehlgeschlagenem `naddrEncode` (vorher
+  Kollision auf `/artikel` für alle Fehlerfälle).
+
+**`generate-sitemap.js`**:
+- `lastmod` jetzt bei ALLEN statischen Seiten gesetzt (vorher nur bei 2
+  von 14 Einträgen).
+- Korrekter `feed-en.xml`-Eintrag statt fälschlichem `/en/feed.xml`.
+
+**`robots.txt`**: `feed-en.xml` freigegeben.
+
+**Noch offen (dokumentiert, nicht Teil dieser Session)**: Trips laufen
+in allen 3 Skripten weiterhin über kind:1-Teaser-Notes statt der echten
+kind:30025-Events (`TripPublishForm.tsx`) → ungültige naddr-Links,
+dünner SEO-Content. Zusätzlich 2 verwandte Frontend-Bugs entdeckt:
+`TripDetail.tsx` liest ein nicht-existentes `trip.tripData`-Feld (SEO-
+Titel immer "Reise" statt echtem Trip-Titel), `useTrips.ts` filtert
+nicht nach `authors` (jeder Nostr-User könnte auf `/map/trips`
+erscheinen). Migrationsplan mit 7 Schritten: `FEATURE-XXX-PLAN.md`
+(Root-Verzeichnis) – noch nicht umgesetzt.
+
+---
+
 ## Aktuelle Sitzung – Fix: Google-Fehler „Fehlendes XML-Tag" in Video-Sitemap
 
 **Fehler (Search Console)**: `sitemap-videos.xml` – „Fehlendes XML-Tag",
