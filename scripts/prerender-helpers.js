@@ -218,3 +218,108 @@ export function findTranslationPair(events, event) {
   }
   return null;
 }
+
+/**
+ * Prüft, ob ein Event ein echtes Trip-Event (NIP-XX kind:30025) ist.
+ * Siehe TripPublishForm.tsx / useTrips.ts – Trips werden ausschließlich
+ * als kind:30025 veröffentlicht, NICHT als kind:1 mit Trip-Hashtags.
+ */
+export function isTripEvent(event) {
+  return event.kind === 30025;
+}
+
+/**
+ * naddr-Kodierung speziell für Trip-Events (kind:30025).
+ * Anders als encodeNaddr() gibt es hier KEINEN `event.kind || 30023`-
+ * Fallback, da dieser bei Trips zu einem falschen (kind:30023) naddr führen
+ * würde. Gibt `null` zurück, wenn das Event kein gültiges Trip-Event ist
+ * oder kein `d`-Tag besitzt.
+ */
+export function encodeTripNaddr(event) {
+  if (!isTripEvent(event)) return null;
+  const identifier = event.tags?.find(t => t[0] === 'd')?.[1];
+  if (!identifier) return null;
+  try {
+    return nip19.naddrEncode({
+      kind: event.kind,
+      pubkey: event.pubkey,
+      identifier,
+    });
+  } catch (e) {
+    console.warn(`[Prerender] Trip naddrEncode fehlgeschlagen: ${e.message}`);
+    return null;
+  }
+}
+
+/**
+ * Parst alle `['waypoint', ...]`-Tags eines kind:30025-Events.
+ * Format: ['waypoint', index, lat, lon, name, date?, image?, description?]
+ * Portiert 1:1 aus src/hooks/useTrips.ts::parseWaypointTag().
+ */
+export function extractTripWaypoints(event) {
+  const tags = event.tags || [];
+  const waypoints = tags
+    .filter(t => t[0] === 'waypoint')
+    .map(tag => {
+      if (tag.length < 5) return null;
+      const index = parseInt(tag[1]);
+      const lat = parseFloat(tag[2]);
+      const lon = parseFloat(tag[3]);
+      const name = tag[4];
+      const date = tag[5] || undefined;
+      const image = tag[6] || undefined;
+      const description = tag[7] || undefined;
+
+      if (isNaN(index) || isNaN(lat) || isNaN(lon) || !name) return null;
+      if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
+
+      return { index, lat, lon, name, date, image, description };
+    })
+    .filter(w => w !== null)
+    .sort((a, b) => a.index - b.index);
+
+  return waypoints;
+}
+
+/**
+ * Gibt alle `image`-Tag-Werte eines Events zurück.
+ * Portiert aus src/hooks/useTrips.ts::parseTripEvent().
+ */
+export function extractTripPhotos(event) {
+  return (event.tags || []).filter(t => t[0] === 'image').map(t => t[1]);
+}
+
+/**
+ * Ermittelt die Distanz eines Trips in km.
+ * Liest zuerst `distance`/`distance_unit`-Tags, fällt sonst auf eine
+ * Haversine-Berechnung über die Wegpunkte zurück.
+ * Portiert aus src/hooks/useTrips.ts::calculateTripDistance() +
+ * calculateHaversineDistance().
+ */
+export function extractTripDistance(event) {
+  const distanceTag = event.tags?.find(t => t[0] === 'distance')?.[1];
+  if (distanceTag) {
+    const distanceUnit = event.tags?.find(t => t[0] === 'distance_unit')?.[1] || 'km';
+    return { distance: distanceTag, distanceUnit };
+  }
+
+  const waypoints = extractTripWaypoints(event);
+  if (waypoints.length < 2) return { distance: null, distanceUnit: 'km' };
+
+  let totalDistance = 0;
+  for (let i = 1; i < waypoints.length; i++) {
+    const from = waypoints[i - 1];
+    const to = waypoints[i];
+    const R = 6371; // Erdradius in km
+    const dLat = (to.lat - from.lat) * Math.PI / 180;
+    const dLon = (to.lon - from.lon) * Math.PI / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(from.lat * Math.PI / 180) * Math.cos(to.lat * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    totalDistance += R * c;
+  }
+
+  return { distance: String(Math.round(totalDistance)), distanceUnit: 'km' };
+}
