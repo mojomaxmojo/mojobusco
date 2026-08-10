@@ -6,6 +6,10 @@ import {
   stripMarkdown,
   parseMetadata,
   encodeNaddr,
+  encodeTripNaddr,
+  extractTripWaypoints,
+  extractTripPhotos,
+  extractTripDistance,
   formatDate,
   getAuthorName,
   getAuthorUrl,
@@ -273,16 +277,19 @@ export function renderTripHtml(event, allEventsOfType = []) {
   const tags = event.tags?.filter(t => t[0] === 't').map(t => t[1]) || [];
   const cleanDesc = stripMarkdown(desc, 300);
   const description = cleanDesc.substring(0, 160);
-  const naddr = encodeNaddr({ ...event, kind: event.kind || 30023 });
+  const naddr = encodeTripNaddr(event);
   const lang = getEventLangFromTags(event);
   const pair = findTranslationPair(allEventsOfType, event);
   const pairLang = pair ? getEventLangFromTags(pair) : null;
   const path = naddr ? `/trip/${naddr}` : '/map/trips';
   const canonicalUrl = buildLocalizedUrl(path, lang);
-  const pairNaddr = pair ? encodeNaddr({ ...pair, kind: pair.kind || 30023 }) : null;
+  const pairNaddr = pair ? encodeTripNaddr(pair) : null;
   const alternateUrl = pairNaddr && pairLang ? buildLocalizedUrl(`/trip/${pairNaddr}`, pairLang) : null;
   const alternateLang = pairLang;
   const datePublished = formatDate(event.created_at);
+  const waypoints = extractTripWaypoints(event);
+  const photos = extractTripPhotos(event);
+  const { distance, distanceUnit } = extractTripDistance(event);
 
   const jsonLd = buildArticleLd({
     headline: title,
@@ -309,10 +316,26 @@ export function renderTripHtml(event, allEventsOfType = []) {
     alternateLang,
   });
 
+  const distanceHtml = distance ? `<p>📏 ${escapeHtml(distance)} ${escapeHtml(distanceUnit)}</p>` : '';
+  const waypointsHtml = waypoints.length > 0
+    ? `<div>
+  ${waypoints.map((wp, i) => {
+    const wpImage = wp.image || photos[i];
+    return `<div>
+    <h2>${escapeHtml(String(i + 1))}. ${escapeHtml(wp.name)}</h2>
+    ${wpImage ? imageTag(wpImage, wp.name) : ''}
+    ${wp.description ? `<p>${escapeHtml(wp.description)}</p>` : ''}
+  </div>`;
+  }).join('\n  ')}
+</div>`
+    : '';
+
   return `${head}
   <h1>${escapeHtml(title)}</h1>
   <p>${escapeHtml(cleanDesc)}</p>
   ${imageTag(image, title)}
+  ${distanceHtml}
+  ${waypointsHtml}
   <p><a href="${escapeHtml(canonicalUrl)}">Weiterlesen auf MojoBus →</a></p>
 </body>
 </html>`;
