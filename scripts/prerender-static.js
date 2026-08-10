@@ -11,6 +11,7 @@ import {
   isPlace,
   isTrip,
   isMedia,
+  isMojobusKind1,
 } from './prerender-helpers.js';
 import {
   renderArticleHtml,
@@ -82,7 +83,11 @@ async function main() {
       rendered.push({ type: 'Artikel', identifier: naddr });
     }
 
-    const placesFromNotes = await queryRelay(relay, [{
+    // isMojobusKind1() filtert Fremd-Posts heraus: die Autoren-Pubkeys
+    // werden auch in anderen Nostr-Clients (Primal, Amethyst) genutzt, wo
+    // zufällig dieselben Hashtags (#place, #camping, ...) vorkommen können,
+    // ohne dass der Post über mojobus.co veröffentlicht wurde.
+    const placesFromNotesRaw = await queryRelay(relay, [{
       kinds: [1],
       authors: AUTHOR_PUBKEYS,
       '#t': ['place', 'camping', 'stellplatz', 'places'],
@@ -90,6 +95,7 @@ async function main() {
       since: 0,
       until: FAR_FUTURE,
     }]);
+    const placesFromNotes = placesFromNotesRaw.filter(isMojobusKind1);
     const places = [...placesFromArticles, ...placesFromNotes];
     console.log(`[Prerender]  → ${places.length} Orte gesamt (30023 + kind:1)`);
     for (const event of places) {
@@ -125,7 +131,7 @@ async function main() {
       rendered.push({ type: 'Ort', identifier });
     }
 
-    const trips = await queryRelay(relay, [{
+    const tripsRaw = await queryRelay(relay, [{
       kinds: [1],
       authors: AUTHOR_PUBKEYS,
       '#t': ['trip', 'trips', 'travel', 'reise'],
@@ -133,7 +139,8 @@ async function main() {
       since: 0,
       until: FAR_FUTURE,
     }]);
-    console.log(`[Prerender]  → ${trips.length} Trips`);
+    const trips = tripsRaw.filter(isMojobusKind1);
+    console.log(`[Prerender]  → ${trips.length} Trips (${tripsRaw.length - trips.length} Fremd-Posts ausgefiltert)`);
     for (const event of trips) {
       if (seen.has(event.id)) continue;
       seen.add(event.id);
@@ -145,7 +152,7 @@ async function main() {
       rendered.push({ type: 'Trip', identifier: naddr });
     }
 
-    const mediaItems = await queryRelay(relay, [{
+    const mediaItemsRaw = await queryRelay(relay, [{
       kinds: [1],
       authors: AUTHOR_PUBKEYS,
       '#t': ['media', 'medien', 'bilder', 'images'],
@@ -153,7 +160,8 @@ async function main() {
       since: 0,
       until: FAR_FUTURE,
     }]);
-    console.log(`[Prerender]  → ${mediaItems.length} Bilder`);
+    const mediaItems = mediaItemsRaw.filter(isMojobusKind1);
+    console.log(`[Prerender]  → ${mediaItems.length} Bilder (${mediaItemsRaw.length - mediaItems.length} Fremd-Posts ausgefiltert)`);
     for (const event of mediaItems) {
       if (seen.has(event.id)) continue;
       seen.add(event.id);
@@ -172,9 +180,14 @@ async function main() {
       }
     }
 
-    const notes = await queryRelay(relay, [{ kinds: [1], authors: AUTHOR_PUBKEYS, limit: MAX_PER_RELAY, since: 0, until: FAR_FUTURE }]);
+    // isMojobusKind1() ist hier besonders wichtig: ohne diesen Filter landet
+    // JEDES kind:1-Event der Autoren, das nicht per Zufall auf ein Place/
+    // Trip/Media-Hashtag matcht, als "Note" im Prerendering – auch private
+    // Notes, Replies oder Reposts aus anderen Nostr-Clients.
+    const notesRaw = await queryRelay(relay, [{ kinds: [1], authors: AUTHOR_PUBKEYS, limit: MAX_PER_RELAY, since: 0, until: FAR_FUTURE }]);
+    const notes = notesRaw.filter(isMojobusKind1);
     const pureNotes = notes.filter(event => !isPlace(event) && !isTrip(event) && !isMedia(event));
-    console.log(`[Prerender]  → ${pureNotes.length} Notes`);
+    console.log(`[Prerender]  → ${pureNotes.length} Notes (${notesRaw.length - notes.length} Fremd-Posts ausgefiltert)`);
     for (const event of pureNotes) {
       if (seen.has(event.id)) continue;
       seen.add(event.id);

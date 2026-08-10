@@ -93,6 +93,41 @@ export function isMedia(event) {
   return tTags.has('media') || tTags.has('medien') || tTags.has('bilder') || tTags.has('images') || tTags.has('galerie');
 }
 
+/**
+ * Prüft, ob es sich um eine automatisch erzeugte Longform-Teaser-Note
+ * handelt (siehe src/lib/createLongformTeaser.ts bzw.
+ * src/lib/nostrEventUtils.ts::isTeaserNote). Teaser-Notes verweisen per
+ * `a`-Tag (`kind:pubkey:dTag`) auf ein Original-Event (Artikel/Ort/Trip/
+ * Video) und tragen deshalb bewusst KEIN `mojobus`-Tag (siehe
+ * BANNED_TEASER_TAGS in src/config/longformTeaser.ts).
+ */
+export function isTeaserNote(event) {
+  return (event.tags || []).some(t => t[0] === 'a' && /^\d+:[0-9a-f]{64}:/.test(t[1] || ''));
+}
+
+/**
+ * Prüft, ob ein kind:1-Event tatsächlich über mojobus.co veröffentlicht
+ * wurde, statt nur zufällig von einem der Autoren-Pubkeys zu stammen.
+ *
+ * Die Autoren-Pubkeys werden auch in normalen Nostr-Clients (Primal,
+ * Amethyst, Damus) für private Notes, Replies, Reposts etc. verwendet, die
+ * NICHTS mit der Website zu tun haben. Ohne dieses Kriterium landeten solche
+ * Fremd-Posts fälschlich in der Sitemap, im RSS-Feed und im Prerendering.
+ *
+ * Zwei zuverlässige Signale, die das Frontend selbst für Website-Content
+ * verwendet:
+ *  1. Alle über /veroeffentlichen erstellten Notes/Media/Orte bekommen
+ *     explizit das Tag ['t', 'mojobus'] (siehe contentCategories.ts
+ *     "required" Tags, MediaUploadForm.tsx, NoteForm.tsx).
+ *  2. Automatisch erzeugte Teaser-Notes (für Artikel/Orte/Trips) haben
+ *     zwar KEIN mojobus-Tag, aber immer einen `a`-Tag-Verweis auf das
+ *     Original-Event (isTeaserNote()).
+ */
+export function isMojobusKind1(event) {
+  const tTags = new Set((event.tags?.filter(t => t[0] === 't').map(t => t[1]) || []).map(t => t.toLowerCase()));
+  return tTags.has('mojobus') || isTeaserNote(event);
+}
+
 export async function queryRelay(relayUrl, filters, timeoutMs = 15000) {
   return new Promise((resolve) => {
     let ws;

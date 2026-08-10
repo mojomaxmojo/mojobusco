@@ -24,7 +24,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { nip19 } from 'nostr-tools';
-import { buildLocalizedUrl, findTranslationPair, getEventLangFromTags } from './prerender-helpers.js';
+import { buildLocalizedUrl, findTranslationPair, getEventLangFromTags, isMojobusKind1 } from './prerender-helpers.js';
 
 // ── Autoren aus zentraler JSON-Config (Single Source of Truth) ────────────
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -206,7 +206,15 @@ function extractVideoMeta(event) {
 }
 
 // ── Sitemap-Pfad & Priorität für ein Kind-1-Event ermitteln ───────────────
+// WICHTIG: Nur Events zurückgeben, die tatsächlich über mojobus.co
+// veröffentlicht wurden (isMojobusKind1). Ohne diesen Filter landete JEDES
+// kind:1-Event der Autoren-Pubkeys in der Sitemap – auch private Notes,
+// Replies oder Reposts aus anderen Nostr-Clients (Primal, Amethyst), die
+// zufällig ein #trip/#media/#place-Hashtag enthalten oder einfach nur
+// kind:1 sind (Catch-all am Ende der Funktion).
 function buildNoteEntry(event) {
+  if (!isMojobusKind1(event)) return null;
+
   const tTags = new Set((event.tags?.filter(t => t[0] === 't').map(t => t[1]) || []).map(t => t.toLowerCase()));
   const typeTag = (event.tags?.find(t => t[0] === 'type')?.[1] || '').toLowerCase();
 
@@ -371,8 +379,12 @@ async function main() {
     }
 
     // ── Notes (kind 1) ──────────────────────────────────
+    // buildNoteEntry() filtert intern über isMojobusKind1() alle kind:1-
+    // Events heraus, die nicht tatsächlich über mojobus.co veröffentlicht
+    // wurden (siehe Kommentar dort).
     const notes = await queryRelay(relay, [{ kinds: [1], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS, since: 0, until: FAR_FUTURE }]);
-    console.log(`[Sitemap]  → ${notes.length} Kind-1-Events`);
+    const mojobusNotesCount = notes.filter(isMojobusKind1).length;
+    console.log(`[Sitemap]  → ${notes.length} Kind-1-Events (${mojobusNotesCount} davon von mojobus.co, ${notes.length - mojobusNotesCount} ausgefiltert)`);
 
     for (const event of notes) {
       if (seen.has(event.id)) continue;
