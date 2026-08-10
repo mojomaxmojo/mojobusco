@@ -28,6 +28,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { nip19 } from 'nostr-tools';
+import { isMojobusKind1 } from './prerender-helpers.js';
 
 // ── Autoren aus zentraler JSON-Config (Single Source of Truth) ────────────
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -198,9 +199,11 @@ async function main() {
     const articles = await queryRelay(relay, [{ kinds: [30023], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS }]);
     console.log(`[SiteData]  → ${articles.length} Longform-Events`);
 
-    // Notes (kind 1)
+    // Notes (kind 1) – enthält auch Fremd-Posts der Autoren aus anderen
+    // Nostr-Clients; wird weiter unten über isMojobusKind1() gefiltert.
     const notes = await queryRelay(relay, [{ kinds: [1], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS }]);
-    console.log(`[SiteData]  → ${notes.length} Kind-1-Events`);
+    const mojobusNotesCount = notes.filter(isMojobusKind1).length;
+    console.log(`[SiteData]  → ${notes.length} Kind-1-Events (${mojobusNotesCount} von mojobus.co, ${notes.length - mojobusNotesCount} Fremd-Posts)`);
 
     // Video-Events NIP-71: kind 34236 (Short/Reels 9:16) + kind 34235 (Normal 16:9)
     const videos = await queryRelay(relay, [{ kinds: [34236, 34235], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS }]);
@@ -224,24 +227,37 @@ async function main() {
   console.log(`[SiteData]  → ${allEvents.length} unique Events total`);
 
   // Metadaten extrahieren
+  //
+  // WICHTIG (kind:1-Filterung): Die Autoren-Pubkeys werden auch in anderen
+  // Nostr-Clients (Primal, Amethyst, Damus) für private Notes, Replies und
+  // Reposts verwendet, die NICHTS mit mojobus.co zu tun haben. isMojobusKind1()
+  // (siehe prerender-helpers.js) lässt nur kind:1-Events durch, die entweder
+  // explizit das ['t','mojobus']-Tag tragen (alle über /veroeffentlichen
+  // erstellten Posts) oder eine automatisch erzeugte Teaser-Note sind
+  // (a-Tag-Verweis auf ein Original-Event). Ohne diesen Filter landeten
+  // fremde Notes fälschlich in notes.json/bilder.json/trips.json, was auch
+  // die überhöhte Zahl an "Kind-1-Events" in der Sitemap erklärte.
+  //
+  // kind:30023 (Artikel/Plätze) ist NICHT betroffen: diese Events werden nur
+  // über ArticleForm/PlaceForm erzeugt, es gibt keinen "Fremd-Client"-Fall.
   const metaArticles = allEvents
     .filter(e => e.kind === 30023 && !isPlace(e))
     .map(extractMeta);
 
   const metaPlaces = allEvents
-    .filter(e => isPlace(e))
+    .filter(e => isPlace(e) && (e.kind === 30023 || isMojobusKind1(e)))
     .map(extractMeta);
 
   const metaTrips = allEvents
-    .filter(e => e.kind === 1 && isTrip(e))
+    .filter(e => e.kind === 1 && isTrip(e) && isMojobusKind1(e))
     .map(extractMeta);
 
   const metaBilder = allEvents
-    .filter(e => e.kind === 1 && isMedia(e))
+    .filter(e => e.kind === 1 && isMedia(e) && isMojobusKind1(e))
     .map(extractMeta);
 
   const metaNotes = allEvents
-    .filter(e => e.kind === 1 && isNote(e))
+    .filter(e => e.kind === 1 && isNote(e) && isMojobusKind1(e))
     .map(extractMeta);
 
   // Sortieren (neueste zuerst)
@@ -324,12 +340,14 @@ async function main() {
   };
 
   // Artikel + Plätze: kein Content (nur Tags für Listenseite)
+  // Dieselben Filter wie bei der Metadaten-Extraktion oben (inkl.
+  // isMojobusKind1() für kind:1-Events) – siehe Kommentar dort.
   writeJSON('articles.json', allEvents.filter(e => e.kind === 30023 && !isPlace(e)).map(stripArticle));
-  writeJSON('places.json', allEvents.filter(e => isPlace(e)).map(stripArticle));
-  writeJSON('trips.json', allEvents.filter(e => e.kind === 1 && isTrip(e)).map(stripNote));
+  writeJSON('places.json', allEvents.filter(e => isPlace(e) && (e.kind === 30023 || isMojobusKind1(e))).map(stripArticle));
+  writeJSON('trips.json', allEvents.filter(e => e.kind === 1 && isTrip(e) && isMojobusKind1(e)).map(stripNote));
   // Bilder + Notes: 200 Zeichen Content (für Vorschautext in der Karte)
-  writeJSON('bilder.json', allEvents.filter(e => e.kind === 1 && isMedia(e)).map(stripNote));
-  writeJSON('notes.json', allEvents.filter(e => e.kind === 1 && isNote(e)).map(stripNote));
+  writeJSON('bilder.json', allEvents.filter(e => e.kind === 1 && isMedia(e) && isMojobusKind1(e)).map(stripNote));
+  writeJSON('notes.json', allEvents.filter(e => e.kind === 1 && isNote(e) && isMojobusKind1(e)).map(stripNote));
   // Videos: kind 34236 + 34235 (NIP-71), nach Datum sortiert
   const videosSorted = allVideoEvents.sort((a, b) => b.created_at - a.created_at);
   writeJSON('videos.json', videosSorted.map(stripVideo));
