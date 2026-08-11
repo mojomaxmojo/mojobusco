@@ -77,6 +77,18 @@ cd ~/Mojobus-APK/mojobusco && git pull origin main && npm run apk
 # APK: android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
+**npm 12 `EALLOWREMOTE` bei `@nostrify/react`**: Ab npm v12 ist
+`allow-remote` standardmäßig `"none"` und blockiert Tarball-Fetches,
+deren Host vom konfigurierten Registry-Host abweicht. `@nostrify/react`
+wird über JSR (`npm:@jsr/nostrify__react`) bezogen, der Tarball liegt
+aber auf `npm.jsr.io` – ein bekannter npm-Bug (npm/cli#9548), der
+registry-vermittelte, aber fremd-gehostete Tarballs fälschlich als
+"remote" einstuft. Fix: `.npmrc` enthält `allow-remote=all`. Tritt der
+Fehler `npm error code EALLOWREMOTE ... Refusing to fetch
+"@nostrify/react@https://npm.jsr.io/..."` auf einer Deploy-Maschine
+trotzdem auf, prüfen ob dort eine globale/andere `.npmrc` die
+projektlokale überschreibt (z. B. `~/.npmrc` mit `allow-remote=none`).
+
 **jimp-Formatpakete (`scripts/generate-icons.js`)**: `jimp` v1 lädt
 Bildformat-Plugins (`@jimp/js-bmp`, `@jimp/js-png`, `@jimp/js-jpeg`,
 `@jimp/js-gif`, `@jimp/js-tiff`) nur als optionale Abhängigkeit nach.
