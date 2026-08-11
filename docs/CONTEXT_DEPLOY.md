@@ -90,12 +90,18 @@ trotzdem auf, prüfen ob dort eine globale/andere `.npmrc` die
 projektlokale überschreibt (z. B. `~/.npmrc` mit `allow-remote=none`).
 
 **jimp-Formatpakete (`scripts/generate-icons.js`)**: `jimp` v1 lädt
-Bildformat-Plugins (`@jimp/js-bmp`, `@jimp/js-png`, `@jimp/js-jpeg`,
-`@jimp/js-gif`, `@jimp/js-tiff`) nur als optionale Abhängigkeit nach.
-Bei `npm install` auf manchen Maschinen (z. B. neuere Node-Versionen)
-fehlt `@jimp/js-bmp` in `node_modules` → `ERR_MODULE_NOT_FOUND` beim
-ESM-Import. Fix: Alle 5 Pakete sind jetzt explizite `devDependencies`
-in `package.json`. Bei diesem Fehler auf einer Deploy-Maschine hilft:
+seine Bildformat-Plugins (`@jimp/js-bmp`, `@jimp/js-png`,
+`@jimp/js-jpeg`, `@jimp/js-gif`, `@jimp/js-tiff`) nur als optionale
+Abhängigkeit nach, und diese Plugins wiederum haben eigene transitive
+Abhängigkeiten (`bmp-ts`, `pngjs`, `jpeg-js`, `gifwrap`+`omggif`,
+`utif2`). Bei `npm install` auf manchen Maschinen (z. B. neuere
+Node-Versionen) fehlen diese verschachtelten optionalen Pakete in
+`node_modules` → `ERR_MODULE_NOT_FOUND` beim ESM-Import (zuerst
+`@jimp/js-bmp`, nach dessen Fix dann `bmp-ts` als dessen eigene
+Abhängigkeit). Fix: Alle 5 `@jimp/js-*`-Pakete UND ihre 6 transitiven
+Abhängigkeiten (`bmp-ts`, `gifwrap`, `omggif`, `jpeg-js`, `pngjs`,
+`utif2`) sind jetzt explizite `devDependencies` in `package.json`. Bei
+diesem Fehler auf einer Deploy-Maschine hilft:
 `rm -rf node_modules && npm install`.
 
 ---
