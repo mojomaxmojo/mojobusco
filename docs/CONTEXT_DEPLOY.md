@@ -29,10 +29,12 @@
   nutzen ihre Pubkeys auch in anderen Nostr-Clients für Posts, die nichts
   mit mojobus.co zu tun haben. Bei neuen kind:1-Queries in diesen
   Skripten immer diesen Filter mit einbauen.
-- **Bekannter, noch offener Bug**: Trips laufen in den 3 Skripten noch
-  über kind:1-Teaser-Notes statt der echten kind:30025-Events →
-  ungültige naddr-Links in Sitemap/Prerender. Migrationsplan:
-  `FEATURE-XXX-PLAN.md` (Root-Verzeichnis, 7 Schritte).
+- **Trips (kind:30025)**: Alle 3 Skripte verarbeiten Trips über die
+  echten kind:30025-Events (`TripPublishForm.tsx`), nicht mehr über
+  kind:1-Teaser-Notes. naddr über `encodeTripNaddr()`
+  (`prerender-helpers.js`), kein `isMojobusKind1()`-Filter nötig, da
+  kind:30025 ausschließlich über das Publish-Formular erzeugt wird.
+  Migration abgeschlossen (`FEATURE-XXX-PLAN.md`, 7 Schritte).
 
 ---
 
@@ -74,6 +76,15 @@ curl -X POST http://localhost:3002/api/render-remotion/invalidate-bundle
 cd ~/Mojobus-APK/mojobusco && git pull origin main && npm run apk
 # APK: android/app/build/outputs/apk/debug/app-debug.apk
 ```
+
+**jimp-Formatpakete (`scripts/generate-icons.js`)**: `jimp` v1 lädt
+Bildformat-Plugins (`@jimp/js-bmp`, `@jimp/js-png`, `@jimp/js-jpeg`,
+`@jimp/js-gif`, `@jimp/js-tiff`) nur als optionale Abhängigkeit nach.
+Bei `npm install` auf manchen Maschinen (z. B. neuere Node-Versionen)
+fehlt `@jimp/js-bmp` in `node_modules` → `ERR_MODULE_NOT_FOUND` beim
+ESM-Import. Fix: Alle 5 Pakete sind jetzt explizite `devDependencies`
+in `package.json`. Bei diesem Fehler auf einer Deploy-Maschine hilft:
+`rm -rf node_modules && npm install`.
 
 ---
 

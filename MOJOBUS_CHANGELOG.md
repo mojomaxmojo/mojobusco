@@ -5,6 +5,88 @@
 
 ---
 
+## Aktuelle Sitzung – Trip-Migration auf kind:30025 (FEATURE-XXX-PLAN.md, 7 Schritte)
+
+**Ausgangspunkt**: Trips wurden in `generate-site-data.js`,
+`generate-sitemap.js`, `prerender-static.js` und `prerender-helpers.js`
+fälschlich über kind:1-Teaser-Notes (`#t trip`) verarbeitet statt über
+die echten kind:30025-Trip-Events (`TripPublishForm.tsx`). Folge:
+ungültige naddr-Links (`kind:1` statt `kind:30025`), dünner SEO-Content
+(nur Teaser-Text statt Wegpunkte/Distanz/Fotos), tote/kaputte URLs in
+Sitemap und Prerendering.
+
+**Schritt 1** – `scripts/prerender-helpers.js`: neue Helfer
+`isTripEvent()`, `encodeTripNaddr()` (ohne den bei Trips falschen
+`kind || 30023`-Fallback), `extractTripWaypoints()`,
+`extractTripPhotos()`, `extractTripDistance()` (Haversine-Fallback,
+portiert aus `useTrips.ts`).
+
+**Schritt 2** – `scripts/prerender-entity-templates.js`:
+`renderTripHtml()` nutzt `encodeTripNaddr()` statt des falschen
+kind:30023-Fallbacks und zeigt jetzt echte Wegpunkte/Distanz im
+SEO-Content statt nur den kurzen Teaser-Text.
+
+**Schritt 3** – `scripts/generate-site-data.js`: `trips.json` wird aus
+einem neuen kind:30025-Query-Block erzeugt (`allTripEvents`,
+`metaTrips`, `stripTrip()`), statt aus kind:1-Events gefiltert per
+`isTrip()` + `isMojobusKind1()`.
+
+**Schritt 4** – `scripts/prerender-static.js`: Trip-Query läuft jetzt
+gegen kind:30025 (`authors: AUTHOR_PUBKEYS`, kein `isMojobusKind1()`-
+Filter mehr nötig), naddr über `encodeTripNaddr()`.
+
+**Schritt 5** – `scripts/generate-sitemap.js`: Trip-Block aus
+`buildNoteEntry()` entfernt (die Funktion ist jetzt nur noch für
+kind:1 Notes/Places/Media zuständig), neuer eigenständiger
+kind:30025-Query-Block mit `encodeTripNaddr()` + DE/EN-Alternates
+(`findTranslationPair()`).
+
+**Schritt 6 (Bugfix 1+2)** – Frontend:
+- `src/hooks/useTrips.ts`: `fastQuery` und `fullQuery` filtern jetzt
+  zusätzlich nach `authors: NOSTR_CONFIG.authorPubkeys` – vorher konnte
+  theoretisch jeder Nostr-User, der auf `relay.mojobus.co` postet, auf
+  `/map/trips` erscheinen.
+- `src/pages/TripDetail.tsx`: `tripTitle`/`tripDesc` lesen jetzt
+  `trip.title`/`trip.summary` statt des nicht existierenden Felds
+  `trip.tripData.title`/`.summary` – der `<title>`-Tag zeigte vorher
+  bei JEDER Trip-Seite denselben Fallback-Text "Reise — MojoBus".
+
+**Schritt 7 (Bugfix 3)** – `src/components/SEOHead.tsx`: TypeScript-Typ
+der `type`-Prop um `'trip'` ergänzt (Kommentar dokumentierte den Wert
+bereits, der Typ erlaubte ihn aber nicht).
+
+**Dokumentation aktualisiert**: `MOJOBUS_CONTEXT.md` (Modulindex
+`prerender-helpers.js`, `trips.json`-Beschreibung, `useTrips()`-Zeile,
+"offener Bug"-Absatz entfernt) und `docs/CONTEXT_DEPLOY.md`
+("offener Bug"-Absatz entfernt) an die neue kind:30025-Trip-Logik
+angepasst.
+
+Alle 7 Schritte einzeln committet und nach jedem Schritt erfolgreich
+gebaut.
+
+---
+
+## Aktuelle Sitzung – Fix: APK-Deploy `ERR_MODULE_NOT_FOUND @jimp/js-bmp`
+
+**Fehler**: `node scripts/generate-icons.js` schlug auf einer
+Desktop-Deploy-Maschine (`~/Mojobus-APK/mojobusco`) mit
+`Cannot find package '@jimp/js-bmp'` fehl.
+
+**Ursache**: `jimp` v1 lädt seine Bildformat-Plugins
+(`@jimp/js-bmp`, `@jimp/js-png`, `@jimp/js-jpeg`, `@jimp/js-gif`,
+`@jimp/js-tiff`) nur als optionale Abhängigkeit nach. Bei `npm install`
+auf manchen Node-Versionen landen diese nicht zuverlässig in
+`node_modules`.
+
+**Fix**: Alle 5 Formatpakete als explizite `devDependencies` in
+`package.json`/`package-lock.json` ergänzt.
+
+**Dokumentation ergänzt**: `docs/CONTEXT_DEPLOY.md` – neuer Absatz
+unter "Capacitor (Android APK)" mit Ursache + Fix + Workaround
+(`rm -rf node_modules && npm install`).
+
+---
+
 ## Aktuelle Sitzung – SEO-Audit: kind:1-Fremd-Content-Filter + Meta-Fixes
 
 **Ausgangspunkt**: SEO-Review von `generate-site-data.js`,
