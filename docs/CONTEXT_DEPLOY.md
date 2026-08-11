@@ -77,32 +77,45 @@ cd ~/Mojobus-APK/mojobusco && git pull origin main && npm run apk
 # APK: android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-**npm 12 `EALLOWREMOTE` bei `@nostrify/react`**: Ab npm v12 ist
-`allow-remote` standardmäßig `"none"` und blockiert Tarball-Fetches,
-deren Host vom konfigurierten Registry-Host abweicht. `@nostrify/react`
-wird über JSR (`npm:@jsr/nostrify__react`) bezogen, der Tarball liegt
-aber auf `npm.jsr.io` – ein bekannter npm-Bug (npm/cli#9548), der
-registry-vermittelte, aber fremd-gehostete Tarballs fälschlich als
-"remote" einstuft. Fix: `.npmrc` enthält `allow-remote=all`. Tritt der
-Fehler `npm error code EALLOWREMOTE ... Refusing to fetch
-"@nostrify/react@https://npm.jsr.io/..."` auf einer Deploy-Maschine
-trotzdem auf, prüfen ob dort eine globale/andere `.npmrc` die
-projektlokale überschreibt (z. B. `~/.npmrc` mit `allow-remote=none`).
+**`.npmrc` – JSR-Scope + `allow-remote` (WICHTIG, betrifft `npm install`
+auf JEDER Maschine)**: `@nostrify/nostrify` und `@nostrify/react`
+werden über JSR bezogen (`npm:@jsr/nostrify__nostrify`,
+`npm:@jsr/nostrify__react` in `package.json`). Das erfordert 2 Einträge
+in `.npmrc`, ohne die `npm install` fehlschlägt:
+- `@jsr:registry=https://npm.jsr.io` – ohne diese Zeile sucht npm den
+  `@jsr`-Scope im normalen Registry (`registry.npmjs.org`) → `404 Not
+  Found - GET .../@jsr%2fnostrify__nostrify`. Offizielle JSR-npm-
+  Kompatibilitätsschicht, siehe https://jsr.io/docs/npm-compatibility.
+  **Fällt nur auf, wenn `package-lock.json` fehlt oder gelöscht wird**
+  – ein vorhandenes Lock-File mit bereits aufgelösten `npm.jsr.io`-URLs
+  verdeckt das fehlende `.npmrc`-Setting.
+- `allow-remote=all` – ab npm v12 ist `allow-remote` standardmäßig
+  `"none"` und blockiert Tarball-Fetches, deren Host vom konfigurierten
+  Registry-Host abweicht (bekannter npm-Bug npm/cli#9548, der
+  registry-vermittelte, aber fremd-gehostete Tarballs fälschlich als
+  "remote" einstuft) → `EALLOWREMOTE` bei `@nostrify/react`.
 
-**jimp-Formatpakete (`scripts/generate-icons.js`)**: `jimp` v1 lädt
-seine Bildformat-Plugins (`@jimp/js-bmp`, `@jimp/js-png`,
-`@jimp/js-jpeg`, `@jimp/js-gif`, `@jimp/js-tiff`) nur als optionale
-Abhängigkeit nach, und diese Plugins wiederum haben eigene transitive
-Abhängigkeiten (`bmp-ts`, `pngjs`, `jpeg-js`, `gifwrap`+`omggif`,
-`utif2`). Bei `npm install` auf manchen Maschinen (z. B. neuere
-Node-Versionen) fehlen diese verschachtelten optionalen Pakete in
-`node_modules` → `ERR_MODULE_NOT_FOUND` beim ESM-Import (zuerst
-`@jimp/js-bmp`, nach dessen Fix dann `bmp-ts` als dessen eigene
-Abhängigkeit). Fix: Alle 5 `@jimp/js-*`-Pakete UND ihre 6 transitiven
-Abhängigkeiten (`bmp-ts`, `gifwrap`, `omggif`, `jpeg-js`, `pngjs`,
-`utif2`) sind jetzt explizite `devDependencies` in `package.json`. Bei
-diesem Fehler auf einer Deploy-Maschine hilft:
-`rm -rf node_modules && npm install`.
+Falls diese Fehler auf einer Deploy-Maschine trotz aktuellem `.npmrc`
+auftreten: prüfen, ob eine globale `~/.npmrc` die projektlokale
+überschreibt.
+
+**jimp-Abhängigkeitsbaum (`scripts/generate-icons.js`)**: `jimp` v1
+selbst zieht ca. 25 verschachtelte Pakete nach (`@jimp/core`,
+`@jimp/utils`, `@jimp/types`, `@jimp/diff`, `@jimp/file-ops`, alle
+`@jimp/plugin-*`, `@jimp/js-*`-Formatpakete + deren jeweilige
+Encoder/Decoder-Libs wie `bmp-ts`/`pngjs`/`jpeg-js`/`gifwrap`+`omggif`/
+`utif2`, plus `zod`, `mime`, `tinycolor2`, u. a.). Ein unvollständig
+aufgelöstes `package-lock.json` kann dazu führen, dass bei jedem `npm
+install` ein anderes fehlendes Sub-Paket auftaucht
+(`ERR_MODULE_NOT_FOUND` beim ESM-Import). **Fix bei diesem Symptom**:
+NICHT einzelne Pakete nachinstallieren, sondern `package-lock.json`
+komplett neu auflösen lassen:
+```bash
+rm -rf node_modules package-lock.json
+npm install
+```
+Die neu erzeugte `package-lock.json` danach committen/pushen, damit
+der vollständige Baum für alle Maschinen im Repo verankert ist.
 
 ---
 
