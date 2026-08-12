@@ -40,6 +40,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
 import { VanillaMap, type MapMarker, type MapPolyline } from '@/components/VanillaMap';
+import { VideoPlayer } from '@/components/VideoPlayer';
 import { generateImageUrl } from '@/config/imageService';
 import { canonicalUrl, tripUrl } from '@/lib/canonicalUrl';
 import { 
@@ -381,21 +382,11 @@ export default function TripDetail() {
               {/* Video nach der Zusammenfassung */}
               {trip.video && (
                 <div>
-                  <video
+                  <VideoPlayer
                     src={trip.video}
-                    controls
-                    autoPlay={false}
-                    loop
-                    playsInline
-                    preload="none"
-                    className="w-full rounded-xl shadow-md"
-                    style={{ maxHeight: '560px' }}
-                    onError={(e) => {
-                      (e.currentTarget as HTMLVideoElement).style.display = 'none';
-                    }}
-                  >
-                    <source src={trip.video} type="video/mp4" />
-                  </video>
+                    className="rounded-xl shadow-md overflow-hidden"
+                    videoClassName="max-h-[560px] object-contain"
+                  />
                 </div>
               )}
 

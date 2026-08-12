@@ -9,6 +9,9 @@ interface VideoEmbedProps {
   className?: string;
   /** Iframe sofort laden (true = für Detailseiten, false = Click-to-Load) */
   autoLoad?: boolean;
+  /** Optionales Poster-Bild. Ohne Angabe erzeugt VideoPlayer automatisch
+   *  einen Snapshot aus dem Video (siehe videoConfig.preview.frameTime). */
+  poster?: string;
 }
 
 export function VideoEmbed({ 
@@ -16,6 +19,7 @@ export function VideoEmbed({
   title, 
   className = '',
   autoLoad = false,
+  poster,
 }: VideoEmbedProps) {
   // Prüfen ob es eine YouTube URL ist
   const youtubeId = extractYouTubeId(url);
@@ -40,6 +44,7 @@ export function VideoEmbed({
         src={url}
         title={title}
         className={className}
+        poster={poster}
       />
     );
   }

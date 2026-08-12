@@ -31,7 +31,15 @@ export const videoConfig = {
     muted: false,
     loop: false,
     playsInline: true, // Für Mobile
-    preload: 'none' as const, // 'none' verhindert Vorabladen großer Videos
+    // 'metadata' statt 'none': Holt nur Metadaten + ein Frame (wenige KB
+    // per Range-Request bei faststart-MP4), damit sofort ein Poster-Frame
+    // sichtbar ist und loadedmetadata/canplay zuverlässig automatisch
+    // feuern (kein "totes" Loading-Skeleton mehr, siehe VideoPlayer.tsx).
+    preload: 'metadata' as const,
+    // Sicherheits-Timeout (ms): Falls loadedmetadata/canplay aus
+    // irgendeinem Grund nicht feuert (langsames Netz, exotischer Codec),
+    // wird das Loading-Overlay nach dieser Zeit trotzdem ausgeblendet.
+    loadingTimeoutMs: 5000,
   },
 
   // Vorschau-Frame für Cards/Feeds (statt weißer Fläche oder Volldownload).
@@ -39,12 +47,12 @@ export const videoConfig = {
   // sind +faststart, das moov-Atom liegt vorne → sehr effizient).
   preview: {
     preload: 'metadata' as const,
-    // Zeitpunkt (Sekunden) des Vorschau-Frames via Media-Fragment "#t=".
-    // Der Browser holt per Range-Request nur die Daten um diesen Zeitpunkt
-    // (faststart-MP4: moov-Atom vorne → effizient). Bei kürzeren Videos wird
-    // automatisch das letzte Frame gezeigt. Hinweis: Safari ignoriert #t ggf.
-    // und zeigt das erste Frame – ebenfalls ok.
-    frameTime: 8,
+    // Zeitpunkt (Sekunden) des Vorschau-/Poster-Frames via Media-Fragment
+    // "#t=". Der Browser holt per Range-Request nur die Daten um diesen
+    // Zeitpunkt (faststart-MP4: moov-Atom vorne → effizient). Bei kürzeren
+    // Videos wird automatisch das letzte Frame gezeigt. Hinweis: Safari
+    // ignoriert #t ggf. und zeigt das erste Frame – ebenfalls ok.
+    frameTime: 7,
   },
 
   // YouTube-spezifische Einstellungen
