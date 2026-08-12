@@ -149,9 +149,9 @@
     "prosemirror-transform": "^1.11.0",
     "prosemirror-view": "^1.41.5",
     "qrcode": "^1.5.4",
-    "react": "^19.2.7",
+    "react": "^19.2.8",
     "react-day-picker": "^8.10.2",
-    "react-dom": "^19.2.7",
+    "react-dom": "^19.2.8",
     "react-hook-form": "^7.53.0",
     "react-intersection-observer": "^9.16.0",
     "react-leaflet": "^4.2.1",
@@ -217,5 +217,9 @@
     "vite": "^6.3.5",
     "vite-plugin-node-polyfills": "^0.25.0",
     "vitest": "^3.1.4"
+  },
+  "overrides": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   }
 }
