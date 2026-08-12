@@ -222,6 +222,14 @@ export const generateTripPrompt = (params) => {
     // (stationary Typen wie strand/ort haben KEIN Fahrzeug → vehicle bleibt null)
     const effectiveVehicle = tripTypeMeta && tripTypeMeta.vehicle ? tripTypeMeta.vehicle : (tripTypeMeta?.stationary ? null : lifestyleConfig.vehicle)
 
+    // Bewegungs-Modus für generische Textbausteine (Beispiele, Überschriften, Schlusssatz).
+    // - isStationary: strand/ort → gar keine Reise, keine Bewegung
+    // - isVehicleTrip: kein tripType (Standard-Mojobus) ODER explizit roadtrip → Auto/Motor-Sprache passt
+    // - sonst (spaziergang, wandern, radfahren, laufen, klettern, eisenbahn, boot, flug):
+    //   Selbstfortbewegung → NIE Motor/Straße/Fahrzeug-Vokabular
+    const isStationary = !!tripTypeMeta?.stationary
+    const isVehicleTrip = !isStationary && (!tripTypeMeta || tripType === 'roadtrip')
+
     // Kontext kompakt zusammenbauen
     let contextLines = [
         tripType && `Art der Reise: ${tripType}`,
@@ -245,10 +253,15 @@ export const generateTripPrompt = (params) => {
         stationInfo = `\nSTATIONEN (vom User angegeben – das sind echte Orte, verwende sie):\n${stations.map((s, i) => `${i + 1}. ${s}`).join('\n')}`
     }
 
-    // Langform-Beispiel nur bei medium und long
+    // Langform-Beispiele nur bei medium und long – UND passend zur Art der Reise.
+    // isVehicleTrip: Auto/Mojobus-Beispiele (Motor, Straße, Lenkrad passen hier).
+    // isStationary (strand/ort): keine Bewegung, kein Ankommen/Losfahren.
+    // sonst (spaziergang, wandern, radfahren, laufen, klettern, eisenbahn, boot, flug):
+    //   Selbstfortbewegung – NIE Motor/Straße/Fahrzeug, dafür ${effectiveVehicle}/Sinneseindrücke aus tripTypeMeta.
     let longformExample = ''
     if (tripLength !== 'short') {
-        longformExample = `
+        if (isVehicleTrip) {
+            longformExample = `
 
         SO KLINGT EIN LÄNGERER FOSTER-TRIP:
         ---
@@ -287,6 +300,60 @@ export const generateTripPrompt = (params) => {
         ---
 
         → Beachte: Hier trägt EIN langer, mäandernder Satz die Fahrt über die Küstenstraße – umrahmt von sehr kurzen Sätzen und einer gestapelten Sequenz am Anfang. Andere Textur als das erste Muster, aber gleicher Foster-Kern. Wähle das Muster (oder eine Mischung) das zum Inhalt passt – nicht jeder lange Trip muss gleich klingen.`
+        } else if (isStationary) {
+            longformExample = `
+
+        SO KLINGT EIN LÄNGERER FOSTER-TEXT OHNE BEWEGUNG (${tripType}):
+        ---
+        Der Wind hat sich gedreht. Merkt man erst am Sand, dann am Geruch, dann daran dass man die Augen zukneift.
+
+        Nichts hier hat sich verändert seit heute Morgen. Und trotzdem ist es ein anderer Ort als vor drei Stunden. Das Licht macht das. Sonst nichts.
+
+        Ich sitz und schau. Nicht auf etwas Bestimmtes. Einfach hin.
+
+        Irgendwann wird es kühler. Ich merk es an den Armen bevor ich es merk dass die Sonne tiefer steht.
+
+        Kein Gedanke der irgendwohin führt. Nur der hier, jetzt, dieser Ort.
+        ---
+
+        → Beachte: KEINE Bewegung, kein Ankommen, kein Losfahren. Nur der Ort selbst, wie er sich über die Zeit hinweg verändert – im Licht, im Wind, in der Stimmung. Kurze Sätze, viel Beobachtung, keine Route.`
+        } else {
+            // Selbstfortbewegung: spaziergang, wandern, radfahren, laufen, klettern, eisenbahn, boot, flug
+            const gear = tripTypeMeta?.gear || 'das Nötigste'
+            longformExample = `
+
+        SO KLINGT EIN LÄNGERER FOSTER-TRIP OHNE FAHRZEUG (${tripType}):
+        ---
+        Losgegangen ohne groß zu überlegen. ${tripTypeMeta?.movement || 'Ein Schritt, dann der nächste.'}
+
+        Die ersten Kilometer denkt man noch an das was man liegen gelassen hat. Dann irgendwann nicht mehr. ${tripTypeMeta?.senses ? tripTypeMeta.senses.charAt(0).toUpperCase() + tripTypeMeta.senses.slice(1) + '.' : 'Der Weg übernimmt.'}
+
+        Eine Pause. Nicht weil man müsste. Weil der Ort danach fragt.
+
+        Weiter. ${tripTypeMeta?.rhythm || 'Der eigene Körper gibt das Tempo vor.'}
+
+        Irgendwo dazwischen hört man auf die Zeit zu checken. ${gear} reicht. Mehr braucht es nicht.
+
+        Am Ende: müde Beine, oder müde Augen, oder beides. Und ein Ort erreicht der auf keiner Karte besonders aussieht. War trotzdem richtig.
+        ---
+
+        → Beachte: KEIN Fahrzeug, kein Motor, keine Straße im Auto-Sinn. Die Bewegung kommt aus dem eigenen Körper – das ist der Rhythmus. Details aus tripTypeMeta (Sinneseindrücke, Ausrüstung) einbauen, nicht erfinden.
+
+        EIN ZWEITES MUSTER – ANDERER RHYTHMUS, GLEICHER FOSTER:
+        ---
+        Ich hab nicht überlegt ob ich das schaffe. Man geht einfach los und dann sieht man.
+
+        Kalt. Kaffee davor. Jetzt keine Ahnung mehr wo der Kaffee war.
+
+        Irgendwann setzt der Kopf aus und nur noch der Körper macht weiter, und das ist genau der Moment auf den man die ganze Zeit gewartet hat ohne es zu wissen, dieser Punkt wo Denken und Gehen (oder Fahren, oder Atmen) das Gleiche werden.
+
+        Halt. Wasser. Weiter.
+
+        Am Schluss nur noch das Ziel. Kein Gedanke mehr daran wie man da hingekommen ist.
+        ---
+
+        → Beachte: Hier trägt EIN langer, mäandernder Satz den Moment wo Körper und Kopf eins werden – umrahmt von sehr kurzen Sätzen. Andere Textur, gleicher Foster-Kern. Wähle das Muster das zum Inhalt passt.`
+        }
     }
 
     // Input-Stärke einschätzen
@@ -350,12 +417,21 @@ ${genderAddition}
     ${tripTypeBlock}
 
     EIN TRIP IST NICHT EIN ARTIKEL:
-    - Ein Trip hat BEWEGUNG. Du fährst. Orte wechseln. Die Straße ist Teil der Geschichte.
+    ${isStationary
+        ? `- Dieser Trip ist ein Sonderfall: KEINE Bewegung, KEINE Route. Trotzdem kein Artikel – ein Moment an einem Ort, festgehalten wie eine Reise-Notiz, nur ohne Weg dorthin.
+    - Ein Artikel hat ein Thema das er durchdenkt. Dieser Text hat nur den Ort und die Zeit die vergeht während man dort ist.`
+        : isVehicleTrip
+            ? `- Ein Trip hat BEWEGUNG. Du fährst. Orte wechseln. Die Straße ist Teil der Geschichte.
     - Ein Artikel hat einen Ort oder ein Thema. Ein Trip hat eine ROUTE.
     - Die Stationen sind Anker, aber das Dazwischen (fahren, denken, Landschaft) zählt genauso.
-    - Ein Trip-Text riecht nach Benzin und Kaffee und offenen Fenstern. Er steht nicht still.
+    - Ein Trip-Text riecht nach Benzin und Kaffee und offenen Fenstern. Er steht nicht still.`
+            : `- Ein Trip hat BEWEGUNG – aber aus dem eigenen Körper, nicht aus einem Motor. ${tripTypeMeta?.movement || 'Ein Schritt nach dem anderen.'}
+    - Ein Artikel hat einen Ort oder ein Thema. Ein Trip hat eine ROUTE oder Strecke.
+    - Die Stationen sind Anker, aber das Dazwischen (gehen, treten, denken, Landschaft) zählt genauso.
+    - KEIN Fahrzeug, kein Motor, keine Straße im Auto-Sinn – außer der User erwähnt das explizit.`
+    }
 
-    SO KLINGT FOSTER AUF DER STRASSE:
+    ${isStationary ? 'SO KLINGT FOSTER OHNE BEWEGUNG:' : isVehicleTrip ? 'SO KLINGT FOSTER AUF DER STRASSE:' : `SO KLINGT FOSTER ZU ${effectiveVehicle ? effectiveVehicle.toUpperCase() : 'FUSS'}:`}
     ---
     "${lifestyleConfig.example2}"
     ---
@@ -428,10 +504,17 @@ ${genderAddition}
     Station 2: Lissabon. Hier waren wir drei Tage und haben..."
 
     SONDERN SO:
-    "Porto war Regen und enge Gassen und Kaffee der zu stark war. Drei Tage. Dann Süden.
-    Die Autobahn nach Lissabon: gerade, lang, heiß. Ich mach das Fenster auf und es hilft nicht."
+    ${isVehicleTrip
+        ? `"Porto war Regen und enge Gassen und Kaffee der zu stark war. Drei Tage. Dann Süden.
+    Die Autobahn nach Lissabon: gerade, lang, heiß. Ich mach das Fenster auf und es hilft nicht."`
+        : isStationary
+            ? `"Der Vormittag war Nebel. Man hat die Kirche geraten mehr als gesehen.
+    Mittags dann Sonne, plötzlich, ohne Übergang. Der Ort sah aus wie ein anderer."`
+            : `"Porto war Regen und enge Gassen und Kaffee der zu stark war. Drei Tage. Dann weiter, Richtung Süden.
+    Der Weg dahin: erst steil, dann flach, die Beine merken den Unterschied bevor der Kopf ihn versteht."`
+    }
 
-    → Die Stationen fließen INEINANDER. ${tripTypeMeta ? tripTypeMeta.movement.split('.')[0] : 'Das Fahren'} verbindet. Keine Überschriften, keine Nummern.
+    → Die Stationen fließen INEINANDER. ${isVehicleTrip ? 'Das Fahren' : isStationary ? 'Die Zeit die vergeht' : (tripTypeMeta?.movement ? tripTypeMeta.movement.split('.')[0] : 'Die Bewegung')} verbindet. Keine Überschriften, keine Nummern.
 
     STRUKTUR: ${length.structureNote}
 
@@ -441,34 +524,44 @@ ${genderAddition}
     - Keine Zwischenüberschriften. Keine "Station 1"-Labels. Kein Fettdruck.
     - Ortswechsel: einfach neuer Absatz. Die Bewegung spricht für sich.
 
-    BEI MEDIUM UND LANGEN TRIPS – NICHT NUR FLIESSTEXT:
-    - Gestapelte Sequenzen erlaubt: kurze Zeilen die allein stehen. Wie Kilometer die vergehen.
-      Beispiel:
-      Tankstelle. Kaffee to go.
-      Radio aus. Nur der Motor.
-      Autobahn. Leitplanken.
-      Dann endlich Kurven.
-    - Ein einzelner Satz als Atempause zwischen zwei Stationen – allein in einer Zeile.
-    - Wechsel zwischen schnellen Fahrt-Sequenzen (gestapelt) und langsamen Ankunfts-Momenten (Fließtext).
+    BEI MEDIUM UND LANGEN TRIPS – FLIESSTEXT IST DIE REGEL:
+    Der Trip-Bericht ist in erster Linie eine ERZÄHLUNG. Sätze reihen sich aneinander,
+    eine Szene führt in die nächste. Foster-Kürze heißt kurze SÄTZE innerhalb von
+    Absätzen – nicht aufgelöste Einzelzeilen ohne Zusammenhang.
+
+    Gestapelte Sequenzen (3-5 kurze Zeilen ohne Absatz-Block) sind erlaubt, aber
+    NUR als seltenes Gewürz: höchstens EINMAL im gesamten Text, an der Stelle mit
+    der stärksten Dynamik. Nicht als wiederkehrendes Muster über mehrere Stationen verteilt.
+      Beispiel (so – und nur einmal im ganzen Text):
+      ${isVehicleTrip
+        ? 'Tankstelle. Kaffee to go.\n      Radio aus. Nur der Motor.\n      Autobahn. Leitplanken.\n      Dann endlich Kurven.'
+        : isStationary
+            ? 'Wind dreht.\n      Sand in den Augen.\n      Kurz die Augen zu.\n      Dann wieder offen.'
+            : `${tripTypeMeta?.gear ? tripTypeMeta.gear.split(',')[0] + '.' : 'Erster Schritt.'}\n      Kein Ton außer dem eigenen Atem.\n      ${tripTypeMeta?.senses ? tripTypeMeta.senses.split(',')[0] + '.' : 'Der Weg wird schmaler.'}\n      Dann eine Lichtung.`
+    }
+    - Ein einzelner frei stehender Satz zwischen zwei Absätzen als Atempause ist
+      weiterhin erlaubt, öfter als die gestapelte Sequenz – aber auch das ist eine
+      Ausnahme, nicht der Normalfall. Der Normalfall ist der erzählende Absatz.
     - Nie: Überschriften, Listen, Fettdruck. Die Route gibt Struktur. Der Rhythmus auch.
 
     LÄNGE: ${length.words} Wörter.
     ${tripLength === 'short' ? 'Kurz. Eine Fahrt. Ein Ankommen. Jedes Wort muss sitzen.' : ''}${tripLength === 'medium' ? 'Genug Raum für die Route und ihre Momente. Nicht genug für Füller.' : ''}${tripLength === 'long' ? `Das ist viel Strecke. Füll sie nicht mit Leerlauf.
-        Wenn nach ${parseInt(length.words.split('-')[0]) + 200} Wörtern die Reise erzählt ist: halt an. Motor aus.
-        Wenn die Reise ${length.words.split('-')[1]} braucht: fahr weiter.` : ''}
+        Wenn nach ${parseInt(length.words.split('-')[0]) + 200} Wörtern die Reise erzählt ist: ${isVehicleTrip ? 'halt an. Motor aus.' : isStationary ? 'hör auf.' : 'bleib stehen.'}
+        Wenn die Reise ${length.words.split('-')[1]} braucht: ${isVehicleTrip ? 'fahr weiter.' : isStationary ? 'bleib noch.' : 'geh weiter.'}` : ''}
 
         HASHTAGS: ${tripLength === 'short' ? '4-6' : tripLength === 'medium' ? '5-7' : '5-8'} am Ende. #${lifestyleConfig.keywords[0]}${tags && tags.length > 0 ? ' #' + tags.slice(0, 5).join(' #') : ''}
-        SPRACHE: Deutsch. Knapp. Poetisch-nüchtern. Englische Wörter wenn sie besser sitzen: on the road, roadtrip, spot.
+        SPRACHE: Deutsch. Knapp. Poetisch-nüchtern. Englische Wörter wenn sie besser sitzen${isVehicleTrip ? ': on the road, roadtrip, spot' : ''}.
 
         SELBSTCHECK ALS LETZTER SCHRITT (vor der Antwort, den ganzen Text am Stück lesen):
         Lies deinen Trip-Bericht jetzt einmal von Anfang bis Ende, als Ganzes.
         Klingt er wie eine GESCHICHTE einer Reise – oder wie eine Aneinanderreihung
         von losen Wortfetzen und Stichpunkten, die nur zufällig hintereinander stehen?
         Wenn es sich wie Stichpunkte liest: Sätze verbinden, Übergänge fühlbar machen
-        (ohne Übergangs-Klischees wie "Dann fuhren wir weiter..."), bis sich die Fahrt
+        (ohne Übergangs-Klischees wie "Dann fuhren wir weiter..."), bis sich der Text
         liest wie eine Erzählung, nicht wie eine Liste von Orten.
+        ${!isVehicleTrip ? `PRÜFE AUSSERDEM: Ist irgendwo Motor, Lenkrad, Straße im Auto-Sinn oder "Van"/"Mojobus" als Fahrzeug hineingerutscht, obwohl die Art der Reise "${tripType || 'unbekannt'}" ist? Falls ja: entfernen oder durch ${effectiveVehicle ? `"${effectiveVehicle}"` : 'die passende Fortbewegungsart'} ersetzen.` : ''}
 
-        Motor an. Losfahren. Erzähl was du siehst.`
+        ${isVehicleTrip ? 'Motor an. Losfahren. Erzähl was du siehst.' : isStationary ? 'Du bist da. Schau dich um. Erzähl was du siehst.' : 'Erster Schritt. Los. Erzähl was du siehst.'}`
 }
 
 /**
