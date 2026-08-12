@@ -267,7 +267,26 @@ export const generateTripPrompt = (params) => {
         Kaffee am nächsten Morgen mit Blick auf nichts. Nebel. Alles weg. Die Kirche noch da, der Rest verschwunden. Als hätte jemand die Welt ausgeschaltet und vergessen das Meer leiser zu drehen.
         ---
 
-        → Beachte: Stationen sind da (Autobahn → Küste → Platz → Kirchenparkplatz). Aber keine Liste. Eine fließende Bewegung. Das Fahren ist Teil der Erzählung. "Wir" erzählt – kein Kitsch, nur zwei Menschen im Mojobus.`
+        → Beachte: Stationen sind da (Autobahn → Küste → Platz → Kirchenparkplatz). Aber keine Liste. Eine fließende Bewegung. Das Fahren ist Teil der Erzählung. "Wir" erzählt – kein Kitsch, nur zwei Menschen im Mojobus.
+
+        EIN ZWEITES MUSTER – ANDERER RHYTHMUS, GLEICHER FOSTER:
+        ---
+        Wir hatten keinen Plan für diesen Tag, und das war das Einzige was wir richtig gemacht haben.
+
+        Kaffee. Karte kurz angeschaut. Wieder weggelegt.
+
+        Susanne wollte Richtung Berge. Ich wollte an der Küste bleiben. Wir sind an der Küste geblieben, weil ich gefahren bin und sie das zugelassen hat, was auch eine Art Entscheidung ist.
+
+        Die Straße zog sich länger als sie auf der Karte aussah, was Straßen an der Küste eigentlich immer tun, weil niemand eine Küstenstraße gerade baut, und irgendwann hört man auf die Kurven zu zählen und lässt sich einfach von ihnen nehmen.
+
+        Mittags nichts. Kein Ort. Kein Hunger.
+
+        Abends dann doch ein Ort. Zufällig. Ein Hafen, drei Boote, ein Typ der sein Netz repariert und uns kurz ansieht und dann weiter sein Netz repariert. Wir bleiben. Keiner sagt warum.
+
+        Susanne kocht. Ich schau aufs Wasser. Der Mojobus steht schief, aber nicht schief genug um es zu ändern.
+        ---
+
+        → Beachte: Hier trägt EIN langer, mäandernder Satz die Fahrt über die Küstenstraße – umrahmt von sehr kurzen Sätzen und einer gestapelten Sequenz am Anfang. Andere Textur als das erste Muster, aber gleicher Foster-Kern. Wähle das Muster (oder eine Mischung) das zum Inhalt passt – nicht jeder lange Trip muss gleich klingen.`
     }
 
     // Input-Stärke einschätzen
@@ -440,6 +459,14 @@ ${genderAddition}
 
         HASHTAGS: ${tripLength === 'short' ? '4-6' : tripLength === 'medium' ? '5-7' : '5-8'} am Ende. #${lifestyleConfig.keywords[0]}${tags && tags.length > 0 ? ' #' + tags.slice(0, 5).join(' #') : ''}
         SPRACHE: Deutsch. Knapp. Poetisch-nüchtern. Englische Wörter wenn sie besser sitzen: on the road, roadtrip, spot.
+
+        SELBSTCHECK ALS LETZTER SCHRITT (vor der Antwort, den ganzen Text am Stück lesen):
+        Lies deinen Trip-Bericht jetzt einmal von Anfang bis Ende, als Ganzes.
+        Klingt er wie eine GESCHICHTE einer Reise – oder wie eine Aneinanderreihung
+        von losen Wortfetzen und Stichpunkten, die nur zufällig hintereinander stehen?
+        Wenn es sich wie Stichpunkte liest: Sätze verbinden, Übergänge fühlbar machen
+        (ohne Übergangs-Klischees wie "Dann fuhren wir weiter..."), bis sich die Fahrt
+        liest wie eine Erzählung, nicht wie eine Liste von Orten.
 
         Motor an. Losfahren. Erzähl was du siehst.`
 }

@@ -159,7 +159,24 @@ export const generateArticlePrompt = (params) => {
         Wir sitzen bis es dunkel wird. Reden nicht viel. Das Meer ist da. Es war gestern auch da. Es wird morgen auch da sein. Das reicht.
         ---
 
-        → Beachte: Kurze Sätze BLEIBEN kurz. Aber es gibt MEHR davon. Mehr Beobachtungen. Mehr Raum für das Geräusch, den Kaffee, das Schweigen zwischen zwei Menschen. Jeder Absatz eine eigene Szene.`
+        → Beachte: Kurze Sätze BLEIBEN kurz. Aber es gibt MEHR davon. Mehr Beobachtungen. Mehr Raum für das Geräusch, den Kaffee, das Schweigen zwischen zwei Menschen. Jeder Absatz eine eigene Szene.
+
+        EIN ZWEITES MUSTER – ANDERER RHYTHMUS, GLEICHER FOSTER:
+        ---
+        Ich hab überlegt ob ich das schreibe. Dann hab ich es einfach gemacht.
+
+        Der Motor läuft seit Stunden gleich, dieses tiefe Brummen das man irgendwann nicht mehr hört, bis er einmal stottert und das ganze Fahrzeug für eine Sekunde die Luft anhält, und man merkt wie sehr man sich auf dieses Geräusch verlassen hat ohne es je zu merken.
+
+        Dann läuft er wieder. Kein Grund. Kein Muster. Läuft einfach.
+
+        Ich denk an meinen Vater. Keine Ahnung warum genau jetzt. Er hätte den Motor auseinandergenommen bevor er weitergefahren wäre. Ich fahr weiter. Vielleicht ist das der Unterschied zwischen uns. Vielleicht ist es auch egal.
+
+        Die Straße wird schmaler. Die Häuser weniger. Irgendwann nur noch Wald und das Brummen und Gedanken die auch irgendwann leiser werden.
+        ---
+
+        → Beachte: Hier trägt EIN langer, mäandernder Gedanke die Szene – umrahmt von kurzen Sätzen davor und danach. Andere Textur, gleicher Foster-Kern.
+
+        WICHTIG: Das sind zwei MUSTER, keine Vorlagen zum Kopieren. Nicht jeder lange Text muss gleich klingen – wähle das Muster (oder eine Mischung daraus) das zum Inhalt passt. Manche Texte tragen mehr kurze Beobachtungen, manche einen langen mäandernden Gedanken. Beides ist Foster.`
     }
 
     // Input-Stärke einschätzen für dynamische Anweisung
@@ -311,6 +328,14 @@ ${placementZones && placementZones.length > 0 ? `
 
         HASHTAGS: ${articleLength === 'short' ? '4-6' : articleLength === 'medium' ? '5-7' : '5-8'} am Ende. #${lifestyleConfig.keywords[0]}${tags && tags.length > 0 ? ' #' + tags.slice(0, 5).join(' #') : ''}
         SPRACHE: Deutsch. Foster's Deutsch: knapp, direkt, poetisch-nüchtern. Englische Wörter wenn sie besser sitzen.
+
+        SELBSTCHECK ALS LETZTER SCHRITT (vor der Antwort, den ganzen Text am Stück lesen):
+        Lies deinen Text jetzt einmal von Anfang bis Ende, als Ganzes.
+        Klingt er wie eine GESCHICHTE, die jemand erzählt – oder wie eine Sammlung
+        von losen Wortfetzen und Stichpunkten, die nur zufällig hintereinander stehen?
+        Wenn es sich wie Stichpunkte liest: Sätze verbinden, Übergänge fühlbar machen
+        (ohne Übergangs-Klischees wie "Doch dann..."), bis es fließt wie ein Gedanke,
+        keine Liste.
 
         Starte mit einem Moment. Nicht mit einem Gedanken über den Moment. Mit dem Moment selbst. Los.`
 }
