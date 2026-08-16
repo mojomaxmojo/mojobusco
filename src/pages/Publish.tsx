@@ -88,7 +88,7 @@ export function Publish() {
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="media" className="gap-2">
               <Upload className="h-4 w-4" />
-              Medien
+              Bilder
             </TabsTrigger>
             <TabsTrigger value="trip" className="gap-2">
               <Route className="h-4 w-4" />
