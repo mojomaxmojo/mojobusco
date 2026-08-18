@@ -14,14 +14,14 @@
 /** @type {Record<'mini'|'medium'|'maxi', ModelConfig>} */
 export const TEXT_MODELS = {
   mini: {
-    id: 'anthropic/claude-sonnet-5',
+    id: 'deepseek/deepseek-v4-pro-0813',
     provider: 'openrouter',
-    label: 'Claude Sonnet 5 (Mini)'
+    label: 'deepseek-v4-pro-0813'
   },
   medium: {
-    id: 'anthropic/claude-sonnet-5',
+    id: 'qwen/qwen3.8-max',
     provider: 'openrouter',
-    label: 'Claude Sonnet 5 (Medium)'
+    label: 'qwen3.8-max'
   },
   maxi: {
     id: 'anthropic/claude-sonnet-5',
