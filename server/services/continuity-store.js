@@ -97,6 +97,20 @@ export function savePost({ id, type, kind, title, location, country, mood, publi
 }
 
 /**
+ * Löscht alle bestehenden Motive/Entitäten/offenen Fäden eines Posts.
+ * Wird vor erneutem Tracking desselben Posts (z.B. nach einer Bearbeitung
+ * über den Edit-Flow, gleicher dTag) aufgerufen, damit sich beim
+ * wiederholten Tracking keine Duplikate/veralteten Einträge aus früheren
+ * Fassungen ansammeln.
+ * @param {string} postId
+ */
+export function deletePostChildren(postId) {
+  getDb().prepare(`DELETE FROM post_motifs WHERE post_id = ?`).run(postId)
+  getDb().prepare(`DELETE FROM post_entities WHERE post_id = ?`).run(postId)
+  getDb().prepare(`DELETE FROM open_threads WHERE post_id = ?`).run(postId)
+}
+
+/**
  * Speichert die Motive eines Posts.
  * @param {string} postId
  * @param {string[]} motifs

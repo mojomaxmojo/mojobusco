@@ -13,6 +13,7 @@ import { buildExtractionPrompt } from '../../prompts/continuity-extraction.js'
 import { generateWithModel } from '../../services/ai-content.js'
 import {
   savePost,
+  deletePostChildren,
   saveMotifs,
   saveEntities,
   saveOpenThreads
@@ -119,6 +120,10 @@ router.post('/api/continuity/track', async (req, res) => {
       mood,
       publishedAt: publishedAtTimestamp
     })
+    // Bei erneutem Tracking desselben Posts (z.B. nach Bearbeitung, gleicher
+    // dTag) zuerst die alten Kind-Einträge entfernen, damit sich keine
+    // Duplikate/veralteten Motive/Fäden aus früheren Fassungen ansammeln.
+    deletePostChildren(id)
     saveMotifs(id, motifs)
     saveEntities(id, entities)
     saveOpenThreads(id, openThreads)
