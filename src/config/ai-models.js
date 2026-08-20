@@ -16,7 +16,7 @@ export const TEXT_MODELS = {
   mini: {
     id: 'deepseek/deepseek-v4-pro-0813',
     provider: 'openrouter',
-    label: 'DeepSeek V4 Pro 0813',
+    label: 'DeepSeek V4 Pro 0813 (Mini)',
     supportsReasoning: true,
     reasoning: { effort: 'none' }, // Reasoning komplett aus
     tokenBudgets: {
@@ -32,27 +32,27 @@ export const TEXT_MODELS = {
     }
   },
   medium: {
-    id: 'qwen/qwen3.8-max',
+    id: 'anthropic/claude-sonnet-5',
     provider: 'openrouter',
-    label: 'Qwen3.8 Max',
+    label: 'Claude Sonnet 5 (Medium)',
     supportsReasoning: true,
-    reasoning: { max_tokens: 100 }, // Reasoning ist Pflicht -> Budget begrenzen
+    reasoning: { effort: 'low' },
     tokenBudgets: {
       article: { short: 2500, medium: 5000, long: 7500 },
-      trip: { short: 800, medium: 2000, long: 3500 },
-      caption: 350,
-      summary: 800,
-      titles: 800,
-      note: 400,
-      place: 600,
-      media: 400,
-      default: 1500
+      trip: { short: 500, medium: 1400, long: 2800 },
+      caption: 150,
+      summary: 400,
+      titles: 400,
+      note: 200,
+      place: 400,
+      media: 250,
+      default: 1000
     }
   },
   maxi: {
-    id: 'anthropic/claude-sonnet-5',
+    id: 'anthropic/claude-opus-5',
     provider: 'openrouter',
-    label: 'Claude Sonnet 5 (Maxi)',
+    label: 'Claude Opus 5 (Maxi)',
     supportsReasoning: true,
     reasoning: { effort: 'low' },
     tokenBudgets: {
