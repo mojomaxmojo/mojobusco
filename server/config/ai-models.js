@@ -25,7 +25,7 @@ export const TEXT_MODELS = {
     provider: 'openrouter',
     label: 'qwen3.8-max',
     supportsReasoning: true,
-    reasoning: { effort: 'none' } // Denk-Modus komplett aus
+    reasoning: { effort: 'low' } // Reasoning ist fuer dieses Modell Pflicht
   },
   maxi: {
     id: 'anthropic/claude-sonnet-5',
