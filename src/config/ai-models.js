@@ -9,24 +9,30 @@
  * Änderungen werden nach einem neuen Build + Deploy aktiv.
  */
 
-/** @typedef {{ id: string, provider: 'openrouter' | 'groq', label: string }} ModelConfig */
+/** @typedef {{ id: string, provider: 'openrouter' | 'groq', label: string, supportsReasoning?: boolean, reasoning?: object | false | null }} ModelConfig */
 
 /** @type {Record<'mini'|'medium'|'maxi', ModelConfig>} */
 export const TEXT_MODELS = {
   mini: {
     id: 'deepseek/deepseek-v4-pro-0813',
     provider: 'openrouter',
-    label: 'DeepSeek V4 Pro 0813'
+    label: 'DeepSeek V4 Pro 0813',
+    supportsReasoning: true,
+    reasoning: { effort: 'none' } // Reasoning komplett aus
   },
   medium: {
     id: 'qwen/qwen3.8-max',
     provider: 'openrouter',
-    label: 'Qwen3.8 Max'
+    label: 'Qwen3.8 Max',
+    supportsReasoning: true,
+    reasoning: { effort: 'none' } // Denk-Modus komplett aus
   },
   maxi: {
     id: 'anthropic/claude-sonnet-5',
     provider: 'openrouter',
-    label: 'Claude Sonnet 5 (Maxi)'
+    label: 'Claude Sonnet 5 (Maxi)',
+    supportsReasoning: true,
+    reasoning: { effort: 'low' }
   }
 }
 

@@ -181,23 +181,23 @@ router.post('/api/generate-article', (req, res, next) => {
     console.log(`[KI] Generiere Summary + Titel-Vorschläge parallel...`)
     const [summaryRaw, titlesRaw] = await Promise.all([
       generateWithModel(summaryPromptText, model, lifestyle, {
-        maxTokens: 80,
+        maxTokens: 300,
         temperature: 0.7
       }),
       generateWithModel(titlesPromptText, model, lifestyle, {
-        maxTokens: 80,
+        maxTokens: 300,
         temperature: 0.9  // etwas mehr Variation für Titel
       })
     ])
 
-    // Titel parsen: eine Zeile = ein Titel, max 3
-    const titleSuggestions = titlesRaw
+    // Titel parsen: eine Zeile = ein Titel, max 3 (null-sicher)
+    const titleSuggestions = (titlesRaw || '')
       .split('\n')
       .map(l => l.trim().replace(/^[-–•*\d.]+\s*/, '').replace(/^["']|["']$/g, ''))
       .filter(l => l.length > 2 && l.length < 80)
       .slice(0, 3)
 
-    const summary = summaryRaw.trim().replace(/^["']|["']$/g, '')
+    const summary = (summaryRaw || '').trim().replace(/^["']|["']$/g, '')
 
     console.log(`[KI] Summary: "${summary.substring(0, 60)}..."`)
     console.log(`[KI] Titel-Vorschläge: ${JSON.stringify(titleSuggestions)}`)
