@@ -9,7 +9,7 @@
  * Der Text ist das was das Bild nicht zeigt.
  */
 
-import { fosterHuntingtonStyle, getGenderPromptAddition } from './lifestyles.js'
+import { fosterHuntingtonStyle, getGenderPromptAddition, buildContinuityContextLine } from './lifestyles.js'
 
 /**
  * Generiert den Foster Huntington Prompt für Medien-Artikel
@@ -29,7 +29,8 @@ export const generateMediaPrompt = (params) => {
     manualTags,
     country,
     gender = 'neutral',
-    tripType = ''
+    tripType = '',
+    continuity
   } = params
 
   // Gender-Prompt-Zusatz holen
@@ -51,7 +52,8 @@ export const generateMediaPrompt = (params) => {
     subCategories && subCategories.length > 0 && `Themen: ${subCategories.join(', ')}`,
     country && `Region: ${country}`,
     location && `Ort: ${location}${country ? ', ' + country : ''}`,
-    additionalImageUrls && `Weitere Bilder vorhanden: ja`
+    additionalImageUrls && `Weitere Bilder vorhanden: ja`,
+    continuity && buildContinuityContextLine(continuity)
   ].filter(Boolean).join('\n')
 
   // Alle Tags zusammenführen für Hashtags

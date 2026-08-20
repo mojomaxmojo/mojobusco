@@ -16,7 +16,7 @@
  * - Trips haben eine Route (wenn auch nicht immer geradeaus). Articles haben einen Gedanken.
  */
 
-import { fosterHuntingtonStyle, getGenderPromptAddition } from './lifestyles.js'
+import { fosterHuntingtonStyle, getGenderPromptAddition, buildContinuityContextLine } from './lifestyles.js'
 
 /**
  * Trip-Type Konfiguration
@@ -209,7 +209,8 @@ export const generateTripPrompt = (params) => {
         tripType,
         route,
         duration,
-        tripLength = 'medium'
+        tripLength = 'medium',
+        continuity
     } = params
 
     // Längen-Config holen
@@ -238,7 +239,8 @@ export const generateTripPrompt = (params) => {
         location && `Startort: ${location}${country ? ', ' + country : ''}`,
         duration && `Dauer: ${duration}`,
         route && `Route: ${route}`,
-        tags && tags.length > 0 && `Themen: ${tags.join(', ')}`
+        tags && tags.length > 0 && `Themen: ${tags.join(', ')}`,
+        continuity && buildContinuityContextLine(continuity)
     ].filter(Boolean).join('\n')
 
     // Stationen aufbereiten – unterstützt beide Formate:

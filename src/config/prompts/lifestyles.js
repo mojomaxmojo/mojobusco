@@ -526,6 +526,40 @@ export const lifestyles = Object.fromEntries(
   ])
 );
 
+/**
+ * Baut eine fertige Mehrzeiler-Kontextzeile aus dem Kontinuitäts-Objekt
+ * (Orts-Historie, wiederkehrende Motive, offene Fäden, Wetter), die als
+ * zusätzliche Zeile in `contextLines` eingespeist werden kann.
+ *
+ * @param {{ locationHistory?: string|null, recentMotifs?: string[], openThreads?: string[], weather?: string|null } | null | undefined} continuity
+ * @returns {string} Fertiger Mehrzeiler, oder '' wenn alle Felder leer sind.
+ */
+export function buildContinuityContextLine(continuity) {
+  if (!continuity) return '';
+
+  const lines = [];
+
+  if (continuity.weather) {
+    lines.push(`Wetter vor Ort: ${continuity.weather}`);
+  }
+
+  if (continuity.locationHistory) {
+    lines.push(continuity.locationHistory);
+  }
+
+  if (Array.isArray(continuity.recentMotifs) && continuity.recentMotifs.length > 0) {
+    lines.push(`Zuletzt oft verwendete Motive (bewusst variieren statt wiederholen): ${continuity.recentMotifs.join(', ')}.`);
+  }
+
+  if (Array.isArray(continuity.openThreads) && continuity.openThreads.length > 0) {
+    lines.push(`Offene Fäden aus früheren Posts (optional aufgreifen): ${continuity.openThreads.join(', ')}.`);
+  }
+
+  if (lines.length === 0) return '';
+
+  return lines.join('\n');
+}
+
 // Default Export
 export default {
   genderConfig,
@@ -541,5 +575,6 @@ export default {
   lifestyles,
   FOSTER_FORBIDDEN_WORDS,
   LEON_RULE,
-  AGE_ATTITUDE_NOTE
+  AGE_ATTITUDE_NOTE,
+  buildContinuityContextLine
 };

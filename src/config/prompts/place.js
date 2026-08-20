@@ -18,7 +18,7 @@
  *                    bestFor, country }
  */
 
-import { fosterHuntingtonStyle, getGenderPromptAddition } from './lifestyles.js'
+import { fosterHuntingtonStyle, getGenderPromptAddition, buildContinuityContextLine } from './lifestyles.js'
 
 /**
  * Generiert den Foster Huntington Prompt für Platz-Beschreibungen
@@ -40,7 +40,8 @@ export const generatePlacePrompt = (params) => {
     rating,
     price,
     gender = 'neutral',
-    tripType = ''
+    tripType = '',
+    continuity
   } = params
 
   // Normalisieren
@@ -82,7 +83,8 @@ export const generatePlacePrompt = (params) => {
     ratingText && `Bewertung: ${ratingText}`,
     priceText && `Preis/Kosten: ${priceText}`,
     facilities && facilities.length > 0 && `Einrichtungen: ${facilities.join(', ')}`,
-    bestFor && bestFor.length > 0 && `Geeignet für: ${bestFor.join(', ')}`
+    bestFor && bestFor.length > 0 && `Geeignet für: ${bestFor.join(', ')}`,
+    continuity && buildContinuityContextLine(continuity)
   ].filter(Boolean).join('\n')
 
   return `Du schreibst wie Foster Huntington. Eine Platz-Beschreibung für die ${lifestyleConfig.community}.

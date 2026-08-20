@@ -15,7 +15,7 @@
  * wie tief die Abschweifungen gehen.
  */
 
-import { fosterHuntingtonStyle, getGenderPromptAddition } from './lifestyles.js'
+import { fosterHuntingtonStyle, getGenderPromptAddition, buildContinuityContextLine } from './lifestyles.js'
 
 /**
  * Längen-Konfiguration
@@ -116,7 +116,8 @@ export const generateArticlePrompt = (params) => {
         articleLength = 'long',
         gender = 'neutral',
         tripType = '',
-        placementZones
+        placementZones,
+        continuity
     } = params
 
     // Normalisieren: imageObjects bevorzugen, imageDescriptions als Fallback
@@ -136,7 +137,8 @@ export const generateArticlePrompt = (params) => {
         category && `Kategorie: ${category}`,
         country && `Region: ${country}`,
         location && `Ort: ${location}${country ? ', ' + country : ''}`,
-        tags && tags.length > 0 && `Themen: ${tags.join(', ')}`
+        tags && tags.length > 0 && `Themen: ${tags.join(', ')}`,
+        continuity && buildContinuityContextLine(continuity)
     ].filter(Boolean).join('\n')
 
     // Langform-Beispiel nur bei medium und long einbauen

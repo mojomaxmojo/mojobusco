@@ -13,7 +13,7 @@
  * Es ist was es ist.
  */
 
-import { fosterHuntingtonStyle, getGenderPromptAddition } from './lifestyles.js'
+import { fosterHuntingtonStyle, getGenderPromptAddition, buildContinuityContextLine } from './lifestyles.js'
 
 /**
  * Generiert den Foster Huntington Prompt für Notizen
@@ -30,7 +30,8 @@ export const generateNotePrompt = (params) => {
     lifestyleConfig,
     country,
     gender = 'neutral',
-    tripType = ''
+    tripType = '',
+    continuity
   } = params
 
   // Gender-Prompt-Zusatz holen
@@ -40,7 +41,8 @@ export const generateNotePrompt = (params) => {
   let contextLines = [
     tripType && `Art der Reise: ${tripType}`,
     country && `Region: ${country}`,
-    location && `Ort: ${location}${country ? ', ' + country : ''}`
+    location && `Ort: ${location}${country ? ', ' + country : ''}`,
+    continuity && buildContinuityContextLine(continuity)
   ].filter(Boolean).join('\n')
 
   // Input-Stärke einschätzen
