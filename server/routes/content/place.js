@@ -163,9 +163,8 @@ router.post('/api/generate-place', (req, res, next) => {
       tripType
     })
 
-    // Plätze: max 300 Tokens (80-150 Wörter + Hashtags)
     const description_text = await generateWithModel(prompt, model, lifestyle, {
-      maxTokens: 300,
+      useCase: 'place',
       temperature: 0.75
     })
 

@@ -130,9 +130,6 @@ router.post('/api/generate-article', (req, res, next) => {
     ]
     console.log(`[KI] Gesamt ${imageObjects.length} Bilder für Prompt (${uploadedImageDescriptions.length} Titel, ${markdownImageDescriptions.length} Markdown)`)
 
-    // Berichte: maxTokens abhängig von articleLength
-    const articleMaxTokens = articleLength === 'short' ? 2500 : articleLength === 'medium' ? 5000 : 7500
-
     // Ziel-Wortzahl aus der gewählten Artikellänge (Mittelwert der Zielspanne),
     // UNABHÄNGIG vom Token-Budget – damit Bild-Verteilung stabil bleibt,
     // auch wenn das Token-Budget später nochmal angepasst wird
@@ -156,10 +153,12 @@ router.post('/api/generate-article', (req, res, next) => {
       tripType
     })
 
-    // Schritt 1: Artikel generieren
-    console.log(`[KI] Generiere Artikel (${articleLength}, max ${articleMaxTokens} Tokens)...`)
+    // Berichte: Token-Budget wird zentral in ai-models.js verwaltet
+    // useCase: 'article' + articleLength bezieht die passenden maxTokens
+    console.log(`[KI] Generiere Artikel (${articleLength}, Budget aus ai-models.js)...`)
     const article = await generateWithModel(prompt, model, lifestyle, {
-      maxTokens: articleMaxTokens,
+      useCase: 'article',
+      articleLength,
       temperature: 0.8
     })
     console.log(`[KI] Artikel fertig: ${article.length} Zeichen`)
@@ -181,11 +180,11 @@ router.post('/api/generate-article', (req, res, next) => {
     console.log(`[KI] Generiere Summary + Titel-Vorschläge parallel...`)
     const [summaryRaw, titlesRaw] = await Promise.all([
       generateWithModel(summaryPromptText, model, lifestyle, {
-        maxTokens: 300,
+        useCase: 'summary',
         temperature: 0.7
       }),
       generateWithModel(titlesPromptText, model, lifestyle, {
-        maxTokens: 300,
+        useCase: 'titles',
         temperature: 0.9  // etwas mehr Variation für Titel
       })
     ])

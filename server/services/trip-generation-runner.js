@@ -106,10 +106,9 @@ export async function runTripGenerationJob(jobId, params) {
       gender
     })
 
-    const tripMaxTokens = tripLength === 'short' ? 500 : tripLength === 'medium' ? 1400 : 2800
-
     article = await generateWithModel(tripPrompt, model, lifestyle, {
-      maxTokens: tripMaxTokens,
+      useCase: 'trip',
+      variant: tripLength,
       temperature: 0.85,
       timeout: 180000 // 180 Sekunden für lange Texte
     })
@@ -279,7 +278,7 @@ async function generateCaptions(jobId, imagePaths, imageDescriptions, context) {
 
     try {
       const caption = await generateWithModel(captionPrompt, model, lifestyle, {
-        maxTokens: 120,
+        useCase: 'caption',
         temperature: 0.8,
         timeout: 60000
       })

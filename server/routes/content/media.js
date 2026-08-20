@@ -134,9 +134,8 @@ router.post('/api/generate-media-article', (req, res, next) => {
       tripType
     })
 
-    // Artikel generieren – MEDIEN: max 150 Tokens (35-50 Wörter + Hashtags)
     const article = await generateWithModel(prompt, model, lifestyle, {
-      maxTokens: 150,
+      useCase: 'media',
       temperature: 0.7
     })
 

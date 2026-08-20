@@ -9,7 +9,7 @@
  * Änderungen werden nach Neustart des ai-api-Services aktiv.
  */
 
-/** @typedef {{ id: string, provider: 'openrouter' | 'groq', label: string, supportsReasoning?: boolean, reasoning?: object | false | null }} ModelConfig */
+/** @typedef {{ id: string, provider: 'openrouter' | 'groq', label: string, supportsReasoning?: boolean, reasoning?: object | false | null, tokenBudgets?: Record<string, number | Record<string, number>> }} ModelConfig */
 
 /** @type {Record<'mini'|'medium'|'maxi', ModelConfig>} */
 export const TEXT_MODELS = {
@@ -18,21 +18,54 @@ export const TEXT_MODELS = {
     provider: 'openrouter',
     label: 'deepseek-v4-pro-0813',
     supportsReasoning: true,
-    reasoning: { effort: 'none' } // Reasoning komplett aus
+    reasoning: { effort: 'none' }, // Reasoning komplett aus
+    tokenBudgets: {
+      article: { short: 2500, medium: 5000, long: 7500 },
+      trip: { short: 500, medium: 1400, long: 2800 },
+      caption: 150,
+      summary: 400,
+      titles: 400,
+      note: 150,
+      place: 300,
+      media: 200,
+      default: 1000
+    }
   },
   medium: {
     id: 'qwen/qwen3.8-max',
     provider: 'openrouter',
     label: 'qwen3.8-max',
     supportsReasoning: true,
-    reasoning: { effort: 'low' } // Reasoning ist fuer dieses Modell Pflicht
+    reasoning: { max_tokens: 100 }, // Reasoning ist Pflicht -> Budget begrenzen
+    tokenBudgets: {
+      article: { short: 2500, medium: 5000, long: 7500 },
+      trip: { short: 800, medium: 2000, long: 3500 },
+      caption: 350,
+      summary: 800,
+      titles: 800,
+      note: 400,
+      place: 600,
+      media: 400,
+      default: 1500
+    }
   },
   maxi: {
     id: 'anthropic/claude-sonnet-5',
     provider: 'openrouter',
     label: 'Claude Sonnet 5 (Maxi)',
     supportsReasoning: true,
-    reasoning: { effort: 'low' }
+    reasoning: { effort: 'low' },
+    tokenBudgets: {
+      article: { short: 2500, medium: 5000, long: 7500 },
+      trip: { short: 500, medium: 1400, long: 2800 },
+      caption: 150,
+      summary: 400,
+      titles: 400,
+      note: 200,
+      place: 400,
+      media: 250,
+      default: 1000
+    }
   }
 }
 
@@ -82,6 +115,28 @@ export function normalizeTextModel(model) {
  */
 export function getTextModel(tier) {
   return TEXT_MODELS[normalizeTextModel(tier)]
+}
+
+/**
+ * Liefert das Token-Budget fuer einen bestimmten Use-Case.
+ * Unterstuetzt sowohl einfache Zahlen als auch Objekte mit articleLength.
+ *
+ * @param {'mini'|'medium'|'maxi'} tier
+ * @param {string} useCase - z.B. 'article', 'summary', 'titles', 'note', 'place', 'media'
+ * @param {'short'|'medium'|'long'} [articleLength='medium'] - Nur relevant fuer 'article'
+ * @param {number} [fallback] - Fallback wenn kein Budget definiert
+ * @returns {number}
+ */
+export function getMaxTokens(tier, useCase, articleLength = 'medium', fallback = 1000) {
+  const config = getTextModel(tier)
+  const budgets = config.tokenBudgets || {}
+  const budget = budgets[useCase] ?? budgets.default ?? fallback
+
+  if (budget && typeof budget === 'object' && !Array.isArray(budget)) {
+    return budget[articleLength] ?? budget.medium ?? budget.short ?? budget.long ?? fallback
+  }
+
+  return typeof budget === 'number' ? budget : fallback
 }
 
 /**

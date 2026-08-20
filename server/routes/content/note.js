@@ -74,9 +74,8 @@ router.post('/api/generate-note', (req, res, next) => {
       tripType
     })
 
-    // Notizen: max 120 Tokens (20-80 Wörter + Hashtags)
     const note = await generateWithModel(prompt, model, lifestyle, {
-      maxTokens: 120,
+      useCase: 'note',
       temperature: 0.7
     })
     

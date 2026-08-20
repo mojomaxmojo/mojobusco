@@ -1,6 +1,6 @@
 import axios from 'axios'
 import { getLifestyleConfig } from '../../src/config/prompts/index.js'
-import { getTextModel, normalizeTextModel } from '../config/ai-models.js'
+import { getTextModel, normalizeTextModel, getMaxTokens } from '../config/ai-models.js'
 
 const OPENROUTER_BASE = 'https://openrouter.ai/api/v1/chat/completions'
 
@@ -21,13 +21,15 @@ const generateWithModel = async (prompt, model = 'medium', lifestyle = 'mojobus'
   const startTime = Date.now()
   const lifestyleConfig = getLifestyleConfig(lifestyle)
 
-  // Defaults die pro Tab überschrieben werden können
-  const baseMaxTokens = options.maxTokens || 700
-  const temperature = options.temperature || 0.8
-  const callTimeout = options.timeout || 60000
-
   const tier = normalizeTextModel(model)
   const modelConfig = getTextModel(tier)
+
+  // Defaults die pro Tab überschrieben werden können
+  const useCase = options.useCase || 'default'
+  const articleLength = options.articleLength || options.variant || 'medium'
+  const baseMaxTokens = options.maxTokens || getMaxTokens(tier, useCase, articleLength, 700)
+  const temperature = options.temperature || 0.8
+  const callTimeout = options.timeout || 60000
 
   // Reasoning-Steuerung:
   // 1. Option aus dem Aufruf hat hoechste Prioritaet
