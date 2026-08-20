@@ -29,6 +29,7 @@ import {
   readTempImage,
   cleanupTempImages
 } from './temp-images.js'
+import { getGenerationContext } from './generation-context.js'
 
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024
 const BATCH_SIZE = 4
@@ -91,6 +92,12 @@ export async function runTripGenerationJob(jobId, params) {
       message: 'Trip-Text wird geschrieben...'
     })
 
+    const continuity = await getGenerationContext({
+      location: (locations || [])[0],
+      country,
+      date: params.date
+    })
+
     const tripPrompt = generateTripPrompt({
       title,
       description,
@@ -103,7 +110,8 @@ export async function runTripGenerationJob(jobId, params) {
       stationDescriptions,
       tripType,
       tripLength,
-      gender
+      gender,
+      continuity
     })
 
     article = await generateWithModel(tripPrompt, model, lifestyle, {

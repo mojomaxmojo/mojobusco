@@ -8,6 +8,7 @@ import {
 import { handleMulterError, sanitizeInput, validateApiKey, safelyParseJSON } from '../../utils/http-helpers.js'
 import { generateWithModel } from '../../services/ai-content.js'
 import { analyzeImageBase64 } from './vision.js'
+import { getGenerationContext } from '../../services/generation-context.js'
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -61,6 +62,8 @@ router.post('/api/generate-note', (req, res, next) => {
       return analyzeImageBase64(base64, 'image/jpeg', prompt, 100)
     }))
 
+    const continuity = await getGenerationContext({ location, country, date: req.body.publishedAt })
+
     // Foster Huntington Prompt für Notizen - importiert aus src/config/prompts/notes.js
     const prompt = generateNotePrompt({
       title,
@@ -71,7 +74,8 @@ router.post('/api/generate-note', (req, res, next) => {
       lifestyleConfig,
       country,
       gender,
-      tripType
+      tripType,
+      continuity
     })
 
     const note = await generateWithModel(prompt, model, lifestyle, {

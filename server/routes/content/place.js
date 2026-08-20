@@ -9,6 +9,7 @@ import {
 import { handleMulterError, sanitizeInput, validateApiKey, safelyParseJSON } from '../../utils/http-helpers.js'
 import { generateWithModel } from '../../services/ai-content.js'
 import { analyzeImageBase64 } from './vision.js'
+import { getGenerationContext } from '../../services/generation-context.js'
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -144,6 +145,14 @@ router.post('/api/generate-place', (req, res, next) => {
     ]
     console.log(`[KI] Gesamt ${imageObjects.length} Bilder für Platz-Prompt`)
 
+    const continuity = await getGenerationContext({
+      location,
+      country,
+      date: req.body.publishedAt,
+      gpsLat: gps_lat ? parseFloat(gps_lat) : undefined,
+      gpsLon: gps_lon ? parseFloat(gps_lon) : undefined
+    })
+
     // Foster Huntington Prompt für Plätze - importiert aus src/config/prompts/place.js
     const prompt = generatePlacePrompt({
       title,
@@ -160,7 +169,8 @@ router.post('/api/generate-place', (req, res, next) => {
       rating,
       price,
       gender,
-      tripType
+      tripType,
+      continuity
     })
 
     const description_text = await generateWithModel(prompt, model, lifestyle, {

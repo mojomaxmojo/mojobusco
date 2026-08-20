@@ -10,6 +10,7 @@ import {
 import { handleMulterError, sanitizeInput, validateApiKey, safelyParseJSON } from '../../utils/http-helpers.js'
 import { generateWithModel } from '../../services/ai-content.js'
 import { analyzeImageBase64 } from './vision.js'
+import { getGenerationContext } from '../../services/generation-context.js'
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -115,6 +116,8 @@ router.post('/api/generate-media-article', (req, res, next) => {
 
     console.log(`[KI] ${allDescriptions.length} Medien analysiert (${imageDescriptions.length} Bilder, ${videoDescriptions.length} Videos)`)
 
+    const continuity = await getGenerationContext({ location, country, date: req.body.publishedAt })
+
     // ===== FOSTER HUNTINGTON STIL PROMPT =====
     // Generiert mit: generateMediaPrompt() - importiert aus src/config/prompts/media.js
     const prompt = generateMediaPrompt({
@@ -131,7 +134,8 @@ router.post('/api/generate-media-article', (req, res, next) => {
       manualTags,
       country,
       gender,
-      tripType
+      tripType,
+      continuity
     })
 
     const article = await generateWithModel(prompt, model, lifestyle, {

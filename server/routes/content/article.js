@@ -12,6 +12,7 @@ import {
 import { handleMulterError, sanitizeInput, validateApiKey, safelyParseJSON } from '../../utils/http-helpers.js'
 import { generateWithModel } from '../../services/ai-content.js'
 import { analyzeImageBase64 } from './vision.js'
+import { getGenerationContext } from '../../services/generation-context.js'
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -136,6 +137,8 @@ router.post('/api/generate-article', (req, res, next) => {
     const targetWordsMid = articleLength === 'short' ? 750 : articleLength === 'medium' ? 1500 : 2500
     const placementZones = computePlacementZones(targetWordsMid, imageObjects.length)
 
+    const continuity = await getGenerationContext({ location, country, date: req.body.publishedAt })
+
     // Foster Huntington Prompt für Berichte - importiert aus src/config/prompts/articles.js
     const prompt = generateArticlePrompt({
       title,
@@ -150,7 +153,8 @@ router.post('/api/generate-article', (req, res, next) => {
       country,
       articleLength,
       gender,
-      tripType
+      tripType,
+      continuity
     })
 
     // Berichte: Token-Budget wird zentral in ai-models.js verwaltet
