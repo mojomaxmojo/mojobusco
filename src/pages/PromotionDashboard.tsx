@@ -32,6 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ModelSelect, type TextModelTier } from '@/components/ModelSelect'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 // Icons
@@ -93,7 +94,7 @@ export function PromotionDashboard() {
 
   // Template
   const [selectedTemplate, setSelectedTemplate] = useState<PinTemplateType>('infographic')
-  const [kiModel, setKiModel] = useState<'mini' | 'medium' | 'maxi'>('medium')
+  const [kiModel, setKiModel] = useState<TextModelTier>('medium')
   const [lifestyle, setLifestyle] = useState('mojobus')
 
   // Pin Data (from KI)
@@ -827,15 +828,11 @@ export function PromotionDashboard() {
               {/* KI Modell & Lifestyle */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <Label className="text-xs sm:text-sm">KI-Modell</Label>
-                  <Select value={kiModel} onValueChange={(v) => setKiModel(v as 'mini' | 'medium' | 'maxi')}>
-                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="mini">Mini (Claude Sonnet 5)</SelectItem>
-                      <SelectItem value="medium">Medium (Claude Sonnet 5)</SelectItem>
-                      <SelectItem value="maxi">Maxi (Claude Sonnet 5)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <ModelSelect
+                    label="KI-Modell"
+                    value={kiModel}
+                    onChange={setKiModel}
+                  />
                 </div>
                 <div>
                   <Label className="text-xs sm:text-sm">Lifestyle</Label>

@@ -31,6 +31,7 @@ import { useAutoTranslate } from '@/hooks/useAutoTranslate';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { PerspectiveSelector } from '@/components/PerspectiveSelector';
 import { type GenderType } from '@/config/prompts/lifestyles';
+import { ModelSelect, type TextModelTier } from '@/components/ModelSelect';
 import { canonicalUrl, tripUrl } from '@/lib/canonicalUrl';
 import { createLongformTeaser } from '@/lib/createLongformTeaser';
 import { AUTO_TRANSLATE_STORAGE_KEY } from '@/config/translation';
@@ -382,7 +383,7 @@ export function TripPublishForm() {
   const [generatingProgress, setGeneratingProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState('');
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
-  const [selectedModel, setSelectedModel] = useState<'mini' | 'medium' | 'maxi'>('medium');
+  const [selectedModel, setSelectedModel] = useState<TextModelTier>('medium');
   const [lifestyle, setLifestyle] = useState<'mojobus' | 'vanlife' | 'rvlife' | 'beachlife' | 'wohnmobil' | 'perpetual-travelers'>('mojobus');
   const [tripLength, setTripLength] = useState<'short' | 'medium' | 'long'>('medium');
   const [aiGeneratedCaptions, setAiGeneratedCaptions] = useState<Set<string>>(new Set()); // station.ids mit KI-Caption
@@ -1680,21 +1681,11 @@ export function TripPublishForm() {
             </div>
 
             {/* KI-Modell Auswahl */}
-            <div className="mt-4 space-y-2">
-              <Label className="text-sm font-medium">KI-Modell auswählen:</Label>
-              <Select value={selectedModel} onValueChange={(v) => setSelectedModel(v as 'mini' | 'medium' | 'maxi')}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="mini">Mini (Claude Sonnet 5)</SelectItem>
-                  <SelectItem value="medium">Medium (Claude Sonnet 5)</SelectItem>
-                  <SelectItem value="maxi">Maxi (Claude Sonnet 5)</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Stufen sind zentral in src/config/ai-models.js konfigurierbar.
-              </p>
+            <div className="mt-2 space-y-2">
+              <ModelSelect
+                value={selectedModel}
+                onChange={setSelectedModel}
+              />
             </div>
             
             {/* KI-Generierung Button */}

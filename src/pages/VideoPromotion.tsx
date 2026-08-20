@@ -37,6 +37,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ModelSelect, type TextModelTier } from '@/components/ModelSelect'
 import { Slider } from '@/components/ui/slider'
 
 // Icons
@@ -330,7 +331,7 @@ export function VideoPromotion() {
   const [template, setTemplate] = useState<TikTokTemplate>('story')
 
   // ── KI-MODELL ═════════════════════════════════════════════
-  const [aiModel, setAiModel] = useState<'mini' | 'medium' | 'maxi'>('medium')
+  const [aiModel, setAiModel] = useState<TextModelTier>('medium')
 
   // ── DRAG&DROP SORTIERUNG ═════════════════════════════════
   const [sortedImages, setSortedImages] = useState<string[]>([])
@@ -1835,23 +1836,14 @@ export function VideoPromotion() {
                 <EffectPresetSelector value={activeEffectPreset} onApply={applyEffectPreset} />
               </div>
 
-              {/* KI-Modell Auswahl */}
-              <div className="p-3 bg-muted/30 rounded-lg space-y-2">
-                <Label className="text-xs sm:text-sm">KI-Modell</Label>
-                <Select value={aiModel} onValueChange={(v) => setAiModel(v as 'mini' | 'medium' | 'maxi')}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="mini">Mini (Claude Sonnet 5)</SelectItem>
-                    <SelectItem value="medium">Medium (Claude Sonnet 5)</SelectItem>
-                    <SelectItem value="maxi">Maxi (Claude Sonnet 5)</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-[10px] sm:text-xs text-muted-foreground">
-                  Aktuell läuft jede Stufe mit Claude Sonnet 5 über OpenRouter.
-                </p>
-              </div>
+                {/* KI-Modell Auswahl */}
+                <div>
+                  <ModelSelect
+                    label="KI-Modell"
+                    value={aiModel}
+                    onChange={setAiModel}
+                  />
+                </div>
 
               {/* ── NEU: Medien-Reihenfolge (Drag&Drop) ───────────────────── */}
               {articleImages.length > 0 && (

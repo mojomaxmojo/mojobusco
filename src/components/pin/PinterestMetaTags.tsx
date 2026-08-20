@@ -7,7 +7,7 @@
  * POST /api/promotion/save-pin -> speichern
  * 
  * Verwendet die zentrale KI-Modell-Verwaltung:
- * Text-Modelle: mini / medium / maxi (aktuell alle Claude Sonnet 5)
+ * Text-Modelle: mini / medium / maxi (konfigurierbar in src/config/ai-models.js)
  * Vision-Modell: Qwen 2.5 VL 72B
  */
 

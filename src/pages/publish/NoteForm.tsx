@@ -18,6 +18,7 @@ import { LocationPicker } from "@/components/LocationPicker";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { PerspectiveSelector } from "@/components/PerspectiveSelector";
 import { type GenderType } from "@/config/prompts/lifestyles";
+import { ModelSelect, type TextModelTier } from "@/components/ModelSelect";
 import { useNostr } from "@nostrify/react";
 import { useQuery } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -58,7 +59,7 @@ export function NoteForm({ editEvent }: { editEvent?: any }) {
   const [editingGpsImage, setEditingGpsImage] = useState<number | null>(null);
   const [showMapPicker, setShowMapPicker] = useState(false);
   const [isGeneratingNote, setIsGeneratingNote] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<'mini' | 'medium' | 'maxi'>('medium');
+  const [selectedModel, setSelectedModel] = useState<TextModelTier>('medium');
   const [lifestyle, setLifestyle] = useState<'mojobus' | 'vanlife' | 'rvlife' | 'beachlife' | 'wohnmobil' | 'perpetual-travelers'>('mojobus');
   const [tripType, setTripType] = useState<TripType | ''>('');
 
@@ -656,20 +657,10 @@ export function NoteForm({ editEvent }: { editEvent?: any }) {
 
           {/* KI-Modell Auswahl */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium">KI-Modell auswählen:</Label>
-            <Select value={selectedModel} onValueChange={(v) => setSelectedModel(v as 'mini' | 'medium' | 'maxi')}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="mini">Mini (Claude Sonnet 5)</SelectItem>
-                <SelectItem value="medium">Medium (Claude Sonnet 5)</SelectItem>
-                <SelectItem value="maxi">Maxi (Claude Sonnet 5)</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              Stufen sind zentral in src/config/ai-models.js konfigurierbar.
-            </p>
+            <ModelSelect
+              value={selectedModel}
+              onChange={setSelectedModel}
+            />
           </div>
 
           <Button

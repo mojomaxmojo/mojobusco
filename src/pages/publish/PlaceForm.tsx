@@ -19,6 +19,7 @@ import { LocationPicker } from "@/components/LocationPicker";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { PerspectiveSelector } from "@/components/PerspectiveSelector";
 import { type GenderType } from "@/config/prompts/lifestyles";
+import { ModelSelect, type TextModelTier } from "@/components/ModelSelect";
 import { useNostr } from "@nostrify/react";
 import { useQuery } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -66,7 +67,7 @@ export function PlaceForm({ editEvent }: { editEvent?: any }) {
    const [isUploading, setIsUploading] = useState(false);
    const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
    const [lifestyle, setLifestyle] = useState<'mojobus' | 'vanlife' | 'rvlife' | 'beachlife' | 'wohnmobil' | 'perpetual-travelers'>('mojobus');
-     const [selectedModel, setSelectedModel] = useState<'mini' | 'medium' | 'maxi'>('medium');
+    const [selectedModel, setSelectedModel] = useState<TextModelTier>('medium');
      const [tripType, setTripType] = useState<TripType | ''>('');
    const [publishTeaserNote, setPublishTeaserNote] = useState(true);
    const [isPublishingTeaser, setIsPublishingTeaser] = useState(false);
@@ -1127,23 +1128,13 @@ Beschreibe hier den Ort, was macht ihn besonders...
             </p>
           </div>
 
-          {/* KI-Modell Auswahl */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">KI-Modell auswählen:</Label>
-            <Select value={selectedModel} onValueChange={(v) => setSelectedModel(v as 'mini' | 'medium' | 'maxi')}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="mini">Mini (Claude Sonnet 5)</SelectItem>
-                <SelectItem value="medium">Medium (Claude Sonnet 5)</SelectItem>
-                <SelectItem value="maxi">Maxi (Claude Sonnet 5)</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              Stufen sind zentral in src/config/ai-models.js konfigurierbar.
-            </p>
-          </div>
+            {/* KI-Modell Auswahl */}
+            <div className="space-y-2">
+              <ModelSelect
+                value={selectedModel}
+                onChange={setSelectedModel}
+              />
+            </div>
 
           <Button
             type="button"

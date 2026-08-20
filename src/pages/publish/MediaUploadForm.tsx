@@ -16,6 +16,7 @@ import { LocationPicker } from "@/components/LocationPicker";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { PerspectiveSelector } from "@/components/PerspectiveSelector";
 import { type GenderType } from "@/config/prompts/lifestyles";
+import { ModelSelect, type TextModelTier } from "@/components/ModelSelect";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { CountrySelector, getCountryTag } from "@/components/CountrySelector";
@@ -47,7 +48,7 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
   const [manualTags, setManualTags] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isGeneratingArticle, setIsGeneratingArticle] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<'mini' | 'medium' | 'maxi'>('medium');
+  const [selectedModel, setSelectedModel] = useState<TextModelTier>('medium');
   const [lifestyle, setLifestyle] = useState<'mojobus' | 'vanlife' | 'rvlife' | 'beachlife' | 'wohnmobil' | 'perpetual-travelers'>('mojobus');
   const [tripType, setTripType] = useState<TripType | ''>('');
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0, stage: '', status: '' });
@@ -1313,23 +1314,16 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
                  </p>
                </div>
                
-                {/* KI-Modell Auswahl */}
-                <div className="mt-4 space-y-2">
-                  <Label className="text-sm font-medium">KI-Modell auswählen:</Label>
-                  <Select value={selectedModel} onValueChange={(v) => setSelectedModel(v as 'mini' | 'medium' | 'maxi')}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="mini">Mini (Claude Sonnet 5)</SelectItem>
-                      <SelectItem value="medium">Medium (Claude Sonnet 5)</SelectItem>
-                      <SelectItem value="maxi">Maxi (Claude Sonnet 5)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Stufen sind zentral in src/config/ai-models.js konfigurierbar.
-                  </p>
-                </div>
+                 {/* KI-Modell Auswahl */}
+                 <div className="mt-4 space-y-2">
+                   <ModelSelect
+                     value={selectedModel}
+                     onChange={setSelectedModel}
+                   />
+                   <p className="text-xs text-muted-foreground">
+                     Stufen sind zentral in src/config/ai-models.js konfigurierbar.
+                   </p>
+                 </div>
               
               <Button
                 type="button"
