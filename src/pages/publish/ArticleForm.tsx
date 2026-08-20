@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/useToast";
 import { useUploadFile } from "@/hooks/useUploadFile";
 import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { useAutoTranslate } from "@/hooks/useAutoTranslate";
+import { useContinuityTracking } from "@/hooks/useContinuityTracking";
 import { ImageOptimizationToggle } from "@/components/ImageOptimizationToggle";
 import { GpsEditor } from "@/components/GpsEditor";
 import { GpsStatusIndicator } from "@/components/GpsStatusIndicator";
@@ -104,6 +105,7 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
   const gender = perspective;
   const navigate = useNavigate();
   const { translateAndPublish } = useAutoTranslate();
+  const { trackPublishedPost } = useContinuityTracking();
 
   // Hilfsfunktion: Bild-URLs aus Markdown-Content extrahieren
   // Format: ![alt](https://...) oder ![alt](https://...)
@@ -888,6 +890,18 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
       description: editEvent
         ? 'Bericht erfolgreich aktualisiert.'
         : 'Bericht veröffentlicht!'
+    });
+
+    // Kontinuitäts-Tracking: Motive/Entitäten/Stimmung/offene Fäden erfassen
+    trackPublishedPost({
+      id: dTag,
+      type: 'article',
+      kind: 30023,
+      title: title.trim(),
+      location: location.trim(),
+      country: selectedCountry,
+      publishedAt: publishedAtTimestamp,
+      content: content.trim(),
     });
 
     // Auto-Übersetzung (DE→EN): EN-Version im Hintergrund veröffentlichen

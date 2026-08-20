@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/useToast";
 import { useUploadFile } from "@/hooks/useUploadFile";
 import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { useAutoTranslate } from "@/hooks/useAutoTranslate";
+import { useContinuityTracking } from "@/hooks/useContinuityTracking";
 import { createLongformTeaser } from "@/lib/createLongformTeaser";
 import { placeUrl, canonicalUrl } from "@/lib/canonicalUrl";
 import { ImageOptimizationToggle } from "@/components/ImageOptimizationToggle";
@@ -92,6 +93,7 @@ export function PlaceForm({ editEvent }: { editEvent?: any }) {
   const gender = perspective;
   const navigate = useNavigate();
   const { translateAndPublish } = useAutoTranslate();
+  const { trackPublishedPost } = useContinuityTracking();
 
    // Hilfsfunktion: Bild-URLs aus Markdown extrahieren (gleiche Logik wie ArticleForm)
    const extractPlaceImageUrls = (markdown: string): string[] => {
@@ -700,6 +702,18 @@ export function PlaceForm({ editEvent }: { editEvent?: any }) {
         toast({
           title: 'Erfolg!',
           description: 'Ort erfolgreich gespeichert.'
+        });
+
+        // Kontinuitäts-Tracking: Motive/Entitäten/Stimmung/offene Fäden erfassen
+        trackPublishedPost({
+          id: dTag,
+          type: 'place',
+          kind: 30023,
+          title: name.trim(),
+          location: location.trim(),
+          country: selectedCountry,
+          publishedAt: visitTimestamp,
+          content,
         });
 
         // Auto-Übersetzung (DE→EN): EN-Version im Hintergrund veröffentlichen

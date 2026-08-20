@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/useToast";
 import { useUploadFile } from "@/hooks/useUploadFile";
 import { useNostrPublish } from "@/hooks/useNostrPublish";
+import { useContinuityTracking } from "@/hooks/useContinuityTracking";
 import { ImageOptimizationToggle } from "@/components/ImageOptimizationToggle";
 import { GpsEditor } from "@/components/GpsEditor";
 import { GpsStatusIndicator } from "@/components/GpsStatusIndicator";
@@ -61,6 +62,7 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
   const { toast } = useToast();
   const { mutateAsync: uploadFile } = useUploadFile();
   const { mutateAsync: publishEvent } = useNostrPublish();
+  const { trackPublishedPost } = useContinuityTracking();
   const { gender: autoGender } = useCurrentUser(); // Automatisch erkannte Perspektive (Mojo=male, Susanne=female)
   const [perspectiveTouched, setPerspectiveTouched] = useState(false);
   const [perspective, setPerspective] = useState<GenderType>(autoGender);
@@ -810,13 +812,24 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
         console.log('[MediaUpload] Content:', content.substring(0, 100) + '...');
         console.log('[MediaUpload] Tags count:', tags.length);
         
-        await publishEvent({
+        const publishedEvent = await publishEvent({
           kind: 1, // Text note with media attachments
           content,
           tags
         });
-        
+
         console.log('[MediaUpload] Event published successfully!');
+
+        // Kontinuitäts-Tracking: Motive/Entitäten/Stimmung/offene Fäden erfassen
+        trackPublishedPost({
+          id: publishedEvent.id,
+          type: 'media',
+          kind: 1,
+          location,
+          country: selectedCountry,
+          publishedAt: date,
+          content,
+        });
       } catch (publishError: any) {
         console.error('[MediaUpload] Publish failed:', publishError);
         console.error('[MediaUpload] Error details:', {

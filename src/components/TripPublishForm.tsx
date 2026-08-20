@@ -28,6 +28,7 @@ import { useToast } from '@/hooks/useToast';
 import { useUploadFile } from '@/hooks/useUploadFile';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useAutoTranslate } from '@/hooks/useAutoTranslate';
+import { useContinuityTracking } from '@/hooks/useContinuityTracking';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { PerspectiveSelector } from '@/components/PerspectiveSelector';
 import { type GenderType } from '@/config/prompts/lifestyles';
@@ -395,6 +396,7 @@ export function TripPublishForm() {
   const { toast } = useToast();
   const { mutateAsync: uploadFile } = useUploadFile();
   const { mutateAsync: publishEvent } = useNostrPublish();
+  const { trackPublishedPost } = useContinuityTracking();
   const { gender: autoGender, user } = useCurrentUser(); // Automatisch erkannte Perspektive (Mojo=male, Susanne=female)
   const [perspectiveTouched, setPerspectiveTouched] = useState(false);
   const [perspective, setPerspective] = useState<GenderType>(autoGender);
@@ -1249,6 +1251,18 @@ export function TripPublishForm() {
           description: isEditMode
             ? 'Dein Trip wurde erfolgreich aktualisiert.'
             : 'Dein Trip wurde erfolgreich veröffentlicht.',
+        });
+
+        // Kontinuitäts-Tracking: Motive/Entitäten/Stimmung/offene Fäden erfassen
+        // (nur der erste/Hauptort, Wegpunkt 1)
+        trackPublishedPost({
+          id: dTag,
+          type: 'trip',
+          kind: 30025,
+          title: tripData.title,
+          location: gpsStations[0]?.location || gpsStations[0]?.title || '',
+          country: tripData.country,
+          content,
         });
 
         // Auto-Übersetzung (DE→EN): EN-Version im Hintergrund veröffentlichen

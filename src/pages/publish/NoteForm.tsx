@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/useToast";
 import { useUploadFile } from "@/hooks/useUploadFile";
 import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { useAutoTranslate } from "@/hooks/useAutoTranslate";
+import { useContinuityTracking } from "@/hooks/useContinuityTracking";
 import { AUTO_TRANSLATE_STORAGE_KEY } from "@/config/translation";
 import { ImageOptimizationToggle } from "@/components/ImageOptimizationToggle";
 import { GpsEditor } from "@/components/GpsEditor";
@@ -81,6 +82,7 @@ export function NoteForm({ editEvent }: { editEvent?: any }) {
   const gender = perspective;
   const navigate = useNavigate();
   const { translateAndPublish } = useAutoTranslate();
+  const { trackPublishedPost } = useContinuityTracking();
 
   // KI-Notiz generieren (Foster Huntington Stil)
   const generateNoteWithAI = async () => {
@@ -530,6 +532,15 @@ export function NoteForm({ editEvent }: { editEvent?: any }) {
         toast({
           title: 'Erfolg!',
           description: 'Note erfolgreich veroeffentlicht.'
+        });
+
+        // Kontinuitäts-Tracking: Motive/Entitäten/Stimmung/offene Fäden erfassen
+        trackPublishedPost({
+          id: data.id,
+          type: 'note',
+          kind: 1,
+          location,
+          content: articleContent,
         });
 
         // Auto-Übersetzung (DE→EN): EN-Version im Hintergrund veröffentlichen

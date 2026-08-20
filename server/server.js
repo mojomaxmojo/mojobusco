@@ -56,9 +56,14 @@ import { botMiddleware, getBotCacheStats, clearBotCache } from './bot/middleware
 import promotionRouter from './routes/promotion/index.js'
 import { initJobDatabase, cleanupOldJobs } from './services/job-store.js'
 import { cleanupOldTempImages } from './services/temp-images.js'
+import { initContinuityDatabase } from './services/continuity-store.js'
+import { initWeatherCache } from './services/weather-lookup.js'
 
 // Datenbank für asynchrone Trip-Generierung initialisieren
 initJobDatabase()
+// Datenbank für Kontinuitäts-Gedächtnis + Wetter-Cache initialisieren
+initContinuityDatabase()
+initWeatherCache()
 
 const app = express()
 const PORT = process.env.PORT || 3002
