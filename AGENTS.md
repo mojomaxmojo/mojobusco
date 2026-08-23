@@ -60,6 +60,7 @@ Verzeichniss /projects/mojobusco/
 | Aufgabe | Datei |
 |---------|-------|
 | Allgemeine Projekt-Fakten (Dateien, Configs, Hooks, JSON-Dumps, Prerender/SW) | `MOJOBUS_CONTEXT.md` |
+| Kontinuitäts-Gedächtnis / Wetter-Kontext (`/veroeffentlichen`, `continuity.db`) | `MOJOBUS_CONTEXT.md` (Abschnitt "Kontinuitäts-Gedächtnis + Wetter-Kontext") |
 | Remotion / Video-Render / Voiceover / TTS / Effekte | `docs/CONTEXT_REMOTION.md` |
 | TikTok-Prompts / KI-Texte / API-Endpunkte / Roadmap | `docs/CONTEXT_TIKTOK.md` |
 | Deploy / VPS / Nginx / Cron / Debug / bekannte Einschränkungen | `docs/CONTEXT_DEPLOY.md` |

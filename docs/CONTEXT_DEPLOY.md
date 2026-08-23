@@ -147,6 +147,24 @@ journalctl -u ai-api -f
 
 # ffprobe Pfad prüfen:
 which ffprobe  # → /usr/local/bin/ffprobe (CentminMod Symlink)
+
+# Kontinuitäts-DB (server/data/continuity.db) – wird beim Serverstart von
+# server.js automatisch angelegt (initContinuityDatabase + initWeatherCache).
+# Nach Deploy/Neustart von ai-api verfügbar:
+sqlite3 server/data/continuity.db ".tables"
+# → posts, post_motifs, post_entities, open_threads, geocode_cache, weather_cache
+
+# Veröffentlichte Posts (Motive/Entitäten/Fäden/Wetter prüfen):
+sqlite3 server/data/continuity.db "SELECT id, type, title, location, country, mood FROM posts;"
+sqlite3 server/data/continuity.db "SELECT post_id, motif FROM post_motifs;"
+sqlite3 server/data/continuity.db "SELECT id, thread, resolved FROM open_threads WHERE resolved=0;"
+sqlite3 server/data/continuity.db "SELECT key, lat, lon FROM geocode_cache;"
+sqlite3 server/data/continuity.db "SELECT key, temp, code, wind FROM weather_cache;"
+
+# Wetter-/Geocoding-/Track-Logs im ai-api-Log (nur bei Fehlern bzw. bei
+# erfolgreichem Track sichtbar, z.B.):
+# [Continuity] Post <id> (article) gespeichert: 3 Motive, 2 Entitäten, 1 offene Fäden
+journalctl -u ai-api -f | grep -E "\[Continuity\]|\[Wetter\]"
 ```
 
 ---

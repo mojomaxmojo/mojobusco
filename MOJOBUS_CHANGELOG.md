@@ -5,6 +5,63 @@
 
 ---
 
+## Aktuelle Sitzung – Kontinuitäts-Gedächtnis + Wetter-Kontext (FEATURE-XXXX-PLAN.md, Schritt 1-6)
+
+**Ziel**: Alles was unter `/veroeffentlichen` veröffentlicht wird (Artikel,
+Plätze, Notes, Medien, Trips) wird nach dem Publish in einer eigenen
+SQLite-DB (`server/data/continuity.db`, Muster `jobs.db`) erfasst und vor
+der nächsten KI-Generierung als `contextLines`-Zusatzinfo eingespeist –
+zusammen mit echten Wetterdaten (open-meteo, kostenlos). Kontext-Eintrag
+siehe `MOJOBUS_CONTEXT.md` (Abschnitt "Kontinuitäts-Gedächtnis + Wetter").
+
+**Schritt 1** – `server/services/continuity-store.js` (neu): DB-Fundament
+(Tabellen `posts`, `post_motifs`, `post_entities`, `open_threads`) sowie
+Speichern/Fsreichen/Lesen-Funktionen.
+
+**Schritt 2** – `server/config/weather-codes.js` (neu, `WMO_CODE_DE`) +
+`server/services/weather-lookup.js` (neu): open-meteo-Geocoding + Wetter
+(Per Forecast/Archiv) mit Caching in `continuity.db` (`geocode_cache`,
+`weather_cache`).
+
+**Schritt 3** – `server/prompts/continuity-extraction.js` (neu) +
+`server/services/generation-context.js` (neu): `getGenerationContext()`
+kombiniert Orts-Historie/Motive/offene Fäden + Wetter zu einem Objekt.
+
+**Schritt 4** – Kontext-Abruf vor Generierung in `article.js`, `note.js`,
+`place.js`, `media.js`, `trip-generation-runner.js`: `continuity` wird an
+`generateXPrompt(...)` übergeben (von den Prompt-Funktionen noch nicht
+genutzt, JS-Destrukturierung ignoriert Unbekanntes → kein Verhaltenseffekt).
+
+**Schritt 5** – `server/routes/content/continuity.js` (neu): `POST
+/api/continuity/track` (extrahiert per Mini-Modell, speichert, antwortet
+immer `{ ok: true }`). `server.js` ruft `initContinuityDatabase()` +
+`initWeatherCache()` beim Start. Frontend: `src/hooks/useContinuityTracking.ts`
+(neu) + `trackPublishedPost(...)`-Aufruf nach dem Erfolgs-Toast in
+`ArticleForm.tsx`, `PlaceForm.tsx`, `NoteForm.tsx`, `MediaUploadForm.tsx`,
+`TripPublishForm.tsx`.
+
+**Schritt 6** – Tabu-Ausnahme (`src/config/prompts/`): `buildContinuityContextLine(continuity)`
+am Ende von `lifestyles.js` (kein bestehender Export verändert) + in JEDER
+der 5 Prompt-Dateien (`articles.js`, `notes.js`, `place.js`, `media.js`,
+`trips.js`) je 3 minimale Ergänzungen (Import, Destrukturierung,
+`contextLines`-Zeile). Kein bestehender Prompt-Text verändert.
+
+**Bugfix (Replaceable Content)**: `deletePostChildren(postId)` (neu in
+`continuity-store.js`), von `continuity.js` vor den drei `save*`-Aufrufen
+ausgeführt – verhindert, dass sich beim erneuten Tracking desselben `dTag`
+(Edit-Flow bei Artikel/Platz/Trip, kind 30023/30025) in `post_motifs`/
+`post_entities`/`open_threads` Duplikate/veraltete Einträge ansammeln.
+`posts` selbst ist unverändert via `INSERT OR REPLACE` konsistent.
+
+**Dokumentation aktualisiert**: `MOJOBUS_CONTEXT.md` (neuer Abschnitt
+Kontinuitäts-/Wetter-System + `useContinuityTracking()`-Zeile),
+`docs/CONTEXT_DEPLOY.md` (Debug-Kommandos für `continuity.db`/Wetter),
+`AGENTS.md` (Kontext-Tabelle). 
+
+Alle Schritte einzeln committet.
+
+---
+
 ## Aktuelle Sitzung – Trip-Migration auf kind:30025 (FEATURE-XXX-PLAN.md, 7 Schritte)
 
 **Ausgangspunkt**: Trips wurden in `generate-site-data.js`,

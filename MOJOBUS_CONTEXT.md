@@ -121,6 +121,7 @@ Generiert von `scripts/generate-feed.js` (Cron alle 6h).
 | `useVideos()` | `/data/videos.json` + Relay | Video-Feed (kind 34236) |
 | `useTrips()` | nur Relay, zweistufig | Trips (kind 30025): 2s Fast (limit 15) + 10s Full (limit 100) im Hintergrund. Beide Queries filtern nach `authors: NOSTR_CONFIG.authorPubkeys` (Fix `FEATURE-XXX-PLAN.md` Schritt 6). |
 | `useLongformArticle()` | nur Relay | Detailseiten (voller content) |
+| `useContinuityTracking()` | `/api/continuity/track` | Meldet nach Publish Artikel/Platz/Note/Media/Trip an die Kontinuitäts-DB (nicht-blockierend, Capacitor-kompatibel) |
 
 **First-Paint-Strategie (Erstbesucher ohne Cache):** Fällt ein JSON-Dump aus,
 läuft der Relay-Fallback in `usePreloadedData` zweistufig: FAST (2s, Limit 15 –
@@ -128,6 +129,60 @@ Relays liefern neueste zuerst) rendert sofort, FULL (voller Timeout, Limit 1000)
 lädt im Hintergrund nach und blockiert nie `isLoading`. Home rendert nur
 `FIRST_PAINT_CONFIG.homeCardCount` (3) Cards; Trips sind dort nicht Teil des
 blockierenden `isLoading`. Werte: `src/config/performance.ts`.
+
+---
+
+## Kontinuitäts-Gedächtnis + Wetter-Kontext (in /veroeffentlichen)
+
+**Zweck**: Nach dem Publish werden Artikel/Plätze/Notes/Medien/Trips in einer
+eigenen SQLite-DB (`server/data/continuity.db`, gleiches Muster wie
+`jobs.db`) erfasst: Ort, Motive, Entitäten, Stimmung, offene Fäden. Vor der
+NÄCHSTEN KI-Generierung wird diese Historie abgerufen und als zusätzliche
+Zeile in `contextLines` eingespeist – zusammen mit echten Wetterdaten
+(open-meteo, kostenlos, kein API-Key). So erfindet die KI keine Zahlen mehr
+fürs Wetter und wiederkehrende Motive/Orte/offene Fäden werden bewusst
+variiert oder aufgegriffen statt zufällig wiederholt.
+
+**Konfiguration** (Autoren-Daten bleiben in `src/config/authors.json`, hier
+keine hartcodierten Werte):
+
+| Datei | Zweck |
+|-------|-------|
+| `server/services/continuity-store.js` | DB-Fundament: `initContinuityDatabase()` + `savePost`/`saveMotifs`/`saveEntities`/`saveOpenThreads`, `getRecentMotifs` (letzte 60 Posts), `getLocationHistory`, `getOpenThreads`, `resolveThread`, `deletePostChildren` (löscht bei erneutem Tracking desselben `dTag` alle alten Motive/Fäden – verhindert Duplikate bei Replaceable Content) |
+| `server/services/weather-lookup.js` | open-meteo: `geocodeLocation` (permanenter Geocache), `getWeatherForDate` (Forecast/Archiv je 92-Tage-/16-Tage-Schwelle), `describeWeather` |
+| `server/config/weather-codes.js` | `WMO_CODE_DE` – WMO-Wettercodes → kurze deutsche Beschreibung |
+| `server/services/generation-context.js` | `getGenerationContext({location,country,date,gpsLat,gpsLon})` → `{ locationHistory, recentMotifs, openThreads, weather }` |
+| `server/prompts/continuity-extraction.js` | `buildExtractionPrompt` – weist Mini-Lion an, NUR JSON (Motifs/Entitäten/Mood/Threads) zu extrahieren |
+| `server/routes/content/continuity.js` | `POST /api/continuity/track` – extrahiert + speichert, antwortet immer `{ ok: true }` (blockiert Publish nie) |
+| `src/hooks/useContinuityTracking.ts` | Frontend-Hook: `trackPublishedPost(...)` (nicht-blockierend, console.warn bei Fehler) |
+| `src/config/prompts/lifestyles.js` | **Tabu-Ausnahme**: `buildContinuityContextLine(continuity)` (am Dateiende, kein bestehender Export verändert) |
+
+**Schema** (`server/data/continuity.db`, wird beim Serverstart automatisch
+angelegt – `initContinuityDatabase()` + `initWeatherCache()` laufen in
+`server.js`):
+
+- `posts` (id, type, kind, title, location, country, mood, published_at)
+- `post_motifs` (post_id, motif) · `post_entities` (post_id, entity) ·
+  `open_threads` (id, post_id, thread, resolved, created_at)
+- `geocode_cache` (key, lat, lon) · `weather_cache` (key, temp, code, wind)
+
+**Ablauf auf `/veroeffentlichen`**:
+1. Publish (Artikel/Platz/Note/Media/Trip) → `trackPublishedPost(...)` → `POST /api/continuity/track`.
+2. Route extrahiert per Mini-Modell (`generateWithModel(prompt, 'mini', ...)`)
+   Motive/Entitäten/Mood/offene Fäden und speichert sie (vorher
+   `deletePostChildren` entfernt alte Versionen).
+3. Nächste Generierung ruft `getGenerationContext(...)` auf →
+   `continuity`-Feld wird in den Prompt-Aufruf gemischt.
+4. `generateX*Prompt` baut via `buildContinuityContextLine(continuity)` eine
+   Zusatzzeile in `contextLines` (Wetter/Ort/Motive/offene Fäden).
+
+**Geteilte Welt / Einschränkungen**: kein Autor-Filter (Mojo + Susanne teilen
+dieselbe Kontinuität). Leere/unbekannte Location → Orts-Historie übersprungen,
+Motive/offenen Fäden werden trotzdem geliefert. Motive-Fenster = letzte 60
+Posts. `type` wird NICHT als Text in den Prompt geschrieben (nur intern).
+Wetter-GPS: vom ersten Bild mit GPS, sonst Geocoding von `location`+`country`
+(gerundet auf 2 Dezimalstellen, ~1km). Trips: nur erster/Hauptort (Wegpunkt 1).
+Schwelle Forecast/Archiv: 92 Tage; >16 Tage Zukunft → Wetter überspringen.
 
 ---
 
