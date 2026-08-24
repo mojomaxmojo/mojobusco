@@ -1,5 +1,6 @@
 import { ArticleCategory } from '@/config/types';
 import { RV_LIFE_ARTICLE_CATEGORIES } from './rvlife';
+import { STRANDORT_ARTICLE_CATEGORIES } from './strandort';
 
 export const ARTICLE_CATEGORIES: ArticleCategory[] = [
   {
@@ -90,7 +91,8 @@ export const ARTICLE_CATEGORIES: ArticleCategory[] = [
     autoTags: ['leon', 'lion', 'dog'], // Automatische Tags bei Auswahl dieser Kategorie (ohne 'artikel' da das schon in required ist)
     priority: 7
   },
-  ...RV_LIFE_ARTICLE_CATEGORIES
+  ...RV_LIFE_ARTICLE_CATEGORIES,
+  ...STRANDORT_ARTICLE_CATEGORIES
 ];
 
 export default ARTICLE_CATEGORIES;

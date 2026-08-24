@@ -57,6 +57,7 @@ export interface ArticleCategory {
   isDIY?: boolean;
   isLeon?: boolean;
   isRVLife?: boolean;
+  isStrandOrt?: boolean;
   tags: {
     primary: string[];
     optional: string[];
