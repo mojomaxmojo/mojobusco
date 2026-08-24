@@ -684,6 +684,9 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
   // Prueft ob RV Life-Kategorie
   const isRVLifeCategory = currentCategoryConfig?.isRVLife || false;
 
+  // Prueft ob Strand/Ort-Kategorie
+  const isStrandOrtCategory = currentCategoryConfig?.isStrandOrt || false;
+
   // Automatische Tags zu manuellen Tags hinzufügen
   const updateTagsWithAuto = (currentTags: string[]) => {
     let updatedTags = [...currentTags];
@@ -1605,6 +1608,43 @@ Schreibe deinen Artikel hier...
                   >
                     <span className="mr-2">{rvCat.emoji}</span>
                     {rvCat.name}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Strand/Ort-spezifische Tags */}
+        {isStrandOrtCategory && (
+          <div className="space-y-3">
+            <div className="bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-lg p-4">
+              <p className="text-sm text-cyan-700 dark:text-cyan-300 mb-3">
+                🏖️ Dieser Artikel erscheint im Strand/Ort Bereich. Wähle spezifische Kategorien:
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {[
+                  { id: 'strand', emoji: '🏖️', name: 'Strand' },
+                  { id: 'berg', emoji: '⛰️', name: 'Berg' },
+                  { id: 'wald', emoji: '🌲', name: 'Wald' },
+                  { id: 'meer', emoji: '🌊', name: 'Meer' },
+                  { id: 'ort', emoji: '📍', name: 'Ort' }
+                ].map(soCat => (
+                  <Badge
+                    key={soCat.id}
+                    variant={displayTags.includes(soCat.id) ? "default" : "outline"}
+                    className="cursor-pointer justify-start p-2"
+                    onClick={() => {
+                      // Toggle Strand/Ort Kategorie-Tag
+                      setTags(prev =>
+                        prev.includes(soCat.id)
+                          ? prev.filter(t => t !== soCat.id)
+                          : [...prev, soCat.id]
+                      );
+                    }}
+                  >
+                    <span className="mr-2">{soCat.emoji}</span>
+                    {soCat.name}
                   </Badge>
                 ))}
               </div>
