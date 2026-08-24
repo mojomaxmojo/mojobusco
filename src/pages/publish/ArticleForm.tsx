@@ -685,7 +685,7 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
   const isRVLifeCategory = currentCategoryConfig?.isRVLife || false;
 
   // Prueft ob Strand/Ort-Kategorie
-  const isStrandOrtCategory = currentCategoryConfig?.isStrandOrt || false;
+  const isStrandOrtCategory = category === 'strand-ort' || currentCategoryConfig?.isStrandOrt || false;
 
   // Automatische Tags zu manuellen Tags hinzufügen
   const updateTagsWithAuto = (currentTags: string[]) => {
@@ -1208,6 +1208,151 @@ Schreibe deinen Artikel hier...
           </Select>
         </div>
 
+        {/* Automatisch generierte Tags anzeigen */}
+        {(isDIYCategory || isLeonCategory || isRVLifeCategory) && (
+          <div className="space-y-3">
+            <Label>Automatische Tags</Label>
+            <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                🤖 Diese Tags werden automatisch aufgrund der Kategorie "{currentCategoryConfig?.name}" hinzugefügt:
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {/* Zeige automatisch generierte Tags */}
+                {currentCategoryConfig?.autoTags?.map(autoTag => (
+                  <Badge
+                    key={autoTag}
+                    variant="default"
+                    className="bg-green-100 text-green-700 border-green-300"
+                  >
+                    ✓ #{autoTag}
+                  </Badge>
+                )) || (isDIYCategory && (
+                  <Badge
+                    variant="default"
+                    className="bg-orange-100 text-orange-700 border-orange-300"
+                  >
+                    ✓ #diy
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* DIY-spezifische Tags */}
+        {isDIYCategory && (
+          <div className="space-y-3">
+            <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+              <p className="text-sm text-orange-700 dark:text-orange-300 mb-3">
+                ⚠️ Dieser Artikel erscheint im DIY-Bereich. Wähle spezifische Kategorien:
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {Object.values(DIY_CATEGORIES).map(diyCat => {
+                  const Icon = getDIYIcon(diyCat.icon);
+                  return (
+                    <Badge
+                      key={diyCat.id}
+                      variant={displayTags.includes(diyCat.id) ? "default" : "outline"}
+                      className="cursor-pointer justify-start p-2"
+                      onClick={() => {
+                        // DIY-Tag hinzufügen, falls noch nicht vorhanden
+                        if (!displayTags.includes('diy')) {
+                          setTags(prev => {
+                            const newTags = [...prev, 'diy'];
+                            return newTags;
+                          });
+                        }
+                        // Toggle spezifischen DIY-Tag
+                        setTags(prev =>
+                          prev.includes(diyCat.id)
+                            ? prev.filter(t => t !== diyCat.id)
+                            : [...prev, diyCat.id]
+                        );
+                      }}
+                    >
+                      <span className="mr-2">{diyCat.emoji}</span>
+                      {diyCat.name}
+                    </Badge>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* RV Life-spezifische Tags */}
+        {isRVLifeCategory && (
+          <div className="space-y-3">
+            <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+              <p className="text-sm text-orange-700 dark:text-orange-300 mb-3">
+                🚐 Dieser Artikel erscheint im RV Life Bereich. Wähle spezifische Kategorien:
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {[
+                  { id: 'kueche-essen', emoji: '🍳', name: 'Küche & Essen' },
+                  { id: 'ausstattung', emoji: '🏠', name: 'Ausstattung' },
+                  { id: 'freeliving', emoji: '🕊️', name: 'Freeliving' },
+                  { id: 'lifestyle', emoji: '✨', name: 'Lifestyle' }
+                ].map(rvCat => (
+                  <Badge
+                    key={rvCat.id}
+                    variant={displayTags.includes(rvCat.id) ? "default" : "outline"}
+                    className="cursor-pointer justify-start p-2"
+                    onClick={() => {
+                      // Toggle RV Life Kategorie-Tag
+                      setTags(prev =>
+                        prev.includes(rvCat.id)
+                          ? prev.filter(t => t !== rvCat.id)
+                          : [...prev, rvCat.id]
+                      );
+                    }}
+                  >
+                    <span className="mr-2">{rvCat.emoji}</span>
+                    {rvCat.name}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Strand/Ort-spezifische Tags */}
+        {isStrandOrtCategory && (
+          <div className="space-y-3">
+            <div className="bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-lg p-4">
+              <p className="text-sm text-cyan-700 dark:text-cyan-300 mb-3">
+                🏖️ Dieser Artikel erscheint im Strand/Ort Bereich. Wähle spezifische Kategorien:
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {[
+                  { id: 'strand', emoji: '🏖️', name: 'Strand' },
+                  { id: 'berg', emoji: '⛰️', name: 'Berg' },
+                  { id: 'wald', emoji: '🌲', name: 'Wald' },
+                  { id: 'meer', emoji: '🌊', name: 'Meer' },
+                  { id: 'ort', emoji: '📍', name: 'Ort' }
+                ].map(soCat => (
+                  <Badge
+                    key={soCat.id}
+                    variant={displayTags.includes(soCat.id) ? "default" : "outline"}
+                    className="cursor-pointer justify-start p-2"
+                    onClick={() => {
+                      // Toggle Strand/Ort Kategorie-Tag
+                      setTags(prev =>
+                        prev.includes(soCat.id)
+                          ? prev.filter(t => t !== soCat.id)
+                          : [...prev, soCat.id]
+                      );
+                    }}
+                  >
+                    <span className="mr-2">{soCat.emoji}</span>
+                    {soCat.name}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* KI-Artikel generieren (Optional) */}
         <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
           <div className="flex items-center gap-2 mb-3">
@@ -1506,151 +1651,6 @@ Schreibe deinen Artikel hier...
           )}
         </div>
         {/* ── Ende Slideshow-Generator (alt, hidden) ───────────────────── */}
-
-        {/* Automatisch generierte Tags anzeigen */}
-        {(isDIYCategory || isLeonCategory || isRVLifeCategory) && (
-          <div className="space-y-3">
-            <Label>Automatische Tags</Label>
-            <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                🤖 Diese Tags werden automatisch aufgrund der Kategorie "{currentCategoryConfig?.name}" hinzugefügt:
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {/* Zeige automatisch generierte Tags */}
-                {currentCategoryConfig?.autoTags?.map(autoTag => (
-                  <Badge
-                    key={autoTag}
-                    variant="default"
-                    className="bg-green-100 text-green-700 border-green-300"
-                  >
-                    ✓ #{autoTag}
-                  </Badge>
-                )) || (isDIYCategory && (
-                  <Badge
-                    variant="default"
-                    className="bg-orange-100 text-orange-700 border-orange-300"
-                  >
-                    ✓ #diy
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* DIY-spezifische Tags */}
-        {isDIYCategory && (
-          <div className="space-y-3">
-            <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
-              <p className="text-sm text-orange-700 dark:text-orange-300 mb-3">
-                ⚠️ Dieser Artikel erscheint im DIY-Bereich. Wähle spezifische Kategorien:
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {Object.values(DIY_CATEGORIES).map(diyCat => {
-                  const Icon = getDIYIcon(diyCat.icon);
-                  return (
-                    <Badge
-                      key={diyCat.id}
-                      variant={displayTags.includes(diyCat.id) ? "default" : "outline"}
-                      className="cursor-pointer justify-start p-2"
-                      onClick={() => {
-                        // DIY-Tag hinzufügen, falls noch nicht vorhanden
-                        if (!displayTags.includes('diy')) {
-                          setTags(prev => {
-                            const newTags = [...prev, 'diy'];
-                            return newTags;
-                          });
-                        }
-                        // Toggle spezifischen DIY-Tag
-                        setTags(prev =>
-                          prev.includes(diyCat.id)
-                            ? prev.filter(t => t !== diyCat.id)
-                            : [...prev, diyCat.id]
-                        );
-                      }}
-                    >
-                      <span className="mr-2">{diyCat.emoji}</span>
-                      {diyCat.name}
-                    </Badge>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* RV Life-spezifische Tags */}
-        {isRVLifeCategory && (
-          <div className="space-y-3">
-            <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
-              <p className="text-sm text-orange-700 dark:text-orange-300 mb-3">
-                🚐 Dieser Artikel erscheint im RV Life Bereich. Wähle spezifische Kategorien:
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {[
-                  { id: 'kueche-essen', emoji: '🍳', name: 'Küche & Essen' },
-                  { id: 'ausstattung', emoji: '🏠', name: 'Ausstattung' },
-                  { id: 'freeliving', emoji: '🕊️', name: 'Freeliving' },
-                  { id: 'lifestyle', emoji: '✨', name: 'Lifestyle' }
-                ].map(rvCat => (
-                  <Badge
-                    key={rvCat.id}
-                    variant={displayTags.includes(rvCat.id) ? "default" : "outline"}
-                    className="cursor-pointer justify-start p-2"
-                    onClick={() => {
-                      // Toggle RV Life Kategorie-Tag
-                      setTags(prev =>
-                        prev.includes(rvCat.id)
-                          ? prev.filter(t => t !== rvCat.id)
-                          : [...prev, rvCat.id]
-                      );
-                    }}
-                  >
-                    <span className="mr-2">{rvCat.emoji}</span>
-                    {rvCat.name}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Strand/Ort-spezifische Tags */}
-        {isStrandOrtCategory && (
-          <div className="space-y-3">
-            <div className="bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-lg p-4">
-              <p className="text-sm text-cyan-700 dark:text-cyan-300 mb-3">
-                🏖️ Dieser Artikel erscheint im Strand/Ort Bereich. Wähle spezifische Kategorien:
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {[
-                  { id: 'strand', emoji: '🏖️', name: 'Strand' },
-                  { id: 'berg', emoji: '⛰️', name: 'Berg' },
-                  { id: 'wald', emoji: '🌲', name: 'Wald' },
-                  { id: 'meer', emoji: '🌊', name: 'Meer' },
-                  { id: 'ort', emoji: '📍', name: 'Ort' }
-                ].map(soCat => (
-                  <Badge
-                    key={soCat.id}
-                    variant={displayTags.includes(soCat.id) ? "default" : "outline"}
-                    className="cursor-pointer justify-start p-2"
-                    onClick={() => {
-                      // Toggle Strand/Ort Kategorie-Tag
-                      setTags(prev =>
-                        prev.includes(soCat.id)
-                          ? prev.filter(t => t !== soCat.id)
-                          : [...prev, soCat.id]
-                      );
-                    }}
-                  >
-                    <span className="mr-2">{soCat.emoji}</span>
-                    {soCat.name}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
 
         <div className="space-y-3">
           <Label>Tags</Label>
