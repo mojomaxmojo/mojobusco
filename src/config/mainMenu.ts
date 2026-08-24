@@ -66,6 +66,7 @@ export const MAIN_MENU_CONFIG: MainMenuItem[] = [
       { label: 'Nach Länder', icon: 'Flag', source: 'countries', pathPrefix: '/artikel/' },
       { label: 'DIY', emoji: '🛠️', icon: 'Wrench', children: DIY_ITEMS },
       { label: 'RV Life', emoji: '🚐', icon: 'MapPin', children: RV_LIFE_ITEMS },
+      { label: 'Strand/Ort', labelKey: 'nav_articles_strandort', path: '/artikel/strand-ort', emoji: '🏖️', icon: 'Waves' },
       { divider: true },
       { label: 'Leon Story', path: '/artikel/leon', emoji: '🦁', icon: 'Dog' },
       { label: 'Notes', path: '/artikel/notes', emoji: '📝', icon: 'StickyNote' },
