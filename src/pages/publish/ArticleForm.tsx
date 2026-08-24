@@ -25,6 +25,7 @@ import { CountrySelector, getCountryTag } from "@/components/CountrySelector";
 import { ARTICLE_CATEGORIES, DIY_CATEGORIES, DIY_TAGS, NATURE_CATEGORIES, NATURE_TAGS, TAG_GROUPS } from "@/config";
 import { TRIP_TYPES, type TripType } from "@/config/tags";
 import { RV_LIFE_CONFIG } from "@/config/rvlife";
+import { STRANDORT_CONFIG } from "@/config/strandort";
 import { AUTO_TRANSLATE_STORAGE_KEY } from "@/config/translation";
 import { MilkdownEditor } from "@/components/MilkdownEditor";
 import { RemotionVideoBlock } from "@/components/RemotionVideoBlock";
@@ -1195,13 +1196,11 @@ Schreibe deinen Artikel hier...
               <SelectValue placeholder="Wähle eine Kategorie" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="reise">🗺️ Reise</SelectItem>
-              <SelectItem value="outdoor">🏕️ Outdoor</SelectItem>
+              <SelectItem value="reisen">🗺️ Reisen</SelectItem>
               <SelectItem value="technik">🔧 Technik</SelectItem>
-              <SelectItem value="lifestyle">🏠 Lifestyle</SelectItem>
-              <SelectItem value="food">🍳 Food & Cooking</SelectItem>
-              <SelectItem value="community">👥 Community</SelectItem>
+              <SelectItem value="leben">🏠 Leben</SelectItem>
               <SelectItem value="diy">🛠️ DIY & Ausbau</SelectItem>
+              <SelectItem value="strand-ort">🏖️ Strand/Ort</SelectItem>
             </SelectContent>
           </Select>
         </div>
