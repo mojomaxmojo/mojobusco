@@ -16,6 +16,7 @@ const Articles = lazy(() => import("./pages/Articles").then(m => ({ default: m.d
 const DIY = lazy(() => import("./pages/DIY").then(m => ({ default: m.DIY })));
 const Leon = lazy(() => import("./pages/Leon").then(m => ({ default: m.Leon })));
 const RVLife = lazy(() => import("./pages/RVLife").then(m => ({ default: m.RVLife })));
+const StrandOrt = lazy(() => import("./pages/StrandOrt").then(m => ({ default: m.StrandOrt })));
 const Notes = lazy(() => import("./pages/Notes").then(m => ({ default: m.Notes })));
 const About = lazy(() => import("./pages/About").then(m => ({ default: m.About })));
 const Places = lazy(() => import("./pages/Places").then(m => ({ default: m.default })));
@@ -53,6 +54,8 @@ const PUBLIC_ROUTE_DEFINITIONS: { path: string; element: JSX.Element }[] = [
   { path: "/artikel/leon", element: <Leon /> },
   { path: "/artikel/rvlife", element: <RVLife /> },
   { path: "/artikel/rvlife/:category", element: <RVLife /> },
+  { path: "/artikel/strand-ort", element: <StrandOrt /> },
+  { path: "/artikel/strand-ort/:category", element: <StrandOrt /> },
   { path: "/plaetze", element: <Places /> },
   { path: "/plaetze/:country", element: <Places /> },
   { path: "/map", element: <MapPage /> },

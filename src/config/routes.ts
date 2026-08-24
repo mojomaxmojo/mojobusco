@@ -10,6 +10,8 @@ export const ROUTES: Route[] = [
   { path: '/artikel/leon/:category', component: 'Leon', title: 'Leon Kategorie', category: 'leon' },
   { path: '/artikel/rvlife', component: 'RVLife', title: 'RV Life', category: 'rvlife' },
   { path: '/artikel/rvlife/:category', component: 'RVLife', title: 'RV Life Kategorie', category: 'rvlife' },
+  { path: '/artikel/strand-ort', component: 'StrandOrt', title: 'Strand/Ort', category: 'strandort' },
+  { path: '/artikel/strand-ort/:category', component: 'StrandOrt', title: 'Strand/Ort Kategorie', category: 'strandort' },
   { path: '/plaetze', component: 'Places', title: 'Plätze', category: 'places' },
   { path: '/plaetze/:country', component: 'Places', title: 'Plätze in Land', category: 'places' },
   { path: '/bilder', component: 'Images', title: 'Bilder', category: 'media' },
