@@ -37,6 +37,7 @@ const AUTHOR_PUBKEYS = AUTHORS.map(a => a.pubkey);
 // ── Config ────────────────────────────────────────────────────────────────
 const SITEMAP_PATH = '/home/nginx/domains/mojobus.co/public/sitemap.xml';
 const VIDEO_SITEMAP_PATH = '/home/nginx/domains/mojobus.co/public/sitemap-videos.xml';
+const IMAGE_SITEMAP_PATH = '/home/nginx/domains/mojobus.co/public/sitemap-images.xml';
 const BASE_URL = 'https://mojobus.co';
 const FAR_FUTURE = Math.floor(Date.now() / 1000) + 3600 * 24 * 365;
 
@@ -177,6 +178,36 @@ function generateVideoSitemapXml(videos) {
   return xml;
 }
 
+// ── Image-Sitemap XML Generator ───────────────────────────────────────────
+function generateImageSitemapXml(images) {
+  let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+  xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n';
+
+  // Google meldet eine LEERE urlset als Fehler ("Fehlendes XML-Tag: url").
+  // Fallback: /artikel als normaler Eintrag (ohne image:image) → Datei
+  // bleibt valide, auch wenn gerade keine Bild-Events gefunden wurden.
+  if (images.length === 0) {
+    xml += '  <url>\n';
+    xml += `    <loc>${BASE_URL}/artikel</loc>\n`;
+    xml += '    <changefreq>daily</changefreq>\n';
+    xml += '    <priority>0.8</priority>\n';
+    xml += '  </url>\n';
+  }
+
+  for (const img of images) {
+    xml += '  <url>\n';
+    xml += `    <loc>${escapeXml(img.loc)}</loc>\n`;
+    xml += '    <image:image>\n';
+    xml += `      <image:loc>${escapeXml(img.image)}</image:loc>\n`;
+    if (img.title) xml += `      <image:title>${escapeXml(img.title)}</image:title>\n`;
+    xml += '    </image:image>\n';
+    xml += '  </url>\n';
+  }
+
+  xml += '</urlset>\n';
+  return xml;
+}
+
 // ── Video-Metadaten aus NIP-71 Event extrahieren ──────────────────────────
 function extractVideoMeta(event) {
   const title = event.tags?.find(t => t[0] === 'title')?.[1] || 'MojoBus Video';
@@ -292,6 +323,7 @@ async function main() {
   const allUrls = [...staticPages, ...enStaticPages];
   const seen = new Set(); // Deduplizierung
   const videoUrls = []; // Für separate Video-Sitemap
+  const imageUrls = []; // Für separate Image-Sitemap
 
   for (const relay of RELAYS) {
     console.log(`[Sitemap] Frage ab: ${relay}`);
@@ -316,13 +348,20 @@ async function main() {
           alternates = [{ hreflang: pairLang, href: buildLocalizedUrl(`/${pairNaddr}`, pairLang) }];
         }
       }
+      const loc = buildLocalizedUrl(path, lang);
       allUrls.push({
-        loc: buildLocalizedUrl(path, lang),
+        loc,
         priority: '0.8',
         changefreq: 'monthly',
         lastmod: new Date(event.created_at * 1000).toISOString().split('T')[0],
         ...(alternates ? { alternates } : {}),
       });
+
+      const articleImage = event.tags?.find(t => t[0] === 'image')?.[1];
+      if (articleImage) {
+        const title = event.tags?.find(t => t[0] === 'title')?.[1] || '';
+        imageUrls.push({ loc, image: articleImage, title });
+      }
     }
 
     // ── Videos (NIP-71: kind 34235 / 34236) ─────────────
@@ -447,6 +486,7 @@ async function main() {
   // XML generieren
   const xml = generateSitemapXml(allUrls);
   const videoXml = generateVideoSitemapXml(videoUrls);
+  const imageXml = generateImageSitemapXml(imageUrls);
 
   // Schreiben
   try {
@@ -457,6 +497,10 @@ async function main() {
     fs.writeFileSync(VIDEO_SITEMAP_PATH, videoXml, 'utf-8');
     console.log(`[Sitemap] ✅ Video-Sitemap geschrieben: ${VIDEO_SITEMAP_PATH}`);
     console.log(`[Sitemap]   ${videoUrls.length} Video-URLs`);
+
+    fs.writeFileSync(IMAGE_SITEMAP_PATH, imageXml, 'utf-8');
+    console.log(`[Sitemap] ✅ Image-Sitemap geschrieben: ${IMAGE_SITEMAP_PATH}`);
+    console.log(`[Sitemap]   ${imageUrls.length} Image-URLs`);
   } catch (err) {
     console.error(`[Sitemap] ❌ Fehler beim Schreiben: ${err.message}`);
     process.exit(1);

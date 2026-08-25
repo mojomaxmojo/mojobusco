@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Statische Fallback-Image-Sitemap.
+  Der Cron-Job (scripts/generate-sitemap.js) überschreibt diese Datei
+  täglich mit der vollständigen Version aus den Nostr-Artikel-Events.
+  Zweck: Niemals leere urlset ausliefern (Google-Fehler
+  "Fehlendes XML-Tag: url") und niemals die SPA-index.html
+  (Nginx try_files Fallback) als Sitemap servieren.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  <url>
+    <loc>https://mojobus.co/artikel</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+</urlset>

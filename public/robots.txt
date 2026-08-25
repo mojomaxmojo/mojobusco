@@ -36,3 +36,4 @@ Disallow: /promotion
 # Sitemaps
 Sitemap: https://mojobus.co/sitemap.xml
 Sitemap: https://mojobus.co/sitemap-videos.xml
+Sitemap: https://mojobus.co/sitemap-images.xml
