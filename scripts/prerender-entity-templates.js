@@ -345,6 +345,7 @@ export function renderVideoHtml(event) {
   const title = event.tags?.find(t => t[0] === 'title')?.[1] || 'MojoBus Video';
   const imetaTag = event.tags?.find(t => t[0] === 'imeta');
   const videoUrl = imetaTag?.find(v => typeof v === 'string' && v.startsWith('url '))?.replace('url ', '') || '';
+  const videoMimeTypeRaw = imetaTag?.find(v => typeof v === 'string' && v.startsWith('m '))?.replace('m ', '') || 'video/mp4';
   const durationRaw = imetaTag?.find(v => typeof v === 'string' && v.startsWith('duration '))?.replace('duration ', '') || '';
   const duration = durationRaw ? parseFloat(durationRaw) : null;
   const thumbnailUrl = event.tags?.find(t => t[0] === 'image')?.[1] || DEFAULT_IMAGE;
@@ -377,6 +378,7 @@ export function renderVideoHtml(event) {
     videoUrl,
     videoWidth: isShort ? 1080 : 1920,
     videoHeight: isShort ? 1920 : 1080,
+    videoMimeType: videoMimeTypeRaw,
     twitterCard: 'player',
     publishedAt: datePublished,
     jsonLd,

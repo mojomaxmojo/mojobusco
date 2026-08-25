@@ -149,6 +149,7 @@ export function buildHead(options) {
     videoUrl = '',
     videoWidth = '1920',
     videoHeight = '1080',
+    videoMimeType = 'video/mp4',
     lang = 'de',
     alternateUrl = null,
     alternateLang = null,
@@ -205,7 +206,7 @@ export function buildHead(options) {
   let videoMeta = '';
   if (videoUrl) {
     videoMeta += `  <meta property="og:video" content="${escapeHtml(videoUrl)}" />\n`;
-    videoMeta += `  <meta property="og:video:type" content="video/mp4" />\n`;
+    videoMeta += `  <meta property="og:video:type" content="${escapeHtml(videoMimeType)}" />\n`;
     videoMeta += `  <meta property="og:video:width" content="${escapeHtml(String(videoWidth))}" />\n`;
     videoMeta += `  <meta property="og:video:height" content="${escapeHtml(String(videoHeight))}" />\n`;
   }
