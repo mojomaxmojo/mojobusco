@@ -47,10 +47,16 @@ export interface VideoItem {
   isShort: boolean       // kind 34236 = Short/Reels, kind 34235 = Normal
   pubkey: string         // Autor-Pubkey für isAuthor-Check
   event: any             // Originales Nostr-Event für Bearbeiten/Löschen
+  mimeType?: string
 }
 
 function parseImetaValue(tag: string[], prefix: string): string | undefined {
   return tag.find((v: string) => typeof v === 'string' && v.startsWith(prefix))?.slice(prefix.length)
+}
+
+export function getVideoMimeType(imetaTag?: string[]): string {
+  const mime = imetaTag ? parseImetaValue(imetaTag, 'm ')?.trim() : undefined
+  return mime || 'video/mp4'
 }
 
 function findVideoImeta(tags: string[][]): string[] | undefined {
@@ -75,6 +81,7 @@ export function parseVideoEvent(e: any): VideoItem | null {
   // NIP-71 erlaubt mehrere imeta-Tags (z.B. Bild + Video). Wir suchen gezielt
   // das Video-imeta, nicht einfach das erste imeta-Tag.
   const imetaTag = findVideoImeta(tags)
+  const mimeType = getVideoMimeType(imetaTag)
   let videoUrl = imetaTag ? parseImetaValue(imetaTag, 'url ')?.trim() : ''
   let durationSec: number | null = imetaTag ? parseFloat(parseImetaValue(imetaTag, 'duration ') || '') || null : null
   const dim = imetaTag ? parseImetaValue(imetaTag, 'dim ')?.trim() || '' : ''
@@ -118,6 +125,7 @@ export function parseVideoEvent(e: any): VideoItem | null {
     isShort: e.kind === 34236,
     pubkey: e.pubkey || '',
     event: e,
+    mimeType,
   }
 }
 
