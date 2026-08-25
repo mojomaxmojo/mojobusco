@@ -38,6 +38,7 @@ import { nip19, type AddressPointer } from 'nostr-tools';
 import { canonicalUrl as getCanonicalUrl, articleUrl, profileUrl, ogImageUrl } from '@/lib/canonicalUrl';
 import { getArticleHeaderUrl, generateSrcset, generateSizes, getResponsiveImageUrl } from '@/lib/imageUtils';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
+import { ShareButtons } from '@/components/ShareButtons';
 import { getEventLanguage } from '@/lib/translationTags';
 import { useNostr } from '@/hooks/useNostr';
 import { NOSTR_CONFIG } from '@/config/nostr';
@@ -697,6 +698,13 @@ export function ArticleView({ naddr }: ArticleViewProps) {
               { label: isPlace ? 'Plätze' : 'Artikel', href: isPlace ? '/plaetze' : '/artikel' },
               { label: metadata.title },
             ]} />
+
+            <ShareButtons
+              url={getCanonicalUrl(articleUrl(nip19.naddrEncode(naddr)))}
+              title={metadata.title}
+              description={metadata.summary}
+              image={metadata.image || ogImageUrl()}
+            />
 
             {/* Tags */}
             {metadata.tags.length > 0 && (

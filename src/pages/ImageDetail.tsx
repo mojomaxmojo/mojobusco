@@ -12,6 +12,7 @@ import { ArrowLeft, Calendar, Download, Share2, Heart, MessageSquare, X, ZoomIn,
 import { useAuthor } from '@/hooks/useAuthor';
 
 import { CommentsSection } from '@/components/comments/CommentsSection';
+import { ShareButtons } from '@/components/ShareButtons';
 
 // Lazy loaded NoteContent für Performance-Optimierung
 const NoteContent = lazy(() => import('@/components/NoteContent'));
@@ -427,6 +428,13 @@ export function ImageDetail() {
                  </div>
               </CardContent>
             </Card>
+
+            <ShareButtons
+              url={window.location.href}
+              title="Bild von MojoBus"
+              description={events.content}
+              image={images[0]}
+            />
 
              {/* Multiple Images/Videos Gallery */}
              {images.length > 1 && (

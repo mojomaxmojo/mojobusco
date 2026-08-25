@@ -37,6 +37,7 @@ import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
 import { nip19 } from 'nostr-tools';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
+import { ShareButtons } from '@/components/ShareButtons';
 
 interface NoteViewProps {
   eventId: string;
@@ -304,6 +305,13 @@ export function NoteView({ eventId }: NoteViewProps) {
             { label: 'Notes', href: '/notes' },
             { label: `Note von ${authorName}` },
           ]} />
+
+          <ShareButtons
+            url={getCanonicalUrl(noteUrl(nip19.noteEncode(eventId)))}
+            title={`Note von ${authorName}`}
+            description={note.content.substring(0, 160)}
+            image={extractNoteImages(note)[0] || ogImageUrl()}
+          />
 
           <Button asChild variant="ghost" className="mb-4">
             <Link to="/notes">
