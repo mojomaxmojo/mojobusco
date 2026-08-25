@@ -379,7 +379,7 @@ export function renderVideoHtml(event) {
     videoWidth: isShort ? 1080 : 1920,
     videoHeight: isShort ? 1920 : 1080,
     videoMimeType: videoMimeTypeRaw,
-    twitterCard: 'player',
+    twitterCard: 'summary_large_image',
     publishedAt: datePublished,
     jsonLd,
   });

@@ -163,11 +163,10 @@ export function VideoDetail() {
       { property: 'og:video:type', content: video?.mimeType || 'video/mp4' },
       { property: 'og:video:width', content: video?.aspectRatio === '9:16' ? '608' : '1920' },
       { property: 'og:video:height', content: video?.aspectRatio === '9:16' ? '1080' : '1080' },
-      { name: 'twitter:card', content: 'player' },
+      { name: 'twitter:card', content: 'summary_large_image' },
       { name: 'twitter:title', content: pageTitle },
       { name: 'twitter:description', content: description },
       { name: 'twitter:image', content: thumbnail },
-      { name: 'twitter:player', content: canonical },
     ],
     link: [{ rel: 'canonical', href: canonical }],
   })
