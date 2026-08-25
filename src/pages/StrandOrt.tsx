@@ -17,7 +17,7 @@ import { nip19 } from 'nostr-tools';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { memo } from 'react';
 import { useHead } from '@unhead/react';
-import { canonicalUrl } from '@/lib/canonicalUrl';
+import { canonicalUrl, ogImageUrl } from '@/lib/canonicalUrl';
 import { getEventLanguage } from '@/lib/translationTags';
 import { useLanguage } from '@/hooks/useLanguage';
 
@@ -32,6 +32,7 @@ export function StrandOrt() {
       { property: 'og:description', content: 'Strände, Berge, Wälder, Meer und besondere Orte. Tipps, Geschichten und Inspiration für Vanlife-Reisende.' },
       { property: 'og:url', content: canonicalUrl('/artikel/strand-ort') },
       { property: 'og:type', content: 'website' },
+      { property: 'og:image', content: ogImageUrl() },
       { name: 'twitter:title', content: 'Strand/Ort - MojoBus' },
       { name: 'twitter:description', content: 'Strände, Berge, Wälder, Meer und besondere Orte. Tipps, Geschichten und Inspiration für Vanlife-Reisende.' },
     ],

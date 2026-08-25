@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useNostr } from '@/hooks/useNostr';
 import { useHead } from '@unhead/react';
-import { canonicalUrl } from '@/lib/canonicalUrl';
+import { canonicalUrl, ogImageUrl } from '@/lib/canonicalUrl';
 
 const PlacesPage = () => {
   const { nostr } = useNostr();
@@ -76,6 +76,7 @@ const PlacesPage = () => {
       { property: 'og:title', content: pageTitle },
       { property: 'og:url', content: canonicalUrl('/plaetze') },
       { property: 'og:type', content: 'website' },
+      { property: 'og:image', content: ogImageUrl() },
       { name: 'twitter:title', content: pageTitle },
       { name: 'twitter:description', content: pageDescription },
     ],

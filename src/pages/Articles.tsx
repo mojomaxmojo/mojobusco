@@ -24,7 +24,7 @@ import { getAuthorRelayConfigByPubkey } from '@/config/relays';
 import { getListThumbnailUrl, getImagePlaceholder, generateSrcset, generateSizes } from '@/lib/imageUtils';
 import { MAIN_MENU } from '@/config/menu';
 import { SocialBar } from '@/components/SocialBar';
-import { canonicalUrl } from '@/lib/canonicalUrl';
+import { canonicalUrl, ogImageUrl } from '@/lib/canonicalUrl';
 // @ts-nocheck
 // @ts-ignore
 import { useHead } from '@unhead/react';
@@ -139,7 +139,8 @@ function Articles() {
       { property: 'og:title', content: pageTitle },
       { property: 'og:description', content: pageDescription },
       { property: 'og:url', content: canonicalUrl(`/artikel${country ? '/' + country : ''}`) },
-      { property: 'og:type', content: 'website' }
+      { property: 'og:type', content: 'website' },
+      { property: 'og:image', content: ogImageUrl() }
     ],
     link: [
       { rel: 'canonical', href: canonicalUrl(`/artikel${country ? '/' + country : ''}`) }

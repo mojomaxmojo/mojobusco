@@ -21,7 +21,7 @@ import { nip19 } from 'nostr-tools';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { MAIN_MENU } from '@/config/menu';
 import { SocialBar } from '@/components/SocialBar';
-import { canonicalUrl } from '@/lib/canonicalUrl';
+import { canonicalUrl, ogImageUrl } from '@/lib/canonicalUrl';
 // @ts-nocheck
 // @ts-ignore
 import { useHead } from '@unhead/react';
@@ -62,6 +62,7 @@ function Places() {
       { property: 'og:description', content: pageDescription },
       { property: 'og:url', content: canonicalUrl(`/plaetze${country ? '/' + country : ''}`) },
       { property: 'og:type', content: 'website' },
+      { property: 'og:image', content: ogImageUrl() },
       { name: 'twitter:title', content: pageTitle },
       { name: 'twitter:description', content: pageDescription },
     ],
