@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { ScrollToTop } from "./components/ScrollToTop";
 import { Header } from "./components/Header";
+import { SiteSearch } from "./components/SiteSearch";
 import { Footer } from "./components/Footer";
 import { PageLoader } from "./components/ui/loading-spinner";
 import { Home } from "./pages/Home";
@@ -81,6 +82,7 @@ function App() {
       <ScrollToTop />
       <div className="flex flex-col min-h-screen">
         <Header />
+        <SiteSearch />
         <main className="flex-1">
           <Suspense fallback={<PageLoader text="Seite wird geladen..." />}>
             <Routes>
