@@ -69,6 +69,7 @@ export function ShareButtons({ url, title, description, image }: ShareButtonsPro
         {copied ? 'Kopiert' : 'Teilen'}
       </Button>
       <Button
+        variant="secondary"
         size="sm"
         onClick={handlePinterest}
         className="bg-[#E60023] text-white hover:bg-[#cc001f]"
