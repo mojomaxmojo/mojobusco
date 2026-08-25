@@ -33,9 +33,6 @@ Disallow: /veroeffentlichen
 Disallow: /budget
 Disallow: /promotion
 
-# Crawl-Delay für schonendes Crawling
-Crawl-delay: 5
-
 # Sitemaps
 Sitemap: https://mojobus.co/sitemap.xml
 Sitemap: https://mojobus.co/sitemap-videos.xml

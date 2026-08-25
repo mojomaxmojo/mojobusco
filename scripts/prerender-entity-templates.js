@@ -353,7 +353,9 @@ export function renderVideoHtml(event) {
   const isShort = event.kind === 34236;
   const cleanDesc = stripMarkdown(description, 300);
   const datePublished = formatDate(event.created_at);
-  const canonicalUrl = `${BASE_URL}/videos`;
+  const naddr = encodeNaddr(event);
+  const canonicalUrl = naddr ? `${BASE_URL}/video/${naddr}` : `${BASE_URL}/videos`;
+  const videosListUrl = `${BASE_URL}/videos`;
 
   const jsonLd = buildVideoLd({
     name: title,
@@ -385,7 +387,7 @@ export function renderVideoHtml(event) {
   <p>${escapeHtml(cleanDesc.substring(0, 160))}</p>
   ${thumbnailUrl !== DEFAULT_IMAGE ? imageTag(thumbnailUrl, title) : ''}
   ${videoUrl ? `<video src="${escapeHtml(videoUrl)}" poster="${escapeHtml(thumbnailUrl)}" controls style="max-width:400px"></video>` : ''}
-  <p><a href="${escapeHtml(canonicalUrl)}">Video auf MojoBus ansehen →</a></p>
+  <p><a href="${escapeHtml(videosListUrl)}">Alle Videos auf MojoBus ansehen →</a></p>
 </body>
 </html>`;
 }

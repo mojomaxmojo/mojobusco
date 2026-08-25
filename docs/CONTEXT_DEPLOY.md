@@ -177,7 +177,7 @@ journalctl -u ai-api -f | grep -E "\[Continuity\]|\[Wetter\]"
 | **SW Cache** | Nach Deploy + generate-site-data.js liefert SW alte JSONs → Hard-Reload (Shift+F5) nötig |
 | **413 Payload** | Multer-Limit 20 MB/Datei. Canvas-Resize (max 1920px) vorgesehen. |
 | **Bundle-Cache** | Nach Remotion-Änderungen automatisch geleert durch deploy-main.sh |
-| **Video-Detailseite** | `/video/:naddr` noch nicht implementiert (Roadmap Stufe 1) |
+| **Video-Detailseite** | `/video/:naddr` implementiert (`VideoDetail.tsx`); Prerender-HTML (`video-{naddr}.html`) existiert, Nginx-Bot-Rewrite ergänzt (DE+EN) |
 | **Refactoring-Fehler** | Beim Verschieben von Code in `server/routes/` und `server/remotion/render/` können relative Import-Pfade (`../` statt `../../`) oder doppelte Exports entstehen. Nach Deploy unbedingt `journalctl -u ai-api -f` prüfen. |
 
 ---
