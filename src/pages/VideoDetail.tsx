@@ -361,11 +361,11 @@ export function VideoDetail() {
             />
 
             {!playing && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
+              <button type="button" onClick={handlePlay} aria-label="Video abspielen" className="absolute inset-0 flex items-center justify-center bg-black/20">
                 <div className="bg-white/90 rounded-full p-5 shadow-xl">
                   <Play className="w-10 h-10 text-black fill-black" />
                 </div>
-              </div>
+              </button>
             )}
 
             {durationStr && (
