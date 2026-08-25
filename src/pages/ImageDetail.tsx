@@ -22,6 +22,8 @@ import { ZapButton } from '@/components/ZapButton';
 import { NOSTR_CONFIG } from '@/config/nostr';
 import { nip19 } from 'nostr-tools';
 import { generateSrcset, generateSizes, getGalleryThumbnailUrl, getArticleHeaderUrl } from '@/lib/imageUtils';
+import { breadcrumbJsonLd } from '@/lib/jsonld';
+import { canonicalUrl, imageUrl } from '@/lib/canonicalUrl';
 
 interface ImageEvent {
   id: string;
@@ -183,6 +185,29 @@ export function ImageDetail() {
       document.body.style.overflow = 'auto';
     };
   }, [isImageFullscreen]);
+
+  // JSON-LD BreadcrumbList
+  useEffect(() => {
+    if (!events || !noteId) return
+    const ld = breadcrumbJsonLd([
+      { name: 'Home', url: canonicalUrl() },
+      { name: 'Bilder', url: canonicalUrl('/bilder') },
+      { name: 'Bild', url: canonicalUrl(imageUrl(noteId)) },
+    ])
+    const script = document.createElement('script')
+    script.type = 'application/ld+json'
+    script.textContent = JSON.stringify(ld)
+    script.id = 'image-breadcrumb-json-ld'
+
+    const existing = document.getElementById('image-breadcrumb-json-ld')
+    if (existing) existing.remove()
+    document.head.appendChild(script)
+
+    return () => {
+      const el = document.getElementById('image-breadcrumb-json-ld')
+      if (el) el.remove()
+    }
+  }, [events, noteId])
 
   const openFullscreen = (index: number) => {
     setCurrentImageIndex(index);

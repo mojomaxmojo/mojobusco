@@ -16,7 +16,7 @@
 
 import { SEOHead } from '@/components/SEOHead';
 import { CommentsSection } from '@/components/comments/CommentsSection';
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,6 +43,7 @@ import { VanillaMap, type MapMarker, type MapPolyline } from '@/components/Vanil
 import { VideoPlayer } from '@/components/VideoPlayer';
 import { generateImageUrl } from '@/config/imageService';
 import { canonicalUrl, tripUrl } from '@/lib/canonicalUrl';
+import { breadcrumbJsonLd } from '@/lib/jsonld';
 import { 
   ArrowLeft, MapPin, Camera, Calendar, Navigation, Pencil, Trash2
 } from '@/lib/icons';
@@ -223,7 +224,30 @@ export default function TripDetail() {
   const distance = trip?.distance 
     ? parseInt(trip.distance) 
     : trip ? calculateTripDistance(trip.waypoints) : 0;
-  
+
+  // JSON-LD BreadcrumbList
+  useEffect(() => {
+    if (!trip || !naddr) return
+    const ld = breadcrumbJsonLd([
+      { name: 'Home', url: canonicalUrl() },
+      { name: 'Trips', url: canonicalUrl('/map/trips') },
+      { name: trip.title || 'Reise', url: canonicalUrl(tripUrl(naddr)) },
+    ])
+    const script = document.createElement('script')
+    script.type = 'application/ld+json'
+    script.textContent = JSON.stringify(ld)
+    script.id = 'trip-breadcrumb-json-ld'
+
+    const existing = document.getElementById('trip-breadcrumb-json-ld')
+    if (existing) existing.remove()
+    document.head.appendChild(script)
+
+    return () => {
+      const el = document.getElementById('trip-breadcrumb-json-ld')
+      if (el) el.remove()
+    }
+  }, [trip, naddr])
+
   // Loading state
   if (isLoading) {
     return <LoadingSkeleton />;

@@ -35,6 +35,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useNostrDelete } from '@/hooks/useNostrDelete'
 import { useToast } from '@/hooks/useToast'
 import { canonicalUrl, videoUrl, ogImageUrl } from '@/lib/canonicalUrl'
+import { breadcrumbJsonLd } from '@/lib/jsonld'
 import { AUTHORS } from '@/config/nostr'
 
 const AUTHOR_PUBKEYS = AUTHORS.map((a) => a.pubkey)
@@ -202,6 +203,29 @@ export function VideoDetail() {
 
     return () => {
       const el = document.getElementById('video-json-ld')
+      if (el) el.remove()
+    }
+  }, [video, canonical])
+
+  // JSON-LD BreadcrumbList
+  useEffect(() => {
+    if (!video) return
+    const ld = breadcrumbJsonLd([
+      { name: 'Home', url: canonicalUrl() },
+      { name: 'Videos', url: canonicalUrl('/videos') },
+      { name: video.title, url: canonical },
+    ])
+    const script = document.createElement('script')
+    script.type = 'application/ld+json'
+    script.textContent = JSON.stringify(ld)
+    script.id = 'video-breadcrumb-json-ld'
+
+    const existing = document.getElementById('video-breadcrumb-json-ld')
+    if (existing) existing.remove()
+    document.head.appendChild(script)
+
+    return () => {
+      const el = document.getElementById('video-breadcrumb-json-ld')
       if (el) el.remove()
     }
   }, [video, canonical])
