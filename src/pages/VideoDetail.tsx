@@ -29,7 +29,7 @@ import {
   AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 
-import { parseVideoEvent, useVideos, type VideoItem } from '@/hooks/useVideos'
+import { parseVideoEvent, useVideos, getVideoMimeType, type VideoItem } from '@/hooks/useVideos'
 import { VideoEditDialog } from '@/components/video/VideoEditDialog'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useNostrDelete } from '@/hooks/useNostrDelete'
@@ -160,7 +160,7 @@ export function VideoDetail() {
       { property: 'og:type', content: 'video.other' },
       { property: 'og:image', content: thumbnail },
       { property: 'og:video', content: video?.videoUrl || '' },
-      { property: 'og:video:type', content: 'video/mp4' },
+      { property: 'og:video:type', content: video?.mimeType || 'video/mp4' },
       { property: 'og:video:width', content: video?.aspectRatio === '9:16' ? '608' : '1920' },
       { property: 'og:video:height', content: video?.aspectRatio === '9:16' ? '1080' : '1080' },
       { name: 'twitter:card', content: 'player' },
