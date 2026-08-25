@@ -71,6 +71,9 @@ export function SEOHead({
     setMeta('image', img, true);
     setMeta('site_name', 'MojoBus – Perpetual Travelers', true);
     setMeta('locale', 'de_DE', true);
+    setMeta('pinterest:title', fullTitle);
+    setMeta('pinterest:description', desc);
+    setMeta('pinterest:media', img);
 
     // Twitter Card
     setMeta('twitter:card', type === 'article' ? 'summary_large_image' : 'summary');

@@ -211,6 +211,10 @@ export function buildHead(options) {
     videoMeta += `  <meta property="og:video:height" content="${escapeHtml(String(videoHeight))}" />\n`;
   }
 
+  let pinterestMeta = `  <meta name="pinterest:title" content="${safeTitle}" />\n`;
+  pinterestMeta += `  <meta name="pinterest:description" content="${safeDesc}" />\n`;
+  pinterestMeta += `  <meta name="pinterest:media" content="${safeImage}" />\n`;
+
   let twitterVideoMeta = '';
   if (twitterCard === 'player' && videoUrl) {
     twitterVideoMeta += `  <meta name="twitter:player" content="${escapeHtml(videoUrl)}" />\n`;
@@ -244,7 +248,7 @@ export function buildHead(options) {
   <meta property="og:image" content="${safeImage}" />
   <meta property="og:image:width" content="${escapeHtml(String(imageWidth))}" />
   <meta property="og:image:height" content="${escapeHtml(String(imageHeight))}" />
-  ${safeImageAlt ? `<meta property="og:image:alt" content="${safeImageAlt}" />\n` : ''}${articleMeta}${profileMeta}${videoMeta}  <meta name="twitter:card" content="${escapeHtml(twitterCard)}" />
+  ${safeImageAlt ? `<meta property="og:image:alt" content="${safeImageAlt}" />\n` : ''}${articleMeta}${profileMeta}${videoMeta}${pinterestMeta}  <meta name="twitter:card" content="${escapeHtml(twitterCard)}" />
   <meta name="twitter:title" content="${safeTitle}" />
   <meta name="twitter:description" content="${safeDesc}" />
   <meta name="twitter:image" content="${safeImage}" />
