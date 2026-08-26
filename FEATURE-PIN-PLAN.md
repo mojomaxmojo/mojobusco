@@ -329,11 +329,11 @@ Bearbeiten/Löschen-Buttons bei eigenen Inhalten).
 
 ## ✅ Checkliste zum Abhaken
 
-- [ ] Schritt 1 – `PinImageButton`-Komponente (`src/components/PinImageButton.tsx`) angelegt
-- [ ] Schritt 2 – Roter "Pin it"-Button aus `ShareButtons.tsx` entfernt
-- [ ] Schritt 3 – Artikel-Headerbild + Fließtext-Bilder (`ArticleView.tsx`)
-- [ ] Schritt 4 – Note-Bilder-Grid (`NoteView.tsx`)
-- [ ] Schritt 5 – Bildergalerie Hauptbild + Kacheln (`ImageDetail.tsx`, normale Ansicht)
-- [ ] Schritt 6 – Bildergalerie Vollbild-/Lightbox-Ansicht (`ImageDetail.tsx`)
-- [ ] Schritt 7 – Trip-Stationsbilder (`TripDetail.tsx`)
-- [ ] Schritt 8 – Abschlusskontrolle & Konsistenzprüfung (alle Seiten)
+- [x] Schritt 1 – `PinImageButton`-Komponente (`src/components/PinImageButton.tsx`) angelegt
+- [x] Schritt 2 – Roter "Pin it"-Button aus `ShareButtons.tsx` entfernt
+- [x] Schritt 3 – Artikel-Headerbild + Fließtext-Bilder (`ArticleView.tsx`)
+- [x] Schritt 4 – Note-Bilder-Grid (`NoteView.tsx`)
+- [x] Schritt 5 – Bildergalerie Hauptbild + Kacheln (`ImageDetail.tsx`, normale Ansicht)
+- [x] Schritt 6 – Bildergalerie Vollbild-/Lightbox-Ansicht (`ImageDetail.tsx`)
+- [x] Schritt 7 – Trip-Stationsbilder (`TripDetail.tsx`)
+- [x] Schritt 8 – Abschlusskontrolle & Konsistenzprüfung (alle Seiten)
