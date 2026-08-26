@@ -7,12 +7,16 @@
  * hier, sondern durch den aufrufenden Elterncontainer via `className`.
  */
 
-import { PINTEREST_DEFAULT_DESCRIPTION_SUFFIX } from '@/config/pinterest';
+import { buildPinterestDescription } from '@/config/pinterest';
 
 interface PinImageButtonProps {
   imageUrl: string;
   pageUrl: string;
   title: string;
+  /** Kurzbeschreibung (Summary/Content) für maximale Sichtbarkeit in der Pinterest-Suche. */
+  description?: string;
+  /** Hashtags (ohne #) für maximale Sichtbarkeit in der Pinterest-Suche. */
+  hashtags?: string[];
   className?: string;
 }
 
@@ -33,10 +37,10 @@ function PinterestPIcon({ className }: { className?: string }) {
   );
 }
 
-export function PinImageButton({ imageUrl, pageUrl, title, className }: PinImageButtonProps) {
+export function PinImageButton({ imageUrl, pageUrl, title, description, hashtags, className }: PinImageButtonProps) {
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
-    const pinDescription = `${title}${PINTEREST_DEFAULT_DESCRIPTION_SUFFIX}`;
+    const pinDescription = buildPinterestDescription({ title, description, hashtags });
     const pinUrl = `https://pinterest.com/pin/create/button/?url=${encodeURIComponent(pageUrl)}&media=${encodeURIComponent(imageUrl)}&description=${encodeURIComponent(pinDescription)}`;
     window.open(pinUrl, '_blank');
   };

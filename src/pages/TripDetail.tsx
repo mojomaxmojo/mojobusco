@@ -450,7 +450,8 @@ export default function TripDetail() {
                               <PinImageButton
                                 imageUrl={photoUrl}
                                 pageUrl={canonicalUrl(tripUrl(naddr || ''))}
-                                title={trip.title || 'Reise'}
+                                title={waypoint.name || trip.title || 'Reise'}
+                                description={waypoint.description || trip.summary}
                               />
                             </div>
                           </div>

@@ -453,7 +453,13 @@ export function ImageDetail() {
                    )}
 
                    {!isVideoUrl(images[0]) && (
-                     <PinImageButton imageUrl={images[0]} pageUrl={window.location.href} title="Bild von MojoBus" />
+                     <PinImageButton
+                       imageUrl={images[0]}
+                       pageUrl={window.location.href}
+                       title="Bild von MojoBus"
+                       description={events.content}
+                       hashtags={tags}
+                     />
                    )}
                  </div>
               </CardContent>
@@ -507,7 +513,13 @@ export function ImageDetail() {
                                </div>
                              </div>
 
-                             <PinImageButton imageUrl={img} pageUrl={window.location.href} title="Bild von MojoBus" />
+                             <PinImageButton
+                               imageUrl={img}
+                               pageUrl={window.location.href}
+                               title="Bild von MojoBus"
+                               description={events.content}
+                               hashtags={tags}
+                             />
                            </>
                          )}
                        </div>
@@ -622,6 +634,8 @@ export function ImageDetail() {
                 imageUrl={images[currentImageIndex]}
                 pageUrl={window.location.href}
                 title="Bild von MojoBus"
+                description={events.content}
+                hashtags={tags}
                 className="absolute bottom-6 right-6 z-50"
               />
             </>

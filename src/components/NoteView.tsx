@@ -390,6 +390,8 @@ export function NoteView({ eventId }: NoteViewProps) {
                         imageUrl={url}
                         pageUrl={getCanonicalUrl(noteUrl(nip19.noteEncode(eventId)))}
                         title={`Note von ${authorName}`}
+                        description={note.content.substring(0, 160)}
+                        hashtags={extractNoteTags(note)}
                       />
                     </div>
                   ))}

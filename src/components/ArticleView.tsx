@@ -197,7 +197,7 @@ function convertImageCaptionsToFigure(content: string): string {
 }
 
 // Custom component for rendering text with links and videos while preserving markdown
-function MarkdownWithLinks({ content, pageUrl, pageTitle }: { content: string; pageUrl?: string; pageTitle?: string }) {
+function MarkdownWithLinks({ content, pageUrl, pageTitle, pageDescription, pageHashtags }: { content: string; pageUrl?: string; pageTitle?: string; pageDescription?: string; pageHashtags?: string[] }) {
   const normalizedContent = normalizeVideoHtml(convertImageCaptionsToFigure(content));
   return (
     <div className="prose prose-slate dark:prose-invert prose-lg max-w-none">
@@ -281,7 +281,13 @@ function MarkdownWithLinks({ content, pageUrl, pageTitle }: { content: string; p
                   loading="lazy"
                 />
                 {pageUrl && (
-                  <PinImageButton imageUrl={src} pageUrl={pageUrl} title={alt || pageTitle || ''} />
+                  <PinImageButton
+                    imageUrl={src}
+                    pageUrl={pageUrl}
+                    title={alt || pageTitle || ''}
+                    description={pageDescription}
+                    hashtags={pageHashtags}
+                  />
                 )}
               </div>
             );
@@ -798,6 +804,8 @@ export function ArticleView({ naddr }: ArticleViewProps) {
                   imageUrl={metadata.image}
                   pageUrl={getCanonicalUrl(articleUrl(nip19.naddrEncode(naddr)))}
                   title={metadata.title}
+                  description={metadata.summary}
+                  hashtags={metadata.tags}
                 />
               </div>
             )}
@@ -807,6 +815,8 @@ export function ArticleView({ naddr }: ArticleViewProps) {
               content={displayContent + (isPlace ? `\n\n${generateStructuredDataMarkdown(article, metadata)}` : '')}
               pageUrl={getCanonicalUrl(articleUrl(nip19.naddrEncode(naddr)))}
               pageTitle={metadata.title}
+              pageDescription={metadata.summary}
+              pageHashtags={metadata.tags}
             />
 
             {/* Position Display */}
