@@ -607,16 +607,24 @@ export function ImageDetail() {
               onClick={() => setIsImageFullscreen(false)}
             />
           ) : (
-            <img
-              src={getArticleHeaderUrl(images[currentImageIndex])}
-              srcSet={generateSrcset(images[currentImageIndex], 'gallery')}
-              sizes="100vw"
-              alt={`Bild ${currentImageIndex + 1}`}
-              className="w-full h-full max-w-[99vw] object-contain"
-              loading="eager"
-              decoding="async"
-              onClick={() => setIsImageFullscreen(false)}
-            />
+            <>
+              <img
+                src={getArticleHeaderUrl(images[currentImageIndex])}
+                srcSet={generateSrcset(images[currentImageIndex], 'gallery')}
+                sizes="100vw"
+                alt={`Bild ${currentImageIndex + 1}`}
+                className="w-full h-full max-w-[99vw] object-contain"
+                loading="eager"
+                decoding="async"
+                onClick={() => setIsImageFullscreen(false)}
+              />
+              <PinImageButton
+                imageUrl={images[currentImageIndex]}
+                pageUrl={window.location.href}
+                title="Bild von MojoBus"
+                className="absolute bottom-6 right-6 z-50"
+              />
+            </>
           )}
 
           {/* Keyboard hint */}
