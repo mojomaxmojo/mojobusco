@@ -38,6 +38,7 @@ import { useToast } from '@/hooks/useToast';
 import { nip19 } from 'nostr-tools';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { ShareButtons } from '@/components/ShareButtons';
+import { PinImageButton } from '@/components/PinImageButton';
 
 interface NoteViewProps {
   eventId: string;
@@ -378,13 +379,19 @@ export function NoteView({ eventId }: NoteViewProps) {
               {extractNoteImages(note).length > 0 && (
                 <div className="grid grid-cols-2 gap-2 mt-4">
                   {extractNoteImages(note).map((url, idx) => (
-                    <img
-                      key={idx}
-                      src={url}
-                      alt={`Note image ${idx + 1}`}
-                      className="rounded-lg w-full h-auto object-cover"
-                      loading="lazy"
-                    />
+                    <div key={idx} className="relative">
+                      <img
+                        src={url}
+                        alt={`Note image ${idx + 1}`}
+                        className="rounded-lg w-full h-auto object-cover"
+                        loading="lazy"
+                      />
+                      <PinImageButton
+                        imageUrl={url}
+                        pageUrl={getCanonicalUrl(noteUrl(nip19.noteEncode(eventId)))}
+                        title={`Note von ${authorName}`}
+                      />
+                    </div>
                   ))}
                 </div>
               )}
