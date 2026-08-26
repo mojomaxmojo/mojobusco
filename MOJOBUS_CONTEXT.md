@@ -110,6 +110,23 @@ Generiert von `scripts/generate-feed.js` (Cron alle 6h).
 
 ---
 
+## Inhaltstypen → NIP / Kind-Zuordnung
+
+| Inhalt | Kind | NIP | Hinweise |
+|--------|------|-----|----------|
+| **Artikel** | 30023 | **NIP-23** (Long-form Content, addressable) | `title/summary/image/d/t`, `l`-Tag für Sprache (DE/EN) |
+| **Plätze** | 30023 `type=place` ODER kind 1 | NIP-23 bzw. **NIP-01** | Orte über `type=place`-Tag von Artikeln unterschieden; kind-1-Fälle nur `isMojobusKind1()`-gefiltert |
+| **Trips** | 30025 | Custom Addressable (kein offizieller NIP) | Ausschließlich über `TripPublishForm.tsx` erzeugt; naddr via `encodeTripNaddr()`, kein `isMojobusKind1()`-Filter nötig |
+| **Videos** | 34235 (16:9), 34236 (9:16/Short) | **NIP-71** (Video Events) | API-tags aus `imeta`, image/duration/title |
+| **Bilder** | kind 1 mit `image`-Tag | NIP-01 | Nur `isMojobusKind1()`-gefiltert |
+| **Notes** | kind 1 | NIP-01 | Nur `isMojobusKind1()`-gefiltert |
+
+**Referenz-Routen** (canonical URLs): Artikel/Orte `/{naddr}`, Notes `/{note}`,
+Trips `/trip/{naddr}`, Bilder `/bild/{note}`, Profile `/{npub}`,
+Videos `/video/{naddr}`.
+
+---
+
 ## Hooks-Übersicht (MojoBus-spezifisch)
 
 | Hook | Quelle | Beschreibung |
