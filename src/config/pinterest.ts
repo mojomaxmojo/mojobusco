@@ -13,6 +13,22 @@ export const PINTEREST_DESCRIPTION_MAX_LENGTH = 500;
 /** Maximale Anzahl an Hashtags, die in die Pin-Beschreibung übernommen werden. */
 export const PINTEREST_MAX_HASHTAGS = 10;
 
+/** Maximale Länge des Beschreibungstextes (Summary/Content), damit Hashtags garantiert erhalten bleiben. */
+export const PINTEREST_DESCRIPTION_TEXT_MAX_LENGTH = 200;
+
+/**
+ * Entfernt URLs (z. B. Bild-/Relay-Links) sowie Markdown-Bild-Syntax aus einem
+ * Text. URLs haben in der Pinterest-Beschreibung keinen SEO-Wert, verdrängen
+ * aber echten Beschreibungstext und Hashtags durch die Zeichenbegrenzung.
+ */
+function stripUrls(text: string): string {
+  return text
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '') // Markdown-Bilder ![alt](url)
+    .replace(/https?:\/\/\S+/gi, '') // rohe URLs
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 /**
  * Baut eine für die Pinterest-Suche optimierte Pin-Beschreibung aus Titel,
  * optionaler Kurzbeschreibung (Summary/Content) und optionalen Hashtags.
@@ -28,6 +44,12 @@ export function buildPinterestDescription({
   description?: string;
   hashtags?: string[];
 }): string {
+  let cleanDescription = description ? stripUrls(description) : '';
+  // Beschreibung begrenzen, damit die Hashtags danach garantiert erhalten bleiben
+  if (cleanDescription.length > PINTEREST_DESCRIPTION_TEXT_MAX_LENGTH) {
+    cleanDescription = `${cleanDescription.slice(0, PINTEREST_DESCRIPTION_TEXT_MAX_LENGTH - 1)}…`;
+  }
+
   const hashtagText =
     hashtags && hashtags.length > 0
       ? hashtags
@@ -36,7 +58,7 @@ export function buildPinterestDescription({
           .join(' ')
       : '';
 
-  const parts = [title, description, hashtagText].filter(
+  const parts = [title, cleanDescription, hashtagText].filter(
     (part): part is string => !!part && part.trim().length > 0
   );
 
