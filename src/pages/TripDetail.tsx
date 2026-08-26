@@ -41,6 +41,7 @@ import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
 import { VanillaMap, type MapMarker, type MapPolyline } from '@/components/VanillaMap';
 import { VideoPlayer } from '@/components/VideoPlayer';
+import { PinImageButton } from '@/components/PinImageButton';
 import { generateImageUrl } from '@/config/imageService';
 import { canonicalUrl, tripUrl } from '@/lib/canonicalUrl';
 import { breadcrumbJsonLd } from '@/lib/jsonld';
@@ -446,6 +447,11 @@ export default function TripDetail() {
                               <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-yellow-500 text-white flex items-center justify-center text-sm font-bold shadow">
                                 {index + 1}
                               </div>
+                              <PinImageButton
+                                imageUrl={photoUrl}
+                                pageUrl={canonicalUrl(tripUrl(naddr || ''))}
+                                title={trip.title || 'Reise'}
+                              />
                             </div>
                           </div>
 
