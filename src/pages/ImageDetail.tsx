@@ -13,6 +13,7 @@ import { useAuthor } from '@/hooks/useAuthor';
 
 import { CommentsSection } from '@/components/comments/CommentsSection';
 import { ShareButtons } from '@/components/ShareButtons';
+import { PinImageButton } from '@/components/PinImageButton';
 
 // Lazy loaded NoteContent für Performance-Optimierung
 const NoteContent = lazy(() => import('@/components/NoteContent'));
@@ -450,6 +451,10 @@ export function ImageDetail() {
                        </div>
                      </div>
                    )}
+
+                   {!isVideoUrl(images[0]) && (
+                     <PinImageButton imageUrl={images[0]} pageUrl={window.location.href} title="Bild von MojoBus" />
+                   )}
                  </div>
               </CardContent>
             </Card>
@@ -501,6 +506,8 @@ export function ImageDetail() {
                                  <span className="text-xs text-white">Vollbild</span>
                                </div>
                              </div>
+
+                             <PinImageButton imageUrl={img} pageUrl={window.location.href} title="Bild von MojoBus" />
                            </>
                          )}
                        </div>
