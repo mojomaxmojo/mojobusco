@@ -39,6 +39,7 @@ import { canonicalUrl as getCanonicalUrl, articleUrl, profileUrl, ogImageUrl } f
 import { getArticleHeaderUrl, generateSrcset, generateSizes, getResponsiveImageUrl } from '@/lib/imageUtils';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { ShareButtons } from '@/components/ShareButtons';
+import { PinImageButton } from '@/components/PinImageButton';
 import { getEventLanguage } from '@/lib/translationTags';
 import { useNostr } from '@/hooks/useNostr';
 import { NOSTR_CONFIG } from '@/config/nostr';
@@ -196,7 +197,7 @@ function convertImageCaptionsToFigure(content: string): string {
 }
 
 // Custom component for rendering text with links and videos while preserving markdown
-function MarkdownWithLinks({ content }: { content: string }) {
+function MarkdownWithLinks({ content, pageUrl, pageTitle }: { content: string; pageUrl?: string; pageTitle?: string }) {
   const normalizedContent = normalizeVideoHtml(convertImageCaptionsToFigure(content));
   return (
     <div className="prose prose-slate dark:prose-invert prose-lg max-w-none">
@@ -270,14 +271,19 @@ function MarkdownWithLinks({ content }: { content: string }) {
           img: ({ src, alt }) => {
             if (!src) return null;
             return (
-              <img
-                src={getArticleHeaderUrl(src)}
-                srcSet={generateSrcset(src, 'gallery')}
-                sizes={generateSizes('hero')}
-                alt={alt || ''}
-                className="w-full h-auto rounded-lg"
-                loading="lazy"
-              />
+              <div className="relative">
+                <img
+                  src={getArticleHeaderUrl(src)}
+                  srcSet={generateSrcset(src, 'gallery')}
+                  sizes={generateSizes('hero')}
+                  alt={alt || ''}
+                  className="w-full h-auto rounded-lg"
+                  loading="lazy"
+                />
+                {pageUrl && (
+                  <PinImageButton imageUrl={src} pageUrl={pageUrl} title={alt || pageTitle || ''} />
+                )}
+              </div>
             );
           },
         }}
@@ -778,7 +784,7 @@ export function ArticleView({ naddr }: ArticleViewProps) {
           <div className="max-w-4xl mx-auto space-y-12">
             {/* Featured Image */}
             {metadata.image && (
-              <div className="rounded-xl overflow-hidden shadow-lg bg-muted">
+              <div className="relative rounded-xl overflow-hidden shadow-lg bg-muted">
                 <img
                   src={getArticleHeaderUrl(metadata.image)}
                   srcSet={generateSrcset(metadata.image)}
@@ -788,11 +794,20 @@ export function ArticleView({ naddr }: ArticleViewProps) {
                   loading="eager"
                   decoding="sync"
                 />
+                <PinImageButton
+                  imageUrl={metadata.image}
+                  pageUrl={getCanonicalUrl(articleUrl(nip19.naddrEncode(naddr)))}
+                  title={metadata.title}
+                />
               </div>
             )}
 
             {/* Article Body */}
-            <MarkdownWithLinks content={displayContent + (isPlace ? `\n\n${generateStructuredDataMarkdown(article, metadata)}` : '')} />
+            <MarkdownWithLinks
+              content={displayContent + (isPlace ? `\n\n${generateStructuredDataMarkdown(article, metadata)}` : '')}
+              pageUrl={getCanonicalUrl(articleUrl(nip19.naddrEncode(naddr)))}
+              pageTitle={metadata.title}
+            />
 
             {/* Position Display */}
             {position && (
