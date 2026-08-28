@@ -35,14 +35,20 @@ export function SocialBar({ event, compact = false, className }: SocialBarProps)
   const { webln, activeNWC } = useWallet();
 
   // Alle Hooks MÜSSEN vor jedem frühen Return aufgerufen werden (React Hook Rules)
-  // Fetch social counts (immer aufrufen, aber nur nutzen wenn nicht compact)
+  // Fetch social counts (Reposts/Likes werden auch in Cards angezeigt)
+  // PERFORMANCE (Stufe 2): Wird in Feeds durch useBatchedSocialCounts ersetzt,
+  // sobald die Cards in einem SocialBatchProvider hängen.
   const { data: counts, isLoading } = useSocialCounts(event ?? null);
 
-  // Fetch comments for count (immer aufrufen)
-  const { data: commentsData } = useComments(event ?? null);
+  // Fetch comments for count – PERFORMANCE: Im compact-Modus (Feed-Cards) wird
+  // das Ergebnis nicht angezeigt (commentCount = 0), die Query kostete bisher
+  // trotzdem bis zu 6 Filter × 4 Relays pro Card (8s Timeout). Root=null
+  // deaktiviert sie sauber (enabled: !!root); im Full-Modus bleibt alles wie bisher.
+  const { data: commentsData } = useComments(compact ? null : event ?? null);
 
-  // Fetch zaps for count (immer aufrufen)
-  const { zapCount } = useZaps(event ?? null, webln, activeNWC);
+  // Fetch zaps for count – ohne 60s-Polling in Cards (nur Initial-Fetch +
+  // Invalidation nach eigener Zap-Aktion); Detailseiten pollen weiterhin live.
+  const { zapCount } = useZaps(event ?? null, webln, activeNWC, undefined, { poll: !compact });
 
   // Local state for like and repost interactions (optimistic UI)
   const [isLiking, setIsLiking] = useState(false);
@@ -185,10 +191,11 @@ export function SocialBar({ event, compact = false, className }: SocialBarProps)
           </span>
         </Button>
 
-        {/* Zaps - Custom with yellow lightning on hover */}
+        {/* Zaps - Custom with yellow lightning on hover (compact: kein 60s-Polling) */}
         <ZapButton
           target={event}
           showCount={false}
+          poll={false}
         >
           <div className="flex items-center gap-1 text-xs text-muted-foreground group min-w-0">
             <ZapIcon className="h-4 w-4 flex-shrink-0 text-muted-foreground group-hover:fill-yellow-500 group-hover:text-yellow-500 transition-all group-hover:scale-125" />

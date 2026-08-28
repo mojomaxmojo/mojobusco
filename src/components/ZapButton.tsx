@@ -12,6 +12,11 @@ interface ZapButtonProps {
   showCount?: boolean;
   zapData?: { count: number; totalSats: number; isLoading?: boolean };
   label?: string;
+  /**
+   * 60s-Zap-Polling aktiv? (default: true)
+   * In Feed-Cards (compact) deaktivieren – spart pro Card einen Intervall-Request.
+   */
+  poll?: boolean;
 }
 
 export function ZapButton({
@@ -19,7 +24,8 @@ export function ZapButton({
   className = "text-xs ml-1",
   showCount = true,
   zapData: externalZapData,
-  label = "Zap"
+  label = "Zap",
+  poll = true
 }: ZapButtonProps) {
   const { user } = useCurrentUser();
   const { data: author } = useAuthor(target?.pubkey || '');
@@ -30,7 +36,9 @@ export function ZapButton({
     // Leeres Array übergeben wenn kein target oder externe Daten vorhanden
     (!target || externalZapData) ? ([] as unknown as typeof target) : target,
     webln,
-    activeNWC
+    activeNWC,
+    undefined,
+    { poll }
   );
 
   // Don't show zap button if target is missing
@@ -78,7 +86,7 @@ export function ZapButton({
   }
 
   return (
-    <ZapDialog target={target}>
+    <ZapDialog target={target} poll={poll}>
       <div
         className={`flex items-center gap-1 group border border-orange-500 rounded px-2 py-1 hover:bg-orange-500/5 cursor-pointer ${className}`}
       >

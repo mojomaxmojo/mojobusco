@@ -12,12 +12,24 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNostr } from '@nostrify/react';
 import type { NostrEvent } from '@nostrify/nostrify';
 
+export interface UseZapsOptions {
+  /**
+   * 60s-Hintergrund-Polling aktiv? (default: true)
+   * In Feed-Cards (compact SocialBar) deaktivieren – Zähler werden beim
+   * Laden geholt und nach eigener Zap-Aktion via Invalidation aktualisiert.
+   * spart pro Card einen 60s-Intervall-Request.
+   */
+  poll?: boolean;
+}
+
 export function useZaps(
   target: Event | Event[],
   webln: WebLNProvider | null,
   _nwcConnection: NWCConnection | null,
-  onZapSuccess?: () => void
+  onZapSuccess?: () => void,
+  options?: UseZapsOptions
 ) {
+  const poll = options?.poll ?? true;
   const { nostr } = useNostr();
   const { toast } = useToast();
   const { user } = useCurrentUser();
@@ -44,8 +56,12 @@ export function useZaps(
     queryKey: ['zaps', actualTarget?.id],
     staleTime: 30000, // 30 seconds
     refetchInterval: (query) => {
-      // Only refetch if the query is currently being observed (component is mounted)
-      return query.getObserversCount() > 0 ? 60000 : false;
+      // Nur pollen wenn: (a) Polling nicht explizit deaktiviert (compact-Cards),
+      // (b) die Query beobachtet wird (Komponente gemountet) und
+      // (c) die Query aktiv ist (verhindert Intervall auf disabled Queries).
+      return poll && query.getObserversCount() > 0 && query.isEnabled
+        ? 60000
+        : false;
     },
     queryFn: async (c) => {
       if (!actualTarget) return [];
