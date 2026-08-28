@@ -31,6 +31,7 @@ import { useNostrDelete } from '@/hooks/useNostrDelete';
 import { useToast } from '@/hooks/useToast';
 import { generateSrcset, generateSizes, getGalleryThumbnailUrl } from '@/lib/imageUtils';
 import { SocialBar } from '@/components/SocialBar';
+import { SocialBatchProvider } from '@/hooks/useBatchedSocialCounts';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -226,11 +227,13 @@ export function Notes() {
             </div>
           ) : filteredNotes.length > 0 ? (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredNotes.map((note) => (
-                  <NoteCard key={note.id} note={note} />
-                ))}
-              </div>
+              <SocialBatchProvider events={filteredNotes}>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredNotes.map((note) => (
+                    <NoteCard key={note.id} note={note} />
+                  ))}
+                </div>
+              </SocialBatchProvider>
 
               {/* Infinite Scroll Loader */}
               {hasNextPage && (

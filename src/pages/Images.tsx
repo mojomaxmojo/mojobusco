@@ -20,6 +20,7 @@ import { useNostrDelete } from '@/hooks/useNostrDelete';
 import { useToast } from '@/hooks/useToast';
 import { generateSrcset, generateSizes, getGalleryThumbnailUrl, getImagePlaceholder } from '@/lib/imageUtils';
 import { VideoFramePreview } from '@/components/VideoFramePreview';
+import { SocialBatchProvider } from '@/hooks/useBatchedSocialCounts';
 import { canonicalUrl } from '@/lib/canonicalUrl';
 import { isTeaserNote } from '@/lib/nostrEventUtils';
 import { nip19 } from 'nostr-tools';
@@ -384,20 +385,22 @@ function Images() {
 
           {filteredEvents.length > 0 ? (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {visibleEvents.map((event: ImageEvent) => {
-                const images = extractImages(event.content, event.tags);
+              <SocialBatchProvider events={visibleEvents}>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {visibleEvents.map((event: ImageEvent) => {
+                  const images = extractImages(event.content, event.tags);
 
-                return (
-                  <ImageCardComponent
-                    key={event.id}
-                    event={event}
-                    images={images}
-                    navigate={navigate}
-                  />
-                );
-              })}
-            </div>
+                  return (
+                    <ImageCardComponent
+                      key={event.id}
+                      event={event}
+                      images={images}
+                      navigate={navigate}
+                    />
+                  );
+                })}
+              </div>
+              </SocialBatchProvider>
               {hasMore && (
                 <div ref={ref} className="py-8 flex justify-center">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

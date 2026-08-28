@@ -6,7 +6,29 @@ Dieses Dokument fasst alle Performance-Optimierungen zusammen, die für MojoBus 
 
 ---
 
-## 🚀 Umgesetzte Optimierungen
+## 🚀 Relay-Query-Sturm beseitigt (Social-Counts-Batching, 2026-02)
+
+**Problem:** Jede Feed-Card (SocialBar compact) startete eigene Relay-Queries:
+- `useComments`: bis zu **6 Filter × 4 Relays** pro Card (8s Timeout) – Ergebnis wurde im compact-Modus verworfen (💬 zeigte immer 0)
+- `useSocialCounts` (kinds 6/7/16/1111), `useZaps` (9735, **+ 60s-Polling**), `useAuthor` (kind:0, **retry: 3**)
+- Bei 15 Cards pro Feed ≈ **50–500 offene Subscriptions pro Seitenaufruf**
+
+**Umgesetzt (Stufe 1):**
+- `useComments` im compact-Modus deaktiviert (root=null → enabled-Kette)
+- `useZaps({ poll })` – 60s-Polling nur auf Detailseiten; Cards laden einmalig + Invalidation nach eigener Zap-Aktion
+- `useAuthor`: retry: false, staleTime 7d, statischer Fallback aus zentraler `AUTHORS`-Config
+
+**Umgesetzt (Stufe 2):**
+- Neuer Hook `useBatchedSocialCounts.tsx` (+ `SocialBatchProvider`): Feed-Seiten (Home, Notes, Articles, Places, Images) laden ALLE Counts in **1–2 Relay-Queries** (`['social-counts','batch',…]`, `['zaps','batch',…]`, Multiple Filters per NIP-01, max. 100 IDs pro Filter)
+- SocialBar liest im Batch-Scope aus dem Context; außerhalb (Detailseiten) wie bisher live
+- Invalidation unverändert wirksam: Like/Repost → `['social-counts']`-Prefix (in `useSocialActions` auf Prefix erweitert), Zap → `['zaps']`-Prefix
+- Kommentar-Zähler in Cards zeigt jetzt **echte Werte** statt der bisher hart verdrahteten 0
+
+**Ergebnis:** ≈ 2–6 Subscriptions pro Feed-Aufruf statt 50–500; kein Dauer-Polling; deutlich weniger Re-Render-Kaskaden → besser INP/TBT, weniger Traffic/Akku (Capacitor-App). Optik & Interaktionen (Like/Repost/Zap/Kommentar/Share) unverändert.
+
+---
+
+## 🚀 Umgesetzte Optimierungen (Historie)
 
 ### 1. Query-Batching (60-70% weniger parallele Requests)
 

@@ -20,6 +20,7 @@ import type { ContentItem } from '@/components/ContentCard';
 import { useLanguage } from '@/hooks/useLanguage';
 import { translateHome } from '@/config/i18n/home';
 import { getEventLanguage } from '@/lib/translationTags';
+import { SocialBatchProvider } from '@/hooks/useBatchedSocialCounts';
 
 const ContentCard = lazy(() => import('@/components/ContentCard').then(m => ({ default: m.ContentCard })));
 
@@ -206,6 +207,13 @@ export function Home() {
       .slice(0, FIRST_PAINT_CONFIG.homeCardCount);
   }, [articles, places, noteEvents, tripsData, imageEvents, lang]);
 
+  // Events für den Social-Count-Batch (eine Relay-Query für alle Cards
+  // statt 4 Queries pro Card – siehe useBatchedSocialCounts)
+  const recentEvents = useMemo(
+    () => recentItems.map((item) => item.event),
+    [recentItems],
+  );
+
   return (
     <div className="min-h-screen">
       {/* Hero Section with Modern Design */}
@@ -270,15 +278,17 @@ export function Home() {
                 ))}
               </div>
             ) : recentItems.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {recentItems.map((item, index) => (
-                  <div key={item.event.id} className="fade-in-up" style={{ animationDelay: `${index * 100}ms` }}>
-                    <Suspense fallback={<CardSkeleton />}>
-                      <ContentCard item={item} />
-                    </Suspense>
-                  </div>
-                ))}
-              </div>
+              <SocialBatchProvider events={recentEvents}>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {recentItems.map((item, index) => (
+                    <div key={item.event.id} className="fade-in-up" style={{ animationDelay: `${index * 100}ms` }}>
+                      <Suspense fallback={<CardSkeleton />}>
+                        <ContentCard item={item} />
+                      </Suspense>
+                    </div>
+                  ))}
+                </div>
+              </SocialBatchProvider>
             ) : (
               <Card className="border-dashed border-2 border-primary/30">
                 <CardContent className="py-20 text-center">

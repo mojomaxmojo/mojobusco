@@ -24,6 +24,7 @@ import { getAuthorRelayConfigByPubkey } from '@/config/relays';
 import { getListThumbnailUrl, getImagePlaceholder, generateSrcset, generateSizes } from '@/lib/imageUtils';
 import { MAIN_MENU } from '@/config/menu';
 import { SocialBar } from '@/components/SocialBar';
+import { SocialBatchProvider } from '@/hooks/useBatchedSocialCounts';
 import { canonicalUrl, ogImageUrl } from '@/lib/canonicalUrl';
 // @ts-nocheck
 // @ts-ignore
@@ -358,11 +359,13 @@ function Articles() {
             {/* Articles Grid */}
             {hasContent ? (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {visibleArticles.map((article) => (
-                  <ArticleCard key={article.id} article={article} authorsMap={authors} articlesMetadata={articlesMetadata} />
-                ))}
-              </div>
+                <SocialBatchProvider events={visibleArticles}>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {visibleArticles.map((article) => (
+                    <ArticleCard key={article.id} article={article} authorsMap={authors} articlesMetadata={articlesMetadata} />
+                  ))}
+                </div>
+                </SocialBatchProvider>
 
                 {/* Infinite Scroll Trigger */}
                 {hasMore && (

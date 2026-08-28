@@ -8,6 +8,7 @@ import { useComments } from '@/hooks/useComments';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useZaps } from '@/hooks/useZaps';
 import { useWallet } from '@/hooks/useWallet';
+import { useSocialBatchItem, useInSocialBatchScope } from '@/hooks/useBatchedSocialCounts';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { cn } from '@/lib/utils';
 import { nip19 } from 'nostr-tools';
@@ -34,28 +35,41 @@ export function SocialBar({ event, compact = false, className }: SocialBarProps)
   const { repost } = useRepostActions();
   const { webln, activeNWC } = useWallet();
 
+  // ── PERFORMANCE: Batch-Scope (Feed-Seiten mit SocialBatchProvider) ────────
+  // Im Batch-Scope kommen Counts aus EINER gebündelten Relay-Query der
+  // Feed-Seite; die per-Event-Hooks unten werden per root=null deaktiviert.
+  // Außerhalb des Scopes (Detailseiten) läuft alles wie bisher live.
+  const batched = useInSocialBatchScope();
+  const batchItem = useSocialBatchItem(event?.id);
+
   // Alle Hooks MÜSSEN vor jedem frühen Return aufgerufen werden (React Hook Rules)
-  // Fetch social counts (Reposts/Likes werden auch in Cards angezeigt)
-  // PERFORMANCE (Stufe 2): Wird in Feeds durch useBatchedSocialCounts ersetzt,
-  // sobald die Cards in einem SocialBatchProvider hängen.
-  const { data: counts, isLoading } = useSocialCounts(event ?? null);
+  // Fetch social counts (Reposts/Likes) – im Batch-Scope deaktiviert
+  const { data: counts, isLoading } = useSocialCounts(batched ? null : event ?? null);
 
-  // Fetch comments for count – PERFORMANCE: Im compact-Modus (Feed-Cards) wird
-  // das Ergebnis nicht angezeigt (commentCount = 0), die Query kostete bisher
-  // trotzdem bis zu 6 Filter × 4 Relays pro Card (8s Timeout). Root=null
-  // deaktiviert sie sauber (enabled: !!root); im Full-Modus bleibt alles wie bisher.
-  const { data: commentsData } = useComments(compact ? null : event ?? null);
+  // Fetch comments for count – nur im Full-Modus außerhalb des Batch-Scopes.
+  // Im compact-Modus wurde das Ergebnis nie angezeigt (commentCount = 0),
+  // die Query kostete bisher trotzdem bis zu 6 Filter × 4 Relays pro Card.
+  const { data: commentsData } = useComments(batched || compact ? null : event ?? null);
 
-  // Fetch zaps for count – ohne 60s-Polling in Cards (nur Initial-Fetch +
-  // Invalidation nach eigener Zap-Aktion); Detailseiten pollen weiterhin live.
-  const { zapCount } = useZaps(event ?? null, webln, activeNWC, undefined, { poll: !compact });
+  // Fetch zaps for count – im Batch-Scope deaktiviert; sonst ohne 60s-Polling
+  // in Cards (Initial-Fetch + Invalidation nach eigener Zap-Aktion genügt),
+  // Detailseiten pollen weiterhin live.
+  const { zapCount } = useZaps(batched ? null : event ?? null, webln, activeNWC, undefined, { poll: !compact });
+
+  // Effektive Werte: Batch hat Vorrang, sonst die per-Event-Hooks (Fallback)
+  const effectiveCounts = batchItem ?? counts;
+  const effectiveZapCount = batchItem ? batchItem.zaps : zapCount;
+  const effectiveLoading = batchItem ? batchItem.loading : isLoading;
+
+  // Kommentar-Zähler: compact → aus Batch-Counts (echte Zahlen statt der
+  // bisher hart verdrahteten 0); full → Kommentar-Liste wie bisher.
+  const commentCount = compact
+    ? (effectiveCounts?.comments ?? 0)
+    : (commentsData?.allComments?.length || effectiveCounts?.comments || 0);
 
   // Local state for like and repost interactions (optimistic UI)
   const [isLiking, setIsLiking] = useState(false);
   const [isReposting, setIsReposting] = useState(false);
-
-  // Berechnungen nach allen Hooks
-  const commentCount = compact ? 0 : (commentsData?.allComments?.length || 0);
 
   // Don't render if event is missing
   if (!event) {
@@ -172,7 +186,7 @@ export function SocialBar({ event, compact = false, className }: SocialBarProps)
           <a href={`/${getCommentHref(event)}`} className="group">
             <MessageSquare className="h-4 w-4 flex-shrink-0 group-hover:fill-gray-300 transition-all group-hover:scale-125" />
             <span className="text-xs truncate group-hover:text-gray-700">
-              {isLoading ? '...' : commentCount}
+              {effectiveLoading ? '...' : commentCount}
             </span>
           </a>
         </Button>
@@ -187,7 +201,7 @@ export function SocialBar({ event, compact = false, className }: SocialBarProps)
         >
           <Repeat2 className={cn("h-4 w-4 flex-shrink-0 group-hover:fill-green-400 transition-all group-hover:scale-125", isReposting && "animate-pulse")} />
           <span className="text-xs truncate group-hover:text-green-600">
-            {isReposting ? '...' : (isLoading ? '...' : counts?.reposts ?? 0)}
+            {isReposting ? '...' : (effectiveLoading ? '...' : effectiveCounts?.reposts ?? 0)}
           </span>
         </Button>
 
@@ -196,11 +210,12 @@ export function SocialBar({ event, compact = false, className }: SocialBarProps)
           target={event}
           showCount={false}
           poll={false}
+          zapData={batchItem ? { count: effectiveZapCount, totalSats: 0, isLoading: effectiveLoading } : undefined}
         >
           <div className="flex items-center gap-1 text-xs text-muted-foreground group min-w-0">
             <ZapIcon className="h-4 w-4 flex-shrink-0 text-muted-foreground group-hover:fill-yellow-500 group-hover:text-yellow-500 transition-all group-hover:scale-125" />
             <span className="truncate group-hover:text-yellow-500 transition-colors">
-              {isLoading ? '...' : zapCount}
+              {effectiveLoading ? '...' : effectiveZapCount}
             </span>
           </div>
         </ZapButton>
@@ -215,7 +230,7 @@ export function SocialBar({ event, compact = false, className }: SocialBarProps)
         >
           <Heart className={cn("h-4 w-4 flex-shrink-0 group-hover:fill-[hsl(313,100%,49%)] transition-all group-hover:scale-125", isLiking && "animate-pulse")} />
           <span className="text-xs truncate group-hover:text-[hsl(313,100%,49%)]">
-            {isLiking ? '...' : (isLoading ? '...' : counts?.likes ?? 0)}
+            {isLiking ? '...' : (effectiveLoading ? '...' : effectiveCounts?.likes ?? 0)}
           </span>
         </Button>
 
@@ -245,7 +260,7 @@ export function SocialBar({ event, compact = false, className }: SocialBarProps)
         <a href="#comments" className="group">
           <MessageSquare className="h-4 w-4 flex-shrink-0 group-hover:fill-gray-300 transition-all group-hover:scale-125" />
           <span className="text-xs truncate group-hover:text-gray-700">
-            {isLoading ? '...' : commentCount}
+            {effectiveLoading ? '...' : commentCount}
           </span>
         </a>
       </Button>
@@ -260,7 +275,7 @@ export function SocialBar({ event, compact = false, className }: SocialBarProps)
       >
         <Repeat2 className={cn("h-4 w-4 flex-shrink-0 group-hover:fill-green-400 transition-all group-hover:scale-125", isReposting && "animate-pulse")} />
         <span className="text-xs truncate group-hover:text-green-600">
-          {isReposting ? '...' : (isLoading ? '...' : counts?.reposts ?? 0)}
+          {isReposting ? '...' : (effectiveLoading ? '...' : effectiveCounts?.reposts ?? 0)}
         </span>
       </Button>
 
@@ -272,7 +287,7 @@ export function SocialBar({ event, compact = false, className }: SocialBarProps)
         <div className="flex items-center gap-1 text-xs text-muted-foreground group min-w-0">
           <ZapIcon className="h-4 w-4 flex-shrink-0 text-muted-foreground group-hover:fill-yellow-500 group-hover:text-yellow-500 transition-all group-hover:scale-125" />
           <span className="truncate group-hover:text-yellow-500 transition-colors">
-            {isLoading ? '...' : zapCount}
+            {effectiveLoading ? '...' : effectiveZapCount}
           </span>
         </div>
       </ZapButton>
@@ -287,7 +302,7 @@ export function SocialBar({ event, compact = false, className }: SocialBarProps)
       >
         <Heart className={cn("h-4 w-4 flex-shrink-0 group-hover:fill-[hsl(313,100%,49%)] transition-all group-hover:scale-125", isLiking && "animate-pulse")} />
         <span className="text-xs truncate group-hover:text-[hsl(313,100%,49%)]">
-          {isLiking ? '...' : (isLoading ? '...' : counts?.likes ?? 0)}
+          {isLiking ? '...' : (effectiveLoading ? '...' : effectiveCounts?.likes ?? 0)}
         </span>
       </Button>
 

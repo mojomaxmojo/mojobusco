@@ -57,8 +57,9 @@ export function useLikeActions() {
             title: 'Geliked! ❤️',
             description: 'Du hast diesen Post geliked.',
           });
-          // Invalidate social counts cache
-          queryClient.invalidateQueries({ queryKey: ['social-counts', event.id] });
+          // Invalidate social counts cache – Prefix-Invalidierung trifft auch
+          // den Feed-Batch (['social-counts','batch',…]) aus useBatchedSocialCounts
+          queryClient.invalidateQueries({ queryKey: ['social-counts'] });
         },
         onError: (error) => {
           toast({
@@ -131,13 +132,14 @@ export function useRepostActions() {
             title: 'Reposted! 🔄',
             description: 'Du hast diesen Post repostet.',
           });
-          // Invalidate social counts cache
-          queryClient.invalidateQueries({ queryKey: ['social-counts', event.id] });
+          // Invalidate social counts cache – Prefix-Invalidierung trifft auch
+          // den Feed-Batch (['social-counts','batch',…]) aus useBatchedSocialCounts
+          queryClient.invalidateQueries({ queryKey: ['social-counts'] });
         },
         onError: (error) => {
           toast({
             title: 'Fehler',
-            description: 'Konnte nicht repostet werden. Bitte versuche es erneut.',
+            description: 'Konnte nicht reposten werden. Bitte versuche es erneut.',
             variant: 'destructive',
           });
         },

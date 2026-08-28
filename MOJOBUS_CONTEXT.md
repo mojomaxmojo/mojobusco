@@ -139,6 +139,7 @@ Videos `/video/{naddr}`.
 | `useTrips()` | nur Relay, zweistufig | Trips (kind 30025): 2s Fast (limit 15) + 10s Full (limit 100) im Hintergrund. Beide Queries filtern nach `authors: NOSTR_CONFIG.authorPubkeys` (Fix `FEATURE-XXX-PLAN.md` Schritt 6). |
 | `useLongformArticle()` | nur Relay | Detailseiten (voller content) |
 | `useContinuityTracking()` | `/api/continuity/track` | Meldet nach Publish Artikel/Platz/Note/Media/Trip an die Kontinuitäts-DB (nicht-blockierend, Capacitor-kompatibel) |
+| `useBatchedSocialCounts()` | 1–2 Relay-Batch-Queries pro Feed | **Social-Counts-Batch**: SocialBatchProvider um Feed-Grids (Home, Notes, Articles, Places, Images) lädt Likes/Reposts/Comments/Zaps für ALLE Cards in einer Query (`['social-counts','batch',…]` + `['zaps','batch',…]`). SocialBar liest im Batch-Scope aus dem Context statt pro Card eigene Queries zu starten (vorher 50–500 Subscriptions pro Feed-Aufruf). Invalidation-Flows unverändert: Like/Repost → `['social-counts']`-Prefix, Zap → `['zaps']`-Prefix. 60s-Zap-Polling nur noch auf Detailseiten (`useZaps(..., { poll })`). `useAuthor` ohne Retry, 7d-Cache, statischer Fallback aus `AUTHORS` (`relays.ts`) bei fehlendem kind:0-Profil. |
 
 **First-Paint-Strategie (Erstbesucher ohne Cache):** Fällt ein JSON-Dump aus,
 läuft der Relay-Fallback in `usePreloadedData` zweistufig: FAST (2s, Limit 15 –

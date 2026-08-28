@@ -21,6 +21,7 @@ import { nip19 } from 'nostr-tools';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { MAIN_MENU } from '@/config/menu';
 import { SocialBar } from '@/components/SocialBar';
+import { SocialBatchProvider } from '@/hooks/useBatchedSocialCounts';
 import { canonicalUrl, ogImageUrl } from '@/lib/canonicalUrl';
 // @ts-nocheck
 // @ts-ignore
@@ -213,11 +214,13 @@ function Places() {
             </div>
           ) : sortedEvents.length > 0 ? (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {visibleEvents.map((event) => (
-                  <PlaceCard key={event.id} place={event} />
-                ))}
-              </div>
+              <SocialBatchProvider events={visibleEvents}>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {visibleEvents.map((event) => (
+                    <PlaceCard key={event.id} place={event} />
+                  ))}
+                </div>
+              </SocialBatchProvider>
               {hasMore && (
                 <div ref={ref} className="py-8 flex justify-center">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
