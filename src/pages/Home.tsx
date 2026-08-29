@@ -1,4 +1,3 @@
-import { SEOHead } from '@/components/SEOHead';
 import { websiteJsonLd } from '@/lib/jsonld';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -13,7 +12,7 @@ import { lazy, Suspense, useMemo } from 'react';
 import { useTrips, type Trip } from '@/hooks/useTrips';
 import { getGalleryThumbnailUrl } from '@/lib/imageUtils';
 import { useHead } from '@unhead/react';
-import { canonicalUrl } from '@/lib/canonicalUrl';
+import { canonicalUrl, ogImageUrl } from '@/lib/canonicalUrl';
 import { useToast } from '@/hooks/useToast';
 import { FIRST_PAINT_CONFIG } from '@/config/performance';
 import type { ContentItem } from '@/components/ContentCard';
@@ -46,14 +45,10 @@ export function Home() {
   const { lang, localizePath } = useLanguage();
   const th = (key: string) => translateHome(lang, key);
 
-  // SEO Meta Tags
-  <SEOHead
-    title="Startseite"
-    description="Vanlife, Reisen und Abenteuer mit dem MojoBus. Perpetual Travelers – Geschichten, Orte und Tipps von unterwegs."
-    url={canonicalUrl('/')}
-    type="website"
-    jsonLd={websiteJsonLd()}
-  />
+  // SEO Meta Tags – EINE Quelle der Wahrheit via useHead (@unhead).
+  // (Vorher stand hier ein toter <SEOHead />-Ausdruck, der nie gemountet
+  // wurde – seine Tags kamen nie an. Die fehlenden OG-/Twitter-/JSON-LD-
+  // Teile sind jetzt hier integriert, inkl. SearchAction aus websiteJsonLd.)
   useHead({
     title: th('seo_title'),
     meta: [
@@ -61,11 +56,26 @@ export function Home() {
       { name: 'keywords', content: th('seo_keywords') },
       { property: 'og:title', content: th('seo_title') },
       { property: 'og:description', content: th('seo_og_description') },
-      { property: 'og:type', content: 'website' }
+      { property: 'og:type', content: 'website' },
+      { property: 'og:url', content: canonicalUrl(localizePath('/')) },
+      { property: 'og:image', content: ogImageUrl() },
+      { property: 'og:site_name', content: 'MojoBus – Perpetual Travelers' },
+      { property: 'og:locale', content: lang === 'de' ? 'de_DE' : 'en_US' },
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:title', content: th('seo_title') },
+      { name: 'twitter:description', content: th('seo_og_description') },
+      { name: 'twitter:image', content: ogImageUrl() },
     ],
     link: [
       { rel: 'canonical', href: canonicalUrl(localizePath('/')) }
-    ]
+    ],
+    script: [
+      {
+        type: 'application/ld+json',
+        // WebSite + SearchAction (Sitelinks-Searchbox-Signal für Google)
+        innerHTML: JSON.stringify(websiteJsonLd()),
+      },
+    ],
   });
 
   // PERFORMANCE-OPTIMIERUNG: First-Paint-Strategie für Erstbesucher ohne Cache
