@@ -70,6 +70,37 @@ curl -X POST http://localhost:3002/api/render-remotion/invalidate-bundle
 
 ---
 
+## Berichte-Assistent — Env-Variablen + Restart
+
+Der Berichte-Assistent (`/veroeffentlichen`, siehe MOJOBUS_CONTEXT.md
+Abschnitt „Berichte-Assistent") braucht folgende Variablen in
+`server/.env` auf dem VPS (Vorbild-Datei: `.env.example` im Repo):
+
+| Variable | Zweck |
+|----------|-------|
+| `OPENROUTER_API_KEY` | vorhanden — KI-Aufrufe (Ideen/Research/SEO-Titel/Vision) |
+| `GSC_CLIENT_EMAIL` + `GSC_PRIVATE_KEY` + `GSC_SITE_URL` | Search Console Service-Account (read-only). Fehlen sie: Assistent läuft weiter, nur ohne GSC-Daten (`gsc: false`) |
+| `INDEXNOW_KEY` | IndexNow-Ping nach Publish; Verifikationsdatei `public/<INDEXNOW_KEY>.txt` wird mit dem Deploy ausgeliefert |
+| `ASSISTANT_API_TOKEN` | Bearer-Token für Schreib-Routen (Drafts/Upload/Published); erzeugen z. B. mit `openssl rand -hex 32` |
+| `MEDIA_DIR` (Default `/home/nginx/domains/mojobus.co/public/images/articles`) + `MEDIA_PUBLIC_BASE` (Default `https://mojobus.co/images/articles`) | Media-Library-Speicherort + öffentliche URL-Basis |
+
+Build-seitig (`.env.production`, landet im Frontend-Bundle):
+`VITE_ASSISTANT_TOKEN` — identisch mit `ASSISTANT_API_TOKEN`.
+⚠ Schützt gegen Skript-Bots, nicht gegen Bundle-Leser; optional härter
+machbar via Nginx-Basic-Auth auf den Write-Routen.
+
+```bash
+# Deploy + Neustart (Pflicht nach server/-Änderungen):
+bash deploy-main.sh --force
+systemctl restart ai-api
+journalctl -u ai-api -f        # Start ohne Fehler; Logs: [Assistant], [Pipeline], [Media], [GSC]
+
+# GSC aktivieren: Service-Account in der Search Console als Owner/Benutzer eintragen,
+# dann prüfen: https://mojobus.co/api/assistant/ideas → "gsc": true
+```
+
+---
+
 ## Capacitor (Android APK)
 
 ```bash

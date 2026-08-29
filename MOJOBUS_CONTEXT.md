@@ -204,6 +204,40 @@ Schwelle Forecast/Archiv: 92 Tage; >16 Tage Zukunft → Wetter überspringen.
 
 ---
 
+## Berichte-Assistent (/veroeffentlichen)
+
+KI-Unterstützung im Berichte-Tab — **nur Vorschläge**, der User curates per
+Klick. Kein Autopilot, kein Cron. Der EINZIGE Weg nach draußen ist der
+explizite Klick „Bericht veröffentlichen" (Signatur browserseitig via NIP-07,
+kein Server-Key).
+
+**Server (`server/`):**
+| Datei | Zweck |
+|-------|-------|
+| `services/assistant-store.js` | SQLite `server/data/assistant.db` (WAL): `assistant_articles` (status `draft\|published`), `media`, `seo_cache` (24h-TTL). CRUD: saveArticle/getArticle/listArticles/deleteArticle/updateArticleFields/markPublished; Cache: getCached/setCached; Media: saveMediaItem/getMediaItem/listMediaItems/updateMediaItem |
+| `services/report-assistant.js` | ideas (GSC + LLM-Long-Tails), researchTopic (OpenRouter Web-Plugin), continuity-suggestions (NUR-Lese-Zugriff continuity.db), link-suggestions (sitemap.json + articles.json → canonical `https://mojobus.co/{naddr}`), seo-title. 24h-Cache in seo_cache |
+| `services/gsc-client.js` | Search Console Service-Account-JWT (RS256, node:crypto, Scope webmasters.readonly); striking-distance-Queries (Impressionen > 0, Ø-Position 5–20). Ohne GSC-Env: `{ available: false }` |
+| `services/publish-pipeline.js` | `runPublishPipeline({ dTag, url })`: generate-site-data → prerender-static → generate-sitemap → generate-feed (execFile, Logs `[Pipeline]`), danach `pingIndexNow(urls)` (Fehler nur geloggt). Läuft NACH `res.json()` im Hintergrund |
+| `routes/assistant/index.js` | Offen: `GET /api/assistant/ideas`, `POST /api/assistant/research`, `GET /api/assistant/continuity-suggestions`, `GET /api/assistant/link-suggestions`, `POST /api/assistant/seo-title`. 🔒 (Bearer ASSISTANT_API_TOKEN, timing-safe): `POST/GET /api/assistant/drafts`, `GET/DELETE /api/assistant/drafts/:id`, `PUT /api/assistant/article/:id`, `POST /api/assistant/published` |
+| `routes/assistant/media.js` | 🔒: `POST /api/media/upload` (multer → MEDIA_DIR, `artikel-<datum>-<hash>.<ext>`), `PUT /api/media/:id` (alt/tags). Offen: `GET /api/media`, `GET /api/media/file/:id` (Fallback-Auslieferung), `POST /api/media/analyze-alt` (Vision-KI via bestehendem getArticleImageAnalysisPrompt) |
+| `prompts/assistant-prompts.js` | buildResearchPrompt / buildIdeasPrompt (keine „10 Gründe"-Formate) / buildSeoTitlePrompt — KEINE Artikel-Prompts (die bleiben in `src/config/prompts/`, TABU) |
+
+**Frontend (`src/`):**
+| Datei | Zweck |
+|-------|-------|
+| `config/assistant.ts` | ASSISTANT_CONFIG (Endpunkte, GSC_WINDOW_DAYS=28, CACHE_TTL_HOURS=24), Marker `FACT_MARKER`/`EXPERIENCE_MARKER`, reine Funktion `buildAuthorInput({ facts, experiences, editorText })` |
+| `components/assistant/*` | useAssistantApi (getApiBaseUrl-Prefix + Bearer VITE_ASSISTANT_TOKEN), AssistantSection (kollabierbar, localStorage), IdeasPanel, ResearchBlock, MomentsBlock, LinkSuggestionsBlock (Insert an Cursorposition via `insertMarkdownRef`), SeoPublishPanel (SEO-Titel-Vorschlag, Meta-Description, Slug, ☑ „Alle Erlebnisse im Text sind echt" = Pflicht), DraftsOverview, MediaLibraryPanel (Dialog im Titelbild-Bereich), KiPlaceholderButton (statischer Platzhalter `public/images/platzhalter/platzhalter.jpg`, nur per Klick — echte KI-Bildgenerierung existiert im Stack nicht) |
+
+**Ablauf:** Generieren schickt `text = buildAuthorInput(...)` (FAKTEN/ERLEBNISSE
+klar markiert, Prompt selbst unverändert). Publish setzt SEO-Zusatz-Tags
+(`seo_title`, `meta_description`, `slug`), ruft dann non-blocking
+`POST /api/assistant/published { article_id?, d_tag, url }` → markiert Status
+`published` + Pipeline + IndexNow. Ohne geladenen Entwurf/Negativpfad kann
+NICHTS automatisch veröffentlicht werden (Pipeline nur hinter Token-Auth in
+`/published` referenziert).
+
+---
+
 ## GPS-Fix (Android)
 
 **Problem**: GPS-EXIF auf Android 10+ aus `content://` URIs redacted.
