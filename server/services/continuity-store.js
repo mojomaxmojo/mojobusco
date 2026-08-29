@@ -224,3 +224,41 @@ export function getOpenThreads(limit = 3) {
 export function resolveThread(threadId) {
   getDb().prepare(`UPDATE open_threads SET resolved = 1 WHERE id = ?`).run(threadId)
 }
+
+/**
+ * Findet Posts, deren Ort/Titel den Suchbegriff enthält (LIKE-Match) und
+ * deren published_at >= sinceTs liegt. Rein lesend — inkl. der Motive
+ * jedes Posts. Wird vom Berichte-Assistenten für Continuity-Vorschläge
+ * genutzt.
+ * @param {string} location — Suchbegriff für Ort/Titel
+ * @param {number} [sinceTs] — untere Zeitgrenze (ms), 0 = ganzer Verlauf
+ * @param {number} [limit] — maximale Anzahl Posts (Default 5)
+ * @returns {Array<{ id: string, type: string, kind: number, title?: string, location?: string, country?: string, mood?: string, publishedAt: number, motifs: string[] }>}
+ */
+export function findMomentsForLocation(location, sinceTs = 0, limit = 5) {
+  const search = (location || '').trim()
+  if (!search) return []
+
+  const rows = getDb().prepare(`
+    SELECT p.*, GROUP_CONCAT(pm.motif, '|') AS motifs
+    FROM posts p
+    LEFT JOIN post_motifs pm ON pm.post_id = p.id
+    WHERE (p.location LIKE ? OR p.title LIKE ?)
+      AND (? = 0 OR p.published_at >= ?)
+    GROUP BY p.id
+    ORDER BY p.published_at DESC
+    LIMIT ?
+  `).all(`%${search}%`, `%${search}%`, sinceTs, sinceTs, limit)
+
+  return rows.map(row => ({
+    id: row.id,
+    type: row.type,
+    kind: row.kind,
+    title: row.title || undefined,
+    location: row.location || undefined,
+    country: row.country || undefined,
+    mood: row.mood || undefined,
+    publishedAt: row.published_at,
+    motifs: row.motifs ? row.motifs.split('|').filter(Boolean) : []
+  }))
+}

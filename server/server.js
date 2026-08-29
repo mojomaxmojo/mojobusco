@@ -26,6 +26,7 @@ import { generateWithModel } from './services/ai-content.js'
 import contentRouter from './routes/content/index.js'
 import createVideoRouter from './routes/video/index.js'
 import tiktokRouter from './routes/tiktok/index.js'
+import assistantRouter from './routes/assistant/index.js'
 
 // ===== PROMPTS AUS src/config/prompts/ IMPORTIEREN =====
 // Alle Prompts sind zentral in src/config/prompts/ definiert
@@ -86,6 +87,10 @@ app.use(botMiddleware)
 // ===== CONTENT GENERIERUNG ROUTEN =====
 // Alle Content-Generierungs-Routen aus server/routes/content.js
 app.use(contentRouter)
+
+// ===== BERICHTE-ASSISTENT ROUTEN =====
+// Ideen, Research, Momente, Links, SEO-Titel + (Teil 2) Drafts/Publish
+app.use(assistantRouter)
 
 if (!fs.existsSync('uploads')) {
   fs.mkdirSync('uploads')

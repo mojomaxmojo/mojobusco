@@ -59,6 +59,8 @@ const generateWithModel = async (prompt, model = 'medium', lifestyle = 'mojobus'
     if (reasoning) {
       requestBody.reasoning = reasoning
     }
+    // Optionaler Plugins-Passthrough (z.B. [{ id: 'web' }] für :online-Suche)
+    if (options.plugins) requestBody.plugins = options.plugins
 
     const response = await axios.post(OPENROUTER_BASE, requestBody, {
       headers: getOpenRouterHeaders(),
