@@ -58,12 +58,15 @@ import { initJobDatabase, cleanupOldJobs } from './services/job-store.js'
 import { cleanupOldTempImages } from './services/temp-images.js'
 import { initContinuityDatabase } from './services/continuity-store.js'
 import { initWeatherCache } from './services/weather-lookup.js'
+import { initAssistantDatabase } from './services/assistant-store.js'
 
 // Datenbank für asynchrone Trip-Generierung initialisieren
 initJobDatabase()
 // Datenbank für Kontinuitäts-Gedächtnis + Wetter-Cache initialisieren
 initContinuityDatabase()
 initWeatherCache()
+// Datenbank für den Berichte-Assistenten initialisieren
+initAssistantDatabase()
 
 const app = express()
 const PORT = process.env.PORT || 3002
