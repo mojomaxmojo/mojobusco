@@ -72,17 +72,43 @@ curl -X POST http://localhost:3002/api/render-remotion/invalidate-bundle
 
 ## Berichte-Assistent — Env-Variablen + Restart
 
+**Ablageort der Runtime-Variablen (Stand: Umstellung der ai-api.service):**
+Der systemd-Service `ai-api` lädt sämtliche Variablen (KI-Keys, Assistent,
+Media, FFMPEG_PATH) aus **einer** Datei: `/etc/ai-api.env`, referenziert via
+`EnvironmentFile=/etc/ai-api.env` in der Unit. Keine Secrets mehr hartcodiert
+im `ExecStart`/`Environment=` der Unit, kein separates `server/.env`.
+
+⚠ **Die Env-Datei NIEMALS in den Webroot legen** (WorkingDirectory ist
+`/home/nginx/domains/mojobus.co/public/server` — Nginx liefert das aus).
+`/etc/ai-api.env`: `chown root:root`, `chmod 600`.
+Format: `KEY=WERT`-Zeilen, kein `export`. `GSC_PRIVATE_KEY` als EINE Zeile
+mit literalen `\n` (Code ersetzt sie um). Nach Unit-Änderung
+`systemctl daemon-reload`, nach reinem Env-Inhalt reicht `systemctl restart ai-api`.
+
 Der Berichte-Assistent (`/veroeffentlichen`, siehe MOJOBUS_CONTEXT.md
 Abschnitt „Berichte-Assistent") braucht folgende Variablen in
-`server/.env` auf dem VPS (Vorbild-Datei: `.env.example` im Repo):
+`/etc/ai-api.env` (Vorbild-Datei: `.env.example` im Repo):
 
 | Variable | Zweck |
 |----------|-------|
-| `OPENROUTER_API_KEY` | vorhanden — KI-Aufrufe (Ideen/Research/SEO-Titel/Vision) |
+| `OPENROUTER_API_KEY`, `XAI_API_KEY`, `GROQ_API_KEY` | vorhanden — aus der alten Unit-Config übernehmen |
 | `GSC_CLIENT_EMAIL` + `GSC_PRIVATE_KEY` + `GSC_SITE_URL` | Search Console Service-Account (read-only). Fehlen sie: Assistent läuft weiter, nur ohne GSC-Daten (`gsc: false`) |
 | `INDEXNOW_KEY` | IndexNow-Ping nach Publish; Verifikationsdatei `public/<INDEXNOW_KEY>.txt` wird mit dem Deploy ausgeliefert |
 | `ASSISTANT_API_TOKEN` | Bearer-Token für Schreib-Routen (Drafts/Upload/Published); erzeugen z. B. mit `openssl rand -hex 32` |
 | `MEDIA_DIR` (Default `/home/nginx/domains/mojobus.co/public/images/articles`) + `MEDIA_PUBLIC_BASE` (Default `https://mojobus.co/images/articles`) | Media-Library-Speicherort + öffentliche URL-Basis |
+| `FFMPEG_PATH` | aus der alten Unit übernehmen; laut AGENTS.md Regel 4 gehört ffmpeg nach `/usr/local/bin/ffmpeg` (nie `/opt/bin/` hartcodieren) — auf dem VPS verifizieren: `ls -la /usr/local/bin/ffmpeg /opt/bin/ffmpeg` |
+
+**Unit-Umstellung (Einmal-Migration):**
+```ini
+# ai-api.service [Service]-Sektion: bash -c-Wrapper + Environment= entfernen,
+# stattdessen:
+EnvironmentFile=/etc/ai-api.env
+ExecStart=/usr/bin/node --max-old-space-size=4096 /home/nginx/domains/mojobus.co/public/server/server.js
+```
+```bash
+systemctl daemon-reload && systemctl restart ai-api
+journalctl -u ai-api -f   # Start ohne "API-Key fehlt"-Fehler = Env geladen
+```
 
 Build-seitig (`.env.production`, landet im Frontend-Bundle):
 `VITE_ASSISTANT_TOKEN` — identisch mit `ASSISTANT_API_TOKEN`.
