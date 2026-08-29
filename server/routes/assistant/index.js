@@ -32,8 +32,12 @@ import {
   markPublished
 } from '../../services/assistant-store.js'
 import { runPublishPipeline } from '../../services/publish-pipeline.js'
+import mediaRouter from './media.js'
 
 const router = express.Router()
+
+// Media-Library-Routen in den Assistant-Router einbinden
+router.use(mediaRouter)
 
 // ============================================================
 // OFFENE ROUTEN (nur lesend / ask)
