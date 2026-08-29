@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "npm i --silent && vite",
+    "check": "tsc --noEmit",
     "build": "node build-intelligent.js",
     "build:optimize": "node scripts/optimize-build.js",
     "build:force": "FORCE_REBUILD=true node build-intelligent.js",

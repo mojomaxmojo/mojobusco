@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Video, Loader2, CheckCircle, Sparkles } from '@/lib/icons';
 import { useUploadFile } from '@/hooks/useUploadFile';
+import { getApiBaseUrl } from '@/lib/apiBase';
 import { useToast } from '@/hooks/useToast';
 import { canonicalUrl } from '@/lib/canonicalUrl';
 import { Badge } from '@/components/ui/badge';
@@ -212,7 +213,7 @@ export function RemotionVideoBlock({
 
   useEffect(() => {
     if (enabled && !remotionStatus.checked) {
-      fetch('/api/render-remotion/check')
+      fetch(`${getApiBaseUrl()}/api/render-remotion/check`)
         .then(r => r.json())
         .then(data => {
           setRemotionStatus({
@@ -230,7 +231,7 @@ export function RemotionVideoBlock({
   // Musik-Tracks laden
   useEffect(() => {
     if (enabled && musicTracks.length === 0) {
-      fetch('/api/music/list')
+      fetch(`${getApiBaseUrl()}/api/music/list`)
         .then(r => r.json())
         .then(data => setMusicTracks(data.tracks || []))
         .catch(() => {});
@@ -317,7 +318,7 @@ export function RemotionVideoBlock({
 
     try {
       // 1. Render-Job starten
-      const res = await fetch('/api/render-remotion', {
+      const res = await fetch(`${getApiBaseUrl()}/api/render-remotion`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -361,7 +362,7 @@ export function RemotionVideoBlock({
       const poll = async (): Promise<void> => {
         if (attempts++ > 600) throw new Error('Timeout nach 30 Minuten.');
 
-        const pollRes = await fetch(`/api/render-remotion/status/${jobId}`);
+        const pollRes = await fetch(`${getApiBaseUrl()}/api/render-remotion/status/${jobId}`);
         const pollData = await safeJson(pollRes);
 
         if (pollData.progress) setProgress(pollData.progress);
@@ -371,7 +372,7 @@ export function RemotionVideoBlock({
           setStatus('downloading');
           toast({ title: '📥 Video herunterladen...', description: `${pollData.fileSizeMB}MB` });
 
-          const videoRes = await fetch(`/api/render-remotion/download/${jobId}`);
+          const videoRes = await fetch(`${getApiBaseUrl()}/api/render-remotion/download/${jobId}`);
           if (!videoRes.ok) throw new Error(`Download fehlgeschlagen: HTTP ${videoRes.status}`);
           const blob = await videoRes.blob();
 

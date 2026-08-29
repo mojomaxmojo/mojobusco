@@ -16,21 +16,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNostr } from '@/hooks/useNostr'
 import { NOSTR_CONFIG } from '@/config/nostr'
-import { SITE_URL } from '@/config/app'
-
-// Absolute Basis-URL für API/Daten – nötig in Capacitor WebView (file:// Kontext)
-function getDataBaseUrl(): string {
-  try {
-    const cap = (window as any).Capacitor
-    const isNative =
-      cap?.isNative === true ||
-      (window as any).__Capacitor?.isNative === true ||
-      cap?.getPlatform?.() === 'android' ||
-      cap?.getPlatform?.() === 'ios'
-    if (isNative) return SITE_URL
-  } catch { /* ignore */ }
-  return '' // Browser: relative URLs funktionieren
-}
+// Capacitor-Fix: absolute URLs für /data/-Dumps – zentral in src/lib/apiBase.ts
+import { getDataBaseUrl } from '@/lib/apiBase'
 
 export interface VideoItem {
   id: string

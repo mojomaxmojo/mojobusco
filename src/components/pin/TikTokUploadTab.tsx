@@ -21,19 +21,8 @@ import {
 import type { ContentItem } from '@/components/pin/ContentSelector'
 import { Upload, FileText } from 'lucide-react'
 
-// ── Capacitor-Fix: absolute API-URL (identisch zu VideoPromotion.tsx) ──────
-function getApiBaseUrl(): string {
-  try {
-    const cap = (window as any).Capacitor
-    const isNative =
-      cap?.isNative === true ||
-      (window as any).__Capacitor?.isNative === true ||
-      cap?.getPlatform?.() === 'android' ||
-      cap?.getPlatform?.() === 'ios'
-    if (isNative) return 'https://mojobus.co'
-  } catch { /* ignore */ }
-  return ''
-}
+// ── Capacitor-Fix: absolute API-URL – zentral in src/lib/apiBase.ts ────────
+import { getApiBaseUrl } from '@/lib/apiBase'
 
 // ── Props ───────────────────────────────────────────────────────────────────
 

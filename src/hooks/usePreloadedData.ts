@@ -16,6 +16,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNostr } from '@/hooks/useNostr';
 import { useQuery } from '@tanstack/react-query';
 import { FIRST_PAINT_CONFIG } from '@/config/performance';
+import { getDataBaseUrl } from '@/lib/apiBase';
 
 interface PreloadedDataOptions {
   /** Name der JSON-Datei (ohne .json) – z.B. 'articles' → /data/articles.json */
@@ -64,10 +65,10 @@ export function usePreloadedData<T = any>(options: PreloadedDataOptions): Preloa
     queryKey: ['preloaded', name],
     queryFn: async () => {
       try {
-        // Beide Fetches parallel starten
+        // Beide Fetches parallel starten (Capacitor: absolute URL via getDataBaseUrl())
         const [dataRes, idxRes] = await Promise.all([
-          fetch(`/data/${name}.json`),
-          fetch('/data/index.json'),
+          fetch(`${getDataBaseUrl()}/data/${name}.json`),
+          fetch(`${getDataBaseUrl()}/data/index.json`),
         ]);
 
         // index.json auswerten (Cron-Timestamp für Live-Update)

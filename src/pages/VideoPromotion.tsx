@@ -94,18 +94,8 @@ import {
 // In der nativen App (Capacitor WebView) läuft die Seite im file:// Kontext.
 // Relative Pfade wie /api/... werden zu file:///api/... → Server nie erreicht.
 // Im Desktop-Browser: leerer String → relative URLs funktionieren wie gewohnt.
-function getApiBaseUrl(): string {
-  try {
-    const cap = (window as any).Capacitor
-    const isNative =
-      cap?.isNative === true ||
-      (window as any).__Capacitor?.isNative === true ||
-      cap?.getPlatform?.() === 'android' ||
-      cap?.getPlatform?.() === 'ios'
-    if (isNative) return 'https://mojobus.co'
-  } catch { /* ignore */ }
-  return ''
-}
+// Zentral in src/lib/apiBase.ts (vorher lokale Kopie).
+import { getApiBaseUrl } from '@/lib/apiBase';
 
 // ── Hero-Wort-Markup ══════════════════════════════════════════
 // Die KI markiert pro bodyLine ein Schlüsselwort mit **Wort** (siehe

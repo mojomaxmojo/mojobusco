@@ -13,6 +13,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import exifr from 'exifr';
 import { RemotionVideoBlock } from '@/components/RemotionVideoBlock';
+import { getApiBaseUrl } from '@/lib/apiBase';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -454,7 +455,7 @@ export function TripPublishForm() {
                 .filter(s => s.description)
       ));
 
-      const response = await fetch('/api/generate-trip', { method: 'POST', body: fd });
+      const response = await fetch(`${getApiBaseUrl()}/api/generate-trip`, { method: 'POST', body: fd });
       const data = await response.json().catch(() => ({ error: 'Keine Antwort vom Server' }));
 
       if (!response.ok) {
@@ -485,7 +486,7 @@ export function TripPublishForm() {
     if (!activeJobId) return;
 
     try {
-      await fetch(`/api/generate-trip/${activeJobId}/cancel`, { method: 'POST' });
+      await fetch(`${getApiBaseUrl()}/api/generate-trip/${activeJobId}/cancel`, { method: 'POST' });
     } catch (err) {
       console.warn('[KI] Cancel fehlgeschlagen:', err);
     }
@@ -507,7 +508,7 @@ export function TripPublishForm() {
 
     const poll = async () => {
       try {
-        const response = await fetch(`/api/generate-trip/${activeJobId}`);
+        const response = await fetch(`${getApiBaseUrl()}/api/generate-trip/${activeJobId}`);
         if (!response.ok) {
           if (cancelled) return;
           const data = await response.json().catch(() => ({ error: 'Status-Abruf fehlgeschlagen' }));

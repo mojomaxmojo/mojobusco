@@ -4,7 +4,7 @@ import { useNostr } from '@/hooks/useNostr';
 import { usePreloadedData } from '@/hooks/usePreloadedData';
 import { NOSTR_CONFIG } from '@/config/nostr';
 import { DEFAULT_CACHE_CONFIG } from '@/config/cache';
-import { DEFAULT_PERFORMANCE_CONFIG } from '@/config/performance';
+import { DEFAULT_PERFORMANCE_CONFIG, FIRST_PAINT_CONFIG } from '@/config/performance';
 import type { NostrEvent } from '@nostrify/nostrify';
 
 /**
@@ -179,7 +179,11 @@ export function useLongformArticles(options?: {
   return useQuery({
     queryKey: ['longform-articles', NOSTR_CONFIG.authorPubkeys, options?.['#t']],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(DEFAULT_PERFORMANCE_CONFIG.relay.queryTimeout * 2.5)]);
+      // FIX: DEFAULT_PERFORMANCE_CONFIG.relay.queryTimeout existiert seit der
+      // performance.ts-Ausmistung nicht mehr (war undefined → AbortSignal.timeout(NaN)
+      // → sofortiger Abbruch). Der bisher faktisch wirksame Wert war 3000 × 2.5 = 7500ms
+      // = FIRST_PAINT_CONFIG.progressiveTimeout.
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(FIRST_PAINT_CONFIG.progressiveTimeout)]);
 
       const filter: any = {
         kinds: options?.kinds || [NOSTR_CONFIG.kinds.longform],
@@ -230,7 +234,9 @@ export function useInfiniteLongformArticles(options?: {
   return useInfiniteQuery({
     queryKey: ['infinite-longform-articles', NOSTR_CONFIG.authorPubkeys, options?.['#t']],
     queryFn: async ({ pageParam, signal }) => {
-      const abortSignal = AbortSignal.any([signal!, AbortSignal.timeout(DEFAULT_PERFORMANCE_CONFIG.relay.queryTimeout * 2.5)]);
+      // FIX: siehe useLongformArticles – queryTimeout-Reference war nach der
+      // Config-Ausmistung undefined (AbortSignal.timeout(NaN) = sofortiger Abbruch).
+      const abortSignal = AbortSignal.any([signal!, AbortSignal.timeout(FIRST_PAINT_CONFIG.progressiveTimeout)]);
 
       const filter: any = {
         kinds: options?.kinds || [NOSTR_CONFIG.kinds.longform],
@@ -344,7 +350,9 @@ export function useLongformArticle(identifier: string, authorPubkey: string) {
   return useQuery({
     queryKey: ['longform-article', identifier, authorPubkey],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(DEFAULT_PERFORMANCE_CONFIG.relay.queryTimeout * 2.5)]);
+      // FIX: siehe useLongformArticles – queryTimeout-Reference war nach der
+      // Config-Ausmistung undefined (AbortSignal.timeout(NaN) = sofortiger Abbruch).
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(FIRST_PAINT_CONFIG.progressiveTimeout)]);
 
       const events = await nostr.query(
         [

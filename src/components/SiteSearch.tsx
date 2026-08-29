@@ -19,21 +19,10 @@ import {
   CommandGroup,
   CommandItem,
 } from '@/components/ui/command';
-import { SITE_URL } from '@/config/app';
+import { getDataBaseUrl } from '@/lib/apiBase';
 
 // Capacitor-Fix: relative fetch-URLs funktionieren im file:// Kontext nicht
-function getDataBaseUrl(): string {
-  try {
-    const cap = (window as any).Capacitor;
-    const isNative =
-      cap?.isNative === true ||
-      (window as any).__Capacitor?.isNative === true ||
-      cap?.getPlatform?.() === 'android' ||
-      cap?.getPlatform?.() === 'ios';
-    if (isNative) return SITE_URL;
-  } catch { /* ignore */ }
-  return '';
-}
+// → zentral in src/lib/apiBase.ts (vorher lokale Kopie)
 
 interface SearchResult {
   id: string;

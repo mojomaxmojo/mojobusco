@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/useToast";
 import { useUploadFile } from "@/hooks/useUploadFile";
 import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { useContinuityTracking } from "@/hooks/useContinuityTracking";
+import { getApiBaseUrl } from "@/lib/apiBase";
 import { ImageOptimizationToggle } from "@/components/ImageOptimizationToggle";
 import { GpsEditor } from "@/components/GpsEditor";
 import { GpsStatusIndicator } from "@/components/GpsStatusIndicator";
@@ -120,7 +121,7 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
       formData.append('gender', gender || 'neutral'); // Mojo=male, Susanne=female
       formData.append('tripType', tripType || '');
 
-      const response = await fetch('/api/generate-media-article', {
+      const response = await fetch(`${getApiBaseUrl()}/api/generate-media-article`, {
         method: 'POST',
         body: formData
       });

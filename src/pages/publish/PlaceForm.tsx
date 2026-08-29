@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/useToast";
 import { useUploadFile } from "@/hooks/useUploadFile";
 import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { useAutoTranslate } from "@/hooks/useAutoTranslate";
+import { getApiBaseUrl } from "@/lib/apiBase";
 import { useContinuityTracking } from "@/hooks/useContinuityTracking";
 import { createLongformTeaser } from "@/lib/createLongformTeaser";
 import { placeUrl, canonicalUrl } from "@/lib/canonicalUrl";
@@ -166,7 +167,7 @@ export function PlaceForm({ editEvent }: { editEvent?: any }) {
          formData.append('markdownImageMeta', JSON.stringify(markdownImageMeta));
        }
 
-       const response = await fetch('/api/generate-place', {
+       const response = await fetch(`${getApiBaseUrl()}/api/generate-place`, {
          method: 'POST',
          body: formData
        });

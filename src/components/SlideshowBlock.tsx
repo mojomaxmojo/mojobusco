@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Video, Loader2, CheckCircle } from '@/lib/icons';
 import { useUploadFile } from '@/hooks/useUploadFile';
+import { getApiBaseUrl } from '@/lib/apiBase';
 import { useToast } from '@/hooks/useToast';
 
 interface SlideshowBlockProps {
@@ -95,7 +96,7 @@ export function SlideshowBlock({
   // Musik-Status beim Aktivieren einmalig abrufen
   useEffect(() => {
     if (enabled && localMusicAvailable === null) {
-      fetch('/api/slideshow-music-status')
+      fetch(`${getApiBaseUrl()}/api/slideshow-music-status`)
         .then(r => r.json())
         .then(data => {
           setLocalMusicAvailable(data.available);
@@ -158,7 +159,7 @@ export function SlideshowBlock({
     };
 
     try {
-      const res = await fetch('/api/generate-slideshow', {
+      const res = await fetch(`${getApiBaseUrl()}/api/generate-slideshow`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -183,7 +184,7 @@ export function SlideshowBlock({
         
         let pollData: any;
         try {
-          const pollRes = await fetch(`/api/slideshow-status/${data.jobId}`);
+          const pollRes = await fetch(`${getApiBaseUrl()}/api/slideshow-status/${data.jobId}`);
           pollData = await safeJson(pollRes);
         } catch (pollErr: any) {
           // Einzelner Poll-Fehler → kurz warten, nochmal versuchen (max 3x)

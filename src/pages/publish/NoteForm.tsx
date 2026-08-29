@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/useToast";
 import { useUploadFile } from "@/hooks/useUploadFile";
 import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { useAutoTranslate } from "@/hooks/useAutoTranslate";
+import { getApiBaseUrl } from "@/lib/apiBase";
 import { useContinuityTracking } from "@/hooks/useContinuityTracking";
 import { AUTO_TRANSLATE_STORAGE_KEY } from "@/config/translation";
 import { ImageOptimizationToggle } from "@/components/ImageOptimizationToggle";
@@ -113,7 +114,7 @@ export function NoteForm({ editEvent }: { editEvent?: any }) {
       formData.append('gender', gender || 'neutral');
       formData.append('tripType', tripType || '');
 
-      const response = await fetch('/api/generate-note', {
+      const response = await fetch(`${getApiBaseUrl()}/api/generate-note`, {
         method: 'POST',
         body: formData
       });

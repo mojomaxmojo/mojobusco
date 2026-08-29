@@ -11,6 +11,7 @@ import { useUploadFile } from "@/hooks/useUploadFile";
 import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { useAutoTranslate } from "@/hooks/useAutoTranslate";
 import { useContinuityTracking } from "@/hooks/useContinuityTracking";
+import { getApiBaseUrl } from "@/lib/apiBase";
 import { ImageOptimizationToggle } from "@/components/ImageOptimizationToggle";
 import { GpsEditor } from "@/components/GpsEditor";
 import { GpsStatusIndicator } from "@/components/GpsStatusIndicator";
@@ -147,7 +148,7 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
 
     try {
       // Schritt 1: Job über eigenen Server einreichen (XAI_API_KEY liegt auf VPS)
-      const submitRes = await fetch('/api/generate-video', {
+      const submitRes = await fetch(`${getApiBaseUrl()}/api/generate-video`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -189,7 +190,7 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
         }
         attempts++;
 
-        const pollRes = await fetch(`/api/video-status/${jobId}`);
+        const pollRes = await fetch(`${getApiBaseUrl()}/api/video-status/${jobId}`);
         const pollData = await pollRes.json();
 
         if (pollData.status === 'completed' && pollData.videoUrl) {
@@ -294,7 +295,7 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
 
     try {
       // Job starten
-      const res = await fetch('/api/generate-slideshow', {
+      const res = await fetch(`${getApiBaseUrl()}/api/generate-slideshow`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
@@ -318,7 +319,7 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
       let attempts = 0;
       const poll = async (): Promise<void> => {
         if (attempts++ > 400) throw new Error('Timeout nach 20 Minuten.');
-        const pollRes = await fetch(`/api/slideshow-status/${data.jobId}`);
+        const pollRes = await fetch(`${getApiBaseUrl()}/api/slideshow-status/${data.jobId}`);
         const pollData = await pollRes.json();
 
         setSlideshowProgress(pollData.progress || 0);
@@ -419,7 +420,7 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
         formData.append('markdownImageMeta', JSON.stringify(markdownImageMeta));
       }
 
-      const response = await fetch('/api/generate-article', {
+      const response = await fetch(`${getApiBaseUrl()}/api/generate-article`, {
         method: 'POST',
         body: formData
       });

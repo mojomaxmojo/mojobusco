@@ -16,6 +16,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
+import { getApiBaseUrl } from '@/lib/apiBase'
 import { useToast } from '@/hooks/useToast'
 import { useNostr } from '@/hooks/useNostr'
 import { useUploadFile } from '@/hooks/useUploadFile'
@@ -172,7 +173,7 @@ export function PromotionDashboard() {
 
   const loadSavedPins = async () => {
     try {
-      const res = await fetch('/api/promotion/pins')
+      const res = await fetch(`${getApiBaseUrl()}/api/promotion/pins`)
       const data = await safeResJson(res)
       if (data?.success && Array.isArray(data.pins)) {
         setSavedPins(data.pins)
@@ -251,7 +252,7 @@ export function PromotionDashboard() {
           )
         || ''
 
-      const res = await fetch('/api/promotion/generate-pin-text', {
+      const res = await fetch(`${getApiBaseUrl()}/api/promotion/generate-pin-text`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -465,7 +466,7 @@ export function PromotionDashboard() {
 
       // 2) Zusätzlich auf Server speichern (best-effort)
       try {
-        const res = await fetch('/api/promotion/pins', {
+        const res = await fetch(`${getApiBaseUrl()}/api/promotion/pins`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(pinPayload)
@@ -495,7 +496,7 @@ export function PromotionDashboard() {
   const deletePin = async (pinId: string) => {
     try {
       try {
-        await fetch(`/api/promotion/pins/${pinId}`, { method: 'DELETE' })
+        await fetch(`${getApiBaseUrl()}/api/promotion/pins/${pinId}`, { method: 'DELETE' })
       } catch { /* Server nicht erreichbar */ }
       // Immer lokal entfernen
       const updated = loadPinsFromLocal().filter(p => p.id !== pinId)

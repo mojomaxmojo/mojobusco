@@ -12,22 +12,10 @@
 /**
  * Ermittelt die API-Basis-URL. Unter Capacitor (Android-APK, `file://`
  * Kontext) wird die feste Domain verwendet, im Browser ein leerer String
- * (relativer Pfad). Muster wie in useAutoTranslate.ts.
+ * (relativer Pfad). Zentral in src/lib/apiBase.ts (vorher lokale Kopie).
  */
-function getApiBaseUrl(): string {
-  try {
-    const cap = (window as { Capacitor?: { isNative?: boolean; getPlatform?: () => string } }).Capacitor;
-    const isNative =
-      cap?.isNative === true ||
-      (window as { __Capacitor?: { isNative?: boolean } }).__Capacitor?.isNative === true ||
-      cap?.getPlatform?.() === 'android' ||
-      cap?.getPlatform?.() === 'ios';
-    if (isNative) return 'https://mojobus.co';
-  } catch {
-    /* ignore */
-  }
-  return '';
-}
+
+import { getApiBaseUrl } from '@/lib/apiBase';
 
 /** Eingabe für `trackPublishedPost()`. */
 export interface TrackPublishedPostInput {
