@@ -10,6 +10,7 @@ import { getGalleryThumbnailUrl, getImagePlaceholder, generateSrcset, generateSi
 import { SocialBar } from '@/components/SocialBar';
 import { VideoFramePreview } from '@/components/VideoFramePreview';
 import { MapPin, Play } from 'lucide-react';
+import { extractFirstImageUrl, isVideoUrl } from '@/lib/mediaUtils';
 import type { NostrEvent } from '@nostrify/nostrify';
 import type { Trip } from '@/hooks/useTrips';
 
@@ -20,21 +21,6 @@ export type ContentItem = {
   thumbnailUrl?: string;
   parsedData?: Trip;
 };
-
-function extractFirstImageUrl(content: string): string | null {
-  const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|mp4|webm|mov|avi|mkv))/gi;
-  const matches = content.match(urlRegex);
-  return matches && matches.length > 0 ? matches[0] : null;
-}
-
-function isVideoUrl(url: string): boolean {
-  const lower = url.toLowerCase();
-  return lower.includes('.mp4') ||
-         lower.includes('.webm') ||
-         lower.includes('.mov') ||
-         lower.includes('.avi') ||
-         lower.includes('.mkv');
-}
 
 export const ContentCard = memo(function ContentCard({ item }: { item: ContentItem }) {
   const author = useAuthor(item.event.pubkey);

@@ -30,7 +30,7 @@
 | `routes.ts` | Routen-Definitionen |
 | `mainMenu.ts` | Hauptnavigation Desktop + Mobile |
 | `cache.ts` | Cache-Zeiten (24h Listen, 7d Profile, 1y Bilder) |
-| `performance.ts` | Infinite Scroll, Cache, Relay-Config, **First-Paint** (`FIRST_PAINT_CONFIG`: 2s Fast-Timeout, Limit 15, 3 Home-Cards) |
+| `performance.ts` | **Schlank (ausgemistet)**: `FIRST_PAINT_CONFIG` (2s Fast-Timeout, Limit 15, 3 Home-Cards) + `DEFAULT_PERFORMANCE_CONFIG` (itemsPerPage 15, QueryClient cache/retry-Defaults). Build-Performance lebt in `performance.config.ts` |
 | `imageService.ts` | Bildoptimierung (weserv/imgproxy/Cloudflare) |
 | `prompts/tiktok.js` | TikTok-Prompt (**darf bearbeitet werden**) |
 | `prompts/*.js` (Rest) | ⛔ **TABU – niemals ändern** |

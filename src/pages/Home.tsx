@@ -20,24 +20,9 @@ import { useLanguage } from '@/hooks/useLanguage';
 import { translateHome } from '@/config/i18n/home';
 import { getEventLanguage } from '@/lib/translationTags';
 import { SocialBatchProvider } from '@/hooks/useBatchedSocialCounts';
+import { extractFirstImageUrl, isVideoUrl } from '@/lib/mediaUtils';
 
 const ContentCard = lazy(() => import('@/components/ContentCard').then(m => ({ default: m.ContentCard })));
-
-/** Simple Bild-URL-Extraktion (lokal, kein schwerer Import nötig) */
-function extractFirstImageUrl(content: string): string | null {
-  const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|mp4|webm|mov|avi|mkv))/gi;
-  const matches = content.match(urlRegex);
-  return matches && matches.length > 0 ? matches[0] : null;
-}
-
-function isVideoUrl(url: string): boolean {
-  const lower = url.toLowerCase();
-  return lower.includes('.mp4') ||
-         lower.includes('.webm') ||
-         lower.includes('.mov') ||
-         lower.includes('.avi') ||
-         lower.includes('.mkv');
-}
 
 export function Home() {
   const queryClient = useQueryClient();
