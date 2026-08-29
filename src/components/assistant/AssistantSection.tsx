@@ -17,6 +17,7 @@ import { IdeasPanel, type AssistantIdea } from './IdeasPanel';
 import { ResearchBlock } from './ResearchBlock';
 import { MomentsBlock } from './MomentsBlock';
 import { LinkSuggestionsBlock } from './LinkSuggestionsBlock';
+import { KiPlaceholderButton } from './KiPlaceholderButton';
 
 const COLLAPSE_STORAGE_KEY = 'assistant:section-collapsed';
 
@@ -115,6 +116,15 @@ export function AssistantSection({
               tags={tags}
               editorInsertRef={editorInsertRef}
               onAppendMarkdown={onAppendMarkdown}
+            />
+          </div>
+
+          {/* KI-Platzhalter (nur per explizitem Klick) */}
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">Bild-Platzhalter</p>
+            <KiPlaceholderButton
+              onInsert={onAppendMarkdown}
+              editorInsertRef={editorInsertRef}
             />
           </div>
         </CardContent>

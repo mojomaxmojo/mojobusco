@@ -44,6 +44,8 @@ import type { AssistantIdea } from "@/components/assistant/IdeasPanel";
 import { SeoPublishPanel, slugify } from "@/components/assistant/SeoPublishPanel";
 import { DraftsOverview, type AssistantDraftArticle } from "@/components/assistant/DraftsOverview";
 import { useAssistantApi } from "@/components/assistant/useAssistantApi";
+import { MediaLibraryPanel } from "@/components/assistant/MediaLibraryPanel";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { buildAuthorInput, FACT_MARKER, EXPERIENCE_MARKER } from "@/config/assistant";
 import { nip19 } from "nostr-tools";
 
@@ -82,6 +84,8 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
   const [seoMetaDescription, setSeoMetaDescription] = useState('');
   const [seoSlug, setSeoSlug] = useState('');
   const [experiencesConfirmed, setExperiencesConfirmed] = useState(false);
+  // Media-Library-Dialog (Titelbild aus eigener Library wählen)
+  const [showMediaLibrary, setShowMediaLibrary] = useState(false);
   // Aktuell geladener Entwurf (DraftsOverview)
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
   const [currentDraftStatus, setCurrentDraftStatus] = useState<'draft' | 'published' | null>(null);
@@ -1154,6 +1158,15 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
         {/* Title Image - Move to top */}
         <div className="space-y-2">
           <Label htmlFor="article-image">Titelbild</Label>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setShowMediaLibrary(true)}
+          >
+            <ImageIcon className="h-4 w-4 mr-1" />
+            Aus Media-Library wählen
+          </Button>
           <div className="flex gap-2">
             {image ? (
               <div className="flex-1">
@@ -1976,7 +1989,37 @@ Schreibe deinen Artikel hier...
         >
           <FileText className="h-4 w-4 mr-2" />
           {isPublishingTeaser ? 'Wird veröffentlicht...' : (editEvent ? 'Bericht aktualisieren' : 'Bericht veröffentlichen')}
-        </Button>      </CardContent>
+        </Button>
+
+        {/* Assistent: Media-Library-Dialog (Titelbild wählen / Bild in Editor einfügen) */}
+        <Dialog open={showMediaLibrary} onOpenChange={setShowMediaLibrary}>
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Media-Library</DialogTitle>
+              <DialogDescription>
+                Bild aus der eigenen Library wählen — „Übernehmen" setzt es als Titelbild,
+                „In Editor einfügen" fügt es als Markdown-Bild ein.
+              </DialogDescription>
+            </DialogHeader>
+            <MediaLibraryPanel
+              onApplyAsTitle={(url) => {
+                setImage(url);
+                setShowMediaLibrary(false);
+              }}
+              onInsertIntoEditor={(url, alt) => {
+                const markdown = `![${alt || 'Bild'}](${url})`;
+                if (editorInsertRef.current) {
+                  editorInsertRef.current(markdown);
+                } else {
+                  setContent(prev => prev ? `${prev}\n${markdown}` : markdown);
+                  toast({ title: 'Hinweis', description: 'Bild am Ende des Editors angehängt.' });
+                }
+                setShowMediaLibrary(false);
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      </CardContent>
     </Card>
   );
 }

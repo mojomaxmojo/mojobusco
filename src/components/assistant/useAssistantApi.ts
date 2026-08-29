@@ -49,3 +49,36 @@ export function useAssistantApi() {
 
   return { request };
 }
+
+/**
+ * Multipart-Upload für die Media-Library (kein JSON-Body).
+ * Feldname: `image`. Setzt den Bearer-Token wie der Hook.
+ */
+export async function assistantUpload<T>(endpoint: string, file: File): Promise<T> {
+  const formData = new FormData();
+  formData.append('image', file);
+
+  const headers: HeadersInit = {};
+  if (ASSISTANT_TOKEN) {
+    (headers as Record<string, string>)['Authorization'] = `Bearer ${ASSISTANT_TOKEN}`;
+  }
+
+  const response = await fetch(`${getApiBaseUrl()}${endpoint}`, {
+    method: 'POST',
+    body: formData,
+    headers
+  });
+
+  if (!response.ok) {
+    let message = `HTTP ${response.status}`;
+    try {
+      const body = (await response.json()) as AssistantApiErrorBody;
+      if (body.error) message = body.error;
+    } catch {
+      // keine JSON-Antwort
+    }
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<T>;
+}
