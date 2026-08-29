@@ -41,7 +41,11 @@ import { createLongformTeaser } from "@/lib/createLongformTeaser";
 import exifr from "exifr";
 import { AssistantSection } from "@/components/assistant/AssistantSection";
 import type { AssistantIdea } from "@/components/assistant/IdeasPanel";
+import { SeoPublishPanel, slugify } from "@/components/assistant/SeoPublishPanel";
+import { DraftsOverview, type AssistantDraftArticle } from "@/components/assistant/DraftsOverview";
+import { useAssistantApi } from "@/components/assistant/useAssistantApi";
 import { buildAuthorInput, FACT_MARKER, EXPERIENCE_MARKER } from "@/config/assistant";
+import { nip19 } from "nostr-tools";
 
 export function ArticleForm({ editEvent }: { editEvent?: any }) {
   const [title, setTitle] = useState('');
@@ -73,6 +77,15 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
   const [experienceNotes, setExperienceNotes] = useState('');
   // Ref-API des MilkdownEditors: Markdown an Cursorposition einfügen (Assistent-Links)
   const editorInsertRef = useRef<((markdown: string) => void) | null>(null);
+  // SEO-Panel (Assistent): seo_title / meta_description / slug + Erlebnisse-Pflicht
+  const [seoTitle, setSeoTitle] = useState('');
+  const [seoMetaDescription, setSeoMetaDescription] = useState('');
+  const [seoSlug, setSeoSlug] = useState('');
+  const [experiencesConfirmed, setExperiencesConfirmed] = useState(false);
+  // Aktuell geladener Entwurf (DraftsOverview)
+  const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
+  const [currentDraftStatus, setCurrentDraftStatus] = useState<'draft' | 'published' | null>(null);
+  const { request: assistantRequest } = useAssistantApi();
   // Grok Imagine Video (xAI) State
   const [videoEnabled, setVideoEnabled] = useState(false);
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
@@ -758,7 +771,117 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
     }
   };
 
+  // Assistent: author_input (mit Markern) zurück in FAKTEN/ERLEBNISSE splitten
+  const splitAuthorInput = (input: string): { facts: string; experiences: string } => {
+    if (!input) return { facts: '', experiences: '' };
+    const fIdx = input.indexOf(FACT_MARKER);
+    const eIdx = input.indexOf(EXPERIENCE_MARKER);
+    let facts = '';
+    let experiences = '';
+    if (fIdx >= 0) {
+      facts = input.slice(fIdx + FACT_MARKER.length, eIdx >= 0 ? eIdx : undefined).trim();
+    }
+    if (eIdx >= 0) {
+      experiences = input.slice(eIdx + EXPERIENCE_MARKER.length).trim();
+    }
+    return { facts, experiences };
+  };
+
+  // Assistent: Entwurf komplett ins Formular laden
+  const loadDraftIntoForm = (article: AssistantDraftArticle) => {
+    setCurrentDraftId(article.id);
+    setCurrentDraftStatus(article.status || 'draft');
+    setTitle(article.title || '');
+    setSummary(article.summary || '');
+    setContent(article.content || '');
+    setImage(article.image_url || '');
+    setCategory(article.category || '');
+    setLocation(article.location || '');
+    setSelectedCountry(article.country || '');
+    setTags(Array.isArray(article.tags) ? article.tags : []);
+    if (article.article_length === 'short' || article.article_length === 'medium' || article.article_length === 'long') {
+      setArticleLength(article.article_length);
+    }
+    if (article.trip_type) setTripType(article.trip_type as TripType);
+    if (article.lifestyle) setLifestyle(article.lifestyle as typeof lifestyle);
+    setSeoTitle(article.seo_title || '');
+    setSeoMetaDescription(article.meta_description || '');
+    setSeoSlug(article.slug || '');
+    const { facts, experiences } = splitAuthorInput(article.author_input || '');
+    setResearchFacts(facts);
+    setExperienceNotes(experiences);
+  };
+
+  // Assistent: Payload für „Als Entwurf speichern"
+  const draftPayload = {
+    title: title.trim(),
+    summary: summary.trim(),
+    content,
+    author_input: buildAuthorInput({ facts: researchFacts, experiences: experienceNotes, editorText: '' }),
+    seo_title: seoTitle.trim(),
+    meta_description: seoMetaDescription.trim(),
+    slug: (seoSlug.trim() || slugify(title)).trim(),
+    location: location.trim(),
+    country: selectedCountry,
+    category,
+    tags,
+    article_length: articleLength,
+    trip_type: tripType || '',
+    lifestyle,
+    image_url: image
+  };
+
+  // Assistent: Publish-Meldung (non-blocking) → PUT Status published (bei geladenem
+  // Entwurf) + POST /published (markiert published, triggert Pipeline + IndexNow).
+  // Fehler blockieren den Publish nie (console.warn, Muster wie useContinuityTracking).
+  const notifyAssistantPublished = (finalDTag: string) => {
+    try {
+      const pubkeyForNaddr = editEvent?.pubkey || currentUser?.pubkey;
+      if (!pubkeyForNaddr) {
+        console.warn('[Article] Kein Pubkey — Assistent-Publish-Meldung übersprungen');
+        return;
+      }
+      const naddr = nip19.naddrEncode({ kind: 30023, pubkey: pubkeyForNaddr, identifier: finalDTag });
+      const url = canonicalUrl(articleUrl(naddr));
+
+      void (async () => {
+        try {
+          if (currentDraftId) {
+            await assistantRequest(`/api/assistant/article/${currentDraftId}`, {
+              method: 'PUT',
+              body: JSON.stringify({ status: 'published' })
+            }).catch((err: unknown) => {
+              console.warn('[Article] PUT article status fehlgeschlagen:', err);
+            });
+          }
+          await assistantRequest('/api/assistant/published', {
+            method: 'POST',
+            body: JSON.stringify({
+              article_id: currentDraftId || undefined,
+              d_tag: finalDTag,
+              url
+            })
+          });
+        } catch (err) {
+          console.warn('[Article] Assistent-Publish-Meldung fehlgeschlagen:', err);
+        }
+      })();
+    } catch (err) {
+      console.warn('[Article] Assistent-Publish-Meldung fehlgeschlagen:', err);
+    }
+  };
+
   const handleSubmit = async () => {
+    // Assistent: Erlebnisse-Pflicht — ohne Bestätigung kein Veröffentlichen
+    if (!experiencesConfirmed) {
+      toast({
+        title: 'Erlebnisse bestätigen',
+        description: 'Bitte bestätige „Alle Erlebnisse im Text sind echt", bevor du veröffentlichst.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     if (!title.trim()) {
       toast({
         title: 'Fehler',
@@ -815,6 +938,13 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
       ['published_at', publishedAtTimestamp],
     ];
 
+    // SEO-Zusatz-Tags (Assistent) — bestehende Tags unverändert
+    if (seoTitle.trim()) additionalTags.push(['seo_title', seoTitle.trim()]);
+    const effectiveMetaDescription = seoMetaDescription.trim() || summary.trim();
+    if (effectiveMetaDescription) additionalTags.push(['meta_description', effectiveMetaDescription]);
+    const effectiveSlug = (seoSlug.trim() || slugify(title)).trim();
+    if (effectiveSlug) additionalTags.push(['slug', effectiveSlug]);
+
     // Add location tag if set
     if (location.trim()) {
       additionalTags.push(['location', location.trim()]);
@@ -853,6 +983,9 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
       content: content.trim(),
       tags: finalTags,
     });
+
+    // Assistent: Pipeline + IndexNow nach JEDEM Bericht-Publish (non-blocking)
+    notifyAssistantPublished(dTag);
 
     // Schritt 2: Teaser-Note (Kind 1) automatisch ins Nostr-Netzwerk posten
     if (publishTeaserNote && currentUser?.pubkey) {
@@ -1811,10 +1944,35 @@ Schreibe deinen Artikel hier...
           />
         </div>
 
+        {/* Assistent: SEO-Veröffentlichungs-Panel + Entwürfe */}
+        <SeoPublishPanel
+          title={title}
+          articleText={content}
+          summary={summary}
+          seoTitle={seoTitle}
+          onSeoTitleChange={setSeoTitle}
+          metaDescription={seoMetaDescription}
+          onMetaDescriptionChange={setSeoMetaDescription}
+          slug={seoSlug}
+          onSlugChange={setSeoSlug}
+          experiencesConfirmed={experiencesConfirmed}
+          onExperiencesConfirmedChange={setExperiencesConfirmed}
+        />
+        <DraftsOverview
+          draftPayload={draftPayload}
+          activeDraftId={currentDraftId}
+          activeDraftStatus={currentDraftStatus}
+          onDraftSaved={(id) => {
+            setCurrentDraftId(id || null);
+            setCurrentDraftStatus(id ? (currentDraftStatus || 'draft') : null);
+          }}
+          onDraftLoaded={loadDraftIntoForm}
+        />
+
         <Button
           onClick={handleSubmit}
           className="w-full"
-          disabled={!title.trim() || !content.trim() || isPublishingTeaser}
+          disabled={!title.trim() || !content.trim() || isPublishingTeaser || !experiencesConfirmed}
         >
           <FileText className="h-4 w-4 mr-2" />
           {isPublishingTeaser ? 'Wird veröffentlicht...' : (editEvent ? 'Bericht aktualisieren' : 'Bericht veröffentlichen')}

@@ -240,7 +240,8 @@ export function deleteArticle(id) {
 const ALLOWED_FIELDS = new Set([
   'title', 'summary', 'content', 'author_input',
   'seo_title', 'meta_description', 'slug', 'location', 'country', 'category',
-  'article_length', 'trip_type', 'lifestyle', 'image_url'
+  'article_length', 'trip_type', 'lifestyle', 'image_url',
+  'status' // 'draft' | 'published' (Berichte-Assistent, PUT /article/:id)
 ])
 
 /**
