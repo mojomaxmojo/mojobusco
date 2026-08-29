@@ -117,6 +117,13 @@ Build-seitig (`.env.production`, landet im Frontend-Bundle):
 `VITE_ASSISTANT_TOKEN` — identisch mit `ASSISTANT_API_TOKEN`.
 ⚠ Schützt gegen Skript-Bots, nicht gegen Bundle-Leser; optional härter
 machbar via Nginx-Basic-Auth auf den Write-Routen.
+⚠ **`.env.production` ist git-ignored** (`.gitignore`: `.env.*`, nur
+`.env.example` ist committed) und wird NICHT mit dem Deploy ausgeliefert —
+einmal manuell anlegen am Build-Ort:
+`/root/deploy-git/mojobusco/.env.production` mit
+`VITE_USE_REAL_MAP=true` + `VITE_ASSISTANT_TOKEN=...`, dann
+`bash deploy-main.sh --force`. Ohne Token: geschützte Assistent-Routen
+(Drafts/Media-Upload/published) antworten 401, offene Routen laufen weiter.
 
 ```bash
 # Deploy + Neustart (Pflicht nach server/-Änderungen):
