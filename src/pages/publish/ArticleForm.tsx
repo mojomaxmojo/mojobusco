@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,9 @@ import { resolveBildPlaceholders } from "./publishUtils";
 import { canonicalUrl, articleUrl } from "@/lib/canonicalUrl";
 import { createLongformTeaser } from "@/lib/createLongformTeaser";
 import exifr from "exifr";
+import { AssistantSection } from "@/components/assistant/AssistantSection";
+import type { AssistantIdea } from "@/components/assistant/IdeasPanel";
+import { buildAuthorInput, FACT_MARKER, EXPERIENCE_MARKER } from "@/config/assistant";
 
 export function ArticleForm({ editEvent }: { editEvent?: any }) {
   const [title, setTitle] = useState('');
@@ -64,6 +67,12 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
   const [tripType, setTripType] = useState<TripType | ''>('');
   // Bild-Metadaten (Alt-Text/Caption/Freitext) aus dem MilkdownEditor, keyed by Bild-URL
   const [imageMetaMap, setImageMetaMap] = useState<Record<string, { alt?: string; caption?: string; note?: string }>>({});
+  // Assistent: FAKTEN + ERLEBNISSE — werden beim Generieren via buildAuthorInput
+  // klar getrennt markiert dem `text`-Parameter vorangestellt
+  const [researchFacts, setResearchFacts] = useState('');
+  const [experienceNotes, setExperienceNotes] = useState('');
+  // Ref-API des MilkdownEditors: Markdown an Cursorposition einfügen (Assistent-Links)
+  const editorInsertRef = useRef<((markdown: string) => void) | null>(null);
   // Grok Imagine Video (xAI) State
   const [videoEnabled, setVideoEnabled] = useState(false);
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
@@ -399,7 +408,7 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
       formData.append('title', title);
       formData.append('description', summary);
       formData.append('location', location);
-      formData.append('text', content); // Vollständiger Text – kein 500-Zeichen-Limit
+      formData.append('text', buildAuthorInput({ facts: researchFacts, experiences: experienceNotes, editorText: content }));
       formData.append('lifestyle', lifestyle);
       formData.append('model', selectedModel);
 
@@ -951,6 +960,32 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Assistent: Ideen, Research, Momente, interne Links (nur Vorschläge) */}
+        <AssistantSection
+          title={title}
+          location={location}
+          tags={tags}
+          date={publishedAt || new Date().toISOString()}
+          editorInsertRef={editorInsertRef}
+          onApplyIdea={(idea: AssistantIdea) => {
+            if (idea.title) setTitle(idea.title);
+            if (idea.keyword && !tags.includes(idea.keyword)) {
+              setTags([...tags, idea.keyword]);
+            }
+          }}
+          onApplyFacts={(facts) => {
+            setResearchFacts(facts);
+            toast({ title: 'FAKTEN übernommen', description: 'Landen beim Generieren klar markiert im Autor-Input.' });
+          }}
+          onApplyExperiences={(experiences) => {
+            setExperienceNotes(experiences);
+            toast({ title: 'ERLEBNISSE übernommen', description: 'Landen beim Generieren klar markiert im Autor-Input.' });
+          }}
+          onAppendMarkdown={(markdown) => {
+            setContent(prev => prev ? `${prev}\n${markdown}` : markdown);
+          }}
+        />
+
         {/* Artikellänge Auswahl - Über dem Titelbild */}
         <div className="space-y-1">
           <div className="flex items-center gap-2">
@@ -1165,6 +1200,7 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
             content={content}
             onChange={setContent}
             onImageMetaChange={(url, meta) => setImageMetaMap(prev => ({ ...prev, [url]: meta }))}
+            insertMarkdownRef={editorInsertRef}
             placeholder={`# Überschrift
 
 Schreibe deinen Artikel hier...

@@ -84,6 +84,11 @@ interface MilkdownEditorProps {
   maxLength?: number;
   onImageUpload?: (url: string) => void;
   onImageMetaChange?: (url: string, meta: { alt?: string; caption?: string; note?: string }) => void;
+  /**
+   * Optionaler Insert-API (Ref): Markdown an Cursorposition einfügen.
+   * Ohne Prop (oder ohne Cursor): Verhalten exakt wie bisher (Anhängen am Ende).
+   */
+  insertMarkdownRef?: React.MutableRefObject<((markdown: string) => void) | null>;
 }
 
 function MilkdownEditorInner({
@@ -94,6 +99,7 @@ function MilkdownEditorInner({
   maxLength,
   onImageUpload,
   onImageMetaChange,
+  insertMarkdownRef,
 }: MilkdownEditorProps) {
   const { mutateAsync: uploadFile, isPending: isUploading } = useUploadFile();
   const { toast } = useToast();
@@ -280,6 +286,33 @@ function MilkdownEditorInner({
       // Ignore errors during content update
     }
   }, [content, get]);
+
+  // Optionale Insert-API: Markdown an Cursorposition einfügen.
+  // Ohne Editor/View: Fallback am Ende anhängen. Der Ref wird nur gesetzt,
+  // wenn eine insertMarkdownRef-Prop übergeben wurde (sonst exakt wie bisher).
+  const insertMarkdown = useCallback((markdown: string) => {
+    try {
+      const editor = get();
+      const view = editor?.ctx.get(editorViewCtx);
+      if (view) {
+        const { state } = view;
+        view.dispatch(state.tr.insertText(markdown, state.selection.from, state.selection.to));
+        view.focus();
+        return;
+      }
+    } catch {
+      // Fallback unten
+    }
+    const current = contentRef.current;
+    onChange(current ? `${current}\n${markdown}` : markdown);
+  }, [get, onChange]);
+
+  useEffect(() => {
+    if (insertMarkdownRef) {
+      insertMarkdownRef.current = insertMarkdown;
+      return () => { insertMarkdownRef.current = null; };
+    }
+  }, [insertMarkdown, insertMarkdownRef]);
 
   // Handle toolbar commands
   const handleCommand = useCallback((command: string) => {
