@@ -15,7 +15,6 @@
  */
 
 import express from 'express'
-import crypto from 'crypto'
 import {
   researchTopic,
   getIdeas,
@@ -33,6 +32,7 @@ import {
 } from '../../services/assistant-store.js'
 import { runPublishPipeline } from '../../services/publish-pipeline.js'
 import mediaRouter from './media.js'
+import { requireAssistantToken } from './auth.js'
 
 const router = express.Router()
 
@@ -120,30 +120,8 @@ router.post('/api/assistant/seo-title', async (req, res) => {
 // ============================================================
 // TOKEN-SCHUTZ (Schreib-Routen)
 // ============================================================
-
-/**
- * Prüft `Authorization: Bearer <ASSISTANT_API_TOKEN>` (timing-safe).
- * Ohne gültigen Token: 401.
- */
-function requireAssistantToken(req, res, next) {
-  const expected = process.env.ASSISTANT_API_TOKEN
-  if (!expected) {
-    console.error('[Assistant] ASSISTANT_API_TOKEN nicht konfiguriert — Schreib-Routen gesperrt')
-    return res.status(500).json({ error: 'ASSISTANT_API_TOKEN nicht konfiguriert' })
-  }
-
-  const authHeader = req.headers.authorization || ''
-  const provided = authHeader.startsWith('Bearer ') ? authHeader.slice('Bearer '.length) : ''
-
-  const a = Buffer.from(provided)
-  const b = Buffer.from(expected)
-  const valid = a.length === b.length && crypto.timingSafeEqual(a, b)
-
-  if (!valid) {
-    return res.status(401).json({ error: 'Ungültiger oder fehlender Token' })
-  }
-  next()
-}
+// requireAssistantToken lebt in ./auth.js (eigene Datei, damit
+// index.js und media.js ohne Circular-Import importieren können).
 
 // ============================================================
 // GESCHÜTZTE ROUTEN (Drafts, Artikel-Felder, Published)
