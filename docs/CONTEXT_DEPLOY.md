@@ -74,20 +74,23 @@ curl -X POST http://localhost:3002/api/render-remotion/invalidate-bundle
 
 **Ablageort der Runtime-Variablen (Stand: Umstellung der ai-api.service):**
 Der systemd-Service `ai-api` lädt sämtliche Variablen (KI-Keys, Assistent,
-Media, FFMPEG_PATH) aus **einer** Datei: `/etc/ai-api.env`, referenziert via
-`EnvironmentFile=/etc/ai-api.env` in der Unit. Keine Secrets mehr hartcodiert
-im `ExecStart`/`Environment=` der Unit, kein separates `server/.env`.
+Media, FFMPEG_PATH) aus **einer** Datei: `/etc/systemd/system/ai-api.env`,
+referenziert via `EnvironmentFile=/etc/systemd/system/ai-api.env` in der
+Unit. Keine Secrets mehr hartcodiert im `ExecStart`/`Environment=` der Unit,
+kein separates `server/.env`.
 
-⚠ **Die Env-Datei NIEMALS in den Webroot legen** (WorkingDirectory ist
+⚠ **Rechte setzen** (`chown root:root`, `chmod 600`) und **NIEMALS in den
+Webroot legen** (WorkingDirectory ist
 `/home/nginx/domains/mojobus.co/public/server` — Nginx liefert das aus).
-`/etc/ai-api.env`: `chown root:root`, `chmod 600`.
 Format: `KEY=WERT`-Zeilen, kein `export`. `GSC_PRIVATE_KEY` als EINE Zeile
 mit literalen `\n` (Code ersetzt sie um). Nach Unit-Änderung
 `systemctl daemon-reload`, nach reinem Env-Inhalt reicht `systemctl restart ai-api`.
+(Hinweis: `.env`-Dateien im Unit-Verzeichnis sind für systemd keine Units
+und werden ignoriert — kein Konflikt mit Drop-ins unter `ai-api.service.d/`.)
 
 Der Berichte-Assistent (`/veroeffentlichen`, siehe MOJOBUS_CONTEXT.md
 Abschnitt „Berichte-Assistent") braucht folgende Variablen in
-`/etc/ai-api.env` (Vorbild-Datei: `.env.example` im Repo):
+`/etc/systemd/system/ai-api.env` (Vorbild-Datei: `.env.example` im Repo):
 
 | Variable | Zweck |
 |----------|-------|
@@ -102,7 +105,7 @@ Abschnitt „Berichte-Assistent") braucht folgende Variablen in
 ```ini
 # ai-api.service [Service]-Sektion: bash -c-Wrapper + Environment= entfernen,
 # stattdessen:
-EnvironmentFile=/etc/ai-api.env
+EnvironmentFile=/etc/systemd/system/ai-api.env
 ExecStart=/usr/bin/node --max-old-space-size=4096 /home/nginx/domains/mojobus.co/public/server/server.js
 ```
 ```bash
