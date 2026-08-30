@@ -124,6 +124,18 @@ einmal manuell anlegen am Build-Ort:
 `VITE_USE_REAL_MAP=true` + `VITE_ASSISTANT_TOKEN=...`, dann
 `bash deploy-main.sh --force`. Ohne Token: geschützte Assistent-Routen
 (Drafts/Media-Upload/published) antworten 401, offene Routen laufen weiter.
+**Deploy-Verhalten:** `deploy-main.sh` macht `git stash push` (ohne `-u`) +
+`git reset --hard origin/main` und KEIN `git clean` — git-ignorierte Dateien
+wie `.env.production` überleben jeden Deploy unverändert.
+
+⚠ **Persistente Daten im Webroot werden seit dem Berichte-Assistent-Deploy
+gesichert:** `deploy-main.sh` sichert vor `rm -rf public/*` und restauriert
+danach: `server/data/` (continuity.db = Brand DNA, assistant.db = Entwürfe/
+Media/Cache) sowie `images/articles/` (hochgeladene Artikel-Bilder) —
+gleiches Muster wie music/ambient-sounds/node_modules. Vorher gingen diese
+Daten bei jedem Deploy verloren (Brand DNA wurde monatelang bei jedem Deploy
+resettet!). Alternative für die Zukunft: MEDIA_DIR/DATA-Pfade außerhalb des
+Webroots legen und per Nginx-Alias ausliefern.
 
 ```bash
 # Deploy + Neustart (Pflicht nach server/-Änderungen):

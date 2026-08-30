@@ -227,6 +227,24 @@ deploy_files() {
         info_msg "✓ server/node_modules gesichert ($(du -sh "$NODE_MODULES_BACKUP/node_modules" 2>/dev/null | cut -f1))"
     fi
 
+    # ── Server-Datenbanken VOR dem Löschen sichern (Brand DNA + Berichte-Assistent) ──
+    # continuity.db (Kontinuitäts-Gedächtnis) + assistant.db (Entwürfe, Media,
+    # seo_cache) liegen im Webroot (server/data) und würden vom Wipe gelöscht.
+    DATA_BACKUP_DIR=""
+    if [ -d "$DEPLOY_DIR/server/data" ] && [ "$(ls -A "$DEPLOY_DIR/server/data" 2>/dev/null)" ]; then
+        DATA_BACKUP_DIR="$(mktemp -d)"
+        cp -r "$DEPLOY_DIR/server/data/." "$DATA_BACKUP_DIR/"
+        info_msg "✓ Server-Datenbanken gesichert ($(ls "$DATA_BACKUP_DIR" | wc -l) Dateien)"
+    fi
+
+    # ── Media-Library-Bilder VOR dem Löschen sichern (hochgeladene Artikel-Bilder) ──
+    MEDIA_BACKUP_DIR=""
+    if [ -d "$DEPLOY_DIR/images/articles" ] && [ "$(ls -A "$DEPLOY_DIR/images/articles" 2>/dev/null)" ]; then
+        MEDIA_BACKUP_DIR="$(mktemp -d)"
+        cp -r "$DEPLOY_DIR/images/articles/." "$MEDIA_BACKUP_DIR/"
+        info_msg "✓ Media-Library gesichert ($(ls "$MEDIA_BACKUP_DIR" | wc -l) Dateien)"
+    fi
+
     # Zielverzeichnis leeren
     rm -rf "$DEPLOY_DIR"/*
 
@@ -265,6 +283,14 @@ deploy_files() {
             mv "$NODE_MODULES_BACKUP/node_modules" "$DEPLOY_DIR/server/node_modules"
             rm -rf "$NODE_MODULES_BACKUP"
             info_msg "✓ server/node_modules wiederhergestellt"
+        fi
+
+        # ── Server-Datenbanken wiederherstellen (Brand DNA + Berichte-Assistent) ──
+        mkdir -p "$DEPLOY_DIR/server/data"
+        if [ -n "$DATA_BACKUP_DIR" ]; then
+            cp -r "$DATA_BACKUP_DIR/." "$DEPLOY_DIR/server/data/"
+            rm -rf "$DATA_BACKUP_DIR"
+            success_msg "✓ Server-Datenbanken wiederhergestellt (continuity.db, assistant.db)"
         fi
 
         # Server Dependencies installieren (nur neue/geänderte Packages)
@@ -336,6 +362,16 @@ deploy_files() {
         mkdir -p "$DEPLOY_DIR/src/config"
         cp -r "$PROJECT_DIR/src/config/prompts" "$DEPLOY_DIR/src/config/" || error_exit "Kopieren von src/config/prompts fehlgeschlagen"
         info_msg "✓ src/config/prompts/ deployed"
+    fi
+
+    # ── Media-Library wiederherstellen (hochgeladene Artikel-Bilder) ─────────
+    # Default-MEDIA_DIR liegt im Webroot (images/articles) und muss nach dem
+    # Wipe neu angelegt + mit den gesicherten Bildern befüllt werden.
+    mkdir -p "$DEPLOY_DIR/images/articles"
+    if [ -n "$MEDIA_BACKUP_DIR" ]; then
+        cp -r "$MEDIA_BACKUP_DIR/." "$DEPLOY_DIR/images/articles/"
+        rm -rf "$MEDIA_BACKUP_DIR"
+        success_msg "✓ Media-Library wiederhergestellt ($(ls "$DEPLOY_DIR/images/articles" | wc -l) Dateien)"
     fi
 
     # Prüfe ob assets Ordner existiert
