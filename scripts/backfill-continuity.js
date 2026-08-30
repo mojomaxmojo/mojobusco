@@ -45,7 +45,6 @@ import {
 } from './prerender-helpers.js';
 import { buildExtractionPrompt } from '../server/prompts/continuity-extraction.js';
 import { generateWithModel } from '../server/services/ai-content.js';
-import { parseExtractionResponse } from '../server/routes/content/continuity.js';
 import {
   initContinuityDatabase,
   hasPost,
@@ -55,6 +54,62 @@ import {
   saveEntities,
   saveOpenThreads,
 } from '../server/services/continuity-store.js';
+
+// ── Extraktions-Parser ──────────────────────────────────────────────────────
+// 1:1 kopiert aus server/routes/content/continuity.js (parseExtractionResponse
+// + unescapeJsonLikeString + extractArrayField/extractStringField) — bewusst
+// hier inline statt als Import, da die Route express zieht, das im Root nicht
+// installiert ist. BEI ÄNDERUNGEN AN DER ROUTE HIER SYNCHRON HALTEN!
+
+function unescapeJsonLikeString(value) {
+  return value
+    .replace(/\\n/g, '\n')
+    .replace(/\\t/g, '\t')
+    .replace(/\\"/g, '"')
+    .replace(/\\\\/g, '\\');
+}
+
+function extractArrayField(raw, fieldName) {
+  const marker = new RegExp(`"${fieldName}"\\s*:\\s*\\[([^\\]]*)\\]`);
+  const match = marker.exec(raw);
+  if (!match) return [];
+  return match[1]
+    .split(',')
+    .map((s) => unescapeJsonLikeString(s.trim().replace(/^"|"$/g, '')))
+    .filter(Boolean);
+}
+
+function extractStringField(raw, fieldName) {
+  const marker = new RegExp(`"${fieldName}"\\s*:\\s*"([^"]*)"`);
+  const match = marker.exec(raw);
+  return match ? unescapeJsonLikeString(match[1]) : '';
+}
+
+function parseExtractionResponse(raw) {
+  const cleaned = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    // weiter zu Fallbacks
+  }
+
+  const match = cleaned.match(/\{[\s\S]*\}/);
+  if (match) {
+    try {
+      return JSON.parse(match[0]);
+    } catch {
+      // weiter zu Fallback 3
+    }
+  }
+
+  return {
+    motifs: extractArrayField(cleaned, 'motifs'),
+    entities: extractArrayField(cleaned, 'entities'),
+    mood: extractStringField(cleaned, 'mood'),
+    openThreads: extractArrayField(cleaned, 'openThreads'),
+  };
+}
 
 // Wie generate-site-data.js: großzügiges Limit, damit keine Events fehlen
 const QUERY_LIMIT = 2000;
