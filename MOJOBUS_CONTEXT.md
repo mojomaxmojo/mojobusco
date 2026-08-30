@@ -204,18 +204,19 @@ Schwelle Forecast/Archiv: 92 Tage; >16 Tage Zukunft → Wetter überspringen.
 
 **Backfill (Bestandsdaten nachtragen):** `scripts/backfill-continuity.js` holt
 alle veröffentlichten Events (30023/30025/1, Autor-Filter + isMojobusKind1 +
-Teaser/EN-Filter) von den Relays und läuft pro Event durch dieselbe
-Mini-Extraktion (deepseek-v4-pro) wie die Track-Route — idempotent
-(hasPost-Skip, abbruch-/fortsetzbar). Aufruf auf dem VPS:
+Teaser/EN-Filter) von den Relays und schickt JEDES Event an den laufenden
+ai-api (`POST localhost:3002/api/continuity/track`) — Extraktion (deepseek
+mini) + Speichern übernimmt der Server selbst in seine Live-DB. Bewusst
+abhängigkeitsfrei (native fetch/WebSocket, keine Root-npm-Deps nötig).
+Aufruf auf dem VPS:
 ```bash
-cd /root/deploy-git/mojobusco
-OPENROUTER_API_KEY=$(grep '^OPENROUTER_API_KEY=' /etc/systemd/system/ai-api.env | cut -d= -f2-) \
-CONTINUITY_DATA_DIR=/home/nginx/domains/mojobus.co/public/server/data \
+cd /root/deploy-git/mojobusco && git pull
 node scripts/backfill-continuity.js
 ```
-`CONTINUITY_DATA_DIR` (Override in continuity-store.js) lenkt die Schreibvorgänge
-auf die Live-DB im Webroot. Hintergrund: Vor Deploy-Fix 882527a wurde
-server/data/ bei jedem Deploy gelöscht — die Historie der Altartikel fehlte.
+Re-Runs tracken erneut (Route hat keinen Skip; savePost ist idempotent).
+Ergebnisse prüfen: `journalctl -u ai-api | grep Continuity`.
+Hintergrund: Vor Deploy-Fix 882527a wurde server/data/ bei jedem Deploy
+gelöscht — die Historie der Altartikel fehlte.
 
 ---
 

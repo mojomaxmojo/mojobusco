@@ -5,32 +5,31 @@
  * MojoBus-Events in die Brand-DNA (continuity.db).
  *
  * Hintergrund: Vor dem Deploy-Fix (882527a) wurde server/data/ bei jedem
- * Deploy gelöscht — die Kontinuitäts-Historie der alten Artikel fehlt.
+ * Deploy gelöscht — die Kontinuitäts-Historie der Altartikel fehlt.
  *
- * Ablauf pro Event (IDENTISCH zur Live-Track-Route /api/continuity/track):
- *   buildExtractionPrompt(content, title)
- *   → generateWithModel(prompt, 'mini') = deepseek-v4-pro via OpenRouter
- *   → parseExtractionResponse (gleiche Route-Logik, exportiert)
- *   → savePost + Motive/Entitäten/offene Fäden
+ * WIE ES ARBEITET (absichtlich abhängigkeitsfrei):
+ *   1. Events von den Relays holen (nur Autor-Pubkeys, native WebSocket)
+ *   2. Klassifizieren + filtern (Artikel/Ort/Trip/Note/Media, MojoBus-only,
+ *      keine Teaser, keine EN-Übersetzungen, nur Events mit Text)
+ *   3. JEDES Event wird an den LAUFENDEN ai-api geschickt:
+ *      POST http://localhost:3002/api/continuity/track
+ *      → der Server macht Extraktion (deepseek mini) + Speichern in SEINE
+ *        Live-DB (public/server/data/continuity.db) — identisch zum
+ *        normalen Publish-Tracking.
  *
- * Idempotent: Bereits getrackte IDs (hasPost) werden übersprungen —
- * das Script kann jederzeit abgebrochen und neu gestartet werden.
+ * Vorteile: Keine npm-Deps im Repo nötig (native fetch/WebSocket), kein
+ * DB-Pfad-Gefummel — der Server schreibt selbst in die richtige Datei.
  *
- * Gefiltert werden:
- *   - Nicht-MojoBus kind:1-Events (isMojobusKind1, AGENTS.md Regel 15)
- *   - Teaser-Notes (automatisch erzeugt, kein eigener Content)
- *   - EN-Übersetzungen (dTag '-en' bzw. l-Tag 'en') — nur DE kommt in die DNA
- *   - Events ohne Content
+ * HINWEISE:
+ *   - ai-api muss laufen (systemctl status ai-api)
+ *   - Fortschritt/Fehler pro Event: journalctl -u ai-api | grep Continuity
+ *   - Re-Runs tracken erneut (Route hat keinen Skip) — savePost ist
+ *     idempotent (keine Duplikate), kostet aber erneut LLM-Calls
  *
- * AUSFÜHRUNG (VPS, aus dem Repo-Verzeichnis):
- *   cd /root/deploy-git/mojobusco
- *   OPENROUTER_API_KEY=$(grep '^OPENROUTER_API_KEY=' /etc/systemd/system/ai-api.env | cut -d= -f2-) \
- *   CONTINUITY_DATA_DIR=/home/nginx/domains/mojobus.co/public/server/data \
+ * AUSFÜHRUNG (VPS):
+ *   cd /root/deploy-git/mojobusco && git pull
  *   node scripts/backfill-continuity.js
- *
- * (CONTINUITY_DATA_DIR lenkt die continuity-store-Schreibvorgänge auf die
- *  Live-DB des Webservers; ohne die Variable würde ins Repo-server/data
- *  geschrieben — falsche DB!)
+ *   (optional: AI_API_PORT=3002 vornstellen, falls Port geändert)
  */
 
 import {
@@ -43,78 +42,14 @@ import {
   isTeaserNote,
   getEventLangFromTags,
 } from './prerender-helpers.js';
-import { buildExtractionPrompt } from '../server/prompts/continuity-extraction.js';
-import { generateWithModel } from '../server/services/ai-content.js';
-import {
-  initContinuityDatabase,
-  hasPost,
-  savePost,
-  deletePostChildren,
-  saveMotifs,
-  saveEntities,
-  saveOpenThreads,
-} from '../server/services/continuity-store.js';
 
-// ── Extraktions-Parser ──────────────────────────────────────────────────────
-// 1:1 kopiert aus server/routes/content/continuity.js (parseExtractionResponse
-// + unescapeJsonLikeString + extractArrayField/extractStringField) — bewusst
-// hier inline statt als Import, da die Route express zieht, das im Root nicht
-// installiert ist. BEI ÄNDERUNGEN AN DER ROUTE HIER SYNCHRON HALTEN!
-
-function unescapeJsonLikeString(value) {
-  return value
-    .replace(/\\n/g, '\n')
-    .replace(/\\t/g, '\t')
-    .replace(/\\"/g, '"')
-    .replace(/\\\\/g, '\\');
-}
-
-function extractArrayField(raw, fieldName) {
-  const marker = new RegExp(`"${fieldName}"\\s*:\\s*\\[([^\\]]*)\\]`);
-  const match = marker.exec(raw);
-  if (!match) return [];
-  return match[1]
-    .split(',')
-    .map((s) => unescapeJsonLikeString(s.trim().replace(/^"|"$/g, '')))
-    .filter(Boolean);
-}
-
-function extractStringField(raw, fieldName) {
-  const marker = new RegExp(`"${fieldName}"\\s*:\\s*"([^"]*)"`);
-  const match = marker.exec(raw);
-  return match ? unescapeJsonLikeString(match[1]) : '';
-}
-
-function parseExtractionResponse(raw) {
-  const cleaned = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-
-  try {
-    return JSON.parse(cleaned);
-  } catch {
-    // weiter zu Fallbacks
-  }
-
-  const match = cleaned.match(/\{[\s\S]*\}/);
-  if (match) {
-    try {
-      return JSON.parse(match[0]);
-    } catch {
-      // weiter zu Fallback 3
-    }
-  }
-
-  return {
-    motifs: extractArrayField(cleaned, 'motifs'),
-    entities: extractArrayField(cleaned, 'entities'),
-    mood: extractStringField(cleaned, 'mood'),
-    openThreads: extractArrayField(cleaned, 'openThreads'),
-  };
-}
-
+const PORT = process.env.AI_API_PORT || 3002;
+const TRACK_URL = `http://localhost:${PORT}/api/continuity/track`;
+// Schonpause zwischen Requests — die Route verarbeitet asynchron im
+// Hintergrund, so bleiben es ~1-2 parallele LLM-Aufrufe auf dem Server.
+const DELAY_MS = 2000;
 // Wie generate-site-data.js: großzügiges Limit, damit keine Events fehlen
 const QUERY_LIMIT = 2000;
-// Schonpause zwischen LLM-Aufrufen (Rate-Limit-Freundlichkeit)
-const DELAY_MS = 500;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -123,13 +58,18 @@ function tag(event, name) {
   return event.tags?.find((t) => t[0] === name)?.[1] || '';
 }
 
-/** Land aus den bekannten Länder-Tags ableiten (wie das Frontend es setzt). */
+/** Land aus den bekannten Länder-Tags ableichen (wie das Frontend es setzt). */
 const COUNTRY_TAGS = new Set(['portugal', 'spanien', 'frankreich', 'belgien', 'deutschland', 'luxemburg']);
 function deriveCountry(event) {
   const tTags = (event.tags || [])
     .filter((t) => t[0] === 't')
     .map((t) => (t[1] || '').toLowerCase());
   return tTags.find((t) => COUNTRY_TAGS.has(t)) || '';
+}
+
+/** Mindestprüfung: nur Events mit echtem Text-Content tracken. */
+function contentWorthy(event) {
+  return typeof event.content === 'string' && event.content.trim().length > 0;
 }
 
 /**
@@ -166,19 +106,6 @@ function isEnglishTranslation(event) {
 }
 
 async function main() {
-  if (!process.env.OPENROUTER_API_KEY) {
-    console.error('[Backfill] OPENROUTER_API_KEY fehlt — siehe Kopf-Kommentar für den Aufruf.');
-    process.exit(1);
-  }
-  if (!process.env.CONTINUITY_DATA_DIR) {
-    console.warn(
-      '[Backfill] ⚠ CONTINUITY_DATA_DIR nicht gesetzt — es wird ins REPO-server/data ' +
-      'geschrieben, nicht in die Live-DB des Webservers! (Siehe Kopf-Kommentar.)'
-    );
-  }
-
-  initContinuityDatabase();
-
   // ── 1) Events von den Relays sammeln (dedupliziert per Event-ID) ──────────
   const byId = new Map();
   for (const relay of RELAYS) {
@@ -200,51 +127,38 @@ async function main() {
     if (isEnglishTranslation(event)) { filtered++; continue; }
     queue.push({ event, ...cls });
   }
-  console.log(`[Backfill] ${queue.length} Events zu verarbeiten (${filtered} gefiltert)`);
+  console.log(`[Backfill] ${queue.length} Events werden getrackt (${filtered} gefiltert)`);
+  console.log(`[Backfill] Ziel: ${TRACK_URL} — Extraktion übernimmt der ai-api (deepseek mini)`);
 
-  // ── 3) Extraktion + Speichern (identisch zur Track-Route) ────────────────
-  let done = 0;
-  let skipped = 0;
+  // ── 3) An die Track-Route schicken (Server extrahiert + speichert) ───────
+  let sent = 0;
   let failed = 0;
-  for (const item of queue) {
-    const { event, type, id } = item;
-    if (hasPost(id)) {
-      skipped++;
-      continue;
-    }
-    const content = (event.content || '').trim();
-    if (!content) {
-      skipped++;
-      continue;
-    }
+  for (const { event, type, id } of queue) {
+    const payload = {
+      id,
+      type,
+      kind: event.kind,
+      title: tag(event, 'title'),
+      location: tag(event, 'location'),
+      country: deriveCountry(event),
+      publishedAt: parseInt(tag(event, 'published_at'), 10) || event.created_at,
+      content: (event.content || '').trim(),
+    };
 
     try {
-      const title = tag(event, 'title');
-      const prompt = buildExtractionPrompt(content, title);
-      const raw = await generateWithModel(prompt, 'mini', 'mojobus', {
-        temperature: 0.3,
-        maxTokens: 500,
+      const response = await fetch(TRACK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
-      const extracted = parseExtractionResponse(raw || '');
-
-      savePost({
-        id,
-        type,
-        kind: event.kind,
-        title,
-        location: tag(event, 'location'),
-        country: deriveCountry(event),
-        mood: typeof extracted.mood === 'string' ? extracted.mood : '',
-        publishedAt: parseInt(tag(event, 'published_at'), 10) || event.created_at,
-      });
-      deletePostChildren(id);
-      saveMotifs(id, Array.isArray(extracted.motifs) ? extracted.motifs : []);
-      saveEntities(id, Array.isArray(extracted.entities) ? extracted.entities : []);
-      saveOpenThreads(id, Array.isArray(extracted.openThreads) ? extracted.openThreads : []);
-
-      done++;
-      if (done % 10 === 0) {
-        console.log(`[Backfill] Fortschritt: ${done} neu, ${skipped} übersprungen, ${failed} Fehler`);
+      if (!response.ok) {
+        failed++;
+        console.warn(`[Backfill] HTTP ${response.status} bei ${type} ${id}`);
+      } else {
+        sent++;
+        if (sent % 10 === 0) {
+          console.log(`[Backfill] Fortschritt: ${sent} gesendet, ${failed} HTTP-Fehler`);
+        }
       }
     } catch (error) {
       failed++;
@@ -254,14 +168,11 @@ async function main() {
     await sleep(DELAY_MS);
   }
 
-  console.log(`[Backfill] FERTIG: ${done} neu getrackt, ${skipped} übersprungen (bereits vorhanden/leer), ${failed} Fehler`);
+  console.log(`[Backfill] FERTIG: ${sent} Events an ai-api übergeben, ${failed} HTTP-Fehler`);
+  console.log('[Backfill] Extraktions-Ergebnisse prüfen: journalctl -u ai-api | grep Continuity');
   process.exit(0);
 }
 
-/** Mindestprüfung: nur Events mit echtem Text-Content tracken. */
-function contentWorthy(event) {
-  return typeof event.content === 'string' && event.content.trim().length > 0;
-}
 main().catch((error) => {
   console.error('[Backfill] Fatal:', error);
   process.exit(1);
