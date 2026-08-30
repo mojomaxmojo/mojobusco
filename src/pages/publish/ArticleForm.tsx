@@ -1097,32 +1097,6 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Assistent: Ideen, Research, Momente, interne Links (nur Vorschläge) */}
-        <AssistantSection
-          title={title}
-          location={location}
-          tags={tags}
-          date={publishedAt || new Date().toISOString()}
-          editorInsertRef={editorInsertRef}
-          onApplyIdea={(idea: AssistantIdea) => {
-            if (idea.title) setTitle(idea.title);
-            if (idea.keyword && !tags.includes(idea.keyword)) {
-              setTags([...tags, idea.keyword]);
-            }
-          }}
-          onApplyFacts={(facts) => {
-            setResearchFacts(facts);
-            toast({ title: 'FAKTEN übernommen', description: 'Landen beim Generieren klar markiert im Autor-Input.' });
-          }}
-          onApplyExperiences={(experiences) => {
-            setExperienceNotes(experiences);
-            toast({ title: 'ERLEBNISSE übernommen', description: 'Landen beim Generieren klar markiert im Autor-Input.' });
-          }}
-          onAppendMarkdown={(markdown) => {
-            setContent(prev => prev ? `${prev}\n${markdown}` : markdown);
-          }}
-        />
-
         {/* Artikellänge Auswahl - Über dem Titelbild */}
         <div className="space-y-1">
           <div className="flex items-center gap-2">
@@ -1281,6 +1255,33 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
           selectedCountry={selectedCountry}
           onCountryChange={setSelectedCountry}
           placeholder="Land auswaehlen"
+        />
+
+        {/* Assistent: Ideen, Research, Momente, interne Links (nur Vorschläge) —
+            bewusst NACH Standort/Land, damit die Ideen den Ort aus dem Formular ziehen */}
+        <AssistantSection
+          title={title}
+          location={location}
+          tags={tags}
+          date={publishedAt || new Date().toISOString()}
+          editorInsertRef={editorInsertRef}
+          onApplyIdea={(idea: AssistantIdea) => {
+            if (idea.title) setTitle(idea.title);
+            if (idea.keyword && !tags.includes(idea.keyword)) {
+              setTags([...tags, idea.keyword]);
+            }
+          }}
+          onApplyFacts={(facts) => {
+            setResearchFacts(facts);
+            toast({ title: 'FAKTEN übernommen', description: 'Landen beim Generieren klar markiert im Autor-Input.' });
+          }}
+          onApplyExperiences={(experiences) => {
+            setExperienceNotes(experiences);
+            toast({ title: 'ERLEBNISSE übernommen', description: 'Landen beim Generieren klar markiert im Autor-Input.' });
+          }}
+          onAppendMarkdown={(markdown) => {
+            setContent(prev => prev ? `${prev}\n${markdown}` : markdown);
+          }}
         />
 
         <div className="space-y-2">
