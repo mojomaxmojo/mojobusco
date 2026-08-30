@@ -125,6 +125,19 @@ Generiert von `scripts/generate-feed.js` (Cron alle 6h).
 Trips `/trip/{naddr}`, Bilder `/bild/{note}`, Profile `/{npub}`,
 Videos `/video/{naddr}`.
 
+**Kanonische NIP-19-URLs OHNE Relay-Hints (SEO-Regel):** Web-URLs werden immer
+mit `canonicalNaddr()` (`src/lib/canonicalUrl.ts`) kodiert — `naddrEncode`
+ohne `relays`. Relay-Hints ändern den kompletten Bech32-String (Derselbe
+Artikel = andere URL) und passen dann nicht zu Sitemap/Prerender-Datei.
+Frontend: ArticleView/Places/Articles/Kategorie-Pages/MapMarkerPopup kodieren
+kanonisch. Geteilte Client-Links MIT Hints löst der Server auf:
+`GET /api/prerender-resolve?uri=…` (`server/routes/prerender-fallback.js`)
+dekodiert den NIP-19-String, entfernt Hints und antwortet 301 auf die
+kanonische URL — oder 404, wenn es keine Prerender-Datei gibt. Nginx reicht
+404s aus `/prerender/` dorthin (`error_page 404 = @prerender_resolve;`
+in `mojobus.co.ssl.conf` — NIEMALS `error_page 404 = /index.html`, das
+lieferte Bots Homepage-Metas unter Status 200).
+
 ---
 
 ## Hooks-Übersicht (MojoBus-spezifisch)

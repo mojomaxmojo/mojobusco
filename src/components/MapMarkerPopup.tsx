@@ -7,7 +7,7 @@
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { getAuthorRelayConfigByPubkey } from '@/config/relays';
+import { canonicalNaddr } from '@/lib/canonicalUrl';
 import { nip19 } from 'nostr-tools';
 import type { MapMarker } from '@/hooks/useGpsContent';
 
@@ -52,15 +52,10 @@ export function MapMarkerPopup({ marker }: MapMarkerPopupProps) {
       // Long-form article - use naddr
       const d = marker.event.tags.find(t => t[0] === 'd')?.[1] || `post-${marker.id}`;
 
-      // Get author-specific relay configuration
-      const authorRelayConfig = getAuthorRelayConfigByPubkey(marker.author);
-      const relay = authorRelayConfig?.activeRelay || 'wss://relay.mojobus.co';
-
-      naddr = nip19.naddrEncode({
+      naddr = canonicalNaddr({
         kind: 30023,
         pubkey: marker.author,
         identifier: d,
-        relays: [relay],
       });
     }
   } catch (error) {

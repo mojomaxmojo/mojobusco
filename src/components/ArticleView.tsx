@@ -35,7 +35,7 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useHead } from '@unhead/react';
 import { nip19, type AddressPointer } from 'nostr-tools';
-import { canonicalUrl as getCanonicalUrl, articleUrl, profileUrl, ogImageUrl } from '@/lib/canonicalUrl';
+import { canonicalUrl as getCanonicalUrl, articleUrl, profileUrl, ogImageUrl, canonicalNaddr } from '@/lib/canonicalUrl';
 import { getArticleHeaderUrl, generateSrcset, generateSizes, getResponsiveImageUrl } from '@/lib/imageUtils';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { ShareButtons } from '@/components/ShareButtons';
@@ -364,7 +364,7 @@ export function ArticleView({ naddr }: ArticleViewProps) {
     );
     const keywords = [...new Set([...baseKeywords, ...seoTags])];
     
-    const canonicalHref = getCanonicalUrl(articleUrl(nip19.naddrEncode(naddr)));
+    const canonicalHref = getCanonicalUrl(articleUrl(canonicalNaddr(naddr)));
     const pubDate = new Date(metadata.publishedAt * 1000).toISOString();
     const modifiedDate = new Date(article.created_at * 1000).toISOString();
     
@@ -519,8 +519,8 @@ export function ArticleView({ naddr }: ArticleViewProps) {
         { rel: 'author', href: authorProfileUrl, title: authorName },
         ...(pairNaddr ? [
           { rel: 'alternate', href: getCanonicalUrl(lang === 'de' ? `/en/${pairNaddr}` : `/${pairNaddr}`), hreflang: otherLang },
-          { rel: 'alternate', href: getCanonicalUrl(lang === 'de' ? `/${nip19.naddrEncode(naddr)}` : `/en/${nip19.naddrEncode(naddr)}`), hreflang: articleLang },
-          { rel: 'alternate', href: getCanonicalUrl(lang === 'de' ? `/${nip19.naddrEncode(naddr)}` : `/en/${nip19.naddrEncode(naddr)}`), hreflang: 'x-default' },
+          { rel: 'alternate', href: getCanonicalUrl(lang === 'de' ? `/${canonicalNaddr(naddr)}` : `/en/${canonicalNaddr(naddr)}`), hreflang: articleLang },
+          { rel: 'alternate', href: getCanonicalUrl(lang === 'de' ? `/${canonicalNaddr(naddr)}` : `/en/${canonicalNaddr(naddr)}`), hreflang: 'x-default' },
         ] : []),
       ],
       script: [
@@ -712,7 +712,7 @@ export function ArticleView({ naddr }: ArticleViewProps) {
             ]} />
 
             <ShareButtons
-              url={getCanonicalUrl(articleUrl(nip19.naddrEncode(naddr)))}
+              url={getCanonicalUrl(articleUrl(canonicalNaddr(naddr)))}
               title={metadata.title}
               description={metadata.summary}
               image={metadata.image || ogImageUrl()}
@@ -802,7 +802,7 @@ export function ArticleView({ naddr }: ArticleViewProps) {
                 />
                 <PinImageButton
                   imageUrl={metadata.image}
-                  pageUrl={getCanonicalUrl(articleUrl(nip19.naddrEncode(naddr)))}
+                  pageUrl={getCanonicalUrl(articleUrl(canonicalNaddr(naddr)))}
                   title={metadata.title}
                   description={metadata.summary}
                   hashtags={metadata.tags}
@@ -813,7 +813,7 @@ export function ArticleView({ naddr }: ArticleViewProps) {
             {/* Article Body */}
             <MarkdownWithLinks
               content={displayContent + (isPlace ? `\n\n${generateStructuredDataMarkdown(article, metadata)}` : '')}
-              pageUrl={getCanonicalUrl(articleUrl(nip19.naddrEncode(naddr)))}
+              pageUrl={getCanonicalUrl(articleUrl(canonicalNaddr(naddr)))}
               pageTitle={metadata.title}
               pageDescription={metadata.summary}
               pageHashtags={metadata.tags}

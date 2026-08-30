@@ -18,6 +18,25 @@
  */
 
 import { SITE_URL } from '@/config/app';
+import { nip19 } from 'nostr-tools';
+
+/**
+ * Kanonische naddr-Kodierung OHNE Relay-Hints (SEO-Regel).
+ *
+ * Ein Artikel = ein String = eine Prerender-Datei = eine URL. Relay-Hints
+ * sind im Nostr-Netz nützlich (Client findet das Event schneller), ändern
+ * aber den kompletten Bech32-String — als Web-URL würden sie Duplicate-
+ * URLs erzeugen, die nicht zur Sitemap/Prerender-Datei passen. Hints, die
+ * aus Nostr-Clients geteilt werden, löst der Server per 301 auf
+ * (/api/prerender-resolve, siehe docs/CONTEXT_DEPLOY.md).
+ */
+export function canonicalNaddr(params: { kind: number; pubkey: string; identifier: string }): string {
+  return nip19.naddrEncode({
+    kind: params.kind,
+    pubkey: params.pubkey,
+    identifier: params.identifier,
+  });
+}
 
 /** Fügt einen relativen Pfad zur BASE_URL hinzu und normalisiert Slashes. */
 export function canonicalUrl(path = ''): string {

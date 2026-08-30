@@ -60,8 +60,42 @@ node scripts/generate-site-data.js
 | Nur Frontend (`src/`) | `deploy-main.sh --force` |
 | Nur `tiktok.js` | `deploy --force` + `systemctl restart ai-api` |
 | `server/server.js` | `deploy --force` + `systemctl restart ai-api` |
+| `server/routes/prerender-fallback.js` | `deploy --force` + `systemctl restart ai-api` |
 | `server/remotion/` | `deploy --force` + `restart ai-api` + **Bundle-Invalidate** |
 | Nginx-Config | `cp mojobus.co.ssl.conf ...` + `nginx -t && systemctl reload nginx` |
+| `prerender-fallback.js` **+** Nginx-Config | beide Zeilen zusammen (Resolver-Endpunkt + `@prerender_resolve` gehören zusammen) |
+
+### Prerender-Resolve (Bug B: Relay-Hint-Mismatch)
+
+Nginx leitet 404s aus `/prerender/` an den Node-Resolver weiter (statt auf
+`index.html` zu fallen — das lieferte Bots Homepage-Metas mit falschem
+Canonical unter Status 200):
+
+```nginx
+location ^~ /prerender/ {
+  ...
+  error_page 404 = @prerender_resolve;
+  try_files $uri $uri/ =404;
+}
+location @prerender_resolve {
+  proxy_pass http://127.0.0.1:3002/api/prerender-resolve?uri=$request_uri;
+  ...
+}
+```
+
+Der Endpunkt (`server/routes/prerender-fallback.js`) dekodiert naddr/nevent
+MIT Relay-Hints (von Nostr-Clients geteilt), entfernt die Hints und antwortet
+301 auf die kanonische (hint-freie) URL — oder 404, wenn es keine
+Prerender-Datei gibt. Verifikation am VPS (bypass Cloudflare):
+
+```bash
+curl -sk -A "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)" \
+  --resolve mojobus.co:443:127.0.0.1 "https://mojobus.co/{naddr-mit-hint}" -o /dev/null -w "%{http_code} %{redirect_url}\n"
+# Erwartung: 301 + kanonische (hint-freie) URL
+```
+
+Wichtig: Nach Nginx-Änderungen ggf. **Cloudflare-Cache purgen** — die Edge
+kann alte Homepage-Shells für Bot-UA-Anfragen zwischengespeichert haben.
 
 ```bash
 # Bundle-Cache leeren (nach Remotion-Änderungen):

@@ -12,12 +12,12 @@ import { MapPin, Search, Calendar, User, Loader2 } from 'lucide-react';
 import { usePlaces, extractArticleMetadata } from '@/hooks/useLongformArticles';
 import { useAuthor } from '@/hooks/useAuthor';
 import { genUserName } from '@/lib/genUserName';
-import { getAuthorRelayConfigByPubkey } from '@/config/relays';
+import { canonicalNaddr } from '@/lib/canonicalUrl';
 import { getListThumbnailUrl, getImagePlaceholder, generateSrcset, generateSizes } from '@/lib/imageUtils';
 import { filterEventsByCountry, countries } from '@/lib/countryDetection';
 import { getEventLanguage } from '@/lib/translationTags';
 import { useLanguage } from '@/hooks/useLanguage';
-import { nip19 } from 'nostr-tools';
+
 import type { NostrEvent } from '@nostrify/nostrify';
 import { MAIN_MENU } from '@/config/menu';
 import { SocialBar } from '@/components/SocialBar';
@@ -251,15 +251,11 @@ const PlaceCard = memo(function PlaceCard({ place }: { place: NostrEvent }) {
   const author = useAuthor(place.pubkey);
   const authorName = author.data?.metadata?.name || genUserName(place.pubkey);
 
-  const authorRelayConfig = getAuthorRelayConfigByPubkey(place.pubkey);
-  const relay = authorRelayConfig?.activeRelay || 'wss://relay.mojobus.co';
-
-  // Generate naddr identifier for place
-  const naddr = nip19.naddrEncode({
+  // Generate naddr identifier for place (kanonisch ohne Relay-Hints, SEO)
+  const naddr = canonicalNaddr({
     kind: place.kind,
     pubkey: place.pubkey,
     identifier: metadata.identifier,
-    relays: [relay]
   });
 
   // Optimized thumbnail URL (200px, quality 80) with srcset

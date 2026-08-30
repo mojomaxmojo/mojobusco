@@ -27,6 +27,7 @@ import contentRouter from './routes/content/index.js'
 import createVideoRouter from './routes/video/index.js'
 import tiktokRouter from './routes/tiktok/index.js'
 import assistantRouter from './routes/assistant/index.js'
+import prerenderFallbackRouter from './routes/prerender-fallback.js'
 
 // ===== PROMPTS AUS src/config/prompts/ IMPORTIEREN =====
 // Alle Prompts sind zentral in src/config/prompts/ definiert
@@ -91,6 +92,11 @@ app.use(contentRouter)
 // ===== BERICHTE-ASSISTENT ROUTEN =====
 // Ideen, Research, Momente, Links, SEO-Titel + (Teil 2) Drafts/Publish
 app.use(assistantRouter)
+
+// ===== PRERENDER-RESOLVE (Bug B: Relay-Hint-Mismatch) =====
+// Nginx leitet 404s aus /prerender/ hierher: naddr/nevent mit Relay-Hints
+// werden dekodiert und per 301 auf die kanonische (hint-freie) URL geleitet.
+app.use(prerenderFallbackRouter)
 
 if (!fs.existsSync('uploads')) {
   fs.mkdirSync('uploads')
