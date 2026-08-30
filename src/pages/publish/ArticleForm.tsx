@@ -41,12 +41,12 @@ import { createLongformTeaser } from "@/lib/createLongformTeaser";
 import exifr from "exifr";
 import { AssistantSection } from "@/components/assistant/AssistantSection";
 import type { AssistantIdea } from "@/components/assistant/IdeasPanel";
-import { SeoPublishPanel, slugify } from "@/components/assistant/SeoPublishPanel";
+import { SeoPublishPanel } from "@/components/assistant/SeoPublishPanel";
 import { DraftsOverview, type AssistantDraftArticle } from "@/components/assistant/DraftsOverview";
 import { useAssistantApi } from "@/components/assistant/useAssistantApi";
 import { MediaLibraryPanel } from "@/components/assistant/MediaLibraryPanel";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { buildAuthorInput, FACT_MARKER, EXPERIENCE_MARKER } from "@/config/assistant";
+import { buildAuthorInput, buildSmartSlug, FACT_MARKER, EXPERIENCE_MARKER } from "@/config/assistant";
 import { nip19 } from "nostr-tools";
 
 export function ArticleForm({ editEvent }: { editEvent?: any }) {
@@ -824,7 +824,7 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
     author_input: buildAuthorInput({ facts: researchFacts, experiences: experienceNotes, editorText: '' }),
     seo_title: seoTitle.trim(),
     meta_description: seoMetaDescription.trim(),
-    slug: (seoSlug.trim() || slugify(title)).trim(),
+    slug: (seoSlug.trim() || buildSmartSlug(title)).trim(),
     location: location.trim(),
     country: selectedCountry,
     category,
@@ -946,7 +946,7 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
     if (seoTitle.trim()) additionalTags.push(['seo_title', seoTitle.trim()]);
     const effectiveMetaDescription = seoMetaDescription.trim() || summary.trim();
     if (effectiveMetaDescription) additionalTags.push(['meta_description', effectiveMetaDescription]);
-    const effectiveSlug = (seoSlug.trim() || slugify(title)).trim();
+    const effectiveSlug = (seoSlug.trim() || buildSmartSlug(title)).trim();
     if (effectiveSlug) additionalTags.push(['slug', effectiveSlug]);
 
     // Add location tag if set

@@ -247,8 +247,8 @@ kein Server-Key).
 **Frontend (`src/`):**
 | Datei | Zweck |
 |-------|-------|
-| `config/assistant.ts` | ASSISTANT_CONFIG (Endpunkte, GSC_WINDOW_DAYS=28, CACHE_TTL_HOURS=24), Marker `FACT_MARKER`/`EXPERIENCE_MARKER`, reine Funktion `buildAuthorInput({ facts, experiences, editorText })` |
-| `components/assistant/*` | useAssistantApi (getApiBaseUrl-Prefix + Bearer VITE_ASSISTANT_TOKEN), AssistantSection (kollabierbar, localStorage), IdeasPanel, ResearchBlock, MomentsBlock, LinkSuggestionsBlock (Insert an Cursorposition via `insertMarkdownRef`), SeoPublishPanel (SEO-Titel-Vorschlag, Meta-Description, Slug, ☑ „Alle Erlebnisse im Text sind echt" = Pflicht), DraftsOverview, MediaLibraryPanel (Dialog im Titelbild-Bereich), KiPlaceholderButton (statischer Platzhalter `public/images/platzhalter/platzhalter.jpg`, nur per Klick — echte KI-Bildgenerierung existiert im Stack nicht) |
+| `config/assistant.ts` | ASSISTANT_CONFIG (Endpunkte, GSC_WINDOW_DAYS=28, CACHE_TTL_HOURS=24), Marker `FACT_MARKER`/`EXPERIENCE_MARKER`, reine Funktion `buildAuthorInput({ facts, experiences, editorText })`, `SLUG_CONFIG` + `buildSmartSlug()` (Auto-Slug ohne Füllwörter: deutsche Artikel/Präpositionen gefiltert, romanische Ortsnamen-Partikel wie „das" bleiben erhalten, max. 5 Wörter — Fallback bei Publish/Draft wenn Slug-Feld leer) |
+| `components/assistant/*` | useAssistantApi (getApiBaseUrl-Prefix + Bearer VITE_ASSISTANT_TOKEN), AssistantSection (kollabierbar, localStorage), IdeasPanel, ResearchBlock, MomentsBlock, LinkSuggestionsBlock (Insert an Cursorposition via `insertMarkdownRef`), SeoPublishPanel (SEO-Titel-Vorschlag, Meta-Description, Slug-Platzhalter via `buildSmartSlug`, ☑ „Alle Erlebnisse im Text sind echt" = Pflicht), DraftsOverview, MediaLibraryPanel (Dialog im Titelbild-Bereich), KiPlaceholderButton (statischer Platzhalter `public/images/platzhalter/platzhalter.jpg`, nur per Klick — echte KI-Bildgenerierung existiert im Stack nicht) |
 
 **Ablauf:** Generieren schickt `text = buildAuthorInput(...)` (FAKTEN/ERLEBNISSE
 klar markiert, Prompt selbst unverändert). Publish setzt SEO-Zusatz-Tags

@@ -5,7 +5,8 @@
  *   editierbar
  * - meta_description: Vorbefüllung aus dem bestehenden Summary-Ergebnis,
  *   editierbar
- * - slug: auto aus Titel/Keyword (slugify), editierbar
+ * - slug: Auto-Vorschlag ohne Füllwörter (buildSmartSlug aus
+ *   src/config/assistant.ts — Ortsname + Kern-Keywords), editierbar
  * - ☑ Checkbox „Alle Erlebnisse im Text sind echt" — Pflicht vor dem
  *   Veröffentlichen (Publish-Button wird ohne Haken deaktiviert)
  */
@@ -17,7 +18,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Wand2 } from 'lucide-react';
 import { useAssistantApi } from './useAssistantApi';
-import { ASSISTANT_CONFIG } from '@/config/assistant';
+import { ASSISTANT_CONFIG, buildSmartSlug } from '@/config/assistant';
 
 interface SeoTitleResponse {
   title: string;
@@ -65,7 +66,7 @@ export function SeoPublishPanel({
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const autoSlug = slugify(title);
+  const autoSlug = buildSmartSlug(title);
 
   const suggestSeoTitle = async () => {
     setIsSuggesting(true);
