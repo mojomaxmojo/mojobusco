@@ -204,17 +204,22 @@ Schwelle Forecast/Archiv: 92 Tage; >16 Tage Zukunft → Wetter überspringen.
 
 **Backfill (Bestandsdaten nachtragen):** `scripts/backfill-continuity.js` holt
 alle veröffentlichten Events (30023/30025/1, Autor-Filter + isMojobusKind1 +
-Teaser/EN-Filter) von den Relays und schickt JEDES Event an den laufenden
-ai-api (`POST localhost:3002/api/continuity/track`) — Extraktion (deepseek
-mini) + Speichern übernimmt der Server selbst in seine Live-DB. Bewusst
-abhängigkeitsfrei (native fetch/WebSocket, keine Root-npm-Deps nötig).
+Teaser/EN-Filter) von den Relays und schreibt sie per DIREKTEM DB-Zugriff +
+Mini-LLM-Extraktion (deepseek-v4-pro, native fetch — gleiche Parameter wie
+die Track-Route) in die Live-continuity.db. better-sqlite3: Repo-Import mit
+Automatik-Fallback auf die funktionierende Webroot-Kopie
+(public/server/node_modules) — umgeht npm allow-scripts-Blockaden.
 Aufruf auf dem VPS:
 ```bash
 cd /root/deploy-git/mojobusco && git pull
+OPENROUTER_API_KEY=$(grep '^OPENROUTER_API_KEY=' /etc/systemd/system/ai-api.env | cut -d= -f2-) \
 node scripts/backfill-continuity.js
 ```
-Re-Runs tracken erneut (Route hat keinen Skip; savePost ist idempotent).
-Ergebnisse prüfen: `journalctl -u ai-api | grep Continuity`.
+Default-DB-Pfad ist die Live-DB im Webroot (Override: CONTINUITY_DATA_DIR);
+fehlt die Datei → Abbruch statt falsche leere DB. Idempotent (hasPost-Skip,
+abbruch-/fortsetzbar). better-sqlite3 ist auch als Root-Deps eingetragen
+(11.x); falls das Repo-Binding fehlt, greift der Webroot-Fallback
+(Override: CONTINUITY_WEBROOT_NODE_MODULES).
 Hintergrund: Vor Deploy-Fix 882527a wurde server/data/ bei jedem Deploy
 gelöscht — die Historie der Altartikel fehlte.
 

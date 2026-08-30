@@ -2,36 +2,43 @@
 
 /**
  * backfill-continuity.js — Einmaliges Nachtragen aller veröffentlichten
- * MojoBus-Events in die Brand-DNA (continuity.db).
+ * MojoBus-Events in die Brand-DNA (continuity.db) — DIREKTE METHODE.
  *
  * Hintergrund: Vor dem Deploy-Fix (882527a) wurde server/data/ bei jedem
  * Deploy gelöscht — die Kontinuitäts-Historie der Altartikel fehlt.
  *
- * WIE ES ARBEITET (absichtlich abhängigkeitsfrei):
- *   1. Events von den Relays holen (nur Autor-Pubkeys, native WebSocket)
- *   2. Klassifizieren + filtern (Artikel/Ort/Trip/Note/Media, MojoBus-only,
- *      keine Teaser, keine EN-Übersetzungen, nur Events mit Text)
- *   3. JEDES Event wird an den LAUFENDEN ai-api geschickt:
- *      POST http://localhost:3002/api/continuity/track
- *      → der Server macht Extraktion (deepseek mini) + Speichern in SEINE
- *        Live-DB (public/server/data/continuity.db) — identisch zum
- *        normalen Publish-Tracking.
+ * ABLAUF PRO EVENT (identisch zur Live-Track-Route /api/continuity/track):
+ *   hasPost(id)?  → skip (idempotent: abbrechen/wieder starten möglich)
+ *   buildExtractionPrompt(content, title)
+ *   → OpenRouter 'mini' (deepseek-v4-pro) direkt per native fetch
+ *     (gleiche Parameter wie ai-content.js: Foster-Systemmessage,
+ *      reasoning {effort:'none'}, Retry 1.5x bei abgeschnittener Antwort)
+ *   → savePost + Motive/Entitäten/offene Fäden direkt in die DB
  *
- * Vorteile: Keine npm-Deps im Repo nötig (native fetch/WebSocket), kein
- * DB-Pfad-Gefummel — der Server schreibt selbst in die richtige Datei.
+ * KEINE NPM-ABHÄNGIGKEITEN NÖTIG:
+ *   - better-sqlite3: zuerst Repo-Import, bei fehlendem Binding (allow-
+ *     scripts-Blockade) Fallback auf die funktionierende Webroot-Kopie
+ *     via createRequire — dieselbe, mit der der ai-api läuft
+ *   - LLM-Aufruf: native fetch (kein axios)
  *
- * HINWEISE:
- *   - ai-api muss laufen (systemctl status ai-api)
- *   - Fortschritt/Fehler pro Event: journalctl -u ai-api | grep Continuity
- *   - Re-Runs tracken erneut (Route hat keinen Skip) — savePost ist
- *     idempotent (keine Duplikate), kostet aber erneut LLM-Calls
+ * DB-PFAD:
+ *   Default: /home/nginx/domains/mojobus.co/public/server/data/continuity.db
+ *   (die Live-DB des ai-api — WAL-Multi-Prozess-Zugriff ist safe,
+ *    busy_timeout gesetzt). Override: CONTINUITY_DATA_DIR=...
+ *   Existiert die DB-Datei nicht → ABBRUCH (schützt vor Schreiben an die
+ *   falsche Stelle).
  *
  * AUSFÜHRUNG (VPS):
  *   cd /root/deploy-git/mojobusco && git pull
  *   node scripts/backfill-continuity.js
- *   (optional: AI_API_PORT=3002 vornstellen, falls Port geändert)
+ *
+ * Gefiltert werden: Nicht-MojoBus kind:1 (isMojobusKind1, AGENTS.md
+ * Regel 15), Teaser-Notes, EN-Übersetzungen, Events ohne Content.
  */
 
+import fs from 'fs'
+import path from 'path'
+import { createRequire } from 'module'
 import {
   AUTHOR_PUBKEYS,
   RELAYS,
@@ -42,23 +49,241 @@ import {
   isTeaserNote,
   getEventLangFromTags,
 } from './prerender-helpers.js';
+import { buildExtractionPrompt } from '../server/prompts/continuity-extraction.js';
+import { getTextModel, normalizeTextModel } from '../server/config/ai-models.js';
 
-const PORT = process.env.AI_API_PORT || 3002;
-const TRACK_URL = `http://localhost:${PORT}/api/continuity/track`;
-// Schonpause zwischen Requests — die Route verarbeitet asynchron im
-// Hintergrund, so bleiben es ~1-2 parallele LLM-Aufrufe auf dem Server.
-const DELAY_MS = 2000;
+// ── Konfiguration ───────────────────────────────────────────────────────────
+
+const DEFAULT_DATA_DIR = '/home/nginx/domains/mojobus.co/public/server/data'
+const DATA_DIR = process.env.CONTINUITY_DATA_DIR || DEFAULT_DATA_DIR
+const DB_PATH = path.join(DATA_DIR, 'continuity.db')
+const WEBROOT_NODE_MODULES = process.env.CONTINUITY_WEBROOT_NODE_MODULES
+  || '/home/nginx/domains/mojobus.co/public/server/node_modules/'
+
 // Wie generate-site-data.js: großzügiges Limit, damit keine Events fehlen
 const QUERY_LIMIT = 2000;
+// Schonpause zwischen LLM-Aufrufen (Rate-Limit-Freundlichkeit)
+const DELAY_MS = 500;
+
+const OPENROUTER_BASE = 'https://openrouter.ai/api/v1/chat/completions'
+const MAX_RETRY_MULTIPLIER = 1.5
+// Identisch zum System-Message-String aus server/services/ai-content.js —
+// die Track-Route nutzt generateWithModel und bekommt diesen Context mit;
+// für identische Extraktions-Ergebnisse wird er hier repliziert.
+const SYSTEM_MESSAGE = `Du schreibst wie Foster Huntington. Erste Person. Kurze Saetze. Keine Ueberschriften, kein Fettdruck, keine Listen. Keine Leseransprache, keine Tipps, keine Ausrufezeichen.`
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** Tag-Wert eines Events lesen. */
+// ── better-sqlite3 laden (Repo zuerst, Webroot-Fallback) ───────────────────
+
+async function loadDatabase() {
+  try {
+    const mod = await import('better-sqlite3')
+    console.log('[Backfill] better-sqlite3 aus Repo-node_modules geladen')
+    return mod.default
+  } catch {
+    const require = createRequire(WEBROOT_NODE_MODULES + 'no-op.js')
+    const Database = require('better-sqlite3')
+    console.log(`[Backfill] better-sqlite3 aus Webroot geladen (${WEBROOT_NODE_MODULES})`)
+    return Database
+  }
+}
+
+// ── Extraktions-Parser ──────────────────────────────────────────────────────
+// 1:1 kopiert aus server/routes/content/continuity.js (parseExtractionResponse
+// + unescapeJsonLikeString + extractArrayField/extractStringField) — bewusst
+// inline statt als Import, da die Route express zieht. BEI ÄNDERUNGEN AN DER
+// ROUTE HIER SYNCHRON HALTEN!
+
+function unescapeJsonLikeString(value) {
+  return value
+    .replace(/\\n/g, '\n')
+    .replace(/\\t/g, '\t')
+    .replace(/\\"/g, '"')
+    .replace(/\\\\/g, '\\');
+}
+
+function extractArrayField(raw, fieldName) {
+  const marker = new RegExp(`"${fieldName}"\\s*:\\s*\\[([^\\]]*)\\]`);
+  const match = marker.exec(raw);
+  if (!match) return [];
+  return match[1]
+    .split(',')
+    .map((s) => unescapeJsonLikeString(s.trim().replace(/^"|"$/g, '')))
+    .filter(Boolean);
+}
+
+function extractStringField(raw, fieldName) {
+  const marker = new RegExp(`"${fieldName}"\\s*:\\s*"([^"]*)"`);
+  const match = marker.exec(raw);
+  return match ? unescapeJsonLikeString(match[1]) : '';
+}
+
+function parseExtractionResponse(raw) {
+  const cleaned = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    // weiter zu Fallbacks
+  }
+
+  const match = cleaned.match(/\{[\s\S]*\}/);
+  if (match) {
+    try {
+      return JSON.parse(match[0]);
+    } catch {
+      // weiter zu Fallback 3
+    }
+  }
+
+  return {
+    motifs: extractArrayField(cleaned, 'motifs'),
+    entities: extractArrayField(cleaned, 'entities'),
+    mood: extractStringField(cleaned, 'mood'),
+    openThreads: extractArrayField(cleaned, 'openThreads'),
+  };
+}
+
+// ── Mini-LLM-Aufruf (reprüziert generateWithModel(prompt, 'mini', ...) ─────
+
+async function generateMini(prompt) {
+  const modelConfig = getTextModel(normalizeTextModel('mini'))
+  const headers = {
+    'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+    'HTTP-Referer': 'https://mojobus.co',
+    'X-Title': 'MojoBus',
+    'Content-Type': 'application/json'
+  }
+
+  const attempt = async (maxTokens) => {
+    const requestBody = {
+      model: modelConfig.id,
+      max_tokens: maxTokens,
+      temperature: 0.3,
+      messages: [
+        { role: 'system', content: SYSTEM_MESSAGE },
+        { role: 'user', content: prompt }
+      ]
+    }
+    if (modelConfig.reasoning) {
+      requestBody.reasoning = modelConfig.reasoning
+    }
+    const response = await fetch(OPENROUTER_BASE, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(requestBody)
+    })
+    if (!response.ok) {
+      const errText = await response.text().catch(() => '')
+      throw new Error(`OpenRouter HTTP ${response.status}: ${errText.slice(0, 200)}`)
+    }
+    const data = await response.json()
+    const content = data.choices?.[0]?.message?.content
+    const finishReason = data.choices?.[0]?.finish_reason
+    return { content, finishReason }
+  }
+
+  let result = await attempt(500)
+  // Auto-Retry wie ai-content.js: abgeschnitten/leer → 1.5x Budget
+  if (result.finishReason === 'length' || !result.content) {
+    result = await attempt(Math.round(500 * MAX_RETRY_MULTIPLIER))
+  }
+  if (!result.content) {
+    throw new Error('KI-Antwort enthielt keinen Text')
+  }
+  return result.content
+}
+
+// ── DB-Zugriff (SQL identisch zu server/services/continuity-store.js) ──────
+
+const SCHEMA = `
+  CREATE TABLE IF NOT EXISTS posts (
+    id TEXT PRIMARY KEY,
+    type TEXT NOT NULL,
+    kind INTEGER NOT NULL,
+    title TEXT,
+    location TEXT,
+    country TEXT,
+    mood TEXT,
+    published_at INTEGER NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS post_motifs (post_id TEXT REFERENCES posts(id), motif TEXT);
+  CREATE TABLE IF NOT EXISTS post_entities (post_id TEXT REFERENCES posts(id), entity TEXT);
+  CREATE TABLE IF NOT EXISTS open_threads (
+    id TEXT PRIMARY KEY,
+    post_id TEXT REFERENCES posts(id),
+    thread TEXT,
+    resolved INTEGER DEFAULT 0,
+    created_at INTEGER NOT NULL
+  );
+`
+
+function openLiveDb(Database) {
+  if (!fs.existsSync(DB_PATH)) {
+    console.error(
+      `[Backfill] ❌ DB nicht gefunden: ${DB_PATH}\n` +
+      `[Backfill]    Abbruch, um nicht an der falschen Stelle eine leere DB anzulegen.\n` +
+      `[Backfill]    Falls der Pfad abweicht: CONTINUITY_DATA_DIR=/pfad/zu/server/data vornstellen.`
+    )
+    process.exit(1)
+  }
+  const db = new Database(DB_PATH)
+  db.pragma('journal_mode = WAL')   // wie der Server (Multi-Prozess-Zugriff safe)
+  db.pragma('busy_timeout = 5000')  // Warten, falls der ai-api gerade schreibt
+  db.exec(SCHEMA)
+  return db
+}
+
+function hasPost(db, id) {
+  return Boolean(db.prepare(`SELECT 1 FROM posts WHERE id = ?`).get(id))
+}
+
+function savePostRow(db, { id, type, kind, title, location, country, mood, publishedAt }) {
+  db.prepare(`
+    INSERT OR REPLACE INTO posts (id, type, kind, title, location, country, mood, published_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(id, type, kind, title || null, location || null, country || null, mood || null, publishedAt)
+}
+
+function deletePostChildren(db, postId) {
+  db.prepare(`DELETE FROM post_motifs WHERE post_id = ?`).run(postId)
+  db.prepare(`DELETE FROM post_entities WHERE post_id = ?`).run(postId)
+  db.prepare(`DELETE FROM open_threads WHERE post_id = ?`).run(postId)
+}
+
+function saveMotifs(db, postId, motifs) {
+  if (!Array.isArray(motifs) || motifs.length === 0) return
+  const stmt = db.prepare(`INSERT INTO post_motifs (post_id, motif) VALUES (?, ?)`)
+  for (const motif of motifs) if (motif) stmt.run(postId, motif)
+}
+
+function saveEntities(db, postId, entities) {
+  if (!Array.isArray(entities) || entities.length === 0) return
+  const stmt = db.prepare(`INSERT INTO post_entities (post_id, entity) VALUES (?, ?)`)
+  for (const entity of entities) if (entity) stmt.run(postId, entity)
+}
+
+function saveOpenThreads(db, postId, threads) {
+  if (!Array.isArray(threads) || threads.length === 0) return
+  const stmt = db.prepare(`
+    INSERT INTO open_threads (id, post_id, thread, resolved, created_at)
+    VALUES (?, ?, ?, 0, ?)
+  `)
+  const now = Date.now()
+  for (const thread of threads) {
+    if (!thread) continue
+    const id = `${postId}-${now}-${Math.random().toString(36).slice(2, 8)}`
+    stmt.run(id, postId, thread, now)
+  }
+}
+
+// ── Event-Klassifizierung (analog Frontend-Tracking) ───────────────────────
+
 function tag(event, name) {
   return event.tags?.find((t) => t[0] === name)?.[1] || '';
 }
 
-/** Land aus den bekannten Länder-Tags ableichen (wie das Frontend es setzt). */
 const COUNTRY_TAGS = new Set(['portugal', 'spanien', 'frankreich', 'belgien', 'deutschland', 'luxemburg']);
 function deriveCountry(event) {
   const tTags = (event.tags || [])
@@ -67,19 +292,13 @@ function deriveCountry(event) {
   return tTags.find((t) => COUNTRY_TAGS.has(t)) || '';
 }
 
-/** Mindestprüfung: nur Events mit echtem Text-Content tracken. */
 function contentWorthy(event) {
   return typeof event.content === 'string' && event.content.trim().length > 0;
 }
 
 /**
- * Event klassifizieren — analog zum Frontend-Tracking (trackPublishedPost):
- *   30023 (nicht place) → 'article', id = dTag
- *   30023 (place)       → 'place',   id = dTag
- *   30025               → 'trip',    id = dTag
- *   1 (media-Tags)      → 'media',   id = Event-ID
- *   1 (sonst)           → 'note',    id = Event-ID
- * Gibt null zurück, wenn das Event nicht in die DNA gehört.
+ * 30023 (nicht place) → 'article' | 30023 (place) → 'place' | 30025 → 'trip'
+ * 1 (media-Tags) → 'media' | 1 (sonst) → 'note' — sonst null.
  */
 function classify(event) {
   if (event.kind === 30023) {
@@ -100,12 +319,22 @@ function classify(event) {
   return null;
 }
 
-/** EN-Übersetzungen überspringen (nur DE kommt in die Brand DNA). */
 function isEnglishTranslation(event) {
   return getEventLangFromTags(event) === 'en' || tag(event, 'd').endsWith('-en');
 }
 
+// ── Main ────────────────────────────────────────────────────────────────────
+
 async function main() {
+  if (!process.env.OPENROUTER_API_KEY) {
+    console.error('[Backfill] OPENROUTER_API_KEY fehlt — siehe Kopf-Kommentar für den Aufruf.');
+    process.exit(1);
+  }
+
+  const Database = await loadDatabase()
+  const db = openLiveDb(Database)
+  console.log(`[Backfill] DB: ${DB_PATH}`)
+
   // ── 1) Events von den Relays sammeln (dedupliziert per Event-ID) ──────────
   const byId = new Map();
   for (const relay of RELAYS) {
@@ -127,38 +356,47 @@ async function main() {
     if (isEnglishTranslation(event)) { filtered++; continue; }
     queue.push({ event, ...cls });
   }
-  console.log(`[Backfill] ${queue.length} Events werden getrackt (${filtered} gefiltert)`);
-  console.log(`[Backfill] Ziel: ${TRACK_URL} — Extraktion übernimmt der ai-api (deepseek mini)`);
+  console.log(`[Backfill] ${queue.length} Events zu verarbeiten (${filtered} gefiltert)`);
 
-  // ── 3) An die Track-Route schicken (Server extrahiert + speichert) ───────
-  let sent = 0;
+  // ── 3) Extraktion + direktes Speichern ───────────────────────────────────
+  let done = 0;
+  let skipped = 0;
   let failed = 0;
   for (const { event, type, id } of queue) {
-    const payload = {
-      id,
-      type,
-      kind: event.kind,
-      title: tag(event, 'title'),
-      location: tag(event, 'location'),
-      country: deriveCountry(event),
-      publishedAt: parseInt(tag(event, 'published_at'), 10) || event.created_at,
-      content: (event.content || '').trim(),
-    };
+    if (hasPost(db, id)) {
+      skipped++;
+      continue;
+    }
+    const content = (event.content || '').trim();
+    if (!content) {
+      skipped++;
+      continue;
+    }
 
     try {
-      const response = await fetch(TRACK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+      const title = tag(event, 'title');
+      const prompt = buildExtractionPrompt(content, title);
+      const raw = await generateMini(prompt);
+      const extracted = parseExtractionResponse(raw || '');
+
+      savePostRow(db, {
+        id,
+        type,
+        kind: event.kind,
+        title,
+        location: tag(event, 'location'),
+        country: deriveCountry(event),
+        mood: typeof extracted.mood === 'string' ? extracted.mood : '',
+        publishedAt: parseInt(tag(event, 'published_at'), 10) || event.created_at,
       });
-      if (!response.ok) {
-        failed++;
-        console.warn(`[Backfill] HTTP ${response.status} bei ${type} ${id}`);
-      } else {
-        sent++;
-        if (sent % 10 === 0) {
-          console.log(`[Backfill] Fortschritt: ${sent} gesendet, ${failed} HTTP-Fehler`);
-        }
+      deletePostChildren(db, id);
+      saveMotifs(db, id, Array.isArray(extracted.motifs) ? extracted.motifs : []);
+      saveEntities(db, id, Array.isArray(extracted.entities) ? extracted.entities : []);
+      saveOpenThreads(db, id, Array.isArray(extracted.openThreads) ? extracted.openThreads : []);
+
+      done++;
+      if (done % 10 === 0) {
+        console.log(`[Backfill] Fortschritt: ${done} neu, ${skipped} übersprungen, ${failed} Fehler`);
       }
     } catch (error) {
       failed++;
@@ -168,8 +406,11 @@ async function main() {
     await sleep(DELAY_MS);
   }
 
-  console.log(`[Backfill] FERTIG: ${sent} Events an ai-api übergeben, ${failed} HTTP-Fehler`);
-  console.log('[Backfill] Extraktions-Ergebnisse prüfen: journalctl -u ai-api | grep Continuity');
+  console.log(`[Backfill] FERTIG: ${done} neu getrackt, ${skipped} übersprungen (bereits vorhanden/leer), ${failed} Fehler`);
+  console.log('[Backfill] Bestand prüfen:');
+  const counts = db.prepare(`SELECT type, COUNT(*) AS c FROM posts GROUP BY type`).all();
+  for (const row of counts) console.log(`[Backfill]   ${row.type}: ${row.c}`);
+  console.log(`[Backfill]   Motive gesamt: ${db.prepare('SELECT COUNT(*) AS c FROM post_motifs').get().c}`);
   process.exit(0);
 }
 
