@@ -36,8 +36,9 @@ function unescapeJsonLikeString(value) {
  * Parst die Extraktions-Antwort robust: zuerst JSON.parse, dann Regex-Suche
  * nach einem JSON-Objekt im Text, dann Feld-Extraktion per Regex. Gibt bei
  * vollständigem Fehlschlag ein leeres Ergebnis zurück (nie null/Absturz).
+ * Exportiert für das Backfill-Script (gleiche Logik wie Live-Tracking).
  */
-function parseExtractionResponse(raw) {
+export function parseExtractionResponse(raw) {
   const cleaned = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim()
 
   try {

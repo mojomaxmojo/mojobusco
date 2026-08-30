@@ -16,7 +16,9 @@ import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-const DATA_DIR = join(__dirname, '..', 'data')
+// Pfad überschreibbar (z. B. Backfill-Script schreibt von außen in die
+// Live-DB des Webservers: CONTINUITY_DATA_DIR=/home/nginx/domains/.../server/data)
+const DATA_DIR = process.env.CONTINUITY_DATA_DIR || join(__dirname, '..', 'data')
 const DB_PATH = join(DATA_DIR, 'continuity.db')
 
 let db = null
@@ -73,6 +75,17 @@ function getDb() {
     return initContinuityDatabase()
   }
   return db
+}
+
+/**
+ * Prüft, ob ein Post bereits getrackt wurde (Backfill-Idempotenz).
+ * @param {string} id — dTag (addressable) oder Event-ID (kind 1)
+ * @returns {boolean}
+ */
+export function hasPost(id) {
+  if (!id) return false
+  const row = getDb().prepare(`SELECT 1 FROM posts WHERE id = ?`).get(id)
+  return Boolean(row)
 }
 
 /**

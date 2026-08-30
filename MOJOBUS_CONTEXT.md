@@ -202,6 +202,21 @@ Wetter-GPS: vom ersten Bild mit GPS, sonst Geocoding von `location`+`country`
 (gerundet auf 2 Dezimalstellen, ~1km). Trips: nur erster/Hauptort (Wegpunkt 1).
 Schwelle Forecast/Archiv: 92 Tage; >16 Tage Zukunft → Wetter überspringen.
 
+**Backfill (Bestandsdaten nachtragen):** `scripts/backfill-continuity.js` holt
+alle veröffentlichten Events (30023/30025/1, Autor-Filter + isMojobusKind1 +
+Teaser/EN-Filter) von den Relays und läuft pro Event durch dieselbe
+Mini-Extraktion (deepseek-v4-pro) wie die Track-Route — idempotent
+(hasPost-Skip, abbruch-/fortsetzbar). Aufruf auf dem VPS:
+```bash
+cd /root/deploy-git/mojobusco
+OPENROUTER_API_KEY=$(grep '^OPENROUTER_API_KEY=' /etc/systemd/system/ai-api.env | cut -d= -f2-) \
+CONTINUITY_DATA_DIR=/home/nginx/domains/mojobus.co/public/server/data \
+node scripts/backfill-continuity.js
+```
+`CONTINUITY_DATA_DIR` (Override in continuity-store.js) lenkt die Schreibvorgänge
+auf die Live-DB im Webroot. Hintergrund: Vor Deploy-Fix 882527a wurde
+server/data/ bei jedem Deploy gelöscht — die Historie der Altartikel fehlte.
+
 ---
 
 ## Berichte-Assistent (/veroeffentlichen)
