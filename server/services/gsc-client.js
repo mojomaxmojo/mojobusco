@@ -41,12 +41,16 @@ let cachedToken = null // { token, expiresAt }
 
 /**
  * Normalisiert den GSC_PRIVATE_KEY aus der systemd-Env-Datei zu einer
- * gültigen PEM. Behandelt alle gängigen Verformungen:
- *  - umgebende Quotes/Whitespace
- *  - literale \n- und \r-Sequenzen (Env-Datei) → echte Zeilenumbrüche
- *  - echte CRLF → LF, Leerzeichen an Zeilenenden
- * Wirft eine KLARE Fehlermeldung, wenn das Ergebnis kein vollständiger
- * PEM-Block sein kann (statt kryptischem OpenSSL "DECODER::unsupported").
+ * kanonischen PEM.
+ *
+ * Strategie (robust gegen JEDES Verhalten von systemd beim Env-Einlesen):
+ * Statt zu raten, ob \n literal, echt, gefressen oder verdoppelt ankommt,
+ * werden nur die beiden Marker und die reinen Base64-Zeichen extrahiert und
+ * daraus ein sauberes PEM mit 64-Zeichen-Zeilen rekonstruiert. Das behandelt
+ * gleichzeitig: literale \n, echte Umbrüche, CRLF, "geklebte" Einzeiler,
+ * verdoppelte Backslashes, Spaces und umgebende Quotes.
+ * Wirft eine KLARE Fehlermeldung, wenn Marker fehlen oder der Kern zu kurz
+ * ist (statt kryptischem OpenSSL "DECODER::unsupported").
  * @param {string} raw
  * @returns {string} gültige PEM
  */
@@ -58,27 +62,39 @@ function normalizePemPrivateKey(raw) {
     key = key.slice(1, -1)
   }
 
-  // Literale Escape-Sequenzen aus der Env-Datei in echte Umbrüche wandeln
-  key = key.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').replace(/\\r/g, '\n')
-  key = key.replace(/\r/g, '')
+  const beginMarker = '-----BEGIN PRIVATE KEY-----'
+  const endMarker = '-----END PRIVATE KEY-----'
+  const hasBegin = key.includes(beginMarker)
+  const hasEnd = key.includes(endMarker)
 
-  // Zeilen trimmen, Leerzeilen entfernen, sauberes LF-Format
-  key = key.split('\n').map(l => l.trim()).filter(l => l.length > 0).join('\n') + '\n'
+  // Base64-Kern: alles zwischen den Markern, um \n (literal + real) und
+  // \r bereinigt; alle restlichen Nicht-Base64-Zeichen (z. B. verwaiste
+  // Backslashes von Doppel-Escapes, Spaces) fliegen raus.
+  let b64 = ''
+  if (hasBegin && hasEnd) {
+    const inner = key.slice(key.indexOf(beginMarker) + beginMarker.length, key.indexOf(endMarker))
+    b64 = inner
+      .replace(/\\r\\n/g, '')
+      .replace(/\\n/g, '')
+      .replace(/\\r/g, '')
+      .replace(/[\n\r\s]/g, '')
+      .replace(/[^A-Za-z0-9+/=]/g, '')
+  }
 
-  const hasBegin = key.startsWith('-----BEGIN PRIVATE KEY-----')
-  const hasEnd = key.includes('-----END PRIVATE KEY-----')
-  // Grobe Plausibilität: ein PKCS#8-Key für 2048-bit RSA ist ~1700 Zeichen.
-  // Deutlich kürzer → die env-Zeile wurde beim Einfügen zerschnitten.
-  if (!hasBegin || !hasEnd || key.length < 800) {
+  const chunks = b64.match(/.{1,64}/g) || []
+  const pem = [beginMarker, ...chunks, endMarker].join('\n') + '\n'
+
+  // Grobe Plausibilität: ein PKCS#8-Key für 2048-bit RSA hat ~1218 Bytes
+  // → ~1624 Base64-Zeichen. Deutlich kürzer → die env-Zeile war unvollständig.
+  if (!hasBegin || !hasEnd || b64.length < 1200) {
     throw new Error(
-      `GSC_PRIVATE_KEY ist unvollständig (Länge ${key.length}, BEGIN: ${hasBegin}, END: ${hasEnd}). ` +
-      'Häufigste Ursache: In /etc/systemd/system/ai-api.env enthält die Zeile GSC_PRIVATE_KEY= einen echten ' +
-      'Zeilenumbruch (Paste/Editor-Umbruch) — die Zuweisung endet dann mitten im Key. ' +
-      'Zeile muss EINE einzige Zeile mit literalen \\n sein.'
+      `GSC_PRIVATE_KEY ist unvollständig (Base64-Kern: ${b64.length} Zeichen, BEGIN: ${hasBegin}, END: ${hasEnd}). ` +
+      'Häufigste Ursache: Die Zeile GSC_PRIVATE_KEY= in /etc/systemd/system/ai-api.env wurde beim Einfügen ' +
+      'zerschnitten (echter Zeilenumbruch) — sie muss EINE einzige Zeile mit literalen \\n sein.'
     )
   }
 
-  return key
+  return pem
 }
 
 /**
