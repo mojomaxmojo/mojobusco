@@ -40,6 +40,19 @@ function base64url(input) {
 let cachedToken = null // { token, expiresAt }
 
 /**
+ * Prüft, ob ein Base64-String ein plausibler PKCS#8-RSA-Key-Körper ist:
+ * Länge durch 4 teilbar, >= 1200 Zeichen, DER beginnt mit 0x30 0x82
+ * (ASN.1 SEQUENCE, Long-Form-Länge — bei RSA-Keys ab 1024 Bit immer so).
+ * @param {string} b64
+ * @returns {boolean}
+ */
+function isValidPkcs8Base64(b64) {
+  if (!b64 || b64.length % 4 !== 0 || b64.length < 1200) return false
+  const buf = Buffer.from(b64, 'base64')
+  return buf.length > 4 && buf[0] === 0x30 && buf[1] === 0x82
+}
+
+/**
  * Normalisiert den GSC_PRIVATE_KEY aus der systemd-Env-Datei zu einer
  * kanonischen PEM.
  *
@@ -79,6 +92,38 @@ function normalizePemPrivateKey(raw) {
       .replace(/\\r/g, '')
       .replace(/[\n\r\s]/g, '')
       .replace(/[^A-Za-z0-9+/=]/g, '')
+  }
+
+  // Spezialfall "systemd frisst die Backslashes" (beobachtet: \n → n):
+  // Der Wert kommt als Einzeiler an, in dem an jeder Original-Zeilengrenze
+  // ein 'n' steckt (gültiges Base64-Zeichen — deshalb oben nicht entfernbar).
+  // Rekonstruktion nach dem Google-Schema (64-Zeichen-Zeilen, Umbruch nach
+  // JEDER Zeile): führendes 'n' nach dem Header entfernen, nach jedem vollen
+  // 64er-Block ein 'n' überspringen; beim Restblock per Längen-/DER-Prüfung
+  // entscheiden, ob das letzte 'n' zum Body gehört oder gefressenes \n ist.
+  if (hasBegin && hasEnd && !isValidPkcs8Base64(b64)) {
+    const inner = key
+      .slice(key.indexOf(beginMarker) + beginMarker.length, key.indexOf(endMarker))
+      .replace(/\\n/g, '')
+      .replace(/\n/g, '')
+      .replace(/\\r/g, '')
+      .replace(/\r/g, '')
+      .trim()
+    let s = inner.startsWith('n') ? inner.slice(1) : inner
+    let out = ''
+    let i = 0
+    while (i < s.length) {
+      out += s.slice(i, i + 64)
+      i += 64
+      if (i < s.length && s[i] === 'n') i += 1
+    }
+    const candidates = [out]
+    if (out.endsWith('n')) candidates.push(out.slice(0, -1))
+    const repaired = candidates.find(c => isValidPkcs8Base64(c))
+    if (repaired) {
+      console.log(`[GSC] Private-Key repariert: gefressene \\n-Zeilengrenzen rekonstruiert (${b64.length} → ${repaired.length} Zeichen)`)
+      b64 = repaired
+    }
   }
 
   const chunks = b64.match(/.{1,64}/g) || []
