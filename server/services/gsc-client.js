@@ -40,9 +40,51 @@ function base64url(input) {
 let cachedToken = null // { token, expiresAt }
 
 /**
+ * Normalisiert den GSC_PRIVATE_KEY aus der systemd-Env-Datei zu einer
+ * gültigen PEM. Behandelt alle gängigen Verformungen:
+ *  - umgebende Quotes/Whitespace
+ *  - literale \n- und \r-Sequenzen (Env-Datei) → echte Zeilenumbrüche
+ *  - echte CRLF → LF, Leerzeichen an Zeilenenden
+ * Wirft eine KLARE Fehlermeldung, wenn das Ergebnis kein vollständiger
+ * PEM-Block sein kann (statt kryptischem OpenSSL "DECODER::unsupported").
+ * @param {string} raw
+ * @returns {string} gültige PEM
+ */
+function normalizePemPrivateKey(raw) {
+  let key = String(raw || '').trim()
+
+  // Umgebende Quotes entfernen (falls beim Anlegen reingerutscht)
+  if ((key.startsWith('"') && key.endsWith('"')) || (key.startsWith("'") && key.endsWith("'"))) {
+    key = key.slice(1, -1)
+  }
+
+  // Literale Escape-Sequenzen aus der Env-Datei in echte Umbrüche wandeln
+  key = key.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').replace(/\\r/g, '\n')
+  key = key.replace(/\r/g, '')
+
+  // Zeilen trimmen, Leerzeilen entfernen, sauberes LF-Format
+  key = key.split('\n').map(l => l.trim()).filter(l => l.length > 0).join('\n') + '\n'
+
+  const hasBegin = key.startsWith('-----BEGIN PRIVATE KEY-----')
+  const hasEnd = key.includes('-----END PRIVATE KEY-----')
+  // Grobe Plausibilität: ein PKCS#8-Key für 2048-bit RSA ist ~1700 Zeichen.
+  // Deutlich kürzer → die env-Zeile wurde beim Einfügen zerschnitten.
+  if (!hasBegin || !hasEnd || key.length < 800) {
+    throw new Error(
+      `GSC_PRIVATE_KEY ist unvollständig (Länge ${key.length}, BEGIN: ${hasBegin}, END: ${hasEnd}). ` +
+      'Häufigste Ursache: In /etc/systemd/system/ai-api.env enthält die Zeile GSC_PRIVATE_KEY= einen echten ' +
+      'Zeilenumbruch (Paste/Editor-Umbruch) — die Zuweisung endet dann mitten im Key. ' +
+      'Zeile muss EINE einzige Zeile mit literalen \\n sein.'
+    )
+  }
+
+  return key
+}
+
+/**
  * Holt einen Access-Token für den Service-Account (JWT-Bearer-Flow, RS256).
  * @returns {Promise<string>} Access-Token
- */
+  */
 export async function getGscAccessToken() {
   if (!isGscConfigured()) {
     throw new Error('GSC nicht konfiguriert (GSC_CLIENT_EMAIL / GSC_PRIVATE_KEY / GSC_SITE_URL fehlen)')
@@ -63,7 +105,7 @@ export async function getGscAccessToken() {
   }))
   const signatureInput = `${header}.${claim}`
 
-  const privateKey = process.env.GSC_PRIVATE_KEY.replace(/\\n/g, '\n')
+  const privateKey = normalizePemPrivateKey(process.env.GSC_PRIVATE_KEY)
   const signature = crypto
     .createSign('RSA-SHA256')
     .update(signatureInput)
