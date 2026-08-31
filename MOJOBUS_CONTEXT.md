@@ -300,6 +300,23 @@ KI-Formularen: ArticleForm + PlaceForm (im SeoPublishPanel integriert) sowie
 NoteForm, MediaUploadForm, TripPublishForm (shared component
 `components/assistant/ExperiencesConfirm.tsx`).
 
+**Rate-Limit (Nr. 15):** In-Memory Fixed-Window pro IP+Bucket
+(`server/middleware/rate-limit.js`, keine Abhängigkeiten) vor allen teuren
+offenen API-Routen — Mounts in server.js. Werte/Env-Overrides (z. B.
+`RATE_LIMIT_GENERATE_MAX=25` in ai-api.env): `server/config/rate-limits.js`.
+Buckets/Defaults (pro Tag/IP): generate **15** (alle /api/generate-* inkl.
+Trip-Start, Video, Slideshow), track **30**, research **10**, ideas **10**,
+seoTitle **30**, pageMetrics **30**, light **120** (continuity-suggestions,
+link-suggestions, 🔒 threads/resolve). IP-Erkennung zwingend über
+X-Forwarded-For/X-Real-IP (Nginx-Proxy würde sonst alle als 127.0.0.1
+zusammenfassen). Überschreitung → 429 + JSON-Error + Retry-After (Frontend
+zeigt die Message in den Panel-Error-Zeilen). NICHT gedrosselt: Status-
+Polling (GET generate-trip/:jobId — sonst stirbt das Polling bei langen
+Generierungen), Media-Reads, 🔒 Token-Routen. Zähler sind In-Memory —
+ai-api-Restart setzt sie zurück (bewusst ok: Missbrauchsbremse, keine
+Abrechnung). Echte Zugriffs-Absicherung (NIP-98, pubkey ∈ authors.json)
+ist zurückgestellt — APK signiert über Amber (kann kind 27235), machbar.
+
 ---
 
 ## GPS-Fix (Android)

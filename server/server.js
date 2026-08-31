@@ -53,6 +53,7 @@ import {
 
 // ── Bot Meta-Tag Middleware ────────────────────────────────
 import { botMiddleware, getBotCacheStats, clearBotCache } from './bot/middleware.js'
+import { rateLimit } from './middleware/rate-limit.js'
 
 // ── Pinterest Promotion API ────────────────────────────────
 import promotionRouter from './routes/promotion/index.js'
@@ -84,6 +85,28 @@ app.use(express.json())
 // Normale Nutzer werden NICHT betroffen — sie bekommen next()
 // ============================================================
 app.use(botMiddleware)
+
+// ===== RATE-LIMIT (Nr. 15) — vor allen API-Routen =====
+// In-Memory Fixed-Window pro IP+Bucket; Werte/Env-Overrides: config/rate-limits.js.
+// Schutz für offene, KI-/CPU-lastige Endpunkte — Limits sind so hoch, dass
+// der Redaktions-Alltag sie nie erreicht (Missbrauchsbremse, kein Gate).
+// NICHT gedrosselt: Status-Polling (GET /api/generate-trip/:jobId), Media-Reads,
+// 🔒-Token-Routen (Drafts/Published), /api/health.
+app.use('/api/generate-article', rateLimit('generate'))
+app.use('/api/generate-place', rateLimit('generate'))
+app.use('/api/generate-note', rateLimit('generate'))
+app.use('/api/generate-media-article', rateLimit('generate'))
+app.use('/api/generate-trip', rateLimit('generate'))
+app.use('/api/generate-video', rateLimit('generate'))
+app.use('/api/generate-slideshow', rateLimit('generate'))
+app.use('/api/continuity/track', rateLimit('track'))
+app.use('/api/assistant/research', rateLimit('research'))
+app.use('/api/assistant/ideas', rateLimit('ideas'))
+app.use('/api/assistant/seo-title', rateLimit('seoTitle'))
+app.use('/api/assistant/page-metrics', rateLimit('pageMetrics'))
+app.use('/api/assistant/continuity-suggestions', rateLimit('light'))
+app.use('/api/assistant/link-suggestions', rateLimit('light'))
+app.use('/api/assistant/threads/resolve', rateLimit('light'))
 
 // ===== CONTENT GENERIERUNG ROUTEN =====
 // Alle Content-Generierungs-Routen aus server/routes/content.js
