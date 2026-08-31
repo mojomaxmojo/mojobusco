@@ -45,8 +45,11 @@ ssh root@server
 cd /root/deploy-git/mojobusco
 bash deploy-main.sh --force
 
-# Nginx-Config aktualisieren (falls geändert):
-cp mojobus.co.ssl.conf /etc/nginx/conf.d/mojobus.co.ssl.conf
+# Nginx-Config aktualisieren (falls geändert) — CentminMod-Pfad:
+# vhosts liegen unter /usr/local/nginx/conf/conf.d/ (NICHT /etc/nginx/conf.d)
+cp /usr/local/nginx/conf/conf.d/mojobus.co.ssl.conf \
+   /usr/local/nginx/conf/conf.d/mojobus.co.ssl.conf.bak
+cp mojobus.co.ssl.conf /usr/local/nginx/conf/conf.d/mojobus.co.ssl.conf
 nginx -t && systemctl reload nginx
 
 # Daten-Dumps generieren (nach erstem Deploy):
@@ -62,7 +65,7 @@ node scripts/generate-site-data.js
 | `server/server.js` | `deploy --force` + `systemctl restart ai-api` |
 | `server/routes/prerender-fallback.js` | `deploy --force` + `systemctl restart ai-api` |
 | `server/remotion/` | `deploy --force` + `restart ai-api` + **Bundle-Invalidate** |
-| Nginx-Config | `cp mojobus.co.ssl.conf ...` + `nginx -t && systemctl reload nginx` |
+| Nginx-Config | Backup + `cp mojobus.co.ssl.conf /usr/local/nginx/conf/conf.d/` + `nginx -t && systemctl reload nginx` |
 | `prerender-fallback.js` **+** Nginx-Config | beide Zeilen zusammen (Resolver-Endpunkt + `@prerender_resolve` gehören zusammen) |
 
 ### Prerender-Resolve (Bug B: Relay-Hint-Mismatch)
