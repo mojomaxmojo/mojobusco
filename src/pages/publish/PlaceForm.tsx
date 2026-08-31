@@ -14,6 +14,8 @@ import { getApiBaseUrl } from "@/lib/apiBase";
 import { useContinuityTracking } from "@/hooks/useContinuityTracking";
 import { createLongformTeaser } from "@/lib/createLongformTeaser";
 import { placeUrl, canonicalUrl } from "@/lib/canonicalUrl";
+import { SeoPublishPanel } from "@/components/assistant/SeoPublishPanel";
+import { buildSmartSlug } from "@/config/assistant";
 import { ImageOptimizationToggle } from "@/components/ImageOptimizationToggle";
 import { GpsEditor } from "@/components/GpsEditor";
 import { GpsStatusIndicator } from "@/components/GpsStatusIndicator";
@@ -48,6 +50,11 @@ import exifr from "exifr";
 export function PlaceForm({ editEvent }: { editEvent?: any }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  // SEO-Felder (Assistent) + Ehrlichkeits-Gate (Standard: bestätigt, abwählbar)
+  const [seoTitle, setSeoTitle] = useState('');
+  const [seoMetaDescription, setSeoMetaDescription] = useState('');
+  const [seoSlug, setSeoSlug] = useState('');
+  const [experiencesConfirmed, setExperiencesConfirmed] = useState(true);
   const [location, setLocation] = useState('');
   const [coordinates, setCoordinates] = useState({ lat: '', lng: '' });
   const [category, setCategory] = useState('');
@@ -294,6 +301,12 @@ export function PlaceForm({ editEvent }: { editEvent?: any }) {
       const bestForTags = editEvent.tags?.filter((tag: any) => tag[0] === 'best_for')?.map((tag: any) => tag[1]) || [];
       setBestFor(bestForTags);
       setPrice(editEvent.tags?.find((tag: any) => tag[0] === 'price')?.[1] || '');
+
+      // SEO-Felder (Assistent) aus dem Event laden — ohne dieses Laden
+      // würde ein Edit+Republish die Tags stillschweigend löschen
+      setSeoTitle(editEvent.tags?.find((tag: any) => tag[0] === 'seo_title')?.[1] || '');
+      setSeoMetaDescription(editEvent.tags?.find((tag: any) => tag[0] === 'meta_description')?.[1] || '');
+      setSeoSlug(editEvent.tags?.find((tag: any) => tag[0] === 'slug')?.[1] || '');
 
       // Load visit date (from published_at or visit_date tag)
       const visitDateTag = editEvent.tags?.find((tag: any) => tag[0] === 'visit_date')?.[1]
@@ -644,6 +657,13 @@ export function PlaceForm({ editEvent }: { editEvent?: any }) {
       ['published_at', visitTimestamp],
       ['visit_date', visitTimestamp],
     ];
+
+    // SEO-Zusatz-Tags (Assistent) — bestehende Tags unverändert
+    if (seoTitle.trim()) additionalTags.push(['seo_title', seoTitle.trim()]);
+    const effectiveMetaDescription = seoMetaDescription.trim() || placeSummary;
+    if (effectiveMetaDescription) additionalTags.push(['meta_description', effectiveMetaDescription]);
+    const effectiveSlug = (seoSlug.trim() || buildSmartSlug(name)).trim();
+    if (effectiveSlug) additionalTags.push(['slug', effectiveSlug]);
 
     const tags = [
       ...baseTags,
@@ -1341,7 +1361,21 @@ Beschreibe hier den Ort, was macht ihn besonders...
           />
         </div>
 
-        <Button onClick={handleSubmit} className="w-full" disabled={!name.trim() || isPublishingTeaser}>
+        <SeoPublishPanel
+          title={name}
+          articleText={description}
+          summary={description.length > 160 ? `${description.slice(0, 157)}...` : description}
+          seoTitle={seoTitle}
+          onSeoTitleChange={setSeoTitle}
+          metaDescription={seoMetaDescription}
+          onMetaDescriptionChange={setSeoMetaDescription}
+          slug={seoSlug}
+          onSlugChange={setSeoSlug}
+          experiencesConfirmed={experiencesConfirmed}
+          onExperiencesConfirmedChange={setExperiencesConfirmed}
+        />
+
+        <Button onClick={handleSubmit} className="w-full" disabled={!name.trim() || isPublishingTeaser || !experiencesConfirmed}>
           <Map className="h-4 w-4 mr-2" />
           {isPublishingTeaser ? 'Wird veröffentlicht...' : 'Ort speichern'}
         </Button>

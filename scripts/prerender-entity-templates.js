@@ -34,6 +34,10 @@ function imageTag(image, alt) {
 export function renderArticleHtml(event, allEventsOfType = []) {
   const title = event.tags?.find(t => t[0] === 'title')?.[1] || 'Artikel';
   const summary = event.tags?.find(t => t[0] === 'summary')?.[1] || '';
+  // SEO-Felder (Assistent, beim Publish als Tags gespeichert) — Fallback:
+  // kreativer Titel / Summary wie bisher
+  const seoTitleTag = event.tags?.find(t => t[0] === 'seo_title')?.[1] || '';
+  const seoDescriptionTag = event.tags?.find(t => t[0] === 'meta_description')?.[1] || '';
   const image = event.tags?.find(t => t[0] === 'image')?.[1] || DEFAULT_IMAGE;
   const tags = event.tags?.filter(t => t[0] === 't').map(t => t[1]) || [];
   const publishedTag = event.tags?.find(t => t[0] === 'published_at')?.[1];
@@ -48,14 +52,15 @@ export function renderArticleHtml(event, allEventsOfType = []) {
   const alternateUrl = pairNaddr && pairLang ? buildLocalizedUrl(`/${pairNaddr}`, pairLang) : null;
   const alternateLang = pairLang;
   const authorName = event.tags?.find(t => t[0] === 'author')?.[1] || getAuthorName(event.pubkey);
-  const description = stripMarkdown(summary, 160) || stripMarkdown(event.content, 160);
+  const description = seoDescriptionTag || stripMarkdown(summary, 160) || stripMarkdown(event.content, 160);
+  const headTitle = seoTitleTag || title;
   const contentText = stripMarkdown(event.content, 500);
   const datePublished = formatDate(publishedAtSeconds);
   const dateModified = formatDate(event.created_at);
 
   const jsonLd = buildArticleLd({
-    headline: title,
-    description: stripMarkdown(summary, 200) || description,
+    headline: headTitle,
+    description,
     image,
     url: canonicalUrl,
     datePublished,
@@ -67,7 +72,7 @@ export function renderArticleHtml(event, allEventsOfType = []) {
   });
 
   const head = buildHead({
-    title: `${title} — MojoBus`,
+    title: `${headTitle} — MojoBus`,
     description,
     keywords: [...new Set(['vanlife', 'wohnmobil', 'reisen', 'camping', ...tags])].join(', '),
     canonicalUrl,
@@ -201,8 +206,13 @@ export function renderPlaceHtml(event, allEventsOfType = []) {
   const lon = event.tags?.find(t => t[0] === 'lng')?.[1] || event.tags?.find(t => t[0] === 'gps_lon')?.[1];
   const category = event.tags?.find(t => t[0] === 'category')?.[1] || event.tags?.find(t => t[0] === 'type')?.[1] || 'place';
   const tags = event.tags?.filter(t => t[0] === 't').map(t => t[1]) || [];
+  // SEO-Felder (Assistent, beim Publish als Tags gespeichert) — Fallback:
+  // Ortsname / Beschreibung wie bisher
+  const seoTitleTag = event.tags?.find(t => t[0] === 'seo_title')?.[1] || '';
+  const seoDescriptionTag = event.tags?.find(t => t[0] === 'meta_description')?.[1] || '';
   const cleanDesc = stripMarkdown(desc, 300);
-  const description = cleanDesc.substring(0, 160);
+  const description = seoDescriptionTag || cleanDesc.substring(0, 160);
+  const headTitle = seoTitleTag || name;
   const datePublished = formatDate(event.created_at);
   const lang = getEventLangFromTags(event);
   const pair = findTranslationPair(allEventsOfType, event);
@@ -236,8 +246,8 @@ export function renderPlaceHtml(event, allEventsOfType = []) {
   const alternateLang = pairLang;
 
   const jsonLd = buildPlaceLd({
-    name,
-    description: cleanDesc.substring(0, 200),
+    name: headTitle,
+    description: headDescription,
     image,
     url: canonicalUrl,
     lat,
@@ -246,7 +256,7 @@ export function renderPlaceHtml(event, allEventsOfType = []) {
   });
 
   const head = buildHead({
-    title: `${name} — MojoBus Orte`,
+    title: `${headTitle} — MojoBus Orte`,
     description,
     keywords: [...new Set(['vanlife', 'wohnmobil', 'camping', 'reisen', category, ...tags])].join(', '),
     canonicalUrl,

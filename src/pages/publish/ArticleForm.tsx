@@ -83,7 +83,7 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
   const [seoTitle, setSeoTitle] = useState('');
   const [seoMetaDescription, setSeoMetaDescription] = useState('');
   const [seoSlug, setSeoSlug] = useState('');
-  const [experiencesConfirmed, setExperiencesConfirmed] = useState(false);
+  const [experiencesConfirmed, setExperiencesConfirmed] = useState(true);
   // Media-Library-Dialog (Titelbild aus eigener Library wählen)
   const [showMediaLibrary, setShowMediaLibrary] = useState(false);
   // Aktuell geladener Entwurf (DraftsOverview)
@@ -509,6 +509,12 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
 
       setImage(editEvent.tags?.find((tag: any) => tag[0] === 'image')?.[1] || '');
       setCategory(editEvent.tags?.find((tag: any) => tag[0] === 'category')?.[1] || '');
+
+      // SEO-Felder (Assistent) aus dem Event laden — ohne dieses Laden
+      // würde ein Edit+Republish die Tags stillschweigend löschen
+      setSeoTitle(editEvent.tags?.find((tag: any) => tag[0] === 'seo_title')?.[1] || '');
+      setSeoMetaDescription(editEvent.tags?.find((tag: any) => tag[0] === 'meta_description')?.[1] || '');
+      setSeoSlug(editEvent.tags?.find((tag: any) => tag[0] === 'slug')?.[1] || '');
 
       // Datum aus dem Event extrahieren (published_at Tag)
       const publishedAtTag = editEvent.tags?.find((tag: any) => tag[0] === 'published_at')?.[1];

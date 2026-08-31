@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { ExperiencesConfirm } from "@/components/assistant/ExperiencesConfirm";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/useToast";
 import { useUploadFile } from "@/hooks/useUploadFile";
@@ -49,6 +50,8 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
   const [additionalImagesUrlInput, setAdditionalImagesUrlInput] = useState('');
   const [manualTags, setManualTags] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  // Ehrlichkeits-Gate für KI-generierte Bild-Texte (Standard: bestätigt, abwählbar)
+  const [experiencesConfirmed, setExperiencesConfirmed] = useState(true);
   const [isGeneratingArticle, setIsGeneratingArticle] = useState(false);
   const [selectedModel, setSelectedModel] = useState<TextModelTier>('medium');
   const [lifestyle, setLifestyle] = useState<'mojobus' | 'vanlife' | 'rvlife' | 'beachlife' | 'wohnmobil' | 'perpetual-travelers'>('mojobus');
@@ -1748,10 +1751,15 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
             </div>
           )}
 
+          <ExperiencesConfirm
+            checked={experiencesConfirmed}
+            onChange={setExperiencesConfirmed}
+          />
+
           <Button
             onClick={handleSubmit}
             className="w-full"
-            disabled={files.length === 0 || isUploading}
+            disabled={files.length === 0 || isUploading || !experiencesConfirmed}
           >
             {isUploading ? (
               <>

@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { ExperiencesConfirm } from '@/components/assistant/ExperiencesConfirm';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -379,6 +380,8 @@ export function TripPublishForm() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0, status: '' });
   const [isPublishing, setIsPublishing] = useState(false);
+  // Ehrlichkeits-Gate für KI-generierte Trip-Texte (Standard: bestätigt, abwählbar)
+  const [experiencesConfirmed, setExperiencesConfirmed] = useState(true);
   
   // KI-Artikelgenerierung state
   const [isGeneratingArticle, setIsGeneratingArticle] = useState(false);
@@ -2218,6 +2221,11 @@ export function TripPublishForm() {
         )}
       </div>
 
+      <ExperiencesConfirm
+        checked={experiencesConfirmed}
+        onChange={setExperiencesConfirmed}
+      />
+
       {/* Navigation */}
       <div className="flex justify-between">
         <Button variant="outline" onClick={() => setCurrentStep('details')}>
@@ -2226,7 +2234,7 @@ export function TripPublishForm() {
         </Button>
         <Button
           onClick={handlePublish}
-          disabled={!canPublish || isUploading || isPublishing}
+          disabled={!canPublish || isUploading || isPublishing || !experiencesConfirmed}
         >
           {isUploading ? (
             <>

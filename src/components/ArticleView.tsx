@@ -351,6 +351,12 @@ export function ArticleView({ naddr }: ArticleViewProps) {
     const title = metadata.title || 'Artikel';
     const currentAuthorName = author.data?.metadata?.name || author.data?.metadata?.display_name || genUserName(naddr.pubkey);
     const description = metadata.summary || `Perpetual Travelers Artikel von ${currentAuthorName}`;
+    // SEO-Felder (Assistent, beim Publish als Tags gespeichert) — Fallback:
+    // kreativer Titel / Summary wie bisher
+    const seoTitleTag = article.tags.find(([name]) => name === 'seo_title')?.[1] || '';
+    const seoDescriptionTag = article.tags.find(([name]) => name === 'meta_description')?.[1] || '';
+    const headTitle = seoTitleTag || title;
+    const headDescription = seoDescriptionTag || description;
     const tags = article.tags.filter(([name]) => name === 't').map(([, value]) => value);
     
     // SEO-Keywords strategisch aufbauen
@@ -385,8 +391,8 @@ export function ArticleView({ naddr }: ArticleViewProps) {
     const jsonLd: Record<string, unknown> = isPlaceInHead ? {
       '@context': 'https://schema.org',
       '@type': 'Place',
-      'name': title,
-      'description': description,
+      'name': headTitle,
+      'description': headDescription,
       'image': metadata.image || ogImageUrl(),
       'url': canonicalHref,
       'author': {
@@ -397,8 +403,8 @@ export function ArticleView({ naddr }: ArticleViewProps) {
     } : {
       '@context': 'https://schema.org',
       '@type': 'Article',
-      'headline': title,
-      'description': description,
+      'headline': headTitle,
+      'description': headDescription,
       'author': {
         '@type': 'Person',
         'name': currentAuthorName,
@@ -482,10 +488,10 @@ export function ArticleView({ naddr }: ArticleViewProps) {
     };
 
     const metaEntries: Array<{name?: string; property?: string; content: string}> = [
-      { name: 'description', content: description },
+      { name: 'description', content: headDescription },
       { name: 'keywords', content: keywords.join(', ') },
-      { property: 'og:title', content: `${title} - MojoBus` },
-      { property: 'og:description', content: description },
+      { property: 'og:title', content: `${headTitle} - MojoBus` },
+      { property: 'og:description', content: headDescription },
       { property: 'og:type', content: isPlaceInHead ? 'place' : 'article' },
       { property: 'og:url', content: canonicalHref },
       { property: 'og:site_name', content: 'MojoBus Perpetual Travelers' },
@@ -502,8 +508,8 @@ export function ArticleView({ naddr }: ArticleViewProps) {
       { property: 'article:modified_time', content: modifiedDate },
       { property: 'article:section', content: articleSection },
       ...tags.slice(0, 5).map(tag => ({ property: 'article:tag', content: tag })),
-      { name: 'twitter:title', content: `${title} - MojoBus` },
-      { name: 'twitter:description', content: description },
+      { name: 'twitter:title', content: `${headTitle} - MojoBus` },
+      { name: 'twitter:description', content: headDescription },
       { name: 'twitter:card', content: metadata.image ? 'summary_large_image' : 'summary' },
       { name: 'twitter:image', content: metadata.image || ogImageUrl() },
       { name: 'twitter:image:alt', content: title },
@@ -512,7 +518,7 @@ export function ArticleView({ naddr }: ArticleViewProps) {
     ];
 
     return {
-      title: `${title} - MojoBus Blog`,
+      title: `${headTitle} - MojoBus Blog`,
       meta: metaEntries,
       link: [
         { rel: 'canonical', href: canonicalHref },

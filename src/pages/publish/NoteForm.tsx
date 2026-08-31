@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { ExperiencesConfirm } from "@/components/assistant/ExperiencesConfirm";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/useToast";
 import { useUploadFile } from "@/hooks/useUploadFile";
@@ -57,6 +58,8 @@ export function NoteForm({ editEvent }: { editEvent?: any }) {
   const [isUploadingImages, setIsUploadingImages] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0, status: '' });
   const [isPublishing, setIsPublishing] = useState(false);
+  // Ehrlichkeits-Gate für KI-generierte Notes (Standard: bestätigt, abwählbar)
+  const [experiencesConfirmed, setExperiencesConfirmed] = useState(true);
   const [publishProgress, setPublishProgress] = useState({ stage: '', status: '' });
   const [editingGpsImage, setEditingGpsImage] = useState<number | null>(null);
   const [showMapPicker, setShowMapPicker] = useState(false);
@@ -1061,7 +1064,13 @@ export function NoteForm({ editEvent }: { editEvent?: any }) {
             <Label htmlFor="note-public">Öffentlich sichtbar</Label>
           </div>
 
-          <Button onClick={handleSubmit} disabled={!content || isPublishing || isUploadingImages}>
+          <ExperiencesConfirm
+            checked={experiencesConfirmed}
+            onChange={setExperiencesConfirmed}
+          />
+        </div>
+
+          <Button onClick={handleSubmit} disabled={!content || isPublishing || isUploadingImages || !experiencesConfirmed}>
             {isPublishing ? (
               <>
                 {publishProgress.stage === 'publish' && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
@@ -1078,7 +1087,6 @@ export function NoteForm({ editEvent }: { editEvent?: any }) {
               </>
             )}
           </Button>
-        </div>
 
         {/* Publishing Progress */}
         {publishProgress.stage === 'publish' && (

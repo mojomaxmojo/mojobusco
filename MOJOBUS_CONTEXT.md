@@ -271,6 +271,21 @@ klar markiert, Prompt selbst unverändert). Publish setzt SEO-Zusatz-Tags
 NICHTS automatisch veröffentlicht werden (Pipeline nur hinter Token-Auth in
 `/published` referenziert).
 
+**SEO-Ausspielung:** `seo_title` → `<title>` + og:title + twitter:title +
+JSON-LD headline (bzw. Place-`name`); `meta_description` → Meta-Description +
+og:description + twitter:description + JSON-LD. In der SPA (ArticleView,
+Place-Pfad inklusive) UND im Prerender (`renderArticleHtml`/
+`renderPlaceHtml`). Fallback immer: kreativer Titel / Summary — Artikel ohne
+SEO-Tags verhalten sich unverändert. Edit-Pfad in ArticleForm + PlaceForm
+lädt die 3 Tags aus dem Event (sonst würde Edit+Republish sie löschen).
+Orte: `slug`-Fallback `buildSmartSlug(name)`, Meta-Fallback = Ort-Beschreibung.
+
+**Ehrlichkeits-Gate „Alle Erlebnisse im Text sind echt":** Standard ON
+(abwählbar), Publish-Button ohne Haken deaktiviert — in ALLEN
+KI-Formularen: ArticleForm + PlaceForm (im SeoPublishPanel integriert) sowie
+NoteForm, MediaUploadForm, TripPublishForm (shared component
+`components/assistant/ExperiencesConfirm.tsx`).
+
 ---
 
 ## GPS-Fix (Android)
