@@ -82,11 +82,15 @@ function extractStringField(raw, fieldName) {
 
 // POST /api/continuity/track
 router.post('/api/continuity/track', async (req, res) => {
-  const { id, type, kind, title, location, country, publishedAt, content } = req.body || {}
+  const { id, type, kind, title, location, country, publishedAt, content, url } = req.body || {}
 
   // Antwort immer sofort mit ok:true, damit der Publish-Flow im Frontend
   // nie blockiert wird. Verarbeitung läuft danach im Hintergrund.
   res.json({ ok: true })
+
+  // URL-Validierung (AGENTS Regel 2): Nur kanonische mojobus.co-URLs in die
+  // Brand-DNA — alles andere wird ignoriert (verhindert URL-Schmuggel).
+  const safeUrl = typeof url === 'string' && url.startsWith('https://mojobus.co/') ? url : null
 
   if (!id || !type || !kind || !content || typeof content !== 'string' || content.trim().length === 0) {
     console.warn('[Continuity] Ungültiger Track-Request, überspringe:', { id, type, kind })
@@ -118,7 +122,8 @@ router.post('/api/continuity/track', async (req, res) => {
       location,
       country,
       mood,
-      publishedAt: publishedAtTimestamp
+      publishedAt: publishedAtTimestamp,
+      url: safeUrl
     })
     // Bei erneutem Tracking desselben Posts (z.B. nach Bearbeitung, gleicher
     // dTag) zuerst die alten Kind-Einträge entfernen, damit sich keine

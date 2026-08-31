@@ -108,6 +108,8 @@ export function AssistantSection({
               location={location}
               date={date}
               onApplyExperiences={onApplyExperiences}
+              editorInsertRef={editorInsertRef}
+              onAppendMarkdown={onAppendMarkdown}
             />
           </div>
 

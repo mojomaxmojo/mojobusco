@@ -64,6 +64,13 @@ export function initContinuityDatabase() {
     CREATE INDEX IF NOT EXISTS idx_posts_published ON posts(published_at);
   `)
 
+  // Migration (idempotent): url-Spalte für kanonische URLs — neuere Posts
+  // setzen sie via Track-Route, Altbestand per backfill-continuity.js
+  const postsColumns = db.pragma('table_info(posts)')
+  if (!postsColumns.some((col) => col.name === 'url')) {
+    db.exec('ALTER TABLE posts ADD COLUMN url TEXT')
+  }
+
   return db
 }
 
@@ -90,12 +97,14 @@ export function hasPost(id) {
 
 /**
  * Speichert einen veröffentlichten Post.
- * @param {{ id: string, type: string, kind: number, title?: string, location?: string, country?: string, mood?: string, publishedAt: number }} post
+ * @param {{ id: string, type: string, kind: number, title?: string, location?: string, country?: string, mood?: string, publishedAt: number, url?: string }} post
+ *   url: kanonische URL (https://mojobus.co/…) — optional, für den
+ *   Momente-Block (🔗-Insert im Berichte-Assistenten)
  */
-export function savePost({ id, type, kind, title, location, country, mood, publishedAt }) {
+export function savePost({ id, type, kind, title, location, country, mood, publishedAt, url }) {
   const stmt = getDb().prepare(`
-    INSERT OR REPLACE INTO posts (id, type, kind, title, location, country, mood, published_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT OR REPLACE INTO posts (id, type, kind, title, location, country, mood, published_at, url)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
   stmt.run(
     id,
@@ -105,7 +114,8 @@ export function savePost({ id, type, kind, title, location, country, mood, publi
     location || null,
     country || null,
     mood || null,
-    publishedAt
+    publishedAt,
+    url || null
   )
 }
 
@@ -272,6 +282,24 @@ export function findMomentsForLocation(location, sinceTs = 0, limit = 5) {
     country: row.country || undefined,
     mood: row.mood || undefined,
     publishedAt: row.published_at,
+    url: row.url || undefined,
     motifs: row.motifs ? row.motifs.split('|').filter(Boolean) : []
   }))
+}
+
+/**
+ * Liefert die neuesten ungelösten offenen Fäden MIT ID — für den
+ * Moments-Block (✓-erledigt-Klick → resolveThread). Der Prompt-Pfad
+ * nutzt weiterhin getOpenThreads() (nur Text), unverändert.
+ * @param {number} limit
+ * @returns {Array<{ id: string, thread: string }>}
+ */
+export function getOpenThreadsWithIds(limit = 10) {
+  const rows = getDb().prepare(`
+    SELECT id, thread FROM open_threads
+    WHERE resolved = 0
+    ORDER BY created_at DESC
+    LIMIT ?
+  `).all(limit)
+  return rows.map(row => ({ id: row.id, thread: row.thread }))
 }

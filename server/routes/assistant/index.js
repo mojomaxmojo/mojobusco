@@ -32,6 +32,7 @@ import {
   markPublished
 } from '../../services/assistant-store.js'
 import { runPublishPipeline } from '../../services/publish-pipeline.js'
+import { resolveThread } from '../../services/continuity-store.js'
 import mediaRouter from './media.js'
 import { requireAssistantToken } from './auth.js'
 
@@ -210,6 +211,23 @@ router.put('/api/assistant/article/:id', requireAssistantToken, (req, res) => {
   } catch (error) {
     console.error('[Assistant] Artikel-Update fehlgeschlagen:', error.message)
     res.status(500).json({ error: 'Artikel konnte nicht aktualisiert werden', details: error.message })
+  }
+})
+
+// POST /api/assistant/threads/resolve 🔒 { threadId }
+// Markiert einen offenen Faden als erledigt (✓-Klick im Moments-Block) —
+// der Faden fliegt damit aus allen künftigen KI-Generierungen raus.
+router.post('/api/assistant/threads/resolve', requireAssistantToken, (req, res) => {
+  try {
+    const { threadId } = req.body || {}
+    if (!threadId || typeof threadId !== 'string') {
+      return res.status(400).json({ error: 'threadId fehlt' })
+    }
+    resolveThread(threadId)
+    res.json({ ok: true })
+  } catch (error) {
+    console.error('[Assistant] threads/resolve fehlgeschlagen:', error.message)
+    res.status(500).json({ error: 'Faden konnte nicht abgeschlossen werden', details: error.message })
   }
 })
 

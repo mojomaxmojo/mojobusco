@@ -15,11 +15,18 @@
  *      reasoning {effort:'none'}, Retry 1.5x bei abgeschnittener Antwort)
  *   → savePost + Motive/Entitäten/offene Fäden direkt in die DB
  *
- * KEINE NPM-ABHÄNGIGKEITEN NÖTIG:
+ * KEINE SCHWEREN ABHÄNGIGKEITEN:
  *   - better-sqlite3: zuerst Repo-Import, bei fehlendem Binding (allow-
  *     scripts-Blockade) Fallback auf die funktionierende Webroot-Kopie
  *     via createRequire — dieselbe, mit der der ai-api läuft
  *   - LLM-Aufruf: native fetch (kein axios)
+ *   - nostr-tools (nur URL-Berechnung): Repo-Import, Webroot-Fallback;
+ *     fehlt es in beiden → Abbruch mit npm-install-Hinweis
+ *
+ * URL-NACHRÜSTUNG: Vor dem hasPost-Skip setzt das Skript für jeden
+ * geladenen Event die kanonische URL per UPDATE in posts.url (Altbestand,
+ * ohne erneuten LLM-Run). Neu getrackte Posts bekommen die URL direkt
+ * von der Track-Route.
  *
  * DB-PFAD:
  *   Default: /home/nginx/domains/mojobus.co/public/server/data/continuity.db
@@ -87,6 +94,35 @@ async function loadDatabase() {
     console.log(`[Backfill] better-sqlite3 aus Webroot geladen (${WEBROOT_NODE_MODULES})`)
     return Database
   }
+}
+
+// ── nostr-tools laden (Repo zuerst, Webroot-Fallback) ──────────────────────
+// Wird NUR für die kanonische URL-Berechnung benötigt (naddr/note-Bech32).
+// Fehlt es in beiden node_modules → Abbruch mit klarer Meldung (npm install).
+
+async function loadNip19() {
+  try {
+    const mod = await import('nostr-tools')
+    if (mod?.nip19) return mod.nip19
+  } catch {
+    // weiter zum Webroot-Fallback
+  }
+  const candidates = ['nostr-tools/lib/esm/index.js', 'nostr-tools/index.js']
+  for (const rel of candidates) {
+    try {
+      const { pathToFileURL } = await import('url')
+      const mod = await import(pathToFileURL(path.join(WEBROOT_NODE_MODULES, rel)).href)
+      if (mod?.nip19) {
+        console.log(`[Backfill] nostr-tools aus Webroot geladen (${rel})`)
+        return mod.nip19
+      }
+    } catch {
+      // nächsten Kandidaten versuchen
+    }
+  }
+  console.error('[Backfill] ❌ nostr-tools nicht ladbar (weder Repo- noch Webroot-Import).')
+  console.error('[Backfill]    Im Repo-Verzeichnis einmal ausführen: npm install')
+  process.exit(1)
 }
 
 // ── Extraktions-Parser ──────────────────────────────────────────────────────
@@ -232,6 +268,12 @@ function openLiveDb(Database) {
   db.pragma('journal_mode = WAL')   // wie der Server (Multi-Prozess-Zugriff safe)
   db.pragma('busy_timeout = 5000')  // Warten, falls der ai-api gerade schreibt
   db.exec(SCHEMA)
+  // Migration (idempotent): url-Spalte für kanonische URLs — identisch zur
+  // continuity-store.js (Sonst schlägt das UPDATE unten fehl)
+  const postsCols = db.pragma('table_info(posts)')
+  if (!postsCols.some((c) => c.name === 'url')) {
+    db.exec('ALTER TABLE posts ADD COLUMN url TEXT')
+  }
   return db
 }
 
@@ -239,11 +281,11 @@ function hasPost(db, id) {
   return Boolean(db.prepare(`SELECT 1 FROM posts WHERE id = ?`).get(id))
 }
 
-function savePostRow(db, { id, type, kind, title, location, country, mood, publishedAt }) {
+function savePostRow(db, { id, type, kind, title, location, country, mood, publishedAt, url }) {
   db.prepare(`
-    INSERT OR REPLACE INTO posts (id, type, kind, title, location, country, mood, published_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(id, type, kind, title || null, location || null, country || null, mood || null, publishedAt)
+    INSERT OR REPLACE INTO posts (id, type, kind, title, location, country, mood, published_at, url)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(id, type, kind, title || null, location || null, country || null, mood || null, publishedAt, url || null)
 }
 
 function deletePostChildren(db, postId) {
@@ -323,6 +365,38 @@ function isEnglishTranslation(event) {
   return getEventLangFromTags(event) === 'en' || tag(event, 'd').endsWith('-en');
 }
 
+/**
+ * Baut die kanonische URL eines Events (AGENTS.md Regel 2 — ohne Relay-Hints):
+ *   30023 → https://mojobus.co/{naddr}
+ *   30025 → https://mojobus.co/trip/{naddr}
+ *   1 media → https://mojobus.co/bild/{note} · 1 sonst → https://mojobus.co/{note}
+ * @param {object} event
+ * @param {string} type — aus classify() ('article'|'place'|'trip'|'media'|'note')
+ * @param {string} id — aus classify() (dTag bzw. Event-ID-Hex)
+ * @returns {string | null}
+ */
+function buildCanonicalUrl(event, type, id, nip19) {
+  try {
+    if (event.kind === 30023) {
+      const dTag = tag(event, 'd') || id;
+      const naddr = nip19.naddrEncode({ kind: 30023, pubkey: event.pubkey, identifier: dTag });
+      return `https://mojobus.co/${naddr}`;
+    }
+    if (event.kind === 30025) {
+      const dTag = tag(event, 'd') || id;
+      const naddr = nip19.naddrEncode({ kind: 30025, pubkey: event.pubkey, identifier: dTag });
+      return `https://mojobus.co/trip/${naddr}`;
+    }
+    if (event.kind === 1) {
+      const note = nip19.noteEncode(event.id);
+      return type === 'media' ? `https://mojobus.co/bild/${note}` : `https://mojobus.co/${note}`;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 // ── Main ────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -333,6 +407,7 @@ async function main() {
 
   const Database = await loadDatabase()
   const db = openLiveDb(Database)
+  const nip19 = await loadNip19()
   console.log(`[Backfill] DB: ${DB_PATH}`)
 
   // ── 1) Events von den Relays sammeln (dedupliziert per Event-ID) ──────────
@@ -363,6 +438,13 @@ async function main() {
   let skipped = 0;
   let failed = 0;
   for (const { event, type, id } of queue) {
+    // URL-Nachrüstung VOR dem hasPost-Skip: bestehende Posts bekommen die
+    // kanonische URL nachgetragen, ohne die LLM-Extraktion erneut zu laufen
+    // (kein erneuter LLM-Kosten-Run — die Events sind eh schon geladen).
+    const url = buildCanonicalUrl(event, type, id, nip19);
+    if (url) {
+      db.prepare(`UPDATE posts SET url = ? WHERE id = ? AND (url IS NULL OR url = '')`).run(url, id);
+    }
     if (hasPost(db, id)) {
       skipped++;
       continue;
@@ -388,6 +470,7 @@ async function main() {
         country: deriveCountry(event),
         mood: typeof extracted.mood === 'string' ? extracted.mood : '',
         publishedAt: parseInt(tag(event, 'published_at'), 10) || event.created_at,
+        url,
       });
       deletePostChildren(db, id);
       saveMotifs(db, id, Array.isArray(extracted.motifs) ? extracted.motifs : []);

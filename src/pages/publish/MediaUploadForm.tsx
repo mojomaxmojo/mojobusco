@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { canonicalUrl, imageUrl } from "@/lib/canonicalUrl";
+import { nip19 } from "nostr-tools";
 import { ExperiencesConfirm } from "@/components/assistant/ExperiencesConfirm";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/useToast";
@@ -833,6 +835,7 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
           country: selectedCountry,
           publishedAt: date,
           content,
+          url: publishedEvent.id ? canonicalUrl(imageUrl(nip19.noteEncode(publishedEvent.id))) : undefined,
         });
       } catch (publishError: any) {
         console.error('[MediaUpload] Publish failed:', publishError);

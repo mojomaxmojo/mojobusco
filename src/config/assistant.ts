@@ -33,6 +33,7 @@ export const ASSISTANT_CONFIG = {
     continuitySuggestions: '/api/assistant/continuity-suggestions',
     linkSuggestions: '/api/assistant/link-suggestions',
     pageMetrics: '/api/assistant/page-metrics',
+    threadsResolve: '/api/assistant/threads/resolve',
     seoTitle: '/api/assistant/seo-title',
     drafts: '/api/assistant/drafts',
     article: '/api/assistant/article',

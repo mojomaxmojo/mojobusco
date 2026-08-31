@@ -1059,6 +1059,9 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
       country: selectedCountry,
       publishedAt: publishedAtTimestamp,
       content: content.trim(),
+      url: currentUser?.pubkey
+        ? canonicalUrl(articleUrl(canonicalNaddr({ kind: 30023, pubkey: currentUser.pubkey, identifier: dTag })))
+        : undefined,
     });
 
     // Auto-Übersetzung (DE→EN): EN-Version im Hintergrund veröffentlichen

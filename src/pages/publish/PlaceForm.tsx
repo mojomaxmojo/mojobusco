@@ -735,6 +735,9 @@ export function PlaceForm({ editEvent }: { editEvent?: any }) {
           country: selectedCountry,
           publishedAt: visitTimestamp,
           content,
+          url: currentUser?.pubkey
+            ? canonicalUrl(placeUrl(canonicalNaddr({ kind: 30023, pubkey: currentUser.pubkey, identifier: dTag })))
+            : undefined,
         });
 
         // Auto-Übersetzung (DE→EN): EN-Version im Hintergrund veröffentlichen

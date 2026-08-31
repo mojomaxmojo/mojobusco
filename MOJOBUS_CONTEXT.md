@@ -215,6 +215,20 @@ Wetter-GPS: vom ersten Bild mit GPS, sonst Geocoding von `location`+`country`
 (gerundet auf 2 Dezimalstellen, ~1km). Trips: nur erster/Hauptort (Wegpunkt 1).
 Schwelle Forecast/Archiv: 92 Tage; >16 Tage Zukunft → Wetter überspringen.
 
+**`posts.url` + Brand-DNA-Pflege (Momente/Fäden im Assistenten):** Die
+posts-Tabelle hat eine `url`-Spalte (idempotente Migration in
+initContinuityDatabase + backfill) mit der kanonischen URL
+(https://mojobus.co/…). Neu getrackte Posts: Track-Route nimmt `url` entgegen
+(Validierung: MUSS mit https://mojobus.co/ beginnen, sonst ignoriert) und die
+5 Publish-Formulare senden sie mit (canonicalNaddr/noteEncode). Altbestand:
+backfill-continuity.js trägt URLs NACH, ohne die LLM-Extraktion erneut zu
+laufen (UPDATE vor dem hasPost-Skip; nostr-tools via Repo-/Webroot-Import).
+Im Moments-Block: 🔗-Klick pro Moment fügt `[Titel](URL)` an Cursorposition
+ein (interne Links auf frühere Posts); offene Fäden erscheinen MIT ID
+(getOpenThreadsWithIds — der Prompt-Pfad nutzt weiterhin getOpenThreads)
+und haben einen ✓-erledigt-Klick → 🔒 `POST /api/assistant/threads/resolve`
+→ `resolveThread(threadId)` — der Faden fliegt aus künftigen Generierungen.
+
 **Backfill (Bestandsdaten nachtragen):** `scripts/backfill-continuity.js` holt
 alle veröffentlichten Events (30023/30025/1, Autor-Filter + isMojobusKind1 +
 Teaser/EN-Filter) von den Relays und schreibt sie per DIREKTEM DB-Zugriff +

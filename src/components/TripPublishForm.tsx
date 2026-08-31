@@ -35,7 +35,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { PerspectiveSelector } from '@/components/PerspectiveSelector';
 import { type GenderType } from '@/config/prompts/lifestyles';
 import { ModelSelect, type TextModelTier } from '@/components/ModelSelect';
-import { canonicalUrl, tripUrl } from '@/lib/canonicalUrl';
+import { canonicalUrl, tripUrl, canonicalNaddr } from '@/lib/canonicalUrl';
 import { createLongformTeaser } from '@/lib/createLongformTeaser';
 import { AUTO_TRANSLATE_STORAGE_KEY } from '@/config/translation';
 import { useTrip } from '@/hooks/useTrips';
@@ -1267,6 +1267,9 @@ export function TripPublishForm() {
           location: gpsStations[0]?.location || gpsStations[0]?.title || '',
           country: tripData.country,
           content,
+          url: user?.pubkey
+            ? canonicalUrl(tripUrl(canonicalNaddr({ kind: 30025, pubkey: user.pubkey, identifier: dTag })))
+            : undefined,
         });
 
         // Auto-Übersetzung (DE→EN): EN-Version im Hintergrund veröffentlichen

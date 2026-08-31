@@ -17,7 +17,7 @@ import {
   buildSeoTitlePrompt
 } from '../prompts/assistant-prompts.js'
 import { getCached, setCached } from './assistant-store.js'
-import { findMomentsForLocation, getOpenThreads } from './continuity-store.js'
+import { findMomentsForLocation, getOpenThreadsWithIds } from './continuity-store.js'
 import { getStrikingDistanceQueries, getPageMetrics } from './gsc-client.js'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -207,9 +207,11 @@ export function getContinuitySuggestions({ location, date } = {}) {
     console.warn('[Assistant] Continuity-Lookup fehlgeschlagen:', error.message)
   }
 
+  // Offene Fäden MIT ID — der Moments-Block bietet pro Faden einen
+  // ✓-erledigt-Klick (POST /api/assistant/threads/resolve → resolveThread)
   let openThreads = []
   try {
-    openThreads = getOpenThreads(3)
+    openThreads = getOpenThreadsWithIds(3)
   } catch (error) {
     console.warn('[Assistant] Offene Fäden fehlgeschlagen:', error.message)
   }

@@ -27,6 +27,8 @@ export interface TrackPublishedPostInput {
   country?: string;
   publishedAt?: string | number;
   content: string;
+  /** Kanonische URL (https://mojobus.co/…) — für 🔗-Insert im Moments-Block */
+  url?: string;
 }
 
 export function useContinuityTracking() {

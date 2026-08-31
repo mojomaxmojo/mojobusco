@@ -33,6 +33,7 @@ import { TRIP_TYPES, type TripType } from "@/config/tags";
 import MAIN_MENU from "@/config/menu";
 import { RV_LIFE_CONFIG } from "@/config/rvlife";
 import { nip19 } from "nostr-tools";
+import { canonicalUrl, noteUrl } from "@/lib/canonicalUrl";
 import { MilkdownEditor } from "@/components/MilkdownEditor";
 import { TripPublishForm } from "@/components/TripPublishForm";
 import { RemotionVideoBlock } from "@/components/RemotionVideoBlock";
@@ -545,6 +546,7 @@ export function NoteForm({ editEvent }: { editEvent?: any }) {
           kind: 1,
           location,
           content: articleContent,
+          url: data.id ? canonicalUrl(noteUrl(nip19.noteEncode(data.id))) : undefined,
         });
 
         // Auto-Übersetzung (DE→EN): EN-Version im Hintergrund veröffentlichen
