@@ -122,7 +122,8 @@ router.post('/api/assistant/seo-title', async (req, res) => {
 })
 
 // GET /api/assistant/page-metrics?url= — GSC-Ranking für EINE Artikel-URL
-// (Klicks/Impressionen/Ø-Position + Top-Queries, 24h gecacht, nur lesend)router.get('/api/assistant/page-metrics', async (req, res) => {
+// (Klicks/Impressionen/Ø-Position + Top-Queries, 24h gecacht, nur lesend)
+router.get('/api/assistant/page-metrics', async (req, res) => {
   try {
     const url = typeof req.query.url === 'string' ? req.query.url.trim() : ''
     if (!url) {
