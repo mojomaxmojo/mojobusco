@@ -18,6 +18,7 @@ import { ResearchBlock } from './ResearchBlock';
 import { MomentsBlock } from './MomentsBlock';
 import { LinkSuggestionsBlock } from './LinkSuggestionsBlock';
 import { GscPerformanceBlock } from './GscPerformanceBlock';
+import { WeatherBlock } from './WeatherBlock';
 import { KiPlaceholderButton } from './KiPlaceholderButton';
 
 const COLLAPSE_STORAGE_KEY = 'assistant:section-collapsed';
@@ -27,6 +28,8 @@ export interface AssistantSectionProps {
   title: string;
   /** Aktueller Ort aus dem Formular */
   location: string;
+  /** Aktuelles Land aus dem Formular (für Wetter-Geocoding) */
+  country?: string;
   /** Aktuelle Tags aus dem Formular */
   tags: string[];
   /** Veröffentlichungs-Datum (optional, für Continuity-Zeitfenster) */
@@ -48,6 +51,7 @@ export interface AssistantSectionProps {
 export function AssistantSection({
   title,
   location,
+  country,
   tags,
   date,
   editorInsertRef,
@@ -98,7 +102,12 @@ export function AssistantSection({
           {/* Research (FAKTEN) */}
           <div className="space-y-2">
             <p className="text-xs font-medium text-muted-foreground">Recherche (FAKTEN)</p>
-            <ResearchBlock defaultTopic={title} onApplyFacts={onApplyFacts} />
+            <ResearchBlock
+              defaultTopic={title}
+              onApplyFacts={onApplyFacts}
+              editorInsertRef={editorInsertRef}
+              onAppendMarkdown={onAppendMarkdown}
+            />
           </div>
 
           {/* Momente (ERLEBNISSE) */}
@@ -111,6 +120,12 @@ export function AssistantSection({
               editorInsertRef={editorInsertRef}
               onAppendMarkdown={onAppendMarkdown}
             />
+          </div>
+
+          {/* Wetter (KI-Kontext) — Nr. 9: prüfen, was die Generierung bekommt */}
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">Wetter (KI-Kontext)</p>
+            <WeatherBlock location={location} country={country} date={date} />
           </div>
 
           {/* Interne Links */}

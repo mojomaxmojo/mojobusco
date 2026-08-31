@@ -332,6 +332,17 @@ export function setCached(key, payload) {
   `).run(key, JSON.stringify(payload), Date.now())
 }
 
+/**
+ * Löscht alle Cache-Einträge mit einem Schlüssel-Präfix.
+ * Genutzt für die Ideas-Invalidierung nach jedem Publish (Nr. 6): frische
+ * Ideen statt 24h-alte Vorschläge.
+ * @param {string} prefix — z. B. 'ideas:'
+ */
+export function deleteCachedByPrefix(prefix) {
+  if (!prefix) return
+  getDb().prepare(`DELETE FROM seo_cache WHERE cache_key LIKE ?`).run(`${prefix}%`)
+}
+
 // ============================================================
 // MEDIA-HELPERS
 // ============================================================

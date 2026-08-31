@@ -29,8 +29,10 @@ import {
   getArticle,
   deleteArticle,
   updateArticleFields,
-  markPublished
+  markPublished,
+  deleteCachedByPrefix
 } from '../../services/assistant-store.js'
+import { getGenerationContext } from '../../services/generation-context.js'
 import { runPublishPipeline } from '../../services/publish-pipeline.js'
 import { resolveThread } from '../../services/continuity-store.js'
 import mediaRouter from './media.js'
@@ -120,8 +122,7 @@ router.post('/api/assistant/seo-title', async (req, res) => {
 })
 
 // GET /api/assistant/page-metrics?url= — GSC-Ranking für EINE Artikel-URL
-// (Klicks/Impressionen/Ø-Position + Top-Queries, 24h gecacht, nur lesend)
-router.get('/api/assistant/page-metrics', async (req, res) => {
+// (Klicks/Impressionen/Ø-Position + Top-Queries, 24h gecacht, nur lesend)router.get('/api/assistant/page-metrics', async (req, res) => {
   try {
     const url = typeof req.query.url === 'string' ? req.query.url.trim() : ''
     if (!url) {
@@ -136,6 +137,35 @@ router.get('/api/assistant/page-metrics', async (req, res) => {
   } catch (error) {
     console.error('[Assistant] page-metrics fehlgeschlagen:', error.response?.data || error.message)
     res.status(500).json({ error: 'Ranking-Abfrage fehlgeschlagen', details: error.message })
+  }
+})
+
+// GET /api/assistant/weather?location=&country=&date= — Nr. 9: Das Wetter
+// anzeigen, das die KI-Generierung als Kontext bekommen wird (gleiche Quelle:
+// getGenerationContext → open-meteo, mit weather_cache-TTL). Damit der Autor
+// VOR dem Generieren prüfen kann, ob Datum/Ort stimmen.
+router.get('/api/assistant/weather', async (req, res) => {
+  try {
+    const location = typeof req.query.location === 'string' ? req.query.location.trim() : ''
+    const country = typeof req.query.country === 'string' ? req.query.country.trim() : ''
+    const date = typeof req.query.date === 'string' ? req.query.date.trim() : ''
+
+    if (!location || !date) {
+      return res.json({ weather: null, hint: 'Ort und Datum setzen, dann prüfen.' })
+    }
+
+    // Gleicher Aufruf wie in der Artikel-Generierung (article.js) — kein GPS
+    // im Berichte-Tab, also Geocoding aus location+country
+    const context = await getGenerationContext({ location, country, date })
+    res.json({
+      weather: context.weather,
+      location,
+      date,
+      hint: context.weather ? null : 'Kein Wetter verfügbar (Ort unbekannt oder Datum > 16 Tage Zukunft).'
+    })
+  } catch (error) {
+    console.error('[Assistant] weather fehlgeschlagen:', error.message)
+    res.status(500).json({ error: 'Wetter-Abfrage fehlgeschlagen', details: error.message })
   }
 })
 
@@ -252,6 +282,15 @@ router.post('/api/assistant/published', requireAssistantToken, (req, res) => {
 
     // Antwort sofort — Pipeline läuft danach im Hintergrund (dauert 1–2 Min)
     res.json({ ok: true, article: publishedArticle })
+
+    // Nr. 6: Ideas-Cache invalidieren — nach jedem Publish frische
+    // Themen-Ideen statt 24h-alten Vorschlägen (nächster ideas-Call
+    // generiert neu; Mini-LLM, billig)
+    try {
+      deleteCachedByPrefix('ideas:')
+    } catch (cacheError) {
+      console.warn('[Assistant] Ideas-Cache-Invalidierung fehlgeschlagen:', cacheError.message)
+    }
 
     runPublishPipeline({ dTag: d_tag, url })
       .then(() => console.log(`[Assistant] Pipeline abgeschlossen für ${url}`))

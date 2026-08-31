@@ -1271,6 +1271,7 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
         <AssistantSection
           title={title}
           location={location}
+          country={selectedCountry}
           tags={tags}
           date={publishedAt || new Date().toISOString()}
           editorInsertRef={editorInsertRef}
