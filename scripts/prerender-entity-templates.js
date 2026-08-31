@@ -247,7 +247,7 @@ export function renderPlaceHtml(event, allEventsOfType = []) {
 
   const jsonLd = buildPlaceLd({
     name: headTitle,
-    description: headDescription,
+    description,
     image,
     url: canonicalUrl,
     lat,
