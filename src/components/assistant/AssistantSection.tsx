@@ -17,6 +17,7 @@ import { IdeasPanel, type AssistantIdea } from './IdeasPanel';
 import { ResearchBlock } from './ResearchBlock';
 import { MomentsBlock } from './MomentsBlock';
 import { LinkSuggestionsBlock } from './LinkSuggestionsBlock';
+import { GscPerformanceBlock } from './GscPerformanceBlock';
 import { KiPlaceholderButton } from './KiPlaceholderButton';
 
 const COLLAPSE_STORAGE_KEY = 'assistant:section-collapsed';
@@ -40,6 +41,8 @@ export interface AssistantSectionProps {
   onApplyExperiences: (experiences: string) => void;
   /** Markdown am Ende des Editors anhängen (Fallback ohne Cursor-Insert) */
   onAppendMarkdown: (markdown: string) => void;
+  /** Kanonische URL des geladenen veröffentlichten Artikels (GSC-Ranking-Block) */
+  publishedUrl?: string | null;
 }
 
 export function AssistantSection({
@@ -51,7 +54,8 @@ export function AssistantSection({
   onApplyIdea,
   onApplyFacts,
   onApplyExperiences,
-  onAppendMarkdown
+  onAppendMarkdown,
+  publishedUrl
 }: AssistantSectionProps) {
   const [isCollapsed, setIsCollapsed] = useState(() => {
     return localStorage.getItem(COLLAPSE_STORAGE_KEY) === 'true';
@@ -117,6 +121,12 @@ export function AssistantSection({
               editorInsertRef={editorInsertRef}
               onAppendMarkdown={onAppendMarkdown}
             />
+          </div>
+
+          {/* Ranking (Search Console) — nur bei geladenem veröffentlichten Artikel */}
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">Ranking (Search Console)</p>
+            <GscPerformanceBlock url={publishedUrl} />
           </div>
 
           {/* KI-Platzhalter (nur per explizitem Klick) */}

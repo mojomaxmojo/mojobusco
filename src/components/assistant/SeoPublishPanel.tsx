@@ -18,6 +18,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Wand2 } from 'lucide-react';
 import { useAssistantApi } from './useAssistantApi';
+import { SeoChecklist } from './SeoChecklist';
 import { ASSISTANT_CONFIG, buildSmartSlug } from '@/config/assistant';
 
 interface SeoTitleResponse {
@@ -158,6 +159,17 @@ export function SeoPublishPanel({
           Alle Erlebnisse im Text sind echt
         </Label>
       </div>
+
+      {/* Live-SEO-Ampel (informell — kein Publish-Gate) */}
+      <SeoChecklist
+        input={{
+          effectiveTitle: seoTitle.trim() || title,
+          effectiveDescription: metaDescription.trim() || summary,
+          effectiveSlug: slug.trim() || autoSlug,
+          content: articleText,
+          experiencesConfirmed,
+        }}
+      />
     </div>
   );
 }

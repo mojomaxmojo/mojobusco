@@ -36,7 +36,7 @@ import { Upload, UploadCloud, ImageIcon, Video, Music, File as FileIcon, Camera,
 import { extractGpsFromImage, formatCoordinatesSimple, reverseGeocode, mapCountryCode, type GpsData, type GpsStatus, type LocationData } from "@/lib/gpsExtraction";
 import { CONTENT_CATEGORIES, createRequiredTags, getOptionalTags, getTabConfig } from "@/config/contentCategories";
 import { resolveBildPlaceholders } from "./publishUtils";
-import { canonicalUrl, articleUrl } from "@/lib/canonicalUrl";
+import { canonicalUrl, articleUrl, canonicalNaddr } from "@/lib/canonicalUrl";
 import { createLongformTeaser } from "@/lib/createLongformTeaser";
 import exifr from "exifr";
 import { AssistantSection } from "@/components/assistant/AssistantSection";
@@ -1271,6 +1271,13 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
           tags={tags}
           date={publishedAt || new Date().toISOString()}
           editorInsertRef={editorInsertRef}
+          publishedUrl={editEvent?.pubkey && editEvent.kind
+            ? canonicalUrl(articleUrl(canonicalNaddr({
+                kind: editEvent.kind,
+                pubkey: editEvent.pubkey,
+                identifier: editEvent.tags?.find((tag: any) => tag[0] === 'd')?.[1] || ''
+              })))
+            : null}
           onApplyIdea={(idea: AssistantIdea) => {
             if (idea.title) setTitle(idea.title);
             if (idea.keyword && !tags.includes(idea.keyword)) {

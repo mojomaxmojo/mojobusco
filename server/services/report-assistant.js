@@ -18,7 +18,7 @@ import {
 } from '../prompts/assistant-prompts.js'
 import { getCached, setCached } from './assistant-store.js'
 import { findMomentsForLocation, getOpenThreads } from './continuity-store.js'
-import { getStrikingDistanceQueries } from './gsc-client.js'
+import { getStrikingDistanceQueries, getPageMetrics } from './gsc-client.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -326,4 +326,35 @@ export async function suggestSeoTitle({ title, articleText } = {}) {
     .slice(0, 70)
 
   return { title: t, seoTitle }
+}
+
+// ============================================================
+// GSC Seiten-Ranking (per kanonischer URL)
+// ============================================================
+
+/**
+ * „Wie rankt dieser Bericht?“ — Klicks/Impressionen/Ø-Position + Top-
+ * Suchanfragen für EINE kanonische Artikel-URL (GSC, Standard 28-Tage-
+ * Fenster). Erfolgreiche Ergebnisse 24h gecacht (seo_cache); Fehler/
+ * available:false werden NICHT gecacht (z. B. fehlende Env → erneuter
+ * Versuch nach Konfiguration).
+ * @param {{ url: string, windowDays?: number }} params
+ * @returns {Promise<{ available: boolean, url?: string, windowDays?: number,
+ *   totals?: object, queries?: Array, cached?: boolean }>}
+ */
+export async function getPagePerformance({ url, windowDays = 28 } = {}) {
+  const trimmed = (url || '').trim()
+  if (!trimmed) throw new Error('URL fehlt')
+
+  const cacheKey = `gsc-page:${trimmed.toLowerCase()}:${windowDays}`
+  const cached = getCached(cacheKey)
+  if (cached && typeof cached === 'object' && 'available' in cached) {
+    return { ...cached, cached: true }
+  }
+
+  const result = await getPageMetrics({ url: trimmed, windowDays })
+  if (result.available) {
+    setCached(cacheKey, result)
+  }
+  return result
 }

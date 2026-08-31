@@ -32,6 +32,7 @@ export const ASSISTANT_CONFIG = {
     research: '/api/assistant/research',
     continuitySuggestions: '/api/assistant/continuity-suggestions',
     linkSuggestions: '/api/assistant/link-suggestions',
+    pageMetrics: '/api/assistant/page-metrics',
     seoTitle: '/api/assistant/seo-title',
     drafts: '/api/assistant/drafts',
     article: '/api/assistant/article',

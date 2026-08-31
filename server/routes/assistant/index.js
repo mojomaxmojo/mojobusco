@@ -20,7 +20,8 @@ import {
   getIdeas,
   getContinuitySuggestions,
   getLinkSuggestions,
-  suggestSeoTitle
+  suggestSeoTitle,
+  getPagePerformance
 } from '../../services/report-assistant.js'
 import {
   saveArticle,
@@ -114,6 +115,26 @@ router.post('/api/assistant/seo-title', async (req, res) => {
   } catch (error) {
     console.error('[Assistant] seo-title fehlgeschlagen:', error.response?.data || error.message)
     res.status(500).json({ error: 'SEO-Titel-Vorschlag fehlgeschlagen', details: error.message })
+  }
+})
+
+// GET /api/assistant/page-metrics?url= — GSC-Ranking für EINE Artikel-URL
+// (Klicks/Impressionen/Ø-Position + Top-Queries, 24h gecacht, nur lesend)
+router.get('/api/assistant/page-metrics', async (req, res) => {
+  try {
+    const url = typeof req.query.url === 'string' ? req.query.url.trim() : ''
+    if (!url) {
+      return res.status(400).json({ error: 'url fehlt' })
+    }
+    const windowDaysRaw = parseInt(String(req.query.windowDays || ''), 10)
+    const windowDays = Number.isFinite(windowDaysRaw) && windowDaysRaw > 0 && windowDaysRaw <= 90
+      ? windowDaysRaw
+      : 28
+    const result = await getPagePerformance({ url, windowDays })
+    res.json(result)
+  } catch (error) {
+    console.error('[Assistant] page-metrics fehlgeschlagen:', error.response?.data || error.message)
+    res.status(500).json({ error: 'Ranking-Abfrage fehlgeschlagen', details: error.message })
   }
 })
 

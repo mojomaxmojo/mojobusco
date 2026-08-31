@@ -245,3 +245,80 @@ export async function getStrikingDistanceQueries({ windowDays = 28 } = {}) {
     return { available: false, queries: [], error: error.message }
   }
 }
+
+/**
+ * Holt Klicks/Impressionen/Ø-Position für EINE Seite (kanonische Artikel-URL)
+ * aus der Search Analytics API — Summen + Top-Suchanfragen (max. 10).
+ * @param {{ url: string, windowDays?: number }} options
+ * @returns {Promise<{ available: boolean, url?: string, windowDays?: number,
+ *   totals?: { clicks: number, impressions: number, position: number },
+ *   queries?: Array<{ query: string, clicks: number, impressions: number, position: number }>,
+ *   error?: string }>}
+ */
+export async function getPageMetrics({ url, windowDays = 28 } = {}) {
+  if (!isGscConfigured()) {
+    return { available: false }
+  }
+  if (!url || typeof url !== 'string') {
+    return { available: false, error: 'url fehlt' }
+  }
+
+  try {
+    const token = await getGscAccessToken()
+    const siteUrl = process.env.GSC_SITE_URL || 'sc-domain:mojobus.co'
+
+    const endDate = new Date()
+    const startDate = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000)
+    const fmt = (d) => d.toISOString().slice(0, 10)
+
+    // Filter auf die exakte Seiten-URL (GSC matcht hier exakt, keine Substrings)
+    const pageFilter = {
+      dimensionFilterGroups: [
+        { filters: [{ dimension: 'page', operator: 'equals', expression: url }] },
+      ],
+    }
+    const headers = { Authorization: `Bearer ${token}` }
+    const endpoint = `${SEARCH_ANALYTICS_BASE}/${encodeURIComponent(siteUrl)}/searchAnalytics/query`
+
+    const [totalsRes, queriesRes] = await Promise.all([
+      axios.post(endpoint, {
+        startDate: fmt(startDate),
+        endDate: fmt(endDate),
+        dimensions: ['page'],
+        rowLimit: 1,
+        ...pageFilter,
+      }, { headers, timeout: 20_000 }),
+      axios.post(endpoint, {
+        startDate: fmt(startDate),
+        endDate: fmt(endDate),
+        dimensions: ['query'],
+        rowLimit: 10,
+        ...pageFilter,
+      }, { headers, timeout: 20_000 }),
+    ])
+
+    const totalsRow = totalsRes.data.rows?.[0]
+    const totals = totalsRow
+      ? {
+          clicks: totalsRow.clicks || 0,
+          impressions: totalsRow.impressions || 0,
+          position: Math.round((totalsRow.position || 0) * 10) / 10,
+        }
+      : { clicks: 0, impressions: 0, position: 0 }
+
+    const queries = (queriesRes.data.rows || [])
+      .map(r => ({
+        query: r.keys?.[0] || '',
+        clicks: r.clicks || 0,
+        impressions: r.impressions || 0,
+        position: Math.round((r.position || 0) * 10) / 10,
+      }))
+      .sort((a, b) => b.impressions - a.impressions)
+
+    return { available: true, url, windowDays, totals, queries }
+  } catch (error) {
+    console.warn('[GSC] Seiten-Metriken fehlgeschlagen:',
+      error.response?.status || error.response?.data?.error?.message || error.message)
+    return { available: false, error: error.message }
+  }
+}
