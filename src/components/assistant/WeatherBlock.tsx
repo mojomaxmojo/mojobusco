@@ -26,13 +26,18 @@ interface WeatherBlockProps {
   country?: string;
   /** Veröffentlichungs-Datum (YYYY-MM-DD aus dem Formular) */
   date?: string;
+  /** Titelbild-GPS — schlägt Geocoding (funktioniert für jeden Punkt) */
+  gpsLat?: number;
+  gpsLon?: number;
 }
 
-export function WeatherBlock({ location, country, date }: WeatherBlockProps) {
+export function WeatherBlock({ location, country, date, gpsLat, gpsLon }: WeatherBlockProps) {
   const { request } = useAssistantApi();
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<WeatherResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const hasGps = typeof gpsLat === 'number' && typeof gpsLon === 'number';
 
   const checkWeather = async () => {
     setIsLoading(true);
@@ -42,6 +47,10 @@ export function WeatherBlock({ location, country, date }: WeatherBlockProps) {
       if (location) params.set('location', location);
       if (country) params.set('country', country);
       if (date) params.set('date', date);
+      if (hasGps) {
+        params.set('gpsLat', String(gpsLat));
+        params.set('gpsLon', String(gpsLon));
+      }
       const data = await request<WeatherResponse>(
         `${ASSISTANT_CONFIG.endpoints.weather}?${params.toString()}`
       );
@@ -56,7 +65,7 @@ export function WeatherBlock({ location, country, date }: WeatherBlockProps) {
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <Button size="sm" variant="outline" onClick={checkWeather} disabled={isLoading || !location.trim()}>
+        <Button size="sm" variant="outline" onClick={checkWeather} disabled={isLoading || (!location.trim() && !hasGps)}>
           {isLoading ? (
             <Loader2 className="h-4 w-4 animate-spin mr-1" />
           ) : (
@@ -64,7 +73,12 @@ export function WeatherBlock({ location, country, date }: WeatherBlockProps) {
           )}
           Wetter prüfen
         </Button>
-        {location && <span className="text-xs text-muted-foreground truncate">Ort: {location}</span>}
+        {hasGps && (
+          <span className="text-xs text-muted-foreground truncate">
+            GPS: {gpsLat.toFixed(4)}, {gpsLon?.toFixed(4)} (Titelbild)
+          </span>
+        )}
+        {!hasGps && location && <span className="text-xs text-muted-foreground truncate">Ort: {location}</span>}
       </div>
 
       {error && (

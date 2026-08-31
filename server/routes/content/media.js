@@ -116,7 +116,11 @@ router.post('/api/generate-media-article', (req, res, next) => {
 
     console.log(`[KI] ${allDescriptions.length} Medien analysiert (${imageDescriptions.length} Bilder, ${videoDescriptions.length} Videos)`)
 
-    const continuity = await getGenerationContext({ location, country, date: req.body.publishedAt })
+    // Wetter-Kontext: Datum (Fallback heute)
+    const weatherDate = typeof req.body.publishedAt === 'string' && req.body.publishedAt.trim()
+      ? req.body.publishedAt.trim()
+      : new Date().toISOString().slice(0, 10)
+    const continuity = await getGenerationContext({ location, country, date: weatherDate })
 
     // ===== FOSTER HUNTINGTON STIL PROMPT =====
     // Generiert mit: generateMediaPrompt() - importiert aus src/config/prompts/media.js

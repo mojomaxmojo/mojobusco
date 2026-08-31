@@ -437,6 +437,14 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
       formData.append('gender', gender || 'neutral');
       formData.append('tripType', tripType || '');
 
+      // Wetter-Kontext: Veröffentlichungsdatum + Titelbild-GPS (GPS schlägt
+      // Geocoding — funktioniert auch für Strandnamen, die open-meteo nicht kennt)
+      if (publishedAt) formData.append('publishedAt', publishedAt);
+      if (imageGps) {
+        formData.append('gps_lat', String(imageGps.latitude));
+        formData.append('gps_lon', String(imageGps.longitude));
+      }
+
       // Bild-URLs aus dem MilkdownEditor (bereits auf Blossom hochgeladen)
       if (markdownImageUrls.length > 0) {
         formData.append('markdownImageUrls', JSON.stringify(markdownImageUrls));
@@ -1272,6 +1280,8 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
           title={title}
           location={location}
           country={selectedCountry}
+          gpsLat={imageGps?.latitude}
+          gpsLon={imageGps?.longitude}
           tags={tags}
           date={publishedAt || new Date().toISOString()}
           editorInsertRef={editorInsertRef}

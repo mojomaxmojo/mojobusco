@@ -137,7 +137,19 @@ router.post('/api/generate-article', (req, res, next) => {
     const targetWordsMid = articleLength === 'short' ? 750 : articleLength === 'medium' ? 1500 : 2500
     const placementZones = computePlacementZones(targetWordsMid, imageObjects.length)
 
-    const continuity = await getGenerationContext({ location, country, date: req.body.publishedAt })
+    // Wetter-Kontext: Datum (Formular, Fallback heute) + Titelbild-GPS
+    // (GPS schlägt Geocoding — funktioniert auch für Strandnamen, die
+    // open-meteo nicht kennt)
+    const weatherDate = typeof req.body.publishedAt === 'string' && req.body.publishedAt.trim()
+      ? req.body.publishedAt.trim()
+      : new Date().toISOString().slice(0, 10)
+    const continuity = await getGenerationContext({
+      location,
+      country,
+      date: weatherDate,
+      gpsLat: req.body.gps_lat ? parseFloat(req.body.gps_lat) : undefined,
+      gpsLon: req.body.gps_lon ? parseFloat(req.body.gps_lon) : undefined
+    })
 
     // Foster Huntington Prompt für Berichte - importiert aus src/config/prompts/articles.js
     const prompt = generateArticlePrompt({

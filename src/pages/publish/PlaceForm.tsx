@@ -142,8 +142,10 @@ export function PlaceForm({ editEvent }: { editEvent?: any }) {
        formData.append('location', location);
 
        if (coordinates.lat && coordinates.lng) {
-         formData.append('gps_lat', coordinates.lat);
-         formData.append('gps_lon', coordinates.lng);
+        formData.append('gps_lat', coordinates.lat);
+        formData.append('gps_lon', coordinates.lng);
+        // Wetter-Kontext: Besuchsdatum (Server-Fallback: heute)
+        if (visitDate) formData.append('publishedAt', visitDate);
        }
 
        formData.append('lifestyle', lifestyle);

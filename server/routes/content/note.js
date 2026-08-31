@@ -62,7 +62,11 @@ router.post('/api/generate-note', (req, res, next) => {
       return analyzeImageBase64(base64, 'image/jpeg', prompt, 100)
     }))
 
-    const continuity = await getGenerationContext({ location, country, date: req.body.publishedAt })
+    // Wetter-Kontext: Datum (Fallback heute — Notes sind spontan)
+    const weatherDate = typeof req.body.publishedAt === 'string' && req.body.publishedAt.trim()
+      ? req.body.publishedAt.trim()
+      : new Date().toISOString().slice(0, 10)
+    const continuity = await getGenerationContext({ location, country, date: weatherDate })
 
     // Foster Huntington Prompt für Notizen - importiert aus src/config/prompts/notes.js
     const prompt = generateNotePrompt({

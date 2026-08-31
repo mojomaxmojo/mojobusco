@@ -145,10 +145,14 @@ router.post('/api/generate-place', (req, res, next) => {
     ]
     console.log(`[KI] Gesamt ${imageObjects.length} Bilder für Platz-Prompt`)
 
+    // Wetter-Kontext: Datum (Fallback heute) + GPS (kommt vom Formular)
+    const weatherDate = typeof req.body.publishedAt === 'string' && req.body.publishedAt.trim()
+      ? req.body.publishedAt.trim()
+      : new Date().toISOString().slice(0, 10)
     const continuity = await getGenerationContext({
       location,
       country,
-      date: req.body.publishedAt,
+      date: weatherDate,
       gpsLat: gps_lat ? parseFloat(gps_lat) : undefined,
       gpsLon: gps_lon ? parseFloat(gps_lon) : undefined
     })

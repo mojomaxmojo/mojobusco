@@ -125,6 +125,8 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
       formData.append('additionalImageUrls', additionalImagesUrlInput || '');
       formData.append('gender', gender || 'neutral'); // Mojo=male, Susanne=female
       formData.append('tripType', tripType || '');
+      // Wetter-Kontext: Aufnahmedatum (Server-Fallback: heute)
+      if (date) formData.append('publishedAt', date);
 
       const response = await fetch(`${getApiBaseUrl()}/api/generate-media-article`, {
         method: 'POST',

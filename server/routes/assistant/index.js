@@ -149,20 +149,29 @@ router.get('/api/assistant/weather', async (req, res) => {
   try {
     const location = typeof req.query.location === 'string' ? req.query.location.trim() : ''
     const country = typeof req.query.country === 'string' ? req.query.country.trim() : ''
-    const date = typeof req.query.date === 'string' ? req.query.date.trim() : ''
+    // Datum normalisieren (falls ISO-String mit Zeit: nur YYYY-MM-DD behalten)
+    const rawDate = typeof req.query.date === 'string' ? req.query.date.trim() : ''
+    const date = /^\d{4}-\d{2}-\d{2}/.test(rawDate) ? rawDate.slice(0, 10) : rawDate
+    // GPS (Titelbild) — schlägt Geocoding, funktioniert für jeden Punkt
+    const gpsLatNum = parseFloat(String(req.query.gpsLat || ''))
+    const gpsLonNum = parseFloat(String(req.query.gpsLon || ''))
+    const gpsLat = Number.isFinite(gpsLatNum) ? gpsLatNum : undefined
+    const gpsLon = Number.isFinite(gpsLonNum) ? gpsLonNum : undefined
 
-    if (!location || !date) {
-      return res.json({ weather: null, hint: 'Ort und Datum setzen, dann prüfen.' })
+    if ((!location && gpsLat === undefined) || !date) {
+      return res.json({ weather: null, hint: 'Ort (oder Titelbild-GPS) und Datum setzen, dann prüfen.' })
     }
 
-    // Gleicher Aufruf wie in der Artikel-Generierung (article.js) — kein GPS
-    // im Berichte-Tab, also Geocoding aus location+country
-    const context = await getGenerationContext({ location, country, date })
+    // Gleicher Aufruf wie in der Generierung (article.js) — mit GPS wird das
+    // Geocoding übersprungen (getGenerationContext-Logik)
+    const context = await getGenerationContext({ location, country, date, gpsLat, gpsLon })
     res.json({
       weather: context.weather,
-      location,
+      location: gpsLat !== undefined ? `${gpsLat.toFixed(4)}, ${gpsLon?.toFixed(4)} (GPS)` : location,
       date,
-      hint: context.weather ? null : 'Kein Wetter verfügbar (Ort unbekannt oder Datum > 16 Tage Zukunft).'
+      hint: context.weather ? null : (gpsLat !== undefined
+        ? 'Kein Wetter für diese Koordinaten (Datum > 16 Tage Zukunft?).'
+        : 'Kein Wetter verfügbar (Ort unbekannt oder Datum > 16 Tage Zukunft).')
     })
   } catch (error) {
     console.error('[Assistant] weather fehlgeschlagen:', error.message)

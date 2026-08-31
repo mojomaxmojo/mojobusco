@@ -211,8 +211,13 @@ angelegt – `initContinuityDatabase()` + `initWeatherCache()` laufen in
 dieselbe Kontinuität). Leere/unbekannte Location → Orts-Historie übersprungen,
 Motive/offenen Fäden werden trotzdem geliefert. Motive-Fenster = letzte 60
 Posts. `type` wird NICHT als Text in den Prompt geschrieben (nur intern).
-Wetter-GPS: vom ersten Bild mit GPS, sonst Geocoding von `location`+`country`
-(gerundet auf 2 Dezimalstellen, ~1km). Trips: nur erster/Hauptort (Wegpunkt 1).
+Wetter-GPS: Titelbild-GPS geht VOR Geocoding — Artikel senden `gps_lat/gps_lon`
+(vom Titelbild) + `publishedAt` im generate-Call, Orte senden GPS + visitDate;
+Note/Media/Orte ohne Datum → Server-Fallback „heute" in den Routen. Fehlt
+beides (kein GPS, Geocoding ohne open-meteo-Treffer — z. B. Strandnamen) →
+`weather: null` → KEINE Wetter-Zeile im Prompt (KI erfindet nichts). Die
+Generierungs-Routen nutzen `getGenerationContext({location, country, date,
+gpsLat, gpsLon})`. Trips: nur erster/Hauptort (Wegpunkt 1).
 Schwelle Forecast/Archiv: 92 Tage; >16 Tage Zukunft → Wetter überspringen.
 
 **`posts.url` + Brand-DNA-Pflege (Momente/Fäden im Assistenten):** Die
