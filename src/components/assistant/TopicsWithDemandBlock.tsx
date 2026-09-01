@@ -71,14 +71,16 @@ export function TopicsWithDemandBlock({ location, onApplyIdea }: TopicsWithDeman
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location, seedTouched]);
 
-  const loadTopics = async () => {
+  const loadTopics = async (forceRefresh = false) => {
     const trimmed = seed.trim();
     if (!trimmed) return;
     setIsLoading(true);
     setError(null);
     try {
+      const params = new URLSearchParams({ seed: trimmed });
+      if (forceRefresh) params.set('refresh', '1');
       const data = await request<TopicIdeasResponse>(
-        `${ASSISTANT_CONFIG.endpoints.topicIdeas}?seed=${encodeURIComponent(trimmed)}`
+        `${ASSISTANT_CONFIG.endpoints.topicIdeas}?${params.toString()}`
       );
       setResult(data);
     } catch (err) {
@@ -125,7 +127,7 @@ export function TopicsWithDemandBlock({ location, onApplyIdea }: TopicsWithDeman
           >
             <RefreshCw className="h-4 w-4" />
           </Button>
-          <Button size="sm" variant="outline" onClick={loadTopics} disabled={isLoading || !seed.trim()}>
+          <Button size="sm" variant="outline" onClick={() => loadTopics(false)} disabled={isLoading || !seed.trim()}>
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin mr-1" />
             ) : (
@@ -133,6 +135,17 @@ export function TopicsWithDemandBlock({ location, onApplyIdea }: TopicsWithDeman
             )}
             Themen laden
           </Button>
+          {result && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => loadTopics(true)}
+              disabled={isLoading}
+              title="Cache umgehen — Daten frisch abfragen (verbraucht DataForSEO-Credits)"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
 

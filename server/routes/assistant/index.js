@@ -199,7 +199,8 @@ router.get('/api/assistant/topic-ideas', async (req, res) => {
     const windowDays = Number.isFinite(windowDaysRaw) && windowDaysRaw > 0 && windowDaysRaw <= 90
       ? windowDaysRaw
       : 28
-    const result = await getTopicSuggestions({ seed, windowDays })
+    const refresh = req.query.refresh === '1'
+    const result = await getTopicSuggestions({ seed, windowDays, refresh })
     res.json(result)
   } catch (error) {
     console.error('[Assistant] topic-ideas fehlgeschlagen:', error.response?.data || error.message)

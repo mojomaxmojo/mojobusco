@@ -395,16 +395,20 @@ function parseTopicLines(raw) {
  *   2) Mini-LLM → deutsche Themen „Titel | target-keyword“
  *   3) DataForSEO (nur wenn DATAFORSEO_LOGIN/PASSWORD gesetzt) → echte
  *      Monatsvolumina + Saisonalität-Peak für die Keywords
- * 24h-Cache (seo_cache) — schützt auch DFS-Credits.
- * @param {{ seed: string, windowDays?: number }} params
+ * Cache: 7 Tage (env: ASSISTANT_TOPICS_CACHE_DAYS) — Suchvolumina ändern
+ * sich monatsweise, nicht täglich; schützt auch DFS-Credits. Mit
+ * `refresh: true` wird der Cache umgangen (manuelle Frisch-Anfrage).
+ * @param {{ seed: string, windowDays?: number, refresh?: boolean }} params
  */
-export async function getTopicSuggestions({ seed, windowDays = 28 } = {}) {
+export async function getTopicSuggestions({ seed, windowDays = 28, refresh = false } = {}) {
   const trimmed = (seed || '').trim()
   if (!trimmed) throw new Error('Seed fehlt')
 
   const dfsConfigured = isDataForSEOConfigured()
   const cacheKey = `topics:${trimmed.toLowerCase()}:${windowDays}:${dfsConfigured ? 'dfs' : 'nodfs'}`
-  const cached = getCached(cacheKey)
+  const ttlDays = Math.max(1, parseInt(process.env.ASSISTANT_TOPICS_CACHE_DAYS || '7', 10) || 7)
+  const ttlMs = ttlDays * 24 * 60 * 60 * 1000
+  const cached = refresh ? null : getCached(cacheKey, ttlMs)
   if (cached && typeof cached === 'object' && Array.isArray(cached.topics)) {
     return { ...cached, cached: true }
   }

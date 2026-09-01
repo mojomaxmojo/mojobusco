@@ -10,9 +10,10 @@
  *   DATAFORSEO_LANGUAGE_NAME (Default „German“)
  *
  * Endpoint: /v3/keywords_data/google_ads/search_volume/live
- *   → Post-Paid: ~$0,075 pro Task (bis 1.000 Keywords pro Task) —
- *     Basic-Auth (login:password), Antwort contains monthly_searches
- *     (12-Monats-Historie → Saisonalität).
+ *   → Prepaid: $1 gratis Test-Credit bei Registrierung, Mindest-Top-up 50 €
+ *     (kein Abo). ~$0,075 pro Task (bis 1.000 Keywords pro Task — dein
+ *     Jahresbedarf kostet damit unter 1 €). Basic-Auth (login:password),
+ *     Antwort contains monthly_searches (12-Monats-Historie → Saisonalität).
  *
  * Ohne Env-Keys liefern alle Funktionen { available: false } bzw. werfen —
  * die Topics-Route degradiert dann sauber auf GSC-Daten (Stufe 1).
@@ -69,8 +70,21 @@ export async function getKeywordData(keywords, { locationCode, languageName } = 
     throw new Error(`DataForSEO Status ${response.data?.status_code}: ${response.data?.status_message || 'unbekannt'}`)
   }
 
+  const task = response.data?.tasks?.[0]
+  if (task && task.status_code !== 20000 && task.status_code !== 20100) {
+    throw new Error(`DataForSEO Task-Status ${task.status_code}: ${task.status_message || 'unbekannt'}`)
+  }
+
+  // DFS-Antwort-Formate abdecken: je nach Endpoint-Version ist das Keyword-
+  // Array flach (result[0] = Keyword-Objekt) oder unter result[0].items
+  // verschachtelt — defensiv beides unterstützen.
+  const taskResult = task?.result
+  let items = []
+  if (Array.isArray(taskResult)) {
+    items = Array.isArray(taskResult[0]?.items) ? taskResult[0].items : taskResult
+  }
+
   const result = new Map()
-  const items = response.data?.tasks?.[0]?.result?.[0]?.items || []
   for (const item of items) {
     // 12-Monats-Historie → Peak-Monat (Saisonalität, z. B. Algarve-Herbst-Peak)
     const monthly = Array.isArray(item.monthly_searches) ? item.monthly_searches : []
