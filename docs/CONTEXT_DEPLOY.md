@@ -136,7 +136,7 @@ Abschnitt „Berichte-Assistent") braucht folgende Variablen in
 | `INDEXNOW_KEY` | IndexNow-Ping nach Publish; Verifikationsdatei `public/<INDEXNOW_KEY>.txt` wird mit dem Deploy ausgeliefert |
 | `ASSISTANT_API_TOKEN` | Bearer-Token für Schreib-Routen (Drafts/Upload/Published); erzeugen z. B. mit `openssl rand -hex 32` |
 | `DATAFORSEO_LOGIN` + `DATAFORSEO_PASSWORD` | DataForSEO-API (Stufe 2 „Themen mit Nachfrage"): echte Monatsvolumina + 12-Monats-Historie. **Ohne Keys läuft der Endpunkt weiter** (degradiert auf GSC-Daten). Prepaid: **$1 gratis Test-Credit bei Registrierung**, Mindest-Top-up **50 €** (kein Abo), ~$0,075 pro Task (bis 1.000 Keywords) — Rate-Limit-Bucket „ideas" schützt das Guthaben. Optional: `DATAFORSEO_LOCATION_CODE` (Default 2276 = Germany), `DATAFORSEO_LANGUAGE_NAME` (Default „German") |
-| `ASSISTANT_TOPICS_CACHE_DAYS` | Cache-TTL für „Themen mit Nachfrage" (Default **7** Tage — Suchvolumina ändern sich monatsweise). `?refresh=1` umgeht den Cache (Frontend: ↻-Button) |
+| `ASSISTANT_TOPICS_CACHE_DAYS` | Cache-TTL für „Themen mit Nachfrage" (Default **30** Tage — Suchvolumina ändern sich monatsweise; spart DFS-Credits). `?refresh=1` umgeht den Cache (Frontend: ↻-Button). **Deploy-sicher**: assistant.db (mit seo_cache) wird vor dem Deploy-Wipe gesichert und wiederhergestellt — DFS-Daten überleben Deploy |
 | `MEDIA_DIR` (Default `/home/nginx/domains/mojobus.co/public/images/articles`) + `MEDIA_PUBLIC_BASE` (Default `https://mojobus.co/images/articles`) | Media-Library-Speicherort + öffentliche URL-Basis |
 | `FFMPEG_PATH` | aus der alten Unit übernehmen; laut AGENTS.md Regel 4 gehört ffmpeg nach `/usr/local/bin/ffmpeg` (nie `/opt/bin/` hartcodieren) — auf dem VPS verifizieren: `ls -la /usr/local/bin/ffmpeg /opt/bin/ffmpeg` |
 

@@ -433,7 +433,7 @@ export async function getTopicSuggestions({ seed, windowDays = 28, refresh = fal
   const dfsConfigured = isDataForSEOConfigured()
   const dfsActive = dfsConfigured && Boolean(useDfs)
   const cacheKey = `topics:${trimmed.toLowerCase()}:${windowDays}:${dfsActive ? 'dfs' : 'nodfs'}`
-  const ttlDays = Math.max(1, parseInt(process.env.ASSISTANT_TOPICS_CACHE_DAYS || '7', 10) || 7)
+  const ttlDays = Math.max(1, parseInt(process.env.ASSISTANT_TOPICS_CACHE_DAYS || '30', 10) || 30)
   const ttlMs = ttlDays * 24 * 60 * 60 * 1000
   const cached = refresh ? null : getCached(cacheKey, ttlMs)
   if (cached && typeof cached === 'object' && Array.isArray(cached.topics)) {
