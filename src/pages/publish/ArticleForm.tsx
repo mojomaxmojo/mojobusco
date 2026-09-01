@@ -1247,8 +1247,24 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
               )}
             </div>
 
-            {/* GPS Info Display */}
-            {imageGps && imageGps.latitude && imageGps.longitude ? (
+            {/* GPS Info Display + manueller Editor */}
+            {editingImageGps ? (
+              <GpsEditor
+                gps={imageGps ?? undefined}
+                onSave={(gps) => {
+                  setImageGps(gps);
+                  setImageGpsStatus('manual');
+                  setEditingImageGps(false);
+                  toast({ title: 'GPS gespeichert', description: 'Fließt in Wetter-Kontext, Karte und Publish-Tags ein.' });
+                }}
+                onCancel={() => setEditingImageGps(false)}
+                onRemove={imageGps ? () => {
+                  setImageGps(null);
+                  setImageGpsStatus('not_found');
+                  setEditingImageGps(false);
+                } : undefined}
+              />
+            ) : imageGps && imageGps.latitude && imageGps.longitude ? (
               <div className="space-y-2">
                 <GpsStatusIndicator status={imageGpsStatus} gps={imageGps} />
                 <div className="text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded p-2">
@@ -1257,10 +1273,25 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
                     <span className="truncate font-mono">
                       {formatCoordinatesSimple(imageGps.latitude, imageGps.longitude)}
                     </span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 px-2 ml-auto"
+                      onClick={() => setEditingImageGps(true)}
+                      title="GPS-Koordinaten bearbeiten"
+                    >
+                      <MapPin className="h-3 w-3 mr-1" />
+                      Bearbeiten
+                    </Button>
                   </div>
                 </div>
               </div>
-             ) : null}
+             ) : (
+              <Button size="sm" variant="outline" onClick={() => setEditingImageGps(true)}>
+                <MapPin className="h-4 w-4 mr-1" />
+                GPS manuell hinzufügen
+              </Button>
+             )}
            </div>
 
          {/* Location (auto-filled from GPS) */}
