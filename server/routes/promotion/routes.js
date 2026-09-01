@@ -88,25 +88,43 @@ AUSGABE: Antworte IMMER NUR mit validem JSON. Keine Markdown-Code-Blöcke. Keine
   const prompt = templateConfig.prompt({ title, summary, text, lifestyle: lc })
 
   try {
-    // 1200 Tokens sind nötig, damit längere Prompts (Story, Infografik)
-    // plus das JSON-Objekt nicht von der KI abgeschnitten werden.
-    const result = await generateWithKi(prompt, systemPrompt, model, 1200, 0.8)
+    // 4000 Tokens: Reasoning-Modelle (claude-sonnet-5, effort low) verbrauchen
+    // Tokens für Thinking + JSON-Antwort. Zu kleines Budget ⇒ JSON wird
+    // mid-field abgeschnitten (finish_reason: length). Bei "length" retryt
+    // generateWithKi intern automatisch mit doppeltem Budget.
+    const { content, finishReason } = await generateWithKi(prompt, systemPrompt, model, 4000, 0.8)
 
-    if (!result || typeof result !== 'string') {
-      console.error('[Promotion] KI hat leeren oder ungültigen Inhalt zurückgegeben:', typeof result, result)
+    if (!content || typeof content !== 'string') {
+      console.error('[Promotion] KI hat leeren oder ungültigen Inhalt zurückgegeben:', typeof content, content)
       return res.status(502).json({
         error: 'KI gab keinen gültigen Text zurück',
-        rawText: result ? String(result).substring(0, 500) : null
+        rawText: content ? String(content).substring(0, 500) : null
       })
     }
 
-    const pinData = parsePinJson(result)
+    let pinData = parsePinJson(content)
+
+    // Einmalige Regeneration bei unlesbarem JSON (Modell-Schluckauf, temp 0.8).
+    // Nicht bei finish_reason "length" – dagegen hat der interne Budget-Retry
+    // in generateWithKi bereits gegriffen.
+    if (!pinData && finishReason !== 'length') {
+      console.warn('[Promotion] JSON unlesbar – regeneriere einmal...')
+      const retry = await generateWithKi(prompt, systemPrompt, model, 4000, 0.8)
+      if (retry.content && typeof retry.content === 'string') {
+        pinData = parsePinJson(retry.content)
+        if (!pinData) {
+          console.error('[Promotion] KI hat kein valides JSON zurückgegeben (auch nach Regeneration):', retry.content.substring(0, 1500))
+        }
+      }
+    }
 
     if (!pinData) {
-      console.error('[Promotion] KI hat kein valides JSON zurückgegeben:', result.substring(0, 500))
+      console.error('[Promotion] KI hat kein valides JSON zurückgegeben (finish_reason: ' + (finishReason ?? 'unbekannt') + '):', content.substring(0, 1500))
       return res.status(502).json({
-        error: 'KI gab kein gültiges JSON zurück',
-        rawText: result.substring(0, 1000)
+        error: finishReason === 'length'
+          ? 'Antwort wurde abgeschnitten. Bitte erneut versuchen.'
+          : 'KI gab kein gültiges JSON zurück. Bitte erneut versuchen.',
+        rawText: content.substring(0, 1000)
       })
     }
 

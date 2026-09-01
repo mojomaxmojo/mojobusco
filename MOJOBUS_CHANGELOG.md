@@ -5,6 +5,37 @@
 
 ---
 
+## Fix Promotion/Pinterest: „KI hat kein valides JSON zurückgegeben" (2026-09-01)
+
+**Symptom**: Pin-Text-Generierung (Template mojobus-story, Modell medium =
+`anthropic/claude-sonnet-5` via OpenRouter) scheiterte zuverlässig mit
+„KI hat kein valides JSON zurückgegeben", während TikTok mit demselben Modell
+funktionierte (`finish_reason: stop`).
+
+**Ursache**: `server/routes/promotion/ai.js` nutzte das veraltete Call-Muster
+(kein `reasoning`-Parameter, `max_tokens: 1200`, kein finish_reason-Check).
+Claude Sonnet 5 ist ein Reasoning-Modell – ohne explizites Reasoning-Budget
+frisst das Thinking das Token-Budget auf, das JSON wird mid-field abgeschnitten.
+Zusätzlich kappte der Fehler-Log auf 500 Zeichen (`substring(0, 500)` – beide
+Log-Dumps waren exakt 500 Zeichen), die echte Fehlerstelle war unsichtbar.
+
+**Fix** (Muster aus `ai-content.js` / `tiktok/text.js` übernommen):
+- `promotion/ai.js`: `reasoning` aus `ai-models.js` mitschicken (medium/maxi:
+  effort low), finish_reason + usage loggen, Timeout 60→90s, Auto-Retry mit
+  2× Budget bei `finish_reason: length` oder leerem Content. Rückgabe jetzt
+  `{ content, finishReason }`.
+- `promotion/utils.js`: `parsePinJson` loggt die echte JSON.parse-Fehlermeldung;
+  neue Reparatur-Stufe entfernt rohe Steuerzeichen (Umbrüche/Tabs) innerhalb
+  von JSON-Strings (State-Machine, escape-sicher).
+- `promotion/routes.js`: max_tokens 1200→4000, einmalige Regeneration bei
+  unlesbarem JSON (außer bei „length", da intern bereits retryt), Fehler-Log
+  auf 1500 Zeichen erweitert, Fehlermeldung unterscheidet „abgeschnitten" vs.
+  „ungültiges JSON".
+
+Deploy: Git-Pull + `systemctl restart ai-api`.
+
+---
+
 ## Aktuelle Sitzung – Kontinuitäts-Gedächtnis + Wetter-Kontext (FEATURE-XXXX-PLAN.md, Schritt 1-6)
 
 **Ziel**: Alles was unter `/veroeffentlichen` veröffentlicht wird (Artikel,

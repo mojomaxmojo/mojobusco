@@ -89,6 +89,46 @@ const analyzeImageWithVision = async (imageUrl) => {
   return null
 }
 
+/**
+ * Entfernt rohe Steuerzeichen (Zeilenumbruch/CR/Tab) INNERHALB von JSON-Strings.
+ * Manche Modelle brechen lange Strings beim Pretty-Print um – strictes JSON.parse
+ * lehnt rohe Control-Chars in Strings ab ("Bad control character in string literal").
+ * String-Kontext wird per State-Machine korrekt verfolgt (Escapes, Anführungszeichen).
+ */
+function stripControlCharsInStrings(text) {
+  let out = ''
+  let inString = false
+  let escape = false
+
+  for (const ch of text) {
+    if (inString) {
+      if (escape) {
+        escape = false
+        out += ch
+        continue
+      }
+      if (ch === '\\') {
+        escape = true
+        out += ch
+        continue
+      }
+      if (ch === '"') {
+        inString = false
+        out += ch
+        continue
+      }
+      if (ch === '\n' || ch === '\r' || ch === '\t') continue
+      out += ch
+      continue
+    }
+
+    if (ch === '"') inString = true
+    out += ch
+  }
+
+  return out
+}
+
 function parsePinJson(rawText) {
   // Sicherheit: KI kann theoretisch null/undefined/number liefern
   if (rawText == null) return null
@@ -101,25 +141,42 @@ function parsePinJson(rawText) {
     }
   }
 
+  // Code-Block entfernen falls vorhanden
+  const jsonStr = rawText
+    .replace(/```json\s*/gi, '')
+    .replace(/```\s*/gi, '')
+    .trim()
+
+  // 1. Direkt parsen
   try {
-    // Code-Block entfernen falls vorhanden
-    const jsonStr = rawText
-      .replace(/```json\s*/gi, '')
-      .replace(/```\s*/gi, '')
-      .trim()
     return JSON.parse(jsonStr)
   } catch (e) {
-    // Fallback: extrahiere das erste gültige JSON-Objekt aus dem Text.
-    // Wir zählen geschweifte Klammern, damit '{'/'}' innerhalb von Strings
-    // oder abgeschnittener Output am Ende nicht alles zerstören.
-    const extracted = extractBalancedJson(rawText)
-    if (extracted) {
-      try {
-        return JSON.parse(extracted)
-      } catch {}
-    }
-    return null
+    console.error('[Promotion] JSON.parse Fehler:', e.message)
   }
+
+  // 2. Reparatur: rohe Steuerzeichen innerhalb von Strings entfernen
+  try {
+    const repaired = JSON.parse(stripControlCharsInStrings(jsonStr))
+    console.warn('[Promotion] JSON nach Steuerzeichen-Reparatur geparst')
+    return repaired
+  } catch {}
+
+  // 3. Fallback: erstes balanciertes JSON-Objekt aus dem Text extrahieren.
+  //    Wir zählen geschweifte Klammern, damit '{'/'}' innerhalb von Strings
+  //    oder abgeschnittener Output am Ende nicht alles zerstören.
+  const extracted = extractBalancedJson(rawText)
+  if (extracted) {
+    try {
+      return JSON.parse(extracted)
+    } catch {}
+    try {
+      const repaired = JSON.parse(stripControlCharsInStrings(extracted))
+      console.warn('[Promotion] Extrahiertes JSON nach Steuerzeichen-Reparatur geparst')
+      return repaired
+    } catch {}
+  }
+
+  return null
 }
 
 /**
