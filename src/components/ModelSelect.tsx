@@ -2,7 +2,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { TEXT_MODELS } from '@/config/ai-models';
 
-export type TextModelTier = 'mini' | 'medium' | 'maxi';
+export type TextModelTier = 'mini' | 'medium' | 'maxi' | 'test';
 
 interface ModelSelectProps {
   value: TextModelTier;

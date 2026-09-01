@@ -11,7 +11,7 @@
 
 /** @typedef {{ id: string, provider: 'openrouter' | 'groq', label: string, supportsReasoning?: boolean, reasoning?: object | false | null, tokenBudgets?: Record<string, number | Record<string, number>> }} ModelConfig */
 
-/** @type {Record<'mini'|'medium'|'maxi', ModelConfig>} */
+/** @type {Record<'mini'|'medium'|'maxi'|'test', ModelConfig>} */
 export const TEXT_MODELS = {
   mini: {
     id: 'deepseek/deepseek-v4-pro-0813',
@@ -66,6 +66,24 @@ export const TEXT_MODELS = {
       media: 250,
       default: 1000
     }
+  },
+  test: {
+    id: 'z-ai/glm-5.3-flash',
+    provider: 'openrouter',
+    label: 'GLM 5.3 Flash (Test)',
+    supportsReasoning: true,
+    reasoning: { effort: 'none' }, // Test-Tier: schnell/günstig ohne Thinking; für fairen Vergleich gegen medium auf 'low' stellbar
+    tokenBudgets: {
+      article: { short: 2500, medium: 5000, long: 7500 },
+      trip: { short: 500, medium: 1400, long: 2800 },
+      caption: 150,
+      summary: 400,
+      titles: 400,
+      note: 150,
+      place: 300,
+      media: 200,
+      default: 1000
+    }
   }
 }
 
@@ -99,18 +117,18 @@ export const VALID_TEXT_MODELS = Object.keys(TEXT_MODELS)
 /**
  * Prüft, ob ein übergebenes Modell gültig ist, und gibt einen gültigen Wert zurück.
  * @param {string} model
- * @returns {'mini'|'medium'|'maxi'}
+ * @returns {'mini'|'medium'|'maxi'|'test'}
  */
 export function normalizeTextModel(model) {
   if (VALID_TEXT_MODELS.includes(model)) {
-    return /** @type {'mini'|'medium'|'maxi'} */ (model)
+    return /** @type {'mini'|'medium'|'maxi'|'test'} */ (model)
   }
   return DEFAULT_TEXT_MODEL
 }
 
 /**
  * Liefert die OpenRouter- oder Groq-Modell-ID für eine gewählte Stufe.
- * @param {'mini'|'medium'|'maxi'} tier
+ * @param {'mini'|'medium'|'maxi'|'test'} tier
  * @returns {ModelConfig}
  */
 export function getTextModel(tier) {
@@ -121,7 +139,7 @@ export function getTextModel(tier) {
  * Liefert das Token-Budget fuer einen bestimmten Use-Case.
  * Unterstuetzt sowohl einfache Zahlen als auch Objekte mit articleLength.
  *
- * @param {'mini'|'medium'|'maxi'} tier
+ * @param {'mini'|'medium'|'maxi'|'test'} tier
  * @param {string} useCase - z.B. 'article', 'summary', 'titles', 'note', 'place', 'media'
  * @param {'short'|'medium'|'long'} [articleLength='medium'] - Nur relevant fuer 'article'
  * @param {number} [fallback] - Fallback wenn kein Budget definiert
