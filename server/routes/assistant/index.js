@@ -21,7 +21,8 @@ import {
   getContinuitySuggestions,
   getLinkSuggestions,
   suggestSeoTitle,
-  getPagePerformance
+  getPagePerformance,
+  getTopicSuggestions
 } from '../../services/report-assistant.js'
 import {
   saveArticle,
@@ -181,6 +182,28 @@ router.get('/api/assistant/weather', async (req, res) => {
   } catch (error) {
     console.error('[Assistant] weather fehlgeschlagen:', error.message)
     res.status(500).json({ error: 'Wetter-Abfrage fehlgeschlagen', details: error.message })
+  }
+})
+
+// GET /api/assistant/topic-ideas?seed=&windowDays= — „Themen mit Nachfrage“:
+// Seed → GSC contains-Query (echte Nachfrage) → LLM deutsche Themen
+// „Titel | keyword“ → optional DataForSEO-Volumina (scharf bei Env-Keys).
+// 24h gecacht — schützt auch DFS-Credits.
+router.get('/api/assistant/topic-ideas', async (req, res) => {
+  try {
+    const seed = typeof req.query.seed === 'string' ? req.query.seed.trim() : ''
+    if (!seed) {
+      return res.status(400).json({ error: 'seed fehlt' })
+    }
+    const windowDaysRaw = parseInt(String(req.query.windowDays || ''), 10)
+    const windowDays = Number.isFinite(windowDaysRaw) && windowDaysRaw > 0 && windowDaysRaw <= 90
+      ? windowDaysRaw
+      : 28
+    const result = await getTopicSuggestions({ seed, windowDays })
+    res.json(result)
+  } catch (error) {
+    console.error('[Assistant] topic-ideas fehlgeschlagen:', error.response?.data || error.message)
+    res.status(500).json({ error: 'Themen-Abfrage fehlgeschlagen', details: error.message })
   }
 })
 

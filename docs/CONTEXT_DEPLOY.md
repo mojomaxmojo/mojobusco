@@ -135,6 +135,7 @@ Abschnitt „Berichte-Assistent") braucht folgende Variablen in
 | `GSC_CLIENT_EMAIL` + `GSC_PRIVATE_KEY` + `GSC_SITE_URL` | Search Console Service-Account (read-only). Fehlen sie: Assistent läuft weiter, nur ohne GSC-Daten (`gsc: false`) |
 | `INDEXNOW_KEY` | IndexNow-Ping nach Publish; Verifikationsdatei `public/<INDEXNOW_KEY>.txt` wird mit dem Deploy ausgeliefert |
 | `ASSISTANT_API_TOKEN` | Bearer-Token für Schreib-Routen (Drafts/Upload/Published); erzeugen z. B. mit `openssl rand -hex 32` |
+| `DATAFORSEO_LOGIN` + `DATAFORSEO_PASSWORD` | DataForSEO-API (Stufe 2 „Themen mit Nachfrage"): echte Monatsvolumina + 12-Monats-Historie. **Ohne Keys läuft der Endpunkt weiter** (degradiert auf GSC-Daten). Prepaid: Mindest-Deposit ~$120, Batch ~$0,075/1.000 Keywords — Rate-Limit-Bucket „ideas" schützt das Guthaben. Optional: `DATAFORSEO_LOCATION_CODE` (Default 2276 = Germany), `DATAFORSEO_LANGUAGE_NAME` (Default „German") |
 | `MEDIA_DIR` (Default `/home/nginx/domains/mojobus.co/public/images/articles`) + `MEDIA_PUBLIC_BASE` (Default `https://mojobus.co/images/articles`) | Media-Library-Speicherort + öffentliche URL-Basis |
 | `FFMPEG_PATH` | aus der alten Unit übernehmen; laut AGENTS.md Regel 4 gehört ffmpeg nach `/usr/local/bin/ffmpeg` (nie `/opt/bin/` hartcodieren) — auf dem VPS verifizieren: `ls -la /usr/local/bin/ffmpeg /opt/bin/ffmpeg` |
 

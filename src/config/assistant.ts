@@ -29,6 +29,7 @@ export const ASSISTANT_CONFIG = {
   // API-Endpunkte (werden vom Fetch-Hook mit getApiBaseUrl() prefixt)
   endpoints: {
     ideas: '/api/assistant/ideas',
+    topicIdeas: '/api/assistant/topic-ideas',
     research: '/api/assistant/research',
     continuitySuggestions: '/api/assistant/continuity-suggestions',
     linkSuggestions: '/api/assistant/link-suggestions',

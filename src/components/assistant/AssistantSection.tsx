@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Sparkles } from '@/lib/icons';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { IdeasPanel, type AssistantIdea } from './IdeasPanel';
+import { TopicsWithDemandBlock } from './TopicsWithDemandBlock';
 import { ResearchBlock } from './ResearchBlock';
 import { MomentsBlock } from './MomentsBlock';
 import { LinkSuggestionsBlock } from './LinkSuggestionsBlock';
@@ -111,6 +112,12 @@ export function AssistantSection({
           <div className="space-y-2">
             <p className="text-xs font-medium text-muted-foreground">Themen-Ideen</p>
             <IdeasPanel location={location} onApplyIdea={onApplyIdea} />
+          </div>
+
+          {/* Themen mit Nachfrage (SEO) — GSC + optional DataForSEO */}
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">Themen mit Nachfrage (SEO)</p>
+            <TopicsWithDemandBlock location={location} onApplyIdea={onApplyIdea} />
           </div>
 
           {/* Research (FAKTEN) */}

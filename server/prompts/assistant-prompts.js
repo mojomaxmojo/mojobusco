@@ -84,3 +84,34 @@ Regeln:
 - Kein Clickbait, keine Ausrufezeichen, kein "| MojoBus".
 - Antworte NUR mit dem Titel, ohne Anführungszeichen, ohne Erklärung.`
 }
+
+/**
+ * Themen-Vorschläge mit Suchintention („Themen mit Nachfrage“): aus einem
+ * Seed-Thema + echten GSC-Anfragen werden deutsche Artikel-Themen im
+ * Format „Titel | target-keyword“ erzeugt (maschinen-lesbar fürs Parsing).
+ * Zahlen werden bewusst NICHT vom LLM erfunden — die Volumina kommen
+ * (wenn verfügbar) aus DataForSEO/GSC und werden serverseitig angehängt.
+ * @param {string} seed
+ * @param {string} [gscHints] — echte GSC-Queries mit Impressions/Position
+ * @returns {string}
+ */
+export function buildTopicSuggestionsPrompt(seed, gscHints) {
+  const hintsBlock = gscHints && gscHints.trim() !== ''
+    ? `\nEchte Suchanfragen mit Nachfrage (GSC, 28 Tage): ${gscHints.trim()}\n`
+    : ''
+
+  return `Du bist ein SEO-Stratege für MojoBus (mojobus.co), eine Vanlife-/Reise-Plattform mit authentischen Wohnmobil-Berichten (Camper, Stellplätze, Geheimtipps, Reisen mit Hund).
+
+Seed-Thema: "${seed}"
+${hintsBlock}
+Erzeuge 5–10 konkrete deutsche Artikel-Themen rund um dieses Seed-Thema, optimiert auf Suchintention — Keywords, nach denen Camper/Vanlifer tatsächlich suchen.
+
+Regeln:
+- Jede Zeile EXAKT im Format: Titel | target-keyword
+- target-keyword = das reine Such-Keyword in Kleinbuchstaben, OHNE Volumen-Angabe
+- Decke verschiedene Suchintentionen ab: Highlights/Sehenswürdigkeiten, Strände, Geheimtipps, Rundreisen/Routen, praktische Guides (Anreise, Stellplätze, Regeln, Kosten)
+- Zahlen im Titel sind ausdrücklich erlaubt („Die 7 schönsten Strände ...“)
+- Wenn echte GSC-Anfragen vorliegen: baue die stärksten davon als Themen ein (gleiche Kernwörter, natürlicher Titel)
+- Keine Emojis, keine Dopplungen, keine Erklärungen
+- Gib NUR die Zeilen aus, nichts sonst.`
+}

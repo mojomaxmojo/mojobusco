@@ -247,6 +247,63 @@ export async function getStrikingDistanceQueries({ windowDays = 28 } = {}) {
 }
 
 /**
+ * Holt ALLE Suchanfragen, die einen Seed enthalten (contains-Filter auf die
+ * Query-Dimension) — echte Nachfrage-Daten für Themen-Clustering: „algarve“
+ * liefert jede algarve-bezogene Query, bei der mojobus.co erschienen ist.
+ * @param {{ seed: string, windowDays?: number, rowLimit?: number }} options
+ * @returns {Promise<{ available: boolean, seed?: string, windowDays?: number, queries: Array<{ query: string, clicks: number, impressions: number, position: number }>, error?: string }>}
+ */
+export async function getQueriesContaining({ seed, windowDays = 28, rowLimit = 25 } = {}) {
+  if (!isGscConfigured()) {
+    return { available: false, queries: [] }
+  }
+  if (!seed || typeof seed !== 'string') {
+    return { available: false, queries: [], error: 'seed fehlt' }
+  }
+
+  try {
+    const token = await getGscAccessToken()
+    const siteUrl = process.env.GSC_SITE_URL || 'sc-domain:mojobus.co'
+
+    const endDate = new Date()
+    const startDate = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000)
+    const fmt = (d) => d.toISOString().slice(0, 10)
+
+    const response = await axios.post(
+      `${SEARCH_ANALYTICS_BASE}/${encodeURIComponent(siteUrl)}/searchAnalytics/query`,
+      {
+        startDate: fmt(startDate),
+        endDate: fmt(endDate),
+        dimensions: ['query'],
+        dimensionFilterGroups: [
+          { filters: [{ dimension: 'query', operator: 'contains', expression: seed }] },
+        ],
+        rowLimit,
+      },
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 20_000
+      }
+    )
+
+    const queries = (response.data.rows || [])
+      .map(r => ({
+        query: r.keys?.[0] || '',
+        clicks: r.clicks || 0,
+        impressions: r.impressions || 0,
+        position: Math.round((r.position || 0) * 10) / 10,
+      }))
+      .sort((a, b) => b.impressions - a.impressions)
+
+    return { available: true, seed, windowDays, queries }
+  } catch (error) {
+    console.warn('[GSC] contains-Abfrage fehlgeschlagen:',
+      error.response?.status || error.response?.data?.error?.message || error.message)
+    return { available: false, queries: [], error: error.message }
+  }
+}
+
+/**
  * Holt Klicks/Impressionen/Ø-Position für EINE Seite (kanonische Artikel-URL)
  * aus der Search Analytics API — Summen + Top-Suchanfragen (max. 10).
  * @param {{ url: string, windowDays?: number }} options

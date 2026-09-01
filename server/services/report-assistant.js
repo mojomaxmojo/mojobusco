@@ -14,11 +14,13 @@ import { generateWithModel } from './ai-content.js'
 import {
   buildResearchPrompt,
   buildIdeasPrompt,
-  buildSeoTitlePrompt
+  buildSeoTitlePrompt,
+  buildTopicSuggestionsPrompt
 } from '../prompts/assistant-prompts.js'
 import { getCached, setCached } from './assistant-store.js'
 import { findMomentsForLocation, getOpenThreadsWithIds } from './continuity-store.js'
-import { getStrikingDistanceQueries, getPageMetrics } from './gsc-client.js'
+import { getStrikingDistanceQueries, getPageMetrics, getQueriesContaining } from './gsc-client.js'
+import { isDataForSEOConfigured, getKeywordData } from './dataforseo-client.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -358,5 +360,128 @@ export async function getPagePerformance({ url, windowDays = 28 } = {}) {
   if (result.available) {
     setCached(cacheKey, result)
   }
+  return result
+}
+
+// ============================================================
+// Themen mit Nachfrage (Seed → GSC + LLM + optional DataForSEO)
+// ============================================================
+
+/** LLM-Zeilen parsen: „Titel | target-keyword“ (Fallback: ganze Zeile als Titel). */
+function parseTopicLines(raw) {
+  return (raw || '')
+    .split('\n')
+    .map(line => line.trim().replace(/^[-–•*\d.)]+\s*/, ''))
+    .filter(Boolean)
+    .slice(0, 12)
+    .map(line => {
+      const parts = line.split('|')
+      if (parts.length >= 2) {
+        return {
+          title: parts[0].trim().replace(/^["'„“]+|["'“”]+$/g, ''),
+          keyword: parts[1].trim().toLowerCase().replace(/^["'„“]+|["'“”]+$/g, ''),
+        }
+      }
+      return { title: line.replace(/^["'„“]+|["'“”]+$/g, ''), keyword: null }
+    })
+    .filter(t => t.title.length > 3)
+}
+
+/**
+ * „Themen mit Nachfrage“: Aus einem Seed-Thema (z. B. „Algarve“) deutsche
+ * Artikel-Themen mit ECHTEN Nachfrage-Daten:
+ *   1) GSC contains-Query → alle Suchanfragen mit dem Seed (Impressionen =
+ *      echte Nachfrage, wo mojobus.co sichtbar ist)
+ *   2) Mini-LLM → deutsche Themen „Titel | target-keyword“
+ *   3) DataForSEO (nur wenn DATAFORSEO_LOGIN/PASSWORD gesetzt) → echte
+ *      Monatsvolumina + Saisonalität-Peak für die Keywords
+ * 24h-Cache (seo_cache) — schützt auch DFS-Credits.
+ * @param {{ seed: string, windowDays?: number }} params
+ */
+export async function getTopicSuggestions({ seed, windowDays = 28 } = {}) {
+  const trimmed = (seed || '').trim()
+  if (!trimmed) throw new Error('Seed fehlt')
+
+  const dfsConfigured = isDataForSEOConfigured()
+  const cacheKey = `topics:${trimmed.toLowerCase()}:${windowDays}:${dfsConfigured ? 'dfs' : 'nodfs'}`
+  const cached = getCached(cacheKey)
+  if (cached && typeof cached === 'object' && Array.isArray(cached.topics)) {
+    return { ...cached, cached: true }
+  }
+
+  // 1) GSC: echte Nachfrage-Queries mit dem Seed
+  let gsc = { available: false, queries: [] }
+  try {
+    gsc = await getQueriesContaining({ seed: trimmed, windowDays })
+  } catch (error) {
+    console.warn('[Assistant] GSC-contains-Abfrage fehlgeschlagen:', error.message)
+  }
+
+  // 2) LLM: deutsche Themen „Titel | keyword“ (ohne erfundene Volumina!)
+  const hints = gsc.available && gsc.queries.length > 0
+    ? gsc.queries
+        .slice(0, 15)
+        .map(q => `${q.query} (${q.impressions} Impressionen, Ø-Pos ${q.position})`)
+        .join('; ')
+    : ''
+  let topics = []
+  try {
+    const raw = await generateWithModel(
+      buildTopicSuggestionsPrompt(trimmed, hints),
+      'mini',
+      'mojobus',
+      { temperature: 0.5, maxTokens: 800 }
+    )
+    topics = parseTopicLines(raw)
+  } catch (error) {
+    console.warn('[Assistant] Themen-LLM fehlgeschlagen:', error.message)
+  }
+  if (topics.length === 0) {
+    topics = [{ title: trimmed, keyword: null }]
+  }
+
+  // 3) DataForSEO: echte Monatsvolumina + Peak (nur wenn konfiguriert)
+  let dfs = false
+  let volumes = null
+  if (dfsConfigured) {
+    try {
+      const keywords = [...new Set([
+        ...topics.map(t => t.keyword).filter(Boolean),
+        ...gsc.queries.map(q => q.query),
+      ])].slice(0, 200)
+      volumes = await getKeywordData(keywords)
+      dfs = true
+    } catch (error) {
+      console.warn('[Assistant] DataForSEO fehlgeschlagen:', error.message)
+    }
+  }
+
+  // 4) Anreichern + sortieren (stärkste Nachfrage zuerst)
+  const enriched = topics.map(t => {
+    const kw = (t.keyword || '').toLowerCase()
+    const v = volumes ? volumes.get(kw) : undefined
+    const g = gsc.queries.find(q => q.query.toLowerCase() === kw)
+    return {
+      ...t,
+      volume: v?.volume ?? null,
+      competition: v?.competition ?? null,
+      cpc: v?.cpc ?? null,
+      peakMonth: v?.peakMonth ?? null,
+      gsc: g ? { impressions: g.impressions, clicks: g.clicks, position: g.position } : undefined,
+      hasData: Boolean(v || g),
+    }
+  }).sort((a, b) =>
+    (b.volume ?? b.gsc?.impressions ?? 0) - (a.volume ?? a.gsc?.impressions ?? 0)
+  )
+
+  const result = {
+    seed: trimmed,
+    dfs,
+    topics: enriched,
+    note: gsc.available
+      ? null
+      : 'GSC liefert erst Daten für Queries mit bestehender Sichtbarkeit — neue Themen ohne Zahlen sind trotzdem verwertbar.'
+  }
+  setCached(cacheKey, result)
   return result
 }
