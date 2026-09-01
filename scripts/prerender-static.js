@@ -39,17 +39,23 @@ const FAR_FUTURE = Math.floor(Date.now() / 1000) + 3600 * 24 * 365;
 
 function writePrerenderFile(filename, html) {
   fs.writeFileSync(path.join(PRERENDER_DIR, filename), html, 'utf-8');
+  writtenFiles.add(filename);
 }
+
+// Kollaps-Schutz: alle in diesem Lauf geschriebenen Dateinamen
+const writtenFiles = new Set();
 
 async function main() {
   fs.mkdirSync(PRERENDER_DIR, { recursive: true });
 
-  const existing = fs.readdirSync(PRERENDER_DIR);
-  for (const f of existing) {
-    if (f.endsWith('.html') && f !== 'index.html') {
-      fs.unlinkSync(path.join(PRERENDER_DIR, f));
-    }
-  }
+  // Kollaps-Schutz-Vorbereitung: bestehende Dateien zählen. Das Verzeichnis
+  // wird NICHT mehr sofort geleert — Cleanup passiert erst nach erfolgreichen
+  // Queries und nur bei gesundem Lauf (früher wischte ein Relay-Timeout alle
+  // ~490 Prerender-Dateien weg und hinterließ nur dünne Kategorie-Seiten).
+  const existingFiles = new Set(
+    fs.readdirSync(PRERENDER_DIR).filter(f => f.endsWith('.html'))
+  );
+  const existingHtmlCount = existingFiles.size;
 
   const seen = new Set();
   const lists = { articles: [], notes: [], places: [], trips: [], media: [], videos: [], profiles: [] };
@@ -241,6 +247,26 @@ async function main() {
       } catch (e) {
         console.warn(`[Prerender] npubEncode fehlgeschlagen: ${e.message}`);
       }
+    }
+  }
+
+  // ── Kollaps-Schutz: queryRelay() resolviert bei Relay-Timeout still [] —
+  // ein Lauf mit 0 Events darf die bestehenden Prerender-Dateien weder
+  // löschen noch mit dünnen Kategorie-Seiten überschreiben.
+  const collapsed =
+    existingHtmlCount >= 100 &&
+    (lists.articles.length === 0 || writtenFiles.size < existingHtmlCount * 0.5);
+  if (collapsed) {
+    console.error(`[Prerender] ❌ Kollaps-Schutz: Nur ${writtenFiles.size} Dateien geschrieben (bestehend: ${existingHtmlCount}) — vermutlich Relay-Timeout.`);
+    console.error('[Prerender]    Bestehende Prerender-Dateien bleiben unverändert. Skript später erneut ausführen.');
+    console.log(`[Prerender] ✅ (geschützt) ${rendered.length} Seiten geschrieben — Bestand bleibt erhalten`);
+    return;
+  }
+
+  // Gesunder Lauf: verwaiste Dateien entfernen (gelöschte Artikel etc.)
+  for (const f of existingFiles) {
+    if (f !== 'index.html' && !writtenFiles.has(f)) {
+      fs.unlinkSync(path.join(PRERENDER_DIR, f));
     }
   }
 

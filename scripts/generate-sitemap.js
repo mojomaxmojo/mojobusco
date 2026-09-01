@@ -283,6 +283,29 @@ function buildNoteEntry(event) {
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────
+const SITEMAP_EVENTS_DUMP = '/home/nginx/domains/mojobus.co/public/data/sitemap-events.json';
+
+/**
+ * Lädt den Event-Dump von generate-site-data.js — bevorzugte Quelle:
+ * immer konsistent mit den übrigen Dumps, keine zweite Relay-Abfrage,
+ * kein Timeout-Risiko. Fallback: direkte Relay-Abfrage (altes Verhalten).
+ * @returns {Array|null} Events oder null (→ Relay-Fallback)
+ */
+function loadSitemapEventsDump() {
+  try {
+    const raw = fs.readFileSync(SITEMAP_EVENTS_DUMP, 'utf-8');
+    const events = JSON.parse(raw);
+    if (Array.isArray(events) && events.length >= 10) {
+      console.log(`[Sitemap] Event-Quelle: data/sitemap-events.json (${events.length} Events)`);
+      return events;
+    }
+    console.warn('[Sitemap] sitemap-events.json leer/zu klein — Fallback auf Relay-Abfrage.');
+  } catch {
+    console.warn('[Sitemap] sitemap-events.json nicht gefunden — Fallback auf Relay-Abfrage.');
+  }
+  return null;
+}
+
 async function main() {
   console.log('[Sitemap] Generiere Sitemaps...');
 
@@ -325,12 +348,41 @@ async function main() {
   const videoUrls = []; // Für separate Video-Sitemap
   const imageUrls = []; // Für separate Image-Sitemap
 
-  for (const relay of RELAYS) {
-    console.log(`[Sitemap] Frage ab: ${relay}`);
+  // ── Event-Quelle: Dump (bevorzugt) oder Relay-Abfrage ─────────────────
+  // Jeder Batch = ein Satz per-Typ-Arrays; die Verarbeitung darunter ist
+  // für beide Quellen identisch.
+  const dumpEvents = loadSitemapEventsDump();
 
-    // ── Longform-Artikel (kind 30023) ──────────────────
-    const articles = await queryRelay(relay, [{ kinds: [30023], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS, since: 0, until: FAR_FUTURE }]);
+  const batches = [];
+  if (dumpEvents) {
+    batches.push({
+      label: 'data/sitemap-events.json',
+      articles: dumpEvents.filter(e => e.kind === 30023),
+      videoEvents: dumpEvents.filter(e => e.kind === 34235 || e.kind === 34236),
+      tripEvents: dumpEvents.filter(e => e.kind === 30025),
+      notes: dumpEvents.filter(e => e.kind === 1),
+    });
+  } else {
+    for (const relay of RELAYS) {
+      console.log(`[Sitemap] Frage ab: ${relay}`);
+      batches.push({
+        label: relay,
+        articles: await queryRelay(relay, [{ kinds: [30023], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS, since: 0, until: FAR_FUTURE }]),
+        videoEvents: await queryRelay(relay, [{ kinds: [34235, 34236], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS, since: 0, until: FAR_FUTURE }]),
+        tripEvents: await queryRelay(relay, [{ kinds: [30025], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS, since: 0, until: FAR_FUTURE }]),
+        notes: await queryRelay(relay, [{ kinds: [1], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS, since: 0, until: FAR_FUTURE }]),
+      });
+    }
+  }
+
+  for (const batch of batches) {
+    const { articles, videoEvents, tripEvents, notes } = batch;
+    console.log(`[Sitemap] Quelle: ${batch.label}`);
     console.log(`[Sitemap]  → ${articles.length} Longform-Events`);
+    console.log(`[Sitemap]  → ${videoEvents.length} Video-Events`);
+    console.log(`[Sitemap]  → ${tripEvents.length} Trip-Events (kind 30025)`);
+    const mojobusNotesCount = notes.filter(isMojobusKind1).length;
+    console.log(`[Sitemap]  → ${notes.length} Kind-1-Events (${mojobusNotesCount} davon von mojobus.co, ${notes.length - mojobusNotesCount} ausgefiltert)`);
 
     for (const event of articles) {
       if (seen.has(event.id)) continue;
@@ -365,8 +417,6 @@ async function main() {
     }
 
     // ── Videos (NIP-71: kind 34235 / 34236) ─────────────
-    const videoEvents = await queryRelay(relay, [{ kinds: [34235, 34236], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS, since: 0, until: FAR_FUTURE }]);
-    console.log(`[Sitemap]  → ${videoEvents.length} Video-Events`);
 
     for (const event of videoEvents) {
       if (seen.has(event.id)) continue;
@@ -415,11 +465,6 @@ async function main() {
     // Trips werden ausschließlich über TripPublishForm.tsx als kind:30025
     // erzeugt – kein "Fremd-Client mit gleichem Hashtag"-Fall wie bei
     // kind:1, daher genügt der authors-Filter (kein isMojobusKind1() nötig).
-    const tripEvents = await queryRelay(relay, [{
-      kinds: [30025], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS,
-      since: 0, until: FAR_FUTURE,
-    }]);
-    console.log(`[Sitemap]  → ${tripEvents.length} Trip-Events (kind 30025)`);
 
     for (const event of tripEvents) {
       if (seen.has(event.id)) continue;
@@ -450,9 +495,6 @@ async function main() {
     // buildNoteEntry() filtert intern über isMojobusKind1() alle kind:1-
     // Events heraus, die nicht tatsächlich über mojobus.co veröffentlicht
     // wurden (siehe Kommentar dort).
-    const notes = await queryRelay(relay, [{ kinds: [1], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS, since: 0, until: FAR_FUTURE }]);
-    const mojobusNotesCount = notes.filter(isMojobusKind1).length;
-    console.log(`[Sitemap]  → ${notes.length} Kind-1-Events (${mojobusNotesCount} davon von mojobus.co, ${notes.length - mojobusNotesCount} ausgefiltert)`);
 
     for (const event of notes) {
       if (seen.has(event.id)) continue;

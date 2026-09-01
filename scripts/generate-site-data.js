@@ -359,6 +359,22 @@ async function main() {
     console.log(`[SiteData]  ✅ ${name} (${Array.isArray(data) ? data.length + ' Events' : 'ok'}, ${kb} KB)`);
   };
 
+  // ── Kollaps-Schutz (gleiche Klasse wie der Sitemap-Guard): queryRelay()
+  // resolviert bei Relay-Timeout still [] — ohne Schutz würde ein Hiccup
+  // dünne Dumps schreiben und Frontend-Fallback + Assistenten-Quellen
+  // schwächen. Bestehende articles.json deutlich größer → Abbruch.
+  let oldArticlesCount = 0;
+  try {
+    const oldArticles = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'articles.json'), 'utf-8'));
+    if (Array.isArray(oldArticles)) oldArticlesCount = oldArticles.length;
+  } catch { /* Erstlauf — Guard inaktiv */ }
+  const newArticlesCount = allEvents.filter(e => e.kind === 30023 && !isPlace(e)).length;
+  if (oldArticlesCount >= 50 && newArticlesCount < oldArticlesCount * 0.5) {
+    console.error(`[SiteData] ❌ Kollaps-Schutz: Nur ${newArticlesCount} Artikel gefunden (bestehend: ${oldArticlesCount}) — vermutlich Relay-Timeout.`);
+    console.error('[SiteData]    Dumps werden NICHT überschrieben. Später erneut ausführen.');
+    process.exit(1);
+  }
+
   // Artikel + Plätze: kein Content (nur Tags für Listenseite)
   // Dieselben Filter wie bei der Metadaten-Extraktion oben (inkl.
   // isMojobusKind1() für kind:1-Events) – siehe Kommentar dort.
@@ -386,6 +402,24 @@ async function main() {
   }).filter(Boolean);
 
   writeJSON('sitemap.json', sitemap);
+
+  // ── Sitemap-Event-Dump: generate-sitemap.js liest diese Datei statt das
+  // Relay ein zweites Mal abzufragen (immer konsistent mit diesen Dumps,
+  // kein zweites Timeout-Risiko). Vollständige Tags; content nur bei Videos
+  // (extractVideoMeta nutzt ihn für die Video-Sitemap-Beschreibung).
+  const minimalSitemapEvent = (e) => ({
+    id: e.id,
+    pubkey: e.pubkey,
+    kind: e.kind,
+    created_at: e.created_at,
+    tags: e.tags || [],
+    ...(e.kind === 34235 || e.kind === 34236 ? { content: e.content || '' } : {}),
+  });
+  writeJSON('sitemap-events.json', [
+    ...allEvents.map(minimalSitemapEvent),
+    ...allVideoEvents.map(minimalSitemapEvent),
+    ...allTripEvents.map(minimalSitemapEvent),
+  ]);
 
   // ── Index ──────────────────────────────────────────────────────────────
 

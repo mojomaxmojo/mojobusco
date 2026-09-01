@@ -96,7 +96,19 @@ Server-seitige Dateien (`server/`) → `docs/CONTEXT_REMOTION.md` bzw. `docs/CON
 | `bilder.json` | kind-1 mit image-Tag, nur `isMojobusKind1()`-gefiltert, content max 200 Zeichen |
 | `trips.json` | kind-30025 Trip-Events, authors-gefiltert (kein `isMojobusKind1()` nötig), Tags: d/title/summary/image/waypoint/distance/distance_unit/video/country/category/trip_type/t/l/L. Wird von keinem Frontend-Hook konsumiert (`useTrips()` fragt direkt kind:30025 vom Relay ab). |
 | `videos.json` | kind 34236+34235, imeta/image/duration/title, content max 300 Zeichen |
+| `sitemap.json` | naddr-Index aller Artikel (naddr/identifier/title/pubkey/createdAt) — Quelle für Assistent-Link-Suggestions |
+| `sitemap-events.json` | **Sitemap-Event-Dump**: deduplizierte Minimal-Events (id/pubkey/kind/created_at/vollständige tags; content nur bei Videos) — `generate-sitemap.js` liest DIESK Datei statt das Relay ein zweites Mal abzufragen (Fallback: Relay-Query, wenn Dump fehlt) |
 | `index.json` | Timestamp `generatedAtUnix`, Anzahlen, Dauer |
+
+**Pipeline-Robustheit (Kollaps-Schutz):** `queryRelay()` resolviert bei
+Relay-Timeout still `[]` — ohne Schutz würden Relay-Hiccups leere Artefakte
+schreiben. Guards (alle mit 50 %-Schwelle + Notaus per Env): site-data
+(artikel.json-Vergleich, Dumps bleiben stehen), prerender (bestehende
+Prerender-Dateien werden **nicht mehr am Laufanfang gelöscht** — Cleanup nur
+bei gesundem Lauf nach den Queries; Kollaps → Bestand bleibt unverändert),
+sitemap (bestehende sitemap.xml-Vergleich, Notaus
+`SITEMAP_SKIP_COLLAPSE_GUARD=1`). Dadurch ist die Pipeline-Reihenfolge
+(site-data → prerender → sitemap → feed, je 60 s Pause) kollaps-sicher.
 
 **Wichtig**: `useLongformArticle()`, `useNote()` → **nur Relay** (Detailseiten brauchen vollen content).
 Nach Deploy ausführen: `node scripts/generate-site-data.js`
