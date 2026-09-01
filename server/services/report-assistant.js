@@ -496,6 +496,10 @@ export async function getTopicSuggestions({ seed, windowDays = 28, refresh = fal
   const enriched = topics.map(t => {
     const kw = (t.keyword || '').toLowerCase()
     const exactV = volumes ? volumes.get(kw) : undefined
+    // WICHTIG: Hier bezieht sich `gsc` auf die äußere Funktions-Variable
+    // (Z. ~444) — deshalb heißen die inneren Daten ABSICHTLICH gscData
+    // (ein inneres `const gsc` würde ab Blockanfang in die TDZ gehen und
+    // diese Zeile crashen — exakt der Bug, der hier gefixt wurde).
     const gq = kw
       ? (gsc.queries.find(q => q.query.toLowerCase() === kw) || matchGscQuery(kw, gsc.queries))
       : null
@@ -504,7 +508,7 @@ export async function getTopicSuggestions({ seed, windowDays = 28, refresh = fal
     const competition = exactV?.competition ?? gqV?.competition ?? null
     const cpc = exactV?.cpc ?? gqV?.cpc ?? null
     const peakMonth = exactV?.peakMonth ?? gqV?.peakMonth ?? null
-    const gsc = gq
+    const gscData = gq
       ? { impressions: gq.impressions, clicks: gq.clicks, position: gq.position }
       : undefined
     return {
@@ -514,8 +518,8 @@ export async function getTopicSuggestions({ seed, windowDays = 28, refresh = fal
       cpc,
       peakMonth,
       matchedQuery: gq ? gq.query : null,
-      gsc,
-      hasData: volume !== null && volume !== undefined ? true : Boolean(gsc),
+      gsc: gscData,
+      hasData: volume !== null && volume !== undefined ? true : Boolean(gscData),
     }
   }).sort((a, b) =>
     (b.volume ?? b.gsc?.impressions ?? 0) - (a.volume ?? a.gsc?.impressions ?? 0)

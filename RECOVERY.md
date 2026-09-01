@@ -60,11 +60,15 @@
    sitemap (sitemap.xml-Vergleich, `SITEMAP_SKIP_COLLAPSE_GUARD=1`) · feed
    (`FEED_SKIP_COLLAPSE_GUARD=1`)
 
-## 4. Fehlerklassen (3 Crashes heute — MUSTER kennen!)
+## 4. Fehlerklassen (4 Crashes heute — MUSTER kennen!)
 
 1. `headDescription` undefined (renderPlaceHtml) — neue Var genutzt, alte nicht
-2. `router.get(...)` in Kommentar fusioniert („kosmetischer" Edit) → Illegal return
+2. `router.get(...)` in Kommentar fusioniert („kosmetischer" Edit) — Zeile 125
 3. Verwaister alter Funktionskörper nach großem Replacement-Edit (weather-lookup Z. 219-278)
+4. **Shadowing + TDZ**: inneres `const gsc` in einem map-Callback hat die äußere
+   `let gsc`-Variable überschattet — Referenz VOR der inneren Deklaration →
+   „Cannot access 'gsc' before initialization" (getTopicSuggestions).
+   Regel: Innere Variablen NICHT wie äußere benennen (gscData statt gsc).
 
 **GRUND**: `build_project` (esbuild) prüft **KEINE** `server/*.js` und `scripts/*.js`,
 auch keine undefined-Identifier im Frontend-Runtime-Pfad.
