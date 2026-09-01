@@ -72,7 +72,7 @@ export const TEXT_MODELS = {
     provider: 'openrouter',
     label: 'GLM 5.3 Flash (Test)',
     supportsReasoning: true,
-    reasoning: { effort: 'none' }, // Test-Tier: schnell/günstig ohne Thinking; für fairen Vergleich gegen medium auf 'low' stellbar
+    reasoning: { effort: 'low' }, // Test-Tier: bewusst GLEICHE Bedingungen wie medium, damit der A/B-Vergleich Schreibqualität misst (nicht Thinking vs. kein Thinking)
     tokenBudgets: {
       article: { short: 2500, medium: 5000, long: 7500 },
       trip: { short: 500, medium: 1400, long: 2800 },
