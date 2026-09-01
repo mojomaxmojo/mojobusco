@@ -216,67 +216,6 @@ export async function getWeatherForDate({ lat, lon, date, captureHour } = {}) {
   }
 }
 
-  const today = new Date().toISOString().slice(0, 10)
-  const diffDays = daysBetween(date, today) // >0: Vergangenheit, <0: Zukunft
-
-  if (diffDays < -MAX_FUTURE_DAYS) {
-    return null
-  }
-
-  if (diffDays > MAX_PAST_DAYS) {
-    // Archiv-API für weit zurückliegende Daten
-    try {
-      const response = await axios.get(ARCHIVE_URL, {
-        params: {
-          latitude: lat,
-          longitude: lon,
-          start_date: date,
-          end_date: date,
-          daily: 'temperature_2m_max,weathercode,windspeed_10m_max',
-          timezone: 'auto'
-        },
-        timeout: 10000
-      })
-
-      const result = extractDailyResult(response.data)
-      if (!result) return null
-
-      cacheWeather(key, result, null) // permanent
-      return result
-    } catch (error) {
-      console.warn(`[Wetter] Archiv-Abfrage fehlgeschlagen für ${lat},${lon} ${date}:`, error.message)
-      return null
-    }
-  }
-
-  // Forecast-API deckt sowohl Vergangenheit (bis 92 Tage) als auch Zukunft (bis 16 Tage) ab
-  try {
-    const response = await axios.get(FORECAST_URL, {
-      params: {
-        latitude: lat,
-        longitude: lon,
-        start_date: date,
-        end_date: date,
-        daily: 'temperature_2m_max,weathercode,windspeed_10m_max',
-        timezone: 'auto',
-        past_days: diffDays > 0 ? Math.min(diffDays, MAX_PAST_DAYS) : undefined
-      },
-      timeout: 10000
-    })
-
-    const result = extractDailyResult(response.data)
-    if (!result) return null
-
-    // Vergangenheit/heute: permanent cachen. Zukunft: kurze TTL.
-    const expiresAt = diffDays >= 0 ? null : Date.now() + FUTURE_TTL_MS
-    cacheWeather(key, result, expiresAt)
-    return result
-  } catch (error) {
-    console.warn(`[Wetter] Forecast-Abfrage fehlgeschlagen für ${lat},${lon} ${date}:`, error.message)
-    return null
-  }
-}
-
 function extractDailyResult(data) {
   const daily = data?.daily
   if (!daily || !Array.isArray(daily.time) || daily.time.length === 0) return null
