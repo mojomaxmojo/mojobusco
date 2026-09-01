@@ -490,7 +490,7 @@ export function ArticleView({ naddr }: ArticleViewProps) {
     const metaEntries: Array<{name?: string; property?: string; content: string}> = [
       { name: 'description', content: headDescription },
       { name: 'keywords', content: keywords.join(', ') },
-      { property: 'og:title', content: `${headTitle} - MojoBus` },
+      { property: 'og:title', content: `${headTitle} — MojoBus` },
       { property: 'og:description', content: headDescription },
       { property: 'og:type', content: isPlaceInHead ? 'place' : 'article' },
       { property: 'og:url', content: canonicalHref },
@@ -508,7 +508,7 @@ export function ArticleView({ naddr }: ArticleViewProps) {
       { property: 'article:modified_time', content: modifiedDate },
       { property: 'article:section', content: articleSection },
       ...tags.slice(0, 5).map(tag => ({ property: 'article:tag', content: tag })),
-      { name: 'twitter:title', content: `${headTitle} - MojoBus` },
+      { name: 'twitter:title', content: `${headTitle} — MojoBus` },
       { name: 'twitter:description', content: headDescription },
       { name: 'twitter:card', content: metadata.image ? 'summary_large_image' : 'summary' },
       { name: 'twitter:image', content: metadata.image || ogImageUrl() },
@@ -518,7 +518,7 @@ export function ArticleView({ naddr }: ArticleViewProps) {
     ];
 
     return {
-      title: `${headTitle} - MojoBus Blog`,
+      title: `${headTitle} — MojoBus`,
       meta: metaEntries,
       link: [
         { rel: 'canonical', href: canonicalHref },

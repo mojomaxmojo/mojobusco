@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { canonicalUrl, imageUrl } from "@/lib/canonicalUrl";
 import { nip19 } from "nostr-tools";
+import { notifyPublishedPipeline } from "@/lib/publishNotify";
 import { ExperiencesConfirm } from "@/components/assistant/ExperiencesConfirm";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/useToast";
@@ -839,6 +840,14 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
           content,
           url: publishedEvent.id ? canonicalUrl(imageUrl(nip19.noteEncode(publishedEvent.id))) : undefined,
         });
+
+        // Publish-Pipeline sofort triggern (Prerender/Sitemap/Feed + IndexNow)
+        if (publishedEvent.id) {
+          notifyPublishedPipeline({
+            d_tag: publishedEvent.id,
+            url: canonicalUrl(imageUrl(nip19.noteEncode(publishedEvent.id))),
+          });
+        }
       } catch (publishError: any) {
         console.error('[MediaUpload] Publish failed:', publishError);
         console.error('[MediaUpload] Error details:', {

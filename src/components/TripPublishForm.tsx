@@ -36,6 +36,7 @@ import { PerspectiveSelector } from '@/components/PerspectiveSelector';
 import { type GenderType } from '@/config/prompts/lifestyles';
 import { ModelSelect, type TextModelTier } from '@/components/ModelSelect';
 import { canonicalUrl, tripUrl, canonicalNaddr } from '@/lib/canonicalUrl';
+import { notifyPublishedPipeline } from '@/lib/publishNotify';
 import { createLongformTeaser } from '@/lib/createLongformTeaser';
 import { AUTO_TRANSLATE_STORAGE_KEY } from '@/config/translation';
 import { useTrip } from '@/hooks/useTrips';
@@ -1271,6 +1272,14 @@ export function TripPublishForm() {
             ? canonicalUrl(tripUrl(canonicalNaddr({ kind: 30025, pubkey: user.pubkey, identifier: dTag })))
             : undefined,
         });
+
+        // Publish-Pipeline sofort triggern (Prerender/Sitemap/Feed + IndexNow)
+        if (user?.pubkey) {
+          notifyPublishedPipeline({
+            d_tag: dTag,
+            url: canonicalUrl(tripUrl(canonicalNaddr({ kind: 30025, pubkey: user.pubkey, identifier: dTag }))),
+          });
+        }
 
         // Auto-Übersetzung (DE→EN): EN-Version im Hintergrund veröffentlichen
         if (autoTranslateEn && user?.pubkey) {

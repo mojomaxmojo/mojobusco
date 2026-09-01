@@ -13,7 +13,8 @@ import { useAutoTranslate } from "@/hooks/useAutoTranslate";
 import { getApiBaseUrl } from "@/lib/apiBase";
 import { useContinuityTracking } from "@/hooks/useContinuityTracking";
 import { createLongformTeaser } from "@/lib/createLongformTeaser";
-import { placeUrl, canonicalUrl } from "@/lib/canonicalUrl";
+import { placeUrl, canonicalUrl, canonicalNaddr } from "@/lib/canonicalUrl";
+import { notifyPublishedPipeline } from "@/lib/publishNotify";
 import { SeoPublishPanel } from "@/components/assistant/SeoPublishPanel";
 import { buildSmartSlug } from "@/config/assistant";
 import { ImageOptimizationToggle } from "@/components/ImageOptimizationToggle";
@@ -741,6 +742,15 @@ export function PlaceForm({ editEvent }: { editEvent?: any }) {
             ? canonicalUrl(placeUrl(canonicalNaddr({ kind: 30023, pubkey: currentUser.pubkey, identifier: dTag })))
             : undefined,
         });
+
+        // Publish-Pipeline sofort triggern (Prerender/Sitemap/Feed + IndexNow)
+        // — vorher erschienen Orte erst im 3-h-Cron
+        if (currentUser?.pubkey) {
+          notifyPublishedPipeline({
+            d_tag: dTag,
+            url: canonicalUrl(placeUrl(canonicalNaddr({ kind: 30023, pubkey: currentUser.pubkey, identifier: dTag }))),
+          });
+        }
 
         // Auto-Übersetzung (DE→EN): EN-Version im Hintergrund veröffentlichen
         if (autoTranslateEn && currentUser?.pubkey) {

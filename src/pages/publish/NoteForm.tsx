@@ -34,6 +34,7 @@ import MAIN_MENU from "@/config/menu";
 import { RV_LIFE_CONFIG } from "@/config/rvlife";
 import { nip19 } from "nostr-tools";
 import { canonicalUrl, noteUrl } from "@/lib/canonicalUrl";
+import { notifyPublishedPipeline } from "@/lib/publishNotify";
 import { MilkdownEditor } from "@/components/MilkdownEditor";
 import { TripPublishForm } from "@/components/TripPublishForm";
 import { RemotionVideoBlock } from "@/components/RemotionVideoBlock";
@@ -548,6 +549,14 @@ export function NoteForm({ editEvent }: { editEvent?: any }) {
           content: articleContent,
           url: data.id ? canonicalUrl(noteUrl(nip19.noteEncode(data.id))) : undefined,
         });
+
+        // Publish-Pipeline sofort triggern (Prerender/Sitemap/Feed + IndexNow)
+        if (data.id) {
+          notifyPublishedPipeline({
+            d_tag: data.id,
+            url: canonicalUrl(noteUrl(nip19.noteEncode(data.id))),
+          });
+        }
 
         // Auto-Übersetzung (DE→EN): EN-Version im Hintergrund veröffentlichen
         if (autoTranslateEn) {

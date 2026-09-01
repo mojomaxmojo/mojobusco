@@ -256,7 +256,7 @@ export function renderPlaceHtml(event, allEventsOfType = []) {
   });
 
   const head = buildHead({
-    title: `${headTitle} — MojoBus Orte`,
+    title: `${headTitle} — MojoBus`,
     description,
     keywords: [...new Set(['vanlife', 'wohnmobil', 'camping', 'reisen', category, ...tags])].join(', '),
     canonicalUrl,
