@@ -30,6 +30,7 @@ interface TopicSuggestion {
   competition?: string | null;
   cpc?: number | null;
   peakMonth?: string | null;
+  matchedQuery?: string | null;
   gsc?: { impressions: number; clicks: number; position: number };
   hasData: boolean;
 }
@@ -91,12 +92,13 @@ export function TopicsWithDemandBlock({ location, onApplyIdea }: TopicsWithDeman
   };
 
   const demandLine = (t: TopicSuggestion): string => {
+    const via = t.matchedQuery && t.matchedQuery !== t.keyword ? ` (via „${t.matchedQuery}“)` : '';
     if (typeof t.volume === 'number' && t.volume > 0) {
       const peak = formatPeakMonth(t.peakMonth);
-      return `${t.volume.toLocaleString('de-DE')}/mo (DataForSEO)${peak ? ` · Peak: ${peak}` : ''}`;
+      return `${t.volume.toLocaleString('de-DE')}/mo (DataForSEO)${peak ? ` · Peak: ${peak}` : ''}${via}`;
     }
     if (t.gsc) {
-      return `${t.gsc.impressions} Impressionen/28 T. · Ø-Pos. ${t.gsc.position} (GSC)`;
+      return `${t.gsc.impressions} Impressionen/28 T. · Ø-Pos. ${t.gsc.position} (GSC)${via}`;
     }
     return 'neu — keine Nachfragedaten';
   };

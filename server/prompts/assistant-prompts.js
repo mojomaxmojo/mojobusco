@@ -109,9 +109,11 @@ Erzeuge 5–10 konkrete deutsche Artikel-Themen rund um dieses Seed-Thema, optim
 Regeln:
 - Jede Zeile EXAKT im Format: Titel | target-keyword
 - target-keyword = das reine Such-Keyword in Kleinbuchstaben, OHNE Volumen-Angabe
+- Wenn echte GSC-Anfragen vorliegen: nutze für MINDESTENS die Hälfte der
+  Themen die GSC-Query-Wortfolge WÖRTLICH als target-keyword (dafür gibt es
+  belegbare Volumen-Daten) und baue den Titel darum
 - Decke verschiedene Suchintentionen ab: Highlights/Sehenswürdigkeiten, Strände, Geheimtipps, Rundreisen/Routen, praktische Guides (Anreise, Stellplätze, Regeln, Kosten)
 - Zahlen im Titel sind ausdrücklich erlaubt („Die 7 schönsten Strände ...“)
-- Wenn echte GSC-Anfragen vorliegen: baue die stärksten davon als Themen ein (gleiche Kernwörter, natürlicher Titel)
 - Keine Emojis, keine Dopplungen, keine Erklärungen
 - Gib NUR die Zeilen aus, nichts sonst.`
 }

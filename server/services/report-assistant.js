@@ -388,6 +388,31 @@ function parseTopicLines(raw) {
 }
 
 /**
+ * Fuzzy-GSC-Match: LLM-Keywords werden oft umgestellt („schönste strände
+ * algarve“ vs. GSC-Query „algarve strände“) — Match über Wortüberlappung
+ * (≥ 50 % der Keyword-Tokens müssen in der Query vorkommen).
+ */
+function matchGscQuery(keyword, gscQueries) {
+  const tokens = (keyword || '').split(/\s+/).filter(t => t.length > 2)
+  if (tokens.length === 0 || !Array.isArray(gscQueries)) return null
+  let best = null
+  let bestScore = 0
+  for (const q of gscQueries) {
+    const qTokens = new Set((q.query || '').toLowerCase().split(/\s+/).filter(t => t.length > 2))
+    let overlap = 0
+    for (const t of tokens) {
+      if (qTokens.has(t)) overlap += 1
+    }
+    const score = overlap / tokens.length
+    if (score > bestScore) {
+      bestScore = score
+      best = q
+    }
+  }
+  return bestScore >= 0.5 ? best : null
+}
+
+/**
  * „Themen mit Nachfrage“: Aus einem Seed-Thema (z. B. „Algarve“) deutsche
  * Artikel-Themen mit ECHTEN Nachfrage-Daten:
  *   1) GSC contains-Query → alle Suchanfragen mit dem Seed (Impressionen =
@@ -460,19 +485,34 @@ export async function getTopicSuggestions({ seed, windowDays = 28, refresh = fal
     }
   }
 
-  // 4) Anreichern + sortieren (stärkste Nachfrage zuerst)
+  // 4) Anreichern + sortieren (stärkste Nachfrage zuerst).
+  // Matching-Logik: (a) exaktes DFS-Volumen für das Topic-Keyword, (b) sonst
+  // GSC-Query per Fuzzy-Match (Wortumstellung) und deren DFS-Volumen — der
+  // Head-Term („algarve strände“) hat bei Google Daten, der Long-Tail
+  // („schönste strände algarve“) oft nicht.
   const enriched = topics.map(t => {
     const kw = (t.keyword || '').toLowerCase()
-    const v = volumes ? volumes.get(kw) : undefined
-    const g = gsc.queries.find(q => q.query.toLowerCase() === kw)
+    const exactV = volumes ? volumes.get(kw) : undefined
+    const gq = kw
+      ? (gsc.queries.find(q => q.query.toLowerCase() === kw) || matchGscQuery(kw, gsc.queries))
+      : null
+    const gqV = gq && volumes ? volumes.get(gq.query.toLowerCase()) : undefined
+    const volume = exactV?.volume ?? gqV?.volume ?? null
+    const competition = exactV?.competition ?? gqV?.competition ?? null
+    const cpc = exactV?.cpc ?? gqV?.cpc ?? null
+    const peakMonth = exactV?.peakMonth ?? gqV?.peakMonth ?? null
+    const gsc = gq
+      ? { impressions: gq.impressions, clicks: gq.clicks, position: gq.position }
+      : undefined
     return {
       ...t,
-      volume: v?.volume ?? null,
-      competition: v?.competition ?? null,
-      cpc: v?.cpc ?? null,
-      peakMonth: v?.peakMonth ?? null,
-      gsc: g ? { impressions: g.impressions, clicks: g.clicks, position: g.position } : undefined,
-      hasData: Boolean(v || g),
+      volume,
+      competition,
+      cpc,
+      peakMonth,
+      matchedQuery: gq ? gq.query : null,
+      gsc,
+      hasData: volume !== null && volume !== undefined ? true : Boolean(gsc),
     }
   }).sort((a, b) =>
     (b.volume ?? b.gsc?.impressions ?? 0) - (a.volume ?? a.gsc?.impressions ?? 0)
