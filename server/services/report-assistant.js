@@ -530,6 +530,9 @@ export async function getTopicSuggestions({ seed, windowDays = 28, refresh = fal
     dfs,
     dfsConfigured,
     topics: enriched,
+    // Rohe GSC-Queries mit in die Antwort (Transparenz/Debugging — zeigt,
+    // was der contains-Filter tatsächlich gefunden hat)
+    gscQueries: gsc.queries,
     note: gsc.available
       ? null
       : 'GSC liefert erst Daten für Queries mit bestehender Sichtbarkeit — neue Themen ohne Zahlen sind trotzdem verwertbar.'

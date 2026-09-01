@@ -276,7 +276,10 @@ export async function getQueriesContaining({ seed, windowDays = 28, rowLimit = 2
         endDate: fmt(endDate),
         dimensions: ['query'],
         dimensionFilterGroups: [
-          { filters: [{ dimension: 'query', operator: 'contains', expression: seed }] },
+          // Seed lowercasen: GSC-Queries sind typischerweise kleingeschrieben
+          // („algarve camping“) — der Seed aus dem Formular („Algarve“) würde
+          // bei case-sensitivem contains sonst nichts finden
+          { filters: [{ dimension: 'query', operator: 'contains', expression: seed.toLowerCase() }] },
         ],
         rowLimit,
       },

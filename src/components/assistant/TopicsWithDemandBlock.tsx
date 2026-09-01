@@ -40,7 +40,9 @@ interface TopicSuggestion {
 interface TopicIdeasResponse {
   seed: string;
   dfs: boolean;
+  dfsConfigured?: boolean;
   topics: TopicSuggestion[];
+  gscQueries?: Array<{ query: string; impressions: number; position: number }>;
   note?: string | null;
   cached?: boolean;
 }
@@ -192,6 +194,14 @@ export function TopicsWithDemandBlock({ location, onApplyIdea }: TopicsWithDeman
 
           {result.note && (
             <p className="text-xs text-muted-foreground">{result.note}</p>
+          )}
+
+          {result.gscQueries && result.gscQueries.length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              GSC erfasste {result.gscQueries.length} „{result.seed}“-Queries (28 T.):
+              {' '}{result.gscQueries.slice(0, 4).map(q => `„${q.query}“`).join(', ')}
+              {result.gscQueries.length > 4 ? ' …' : ''}
+            </p>
           )}
 
           {result.topics.length > 0 && (
