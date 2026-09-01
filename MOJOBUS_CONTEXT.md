@@ -239,6 +239,24 @@ möglich, bewusst akzeptiert. Trips: nur erster/Hauptort (Wegpunkt 1).
 Schwelle Forecast/Archiv: 92 Tage; >16 Tage Zukunft → Wetter überspringen
 (Archiv-Branch bleibt Tagesaggregat).
 
+**Weitere Features (Nr. 5/10/11/12/13 + Pipeline-Trigger):**
+- **Nr. 5** `ExistingContentHint` (AssistantSection, über Ideen): ab
+  Ort-Eingabe automatischer Continuity-Abfrage (debounced) → Warn-Banner
+  „X frühere Posts am Ort — Freshness-Update statt neu".
+- **Nr. 12** IdeasPanel: 📌 pinnen (Merkliste `assistant:ideas:pinned`,
+  max 20, bleibt über Cache/Reloads) + ✕ verwerfen
+  (`assistant:ideas:dismissed`, max 250, clientseitiger Filter).
+- **Nr. 13** Lokaler Autosave: ArticleForm speichert debounced (1,5 s)
+  alle Formularfelder in `assistant:autosave:article`; Banner mit
+  „Wiederherstellen/Verwerfen" nur bei leerem Formular ohne Entwurf/Edit;
+  Clear nach Publish. Server-Sync bleibt manuell.
+- **Pipeline-Trigger für alle Typen**: `notifyPublishedPipeline()`
+  (src/lib/publishNotify.ts, 🔒) ruft aus PlaceForm/NoteForm/
+  MediaUploadForm/TripPublishForm POST /api/assistant/published →
+  Pipeline + IndexNow + Ideas-Reset SOFORT (vorher nur Artikel; Rest
+  erst im 3-h-Cron).
+- **Titel-Suffix vereinheitlicht**: überall „ — MojoBus" (SPA + Prerender).
+
 **`posts.url` + Brand-DNA-Pflege (Momente/Fäden im Assistenten):** Die
 posts-Tabelle hat eine `url`-Spalte (idempotente Migration in
 initContinuityDatabase + backfill) mit der kanonischen URL

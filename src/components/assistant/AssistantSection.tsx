@@ -19,6 +19,7 @@ import { MomentsBlock } from './MomentsBlock';
 import { LinkSuggestionsBlock } from './LinkSuggestionsBlock';
 import { GscPerformanceBlock } from './GscPerformanceBlock';
 import { WeatherBlock } from './WeatherBlock';
+import { ExistingContentHint } from './ExistingContentHint';
 import { KiPlaceholderButton } from './KiPlaceholderButton';
 
 const COLLAPSE_STORAGE_KEY = 'assistant:section-collapsed';
@@ -103,6 +104,9 @@ export function AssistantSection({
 
       {!isCollapsed && (
         <CardContent className="space-y-6 pt-0">
+          {/* Nr. 5: Bereits-vorhanden-Hinweis (automatisch, sobald Ort gesetzt) */}
+          <ExistingContentHint location={location} />
+
           {/* Ideen */}
           <div className="space-y-2">
             <p className="text-xs font-medium text-muted-foreground">Themen-Ideen</p>

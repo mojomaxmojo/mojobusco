@@ -49,6 +49,30 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { buildAuthorInput, buildSmartSlug, FACT_MARKER, EXPERIENCE_MARKER } from "@/config/assistant";
 import { nip19 } from "nostr-tools";
 
+// ── Nr. 13: Lokaler Autosave (Browser-Crash-Schutz) ─────────────────────
+const AUTOSAVE_KEY = 'assistant:autosave:article';
+const AUTOSAVE_MAX_AGE_MS = 7 * 24 * 3600 * 1000;
+
+interface AutosaveData {
+  savedAt: number;
+  title?: string;
+  summary?: string;
+  content?: string;
+  location?: string;
+  selectedCountry?: string;
+  category?: string;
+  tags?: string[];
+  articleLength?: 'short' | 'medium' | 'long';
+  tripType?: string;
+  lifestyle?: string;
+  seoTitle?: string;
+  seoMetaDescription?: string;
+  seoSlug?: string;
+  researchFacts?: string;
+  experienceNotes?: string;
+  publishedAt?: string;
+}
+
 export function ArticleForm({ editEvent }: { editEvent?: any }) {
   const [title, setTitle] = useState('');
   const [summary, setSummary] = useState('');
@@ -135,6 +159,79 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
   const navigate = useNavigate();
   const { translateAndPublish } = useAutoTranslate();
   const { trackPublishedPost } = useContinuityTracking();
+
+  // ── Nr. 13: Lokaler Autosave (Browser-Crash-Schutz) ───────────────────
+  // Speichert die Formular-Felder debounced in localStorage. Server-Sync
+  // bleibt manuell („Als Entwurf speichern", Token-Pflicht unberührt).
+  // Wiederherstellung nur per Banner — wenn Formular leer & kein Entwurf/
+  // Edit geladen wurde (bewusst geladener Inhalt hat Vorrang).
+  const [autosaveCandidate, setAutosaveCandidate] = useState<AutosaveData | null>(null);
+
+  useEffect(() => {
+    const hasContent = title.trim() || summary.trim() || content.trim();
+    if (!hasContent) return;
+    const timer = setTimeout(() => {
+      try {
+        const data: AutosaveData = {
+          savedAt: Date.now(),
+          title, summary, content, location, selectedCountry, category, tags,
+          articleLength, tripType, lifestyle,
+          seoTitle, seoMetaDescription, seoSlug,
+          researchFacts, experienceNotes, publishedAt,
+        };
+        localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(data));
+      } catch { /* Quota/Privatmodus — Autosave ist best-effort */ }
+    }, 1500);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title, summary, content, location, selectedCountry, category, tags, articleLength, tripType, lifestyle, seoTitle, seoMetaDescription, seoSlug, researchFacts, experienceNotes, publishedAt]);
+
+  // Kandidat einmalig beim Mount prüfen — Banner nur, wenn Formular leer
+  // ist und kein Entwurf/Edit geladen wurde (bewusst geladener Inhalt hat
+  // immer Vorrang vor dem Autosave).
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(AUTOSAVE_KEY);
+      if (!raw) return;
+      const data = JSON.parse(raw) as AutosaveData;
+      if (!data.savedAt || Date.now() - data.savedAt > 7 * 24 * 3600 * 1000) {
+        localStorage.removeItem(AUTOSAVE_KEY);
+        return;
+      }
+      if (editEvent || currentDraftId) return;
+      if (title.trim() || content.trim()) return;
+      setAutosaveCandidate(data);
+    } catch { /* kaputter Eintrag — ignorieren */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const restoreAutosave = () => {
+    if (!autosaveCandidate) return;
+    const d = autosaveCandidate;
+    if (d.title !== undefined) setTitle(d.title);
+    if (d.summary !== undefined) setSummary(d.summary);
+    if (d.content !== undefined) setContent(d.content);
+    if (d.location !== undefined) setLocation(d.location);
+    if (d.selectedCountry) setSelectedCountry(d.selectedCountry);
+    if (d.category !== undefined) setCategory(d.category);
+    if (Array.isArray(d.tags)) setTags(d.tags);
+    if (d.articleLength) setArticleLength(d.articleLength);
+    if (d.tripType) setTripType(d.tripType as TripType);
+    if (d.lifestyle) setLifestyle(d.lifestyle as typeof lifestyle);
+    if (d.seoTitle !== undefined) setSeoTitle(d.seoTitle);
+    if (d.seoMetaDescription !== undefined) setSeoMetaDescription(d.seoMetaDescription);
+    if (d.seoSlug !== undefined) setSeoSlug(d.seoSlug);
+    if (d.researchFacts !== undefined) setResearchFacts(d.researchFacts);
+    if (d.experienceNotes !== undefined) setExperienceNotes(d.experienceNotes);
+    if (d.publishedAt) setPublishedAt(d.publishedAt);
+    setAutosaveCandidate(null);
+    toast({ title: 'Entwurf wiederhergestellt', description: `Stand: ${new Date(d.savedAt).toLocaleString('de-DE')}` });
+  };
+
+  const discardAutosave = () => {
+    localStorage.removeItem(AUTOSAVE_KEY);
+    setAutosaveCandidate(null);
+  };
 
   // Hilfsfunktion: Bild-URLs aus Markdown-Content extrahieren
   // Format: ![alt](https://...) oder ![alt](https://...)
@@ -1024,6 +1121,9 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
     // Assistent: Pipeline + IndexNow nach JEDEM Bericht-Publish (non-blocking)
     notifyAssistantPublished(dTag);
 
+    // Nr. 13: Autosave leeren — der veröffentlichte Inhalt ist gesichert
+    localStorage.removeItem(AUTOSAVE_KEY);
+
     // Schritt 2: Teaser-Note (Kind 1) automatisch ins Nostr-Netzwerk posten
     if (publishTeaserNote && currentUser?.pubkey) {
       setIsPublishingTeaser(true);
@@ -1134,6 +1234,19 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Nr. 13: Autosave-Banner (nur wenn Formular leer & nichts geladen) */}
+        {autosaveCandidate && !editEvent && !currentDraftId && (
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 rounded-md border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 p-3">
+            <p className="text-xs flex-1">
+              💾 Automatisch gespeicherter Entwurf vom{' '}
+              {new Date(autosaveCandidate.savedAt).toLocaleString('de-DE')} gefunden.
+            </p>
+            <div className="flex gap-2 shrink-0">
+              <Button size="sm" onClick={restoreAutosave}>Wiederherstellen</Button>
+              <Button size="sm" variant="ghost" onClick={discardAutosave}>Verwerfen</Button>
+            </div>
+          </div>
+        )}
         {/* Artikellänge Auswahl - Über dem Titelbild */}
         <div className="space-y-1">
           <div className="flex items-center gap-2">
