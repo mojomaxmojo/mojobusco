@@ -238,18 +238,20 @@ der vollständige Baum für alle Maschinen im Repo verankert ist.
 ## Prerender + SW Cache-System
 
 **Ablauf**:
-1. Cron 6:00 → `prerender-static.js` + `generate-sitemap.js` → HTML mit NIP-19 Dateinamen + `sitemap.xml`/`sitemap-videos.xml`
-2. Cron 6:15 → `generate-site-data.js` → JSON-Dumps `/data/` (inkl. `sitemap-events.json`)
-3. Cron alle 6h → `generate-feed.js` → `feed.xml` (DE) + `feed-en.xml` (EN)
+1. Cron alle 3h :00 → `generate-site-data.js` → JSON-Dumps `/data/` (inkl. `sitemap-events.json`, Laufzeit ~1–2 s)
+2. Cron alle 3h :05 → `prerender-static.js` → HTML mit NIP-19 Dateinamen (~1–2 min für 491 Seiten)
+3. Cron alle 3h :10 → `generate-sitemap.js` → `sitemap.xml`/`sitemap-videos.xml`
+4. Cron alle 3h :15 → `generate-feed.js` → `feed.xml` (DE) + `feed-en.xml` (EN)
 
 **Sitemap-Event-Quelle (seit Pipeline-Robustheit):** `generate-sitemap.js`
-liest `data/sitemap-events.json` (geschrieben von generate-site-data.js) —
-aber nur wenn die Datei **< 2 h alt** ist (mtime-Check, Env:
-`SITEMAP_EVENTS_DUMP_MAX_AGE_H`). Damit nutzt die Publish-Pipeline (site-data
-direkt vor sitemap) den Dump — der 6:00-Cron (läuft VOR dem 6:15-site-data,
-Dump wäre ~24 h alt) fällt automatisch auf die Relay-Abfrage zurück wie
-früher. Cron-Einträge bleiben unverändert. Kollaps-Schutz greift in beiden
-Modi.
+liest `data/sitemap-events.json` (geschrieben von generate-site-data.js 10
+Minuten vorher) — die Frische-Prüfung (mtime < 2 h, Env:
+`SITEMAP_EVENTS_DUMP_MAX_AGE_H`) ist im Cron-Betrieb **immer erfüllt**, der
+Dump wird also immer genutzt und die zweite Relay-Abfrage-Runde entfällt.
+Nur bei manuellen Sitemap-Läufen > 2 h nach dem letzten site-data greift der
+Relay-Fallback. Reihenfolge/Pausen im Cron unverändert lassen (5-min-Gaps
+reichen: site-data ~2 s, prerender ~2 min); Kollaps-Schutz greift in jedem
+Modus — Relay-Hiccup ⇒ sauberer Abbruch, alter Bestand bleibt online.
 4. Bot/User → Nginx liefert statisches HTML (kein Relay!)
 5. Fehlt Prerender → Fallback auf SPA → lädt vom Relay
 
