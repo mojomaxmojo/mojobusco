@@ -33,6 +33,9 @@ export interface AssistantSectionProps {
   /** Titelbild-GPS — für Wetter-Kontext ohne Geocoding */
   gpsLat?: number;
   gpsLon?: number;
+  /** EXIF-Aufnahme-Datum/-Stunde — Wetter zur Aufnahme (stundenbasiert) */
+  captureDate?: string;
+  captureHour?: number;
   /** Aktuelle Tags aus dem Formular */
   tags: string[];
   /** Veröffentlichungs-Datum (optional, für Continuity-Zeitfenster) */
@@ -57,6 +60,8 @@ export function AssistantSection({
   country,
   gpsLat,
   gpsLon,
+  captureDate,
+  captureHour,
   tags,
   date,
   editorInsertRef,
@@ -130,7 +135,15 @@ export function AssistantSection({
           {/* Wetter (KI-Kontext) — Nr. 9: prüfen, was die Generierung bekommt */}
           <div className="space-y-2">
             <p className="text-xs font-medium text-muted-foreground">Wetter (KI-Kontext)</p>
-            <WeatherBlock location={location} country={country} date={date} gpsLat={gpsLat} gpsLon={gpsLon} />
+            <WeatherBlock
+              location={location}
+              country={country}
+              date={date}
+              gpsLat={gpsLat}
+              gpsLon={gpsLon}
+              captureDate={captureDate}
+              captureHour={captureHour}
+            />
           </div>
 
           {/* Interne Links */}

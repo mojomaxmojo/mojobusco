@@ -250,6 +250,38 @@ function createGpsResult(
 }
 
 /**
+ * Liest den Aufnahmezeitpunkt aus den EXIF-Daten (DateTimeOriginal /
+ * CreateDate / ModifyDate). Genutzt für den Wetter-Kontext: Das Wetter wird
+ * dann für genau diesen Moment (Datum + Stunde) statt für den ganzen Tag
+ * abgefragt.
+ *
+ * Returns null für Dateien ohne EXIF-Zeit (Screenshots, bearbeitete Bilder,
+ * Downloads ohne Metadaten) — der Aufrufer fällt dann auf das Formular-Datum
+ * + Tagesaggregat zurück (bisheriges Verhalten).
+ *
+ * @param file - Bilddatei (JPEG mit EXIF)
+ * @returns Aufnahmezeitpunkt als Date (device-lokal interpretiert) oder null
+ */
+export async function extractCaptureTime(file: File): Promise<Date | null> {
+  try {
+    const data = await exifr.parse(file, {
+      pick: ['DateTimeOriginal', 'CreateDate', 'ModifyDate'],
+      tiff: true,
+      exif: true,
+    });
+    const raw = data?.DateTimeOriginal || data?.CreateDate || data?.ModifyDate;
+    if (!raw) return null;
+    const date = raw instanceof Date ? raw : new Date(raw);
+    if (Number.isNaN(date.getTime())) return null;
+    console.log('[GPS Extraction] Capture time found:', date.toISOString());
+    return date;
+  } catch (error) {
+    console.warn('[GPS Extraction] Capture time extraction failed:', error);
+    return null;
+  }
+}
+
+/**
  * Convert GPS DMS (Degrees, Minutes, Seconds) to Decimal Degrees (DD)
  *
  * @param dms - GPS coordinate in DMS format from EXIF [degrees, minutes, seconds]

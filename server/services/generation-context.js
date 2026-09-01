@@ -29,10 +29,12 @@ function formatLocationHistory(history) {
  * Fehler bei Geocoding/Wetter werden abgefangen und führen zu
  * weather: null, nie zu einem Absturz der Generierung.
  *
- * @param {{ location?: string, country?: string, date?: string, gpsLat?: number, gpsLon?: number }} params
+ * @param {{ location?: string, country?: string, date?: string, gpsLat?: number, gpsLon?: number, captureHour?: number }} params
+ *   captureHour (0–23, optional): Aufnahmestunde (EXIF) — Wetter wird dann
+ *   stundenbasiert für diesen Moment abgefragt statt Tagesaggregat
  * @returns {Promise<{ locationHistory: string | null, recentMotifs: string[], openThreads: string[], weather: string | null }>}
  */
-export async function getGenerationContext({ location, country, date, gpsLat, gpsLon } = {}) {
+export async function getGenerationContext({ location, country, date, gpsLat, gpsLon, captureHour } = {}) {
   const locationHistory = formatLocationHistory(getLocationHistory(location))
   const recentMotifs = getRecentMotifs(5)
   const openThreads = getOpenThreads(3)
@@ -51,7 +53,7 @@ export async function getGenerationContext({ location, country, date, gpsLat, gp
     }
 
     if (lat !== undefined && lon !== undefined && date) {
-      const weatherResult = await getWeatherForDate({ lat, lon, date })
+      const weatherResult = await getWeatherForDate({ lat, lon, date, captureHour })
       weather = describeWeather(weatherResult)
     }
   } catch (error) {

@@ -137,18 +137,24 @@ router.post('/api/generate-article', (req, res, next) => {
     const targetWordsMid = articleLength === 'short' ? 750 : articleLength === 'medium' ? 1500 : 2500
     const placementZones = computePlacementZones(targetWordsMid, imageObjects.length)
 
-    // Wetter-Kontext: Datum (Formular, Fallback heute) + Titelbild-GPS
-    // (GPS schlägt Geocoding — funktioniert auch für Strandnamen, die
-    // open-meteo nicht kennt)
-    const weatherDate = typeof req.body.publishedAt === 'string' && req.body.publishedAt.trim()
-      ? req.body.publishedAt.trim()
-      : new Date().toISOString().slice(0, 10)
+    // Wetter-Kontext: Titelbild-GPS + Aufnahmezeitpunkt (EXIF) haben Vorrang —
+    // dann wird Stunden-basiert für den Aufnahme-Moment abgefragt statt
+    // Tagesaggregat. Fallbacks: Formular-Datum → heute (Tagesaggregat).
+    const weatherDate = typeof req.body.captured_date === 'string' && req.body.captured_date.trim()
+      ? req.body.captured_date.trim()
+      : (typeof req.body.publishedAt === 'string' && req.body.publishedAt.trim()
+        ? req.body.publishedAt.trim()
+        : new Date().toISOString().slice(0, 10))
+    const captureHour = req.body.captured_hour !== undefined && req.body.captured_hour !== ''
+      ? parseInt(req.body.captured_hour, 10)
+      : undefined
     const continuity = await getGenerationContext({
       location,
       country,
       date: weatherDate,
       gpsLat: req.body.gps_lat ? parseFloat(req.body.gps_lat) : undefined,
-      gpsLon: req.body.gps_lon ? parseFloat(req.body.gps_lon) : undefined
+      gpsLon: req.body.gps_lon ? parseFloat(req.body.gps_lon) : undefined,
+      captureHour: Number.isFinite(captureHour) ? captureHour : undefined
     })
 
     // Foster Huntington Prompt für Berichte - importiert aus src/config/prompts/articles.js

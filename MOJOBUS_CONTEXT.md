@@ -211,14 +211,21 @@ angelegt – `initContinuityDatabase()` + `initWeatherCache()` laufen in
 dieselbe Kontinuität). Leere/unbekannte Location → Orts-Historie übersprungen,
 Motive/offenen Fäden werden trotzdem geliefert. Motive-Fenster = letzte 60
 Posts. `type` wird NICHT als Text in den Prompt geschrieben (nur intern).
-Wetter-GPS: Titelbild-GPS geht VOR Geocoding — Artikel senden `gps_lat/gps_lon`
-(vom Titelbild) + `publishedAt` im generate-Call, Orte senden GPS + visitDate;
-Note/Media/Orte ohne Datum → Server-Fallback „heute" in den Routen. Fehlt
-beides (kein GPS, Geocoding ohne open-meteo-Treffer — z. B. Strandnamen) →
-`weather: null` → KEINE Wetter-Zeile im Prompt (KI erfindet nichts). Die
-Generierungs-Routen nutzen `getGenerationContext({location, country, date,
-gpsLat, gpsLon})`. Trips: nur erster/Hauptort (Wegpunkt 1).
-Schwelle Forecast/Archiv: 92 Tage; >16 Tage Zukunft → Wetter überspringen.
+Wetter-GPS + Aufnahmezeit: Artikel senden `gps_lat/gps_lon` (Titelbild),
+`publishedAt` UND `captured_date/captured_hour` (EXIF DateTimeOriginal via
+extractCaptureTime in gpsExtraction.ts) im generate-Call. Rangfolge im
+article.js: captured_date → publishedAt → heute. Mit captured_hour fragt
+weather-lookup.js open-meteo HOURLY ab und pickt die Aufnahmestunde
+(„Wetter zur Aufnahme", Cache-Key mit T<hh>-Suffix) — ohne EXIF-Zeit:
+Tagesaggregat (Temp-Max, dominanter Code) wie bisher. Orte senden GPS +
+visitDate; Note/Media ohne Datum → Server-Fallback „heute". Fehlt beides
+(kein GPS, Geocoding ohne open-meteo-Treffer — z. B. Strandnamen) →
+`weather: null` → KEINE Wetter-Zeile im Prompt (KI erfindet nichts).
+WeatherBlock zeigt GPS + Aufnahmezeit an („…um 14:00 (Aufnahmezeit)").
+Kamera-Uhr ≈ Ortszeit am Aufnahmeort (Reisefotos) — Zeitzonen-Drift
+möglich, bewusst akzeptiert. Trips: nur erster/Hauptort (Wegpunkt 1).
+Schwelle Forecast/Archiv: 92 Tage; >16 Tage Zukunft → Wetter überspringen
+(Archiv-Branch bleibt Tagesaggregat).
 
 **`posts.url` + Brand-DNA-Pflege (Momente/Fäden im Assistenten):** Die
 posts-Tabelle hat eine `url`-Spalte (idempotente Migration in

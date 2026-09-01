@@ -29,15 +29,22 @@ interface WeatherBlockProps {
   /** Titelbild-GPS — schlägt Geocoding (funktioniert für jeden Punkt) */
   gpsLat?: number;
   gpsLon?: number;
+  /** EXIF-Aufnahme-Datum (YYYY-MM-DD) — Vorrang vor dem Formular-Datum */
+  captureDate?: string;
+  /** EXIF-Aufnahme-Stunde (0–23) — stundenbasierte Abfrage statt Tagesaggregat */
+  captureHour?: number;
 }
 
-export function WeatherBlock({ location, country, date, gpsLat, gpsLon }: WeatherBlockProps) {
+export function WeatherBlock({ location, country, date, gpsLat, gpsLon, captureDate, captureHour }: WeatherBlockProps) {
   const { request } = useAssistantApi();
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<WeatherResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const hasGps = typeof gpsLat === 'number' && typeof gpsLon === 'number';
+  const hasCapture = Boolean(captureDate) && typeof captureHour === 'number';
+  // Aufnahme-Datum/-Stunde haben Vorrang — "Wetter zur Aufnahme"
+  const weatherDate = captureDate || date;
 
   const checkWeather = async () => {
     setIsLoading(true);
@@ -46,11 +53,12 @@ export function WeatherBlock({ location, country, date, gpsLat, gpsLon }: Weathe
       const params = new URLSearchParams();
       if (location) params.set('location', location);
       if (country) params.set('country', country);
-      if (date) params.set('date', date);
+      if (weatherDate) params.set('date', weatherDate);
       if (hasGps) {
         params.set('gpsLat', String(gpsLat));
         params.set('gpsLon', String(gpsLon));
       }
+      if (typeof captureHour === 'number') params.set('captureHour', String(captureHour));
       const data = await request<WeatherResponse>(
         `${ASSISTANT_CONFIG.endpoints.weather}?${params.toString()}`
       );
@@ -90,7 +98,9 @@ export function WeatherBlock({ location, country, date, gpsLat, gpsLon }: Weathe
           {result.weather ? (
             <>
               <span className="font-medium">
-                Wetter am {result.date} in {result.location}:
+                Wetter am {result.date}
+                {typeof captureHour === 'number' ? ` um ${String(captureHour).padStart(2, '0')}:00 (Aufnahmezeit)` : ''}
+                {result.location ? ` in ${result.location}` : ''}:
               </span>{' '}
               {result.weather}{' '}
               <span className="text-muted-foreground">— genau diese Daten fließen in die Generierung ein.</span>

@@ -77,8 +77,10 @@ function roundCoord(value) {
   return Math.round(value * 100) / 100
 }
 
-function weatherCacheKey(lat, lon, date) {
-  return `${roundCoord(lat)},${roundCoord(lon)},${date}`
+function weatherCacheKey(lat, lon, date, hour) {
+  // Mit Aufnahmestunde wird stundenbasiert gecacht (andere Daten als Tagesaggregat)
+  const suffix = hour !== undefined ? `T${String(hour).padStart(2, '0')}` : ''
+  return `${roundCoord(lat)},${roundCoord(lon)},${date}${suffix}`
 }
 
 function daysBetween(dateA, dateB) {
@@ -130,17 +132,89 @@ export async function geocodeLocation(location, country) {
 
 /**
  * Liefert Wetterdaten für einen Ort (lat/lon) und ein Datum.
- * @param {{ lat: number, lon: number, date: string }} params Datum als YYYY-MM-DD
+ * Mit captureHour (0–23, EXIF-Aufnahmestunde) wird STUNDENBASIERT abgefragt
+ * (open-meteo hourly) und der Wert für genau diese Stunde geliefert —
+ * "Wetter zur Aufnahme" statt Tagesaggregat. Ohne captureHour: Tagesdaten
+ * (Temperatur-Max, dominanter Wettercode) wie bisher.
+ *
+ * @param {{ lat: number, lon: number, date: string, captureHour?: number }} params Datum als YYYY-MM-DD
  * @returns {Promise<{ temp: number, code: number, wind: number } | null>}
  */
-export async function getWeatherForDate({ lat, lon, date }) {
+export async function getWeatherForDate({ lat, lon, date, captureHour } = {}) {
   if (lat === undefined || lon === undefined || !date) return null
+  const hour = Number.isFinite(captureHour) && captureHour >= 0 && captureHour <= 23 ? captureHour : undefined
 
-  const key = weatherCacheKey(lat, lon, date)
+  const key = weatherCacheKey(lat, lon, date, hour)
   const cached = getDb().prepare('SELECT temp, code, wind, expires_at FROM weather_cache WHERE key = ?').get(key)
   if (cached && (!cached.expires_at || cached.expires_at > Date.now())) {
     return { temp: cached.temp, code: cached.code, wind: cached.wind }
   }
+
+  const today = new Date().toISOString().slice(0, 10)
+  const diffDays = daysBetween(date, today) // >0: Vergangenheit, <0: Zukunft
+
+  if (diffDays < -MAX_FUTURE_DAYS) {
+    return null
+  }
+
+  if (diffDays > MAX_PAST_DAYS) {
+    // Archiv-API für weit zurückliegende Daten (Tagesaggregate — Stunde nicht verfügbar)
+    try {
+      const response = await axios.get(ARCHIVE_URL, {
+        params: {
+          latitude: lat,
+          longitude: lon,
+          start_date: date,
+          end_date: date,
+          daily: 'temperature_2m_max,weathercode,windspeed_10m_max',
+          timezone: 'auto'
+        },
+        timeout: 10000
+      })
+
+      const result = extractDailyResult(response.data)
+      if (!result) return null
+
+      cacheWeather(key, result, null) // permanent
+      return result
+    } catch (error) {
+      console.warn(`[Wetter] Archiv-Abfrage fehlgeschlagen für ${lat},${lon} ${date}:`, error.message)
+      return null
+    }
+  }
+
+  // Forecast-API: mit Aufnahmestunde → hourly, sonst daily
+  try {
+    const params = {
+      latitude: lat,
+      longitude: lon,
+      start_date: date,
+      end_date: date,
+      timezone: 'auto',
+      past_days: diffDays > 0 ? Math.min(diffDays, MAX_PAST_DAYS) : undefined
+    }
+    if (hour !== undefined) {
+      params.hourly = 'temperature_2m,weathercode,windspeed_10m'
+    } else {
+      params.daily = 'temperature_2m_max,weathercode,windspeed_10m_max'
+    }
+
+    const response = await axios.get(FORECAST_URL, { params, timeout: 10000 })
+
+    const result = hour !== undefined
+      ? extractHourlyResult(response.data, hour)
+      : extractDailyResult(response.data)
+    if (!result) return null
+
+    // Vergangenheit/heute: permanent cachen. Zukunft: kurze TTL.
+    const expiresAt = diffDays >= 0 ? null : Date.now() + FUTURE_TTL_MS
+    cacheWeather(key, result, expiresAt)
+    return result
+  } catch (error) {
+    console.warn(`[Wetter] Forecast-Abfrage fehlgeschlagen für ${lat},${lon} ${date}:`, error.message)
+    return null
+  }
+}
 
   const today = new Date().toISOString().slice(0, 10)
   const diffDays = daysBetween(date, today) // >0: Vergangenheit, <0: Zukunft
@@ -210,6 +284,28 @@ function extractDailyResult(data) {
   const temp = daily.temperature_2m_max?.[0]
   const code = daily.weathercode?.[0]
   const wind = daily.windspeed_10m_max?.[0]
+
+  if (temp === undefined || temp === null) return null
+
+  return { temp, code, wind }
+}
+
+/**
+ * Pickt aus einer hourly-Antwort den Wert für die Aufnahmestunde
+ * (timezone=auto → time-Array ist Ortszeit am Ort; Kamera-Uhrzeit ≈ Ortszeit
+ * bei Reiseaufnahmen vor Ort).
+ */
+function extractHourlyResult(data, hour) {
+  const hourly = data?.hourly
+  if (!hourly || !Array.isArray(hourly.time) || hourly.time.length === 0) return null
+
+  const hh = String(hour).padStart(2, '0')
+  const idx = hourly.time.findIndex(t => typeof t === 'string' && t.endsWith(`T${hh}:00`))
+  if (idx === -1) return null
+
+  const temp = hourly.temperature_2m?.[idx]
+  const code = hourly.weathercode?.[idx]
+  const wind = hourly.windspeed_10m?.[idx]
 
   if (temp === undefined || temp === null) return null
 

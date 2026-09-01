@@ -157,14 +157,19 @@ router.get('/api/assistant/weather', async (req, res) => {
     const gpsLonNum = parseFloat(String(req.query.gpsLon || ''))
     const gpsLat = Number.isFinite(gpsLatNum) ? gpsLatNum : undefined
     const gpsLon = Number.isFinite(gpsLonNum) ? gpsLonNum : undefined
+    // Aufnahmestunde (EXIF) — stundenbasierte Abfrage statt Tagesaggregat
+    const captureHourRaw = parseInt(String(req.query.captureHour || ''), 10)
+    const captureHour = Number.isFinite(captureHourRaw) && captureHourRaw >= 0 && captureHourRaw <= 23
+      ? captureHourRaw
+      : undefined
 
     if ((!location && gpsLat === undefined) || !date) {
       return res.json({ weather: null, hint: 'Ort (oder Titelbild-GPS) und Datum setzen, dann prüfen.' })
     }
 
     // Gleicher Aufruf wie in der Generierung (article.js) — mit GPS wird das
-    // Geocoding übersprungen (getGenerationContext-Logik)
-    const context = await getGenerationContext({ location, country, date, gpsLat, gpsLon })
+    // Geocoding übersprungen, mit Aufnahmestunde stundenbasiert abgefragt
+    const context = await getGenerationContext({ location, country, date, gpsLat, gpsLon, captureHour })
     res.json({
       weather: context.weather,
       location: gpsLat !== undefined ? `${gpsLat.toFixed(4)}, ${gpsLon?.toFixed(4)} (GPS)` : location,

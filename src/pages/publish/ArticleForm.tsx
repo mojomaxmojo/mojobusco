@@ -33,7 +33,7 @@ import { RemotionVideoBlock } from "@/components/RemotionVideoBlock";
 import { SlideshowBlock } from "@/components/SlideshowBlock";
 import { Progress } from "@/components/ui/progress";
 import { Upload, UploadCloud, ImageIcon, Video, Music, File as FileIcon, Camera, MapPin, Calendar, Tag, Battery, Sun, Wrench, Hammer, Cpu, Mountain, Lightbulb, Dog, Trees, Droplets, Waves, Eye, Loader2, CheckCircle, Route, Sparkles, FileText, MessageSquare, Map } from "@/lib/icons";
-import { extractGpsFromImage, formatCoordinatesSimple, reverseGeocode, mapCountryCode, type GpsData, type GpsStatus, type LocationData } from "@/lib/gpsExtraction";
+import { extractGpsFromImage, extractCaptureTime, formatCoordinatesSimple, reverseGeocode, mapCountryCode, type GpsData, type GpsStatus, type LocationData } from "@/lib/gpsExtraction";
 import { CONTENT_CATEGORIES, createRequiredTags, getOptionalTags, getTabConfig } from "@/config/contentCategories";
 import { resolveBildPlaceholders } from "./publishUtils";
 import { canonicalUrl, articleUrl, canonicalNaddr } from "@/lib/canonicalUrl";
@@ -56,6 +56,7 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
   const [image, setImage] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageGps, setImageGps] = useState<GpsData | null>(null);
+  const [imageCapturedAt, setImageCapturedAt] = useState<Date | null>(null);
   const [imageGpsStatus, setImageGpsStatus] = useState<GpsStatus>('not_found');
   const [editingImageGps, setEditingImageGps] = useState(false);
   const [showMapPicker, setShowMapPicker] = useState(false);
@@ -444,6 +445,14 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
         formData.append('gps_lat', String(imageGps.latitude));
         formData.append('gps_lon', String(imageGps.longitude));
       }
+      // Aufnahmezeitpunkt (EXIF) — Wetter wird dann für genau diesen Moment
+      // (Datum + Stunde, Stundenbasis) statt Tagesaggregat abgefragt
+      if (imageCapturedAt) {
+        // device-lokal interpretiert (Kamerazeit ≈ Ortszeit am Aufnahmeort)
+        const pad = (n: number) => String(n).padStart(2, '0');
+        formData.append('captured_date', `${imageCapturedAt.getFullYear()}-${pad(imageCapturedAt.getMonth() + 1)}-${pad(imageCapturedAt.getDate())}`);
+        formData.append('captured_hour', String(imageCapturedAt.getHours()));
+      }
 
       // Bild-URLs aus dem MilkdownEditor (bereits auf Blossom hochgeladen)
       if (markdownImageUrls.length > 0) {
@@ -638,6 +647,16 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
       } catch (error) {
         console.error(`[Article GPS] Failed to extract from ${file.name}:`, error);
         setImageGpsStatus('error');
+      }
+
+      // Extract capture time (EXIF DateTimeOriginal) für den Wetter-Kontext —
+      // ohne EXIF-Zeit fällt das Wetter auf Formular-Datum + Tagesaggregat zurück
+      try {
+        const capturedAt = await extractCaptureTime(file);
+        setImageCapturedAt(capturedAt);
+      } catch (error) {
+        console.warn(`[Article CaptureTime] Failed to extract from ${file.name}:`, error);
+        setImageCapturedAt(null);
       }
     } catch (error) {
       toast({
@@ -1093,6 +1112,7 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
     setPublishedAt('');
     setImageFile(null);
     setImageGps(null);
+    setImageCapturedAt(null);
     setImageGpsStatus('not_found');
     setEditingImageGps(false);
     setImageMetaMap({});
@@ -1282,6 +1302,8 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
           country={selectedCountry}
           gpsLat={imageGps?.latitude}
           gpsLon={imageGps?.longitude}
+          captureDate={imageCapturedAt ? `${imageCapturedAt.getFullYear()}-${String(imageCapturedAt.getMonth() + 1).padStart(2, '0')}-${String(imageCapturedAt.getDate()).padStart(2, '0')}` : undefined}
+          captureHour={imageCapturedAt ? imageCapturedAt.getHours() : undefined}
           tags={tags}
           date={publishedAt || new Date().toISOString()}
           editorInsertRef={editorInsertRef}
