@@ -239,8 +239,17 @@ der vollständige Baum für alle Maschinen im Repo verankert ist.
 
 **Ablauf**:
 1. Cron 6:00 → `prerender-static.js` + `generate-sitemap.js` → HTML mit NIP-19 Dateinamen + `sitemap.xml`/`sitemap-videos.xml`
-2. Cron 6:15 → `generate-site-data.js` → JSON-Dumps `/data/`
+2. Cron 6:15 → `generate-site-data.js` → JSON-Dumps `/data/` (inkl. `sitemap-events.json`)
 3. Cron alle 6h → `generate-feed.js` → `feed.xml` (DE) + `feed-en.xml` (EN)
+
+**Sitemap-Event-Quelle (seit Pipeline-Robustheit):** `generate-sitemap.js`
+liest `data/sitemap-events.json` (geschrieben von generate-site-data.js) —
+aber nur wenn die Datei **< 2 h alt** ist (mtime-Check, Env:
+`SITEMAP_EVENTS_DUMP_MAX_AGE_H`). Damit nutzt die Publish-Pipeline (site-data
+direkt vor sitemap) den Dump — der 6:00-Cron (läuft VOR dem 6:15-site-data,
+Dump wäre ~24 h alt) fällt automatisch auf die Relay-Abfrage zurück wie
+früher. Cron-Einträge bleiben unverändert. Kollaps-Schutz greift in beiden
+Modi.
 4. Bot/User → Nginx liefert statisches HTML (kein Relay!)
 5. Fehlt Prerender → Fallback auf SPA → lädt vom Relay
 
