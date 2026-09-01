@@ -249,6 +249,23 @@ async function main() {
 
   console.log(`[Feed] ${deArticles.length} DE-Artikel, ${enArticles.length} EN-Artikel für Feeds (nach Dedup + Sort)`);
 
+  // ── Kollaps-Schutz: queryRelay() resolviert bei Relay-Timeout still [] —
+  // ein Lauf mit 0 Artikeln darf die bestehenden Feeds nicht mit leeren
+  // überschreiben (passiert: Deploy 2026-09-01, beide Relays 0 Artikel →
+  // 0.8-kB-Leerfeed online). Notaus: FEED_SKIP_COLLAPSE_GUARD=1.
+  let oldItemCount = 0;
+  try {
+    const oldFeed = fs.readFileSync(FEED_PATH, 'utf-8');
+    oldItemCount = (oldFeed.match(/<item>/g) || []).length;
+  } catch { /* Erstlauf — Guard inaktiv */ }
+  const feedGuardSkipped = process.env.FEED_SKIP_COLLAPSE_GUARD === '1';
+  if (!feedGuardSkipped && oldItemCount >= 10 && deArticles.length < oldItemCount * 0.5) {
+    console.error(`[Feed] ❌ Kollaps-Schutz: Nur ${deArticles.length} DE-Artikel (bestehender Feed: ${oldItemCount} Items) — vermutlich Relay-Timeout.`);
+    console.error('[Feed]    Bestehende feed.xml wird NICHT überschrieben. Skript später erneut ausführen.');
+    console.error('[Feed]    Bewusst überschreiben: FEED_SKIP_COLLAPSE_GUARD=1 node scripts/generate-feed.js');
+    process.exit(1);
+  }
+
   // RSS XML generieren (Enclosure-Längen werden per HEAD-Request geholt)
   const xmlDe = await generateFeedXml(deArticles, 'de');
   const xmlEn = await generateFeedXml(enArticles, 'en');

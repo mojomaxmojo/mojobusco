@@ -45,6 +45,11 @@ const BASE_URL = 'https://mojobus.co';
 const RELAYS = ['wss://relay.mojobus.co', 'wss://relay.primal.net'];
 const QUERY_TIMEOUT = 20000; // 20s (eigenes Relay → grosszügig)
 const MAX_EVENTS = 2000;     // Alle Events auf einmal (unser Relay schafft das)
+// Explizite Zeitgrenzen — ERHEBLICH: mit since/until liefert das Relay ~341
+// Longform-Events, ohne nur ~250 (beobachtet; vermutlich Relay-internes
+// Query-Verhalten). Prerender/Sitemap-Queries nutzen die Bounds seit jeher,
+// site-data jetzt auch — damit der Sitemap-Event-Dump vollständig ist.
+const FAR_FUTURE = Math.floor(Date.now() / 1000) + 3600 * 24 * 365;
 
 // ── Länder-Konfiguration (für Indizierung) ──────────────────────────────────
 
@@ -197,21 +202,21 @@ async function main() {
     console.log(`[SiteData] Frage ab: ${relay}`);
 
     // Longform-Artikel (kind 30023)
-    const articles = await queryRelay(relay, [{ kinds: [30023], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS }]);
+    const articles = await queryRelay(relay, [{ kinds: [30023], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS, since: 0, until: FAR_FUTURE }]);
     console.log(`[SiteData]  → ${articles.length} Longform-Events`);
 
     // Notes (kind 1) – enthält auch Fremd-Posts der Autoren aus anderen
     // Nostr-Clients; wird weiter unten über isMojobusKind1() gefiltert.
-    const notes = await queryRelay(relay, [{ kinds: [1], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS }]);
+    const notes = await queryRelay(relay, [{ kinds: [1], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS, since: 0, until: FAR_FUTURE }]);
     const mojobusNotesCount = notes.filter(isMojobusKind1).length;
     console.log(`[SiteData]  → ${notes.length} Kind-1-Events (${mojobusNotesCount} von mojobus.co, ${notes.length - mojobusNotesCount} Fremd-Posts)`);
 
     // Video-Events NIP-71: kind 34236 (Short/Reels 9:16) + kind 34235 (Normal 16:9)
-    const videos = await queryRelay(relay, [{ kinds: [34236, 34235], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS }]);
+    const videos = await queryRelay(relay, [{ kinds: [34236, 34235], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS, since: 0, until: FAR_FUTURE }]);
     console.log(`[SiteData]  → ${videos.length} Video-Events (kind 34236/34235)`);
 
     // Trips (kind 30025) – echte Trip-Events statt kind:1-Teaser-Notes
-    const tripEvents = await queryRelay(relay, [{ kinds: [30025], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS }]);
+    const tripEvents = await queryRelay(relay, [{ kinds: [30025], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS, since: 0, until: FAR_FUTURE }]);
     console.log(`[SiteData]  → ${tripEvents.length} Trip-Events (kind 30025)`);
 
     for (const event of [...articles, ...notes]) {
