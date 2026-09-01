@@ -483,6 +483,30 @@ async function main() {
     }
   }
 
+  // ── Kollaps-Schutz: Sitemap NICHT überschreiben bei Relay-Timeouts ──────
+  // queryRelay() resolviert bei Relay-Timeout STILL [] — ohne diesen Schutz
+  // würde ein einziger Relay-Hiccup die Sitemap von ~460 URLs auf die 14
+  // statischen kürzen (passiert: Deploy 2026-09-01, Risiko auch im 6:00-Cron).
+  // Regel: Ist eine bestehende Sitemap deutlich größer als das neue Ergebnis,
+  // abbrechen, alte Sitemap behalten, Exit 1 (Pipeline-Log zeigt es).
+  // Notausnahme: SITEMAP_SKIP_COLLAPSE_GUARD=1 (bewusster legitimer Schwund).
+  const MIN_OLD_URLS_FOR_GUARD = 50;
+  const dynamicCount = allUrls.length - staticPages.length;
+  let oldLocCount = 0;
+  try {
+    const oldXml = fs.readFileSync(SITEMAP_PATH, 'utf-8');
+    oldLocCount = (oldXml.match(/<loc>/g) || []).length;
+  } catch {
+    // keine bestehende Sitemap (Erstlauf) — Guard inaktiv
+  }
+  const guardSkipped = process.env.SITEMAP_SKIP_COLLAPSE_GUARD === '1';
+  if (!guardSkipped && oldLocCount >= MIN_OLD_URLS_FOR_GUARD && dynamicCount < oldLocCount * 0.5) {
+    console.error(`[Sitemap] ❌ Kollaps-Schutz: Neue Sitemap hätte nur ${dynamicCount} dynamische URLs (bestehende: ${oldLocCount} total) — vermutlich Relay-Timeout.`);
+    console.error('[Sitemap]    Bestehende sitemap.xml wird NICHT überschrieben. Skript in einigen Minuten erneut ausführen.');
+    console.error('[Sitemap]    Bewusst überschreiben: SITEMAP_SKIP_COLLAPSE_GUARD=1 node scripts/generate-sitemap.js');
+    process.exit(1);
+  }
+
   // XML generieren
   const xml = generateSitemapXml(allUrls);
   const videoXml = generateVideoSitemapXml(videoUrls);
