@@ -418,19 +418,21 @@ function matchGscQuery(keyword, gscQueries) {
  *   1) GSC contains-Query → alle Suchanfragen mit dem Seed (Impressionen =
  *      echte Nachfrage, wo mojobus.co sichtbar ist)
  *   2) Mini-LLM → deutsche Themen „Titel | target-keyword“
- *   3) DataForSEO (nur wenn DATAFORSEO_LOGIN/PASSWORD gesetzt) → echte
- *      Monatsvolumina + Saisonalität-Peak für die Keywords
+ *   3) DataForSEO → echte Monatsvolumina + Saisonalität-Peak — NUR auf
+ *      expliziten Wunsch (useDfs = Checkbox im Frontend, Standard AUS):
+ *      verbraucht Credits. Env-Keys müssen zusätzlich gesetzt sein.
  * Cache: 7 Tage (env: ASSISTANT_TOPICS_CACHE_DAYS) — Suchvolumina ändern
  * sich monatsweise, nicht täglich; schützt auch DFS-Credits. Mit
  * `refresh: true` wird der Cache umgangen (manuelle Frisch-Anfrage).
- * @param {{ seed: string, windowDays?: number, refresh?: boolean }} params
+ * @param {{ seed: string, windowDays?: number, refresh?: boolean, useDfs?: boolean }} params
  */
-export async function getTopicSuggestions({ seed, windowDays = 28, refresh = false } = {}) {
+export async function getTopicSuggestions({ seed, windowDays = 28, refresh = false, useDfs = false } = {}) {
   const trimmed = (seed || '').trim()
   if (!trimmed) throw new Error('Seed fehlt')
 
   const dfsConfigured = isDataForSEOConfigured()
-  const cacheKey = `topics:${trimmed.toLowerCase()}:${windowDays}:${dfsConfigured ? 'dfs' : 'nodfs'}`
+  const dfsActive = dfsConfigured && Boolean(useDfs)
+  const cacheKey = `topics:${trimmed.toLowerCase()}:${windowDays}:${dfsActive ? 'dfs' : 'nodfs'}`
   const ttlDays = Math.max(1, parseInt(process.env.ASSISTANT_TOPICS_CACHE_DAYS || '7', 10) || 7)
   const ttlMs = ttlDays * 24 * 60 * 60 * 1000
   const cached = refresh ? null : getCached(cacheKey, ttlMs)
@@ -469,10 +471,11 @@ export async function getTopicSuggestions({ seed, windowDays = 28, refresh = fal
     topics = [{ title: trimmed, keyword: null }]
   }
 
-  // 3) DataForSEO: echte Monatsvolumina + Peak (nur wenn konfiguriert)
+  // 3) DataForSEO: echte Monatsvolumina + Peak — NUR wenn der User die
+  // Checkbox aktiviert hat (Standard AUS) UND die Env-Keys gesetzt sind
   let dfs = false
   let volumes = null
-  if (dfsConfigured) {
+  if (dfsActive) {
     try {
       const keywords = [...new Set([
         ...topics.map(t => t.keyword).filter(Boolean),
@@ -521,6 +524,7 @@ export async function getTopicSuggestions({ seed, windowDays = 28, refresh = fal
   const result = {
     seed: trimmed,
     dfs,
+    dfsConfigured,
     topics: enriched,
     note: gsc.available
       ? null

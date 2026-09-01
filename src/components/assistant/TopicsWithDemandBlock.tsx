@@ -17,6 +17,8 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { Loader2, TrendingUp, RefreshCw } from 'lucide-react';
 import { useAssistantApi } from './useAssistantApi';
 import { ASSISTANT_CONFIG } from '@/config/assistant';
@@ -63,6 +65,8 @@ export function TopicsWithDemandBlock({ location, onApplyIdea }: TopicsWithDeman
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<TopicIdeasResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // DataForSEO-Opt-in — Standard AUS (verbraucht Credits pro Abruf)
+  const [dfsEnabled, setDfsEnabled] = useState(false);
 
   // Seed folgt dem Formular-Ort solange unangetastet (Muster ResearchBlock)
   useEffect(() => {
@@ -80,6 +84,7 @@ export function TopicsWithDemandBlock({ location, onApplyIdea }: TopicsWithDeman
     try {
       const params = new URLSearchParams({ seed: trimmed });
       if (forceRefresh) params.set('refresh', '1');
+      if (dfsEnabled) params.set('dfs', '1');
       const data = await request<TopicIdeasResponse>(
         `${ASSISTANT_CONFIG.endpoints.topicIdeas}?${params.toString()}`
       );
@@ -151,6 +156,18 @@ export function TopicsWithDemandBlock({ location, onApplyIdea }: TopicsWithDeman
         </div>
       </div>
 
+      {/* DataForSEO-Opt-in — Standard AUS, verbraucht Credits pro Abruf */}
+      <div className="flex items-center gap-2">
+        <Checkbox
+          id="dfs-toggle"
+          checked={dfsEnabled}
+          onCheckedChange={(v) => setDfsEnabled(v === true)}
+        />
+        <Label htmlFor="dfs-toggle" className="text-xs cursor-pointer">
+          DataForSEO-Voluminen abrufen (echte Monatswerte + Saisonalität — verbraucht Credits)
+        </Label>
+      </div>
+
       {error && (
         <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
       )}
@@ -166,10 +183,10 @@ export function TopicsWithDemandBlock({ location, onApplyIdea }: TopicsWithDeman
             )}
           </div>
 
-          {!result.dfs && (
-            <p className="text-xs text-muted-foreground">
-              DataForSEO nicht konfiguriert (DATAFORSEO_LOGIN/PASSWORD in ai-api.env) —
-              Nachfrage-Zeilen nutzen echte GSC-Daten; neue Themen ohne Zahlen.
+          {result.dfsConfigured === false && dfsEnabled && (
+            <p className="text-xs text-amber-600 dark:text-amber-400">
+              DataForSEO-Keys fehlen (DATAFORSEO_LOGIN/PASSWORD in ai-api.env) —
+              Nachfrage-Zeilen nutzen GSC-Daten statt Volumina.
             </p>
           )}
 

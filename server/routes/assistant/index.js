@@ -200,7 +200,8 @@ router.get('/api/assistant/topic-ideas', async (req, res) => {
       ? windowDaysRaw
       : 28
     const refresh = req.query.refresh === '1'
-    const result = await getTopicSuggestions({ seed, windowDays, refresh })
+    const useDfs = req.query.dfs === '1' // Opt-in: verbraucht DataForSEO-Credits
+    const result = await getTopicSuggestions({ seed, windowDays, refresh, useDfs })
     res.json(result)
   } catch (error) {
     console.error('[Assistant] topic-ideas fehlgeschlagen:', error.response?.data || error.message)
