@@ -5,6 +5,45 @@
 
 ---
 
+## Fix Berichte/Plätze: `[BILD_1]` blieb als Literaltext im Artikel stehen (2026-09-02)
+
+**Symptom**: Bei mehreren Bildern mit Beschreibungen blieb immer wieder der
+Platzhalter (z. B. `[BILD_1]`) als Literaltext im generierten Content stehen,
+statt durch das echte Bild ersetzt zu werden.
+
+**Ursache** (Nummerierungs-Kontroverse Prompt ↔ Frontend):
+- Titelbilder (Upload, `url: null`) und Editor-Bilder (Blossom-URL) teilten
+  sich EINE `[BILD_N]`-Nummerierungssequenz. Das Titelbild hieß
+  „(Titelbild 1 – kein Platzhalter)", Editor-Bilder bekamen `[BILD_2]`,
+  `[BILD_3]` …
+- Die Zonen-Verteilung (`computePlacementZones`) rechnete über ALLE Bilder
+  und schrieb trotzdem „[BILD_1] soll zwischen Wort X und Y stehen" –
+  obwohl Bild 1 das Titelbild OHNE Platzhalter war. Widerspruch im Prompt.
+- Das Modell gehorchte der Zonen-Zeile → schrieb `[BILD_1]`.
+- `resolveBildPlaceholders` ersetzt nur Bilder MIT URL (nummeriert über alle
+  Bilder inkl. Titelbild) → `[BILD_1]` war nie im Ersetzungs-Set → Literaltext.
+
+**Fix**:
+- `src/config/prompts/articles.js` + `place.js`: NUR Bilder mit URL kriegen
+  `[BILD_1..k]` (durchgehend). Titelbilder sind Kontext ohne Nummer
+  („kein Platzhalter, wird automatisch als Cover verwendet"). Zonen nur für
+  URL-Bilder, mit denselben Nummern. Neue Exakt-Form-Anweisung
+  („[BILD_1]. Keine Varianten wie [Bild 1], BILD 1 oder (Bild 1)") +
+  Mixed-Hinweis („[BILD_1] ist das erste Editor-Bild, NICHT das Titelbild").
+  Schreibstil-Blöcke (Foster Stimme/Rhythmus/REGELN/FORMATIERUNG) unangetastet.
+- `server/routes/content/article.js`: `computePlacementZones` zählt nur
+  Bilder mit URL (1 Zeile) – Zonen-Nummern == Platzhalter-Nummern.
+- `src/pages/publish/publishUtils.ts`: filtern-vor-nummerieren (URL-Bilder
+  1..k), tolerantes Matching (`[ BILD_1 ]`, `[Bild 1]`, `**[BILD_2]**`,
+  `[bild-3]`), Cleanup-Pass entfernt übrige Platzhalter-Artefakte
+  (auch runde Klammern) + Leerzeilen-Glättung → nie wieder Literaltext.
+
+**Wichtig**: Fix wirkt erst nach Deploy von `ai-api` (Prompt + Route laufen
+im Node-Service): Git-Pull + `systemctl restart ai-api`. Frontend-Teil
+(`publishUtils.ts`) geht mit dem Web-Build.
+
+---
+
 ## Fix Promotion/Pinterest: „KI hat kein valides JSON zurückgegeben" (2026-09-01)
 
 **Symptom**: Pin-Text-Generierung (Template mojobus-story, Modell medium =

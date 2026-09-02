@@ -125,6 +125,35 @@ export const generateArticlePrompt = (params) => {
         ? imageObjects
         : (imageDescriptions || []).map(desc => ({ url: null, description: desc }))
 
+    // ===== Bild-Nummerierung (Mechanik, kein Stil-Block) =====
+    // NUR Bilder mit öffentlicher URL bekommen einen [BILD_N] Platzhalter,
+    // durchgehend nummeriert 1..k. Titelbilder (url: null) sind reiner
+    // Kontext: keine Nummer in der BILD-Sequenz, kein Platzhalter.
+    // Grund: Das Frontend (resolveBildPlaceholders) kann nur URL-Bilder
+    // ersetzen – ein [BILD_N] für ein URL-loses Bild bliebe sonst als
+    // Literaltext im Artikel stehen.
+    const urlImages = images.filter(img => img.url)
+    const titelbildCount = images.length - urlImages.length
+    const hasUrlImages = urlImages.length > 0
+    const bildNumOf = new Map() // images-Index → BILD-Nummer (nur URL-Bilder)
+    let bildCounter = 0
+    images.forEach((img, i) => {
+        if (img.url) bildNumOf.set(i, ++bildCounter)
+    })
+    const imageLines = images.map((img, i) => {
+        const bildNum = bildNumOf.get(i)
+        const placeholder = bildNum
+            ? `[BILD_${bildNum}]`
+            : '(Titelbild – kein Platzhalter, wird automatisch als Cover verwendet)'
+        return `${placeholder} – ${img.note ? `[Autor sagt: "${img.note}"] ` : ''}${img.caption ? `[Bildunterschrift: "${img.caption}"] ` : ''}${img.description}${img.alt && img.alt !== img.description ? ` (Alt-Text: "${img.alt}")` : ''}`
+    }).join('\n')
+    // Zonen-Nummern an die BILD-Nummerierung koppeln. Der Server rechnet die
+    // Wortfenster nur über URL-Bilder (imageIndex + 1 == BILD_N); der Filter
+    // ist ein Sicherheitsnetz, falls ein Aufrufer noch über ALLE Bilder rechnet.
+    const activeZones = (placementZones || [])
+        .filter(z => bildNumOf.has(z.imageIndex))
+        .map(z => ({ bildNum: bildNumOf.get(z.imageIndex), wordStart: z.wordStart, wordEnd: z.wordEnd }))
+
     // Gender-Prompt-Zusatz holen
     const genderAddition = getGenderPromptAddition(gender)
 
@@ -264,18 +293,17 @@ ${tripTypeBlock}
     ${contextLines}
 
     BILDER ALS VISUELLE ANKER:
-    ${images.map((img, i) => {
-        const num = i + 1
-        const placeholder = img.url ? `[BILD_${num}]` : `(Titelbild ${num} – kein Platzhalter)`
-        return `${num}. ${placeholder} – ${img.note ? `[Autor sagt: "${img.note}"] ` : ''}${img.caption ? `[Bildunterschrift: "${img.caption}"] ` : ''}${img.description}${img.alt && img.alt !== img.description ? ` (Alt-Text: "${img.alt}")` : ''}`
-    }).join('\n')}
+    ${imageLines}
 
     BILDPLATZIERUNG – WICHTIG:
-    ${images.some(img => img.url) ? `
-    Du hast Bilder mit Platzhaltern ([BILD_1], [BILD_2] etc.).
+    ${hasUrlImages ? `
+    Du hast ${urlImages.length} Bild(er) mit Platzhaltern: ${urlImages.map((_, i) => `[BILD_${i + 1}]`).join(', ')}.${titelbildCount > 0 ? `
+    Daneben ${titelbildCount === 1 ? 'ist 1 Titelbild' : `sind ${titelbildCount} Titelbilder`} in der Liste: NUR Kontext, KEIN Platzhalter, keine Nummer.
+    [BILD_1] ist das erste Bild MIT Nummer in der Liste oben, NICHT das Titelbild.` : ''}
     Setze diese Platzhalter an passenden Stellen im Text ein – dort wo das Bild inhaltlich zu einer Szene passt.
     Der Platzhalter steht ALLEIN in einer eigenen Zeile, zwischen zwei Absätzen.
     Nicht mitten in einen Satz. Nicht am Anfang. Nicht am Ende nach den Hashtags.
+    Schreibe ihn EXAKT in dieser Form: [BILD_1]. Keine Varianten wie [Bild 1], BILD 1 oder (Bild 1).
 
     BEISPIEL wie Platzhalter im Text stehen:
     "Der Mojobus stand wo die Straße aufhört. Nichts dahinter außer Wasser.
@@ -283,14 +311,15 @@ ${tripTypeBlock}
     [BILD_1]
 
     Am nächsten Morgen Nebel. Die Kirche noch da, der Rest verschwunden."
-${placementZones && placementZones.length > 0 ? `
-    ZONEN-VERTEILUNG (jedes Bild hat ein vorgesehenes Wortfenster):
-    ${placementZones.map(z => `[BILD_${z.imageIndex + 1}] soll etwa zwischen Wort ${z.wordStart} und Wort ${z.wordEnd} stehen — suche dort die inhaltlich beste Stelle.`).join('\n    ')}
+${activeZones.length > 0 ? `
+    ZONEN-VERTEILUNG (jedes Bild mit Platzhalter hat ein vorgesehenes Wortfenster):
+    ${activeZones.map(z => `[BILD_${z.bildNum}] soll etwa zwischen Wort ${z.wordStart} und Wort ${z.wordEnd} stehen — suche dort die inhaltlich beste Stelle.`).join('\n    ')}
     Jedes Bild MUSS platziert werden — wähle innerhalb seines Wortfensters die am wenigsten schlechte Stelle, auch wenn kein perfekter Szenen-Fit da ist.` : `
     Wenn ein Bild inhaltlich nirgendwo passt: lass den Platzhalter weg.
     Lieber kein Platzhalter als ein falscher.`}`
     : `
-    Alle Bilder sind Titelbilder ohne Platzhalter. Beschreibe nur den Text.`}
+    Alle Bilder sind Titelbilder ohne Platzhalter. Beschreibe nur den Text.
+    Setze KEINEN [BILD_N] Platzhalter.`}
 
     ${text ? `WAS DER AUTOR SAGT (HÖCHSTE PRIORITÄT – das ist passiert, bau den Artikel darauf):\n"${text}"` : ''}
     ${inputGuidance}

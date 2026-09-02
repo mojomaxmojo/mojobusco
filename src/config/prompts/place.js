@@ -49,6 +49,22 @@ export const generatePlacePrompt = (params) => {
     ? imageObjects
     : (imageDescriptions || []).map(desc => ({ url: null, description: desc }))
 
+  // ===== Bild-Nummerierung (Mechanik, kein Stil-Block) =====
+  // NUR Bilder mit URL bekommen [BILD_N] (durchgehend 1..k). Titelbilder
+  // (url: null) sind Kontext ohne Nummer und ohne Platzhalter – sonst
+  // bliebe der Platzhalter als Literaltext im Text stehen.
+  const urlImages = images.filter(img => img.url)
+  const titelbildCount = images.length - urlImages.length
+  const hasUrlImages = urlImages.length > 0
+  let bildCounter = 0
+  const imageLines = images.map((img) => {
+    const bildNum = img.url ? ++bildCounter : null
+    const placeholder = bildNum
+      ? `[BILD_${bildNum}]`
+      : '(Titelbild – kein Platzhalter, wird automatisch als Cover verwendet)'
+    return `${placeholder} – ${img.note ? `[Autor sagt: "${img.note}"] ` : ''}${img.caption ? `[Bildunterschrift: "${img.caption}"] ` : ''}${img.description}${img.alt && img.alt !== img.description ? ` (Alt-Text: "${img.alt}")` : ''}`
+  }).join('\n')
+
   // Gender-Prompt-Zusatz holen
   const genderAddition = getGenderPromptAddition(gender)
 
@@ -131,16 +147,14 @@ BESCHREIBE: "${title}"${description ? `\n"${description}"` : ''}
 ${contextLines}
 
 BILDER ALS KONTEXT:
-${images.map((img, i) => {
-  const num = i + 1
-  const placeholder = img.url ? `[BILD_${num}]` : `(Titelbild ${num} – kein Platzhalter)`
-  return `${num}. ${placeholder} – ${img.note ? `[Autor sagt: "${img.note}"] ` : ''}${img.caption ? `[Bildunterschrift: "${img.caption}"] ` : ''}${img.description}${img.alt && img.alt !== img.description ? ` (Alt-Text: "${img.alt}")` : ''}`
-}).join('\n')}
+${imageLines}
 
-${images.some(img => img.url) ? `BILDPLATZIERUNG:
+${hasUrlImages ? `BILDPLATZIERUNG:
+Du hast ${urlImages.length} Bild(er) mit Platzhaltern: ${urlImages.map((_, i) => `[BILD_${i + 1}]`).join(', ')}.${titelbildCount > 0 ? ` Die Titelbilder oben sind NUR Kontext – kein Platzhalter, keine Nummer.` : ''}
 Setze [BILD_N] Platzhalter an einer inhaltlich passenden Stelle im Text ein.
 Der Platzhalter steht ALLEIN in einer eigenen Zeile zwischen zwei Absätzen.
 Nicht in einem Satz, nicht am Ende nach den Hashtags.
+Schreibe ihn EXAKT in dieser Form: [BILD_1]. Keine Varianten wie [Bild 1], BILD 1 oder (Bild 1).
 Platz-Beschreibungen sind kurz – maximal 1-2 Platzhalter wenn sie wirklich passen.
 Wenn kein Platzhalter passt: weglassen.` : ''}
 

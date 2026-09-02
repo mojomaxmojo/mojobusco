@@ -135,7 +135,11 @@ router.post('/api/generate-article', (req, res, next) => {
     // UNABHÄNGIG vom Token-Budget – damit Bild-Verteilung stabil bleibt,
     // auch wenn das Token-Budget später nochmal angepasst wird
     const targetWordsMid = articleLength === 'short' ? 750 : articleLength === 'medium' ? 1500 : 2500
-    const placementZones = computePlacementZones(targetWordsMid, imageObjects.length)
+    // Zonen NUR über Bilder mit öffentlicher URL – Titelbilder (url: null)
+    // kriegen keinen [BILD_N] Platzhalter und damit auch kein Wortfenster.
+    // imageIndex entspricht damit direkt der Platzhalter-Nummer ([BILD_1..k]).
+    const urlImageCount = imageObjects.filter(obj => obj.url).length
+    const placementZones = computePlacementZones(targetWordsMid, urlImageCount)
 
     // Wetter-Kontext: Titelbild-GPS + Aufnahmezeitpunkt (EXIF) haben Vorrang —
     // dann wird Stunden-basiert für den Aufnahme-Moment abgefragt statt

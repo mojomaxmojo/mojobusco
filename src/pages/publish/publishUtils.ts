@@ -142,28 +142,53 @@ export interface UploadProgress {
 
 /**
  * resolveBildPlaceholders — Ersetzt [BILD_N] Platzhalter im KI-Text durch Markdown-Bilder
+ *
+ * Nummerierung: Nur Bilder MIT URL zählen – [BILD_1..k] durchgehend
+ * (identisch zur Nummerierung im Prompt). Titelbilder (url: null) haben
+ * keinen Platzhalter und dürfen den Nummernraum nicht verschieben.
+ *
+ * Robustheit:
+ * - Tolerantes Matching für Modell-Varianten: [ BILD_1 ], [Bild 1],
+ *   [bild-2], **[BILD_3]** etc.
+ * - Cleanup-Pass entfernt übrige Platzhalter-Artefakte (z. B. für
+ *   URL-lose Bilder oder Doppel-Nennungen) – damit nie Literaltext
+ *   wie "[BILD_1]" im publizierten Artikel landet.
  */
+
+/** Toleranter Regex für einen konkreten Platzhalter [BILD_N] (erste Fundstelle) */
+const bildPlaceholderRegex = (num: number): RegExp =>
+  new RegExp(`\\*{0,2}\\[\\s*BILD[\\s_-]*${num}\\s*\\]\\*{0,2}`, 'i');
+
+/** Übrige Platzhalter-Artefakte (eckige UND runde Klammern) */
+const LEFTOVER_PLACEHOLDER_REGEX = /\*{0,2}[([]\s*BILD[\s_-]*\d+\s*[)\]]\*{0,2}/gi;
+
 export function resolveBildPlaceholders(
   text: string,
   imageObjects: Array<{ url: string | null; description: string; alt?: string; caption?: string }>
 ): string {
   let result = text;
+  // WICHTIG: erst filtern, dann nummerieren – [BILD_1] ist das erste Bild MIT URL
   const urlImages = imageObjects
-    .map((img, i) => ({ ...img, num: i + 1 }))
-    .filter(img => img.url !== null);
+    .filter(img => img.url !== null)
+    .map((img, i) => ({ ...img, num: i + 1 }));
   const orphaned: string[] = [];
 
   for (const img of urlImages) {
-    const placeholder = `[BILD_${img.num}]`;
     const altText = (img.alt || img.description || '').replace(/[[\]]/g, '').slice(0, 200);
     const captionLine = img.caption ? `\n<!--caption:${img.caption.replace(/-->/g, '')}-->` : '';
     const markdownImg = `\n\n![${altText}](${img.url})${captionLine}\n\n`;
+    const placeholder = `[BILD_${img.num}]`;
     if (result.includes(placeholder)) {
       result = result.replace(placeholder, markdownImg);
+    } else if (bildPlaceholderRegex(img.num).test(result)) {
+      result = result.replace(bildPlaceholderRegex(img.num), markdownImg);
     } else {
       orphaned.push(`![${altText}](${img.url})${captionLine}`);
     }
   }
+
+  // Cleanup: übrige Platzhalter-Artefakte entfernen – nie Literaltext publizieren
+  result = result.replace(LEFTOVER_PLACEHOLDER_REGEX, '');
 
   if (orphaned.length > 0) {
     const lines = result.split('\n');
@@ -177,6 +202,9 @@ export function resolveBildPlaceholders(
       result = result.trimEnd() + '\n\n' + orphaned.join('\n\n');
     }
   }
+
+  // Durch Ersetzen/Cleanup entstandene Leerzeilen-Bündel glätten
+  result = result.replace(/\n{3,}/g, '\n\n');
 
   return result;
 }
