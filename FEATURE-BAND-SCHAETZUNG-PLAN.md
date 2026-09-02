@@ -280,4 +280,6 @@ Symbol gegen die Export-Liste der Quelldatei prüfen. Zweiter Befund im
 ersten Live-Run: Topic 1 bekam kein Band, weil Flash das Keyword in Variante
 echo'te → Matching jetzt über `normKey()` (Diakritika/Whitespace-normalisiert,
 gespeichert wird das Original) + Diagnose-Log „X Bänder akzeptiert, Y ohne
-Band: …" im journalctl.
+Band: …" im journalctl. Token-Overlap-Fallback (Freigabe „JA", Muster
+matchGscQuery, ≥ BAND_TOKEN_MATCH_THRESHOLD, Default 0,5) rettet zusätzlich
+gekürzte/variierte Echos („benagil höhle" für „benagil höhle armação de pera").

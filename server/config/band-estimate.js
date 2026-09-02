@@ -34,6 +34,11 @@ function envInt(name, fallback, { min = 1, max = 100000 } = {}) {
   return Number.isFinite(raw) && raw >= min && raw <= max ? raw : fallback
 }
 
+function envFloat(name, fallback, { min, max } = {}) {
+  const raw = parseFloat(process.env[name] || '')
+  return Number.isFinite(raw) && raw >= min && raw <= max ? raw : fallback
+}
+
 /**
  * Zahlen-Raster: Nur diese Werte sind gültige Band-Grenzen („low"/„high").
  * Verhindert Pseudo-Präzision wie „1.347/Monat" — Freigabe-Punkt 1.
@@ -68,6 +73,15 @@ export const PUBLISH_WEEKS_BEFORE = [6, 8]
 
 /** Deutsche Monatskürzel (Index 0 = Januar). */
 export const MONATE = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez']
+
+/**
+ * Token-Overlap-Fallback (Freigabe 2026-09-02 „JA"): Flash echo't Keywords
+ * teils gekürzt/variiert („benagil höhle" statt „benagil höhle armação de
+ * pera") — dann matcht der Bestwert über Token-Überlappung, Muster
+ * matchGscQuery (report-assistant.js). 0,5 = die Hälfte der Echo-Tokens
+ * (Länge > 2) muss im Request stecken. Exakter normKey-Match hat Vorrang.
+ */
+export const BAND_TOKEN_MATCH_THRESHOLD = envFloat('BAND_TOKEN_MATCH_THRESHOLD', 0.5, { min: 0.3, max: 0.9 })
 
 /** Env-gestützte Laufzeit-Konfiguration. */
 export const BAND_CONFIG = {

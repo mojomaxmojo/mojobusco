@@ -37,6 +37,7 @@ import {
   SAISON_TROUGH_BELOW,
   PUBLISH_WEEKS_BEFORE,
   MONATE,
+  BAND_TOKEN_MATCH_THRESHOLD,
   BAND_CONFIG
 } from '../config/band-estimate.js'
 
@@ -235,16 +236,40 @@ function normKey(kw) {
 }
 
 /**
+ * Token-Overlap-Fallback (Freigabe „JA", Muster matchGscQuery): Flash kürzt/
+ * variiert Keywords teils — „benagil höhle" für „benagil höhle armação de
+ * pera". Match, wenn ≥ BAND_TOKEN_MATCH_THRESHOLD der Echo-Tokens (nach
+ * normKey, Länge > 2) im angefragten Keyword stecken. Bestwert gewinnt,
+ * Gleichstand → frühere Reihenfolge (deterministisch).
+ */
+function findTokenOverlapMatch(echoed, requestedMap) {
+  const echoTokens = normKey(echoed).split(/\s+/).filter(t => t.length > 2)
+  if (echoTokens.length === 0) return null
+  let best = null
+  let bestScore = 0
+  for (const original of requestedMap.values()) {
+    const requestTokens = new Set(normKey(original).split(/\s+/).filter(t => t.length > 2))
+    let overlap = 0
+    for (const t of echoTokens) {
+      if (requestTokens.has(t)) overlap += 1
+    }
+    const score = overlap / echoTokens.length
+    if (score > bestScore) {
+      bestScore = score
+      best = original
+    }
+  }
+  return bestScore >= BAND_TOKEN_MATCH_THRESHOLD ? best : null
+}
+
+/**
  * Validiert EIN LLM-Element gegen Raster/Spread/Stufe/Saison.
- * requestedMap: normKey → original angefragtes Keyword. Das Echo matcht
- * über normKey; GESPEICHERT wird immer das Original (Cache-Key-Konsistenz).
+ * originalKeyword = bereits aufgelöstes Original (collectValidBands matcht
+ * exakt via normKey, sonst Token-Overlap-Fallback).
  * Rückgabe: fertiger Band-Eintrag oder null (Verstoß → Zeile degradiert).
  */
-function validateBandItem(item, requestedMap, nowIso) {
-  if (!item || typeof item !== 'object') return null
-  const echoed = String(item.keyword || '').trim().toLowerCase()
-  const original = echoed ? requestedMap.get(normKey(echoed)) : null
-  if (!original) return null
+function validateBandItem(item, originalKeyword, nowIso) {
+  if (!item || typeof item !== 'object' || !originalKeyword) return null
 
   const low = Number(item.low)
   const high = Number(item.high)
@@ -263,7 +288,7 @@ function validateBandItem(item, requestedMap, nowIso) {
 
   const stufe = deriveStufe(low, high)
   return {
-    keyword: original, // Original (mit Diakritika) — nicht das Echo
+    keyword: originalKeyword, // Original (mit Diakritika) — nicht das Echo
     low,
     high,
     stufe: stufe.key,
@@ -336,7 +361,7 @@ export async function getBandEstimates(keywords) {
   // normKey → Original-Keyword: Flash echo't Keywords teils in Variante
   // (Diakritika/Wortstellung); gespeichert wird immer das Original.
   const requestedMap = new Map(toEstimate.map(kw => [normKey(kw), kw]))
-  let accepted = 0
+  let stats = { accepted: 0, viaFallback: 0 }
   try {
     const prompt = buildBandEstimatePrompt(toEstimate)
     const raw = await generateWithModel(prompt, BAND_CONFIG.modelTier, 'mojobus', {
@@ -344,26 +369,27 @@ export async function getBandEstimates(keywords) {
       maxTokens: BAND_CONFIG.maxTokens,
       timeout: BAND_CONFIG.timeout
     })
-    accepted = collectValidBands(raw, requestedMap, map, nowIso)
+    stats = collectValidBands(raw, requestedMap, map, nowIso)
 
     // Plan §9: genau 1 Retry, wenn der erste Versuch nichts Valides lieferte
-    if (accepted === 0) {
+    if (stats.accepted === 0) {
       const rawRetry = await generateWithModel(prompt, BAND_CONFIG.modelTier, 'mojobus', {
         temperature: BAND_CONFIG.temperature,
         maxTokens: BAND_CONFIG.maxTokens,
         timeout: BAND_CONFIG.timeout
       })
-      accepted = collectValidBands(rawRetry, requestedMap, map, nowIso)
+      stats = collectValidBands(rawRetry, requestedMap, map, nowIso)
     }
   } catch (error) {
     console.warn('[BandSchätzung] Flash-Aufruf fehlgeschlagen:', error.message)
     return { map, ran: true, skipped: 'error', cachedCount }
   }
+  const accepted = stats.accepted
 
   // Diagnose: welche angefragten Keywords KEIN Band bekamen (weil Flash sie
   // weggelassen/ungültig geschätzt hat) — sichtbar im Log, nicht in der UI
   const ohneBand = [...requestedMap.values()].filter(kw => !map.has(kw))
-  console.log(`[BandSchätzung] ${accepted} Bänder akzeptiert, ${ohneBand.length} ohne Band${ohneBand.length > 0 ? `: ${ohneBand.join(' | ')}` : ''}`)
+  console.log(`[BandSchätzung] ${accepted} Bänder akzeptiert (${stats.viaFallback} via Token-Overlap), ${ohneBand.length} ohne Band${ohneBand.length > 0 ? `: ${ohneBand.join(' | ')}` : ''}`)
 
   // Nur tatsächlich neue Einträge persistieren (Cache-Treffer stehen schon drin)
   if (accepted > 0) {
@@ -378,20 +404,37 @@ export async function getBandEstimates(keywords) {
   return { map, ran: true, skipped: null, cachedCount }
 }
 
-/** Validiert die LLM-Antwort und legt gültige Bänder in die Map. */
+/**
+ * Validiert die LLM-Antwort und legt gültige Bänder in die Map.
+ * Keyword-Auflösung: exakt über normKey, sonst Token-Overlap-Fallback.
+ * @returns {{ accepted: number, viaFallback: number }}
+ */
 function collectValidBands(raw, requestedMap, map, nowIso) {
   const items = extractJsonArray(raw)
-  if (!items) return 0
+  if (!items) return { accepted: 0, viaFallback: 0 }
   let accepted = 0
+  let viaFallback = 0
   for (const item of items) {
-    const entry = validateBandItem(item, requestedMap, nowIso)
+    if (!item || typeof item !== 'object') continue
+    const echoed = String(item.keyword || '').trim().toLowerCase()
+    if (!echoed) continue
+    // 1) Exakter normKey-Match, 2) Token-Overlap-Fallback (Freigabe „JA")
+    let original = requestedMap.get(normKey(echoed))
+    let matchedVia = 'exact'
+    if (!original) {
+      original = findTokenOverlapMatch(echoed, requestedMap)
+      matchedVia = 'token-overlap'
+    }
+    if (!original) continue
+    const entry = validateBandItem(item, original, nowIso)
     if (entry && !map.has(entry.keyword)) {
       map.set(entry.keyword, entry)
       accepted += 1
+      if (matchedVia === 'token-overlap') viaFallback += 1
     }
   }
   if (accepted === 0) {
     console.warn('[BandSchätzung] Antwort enthielt kein gültiges Band (Raster/Spread/Saison-Verstöße)')
   }
-  return accepted
+  return { accepted, viaFallback }
 }
