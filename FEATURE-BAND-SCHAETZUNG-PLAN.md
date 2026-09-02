@@ -262,7 +262,10 @@ node --check server/services/report-assistant.js
 node --check server/prompts/assistant-prompts.js
 # Link-Check — fängt Import/Export-Mismatches, die node --check ÜBERSIEHT
 # (Incident 2026-09-02: BAND_CONFIG aus Service statt Config importiert →
-# Crash-Loop, Restart-Counter 39):
+# Crash-Loop, Restart-Counter 39). IM DEPLOYTEN Verzeichnis ausführen —
+# im Git-Checkout kann node_modules unvollständig sein („Cannot find
+# package 'form-data'" = Env-Artefakt, kein Code-Fehler):
+cd /home/nginx/domains/mojobus.co/public
 node -e "import('./server/services/report-assistant.js').then(()=>{console.log('LINK OK');process.exit(0)}).catch(e=>{console.error('LINK FAIL:',e.message);process.exit(1)})"
 systemctl restart ai-api
 # Smoke-Test (refresh=1 umgeht den 30-Tage-Topics-Cache):
@@ -273,4 +276,8 @@ curl -s "http://127.0.0.1:3002/api/assistant/topic-ideas?seed=Armacao%20de%20Per
 report-assistant.js holte `BAND_CONFIG` aus dem Service-Modul statt der Config.
 Fix: Import getrennt (`getBandEstimates`… aus Service, `BAND_CONFIG` aus
 `../config/band-estimate.js`). Seitdem Querscan-Pflicht: jedes neue Import-
-Symbol gegen die Export-Liste der Quelldatei prüfen.
+Symbol gegen die Export-Liste der Quelldatei prüfen. Zweiter Befund im
+ersten Live-Run: Topic 1 bekam kein Band, weil Flash das Keyword in Variante
+echo'te → Matching jetzt über `normKey()` (Diakritika/Whitespace-normalisiert,
+gespeichert wird das Original) + Diagnose-Log „X Bänder akzeptiert, Y ohne
+Band: …" im journalctl.

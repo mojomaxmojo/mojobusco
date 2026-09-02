@@ -150,7 +150,7 @@ Regeln (STRIKT):
 - high ist maximal low × 3 — schätze nie enger, als du es belegen kannst.
 - saison = 12 Multiplikatoren (Januar bis Dezember), Werte zwischen 0.3 und 3.0, Durchschnitt etwa 1.0. Bedeutung: 1.0 = durchschnittlicher Monat, 2.0 = doppelt so viel Suche wie im Durchschnitt.
 - Reise-Keywords: der Planungs-Peak liegt VOR der Reisesaison (Sommerurlaub wird meist Jan–Apr gesucht). "Wetter"-Keywords peaken in Planungszeit UND Hochsaison. Überwinterungs-Keywords peaken im Sommer/Herbst (Planung des Winteraufenthalts).
-- Kennst du ein Keyword nicht oder wirkt es sehr speziell: konservativ schätzen (low 20, high 100).
+- Kennst du ein Keyword nicht oder wirkt es sehr speziell: konservativ schätzen (low 20, high 50).
 - NIE exakte Punktwerte erfinden. Nie behaupten, die Zahlen wären gemessen. Deine Bänder sind Schätzungen.
 
 JSON-Array:`

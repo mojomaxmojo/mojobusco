@@ -219,13 +219,32 @@ function derivePublishWindow(peakIndices) {
 }
 
 /**
+ * Normalisierungs-Key für das Keyword-Matching: lowercase, Diakritika
+ * entfernt (ä/ã/ê → a), Whitespace kollabiert. Flash echo't Keywords
+ * manchmal in Variante („armacao de pera …" statt „armação de pêra …") —
+ * ohne Normalisierung fliegt das Band sonst zu Unrecht weg (Incident
+ * 2026-09-02: 1. Topic ohne Band trotz gültiger Antwort).
+ */
+function normKey(kw) {
+  return String(kw || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+/**
  * Validiert EIN LLM-Element gegen Raster/Spread/Stufe/Saison.
+ * requestedMap: normKey → original angefragtes Keyword. Das Echo matcht
+ * über normKey; GESPEICHERT wird immer das Original (Cache-Key-Konsistenz).
  * Rückgabe: fertiger Band-Eintrag oder null (Verstoß → Zeile degradiert).
  */
-function validateBandItem(item, requestedSet, nowIso) {
+function validateBandItem(item, requestedMap, nowIso) {
   if (!item || typeof item !== 'object') return null
-  const keyword = String(item.keyword || '').trim().toLowerCase()
-  if (!keyword || !requestedSet.has(keyword)) return null
+  const echoed = String(item.keyword || '').trim().toLowerCase()
+  const original = echoed ? requestedMap.get(normKey(echoed)) : null
+  if (!original) return null
 
   const low = Number(item.low)
   const high = Number(item.high)
@@ -244,7 +263,7 @@ function validateBandItem(item, requestedSet, nowIso) {
 
   const stufe = deriveStufe(low, high)
   return {
-    keyword,
+    keyword: original, // Original (mit Diakritika) — nicht das Echo
     low,
     high,
     stufe: stufe.key,
@@ -314,7 +333,9 @@ export async function getBandEstimates(keywords) {
     return { map, ran: false, skipped: 'rate-limit', cachedCount }
   }
 
-  const requestedSet = new Set(toEstimate)
+  // normKey → Original-Keyword: Flash echo't Keywords teils in Variante
+  // (Diakritika/Wortstellung); gespeichert wird immer das Original.
+  const requestedMap = new Map(toEstimate.map(kw => [normKey(kw), kw]))
   let accepted = 0
   try {
     const prompt = buildBandEstimatePrompt(toEstimate)
@@ -323,7 +344,7 @@ export async function getBandEstimates(keywords) {
       maxTokens: BAND_CONFIG.maxTokens,
       timeout: BAND_CONFIG.timeout
     })
-    accepted = collectValidBands(raw, requestedSet, map, nowIso)
+    accepted = collectValidBands(raw, requestedMap, map, nowIso)
 
     // Plan §9: genau 1 Retry, wenn der erste Versuch nichts Valides lieferte
     if (accepted === 0) {
@@ -332,12 +353,17 @@ export async function getBandEstimates(keywords) {
         maxTokens: BAND_CONFIG.maxTokens,
         timeout: BAND_CONFIG.timeout
       })
-      accepted = collectValidBands(rawRetry, requestedSet, map, nowIso)
+      accepted = collectValidBands(rawRetry, requestedMap, map, nowIso)
     }
   } catch (error) {
     console.warn('[BandSchätzung] Flash-Aufruf fehlgeschlagen:', error.message)
     return { map, ran: true, skipped: 'error', cachedCount }
   }
+
+  // Diagnose: welche angefragten Keywords KEIN Band bekamen (weil Flash sie
+  // weggelassen/ungültig geschätzt hat) — sichtbar im Log, nicht in der UI
+  const ohneBand = [...requestedMap.values()].filter(kw => !map.has(kw))
+  console.log(`[BandSchätzung] ${accepted} Bänder akzeptiert, ${ohneBand.length} ohne Band${ohneBand.length > 0 ? `: ${ohneBand.join(' | ')}` : ''}`)
 
   // Nur tatsächlich neue Einträge persistieren (Cache-Treffer stehen schon drin)
   if (accepted > 0) {
@@ -353,12 +379,12 @@ export async function getBandEstimates(keywords) {
 }
 
 /** Validiert die LLM-Antwort und legt gültige Bänder in die Map. */
-function collectValidBands(raw, requestedSet, map, nowIso) {
+function collectValidBands(raw, requestedMap, map, nowIso) {
   const items = extractJsonArray(raw)
   if (!items) return 0
   let accepted = 0
   for (const item of items) {
-    const entry = validateBandItem(item, requestedSet, nowIso)
+    const entry = validateBandItem(item, requestedMap, nowIso)
     if (entry && !map.has(entry.keyword)) {
       map.set(entry.keyword, entry)
       accepted += 1

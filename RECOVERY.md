@@ -87,8 +87,11 @@ Funktionskörper (löschen + neu schreiben) · Fusion-Scan:
 ```bash
 # 1) Syntax (parse-only):
 node --check server/services/report-assistant.js
-# 2) Link-Check (fängt Fehlerklasse 5 — Import/Export-Mismatch):
-cd "$(dirname server.js 2>/dev/null || echo .)" # server.js-Verzeichnis bzw. Repo-Root:
+# 2) Link-Check (fängt Fehlerklasse 5 — Import/Export-Mismatch) —
+#    IM DEPLOYTEN Verzeichnis (node_modules vollständig)! Im Git-Checkout
+#    (/root/deploy-git/mojobusco) kann er mit „Cannot find package …"
+#    scheitern, obwohl der Code ok ist (Env-Artefakt, 2026-09-02):
+cd /home/nginx/domains/mojobus.co/public
 node -e "import('./server/services/report-assistant.js').then(()=>{console.log('LINK OK');process.exit(0)}).catch(e=>{console.error('LINK FAIL:',e.message);process.exit(1)})"
 ```
 
