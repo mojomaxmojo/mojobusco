@@ -10,7 +10,7 @@ Verzeichniss /projects/mojobusco/
 
 | Pfad | Grund |
 |------|-------|
-| `src/config/prompts/` (**außer** `tiktok.js`) | KI-Prompts laufen im Browser (Vite) **und** Node.js (`ai-api`). Änderung zerstört Content-Generierung. |
+| `src/config/prompts/`  | KI-Prompts laufen im Browser (Vite) **und** Node.js (`ai-api`). Änderung zerstört Content-Generierung. |
 | `server/` ohne expliziten Auftrag | Systemd-Service `ai-api` (Port 3002). Nur mit separatem Deploy ändern. |
 
 ---
