@@ -60,7 +60,7 @@
    sitemap (sitemap.xml-Vergleich, `SITEMAP_SKIP_COLLAPSE_GUARD=1`) · feed
    (`FEED_SKIP_COLLAPSE_GUARD=1`)
 
-## 4. Fehlerklassen (4 Crashes heute — MUSTER kennen!)
+## 4. Fehlerklassen (5 Crashes — MUSTER kennen!)
 
 1. `headDescription` undefined (renderPlaceHtml) — neue Var genutzt, alte nicht
 2. `router.get(...)` in Kommentar fusioniert („kosmetischer" Edit) — Zeile 125
@@ -69,13 +69,28 @@
    `let gsc`-Variable überschattet — Referenz VOR der inneren Deklaration →
    „Cannot access 'gsc' before initialization" (getTopicSuggestions).
    Regel: Innere Variablen NICHT wie äußere benennen (gscData statt gsc).
+5. **Named-Import auf nicht exportiertes Symbol** (2026-09-02): report-assistant.js
+   importierte `BAND_CONFIG` aus `services/band-estimate.js` — dort NICHT
+   re-exportiert (lebt in `config/band-estimate.js`) → ESM-Link-Fehler beim
+   START → Crash-Loop („does not provide an export named X").
+   ⚠ `node --check` fängt das NICHT (nur Parse, kein Module-Link) — erst der
+   echte Import tut es. Regel: Bei jedem neuen Import gegenprüfen, ob die
+   Quelldatei das Symbol exportiert (grep-Querscan, kein Kopf-Wissen).
 
 **GRUND**: `build_project` (esbuild) prüft **KEINE** `server/*.js` und `scripts/*.js`,
 auch keine undefined-Identifier im Frontend-Runtime-Pfad.
 **Prozess**: Nach Server-Edits Datei VOLLSTÄNDIG lesen · keine Replacement-Edits über
 Funktionskörper (löschen + neu schreiben) · Fusion-Scan:
 `grep -rn '^\s*//.*(router\.|app\.use|const |await )' server/ scripts/`
-**Empfehlung ins Deploy**: `node --check` über alle server/**/*.js vor `systemctl restart ai-api`.
+**Empfehlung ins Deploy (vor `systemctl restart ai-api`)**:
+
+```bash
+# 1) Syntax (parse-only):
+node --check server/services/report-assistant.js
+# 2) Link-Check (fängt Fehlerklasse 5 — Import/Export-Mismatch):
+cd "$(dirname server.js 2>/dev/null || echo .)" # server.js-Verzeichnis bzw. Repo-Root:
+node -e "import('./server/services/report-assistant.js').then(()=>{console.log('LINK OK');process.exit(0)}).catch(e=>{console.error('LINK FAIL:',e.message);process.exit(1)})"
+```
 
 ## 5. Diagnose-Befehle (VPS)
 

@@ -21,7 +21,11 @@ import { getCached, setCached } from './assistant-store.js'
 import { findMomentsForLocation, getOpenThreadsWithIds } from './continuity-store.js'
 import { getStrikingDistanceQueries, getPageMetrics, getQueriesContaining } from './gsc-client.js'
 import { isDataForSEOConfigured, getKeywordData } from './dataforseo-client.js'
-import { getBandEstimates, isBandEstimateEnabled, getBandModelLabel, BAND_CONFIG } from './band-estimate.js'
+// BAND_CONFIG kommt aus der CONFIG-Datei (Single Source of Truth), NICHT aus
+// dem Service — Named-Import auf ein nicht exportiertes Symbol = ESM-Link-
+// Fehler beim Start (Crash-Loop, s. RECOVERY.md §4 Fehlerklasse 5).
+import { getBandEstimates, isBandEstimateEnabled, getBandModelLabel } from './band-estimate.js'
+import { BAND_CONFIG } from '../config/band-estimate.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)

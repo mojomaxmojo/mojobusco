@@ -252,7 +252,7 @@ möglich über Config steuern (`src/config/` Frontend, `server/config/` Server).
 **Bewusst NICHT gebaut (wie freigegeben):** DataForSEO-Button/Präzisionspfad,
 Kalibrierungs-Run, JSON-Schema-Library (strenges Hand-Parsing reicht).
 
-**Deploy-Hinweis (RECOVERY.md §4 Prozess):**
+**Deploy-Hinweis (RECOVERY.md §4 Prozess, aktualisiert nach Fehlerklasse 5):**
 
 ```bash
 # auf dem VPS VOR dem Restart (esbuild prüft server/*.js NICHT):
@@ -260,7 +260,17 @@ node --check server/config/band-estimate.js
 node --check server/services/band-estimate.js
 node --check server/services/report-assistant.js
 node --check server/prompts/assistant-prompts.js
+# Link-Check — fängt Import/Export-Mismatches, die node --check ÜBERSIEHT
+# (Incident 2026-09-02: BAND_CONFIG aus Service statt Config importiert →
+# Crash-Loop, Restart-Counter 39):
+node -e "import('./server/services/report-assistant.js').then(()=>{console.log('LINK OK');process.exit(0)}).catch(e=>{console.error('LINK FAIL:',e.message);process.exit(1)})"
 systemctl restart ai-api
-# Smoke-Test:
-curl -s "http://127.0.0.1:3002/api/assistant/topic-ideas?seed=Armacao%20de%20Pera" | head -c 600
+# Smoke-Test (refresh=1 umgeht den 30-Tage-Topics-Cache):
+curl -s "http://127.0.0.1:3002/api/assistant/topic-ideas?seed=Armacao%20de%20Pera&refresh=1" | head -c 600
 ```
+
+**Incident-Note (2026-09-02):** Erster Deploy crashte (Fehlerklasse 5) —
+report-assistant.js holte `BAND_CONFIG` aus dem Service-Modul statt der Config.
+Fix: Import getrennt (`getBandEstimates`… aus Service, `BAND_CONFIG` aus
+`../config/band-estimate.js`). Seitdem Querscan-Pflicht: jedes neue Import-
+Symbol gegen die Export-Liste der Quelldatei prüfen.
