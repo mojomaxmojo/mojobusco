@@ -43,11 +43,18 @@
 
 ## Optimale Artikellängen (Auswahl „Artikellänge" im Formular)
 
-| Stufe | Wörter | Für wen? |
-|---|---|---|
-| **Kurz** | 500–1.000 | Erlebnis-Artikel, Tagebuch-Momente — MojoBus-Kern, authentisch > lang |
-| **Mittel** | 1.000–2.000 | Standard-Guides, Vergleiche, Kosten, Mietwagen, Überwintern |
-| **Lang** | 2.000–3.000 | Pillar-Artikel, Listicles („7 Strände"), große Reiseführer |
+| Stufe | Wörter | Bilder | Für wen? |
+|---|---|---|---|
+| **Kurz** | 500–1.000 | 2–4 | Erlebnis-Artikel, Tagebuch-Momente — MojoBus-Kern, authentisch > lang |
+| **Mittel** | 1.000–2.000 | 4–8 | Standard-Guides, Vergleiche, Kosten, Mietwagen, Überwintern |
+| **Lang** | 2.000–3.000 | 8–12 | Pillar-Artikel, Listicles („7 Strände") — 1 Bild pro Listen-Item |
+
+**Bild-Regeln:**
+1. Titelbild = GPS + Aufnahmezeit (Wetter/Karte) — EXIF intakt lassen
+2. Echte Vor-Ort-Fotos schlagen Stock (Vision-Analyse liest sie als Kontext)
+3. Obergrenze ~10–12: Slideshow nutzt alle Editor-Bilder, Ladezeit mobil
+4. Bilder in den zugehörigen Abschnitt, nicht alle nach oben
+5. Alt-Text der Vision-KI kurz gegenlesen — 30 s pro Bild
 
 **Prinzipien:**
 1. Länge folgt der Suchintention, nicht einem Ranking-Mythos
