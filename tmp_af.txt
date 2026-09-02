@@ -32,7 +32,7 @@ import { MilkdownEditor } from "@/components/MilkdownEditor";
 import { RemotionVideoBlock } from "@/components/RemotionVideoBlock";
 import { SlideshowBlock } from "@/components/SlideshowBlock";
 import { Progress } from "@/components/ui/progress";
-import { Upload, UploadCloud, ImageIcon, Video, Music, File as FileIcon, Camera, MapPin, Calendar, Tag, Battery, Sun, Wrench, Hammer, Cpu, Mountain, Lightbulb, Dog, Trees, Droplets, Waves, Eye, Loader2, CheckCircle, Route, Sparkles, FileText, MessageSquare, Map, Info } from "@/lib/icons";
+import { Upload, UploadCloud, ImageIcon, Video, Music, File as FileIcon, Camera, MapPin, Calendar, Tag, Battery, Sun, Wrench, Hammer, Cpu, Mountain, Lightbulb, Dog, Trees, Droplets, Waves, Eye, Loader2, CheckCircle, Route, Sparkles, FileText, MessageSquare, Map } from "@/lib/icons";
 import { extractGpsFromImage, extractCaptureTime, formatCoordinatesSimple, reverseGeocode, mapCountryCode, type GpsData, type GpsStatus, type LocationData } from "@/lib/gpsExtraction";
 import { CONTENT_CATEGORIES, createRequiredTags, getOptionalTags, getTabConfig } from "@/config/contentCategories";
 import { resolveBildPlaceholders } from "./publishUtils";
@@ -111,8 +111,6 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
   const [experiencesConfirmed, setExperiencesConfirmed] = useState(true);
   // Media-Library-Dialog (Titelbild aus eigener Library wählen)
   const [showMediaLibrary, setShowMediaLibrary] = useState(false);
-  // Info-i am Generieren-Button: erklärt, welche Inputs in den Text fließen
-  const [showGenerationInfo, setShowGenerationInfo] = useState(false);
   // Aktuell geladener Entwurf (DraftsOverview)
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
   const [currentDraftStatus, setCurrentDraftStatus] = useState<'draft' | 'published' | null>(null);
@@ -1799,44 +1797,6 @@ Schreibe deinen Artikel hier...
             <p className="text-xs text-muted-foreground">
               Stufen sind zentral in src/config/ai-models.js konfigurierbar.
             </p>
-          </div>
-
-          {/* Info-i: Was ruft den Text auf? (Ehrlichkeits-Gate sichtbar machen) */}
-          <div className="mt-2">
-            <button
-              type="button"
-              onClick={() => setShowGenerationInfo(v => !v)}
-              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-              title="Was fließt in die Text-Generierung ein?"
-            >
-              <Info className="h-3.5 w-3.5" />
-              Was fließt in den Text ein?
-            </button>
-            {showGenerationInfo && (
-              <div className="mt-2 rounded-md border bg-muted/40 p-3 space-y-1.5 text-xs text-muted-foreground">
-                <p>
-                  <strong className="text-foreground">FAKTEN</strong> (Recherche-Block im Assistenten):
-                  Belegbares mit Quellen — Zahlen fließen NUR von hier ein.
-                </p>
-                <p>
-                  <strong className="text-foreground">ERLEBNISSE</strong> (Erlebnis-Notizen + Momente aus der Brand DNA):
-                  Was du wirklich erlebt hast — macht den Artikel authentisch.
-                </p>
-                <p>
-                  <strong className="text-foreground">Editor-Text</strong>: Deine Roh-Skizze oder Stimmung —
-                  ein fertiger Artikel ist NICHT nötig.
-                </p>
-                <p>
-                  <strong className="text-foreground">Bilder</strong> (Titelbild + Editor): werden analysiert;
-                  EXIF liefert GPS und Aufnahme-Zeit → echtes Wetter als Kontext.
-                </p>
-                <p>
-                  Die KI schreibt daraus im MojoBus-Stil (1. Person, atmosphärisch) und
-                  erfindet nichts — fehlende Fakten bleiben einfach weg (Ehrlichkeits-Gate).
-                  Ort, Datum, Perspektive, Art der Reise und Länge steuern Tonalität und Umfang.
-                </p>
-              </div>
-            )}
           </div>
 
           <Button
