@@ -2,14 +2,16 @@
  * TopicsWithDemandBlock — „Themen mit Nachfrage“ (Seed-basiert).
  *
  * Seed-Thema eingeben (z. B. „Algarve“) → deutsche Artikel-Themen mit
- * ECHTEN Nachfrage-Daten:
- *   - DataForSEO (wenn DATAFORSEO_LOGIN/PASSWORD gesetzt): Monatsvolumen
- *     + Competition + Saisonalitäts-Peak (12-Monats-Historie)
- *   - sonst GSC: Impressionen/Klicks/Ø-Position (Queries mit Sichtbarkeit)
+ * Nachfrage-Daten in drei Stufen (jede Zeile trägt ihre Quelle —
+ * Ehrlichkeits-Gate):
+ *   - DataForSEO (Opt-in-Checkbox): echte Monatsvolumen + Peak 🔬
+ *   - Band-Schätzung (Default-Pfad): Zahlen-BAND aus festem Raster +
+ *     grobe Saison-Kurve (Sparkline) + Publish-Fenster via Flash-Modell 📊
+ *   - GSC: Impressionen/Klicks/Ø-Position (Queries mit Sichtbarkeit) 🔬
  *   - neue Themen ohne Daten: ehrlich „keine Nachfragedaten“ — keine
  *     erfundenen Zahlen
  *
- * 24h serverseitig gecacht; Rate-Limit-Bucket „ideas“.
+ * 24h serverseitig gecacht; Band-Cache zusätzlich 7 T. (band-estimates.json).
  * Seed folgt dem Formular-Ort solange unangetastet (Dirty-Flag, wie
  * ResearchBlock).
  */
@@ -22,6 +24,7 @@ import { Label } from '@/components/ui/label';
 import { Loader2, TrendingUp, RefreshCw } from 'lucide-react';
 import { useAssistantApi } from './useAssistantApi';
 import { ASSISTANT_CONFIG } from '@/config/assistant';
+import { BAND_STUFE_META } from '@/config/bandEstimate';
 
 const MONATE = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
 
@@ -34,6 +37,16 @@ interface TopicSuggestion {
   peakMonth?: string | null;
   matchedQuery?: string | null;
   gsc?: { impressions: number; clicks: number; position: number };
+  // Band-Schätzung (Default-Pfad ohne DataForSEO) — Zahlen NUR als Band,
+  // saison = 12 Monats-Multiplikatoren (Mittel ≈ 1,0)
+  band_low?: number | null;
+  band_high?: number | null;
+  stufe?: string | null;
+  saison?: number[] | null;
+  saison_peak?: string | null;
+  saison_tief?: string | null;
+  publish_fenster?: string | null;
+  source?: 'dfs' | 'flash-band' | 'gsc' | null;
   hasData: boolean;
 }
 
@@ -41,6 +54,15 @@ interface TopicIdeasResponse {
   seed: string;
   dfs: boolean;
   dfsConfigured?: boolean;
+  // Meta zur Band-Schätzung (Badge-Transparenz im Assistenten-Block)
+  band?: {
+    enabled: boolean;
+    model: string;
+    prompt_version?: string;
+    ran?: boolean;
+    skipped?: string | null;
+    cachedCount?: number;
+  };
   topics: TopicSuggestion[];
   gscQueries?: Array<{ query: string; impressions: number; position: number }>;
   note?: string | null;
@@ -58,6 +80,38 @@ function formatPeakMonth(peakMonth: string | null | undefined): string | null {
   const idx = parseInt(m, 10) - 1;
   if (!Number.isFinite(idx) || idx < 0 || idx > 11) return peakMonth;
   return `${MONATE[idx]} ${y || ''}`.trim();
+}
+
+/**
+ * SaisonSparkline — 12 Mini-Balken aus dem saison-Array (Mittel ≈ 1,0).
+ * Höchster Balken = Peak-Monat (hervorgehoben). Tooltip zeigt die
+ * Monatsfaktoren — grobe Schätzung, kein exaktes Diagramm.
+ */
+function SaisonSparkline({ saison }: { saison: number[] }) {
+  if (!Array.isArray(saison) || saison.length !== 12) return null;
+  const max = Math.max(...saison);
+  const min = Math.min(...saison);
+  const range = Math.max(max - min, 0.1);
+  const tooltip = saison.map((v, i) => `${MONATE[i]} ${v.toFixed(1)}`).join(' · ');
+  return (
+    <span
+      className="inline-flex items-end gap-[2px] h-4 ml-2 align-middle"
+      title={`Saison (Faktor je Monat, grob): ${tooltip}`}
+    >
+      {saison.map((v, i) => {
+        const h = 25 + Math.round(((v - min) / range) * 75); // 25–100 %
+        return (
+          <span
+            key={i}
+            className={`inline-block w-[4px] rounded-sm ${
+              v === max ? 'bg-primary' : 'bg-muted-foreground/40'
+            }`}
+            style={{ height: `${h}%` }}
+          />
+        );
+      })}
+    </span>
+  );
 }
 
 export function TopicsWithDemandBlock({ location, onApplyIdea }: TopicsWithDemandBlockProps) {
@@ -103,6 +157,17 @@ export function TopicsWithDemandBlock({ location, onApplyIdea }: TopicsWithDeman
     if (typeof t.volume === 'number' && t.volume > 0) {
       const peak = formatPeakMonth(t.peakMonth);
       return `${t.volume.toLocaleString('de-DE')}/mo (DataForSEO)${peak ? ` · Peak: ${peak}` : ''}${via}`;
+    }
+    // Band-Schätzung: Zahlen NUR als Band aus dem Raster + Saison-Hinweis —
+    // bewusst „Schätzung“ im Label (Ehrlichkeits-Gate)
+    if (t.band_low && t.band_high) {
+      const parts = [
+        `${t.band_low.toLocaleString('de-DE')}–${t.band_high.toLocaleString('de-DE')}/Monat`,
+      ];
+      if (t.saison_peak) parts.push(`Peak: ${t.saison_peak}`);
+      if (t.publish_fenster) parts.push(`publizieren: ${t.publish_fenster}`);
+      const stufe = t.stufe ? BAND_STUFE_META[t.stufe]?.label : null;
+      return `${parts.join(' · ')} (Flash-Band${stufe ? `, ${stufe}` : ''} — Schätzung)${via}`;
     }
     if (t.gsc) {
       return `${t.gsc.impressions} Impressionen/28 T. · Ø-Pos. ${t.gsc.position} (GSC)${via}`;
@@ -176,7 +241,14 @@ export function TopicsWithDemandBlock({ location, onApplyIdea }: TopicsWithDeman
 
       {result && (
         <div className="space-y-2">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {result.band?.enabled && (
+              <Badge variant="outline" className="text-xs">
+                📊 Band-Schätzung: {result.band.model}
+                {result.band.skipped === 'rate-limit' ? ' — Tageslimit erreicht (nur Cache)' : ''}
+                {result.band.skipped === 'error' ? ' — Flash-Fehler (nur Cache)' : ''}
+              </Badge>
+            )}
             {result.dfs && (
               <Badge variant="secondary" className="text-xs">Volumina: DataForSEO</Badge>
             )}
@@ -219,6 +291,7 @@ export function TopicsWithDemandBlock({ location, onApplyIdea }: TopicsWithDeman
                   <p className="text-xs text-muted-foreground px-1 mt-0.5">
                     Target: {t.keyword || '—'} · {demandLine(t)}
                     {typeof t.cpc === 'number' && t.cpc > 0 ? ` · CPC ${t.cpc.toFixed(2)} €` : ''}
+                    {t.saison && <SaisonSparkline saison={t.saison} />}
                   </p>
                 </li>
               ))}

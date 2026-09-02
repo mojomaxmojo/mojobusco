@@ -21,6 +21,7 @@ import { getCached, setCached } from './assistant-store.js'
 import { findMomentsForLocation, getOpenThreadsWithIds } from './continuity-store.js'
 import { getStrikingDistanceQueries, getPageMetrics, getQueriesContaining } from './gsc-client.js'
 import { isDataForSEOConfigured, getKeywordData } from './dataforseo-client.js'
+import { getBandEstimates, isBandEstimateEnabled, getBandModelLabel, BAND_CONFIG } from './band-estimate.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -414,13 +415,17 @@ function matchGscQuery(keyword, gscQueries) {
 
 /**
  * „Themen mit Nachfrage“: Aus einem Seed-Thema (z. B. „Algarve“) deutsche
- * Artikel-Themen mit ECHTEN Nachfrage-Daten:
+ * Artikel-Themen mit Nachfrage-Daten:
  *   1) GSC contains-Query → alle Suchanfragen mit dem Seed (Impressionen =
  *      echte Nachfrage, wo mojobus.co sichtbar ist)
  *   2) Mini-LLM → deutsche Themen „Titel | target-keyword“
- *   3) DataForSEO → echte Monatsvolumina + Saisonalität-Peak — NUR auf
- *      expliziten Wunsch (useDfs = Checkbox im Frontend, Standard AUS):
- *      verbraucht Credits. Env-Keys müssen zusätzlich gesetzt sein.
+ *   3) Zahlen — ZWEI Pfade:
+ *      a) DataForSEO: echte Monatsvolumina + Saisonalitäts-Peak — NUR auf
+ *         expliziten Wunsch (useDfs = Checkbox im Frontend, Standard AUS):
+ *         verbraucht Credits. Env-Keys müssen zusätzlich gesetzt sein.
+ *      b) Band-Schätzung (Default): Zahlen-BÄNDER aus festem Raster + grobe
+ *         Saison-Kurve via Flash-Modell — KEINE Punktwerte
+ *         (services/band-estimate.js, FEATURE-BAND-SCHAETZUNG-PLAN.md).
  * Cache: 7 Tage (env: ASSISTANT_TOPICS_CACHE_DAYS) — Suchvolumina ändern
  * sich monatsweise, nicht täglich; schützt auch DFS-Credits. Mit
  * `refresh: true` wird der Cache umgangen (manuelle Frisch-Anfrage).
@@ -471,10 +476,15 @@ export async function getTopicSuggestions({ seed, windowDays = 28, refresh = fal
     topics = [{ title: trimmed, keyword: null }]
   }
 
-  // 3) DataForSEO: echte Monatsvolumina + Peak — NUR wenn der User die
-  // Checkbox aktiviert hat (Standard AUS) UND die Env-Keys gesetzt sind
+  // 3) Zahlen-Anreicherung — ZWEI Pfade:
+  //    a) DataForSEO: echte Monatsvolumina + Peak — NUR auf expliziten Wunsch
+  //       (useDfs = Checkbox im Frontend, Standard AUS): verbraucht Credits.
+  //    b) Band-Schätzung (Default-Pfad): ehrliche Zahlen-BÄNDER aus festem
+  //       Raster + grobe Saison-Kurve via Flash-Modell — KEINE Punktwerte
+  //       (siehe services/band-estimate.js + FEATURE-BAND-SCHAETZUNG-PLAN.md).
   let dfs = false
   let volumes = null
+  let bandResult = null
   if (dfsActive) {
     try {
       const keywords = [...new Set([
@@ -485,6 +495,13 @@ export async function getTopicSuggestions({ seed, windowDays = 28, refresh = fal
       dfs = true
     } catch (error) {
       console.warn('[Assistant] DataForSEO fehlgeschlagen:', error.message)
+    }
+  } else if (isBandEstimateEnabled()) {
+    try {
+      const bandKeywords = topics.map(t => t.keyword).filter(Boolean)
+      bandResult = await getBandEstimates(bandKeywords)
+    } catch (error) {
+      console.warn('[Assistant] Band-Schätzung fehlgeschlagen:', error.message)
     }
   }
 
@@ -511,6 +528,9 @@ export async function getTopicSuggestions({ seed, windowDays = 28, refresh = fal
     const gscData = gq
       ? { impressions: gq.impressions, clicks: gq.clicks, position: gq.position }
       : undefined
+    // Band-Schätzung (nur im Nicht-DFS-Pfad): Band-Daten stammen NIE von GSC
+    // und GSC überschreibt nie das Band — reine Koverzeige im Frontend.
+    const bandData = (!dfsActive && bandResult) ? bandResult.map.get(kw) : undefined
     return {
       ...t,
       volume,
@@ -519,7 +539,19 @@ export async function getTopicSuggestions({ seed, windowDays = 28, refresh = fal
       peakMonth,
       matchedQuery: gq ? gq.query : null,
       gsc: gscData,
-      hasData: volume !== null && volume !== undefined ? true : Boolean(gscData),
+      band_low: bandData?.low ?? null,
+      band_high: bandData?.high ?? null,
+      stufe: bandData?.stufe ?? null,
+      saison: bandData?.saison ?? null,
+      saison_peak: bandData?.saison_peak ?? null,
+      saison_tief: bandData?.saison_tief ?? null,
+      publish_fenster: bandData?.publish_fenster ?? null,
+      source: (volume !== null && volume !== undefined)
+        ? 'dfs'
+        : (bandData ? 'flash-band' : (gscData ? 'gsc' : null)),
+      hasData: volume !== null && volume !== undefined
+        ? true
+        : (Boolean(gscData) || Boolean(bandData)),
     }
   }).sort((a, b) =>
     (b.volume ?? b.gsc?.impressions ?? 0) - (a.volume ?? a.gsc?.impressions ?? 0)
@@ -529,6 +561,16 @@ export async function getTopicSuggestions({ seed, windowDays = 28, refresh = fal
     seed: trimmed,
     dfs,
     dfsConfigured,
+    // Band-Schätzung: Meta fürs Frontend-Badge (Quellen-Transparenz,
+    // Ehrlichkeits-Gate) — enabled false im DFS-Pfad
+    band: {
+      enabled: !dfsActive && isBandEstimateEnabled(),
+      model: getBandModelLabel(),
+      prompt_version: BAND_CONFIG.promptVersion,
+      ran: bandResult?.ran ?? false,
+      skipped: bandResult?.skipped ?? null,
+      cachedCount: bandResult?.cachedCount ?? 0,
+    },
     topics: enriched,
     // Rohe GSC-Queries mit in die Antwort (Transparenz/Debugging — zeigt,
     // was der contains-Filter tatsächlich gefunden hat)

@@ -117,3 +117,41 @@ Regeln:
 - Keine Emojis, keine Dopplungen, keine Erklärungen
 - Gib NUR die Zeilen aus, nichts sonst.`
 }
+
+/**
+ * Band-Schätzung (FEATURE-BAND-SCHAETZUNG-PLAN.md): für gegebene Keywords
+ * ehrliche Suchvolumen-BÄNDER aus einem festen Zahlenraster plus grobe
+ * Saison-Kurve (12 Monats-Multiplikatoren) — als maschinenlesbares JSON.
+ *
+ * Anti-Pseudo-Präzision per Design: low/high dürfen NUR aus dem Raster
+ * (BAND_GRID, siehe server/config/band-estimate.js) stammen, Spread max.
+ * Faktor 3. Punkte-Volumina sind verboten; die Validierung wirft Verstöße
+ * serverseitig weg (degradiert statt erfindet).
+ *
+ * @param {string[]} keywords — bereits normalisiert (lowercase, dedupliziert)
+ * @returns {string}
+ */
+export function buildBandEstimatePrompt(keywords) {
+  const list = (keywords || [])
+    .map((k, i) => `${i + 1}. "${k}"`)
+    .join('\n')
+
+  return `Du bist ein vorsichtiger SEO-Daten-Analyst für die deutschsprachige Google-Suche (Google DE, Zielgruppe: Camper/Vanlifer, die in Deutschland, Österreich und der Schweiz suchen).
+
+Für die folgenden Such-Keywords schätzt du MONATLICHE Suchvolumina als BAND und eine grobe SAISONALITÄT.
+
+Keywords:
+${list}
+
+Regeln (STRIKT):
+- Antworte NUR mit einem JSON-Array. Kein Text davor oder danach, keine Markdown-Codeblöcke, keine Erklärungen.
+- Jedes Element hat EXAKT diese Form: {"keyword": "<Keyword wie oben>", "low": <Zahl>, "high": <Zahl>, "saison": [12 Zahlen]}
+- low und high MÜSSEN exakt aus diesem Raster stammen: 20, 50, 100, 200, 300, 500, 800, 1200, 2000, 3000, 5000, 8000, 12000, 20000, 30000, 50000, 100000
+- high ist maximal low × 3 — schätze nie enger, als du es belegen kannst.
+- saison = 12 Multiplikatoren (Januar bis Dezember), Werte zwischen 0.3 und 3.0, Durchschnitt etwa 1.0. Bedeutung: 1.0 = durchschnittlicher Monat, 2.0 = doppelt so viel Suche wie im Durchschnitt.
+- Reise-Keywords: der Planungs-Peak liegt VOR der Reisesaison (Sommerurlaub wird meist Jan–Apr gesucht). "Wetter"-Keywords peaken in Planungszeit UND Hochsaison. Überwinterungs-Keywords peaken im Sommer/Herbst (Planung des Winteraufenthalts).
+- Kennst du ein Keyword nicht oder wirkt es sehr speziell: konservativ schätzen (low 20, high 100).
+- NIE exakte Punktwerte erfinden. Nie behaupten, die Zahlen wären gemessen. Deine Bänder sind Schätzungen.
+
+JSON-Array:`
+}

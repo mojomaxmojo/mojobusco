@@ -133,3 +133,26 @@ Kanonische URLs · Bot-Rewrites · SEO-Felder im Head · Checkliste · GSC-Ranki
 Ideen-Reset · Fäden ✓ · Momente 🔗 · Wetter (GPS/EXIF/hourly) · Quellen · Titel-Sync ·
 Rate-Limit · Gate in 5 Formularen · Orte-SEO-Panel · Edit-Datenrettung · Autosave ·
 Doppelbericht-Warnung · Ideen 📌/✕ · Pipeline-Trigger alle Typen.
+
+## 9. Band-Schätzung (2026-09-02, Freigabe erteilt — siehe FEATURE-BAND-SCHAETZUNG-PLAN.md §12)
+
+Default-Pfad im Assistenten-Block („Themen mit Nachfrage", `topic-ideas`): statt
+keiner Zahlen liefert ein Flash-Modell **Band-Schätzungen** — low/high NUR aus
+festem Raster (20…100.000, Spread ×3) + Saison als 12er-Array (Mittel ≈ 1,0) +
+Publish-Fenster (6–8 Wochen vor Peak). **Keine Punktwerte** — Verstöße wirft die
+Validierung weg (degradiert statt erfindet, Wetter-Gate-Philosophie).
+
+- Files: `server/config/band-estimate.js` (NEU, alles env-steuerbar) ·
+  `server/services/band-estimate.js` (NEU: Validierung, Cache, 5-Runs/Tag-Counter) ·
+  `server/prompts/assistant-prompts.js` (`buildBandEstimatePrompt`) ·
+  `server/services/report-assistant.js` (`getTopicSuggestions`: DFS-Pfad UNVERÄNDERT,
+  sonst Band-Pfad; Topics-Cache 30 T. deckt Bänder mit ab) ·
+  `src/components/assistant/TopicsWithDemandBlock.tsx` (Band-Zeile + SaisonSparkline
+  + Quellen-Badge) · `src/config/bandEstimate.ts` (NEU: Anzeige-Konstanten)
+- Modell: Tier `test` = **GLM 5.3 Flash** (ai-models.js), env `BAND_MODEL_TIER`
+- Cache: `data/band-estimates.json` (DATA_DIR → VPS-Data-Pfad → Repo), TTL 7 T.,
+  env `BAND_CACHE_TTL_DAYS`; Tageslimit echte Flash-Runs: 5/Tag (`BAND_MAX_RUNS_PER_DAY`),
+  In-Memory im Service (Middleware greift nicht pro Innenschritt)
+- GSC überschreibt NIE das Band (nur Koverzeige); DFS-Checkbox-Verhalten unverändert
+- **Freigegeben/NICHT gebaut:** DataForSEO-Präzisions-Button („keine Änderung"),
+  Kalibrierungs-Run (nein)

@@ -1,9 +1,9 @@
 # FEATURE-BAND-SCHAETZUNG-PLAN.md — Band-Schätzung mit Zahlen + grober Saison-Logik
 
-> **Status: ENTWURF — wartet auf Freigabe.** Kein Code geschrieben.
+> **Status: GEBAUT (2026-09-02).** Freigabe erteilt, alle Rollout-Schritte
+> umgesetzt. Siehe unten § 12 „Freigaben + Umsetzung".
 > Kontext: Ersatz/Alternative zur bewusst nicht gebauten Keywords-Everywhere-API
 > (RECOVERY.md §6) und zur DataForSEO-Vollad-Option (0,10 €/Keyword).
-> Datum: 2026-09-02
 
 ---
 
@@ -206,3 +206,61 @@ DataForSEO nur bei manuellem Klick.
 4. **Rate-Limit:** 5 Runs/Tag ok?
 5. **DataForSEO-Hook:** jetzt als deaktivierter Button mitbauen oder ganz weglassen?
 6. **Kalibrierung:** nach Bau mit ~1,50 € machen — ja/nein?
+
+---
+
+## 12. Freigaben + Umsetzung (2026-09-02)
+
+**Freigaben des Users:**
+
+| Punkt | Entscheidung |
+|---|---|
+| 1 Raster | ✅ ok (N/M/G/R + Raster 20…100.000, Spread ×3) |
+| 2 Saison | ✅ ja (12er-Array + Sparkline + Publish-Fenster) |
+| 3 Speicherort | ✅ `data/band-estimates.json` |
+| 4 Rate-Limit | ✅ ok (5 Runs/Tag) |
+| 5 DataForSEO-Button | ❌ keine Änderung — bestehende Checkbox bleibt, kein neuer Button |
+| 6 Kalibrierung | ❌ nein (kein DataForSEO-Testbudget) |
+
+**Zusatz-Vorgaben des Users:** Modell aus der KI-Modell-Auswahl (**GLM 5.3 Flash
+(Test)**, Tier `test` aus `ai-models.js` — nicht hartkodiert) · so viel wie
+möglich über Config steuern (`src/config/` Frontend, `server/config/` Server).
+
+**Umsetzung (alle Rollout-Schritte):**
+
+| Schritt | Datei(en) | Inhalt |
+|---|---|---|
+| 1a Config | `server/config/band-estimate.js` (NEU) | Raster, Spread, Stufen, Saison-Regeln, Publish-Fenster, TTL, Tageslimit — alles env-überschreibbar |
+| 1b Prompt | `server/prompts/assistant-prompts.js` | `buildBandEstimatePrompt()` — JSON-Zwang, Raster-Pflicht, Season-Regeln |
+| 1c Service | `server/services/band-estimate.js` (NEU) | Validierung (Grid/Spread/Stufe/Saison), Peak/Tief/Publish-Fenster-Ableitung, Cache (tmp+rename), 5-Runs/Tag-Counter, 1 Retry |
+| 2 UI | `src/components/assistant/TopicsWithDemandBlock.tsx` | Band-Zeile („📊 2.000–5.000/Monat · Peak … · publizieren …"), `SaisonSparkline` (12 Balken + Tooltip), Quellen-Badge, degradierte Zeilen zeigen „—" |
+| 3 GSC | `server/services/report-assistant.js` | Koverzeige im bestehenden Enrichment (GSC überschreibt NIE das Band), `source`-Feld: `dfs` / `flash-band` / `gsc` |
+| 4 Cache | `server/services/band-estimate.js` | `data/band-estimates.json` (DATA_DIR → VPS-Pfad → Repo-Fallback), TTL 7 T. |
+| 5 Frontend-Config | `src/config/bandEstimate.ts` (NEU) | Stufen-Labels, Quellen-Badge-Texte, Degraded-Hint |
+| 6 Doku | Diese Datei, `RECOVERY.md`, `.env.example` | Status GEBAUT, Freigaben, Env-Variablen |
+
+**Verhalten im Assistenten-Block („Themen mit Nachfrage"):**
+
+- Standard (kein DFS): jede Topic-Zeile bekommt — wenn Flash gültig geantwortet
+  hat — ein Band + Sparkline + Publish-Fenster, gelabelt „Flash-Band — Schätzung"
+- DFS-Checkbox an: wie bisher echte Volumina, Band-Pfad inaktiv (`band.enabled: false`)
+- Validierungsverstoß (Raster/Spread/Saison) → Zeile OHNE Band („neu — keine
+  Nachfragedaten"), nie eine erfundene Zahl
+- Tageslimit (5 Runs/Tag) erreicht → nur Cache-Bänder, Badge-Hinweis
+- GSC-Match unverändert sichtbar („via ‚…'"), nie Band-Ersatz
+
+**Bewusst NICHT gebaut (wie freigegeben):** DataForSEO-Button/Präzisionspfad,
+Kalibrierungs-Run, JSON-Schema-Library (strenges Hand-Parsing reicht).
+
+**Deploy-Hinweis (RECOVERY.md §4 Prozess):**
+
+```bash
+# auf dem VPS VOR dem Restart (esbuild prüft server/*.js NICHT):
+node --check server/config/band-estimate.js
+node --check server/services/band-estimate.js
+node --check server/services/report-assistant.js
+node --check server/prompts/assistant-prompts.js
+systemctl restart ai-api
+# Smoke-Test:
+curl -s "http://127.0.0.1:3002/api/assistant/topic-ideas?seed=Armacao%20de%20Pera" | head -c 600
+```
