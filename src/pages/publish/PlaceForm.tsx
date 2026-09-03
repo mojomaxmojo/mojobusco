@@ -46,6 +46,7 @@ import { Upload, UploadCloud, ImageIcon, Video, Music, File as FileIcon, Camera,
 import { extractGpsFromImage, formatCoordinatesSimple, reverseGeocode, mapCountryCode, type GpsData, type GpsStatus, type LocationData } from "@/lib/gpsExtraction";
 import { extractGpsCrossPlatform, getCurrentPosition, positionToGpsData, isCapacitorNative } from "@/lib/capacitorGps";
 import { resolveBildPlaceholders } from "./publishUtils";
+import { categories, facilityOptions, bestForOptions } from "./placeForm/placeFormConfig";
 import exifr from "exifr";
 
 export function PlaceForm({ editEvent }: { editEvent?: any }) {
@@ -357,18 +358,9 @@ export function PlaceForm({ editEvent }: { editEvent?: any }) {
         console.log('[Place Edit] GPS data loaded from tags:', { gpsLat, gpsLon, gpsAlt, gpsSource });
       }
     }
-  }, [editEvent]);
+   }, [editEvent]);
 
-  const categories = [
-    { value: 'campingplatz', label: 'Campingplatz', icon: '🏕️' },
-    { value: 'wildcamping', label: 'Wildcamping', icon: '🌲' },
-    { value: 'stellplatz', label: 'Stellplatz', icon: '🅿️' },
-    { value: 'aussichtspunkt', label: 'Aussichtspunkt', icon: '👁️' },
-    { value: 'strand', label: 'Strand', icon: '🏖️' },
-    { value: 'berg', label: 'Berg', icon: '⛰️' }
-  ];
-
-   // Auto-fill location and country from GPS data
+    // Auto-fill location and country from GPS data
    useEffect(() => {
      const autoFillLocation = async () => {
        if (imageGps) {
@@ -400,18 +392,6 @@ export function PlaceForm({ editEvent }: { editEvent?: any }) {
 
      autoFillLocation();
    }, [imageGps]);
-
-  const facilityOptions = [
-    'Strom', 'Wasser', 'WC', 'Dusche', 'WLAN',
-    'Shop', 'Restaurant', 'Spielplatz', 'Hund erlaubt',
-    'Grill', 'Feuerstelle', 'Chemie-Entsorgung'
-  ];
-
-  const bestForOptions = [
-    'Familien', 'Paare', 'Single', 'Große Fahrzeuge',
-    'Wohnmobile', 'Zelte', 'Ruhe', 'Natur',
-    'Meerblick', 'Bergblick', 'Stadtnahe'
-  ];
 
   const handleFacilityToggle = (facility: string) => {
     setFacilities(prev =>
