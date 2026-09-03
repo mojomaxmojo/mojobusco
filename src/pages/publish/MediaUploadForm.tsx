@@ -36,6 +36,7 @@ import { extractGpsFromImage, formatCoordinatesSimple, reverseGeocode, mapCountr
 import { extractGpsCrossPlatform, getCurrentPosition, positionToGpsData, isCapacitorNative, pickFilesNative } from "@/lib/capacitorGps";
 import { createCorrectedPreview, mediaTypes, mainCategories, subCategories, type MediaFile, type UploadProgress } from "./publishUtils";
 import exifr from "exifr";
+import { natureSubcategories, countryTags, countryList, mojobusTag } from "./mediaUploadForm/mediaUploadFormConfig";
 
 export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
   const [files, setFiles] = useState<MediaFile[]>([]);
@@ -237,7 +238,6 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
 
         // For natur category, separate subcategories from detailed tags
         if (categoryTag === 'natur') {
-          const natureSubcategories = ['tiere', 'blumen', 'strand', 'berge', 'wald', 'meer'];
           const subCategories = eventTags.filter(tag => natureSubcategories.includes(tag));
           const detailedTags = eventTags.filter(tag =>
             !natureSubcategories.includes(tag) &&
@@ -263,7 +263,6 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
       }
 
       // Extract country from tags
-      const countryTags = ['portugal', 'spanien', 'frankreich', 'belgien', 'deutschland', 'luxemburg'];
       const foundCountry = eventTags.find(tag => countryTags.includes(tag));
       if (foundCountry) {
         setSelectedCountry(foundCountry);
@@ -759,7 +758,6 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
       const content = `${title ? `# ${title}\n\n` : ''}${description ? `${description}\n\n` : ''}${uploadedUrls.join('\n\n')}`;
 
       // Entferne Country-Tags aus customTags, um Duplikate zu vermeiden
-      const countryList = ['portugal', 'spanien', 'frankreich', 'belgien', 'deutschland', 'luxemburg'];
       const customTagsArray = (customTags || '').split(' ').filter(Boolean);
       const customTagsWithoutCountry = customTagsArray.filter(tag =>
         !countryList.includes(tag.toLowerCase()) &&
@@ -775,7 +773,6 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
       ];
 
       // Always add #mojobus as mandatory tag for /veroeffentlichen
-      const mojobusTag = 'mojobus';
       const tagsWithMojobus = [...allTags, mojobusTag];
 
       // Additional special tags
