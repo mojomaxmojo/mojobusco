@@ -39,6 +39,7 @@ import { natureSubcategories, countryTags, countryList, mojobusTag } from "./med
 import { TagSummarySection } from "./mediaUploadForm/TagSummarySection";
 import { UploadProgressSection } from "./mediaUploadForm/UploadProgressSection";
 import { MediaLocationSection } from "./mediaUploadForm/MediaLocationSection";
+import { useMediaDragSort } from "./mediaUploadForm/useMediaDragSort";
 
 export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
   const [files, setFiles] = useState<MediaFile[]>([]);
@@ -608,51 +609,7 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
   };
 
   // ── Drag-and-Drop Reihenfolge ──────────────────────────────────────────
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-
-  const handleDragStart = (index: number) => {
-    setDragIndex(index);
-  };
-
-  const handleDragOver = (e: React.DragEvent, index: number) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    if (index !== dragIndex) setDragOverIndex(index);
-  };
-
-  const handleDragDrop = (e: React.DragEvent, dropIndex: number) => {
-    e.preventDefault();
-    if (dragIndex === null || dragIndex === dropIndex) {
-      setDragIndex(null);
-      setDragOverIndex(null);
-      return;
-    }
-    setFiles(prev => {
-      const updated = [...prev];
-      const [moved] = updated.splice(dragIndex, 1);
-      updated.splice(dropIndex, 0, moved);
-      return updated;
-    });
-    setDragIndex(null);
-    setDragOverIndex(null);
-  };
-
-  const handleDragEnd = () => {
-    setDragIndex(null);
-    setDragOverIndex(null);
-  };
-
-  // Bild nach links/rechts verschieben (Pfeil-Buttons als Alternative)
-  const moveFile = (index: number, direction: 'left' | 'right') => {
-    const newIndex = direction === 'left' ? index - 1 : index + 1;
-    if (newIndex < 0 || newIndex >= files.length) return;
-    setFiles(prev => {
-      const updated = [...prev];
-      [updated[index], updated[newIndex]] = [updated[newIndex], updated[index]];
-      return updated;
-    });
-  };
+  const { dragIndex, dragOverIndex, handleDragStart, handleDragOver, handleDragDrop, handleDragEnd, moveFile } = useMediaDragSort({ files, setFiles });
 
   const applyGpsToAll = (sourceFileId: string) => {
     const sourceFile = files.find(f => f.id === sourceFileId);
