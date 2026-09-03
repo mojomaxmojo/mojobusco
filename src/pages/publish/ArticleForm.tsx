@@ -13,8 +13,6 @@ import { useAutoTranslate } from "@/hooks/useAutoTranslate";
 import { useContinuityTracking } from "@/hooks/useContinuityTracking";
 import { getApiBaseUrl } from "@/lib/apiBase";
 import { ImageOptimizationToggle } from "@/components/ImageOptimizationToggle";
-import { GpsEditor } from "@/components/GpsEditor";
-import { GpsStatusIndicator } from "@/components/GpsStatusIndicator";
 import { LocationPicker } from "@/components/LocationPicker";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { PerspectiveSelector } from "@/components/PerspectiveSelector";
@@ -22,7 +20,7 @@ import { type GenderType } from "@/config/prompts/lifestyles";
 import { ModelSelect, type TextModelTier } from "@/components/ModelSelect";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { CountrySelector, getCountryTag } from "@/components/CountrySelector";
+import { getCountryTag } from "@/components/CountrySelector";
 import { ARTICLE_CATEGORIES, DIY_CATEGORIES, DIY_TAGS, NATURE_CATEGORIES, NATURE_TAGS, TAG_GROUPS } from "@/config";
 import { TRIP_TYPES, type TripType } from "@/config/tags";
 import { RV_LIFE_CONFIG } from "@/config/rvlife";
@@ -32,8 +30,8 @@ import { MilkdownEditor } from "@/components/MilkdownEditor";
 import { RemotionVideoBlock } from "@/components/RemotionVideoBlock";
 import { SlideshowBlock } from "@/components/SlideshowBlock";
 import { Progress } from "@/components/ui/progress";
-import { Upload, UploadCloud, ImageIcon, Video, Music, File as FileIcon, Camera, MapPin, Calendar, Tag, Battery, Sun, Wrench, Hammer, Cpu, Mountain, Lightbulb, Dog, Trees, Droplets, Waves, Eye, Loader2, CheckCircle, Route, Sparkles, FileText, MessageSquare, Map, Info } from "@/lib/icons";
-import { formatCoordinatesSimple, type GpsData, type GpsStatus } from "@/lib/gpsExtraction";
+import { Upload, UploadCloud, Video, Music, File as FileIcon, Camera, Calendar, Tag, Battery, Sun, Wrench, Hammer, Cpu, Mountain, Lightbulb, Dog, Trees, Droplets, Waves, Eye, Loader2, CheckCircle, Route, Sparkles, FileText, MessageSquare, Map, Info } from "@/lib/icons";
+import { type GpsStatus } from "@/lib/gpsExtraction";
 import { CONTENT_CATEGORIES, createRequiredTags, getOptionalTags, getTabConfig } from "@/config/contentCategories";
 import { resolveBildPlaceholders } from "./publishUtils";
 import { canonicalUrl, articleUrl, canonicalNaddr } from "@/lib/canonicalUrl";
@@ -53,6 +51,7 @@ import { useArticleAutosave } from "./articleForm/useArticleAutosave";
 import { useArticleMediaGenerators } from "./articleForm/useArticleMediaGenerators";
 import { useArticleTagCategories } from "./articleForm/useArticleTagCategories";
 import { useArticleImageGps } from "./articleForm/useArticleImageGps";
+import { ArticleImageGpsSection } from "./articleForm/ArticleImageGpsSection";
 
 export function ArticleForm({ editEvent }: { editEvent?: any }) {
   const [title, setTitle] = useState('');
@@ -707,164 +706,25 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
           </p>
         </div>
 
-        {/* Title Image - Move to top */}
-        <div className="space-y-2">
-          <Label htmlFor="article-image">Titelbild</Label>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setShowMediaLibrary(true)}
-          >
-            <ImageIcon className="h-4 w-4 mr-1" />
-            Aus Media-Library wählen
-          </Button>
-          <div className="flex gap-2">
-            {image ? (
-              <div className="flex-1">
-                <div className="relative">
-                  <img
-                    src={image}
-                    alt="Titelbild"
-                    className="w-full h-32 object-cover rounded-lg"
-                  />
-                  {isUploading && (
-                    <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
-                      <div className="text-white text-center">
-                        <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
-                        <p className="text-sm">Wird hochgeladen...</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setImage('')}
-                  className="mt-2"
-                  disabled={isUploading}
-                >
-                  Entfernen
-                </Button>
-              </div>
-            ) : (
-                 <div className="flex-1">
-                  <div className="relative">
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleArticleImageUpload(file);
-                      }}
-                      className="flex-1 mb-2 disabled:opacity-50"
-                      disabled={isUploading}
-                    />
-                  {isUploading && (
-                    <div className="absolute inset-0 bg-white/80 rounded-md flex items-center justify-center">
-                      <div className="text-center">
-                        <Loader2 className="w-4 h-4 animate-spin mx-auto mb-1 text-ocean-600" />
-                        <p className="text-xs text-ocean-600">Upload läuft...</p>
-                      </div>
-                    </div>
-                  )}
-                  </div>
-                  <div className="flex gap-2 mt-2">
-                    <Button variant="outline" asChild disabled={isUploading}>
-                      <label htmlFor="article-image-url" className="cursor-pointer">
-                        URL
-                      </label>
-                    </Button>
-                    <Input
-                      id="article-image-url"
-                      placeholder="https://..."
-                      value={image}
-                      onChange={(e) => setImage(e.target.value)}
-                      className="flex-1 disabled:opacity-50"
-                      disabled={isUploading}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* GPS Info Display + manueller Editor */}
-            {editingImageGps ? (
-              <GpsEditor
-                gps={imageGps ?? undefined}
-                onSave={(gps) => {
-                  setImageGps(gps);
-                  setImageGpsStatus('manual');
-                  setEditingImageGps(false);
-                  toast({ title: 'GPS gespeichert', description: 'Fließt in Wetter-Kontext, Karte und Publish-Tags ein.' });
-                }}
-                onCancel={() => setEditingImageGps(false)}
-                onRemove={imageGps ? () => {
-                  setImageGps(null);
-                  setImageGpsStatus('not_found');
-                  setEditingImageGps(false);
-                } : undefined}
-              />
-            ) : imageGps && imageGps.latitude && imageGps.longitude ? (
-              <div className="space-y-2">
-                <GpsStatusIndicator status={imageGpsStatus} gps={imageGps} />
-                <div className="text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded p-2">
-                  <div className="flex items-center gap-1.5 text-gray-700 dark:text-gray-300">
-                    <MapPin className="h-3 w-3 text-green-600 dark:text-green-400" />
-                    <span className="truncate font-mono">
-                      {formatCoordinatesSimple(imageGps.latitude, imageGps.longitude)}
-                    </span>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-6 px-2 ml-auto"
-                      onClick={() => setEditingImageGps(true)}
-                      title="GPS-Koordinaten bearbeiten"
-                    >
-                      <MapPin className="h-3 w-3 mr-1" />
-                      Bearbeiten
-                    </Button>
-                  </div>
-                </div>
-              </div>
-             ) : (
-              <Button size="sm" variant="outline" onClick={() => setEditingImageGps(true)}>
-                <MapPin className="h-4 w-4 mr-1" />
-                GPS manuell hinzufügen
-              </Button>
-             )}
-           </div>
-
-         {/* Location (auto-filled from GPS) */}
-         <div className="space-y-2">
-          <Label htmlFor="article-location">Standort</Label>
-          <div className="space-y-2">
-            <div className="flex gap-2">
-              <Input
-                id="article-location"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="Wo wurde dieser Artikel erstellt? (z.B. Lagos, Portugal)"
-                className="flex-1"
-              />
-            </div>
-            {imageGps && (
-              <GpsStatusIndicator status={imageGpsStatus} gps={imageGps} />
-            )}
-          </div>
-          {location && imageGps && (
-            <p className="text-xs text-green-600 dark:text-green-400">
-              📍 Standort automatisch aus GPS-Koordinaten ermittelt
-            </p>
-          )}
-        </div>
-
-        {/* Country Selection */}
-        <CountrySelector
+        <ArticleImageGpsSection
+          image={image}
+          setImage={setImage}
+          isUploading={isUploading}
+          handleArticleImageUpload={handleArticleImageUpload}
+          imageGps={imageGps}
+          setImageGps={setImageGps}
+          imageGpsStatus={imageGpsStatus}
+          setImageGpsStatus={setImageGpsStatus}
+          editingImageGps={editingImageGps}
+          setEditingImageGps={setEditingImageGps}
+          setShowMediaLibrary={setShowMediaLibrary}
+          location={location}
+          setLocation={setLocation}
           selectedCountry={selectedCountry}
-          onCountryChange={setSelectedCountry}
-          placeholder="Land auswaehlen"
+          setSelectedCountry={setSelectedCountry}
+          toast={toast}
         />
+
 
         {/* Assistent: Ideen, Research, Momente, interne Links (nur Vorschläge) —
             bewusst NACH Standort/Land, damit die Ideen den Ort aus dem Formular ziehen */}
