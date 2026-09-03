@@ -49,6 +49,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { buildAuthorInput, buildSmartSlug, FACT_MARKER, EXPERIENCE_MARKER } from "@/config/assistant";
 import { nip19 } from "nostr-tools";
 import { AUTOSAVE_KEY, AUTOSAVE_MAX_AGE_MS, type AutosaveData, getDIYIcon, getNatureIcon, COUNTRY_TAG_LIST, ARTICLE_LENGTH_OPTIONS, RV_LIFE_TAG_OPTIONS, STRAND_ORT_TAG_OPTIONS } from "./articleForm/articleFormConfig";
+import { extractImageUrlsFromMarkdown, splitAuthorInput } from "./articleForm/articleFormUtils";
 
 export function ArticleForm({ editEvent }: { editEvent?: any }) {
   const [title, setTitle] = useState('');
@@ -210,18 +211,6 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
   const discardAutosave = () => {
     localStorage.removeItem(AUTOSAVE_KEY);
     setAutosaveCandidate(null);
-  };
-
-  // Hilfsfunktion: Bild-URLs aus Markdown-Content extrahieren
-  // Format: ![alt](https://...) oder ![alt](https://...)
-  const extractImageUrlsFromMarkdown = (markdown: string): string[] => {
-    const regex = /!\[.*?\]\((https?:\/\/[^)]+)\)/g;
-    const urls: string[] = [];
-    let match;
-    while ((match = regex.exec(markdown)) !== null) {
-      urls.push(match[1]);
-    }
-    return [...new Set(urls)]; // Duplikate entfernen
   };
 
   // ── Grok Imagine Video (xAI) Generator (via eigener Server) ────────────
@@ -854,22 +843,6 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
     } finally {
       setIsUploading(false);
     }
-  };
-
-  // Assistent: author_input (mit Markern) zurück in FAKTEN/ERLEBNISSE splitten
-  const splitAuthorInput = (input: string): { facts: string; experiences: string } => {
-    if (!input) return { facts: '', experiences: '' };
-    const fIdx = input.indexOf(FACT_MARKER);
-    const eIdx = input.indexOf(EXPERIENCE_MARKER);
-    let facts = '';
-    let experiences = '';
-    if (fIdx >= 0) {
-      facts = input.slice(fIdx + FACT_MARKER.length, eIdx >= 0 ? eIdx : undefined).trim();
-    }
-    if (eIdx >= 0) {
-      experiences = input.slice(eIdx + EXPERIENCE_MARKER.length).trim();
-    }
-    return { facts, experiences };
   };
 
   // Assistent: Entwurf komplett ins Formular laden
