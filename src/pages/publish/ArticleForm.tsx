@@ -50,6 +50,7 @@ import { buildAuthorInput, buildSmartSlug, FACT_MARKER, EXPERIENCE_MARKER } from
 import { nip19 } from "nostr-tools";
 import { AUTOSAVE_KEY, AUTOSAVE_MAX_AGE_MS, type AutosaveData, getDIYIcon, getNatureIcon, COUNTRY_TAG_LIST, ARTICLE_LENGTH_OPTIONS, RV_LIFE_TAG_OPTIONS, STRAND_ORT_TAG_OPTIONS } from "./articleForm/articleFormConfig";
 import { extractImageUrlsFromMarkdown, splitAuthorInput } from "./articleForm/articleFormUtils";
+import { useArticleAutosave } from "./articleForm/useArticleAutosave";
 
 export function ArticleForm({ editEvent }: { editEvent?: any }) {
   const [title, setTitle] = useState('');
@@ -145,73 +146,20 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
   // bleibt manuell („Als Entwurf speichern", Token-Pflicht unberührt).
   // Wiederherstellung nur per Banner — wenn Formular leer & kein Entwurf/
   // Edit geladen wurde (bewusst geladener Inhalt hat Vorrang).
-  const [autosaveCandidate, setAutosaveCandidate] = useState<AutosaveData | null>(null);
-
-  useEffect(() => {
-    const hasContent = title.trim() || summary.trim() || content.trim();
-    if (!hasContent) return;
-    const timer = setTimeout(() => {
-      try {
-        const data: AutosaveData = {
-          savedAt: Date.now(),
-          title, summary, content, location, selectedCountry, category, tags,
-          articleLength, tripType, lifestyle,
-          seoTitle, seoMetaDescription, seoSlug,
-          researchFacts, experienceNotes, publishedAt,
-        };
-        localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(data));
-      } catch { /* Quota/Privatmodus — Autosave ist best-effort */ }
-    }, 1500);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, summary, content, location, selectedCountry, category, tags, articleLength, tripType, lifestyle, seoTitle, seoMetaDescription, seoSlug, researchFacts, experienceNotes, publishedAt]);
-
-  // Kandidat einmalig beim Mount prüfen — Banner nur, wenn Formular leer
-  // ist und kein Entwurf/Edit geladen wurde (bewusst geladener Inhalt hat
-  // immer Vorrang vor dem Autosave).
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(AUTOSAVE_KEY);
-      if (!raw) return;
-      const data = JSON.parse(raw) as AutosaveData;
-      if (!data.savedAt || Date.now() - data.savedAt > 7 * 24 * 3600 * 1000) {
-        localStorage.removeItem(AUTOSAVE_KEY);
-        return;
-      }
-      if (editEvent || currentDraftId) return;
-      if (title.trim() || content.trim()) return;
-      setAutosaveCandidate(data);
-    } catch { /* kaputter Eintrag — ignorieren */ }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const restoreAutosave = () => {
-    if (!autosaveCandidate) return;
-    const d = autosaveCandidate;
-    if (d.title !== undefined) setTitle(d.title);
-    if (d.summary !== undefined) setSummary(d.summary);
-    if (d.content !== undefined) setContent(d.content);
-    if (d.location !== undefined) setLocation(d.location);
-    if (d.selectedCountry) setSelectedCountry(d.selectedCountry);
-    if (d.category !== undefined) setCategory(d.category);
-    if (Array.isArray(d.tags)) setTags(d.tags);
-    if (d.articleLength) setArticleLength(d.articleLength);
-    if (d.tripType) setTripType(d.tripType as TripType);
-    if (d.lifestyle) setLifestyle(d.lifestyle as typeof lifestyle);
-    if (d.seoTitle !== undefined) setSeoTitle(d.seoTitle);
-    if (d.seoMetaDescription !== undefined) setSeoMetaDescription(d.seoMetaDescription);
-    if (d.seoSlug !== undefined) setSeoSlug(d.seoSlug);
-    if (d.researchFacts !== undefined) setResearchFacts(d.researchFacts);
-    if (d.experienceNotes !== undefined) setExperienceNotes(d.experienceNotes);
-    if (d.publishedAt) setPublishedAt(d.publishedAt);
-    setAutosaveCandidate(null);
-    toast({ title: 'Entwurf wiederhergestellt', description: `Stand: ${new Date(d.savedAt).toLocaleString('de-DE')}` });
-  };
-
-  const discardAutosave = () => {
-    localStorage.removeItem(AUTOSAVE_KEY);
-    setAutosaveCandidate(null);
-  };
+  const { autosaveCandidate, restoreAutosave, discardAutosave } = useArticleAutosave({
+    editEvent,
+    currentDraftId,
+    toast,
+    values: {
+      title, summary, content, location, selectedCountry, category, tags,
+      articleLength, tripType, lifestyle, seoTitle, seoMetaDescription, seoSlug,
+      researchFacts, experienceNotes, publishedAt,
+    },
+    setTitle, setSummary, setContent, setLocation, setSelectedCountry,
+    setCategory, setTags, setArticleLength, setTripType, setLifestyle,
+    setSeoTitle, setSeoMetaDescription, setSeoSlug, setResearchFacts,
+    setExperienceNotes, setPublishedAt,
+  });
 
   // ── Grok Imagine Video (xAI) Generator (via eigener Server) ────────────
   const generateVideoWithRunway = async () => {
