@@ -31,7 +31,7 @@ import { TRIP_TYPES, type TripType } from "@/config/tags";
 import { RemotionVideoBlock } from "@/components/RemotionVideoBlock";
 import { CreateVideoDialog } from "@/components/CreateVideoDialog";
 import { Upload, UploadCloud, ImageIcon, Video, Music, File as FileIcon, Camera, MapPin, Calendar, Tag, Battery, Sun, Wrench, Hammer, Cpu, Mountain, Lightbulb, Dog, Trees, Droplets, Waves, Eye, Loader2, CheckCircle, Route, Sparkles, FileText, MessageSquare, Map } from "@/lib/icons";
-import { extractGpsFromImage, formatCoordinatesSimple, reverseGeocode, mapCountryCode, type GpsData, type GpsStatus, type LocationData } from "@/lib/gpsExtraction";
+import { extractGpsFromImage, formatCoordinatesSimple, reverseGeocode, mapCountryCode, type GpsStatus, type LocationData } from "@/lib/gpsExtraction";
 import { extractGpsCrossPlatform, getCurrentPosition, positionToGpsData, isCapacitorNative, pickFilesNative } from "@/lib/capacitorGps";
 import { createCorrectedPreview, mediaTypes, mainCategories, subCategories, type MediaFile, type UploadProgress } from "./publishUtils";
 import exifr from "exifr";
@@ -40,6 +40,7 @@ import { TagSummarySection } from "./mediaUploadForm/TagSummarySection";
 import { UploadProgressSection } from "./mediaUploadForm/UploadProgressSection";
 import { MediaLocationSection } from "./mediaUploadForm/MediaLocationSection";
 import { useMediaDragSort } from "./mediaUploadForm/useMediaDragSort";
+import { useMediaGpsEditing } from "./mediaUploadForm/useMediaGpsEditing";
 
 export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
   const [files, setFiles] = useState<MediaFile[]>([]);
@@ -161,10 +162,8 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
     }
   };
 
-  // GPS editing state
-  const [editingGpsFile, setEditingGpsFile] = useState<string | null>(null);
-  const [batchEditMode, setBatchEditMode] = useState(false);
-  const [showMapPicker, setShowMapPicker] = useState(false);
+  // GPS editing state + functions (Hook, PLAN3.md Schritt 6)
+  const { editingGpsFile, batchEditMode, showMapPicker, setShowMapPicker, openGpsEditor, closeGpsEditor, saveGps, removeGps, toggleBatchEditMode, applyGpsToAll } = useMediaGpsEditing({ files, setFiles, setLocation, setSelectedCountry });
 
   // Auto-fill location from first GPS-detected image
    useEffect(() => {
@@ -539,93 +538,8 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
     setFiles(prev => prev.filter(f => f.id !== id));
   };
 
-  // GPS editing functions
-  const openGpsEditor = (fileId: string) => {
-    setEditingGpsFile(fileId);
-  };
-
-  const closeGpsEditor = () => {
-    setEditingGpsFile(null);
-    setShowMapPicker(false);
-  };
-
-  const saveGps = async (fileId: string, gps: GpsData) => {
-    // Save GPS to file
-    setFiles(prev => prev.map(file => {
-      if (file.id === fileId) {
-        return {
-          ...file,
-          gps,
-          gpsStatus: 'manual',
-        };
-      }
-      return file;
-    }));
-
-    // Auto-fill location and country using reverse geocoding
-    try {
-      console.log('[Media GPS Manual] Reverse geocoding for manual GPS...', gps);
-      const locationData = await reverseGeocode(gps.latitude, gps.longitude);
-      if (locationData) {
-        // Set location to city + neighbourhood/suburb (no postcode)
-        const locationParts = [
-          locationData.city,
-          locationData.neighbourhood,
-          locationData.suburb
-        ].filter(Boolean);
-        const loc = locationParts.join(', ');
-        setLocation(loc);
-        console.log('[Media GPS Manual] Location found:', loc);
-
-        // Auto-fill country if detected
-        const country = mapCountryCode(locationData);
-        if (country) {
-          setSelectedCountry(country);
-          console.log('[Media GPS Manual] Country auto-filled:', country);
-        }
-      }
-    } catch (error) {
-      console.error('[Media GPS Manual] Reverse geocoding failed:', error);
-    }
-
-    closeGpsEditor();
-  };
-
-  const removeGps = (fileId: string) => {
-    setFiles(prev => prev.map(file => {
-      if (file.id === fileId) {
-        const updated = { ...file };
-        delete updated.gps;
-        updated.gpsStatus = 'not_found';
-        return updated;
-      }
-      return file;
-    }));
-    closeGpsEditor();
-  };
-
-  const toggleBatchEditMode = () => {
-    setBatchEditMode(prev => !prev);
-  };
-
   // ── Drag-and-Drop Reihenfolge ──────────────────────────────────────────
   const { dragIndex, dragOverIndex, handleDragStart, handleDragOver, handleDragDrop, handleDragEnd, moveFile } = useMediaDragSort({ files, setFiles });
-
-  const applyGpsToAll = (sourceFileId: string) => {
-    const sourceFile = files.find(f => f.id === sourceFileId);
-    if (!sourceFile || !sourceFile.gps) return;
-
-    setFiles(prev => prev.map(file => {
-      if (file.type === 'image' && file.id !== sourceFileId) {
-        return {
-          ...file,
-          gps: { ...sourceFile.gps },
-          gpsStatus: 'manual',
-        };
-      }
-      return file;
-    }));
-  };
 
   const handleSubmit = async () => {
     if (files.length === 0) {
