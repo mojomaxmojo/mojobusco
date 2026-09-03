@@ -150,7 +150,12 @@ async function generateFeedXml(articles, lang = 'de') {
 
   for (const event of articles) {
     const author = getAuthor(event.pubkey);
-    const title = event.tags?.find(t => t[0] === 'title')?.[1] || (isEn ? 'Article' : 'Artikel');
+    // Titel: seo_title (SEO-Panel/Assistent, beim Publish als Tag gespeichert)
+    // hat Vorrang vor dem kreativen Titel — konsistent mit Prerender
+    // (prerender-entity-templates.js) und ArticleView. Fallback-Kette:
+    // seo_title → title → generischer Platzhalter.
+    const seoTitle = event.tags?.find(t => t[0] === 'seo_title')?.[1] || '';
+    const title = seoTitle || event.tags?.find(t => t[0] === 'title')?.[1] || (isEn ? 'Article' : 'Artikel');
     const summary = event.tags?.find(t => t[0] === 'summary')?.[1] || '';
     const image = event.tags?.find(t => t[0] === 'image')?.[1] || '';
     const publishedAt = event.tags?.find(t => t[0] === 'published_at')?.[1];

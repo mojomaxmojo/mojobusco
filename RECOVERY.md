@@ -143,7 +143,7 @@ curl -sk -D - -o /dev/null "https://mojobus.co/api/assistant/ideas?location=Test
 | Formular-Refactor (ArticleForm 2031 / TripPublishForm 2381 / MediaUploadForm 1787 / PlaceForm 1385 / NoteForm 1101 Zeilen → Module < 500) | ~1 Tag |
 | Nr. 3b KI-Slug-Endpunkt — **gestrichen** (Smart-Slug reicht) | — |
 | Titel-Suffix jetzt vereinheitlicht „ — MojoBus" (war Inkonsistenz-Punkt) | ✅ |
-| RSS-Feed mit seo_title statt Kreativ-Titel (optional) | ~30 min |
+| RSS-Feed mit seo_title statt Kreativ-Titel (optional) | ✅ erledigt (2026-09-03, generate-feed.js Fallback-Kette seo_title → title) |
 
 ## 8. Vorschlagsliste 1–15: 14/15 ✅ (3b gestrichen) + Fundament
 
