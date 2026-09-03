@@ -48,30 +48,7 @@ import { MediaLibraryPanel } from "@/components/assistant/MediaLibraryPanel";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { buildAuthorInput, buildSmartSlug, FACT_MARKER, EXPERIENCE_MARKER } from "@/config/assistant";
 import { nip19 } from "nostr-tools";
-
-// ── Nr. 13: Lokaler Autosave (Browser-Crash-Schutz) ─────────────────────
-const AUTOSAVE_KEY = 'assistant:autosave:article';
-const AUTOSAVE_MAX_AGE_MS = 7 * 24 * 3600 * 1000;
-
-interface AutosaveData {
-  savedAt: number;
-  title?: string;
-  summary?: string;
-  content?: string;
-  location?: string;
-  selectedCountry?: string;
-  category?: string;
-  tags?: string[];
-  articleLength?: 'short' | 'medium' | 'long';
-  tripType?: string;
-  lifestyle?: string;
-  seoTitle?: string;
-  seoMetaDescription?: string;
-  seoSlug?: string;
-  researchFacts?: string;
-  experienceNotes?: string;
-  publishedAt?: string;
-}
+import { AUTOSAVE_KEY, AUTOSAVE_MAX_AGE_MS, type AutosaveData, getDIYIcon, getNatureIcon, COUNTRY_TAG_LIST, ARTICLE_LENGTH_OPTIONS, RV_LIFE_TAG_OPTIONS, STRAND_ORT_TAG_OPTIONS } from "./articleForm/articleFormConfig";
 
 export function ArticleForm({ editEvent }: { editEvent?: any }) {
   const [title, setTitle] = useState('');
@@ -648,7 +625,7 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
       setTags(eventTags);
 
       // Extract country from tags
-      const countryTags = ['portugal', 'spanien', 'frankreich', 'belgien', 'deutschland', 'luxemburg'];
+      const countryTags = COUNTRY_TAG_LIST;
       const foundCountry = eventTags.find(tag => countryTags.includes(tag));
       if (foundCountry) {
         setSelectedCountry(foundCountry);
@@ -804,34 +781,6 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
     .flatMap(group => group.tags)
     .filter(tag => !DIY_TAGS.includes(tag.id))
     .map(tag => tag.id); // Remove # - it will be added in JSX
-
-  // Icon mapping for DIY categories
-  const getDIYIcon = (iconName: string) => {
-    switch (iconName) {
-      case 'Battery': return Battery;
-      case 'Sun': return Sun;
-      case 'Wrench': return Wrench;
-      case 'Hammer': return Hammer;
-      case 'Cpu': return Cpu;
-      default: return Wrench;
-    }
-  };
-
-
-
-  // Icon mapping for Nature categories
-  const getNatureIcon = (iconName: string) => {
-    switch (iconName) {
-      case 'strand': return Waves;
-      case 'berge': return Mountain;
-      case 'see': return Eye;
-      case 'wald': return Trees;
-      case 'wasserfall': return Droplets;
-      case 'wiese': return Sun;
-      case 'tiere': return Camera;
-      default: return Camera;
-    }
-  };
 
   // Prueft ob die aktuelle Kategorie ein DIY-Bereich ist
   const currentCategoryConfig = ARTICLE_CATEGORIES.find(cat => cat.id === category);
@@ -1046,7 +995,7 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
     };
 
     // Entferne Country-Tags aus displayTags, um Duplikate zu vermeiden
-    const countryList = ['portugal', 'spanien', 'frankreich', 'belgien', 'deutschland', 'luxemburg'];
+    const countryList = COUNTRY_TAG_LIST;
     const displayTagsWithoutCountry = displayTags.filter(tag =>
       !countryList.includes(tag.toLowerCase()) &&
       !tag.startsWith('#') &&
@@ -1254,11 +1203,7 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">Artikellänge:</span>
             <div className="flex gap-1">
-              {([
-                { value: 'short', label: 'Kurz', words: '500-1000' },
-                { value: 'medium', label: 'Mittel', words: '1000-2000' },
-                { value: 'long', label: 'Lang', words: '2000-3000' }
-              ] as const).map((len) => (
+              {ARTICLE_LENGTH_OPTIONS.map((len) => (
                 <button
                   key={len.value}
                   type="button"
@@ -1667,12 +1612,7 @@ Schreibe deinen Artikel hier...
                 🚐 Dieser Artikel erscheint im RV Life Bereich. Wähle spezifische Kategorien:
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {[
-                  { id: 'kueche-essen', emoji: '🍳', name: 'Küche & Essen' },
-                  { id: 'ausstattung', emoji: '🏠', name: 'Ausstattung' },
-                  { id: 'freeliving', emoji: '🕊️', name: 'Freeliving' },
-                  { id: 'lifestyle', emoji: '✨', name: 'Lifestyle' }
-                ].map(rvCat => (
+                {RV_LIFE_TAG_OPTIONS.map(rvCat => (
                   <Badge
                     key={rvCat.id}
                     variant={displayTags.includes(rvCat.id) ? "default" : "outline"}
@@ -1703,13 +1643,7 @@ Schreibe deinen Artikel hier...
                 🏖️ Dieser Artikel erscheint im Strand/Ort Bereich. Wähle spezifische Kategorien:
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {[
-                  { id: 'strand', emoji: '🏖️', name: 'Strand' },
-                  { id: 'berg', emoji: '⛰️', name: 'Berg' },
-                  { id: 'wald', emoji: '🌲', name: 'Wald' },
-                  { id: 'meer', emoji: '🌊', name: 'Meer' },
-                  { id: 'ort', emoji: '📍', name: 'Ort' }
-                ].map(soCat => (
+                {STRAND_ORT_TAG_OPTIONS.map(soCat => (
                   <Badge
                     key={soCat.id}
                     variant={displayTags.includes(soCat.id) ? "default" : "outline"}
