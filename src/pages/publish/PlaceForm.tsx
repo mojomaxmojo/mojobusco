@@ -46,6 +46,7 @@ import { Upload, UploadCloud, ImageIcon, Video, Music, File as FileIcon, Camera,
 import { extractGpsFromImage, formatCoordinatesSimple, reverseGeocode, mapCountryCode, type GpsData, type GpsStatus, type LocationData } from "@/lib/gpsExtraction";
 import { extractGpsCrossPlatform, getCurrentPosition, positionToGpsData, isCapacitorNative } from "@/lib/capacitorGps";
 import { resolveBildPlaceholders } from "./publishUtils";
+import { extractPlaceImageUrls } from "./placeForm/placeFormUtils";
 import { categories, facilityOptions, bestForOptions } from "./placeForm/placeFormConfig";
 import exifr from "exifr";
 
@@ -103,20 +104,9 @@ export function PlaceForm({ editEvent }: { editEvent?: any }) {
   const gender = perspective;
   const navigate = useNavigate();
   const { translateAndPublish } = useAutoTranslate();
-  const { trackPublishedPost } = useContinuityTracking();
+   const { trackPublishedPost } = useContinuityTracking();
 
-   // Hilfsfunktion: Bild-URLs aus Markdown extrahieren (gleiche Logik wie ArticleForm)
-   const extractPlaceImageUrls = (markdown: string): string[] => {
-     const regex = /!\[.*?\]\((https?:\/\/[^)]+)\)/g;
-     const urls: string[] = [];
-     let match;
-     while ((match = regex.exec(markdown)) !== null) {
-       urls.push(match[1]);
-     }
-     return [...new Set(urls)];
-   };
-
-   // KI-Platz-Beschreibung generieren (Foster Huntington Stil)
+    // KI-Platz-Beschreibung generieren (Foster Huntington Stil)
    const generatePlaceWithAI = async () => {
      const markdownImageUrls = extractPlaceImageUrls(description);
      const hasAnyImage = imageFile || additionalImages.length > 0 || markdownImageUrls.length > 0;
