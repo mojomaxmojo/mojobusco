@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   Statische Fallback-Image-Sitemap.
-  Der Cron-Job (scripts/generate-sitemap.js) überschreibt diese Datei
-  täglich mit der vollständigen Version aus den Nostr-Artikel-Events.
+  Der Cron-Job (scripts/generate-sitemap.js, alle 3 h :10 — siehe
+  RECOVERY.md §1) überschreibt diese Datei mit der vollständigen Version
+  aus den Nostr-Events (Artikel/Orte-Titelbilder, Galerien /bild/{note},
+  Trips /trip/{naddr} — Details: FEATURE-X-PLAN.md Statusnotiz Schritt 10a).
   Zweck: Niemals leere urlset ausliefern (Google-Fehler
   "Fehlendes XML-Tag: url") und niemals die SPA-index.html
   (Nginx try_files Fallback) als Sitemap servieren.

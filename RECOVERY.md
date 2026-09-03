@@ -174,3 +174,14 @@ Validierung weg (degradiert statt erfindet, Wetter-Gate-Philosophie).
 - GSC überschreibt NIE das Band (nur Koverzeige); DFS-Checkbox-Verhalten unverändert
 - **Freigegeben/NICHT gebaut:** DataForSEO-Präzisions-Button („keine Änderung"),
   Kalibrierungs-Run (nein)
+
+## 10. Image-Sitemap ausgebaut (2026-09-03, FEATURE-X-PLAN 10a-Finalisierung)
+
+`sitemap-images.xml` war nur ein statischer 1-URL-Fallback + Artikel/Orte-Titelbilder.
+Jetzt dynamisch in `scripts/generate-sitemap.js`: **Galerien `/bild/{note}`**
+(`extractNoteImageUrls()`: Content-Regex + imeta, Port von `extractNoteImages()`,
+useNotes.ts) · **Trips `/trip/{naddr}`** (multiple `image`-Tags) ·
+**`toAbsoluteImageUrl()`** (image:loc MUSS absolut sein; http→https, Müll→Eintrag entfällt) ·
+**lastmod** je URL · **Dedup** loc+image · `MAX_IMAGES_PER_PAGE = 10`.
+Kollaps-Guard schützt indirekt mit (Exit 1 vor dem Schreiben). Doku + Deploy-Checks:
+FEATURE-X-PLAN.md Statusnotiz „Schritt 10a".

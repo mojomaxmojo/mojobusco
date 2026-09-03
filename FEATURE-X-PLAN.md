@@ -450,7 +450,40 @@ schließendes Tag (Zeile 345).
 - [ ] Schritt 7 – `og:image` auf 5 Kategorie-/Listenseiten ergänzt
 - [ ] Schritt 8 – Pinterest Rich Pins zentral (`prerender-meta.js` + `SEOHead.tsx`)
 - [ ] Schritt 9 – `ShareButtons`-Komponente + Einbindung (Artikel/Note/Bild)
-- [ ] Schritt 10a – `sitemap-images.xml`
+- [ ] Schritt 10a – `sitemap-images.xml` → **[x] erledigt, siehe Statusnotiz unten**
 - [ ] Schritt 10b – BreadcrumbList-JSON-LD auf Bild/Trip/Video-Detailseiten
 - [ ] Schritt 10c – Sitesuche (Ctrl/Cmd+K)
 - [ ] Schritt 10d – Barrierefreier Video-Play-Button
+
+---
+
+## 📌 Statusnotiz Schritt 10a (2026-09-03, dynamisch erweitert)
+
+> Der Kern (Generator, IMAGE_SITEMAP_PATH, Write-Block, Sammel-Logik für
+> Artikel/Orte, statischer Fallback, robots.txt) war bereits umgesetzt.
+> Diese Nachleferunde hat die Image-Sitemap vervollständigt — **alles in
+> `scripts/generate-sitemap.js`, additiv, keine neuen Pakete:**
+>
+> - **`toAbsoluteImageUrl()`** — `image:loc` MUSS laut Google-Spec absolut
+>   sein: relative Tags (`/images/...`) werden auf BASE_URL aufgelöst,
+>   http → https hochgestuft, nicht-http(s) → Eintrag entfällt.
+> - **Bildergalerien `/bild/{note}`** — vorher komplett fehlend. Neue
+>   Funktion `extractNoteImageUrls()` (Server-Portierung von
+>   `extractNoteImages()` aus `useNotes.ts`: Content-Regex + `imeta`-
+>   Tags). Ansetzpunkt: Notes-Schleife, wenn `entry.path` mit `/bild/`
+>   beginnt (isMojobusKind1-Filter greift automatisch).
+> - **Trip-Bilder `/trip/{naddr}`** — vorher fehlend. Trips tragen Fotos
+>   als multiple `image`-Tags (Muster: `useTrips.ts`); Titel nur beim
+>   ersten Bild (Titelbild).
+> - **`lastmod`** je `<url>` (Frische-Signal, analog Hauptsitemap) +
+>   **Dedup** identischer loc+image-Paare (Trip-Titelbild doppelt getaggt).
+> - **`MAX_IMAGES_PER_PAGE = 10`** — Cap pro Seite, hält die Datei schlank.
+>
+> VPS-Verifikation nach Deploy:
+> ```bash
+> node --check scripts/generate-sitemap.js
+> node scripts/generate-sitemap.js   # oder nächsten Cron (:10) abwarten
+> grep -c "<image:image>" /home/nginx/domains/mojobus.co/public/sitemap-images.xml
+> grep -c "https://mojobus.co/bild/" /home/nginx/domains/mojobus.co/public/sitemap-images.xml
+> ```
+> Erwartung: deutlich > 0 Einträge (vorher: statischer 1-URL-Fallback).

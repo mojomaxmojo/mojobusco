@@ -40,6 +40,10 @@ const VIDEO_SITEMAP_PATH = '/home/nginx/domains/mojobus.co/public/sitemap-videos
 const IMAGE_SITEMAP_PATH = '/home/nginx/domains/mojobus.co/public/sitemap-images.xml';
 const BASE_URL = 'https://mojobus.co';
 const FAR_FUTURE = Math.floor(Date.now() / 1000) + 3600 * 24 * 365;
+// Cap für Bilder pro Seite in der Image-Sitemap (Google erlaubt theoretisch
+// sehr viele image:image-Blöcke pro <url> — für MojoBus reichen die ersten
+// 10 Bilder einer Galerie/eines Trips völlig; hält die Datei schlank).
+const MAX_IMAGES_PER_PAGE = 10;
 
 const RELAYS = [
   'wss://relay.mojobus.co',
@@ -118,6 +122,21 @@ function escapeXml(str) {
     .replace(/'/g, '&apos;');
 }
 
+// ── Bild-URL normalisieren (Image-Sitemap: image:loc MUSS absolut sein) ───
+// Relative `image`-Tags (z. B. `/images/...`) → absolute URL auf BASE_URL,
+// http wird auf https hochgestuft, nicht-http(s)-Werte → null (Eintrag
+// entfällt statt Google eine ungültige image:loc zu liefern).
+function toAbsoluteImageUrl(url) {
+  try {
+    const u = new URL(String(url), BASE_URL);
+    if (u.protocol === 'http:') u.protocol = 'https:';
+    if (u.protocol !== 'https:') return null;
+    return u.href;
+  } catch {
+    return null;
+  }
+}
+
 // ── Sitemap XML Generator ─────────────────────────────────────────────────
 function generateSitemapXml(urls) {
   let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
@@ -194,9 +213,20 @@ function generateImageSitemapXml(images) {
     xml += '  </url>\n';
   }
 
+  // Dedup: identische loc+image-Kombination nur einmal ausgeben
+  // (z. B. Trip-Titelbild, das auch als Stationsfoto getaggt ist).
+  const seenPairs = new Set();
+
   for (const img of images) {
+    const pairKey = `${img.loc}\n${img.image}`;
+    if (seenPairs.has(pairKey)) continue;
+    seenPairs.add(pairKey);
+
     xml += '  <url>\n';
     xml += `    <loc>${escapeXml(img.loc)}</loc>\n`;
+    if (img.lastmod) {
+      xml += `    <lastmod>${img.lastmod}</lastmod>\n`;
+    }
     xml += '    <image:image>\n';
     xml += `      <image:loc>${escapeXml(img.image)}</image:loc>\n`;
     if (img.title) xml += `      <image:title>${escapeXml(img.title)}</image:title>\n`;
@@ -234,6 +264,30 @@ function extractVideoMeta(event) {
   }
 
   return { title, description, thumbnail, videoUrl, duration };
+}
+
+// ── Bild-URLs aus einem Kind-1-Event extrahieren (Image-Sitemap) ──────────
+// Server-Portierung von extractNoteImages() (src/hooks/useNotes.ts):
+// 1) Bild-URLs im Content (Regex auf Dateiendungen), 2) `imeta`-Tags
+// (`url `-Präfix). Dedup via Set. Liefert nur die Roh-URLs — Absolute-
+// Normalisierung passiert separat via toAbsoluteImageUrl().
+function extractNoteImageUrls(event) {
+  const urls = [];
+
+  const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp))/gi;
+  const matches = (event.content || '').match(urlRegex);
+  if (matches) urls.push(...matches);
+
+  for (const tag of event.tags || []) {
+    if (tag[0] !== 'imeta') continue;
+    for (const item of tag) {
+      if (typeof item === 'string' && item.startsWith('url ')) {
+        urls.push(item.substring(4).trim());
+      }
+    }
+  }
+
+  return [...new Set(urls)];
 }
 
 // ── Sitemap-Pfad & Priorität für ein Kind-1-Event ermitteln ───────────────
@@ -416,18 +470,20 @@ async function main() {
         }
       }
       const loc = buildLocalizedUrl(path, lang);
+      const lastmod = new Date(event.created_at * 1000).toISOString().split('T')[0];
       allUrls.push({
         loc,
         priority: '0.8',
         changefreq: 'monthly',
-        lastmod: new Date(event.created_at * 1000).toISOString().split('T')[0],
+        lastmod,
         ...(alternates ? { alternates } : {}),
       });
 
       const articleImage = event.tags?.find(t => t[0] === 'image')?.[1];
-      if (articleImage) {
+      const articleImg = articleImage ? toAbsoluteImageUrl(articleImage) : null;
+      if (articleImg) {
         const title = event.tags?.find(t => t[0] === 'title')?.[1] || '';
-        imageUrls.push({ loc, image: articleImage, title });
+        imageUrls.push({ loc, image: articleImg, title, lastmod });
       }
     }
 
@@ -497,12 +553,28 @@ async function main() {
           alternates = [{ hreflang: pairLang, href: buildLocalizedUrl(`/trip/${pairNaddr}`, pairLang) }];
         }
       }
+      const loc = buildLocalizedUrl(path, lang);
+      const lastmod = new Date(event.created_at * 1000).toISOString().split('T')[0];
       allUrls.push({
-        loc: buildLocalizedUrl(path, lang),
+        loc,
         priority: '0.7',
         changefreq: 'weekly',
-        lastmod: new Date(event.created_at * 1000).toISOString().split('T')[0],
+        lastmod,
         ...(alternates ? { alternates } : {}),
+      });
+
+      // ── Image-Sitemap: Trip-Bilder (Titelbild + Stationsfotos) ────────
+      // Trips tragen Fotos als multiple `image`-Tags (Muster: useTrips.ts
+      // Z. 168–170). Titel nur beim ersten Bild (Titelbild), Stationen
+      // bleiben ohne image:title.
+      const tripImages = (event.tags || [])
+        .filter(t => t[0] === 'image')
+        .map(t => toAbsoluteImageUrl(t[1]))
+        .filter(Boolean)
+        .slice(0, MAX_IMAGES_PER_PAGE);
+      const tripTitle = event.tags?.find(t => t[0] === 'title')?.[1] || '';
+      tripImages.forEach((img, idx) => {
+        imageUrls.push({ loc, image: img, title: idx === 0 ? tripTitle : '', lastmod });
       });
     }
 
@@ -530,13 +602,29 @@ async function main() {
         }
       }
 
+      const loc = buildLocalizedUrl(path, lang);
+      const lastmod = new Date(event.created_at * 1000).toISOString().split('T')[0];
+
       allUrls.push({
-        loc: buildLocalizedUrl(path, lang),
+        loc,
         priority: entry.priority,
         changefreq: 'monthly',
-        lastmod: new Date(event.created_at * 1000).toISOString().split('T')[0],
+        lastmod,
         ...(alternates ? { alternates } : {}),
       });
+
+      // ── Image-Sitemap: Bildergalerien (/bild/{note}) ──────────────────
+      // buildNoteEntry() identifiziert Media-Notes zuverlässig (inkl.
+      // isMojobusKind1-Filter) — nur deren Bilder landen hier.
+      if (entry.path.startsWith('/bild/')) {
+        const galleryImages = extractNoteImageUrls(event)
+          .map(toAbsoluteImageUrl)
+          .filter(Boolean)
+          .slice(0, MAX_IMAGES_PER_PAGE);
+        for (const img of galleryImages) {
+          imageUrls.push({ loc, image: img, title: '', lastmod });
+        }
+      }
     }
   }
 
