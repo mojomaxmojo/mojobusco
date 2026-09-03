@@ -56,6 +56,7 @@ import {
 } from '@/lib/gpsExtraction';
 import { compressImageForUpload, createCorrectedPreview, createCorrectedFile } from '@/lib/trip/tripImageUtils';
 import { calculateDistance } from '@/lib/trip/tripGeoUtils';
+import { mapWaypointsToStations } from '@/lib/trip/tripEditLoader';
 import type { TripStation, TripData, WizardStep } from '@/lib/trip/tripTypes';
 
 export function TripPublishForm() {
@@ -323,24 +324,7 @@ export function TripPublishForm() {
         tripType: (existingTrip.category as TripType) || '',
       });
       
-      // Create stations from waypoints
-      const existingStations: TripStation[] = existingTrip.waypoints.map((wp, index) => ({
-        id: `existing-${index}`,
-        file: null as unknown as File, // No file needed for existing images
-        preview: wp.image || '',
-        uploaded: true,
-        uploadedUrl: wp.image || '',
-        gps: {
-          latitude: wp.lat,
-          longitude: wp.lon,
-          precision: 'medium' as const,
-        },
-        gpsStatus: 'detected' as GpsStatus,
-        location: wp.name || '',
-        title: wp.name || '',
-        description: wp.description || '',
-        date: wp.date || new Date().toISOString().split('T')[0],
-      }));
+      const existingStations = mapWaypointsToStations(existingTrip.waypoints);
       
       setStations(existingStations);
 
