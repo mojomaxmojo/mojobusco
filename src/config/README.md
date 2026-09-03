@@ -87,6 +87,23 @@ bundle: {
 
 ## 📁 Dateien und ihre Funktion
 
+### `umami.ts` - Web-Analytics-Konfiguration 📊
+**Zentrale Umami-Konfiguration** (self-hosted auf dem VPS: `analytics.mojobus.co`).
+
+- **`UMAMI_CONFIG`**: scriptUrl, websiteId, domains, Tracker-Flags (autoTrack, performance, doNotTrack, excludeSearch/Hash)
+- **`isUmamiActive()`**: true, wenn eine Website-ID gesetzt ist (Env `VITE_UMAMI_ENABLED=0` deaktiviert hart)
+- **`initUmami()`**: injiziert das Tracking-Script in den `<head>` (Aufruf in `src/main.tsx`, idempotent)
+- **`trackUmamiEvent(event, data)`**: typisierter Wrapper für Custom Events
+
+#### Aktivieren (nach dem VPS-Setup):
+
+```typescript
+// src/config/umami.ts
+const DEFAULT_WEBSITE_ID = '<UUID aus dem Umami-Dashboard>';
+```
+
+Ohne ID lädt kein Script (Build bleibt sauber). `data-domains="mojobus.co"` verhindert Tracking auf localhost/Staging. Cookieless → kein Consent-Banner nötig. Doku: https://umami.is/docs/tracker-configuration
+
 ### `app.ts` - App-Konfiguration
 Enthält die grundlegende App-Konfiguration:
 - **`THEME_CONFIG`**: Theme-Einstellungen (light, dark, system)

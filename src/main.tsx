@@ -6,6 +6,11 @@ import './index.css';
 // Register Service Worker
 import '@/lib/serviceWorker';
 
+// Umami Analytics (self-hosted) – injiziert das Tracking-Script nur,
+// wenn in src/config/umami.ts eine websiteId hinterlegt ist
+import { initUmami } from '@/config/umami';
+initUmami();
+
 // Globaler Handler für unbehandelte Promise Rejections
 if (typeof window !== 'undefined') {
   window.addEventListener('unhandledrejection', (event) => {
