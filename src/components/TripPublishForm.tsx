@@ -55,6 +55,7 @@ import {
   type GpsData, type GpsStatus
 } from '@/lib/gpsExtraction';
 import { compressImageForUpload, createCorrectedPreview, createCorrectedFile } from '@/lib/trip/tripImageUtils';
+import { calculateDistance } from '@/lib/trip/tripGeoUtils';
 import type { TripStation, TripData, WizardStep } from '@/lib/trip/tripTypes';
 
 export function TripPublishForm() {
