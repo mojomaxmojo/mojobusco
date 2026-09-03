@@ -613,13 +613,13 @@ export function useMediaPublish({ files, title, description, customTags,
 
 ## Checkliste — zum Abhaken
 
-- [ ] **Schritt 1** `mediaUploadFormConfig.ts` angelegt (4 Konstanten) → Build ok → Test ok
-- [ ] **Schritt 2** `TagSummarySection.tsx` angelegt (Zusammenfassungs-Box) → Build ok → Test ok
-- [ ] **Schritt 3** `UploadProgressSection.tsx` angelegt (Fortschritts-Karte) → Build ok → Test ok
-- [ ] **Schritt 4** `MediaLocationSection.tsx` angelegt (Standort-Karte) → Build ok → Test ok
-- [ ] **Schritt 5** `useMediaDragSort.ts` angelegt (Sortierung) → Build ok → Test ok
-- [ ] **Schritt 6** `useMediaGpsEditing.ts` angelegt (GPS-Editor) → Build ok → Test ok
-- [ ] **Schritt 7** `MediaPreviewSection.tsx` angelegt (Vorschau-Grid) → Build ok → Test ok
-- [ ] **Schritt 8** `useMediaPublish.ts` angelegt (Veröffentlichen + Route) → Build ok → großer Testlauf ok
+- [x] **Schritt 1** `mediaUploadFormConfig.ts` angelegt (4 Konstanten) → Build ok → Test ok
+- [x] **Schritt 2** `TagSummarySection.tsx` angelegt (Zusammenfassungs-Box) → Build ok → Test ok
+- [x] **Schritt 3** `UploadProgressSection.tsx` angelegt (Fortschritts-Karte) → Build ok → Test ok
+- [x] **Schritt 4** `MediaLocationSection.tsx` angelegt (Standort-Karte) → Build ok → Test ok
+- [x] **Schritt 5** `useMediaDragSort.ts` angelegt (Sortierung) → Build ok → Test ok
+- [x] **Schritt 6** `useMediaGpsEditing.ts` angelegt (GPS-Editor) → Build ok → Test ok
+- [x] **Schritt 7** `MediaPreviewSection.tsx` angelegt (Vorschau-Grid) → Build ok → Test ok
+- [x] **Schritt 8** `useMediaPublish.ts` angelegt (Veröffentlichen + Route) → Build ok → großer Testlauf ok
 - [ ] Abschluss-Check: Ein kompletter Beitrag über Veröffentlichen → Bilder
       erstellt, erscheint korrekt auf /bilder; keine roten Console-Fehler.
