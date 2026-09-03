@@ -12,7 +12,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { RemotionVideoBlock } from '@/components/RemotionVideoBlock';
-import { getApiBaseUrl } from '@/lib/apiBase';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -57,6 +56,7 @@ import { compressImageForUpload, createCorrectedPreview, createCorrectedFile } f
 import { calculateDistance } from '@/lib/trip/tripGeoUtils';
 import { mapWaypointsToStations } from '@/lib/trip/tripEditLoader';
 import { readImageExif } from '@/lib/trip/tripExif';
+import { startTripGenerationJob, cancelTripGenerationJob, fetchTripGenerationStatus } from '@/lib/trip/tripGenerationApi';
 import type { TripStation, TripData, WizardStep } from '@/lib/trip/tripTypes';
 
 export function TripPublishForm() {
@@ -165,12 +165,7 @@ export function TripPublishForm() {
                 .filter(s => s.description)
       ));
 
-      const response = await fetch(`${getApiBaseUrl()}/api/generate-trip`, { method: 'POST', body: fd });
-      const data = await response.json().catch(() => ({ error: 'Keine Antwort vom Server' }));
-
-      if (!response.ok) {
-        throw new Error(data.error || `Server HTTP ${response.status}`);
-      }
+      const data = await startTripGenerationJob(fd);
 
       setActiveJobId(data.jobId);
       setProgressMessage('Job gestartet...');
@@ -196,7 +191,7 @@ export function TripPublishForm() {
     if (!activeJobId) return;
 
     try {
-      await fetch(`${getApiBaseUrl()}/api/generate-trip/${activeJobId}/cancel`, { method: 'POST' });
+      await cancelTripGenerationJob(activeJobId);
     } catch (err) {
       console.warn('[KI] Cancel fehlgeschlagen:', err);
     }
@@ -218,7 +213,7 @@ export function TripPublishForm() {
 
     const poll = async () => {
       try {
-        const response = await fetch(`${getApiBaseUrl()}/api/generate-trip/${activeJobId}`);
+        const response = await fetchTripGenerationStatus(activeJobId);
         if (!response.ok) {
           if (cancelled) return;
           const data = await response.json().catch(() => ({ error: 'Status-Abruf fehlgeschlagen' }));
