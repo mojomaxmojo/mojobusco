@@ -47,6 +47,7 @@ import { extractGpsFromImage, formatCoordinatesSimple, reverseGeocode, mapCountr
 import { extractGpsCrossPlatform, getCurrentPosition, positionToGpsData, isCapacitorNative } from "@/lib/capacitorGps";
 import { resolveBildPlaceholders } from "./publishUtils";
 import { extractPlaceImageUrls } from "./placeForm/placeFormUtils";
+import { usePlaceFormHandlers } from "./placeForm/usePlaceFormHandlers";
 import { categories, facilityOptions, bestForOptions } from "./placeForm/placeFormConfig";
 import exifr from "exifr";
 
@@ -105,6 +106,8 @@ export function PlaceForm({ editEvent }: { editEvent?: any }) {
   const navigate = useNavigate();
   const { translateAndPublish } = useAutoTranslate();
    const { trackPublishedPost } = useContinuityTracking();
+  const { handleFacilityToggle, handleBestForToggle, removeAdditionalImage,
+          handleManualTagInput, removeManualTag, closeGpsEditor } = usePlaceFormHandlers({ setFacilities, setBestFor, setAdditionalImages, setManualTags, setEditingImageGps, setShowMapPicker });
 
     // KI-Platz-Beschreibung generieren (Foster Huntington Stil)
    const generatePlaceWithAI = async () => {
@@ -380,24 +383,8 @@ export function PlaceForm({ editEvent }: { editEvent?: any }) {
        }
      };
 
-     autoFillLocation();
-   }, [imageGps]);
-
-  const handleFacilityToggle = (facility: string) => {
-    setFacilities(prev =>
-      prev.includes(facility)
-        ? prev.filter(f => f !== facility)
-        : [...prev, facility]
-    );
-  };
-
-  const handleBestForToggle = (item: string) => {
-    setBestFor(prev =>
-      prev.includes(item)
-        ? prev.filter(b => b !== item)
-        : [...prev, item]
-    );
-  };
+      autoFillLocation();
+    }, [imageGps]);
 
   const handleImageFile = async (file: File) => {
     setIsUploading(true);
@@ -509,31 +496,6 @@ export function PlaceForm({ editEvent }: { editEvent?: any }) {
         variant: 'destructive'
       });
     }
-  };
-
-  const removeAdditionalImage = (index: number) => {
-    setAdditionalImages(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const handleManualTagInput = (input: string) => {
-    // Split by both comma and whitespace, remove empty strings and # prefixes
-    const tags = input
-      .split(/[\s,]+/)
-      .map(tag => tag.replace('#', '').trim())
-      .filter(Boolean);
-
-    if (tags.length > 0) {
-      setManualTags(prev => [...prev, ...tags]);
-    }
-  };
-
-  const removeManualTag = (index: number) => {
-    setManualTags(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const closeGpsEditor = () => {
-    setEditingImageGps(false);
-    setShowMapPicker(false);
   };
 
   const handleSubmit = () => {
