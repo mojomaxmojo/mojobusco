@@ -25,7 +25,7 @@ import { type GenderType } from "@/config/prompts/lifestyles";
 import { ModelSelect, type TextModelTier } from "@/components/ModelSelect";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { CountrySelector, getCountryTag } from "@/components/CountrySelector";
+import { getCountryTag } from "@/components/CountrySelector";
 import { MAIN_MENU } from "@/config/menu";
 import { TRIP_TYPES, type TripType } from "@/config/tags";
 import { RemotionVideoBlock } from "@/components/RemotionVideoBlock";
@@ -38,6 +38,7 @@ import exifr from "exifr";
 import { natureSubcategories, countryTags, countryList, mojobusTag } from "./mediaUploadForm/mediaUploadFormConfig";
 import { TagSummarySection } from "./mediaUploadForm/TagSummarySection";
 import { UploadProgressSection } from "./mediaUploadForm/UploadProgressSection";
+import { MediaLocationSection } from "./mediaUploadForm/MediaLocationSection";
 
 export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
   const [files, setFiles] = useState<MediaFile[]>([]);
@@ -1218,38 +1219,8 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
          </Card>
        )}
 
-       {/* Location */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5" />
-            Standort
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="location">Standort</Label>
-            <Input
-              id="location"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              placeholder="📍 Wo wurden die Bilder aufgenommen?"
-            />
-            {files.some(f => f.type === 'image' && f.gps) && (
-              <p className="text-xs text-green-600 dark:text-green-400">
-                📍 GPS-Daten verfügbar - Standort kann automatisch ausgefüllt werden
-              </p>
-            )}
-          </div>
-
-          {/* Country Selection */}
-          <CountrySelector
-            selectedCountry={selectedCountry}
-            onCountryChange={setSelectedCountry}
-            placeholder="Land auswaehlen"
-          />
-         </CardContent>
-       </Card>
+        {/* Location */}
+        <MediaLocationSection files={files} location={location} setLocation={setLocation} selectedCountry={selectedCountry} setSelectedCountry={setSelectedCountry} />
 
        {/* Media Details */}
       <Card>
