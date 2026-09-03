@@ -678,21 +678,35 @@ Verschieben — jeweils eigener Mini-Commit möglich):
 
 ## ✅ Checkliste zum Abhaken
 
-- [ ] **Schritt 1** — `articleFormConfig.ts`: Konstanten + Typen + Icon-Maps
+- [x] **Schritt 1** — `articleFormConfig.ts`: Konstanten + Typen + Icon-Maps
       + Options-Daten verschoben; Icons/Arrays im JSX unverändert gerendert
-- [ ] **Schritt 2** — `articleFormUtils.ts`: `extractImageUrlsFromMarkdown` +
+      *(Commit `9f439ed`, Build grün)*
+- [x] **Schritt 2** — `articleFormUtils.ts`: `extractImageUrlsFromMarkdown` +
       `splitAuthorInput` verschoben; Bild-Zähler + Entwurfs-Laden funktionieren
-- [ ] **Schritt 3** — `useArticleAutosave.ts`: Autosave-Banner erscheint,
+      *(Commit `2574c14`, Build grün)*
+- [x] **Schritt 3** — `useArticleAutosave.ts`: Autosave-Banner erscheint,
       Wiederherstellen/Verwerfen funktionieren, Vorrang-Regel unangetastet
-- [ ] **Schritt 4** — `useArticleMediaGenerators.ts`: Slideshow-Karte rendert,
+      *(Commit `c2ef09a`, Build grün)*
+- [x] **Schritt 4** — `useArticleMediaGenerators.ts`: Slideshow-Karte rendert,
       versteckter Alt-Block unberührt, `handleSubmit`-Video-Kette intakt
-- [ ] **Schritt 5** — `useArticleTagCategories.ts`: Kategorie-Boxen,
+      *(Commit `a8ef659`, Build grün)*
+- [x] **Schritt 5** — `useArticleTagCategories.ts`: Kategorie-Boxen,
       Badge-Toggles, Auto-Tags identisch
-- [ ] **Schritt 6** — `useArticleImageGps.ts`: Bild-Upload, EXIF, GPS
+      *(Commit `5ff1007`, Build grün)*
+- [x] **Schritt 6** — `useArticleImageGps.ts`: Bild-Upload, EXIF, GPS
       (auto + manuell), Standort/Land-Autofill identisch
-      *(Entscheidung `createCorrectedPreview`-Import dokumentiert)*
-- [ ] **Schritt 7** — `ArticleImageGpsSection.tsx`: Bild/GPS/Standort/Land-UI
+      *(Commit `46b32eb`, Build grün; Entscheidung `createCorrectedPreview`-Import: gesetzt — EXIF-Preview funktioniert erstmals wirklich)*
+- [x] **Schritt 7** — `ArticleImageGpsSection.tsx`: Bild/GPS/Standort/Land-UI
       optisch + funktional identisch, Media-Library-Dialog öffnet weiter
-- [ ] **Schritt 8** — `useArticlePublish.ts`: Vollabnahme — Gate,
+      *(Commit `54e0a99`, Build grün; ergänzter Prop `toast` für GPS-Save-Callback)*
+- [x] **Schritt 8** — `useArticlePublish.ts`: Vollabnahme — Gate,
       Validierung, Publish + Teaser + Redirect, Edit-Datum, Entwurfs-Kreislauf
-- [ ] Nach jedem Schritt: `build_project` grün + Commit
+      *(Commit `7435a1d`, Build grün; ergänzte Params: `setIsPublishingTeaser`, `setArticleLength/setTripType/setLifestyle/setResearchFacts/setExperienceNotes`, `researchFacts/experienceNotes` — technisch nötig für loadDraftIntoForm/draftPayload/handleSubmit)*
+- [x] Nach jedem Schritt: `build_project` grün + Commit
+
+**Ergebnis:** ArticleForm.tsx **2259 → 1264 Zeilen** · 8 neue Module
+(`articleFormConfig` 86 · `articleFormUtils` 37 · `useArticleAutosave` 164 ·
+`useArticleMediaGenerators` 348 · `useArticleTagCategories` 88 ·
+`useArticleImageGps` 206 · `ArticleImageGpsSection` 220 ·
+`useArticlePublish` 475) — alle < 500 Zeilen · Backend/server.js unberührt ·
+keine neuen npm-Pakete.
