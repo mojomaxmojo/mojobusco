@@ -371,11 +371,11 @@ import { buildWaypointTags, buildImageTags, calculateTotalDistance, buildTripCon
 
 ## Checkliste aller Schritte (zum Abhaken)
 
-- [ ] **Schritt 1:** `src/lib/trip/tripTypes.ts` erstellt, Typen (Zeilen 318–354) verschoben, Import eingebaut → Test 1 bestanden
-- [ ] **Schritt 2:** `src/lib/trip/tripImageUtils.ts` erstellt, 3 Bild-Funktionen (Zeilen 58–303) verschoben → Test 2 bestanden (Vorschaubilder, Drehung, Komprimierung)
-- [ ] **Schritt 3:** `src/lib/trip/tripGeoUtils.ts` erstellt, `calculateDistance` (Zeilen 305–316) verschoben → Test 3 bestanden (Publish + Route)
-- [ ] **Schritt 4:** `src/lib/trip/tripEditLoader.ts` erstellt, Waypoint-Mapping (Zeilen 621–638) verschoben → Test 4 bestanden (Bearbeiten-Modus lädt korrekt)
-- [ ] **Schritt 5:** `src/lib/trip/tripExif.ts` erstellt, EXIF-Block (Zeilen 714–802) verschoben → Test 5 bestanden (Datum + Sortierung + `[Trip EXIF]`-Logs)
-- [ ] **Schritt 6:** `src/lib/trip/tripGenerationApi.ts` erstellt, 3 API-Routen (Zeilen 462–467, 493, 515) verschoben → Test 6 bestanden (KI-Generierung, Abbrechen)
-- [ ] **Schritt 7:** `src/lib/trip/tripPublishBuilder.ts` erstellt, Publish-Bausteine (Zeilen 1155–1200, 1205–1241) verschoben → großer Test 7 bestanden (Veröffentlichen, Teaser, Edit-Modus, Übersetzung)
+- [x] **Schritt 1:** `src/lib/trip/tripTypes.ts` erstellt, Typen (Zeilen 318–354) verschoben, Import eingebaut → Test 1 bestanden
+- [x] **Schritt 2:** `src/lib/trip/tripImageUtils.ts` erstellt, 3 Bild-Funktionen (Zeilen 58–303) verschoben → Test 2 bestanden (Vorschaubilder, Drehung, Komprimierung)
+- [x] **Schritt 3:** `src/lib/trip/tripGeoUtils.ts` erstellt, `calculateDistance` (Zeilen 305–316) verschoben → Test 3 bestanden (Publish + Route)
+- [x] **Schritt 4:** `src/lib/trip/tripEditLoader.ts` erstellt, Waypoint-Mapping (Zeilen 621–638) verschoben → Test 4 bestanden (Bearbeiten-Modus lädt korrekt)
+- [x] **Schritt 5:** `src/lib/trip/tripExif.ts` erstellt, EXIF-Block (Zeilen 714–802) verschoben → Test 5 bestanden (Datum + Sortierung + `[Trip EXIF]`-Logs)
+- [x] **Schritt 6:** `src/lib/trip/tripGenerationApi.ts` erstellt, 3 API-Routen (Zeilen 462–467, 493, 515) verschoben → Test 6 bestanden (KI-Generierung, Abbrechen)
+- [x] **Schritt 7:** `src/lib/trip/tripPublishBuilder.ts` erstellt, Publish-Bausteine (Zeilen 1155–1200, 1205–1241) verschoben → großer Test 7 bestanden (Veröffentlichen, Teaser, Edit-Modus, Übersetzung)
 - [ ] Schluss-Kontrolle: `TripPublishForm.tsx` signifikant kleiner; alle 7 Tests erneut im Schnelldurchlauf wiederholt
