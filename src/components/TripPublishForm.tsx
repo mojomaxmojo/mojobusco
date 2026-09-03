@@ -41,7 +41,7 @@ import { useTrip } from '@/hooks/useTrips';
 import { GpsEditor } from '@/components/GpsEditor';
 import { GpsStatusIndicator } from '@/components/GpsStatusIndicator';
 import { LocationPicker } from '@/components/LocationPicker';
-import { CountrySelector, getCountryTag } from '@/components/CountrySelector';
+import { CountrySelector } from '@/components/CountrySelector';
 import { VanillaMap, TILE_LAYERS, type MapMarker } from '@/components/VanillaMap';
 import { TRIP_TYPES, type TripType } from '@/config/tags';
 import { 
@@ -57,6 +57,7 @@ import { calculateDistance } from '@/lib/trip/tripGeoUtils';
 import { mapWaypointsToStations } from '@/lib/trip/tripEditLoader';
 import { readImageExif } from '@/lib/trip/tripExif';
 import { startTripGenerationJob, cancelTripGenerationJob, fetchTripGenerationStatus } from '@/lib/trip/tripGenerationApi';
+import { buildWaypointTags, buildImageTags, calculateTotalDistance, buildTripContent, buildTripTags } from '@/lib/trip/tripPublishBuilder';
 import type { TripStation, TripData, WizardStep } from '@/lib/trip/tripTypes';
 
 export function TripPublishForm() {
@@ -748,93 +749,18 @@ export function TripPublishForm() {
     console.log('[Trip Publish] Mode:', isEditMode ? 'UPDATE' : 'CREATE');
     console.log('[Trip Publish] d-tag:', dTag);
     
-    // Build waypoint tags (for route visualization)
-    // Format: ['waypoint', index, lat, lon, name, date, image, description]
-    const waypointTags = gpsStations.map((s, index) => [
-      'waypoint',
-      (index + 1).toString(),
-      s.gps!.latitude.toString(),
-      s.gps!.longitude.toString(),
-      s.title || s.location || `Station ${index + 1}`,
-      s.date || '',
-      s.uploadedUrl!,
-      s.description || ''
-    ]);
-    
-    // Build image tags (with GPS for map display) - mojotravel format
-    const imageTags = uploadedStations
-      .filter(s => s.uploadedUrl)
-      .map((s, index) => {
-        if (s.gps) {
-          return ['image', s.uploadedUrl!, s.gps.latitude.toString(), s.gps.longitude.toString(), s.date || ''];
-        }
-        return ['image', s.uploadedUrl!];
-      });
-    
-    // Calculate total distance
-    let totalDistance = 0;
-    for (let i = 1; i < gpsStations.length; i++) {
-      const prev = gpsStations[i - 1];
-      const curr = gpsStations[i];
-      totalDistance += calculateDistance(
-        prev.gps!.latitude, prev.gps!.longitude,
-        curr.gps!.latitude, curr.gps!.longitude
-      );
-    }
-    
-    // Build station content
-    const stationContent = uploadedStations
-      .filter(s => s.uploadedUrl)
-      .map((s, index) => {
-        let content = `## Station ${index + 1}: ${s.title || s.location || 'Unbenannt'}\n\n`;
-        if (s.description) content += `${s.description}\n\n`;
-        content += `![${s.title || `Station ${index + 1}`}](${s.uploadedUrl})\n`;
-        return content;
-      })
-      .join('\n---\n\n');
-    
-    const content = `# ${tripData.title}\n\n${tripData.summary}\n\n${stationContent}`;
-    
+    const waypointTags = buildWaypointTags(gpsStations);
+
+    const imageTags = buildImageTags(uploadedStations);
+
+    const totalDistance = calculateTotalDistance(gpsStations);
+
+    const content = buildTripContent(uploadedStations, tripData);
+
     console.log('[Trip Publish] Waypoint tags:', waypointTags.length);
     console.log('[Trip Publish] Image tags:', imageTags.length);
-    
-    // Build tags
-    const tags: string[][] = [
-      ['d', dTag],
-      ['title', tripData.title],
-      ['summary', tripData.summary],
-      ['type', 'trip'],
-      ['t', 'trip'],
-      ['t', 'mojobus'],
-      ...waypointTags,
-      ...imageTags,
-    ];
-    
-    // Add distance
-    if (totalDistance > 0) {
-      tags.push(['distance', Math.round(totalDistance).toString()]);
-      tags.push(['distance_unit', 'km']);
-    }
-    
-    // Add trip type tag
-    if (tripData.tripType) {
-      tags.push(['t', tripData.tripType]);
-      tags.push(['trip_type', tripData.tripType]);
-      tags.push(['category', tripData.tripType]);
-    }
-    
-    // Add country tags
-    if (tripData.country) {
-      const countryTags = getCountryTag(tripData.country);
-      countryTags.forEach(tag => tags.push(['t', tag]));
-      tags.push(['country', tripData.country]);
-    }
 
-    // Slideshow-Video URL einbinden (wenn generiert)
-    if (slideshowVideoUrl) {
-      tags.push(['video', slideshowVideoUrl]);
-      console.log('[Trip Publish] Slideshow-Video wird eingebunden:', slideshowVideoUrl);
-    }
+    const tags = buildTripTags(dTag, tripData, waypointTags, imageTags, totalDistance, slideshowVideoUrl);
     
     // Publish
     setIsPublishing(true);
