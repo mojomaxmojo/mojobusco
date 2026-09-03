@@ -30,10 +30,10 @@
 
 const env = import.meta.env;
 
-const DEFAULT_SCRIPT_URL = 'https://cloud.umami.is/script.js';
+const DEFAULT_SCRIPT_URL = 'https://analytics.mojobus.co/script.js';
 
 /** ← Nach dem Umami-Setup die Website-ID (UUID) hier eintragen */
-const DEFAULT_WEBSITE_ID = '7bf4a449-4a07-495b-bf06-8ef15ba8b6e5';
+const DEFAULT_WEBSITE_ID = '0d7fb717-c561-442a-826e-6a89488738c6';
 
 /**
  * Erlaubte Hostnames (data-domains, Komma-getrennt, matches
