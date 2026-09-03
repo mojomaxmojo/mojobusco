@@ -54,6 +54,7 @@ import {
   extractGpsFromImage, formatCoordinatesSimple, reverseGeocode, mapCountryCode,
   type GpsData, type GpsStatus
 } from '@/lib/gpsExtraction';
+import type { TripStation, TripData, WizardStep } from '@/lib/trip/tripTypes';
 
 /**
  * Komprimiert ein Bild auf max. targetSizeBytes (Standard: 2MB)
@@ -314,44 +315,6 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
-
-// Trip Station - represents one image with GPS and description
-interface TripStation {
-  id: string;
-  file: File;
-  preview: string;
-  uploaded?: boolean;
-  uploadedUrl?: string;
-  
-  // GPS data
-  gps?: GpsData;
-  gpsStatus: GpsStatus;
-  
-  // Location info (auto-filled from GPS, but manually editable)
-  location: string;
-  
-  // User content
-  title: string;
-  description: string;
-  date: string;
-  
-  // EXIF timestamp for sorting
-  timestamp?: number;
-  
-  // EXIF orientation for upload correction
-  exifOrientation?: number;
-}
-
-// Trip metadata
-interface TripData {
-  title: string;
-  summary: string;
-  country: string;
-  tripType: TripType | '';
-}
-
-// Step wizard state
-type WizardStep = 'upload' | 'details' | 'preview' | 'publish';
 
 export function TripPublishForm() {
   // URL params for edit mode
