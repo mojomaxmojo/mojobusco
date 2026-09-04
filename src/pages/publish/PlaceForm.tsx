@@ -18,9 +18,6 @@ import { notifyPublishedPipeline } from "@/lib/publishNotify";
 import { SeoPublishPanel } from "@/components/assistant/SeoPublishPanel";
 import { buildSmartSlug } from "@/config/assistant";
 import { ImageOptimizationToggle } from "@/components/ImageOptimizationToggle";
-import { GpsEditor } from "@/components/GpsEditor";
-import { GpsStatusIndicator } from "@/components/GpsStatusIndicator";
-import { LocationPicker } from "@/components/LocationPicker";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { PerspectiveSelector } from "@/components/PerspectiveSelector";
 import { type GenderType } from "@/config/prompts/lifestyles";
@@ -42,12 +39,13 @@ import { TripPublishForm } from "@/components/TripPublishForm";
 import { RemotionVideoBlock } from "@/components/RemotionVideoBlock";
 import { SlideshowBlock } from "@/components/SlideshowBlock";
 import { Progress } from "@/components/ui/progress";
-import { Upload, UploadCloud, ImageIcon, Video, Music, File as FileIcon, Camera, MapPin, Calendar, Tag, Battery, Sun, Wrench, Hammer, Cpu, Mountain, Lightbulb, Dog, Trees, Droplets, Waves, Eye, Loader2, CheckCircle, Route, Sparkles, FileText, MessageSquare, Map } from "@/lib/icons";
-import { extractGpsFromImage, formatCoordinatesSimple, reverseGeocode, mapCountryCode, type GpsData, type GpsStatus, type LocationData } from "@/lib/gpsExtraction";
+import { Upload, UploadCloud, ImageIcon, Video, Music, File as FileIcon, Camera, Calendar, Tag, Battery, Sun, Wrench, Hammer, Cpu, Mountain, Lightbulb, Dog, Trees, Droplets, Waves, Eye, Loader2, CheckCircle, Route, Sparkles, FileText, MessageSquare, Map } from "@/lib/icons";
+import { extractGpsFromImage, reverseGeocode, mapCountryCode, type GpsData, type GpsStatus, type LocationData } from "@/lib/gpsExtraction";
 import { extractGpsCrossPlatform, getCurrentPosition, positionToGpsData, isCapacitorNative } from "@/lib/capacitorGps";
 import { resolveBildPlaceholders } from "./publishUtils";
 import { extractPlaceImageUrls } from "./placeForm/placeFormUtils";
 import { usePlaceFormHandlers } from "./placeForm/usePlaceFormHandlers";
+import { PlaceTitleImageSection } from "./placeForm/PlaceTitleImageSection";
 import { categories, facilityOptions, bestForOptions } from "./placeForm/placeFormConfig";
 import exifr from "exifr";
 
@@ -779,170 +777,7 @@ export function PlaceForm({ editEvent }: { editEvent?: any }) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Title Image - Move to top */}
-         <div className="space-y-2">
-          <Label htmlFor="article-image">Titelbild</Label>
-          <div className="flex gap-2">
-            {image ? (
-              <div className="flex-1">
-                <div className="relative group border rounded-lg p-3">
-                  <img
-                    src={image}
-                    alt="Titelbild"
-                    className="w-full h-32 object-cover rounded-lg"
-                  />
-                  {isUploading && (
-                    <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
-                      <div className="text-white text-center">
-                        <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
-                        <p className="text-sm">Wird hochgeladen...</p>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* GPS Info Display */}
-                  {imageGps && imageGps.latitude && imageGps.longitude ? (
-                    <div className="mt-3 space-y-2">
-                      <GpsStatusIndicator status={imageGpsStatus} gps={imageGps} />
-                      <div className="text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded p-2">
-                         <div className="flex items-center gap-1.5 text-gray-700 dark:text-gray-300">
-                           <MapPin className="h-3 w-3 text-green-600 dark:text-green-400" />
-                           <span className="truncate font-mono">
-                             {formatCoordinatesSimple(imageGps.latitude, imageGps.longitude)}
-                           </span>
-                         </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="w-full text-xs h-8 mt-3"
-                      onClick={() => setEditingImageGps(true)}
-                    >
-                      <MapPin className="h-3 w-3 mr-1" />
-                      GPS hinzufügen
-                    </Button>
-                  )}
-
-                  {/* GPS Editor */}
-                  {editingImageGps && (
-                    <div className="space-y-2">
-                      {/* Toggle between Simple Editor and Map */}
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant={!showMapPicker ? 'default' : 'outline'}
-                          className="flex-1 h-7 text-xs"
-                          onClick={() => setShowMapPicker(false)}
-                        >
-                          <span className="mr-1">✏️</span>
-                          Einfach
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={showMapPicker ? 'default' : 'outline'}
-                          className="flex-1 h-7 text-xs"
-                          onClick={() => setShowMapPicker(true)}
-                        >
-                          <span className="mr-1">🗺️</span>
-                          Karte
-                        </Button>
-                      </div>
-
-                      {/* Show Map Picker */}
-                      {showMapPicker ? (
-                        <LocationPicker
-                          gps={imageGps || undefined}
-                          onSave={(gps) => {
-                            setImageGps(gps);
-                            setImageGpsStatus('manual');
-                            setEditingImageGps(false);
-                          }}
-                          onCancel={() => setEditingImageGps(false)}
-                          initialZoom={13}
-                          height="300px"
-                          onCountryDetected={(country) => {
-                            console.log('[ArticleForm] Country detected:', country);
-                            setSelectedCountry(country);
-                          }}
-                          onLocationDetected={(locationText) => {
-                            console.log('[ArticleForm] Location detected:', locationText);
-                            setLocation(locationText);
-                          }}
-                        />
-                      ) : (
-                        /* Show Simple Editor */
-                        <GpsEditor
-                          gps={imageGps || undefined}
-                          onSave={(gps) => {
-                            setImageGps(gps);
-                            setImageGpsStatus('manual');
-                            setEditingImageGps(false);
-                          }}
-                          onCancel={() => setEditingImageGps(false)}
-                          onRemove={() => {
-                            setImageGps(null);
-                            setImageGpsStatus('not_found');
-                            setEditingImageGps(false);
-                          }}
-                        />
-                      )}
-                    </div>
-                  )}
-
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="absolute top-2 right-2"
-                    onClick={() => {
-                      setImage('');
-                      setImageFile(null);
-                      setImageGps(null);
-                      setImageGpsStatus('not_found');
-                    }}
-                    disabled={isUploading}
-                  >
-                    Entfernen
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="relative">
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleImageFile(file);
-                    }}
-                    className="mb-2 disabled:opacity-50"
-                    disabled={isUploading}
-                  />
-                  {isUploading && (
-                    <div className="absolute inset-0 bg-white/80 rounded-md flex items-center justify-center">
-                      <div className="text-center">
-                        <Loader2 className="w-4 h-4 animate-spin mx-auto mb-1 text-ocean-600" />
-                        <p className="text-xs text-ocean-600">Upload läuft...</p>
-                      </div>
-                    </div>
-                  )}
-                  <p className="text-xs text-muted-foreground">
-                    oder
-                  </p>
-                  <Input
-                    placeholder="https://... (Bild-URL)"
-                    value={image}
-                    onChange={(e) => setImage(e.target.value)}
-                    className="mt-2 disabled:opacity-50"
-                    disabled={isUploading}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <PlaceTitleImageSection image={image} isUploading={isUploading} imageGps={imageGps} imageGpsStatus={imageGpsStatus} editingImageGps={editingImageGps} showMapPicker={showMapPicker} setImage={setImage} setImageFile={setImageFile} setImageGps={setImageGps} setImageGpsStatus={setImageGpsStatus} setEditingImageGps={setEditingImageGps} setShowMapPicker={setShowMapPicker} setSelectedCountry={setSelectedCountry} setLocation={setLocation} handleImageFile={handleImageFile} />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
