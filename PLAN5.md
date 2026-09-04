@@ -524,13 +524,13 @@ NoteForm.tsx bleibt die „Schaltzentrale" (ca. 400–450 Zeilen statt 1112) und
 
 Für jeden Schritt gilt: **Verschieben → bauen/neu laden → Test machen → Git-Commit → erst dann weiter.**
 
-- [ ] **Schritt 1:** `noteForm/noteFormConstants.ts` — Country-Liste (Zeilen 159 + 473) — *Test: Notiz mit Land veröffentlichen → Land-Hashtag da; kein doppelter Hashtag; Bearbeiten erkennt Land*
-- [ ] **Schritt 2:** `noteForm/noteImagePreview.ts` — EXIF-Vorschau (Zeilen 221–254) — *Test: Hochformat-Foto erscheint richtig herum in der Vorschau; Drag & Drop geht*
-- [ ] **Schritt 3:** `noteForm/NoteTagsSection.tsx` — Tags-Bereich (Zeilen 201–207 + 970–1034) — *Test: Badges an/aus, eigene Tags per Enter UND Button „Hinzufügen", × entfernen*
-- [ ] **Schritt 4:** `noteForm/NoteAiSection.tsx` — KI-Block (Zeilen 627–721) — *Test: Lifestyle/Perspektive/Reiseart/Modell umschaltbar; Button ohne Bild gesperrt*
-- [ ] **Schritt 5:** `noteForm/useNoteGps.ts` — GPS-Logik (Zeilen 58–59, 66–67, 355–447) — *Test: GPS-Foto füllt Standort + Land automatisch; GPS+-Editor (Einfach/Karte); entfernen*
-- [ ] **Schritt 6:** `noteForm/useNoteImageUpload.ts` — Bild-Logik (Zeilen 55–57, 60–61, 211–352) — *Test: Vorschau, Upload mit Fortschritt „x von y", Alle entfernen, Einzellöschung, Drag & Drop*
-- [ ] **Schritt 7:** `noteForm/NoteImageGallery.tsx` — Galerie + GPS-Overlay (Zeilen 818–943) — *Test: Galerie-Zähler, Koordinaten-Overlay, GPS-Editor, Einzellöschung (bei Unsicherheit: Schritt überspringbar)*
-- [ ] **Schritt 8:** `noteForm/useNotePublish.ts` — Veröffentlichen + Weiterleitung (Zeilen 62, 65, 449–597) — *Test: kompletter Veröffentlichungs-Durchlauf inkl. Fehlerfälle, Weiterleitung zu /notes, Land-/Bild-/GPS-Tags in der Notiz, Übersetzungs-Schalter*
+- [x] **Schritt 1:** `noteForm/noteFormConstants.ts` — Country-Liste (Zeilen 159 + 473) — *Test: Notiz mit Land veröffentlichen → Land-Hashtag da; kein doppelter Hashtag; Bearbeiten erkennt Land*
+- [x] **Schritt 2:** `noteForm/noteImagePreview.ts` — EXIF-Vorschau (Zeilen 221–254) — *Test: Hochformat-Foto erscheint richtig herum in der Vorschau; Drag & Drop geht*
+- [x] **Schritt 3:** `noteForm/NoteTagsSection.tsx` — Tags-Bereich (Zeilen 201–207 + 970–1034) — *Test: Badges an/aus, eigene Tags per Enter UND Button „Hinzufügen", × entfernen*
+- [x] **Schritt 4:** `noteForm/NoteAiSection.tsx` — KI-Block (Zeilen 627–721) — *Test: Lifestyle/Perspektive/Reiseart/Modell umschaltbar; Button ohne Bild gesperrt*
+- [x] **Schritt 5:** `noteForm/useNoteGps.ts` — GPS-Logik (Zeilen 58–59, 66–67, 355–447) — *Test: GPS-Foto füllt Standort + Land automatisch; GPS+-Editor (Einfach/Karte); entfernen*
+- [x] **Schritt 6:** `noteForm/useNoteImageUpload.ts` — Bild-Logik (Zeilen 55–57, 60–61, 211–352) — *Test: Vorschau, Upload mit Fortschritt „x von y", Alle entfernen, Einzellöschung, Drag & Drop*
+- [x] **Schritt 7:** `noteForm/NoteImageGallery.tsx` — Galerie + GPS-Overlay (Zeilen 818–943) — *Test: Galerie-Zähler, Koordinaten-Overlay, GPS-Editor, Einzellöschung (bei Unsicherheit: Schritt überspringbar)*
+- [x] **Schritt 8:** `noteForm/useNotePublish.ts` — Veröffentlichen + Weiterleitung (Zeilen 62, 65, 449–597) — *Test: kompletter Veröffentlichungs-Durchlauf inkl. Fehlerfälle, Weiterleitung zu /notes, Land-/Bild-/GPS-Tags in der Notiz, Übersetzungs-Schalter*
 
 **Abschluss:** Wenn alle Häkchen gesetzt sind, ist NoteForm.tsx von 1112 auf ca. 400–450 Zeilen geschrumpft, ohne dass sich irgendetwas am Verhalten der Website geändert hat.
