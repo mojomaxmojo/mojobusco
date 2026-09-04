@@ -27,7 +27,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { CountrySelector, getCountryTag } from "@/components/CountrySelector";
-import { CONTENT_CATEGORIES, createRequiredTags, getOptionalTags, getTabConfig } from "@/config/contentCategories";
+import { createRequiredTags } from '@/config/contentCategories';
 import { ARTICLE_CATEGORIES, DIY_CATEGORIES, DIY_TAGS, NATURE_CATEGORIES, NATURE_TAGS, TAG_GROUPS } from "@/config";
 import { TRIP_TYPES, type TripType } from "@/config/tags";
 import MAIN_MENU from "@/config/menu";
@@ -45,6 +45,7 @@ import { extractGpsFromImage, formatCoordinatesSimple, reverseGeocode, mapCountr
 import type { NostrEvent } from "@nostrify/nostrify";
 import { createImagePreview } from './noteForm/noteImagePreview';
 import { NOTE_COUNTRY_TAGS } from './noteForm/noteFormConstants';
+import { NoteTagsSection } from './noteForm/NoteTagsSection';
 
 export function NoteForm({ editEvent }: { editEvent?: any }) {
   const [content, setContent] = useState('');
@@ -197,14 +198,6 @@ export function NoteForm({ editEvent }: { editEvent?: any }) {
       }
     }
   }, [editEvent]);
-
-  const handleTagToggle = (tag: string) => {
-    setTags(prev =>
-      prev.includes(tag)
-        ? prev.filter(t => t !== tag)
-        : [...prev, tag]
-    );
-  };
 
 
 
@@ -942,71 +935,7 @@ export function NoteForm({ editEvent }: { editEvent?: any }) {
            )}
          </div>
 
-        <div className="space-y-3">
-          <Label>Tags</Label>
-          <div className="flex flex-wrap gap-2">
-            {getOptionalTags('notes').map(tag => (
-              <Badge
-                key={tag}
-                variant={tags.includes(tag) ? "default" : "outline"}
-                className="cursor-pointer"
-                onClick={() => handleTagToggle(tag)}
-              >
-                {tag}
-              </Badge>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <Input
-              placeholder="Eigene Tags (mit Leerzeichen trennen)..."
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  const value = e.currentTarget.value;
-                  const newTags = value.split(' ').filter(Boolean);
-                  setTags(prev => [...prev, ...newTags]);
-                  e.currentTarget.value = '';
-                }
-              }}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              onClick={(e) => {
-                const input = e.currentTarget.previousElementSibling as HTMLInputElement;
-                const value = input.value;
-                const newTags = value.split(' ').filter(Boolean);
-                setTags(prev => [...prev, ...newTags]);
-                input.value = '';
-              }}
-            >
-              Hinzufügen
-            </Button>
-          </div>
-        </div>
-
-        {tags.length > 0 && (
-          <div className="space-y-2">
-            <Label>Ausgewaehlte Tags</Label>
-            <div className="flex flex-wrap gap-2">
-              {tags.map((tag, index) => (
-                <Badge
-                  key={index}
-                  variant="secondary"
-                  className="gap-1"
-                >
-                  {tag}
-                  <button
-                    className="ml-1 text-xs hover:text-red-500"
-                    onClick={() => setTags(prev => prev.filter((_, i) => i !== index))}
-                  >
-                    ×
-                  </button>
-                </Badge>
-              ))}
-            </div>
-          </div>
-        )}
+        <NoteTagsSection tags={tags} setTags={setTags} />
 
         {/* Country Selection */}
         <CountrySelector
