@@ -45,6 +45,7 @@ import { extractGpsFromImage, formatCoordinatesSimple, reverseGeocode, mapCountr
 import { createCorrectedPreview } from "./publishUtils";
 import type { NostrEvent } from "@nostrify/nostrify";
 import exifr from "exifr";
+import { NOTE_COUNTRY_TAGS } from './noteForm/noteFormConstants';
 
 export function NoteForm({ editEvent }: { editEvent?: any }) {
   const [content, setContent] = useState('');
@@ -156,7 +157,7 @@ export function NoteForm({ editEvent }: { editEvent?: any }) {
       setTags(eventTags);
 
       // Extract country from tags
-      const countryTags = ['portugal', 'spanien', 'frankreich', 'belgien', 'deutschland', 'luxemburg'];
+      const countryTags = NOTE_COUNTRY_TAGS;
       const foundCountry = eventTags.find(tag => countryTags.includes(tag));
       if (foundCountry) {
         setSelectedCountry(foundCountry);
@@ -470,7 +471,7 @@ export function NoteForm({ editEvent }: { editEvent?: any }) {
     setPublishProgress({ stage: 'publish', status: 'Event wird zu Nostr gesendet...' });
 
     // Entferne Country-Tags aus tags, um Duplikate zu vermeiden
-    const countryList = ['portugal', 'spanien', 'frankreich', 'belgien', 'deutschland', 'luxemburg'];
+    const countryList = NOTE_COUNTRY_TAGS;
     const tagsWithoutCountry = tags.filter(tag =>
       !countryList.includes(tag.toLowerCase()) && !tag.startsWith('#') && !countryList.includes(tag.replace('#', '').toLowerCase())
     );
