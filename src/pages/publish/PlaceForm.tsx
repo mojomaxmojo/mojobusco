@@ -40,14 +40,14 @@ import { RemotionVideoBlock } from "@/components/RemotionVideoBlock";
 import { SlideshowBlock } from "@/components/SlideshowBlock";
 import { Progress } from "@/components/ui/progress";
 import { Upload, UploadCloud, ImageIcon, Video, Music, File as FileIcon, Camera, Calendar, Tag, Battery, Sun, Wrench, Hammer, Cpu, Mountain, Lightbulb, Dog, Trees, Droplets, Waves, Eye, Loader2, CheckCircle, Route, Sparkles, FileText, MessageSquare, Map } from "@/lib/icons";
-import { extractGpsFromImage, reverseGeocode, mapCountryCode, type GpsData, type GpsStatus, type LocationData } from "@/lib/gpsExtraction";
-import { extractGpsCrossPlatform, getCurrentPosition, positionToGpsData, isCapacitorNative } from "@/lib/capacitorGps";
+import { reverseGeocode, mapCountryCode, type GpsData, type GpsStatus, type LocationData } from "@/lib/gpsExtraction";
+import { getCurrentPosition, positionToGpsData, isCapacitorNative } from "@/lib/capacitorGps";
 import { resolveBildPlaceholders } from "./publishUtils";
 import { extractPlaceImageUrls } from "./placeForm/placeFormUtils";
 import { usePlaceFormHandlers } from "./placeForm/usePlaceFormHandlers";
 import { PlaceTitleImageSection } from "./placeForm/PlaceTitleImageSection";
+import { usePlaceImageUpload } from "./placeForm/usePlaceImageUpload";
 import { categories, facilityOptions, bestForOptions } from "./placeForm/placeFormConfig";
-import exifr from "exifr";
 
 export function PlaceForm({ editEvent }: { editEvent?: any }) {
   const [name, setName] = useState('');
@@ -384,117 +384,7 @@ export function PlaceForm({ editEvent }: { editEvent?: any }) {
       autoFillLocation();
     }, [imageGps]);
 
-  const handleImageFile = async (file: File) => {
-    setIsUploading(true);
-    try {
-      // EXIF-Daten lesen und korrigierte Preview erstellen (wie in TripPublishForm.tsx)
-      let correctedPreviewUrl: string | undefined;
-      let exifWidth: number | undefined;
-      let exifHeight: number | undefined;
-      let exifOrientation: number | undefined;
-
-      try {
-        // EXIF-Daten lesen (wie in TripPublishForm.tsx)
-        // Orientation separat lesen (funktioniert auch wenn parse fehlschlägt)
-        try {
-          exifOrientation = await exifr.orientation(file);
-          console.log(`[Place EXIF] ${file.name}: Orientation (via exifr.orientation) = ${exifOrientation || 'not found'}`);
-        } catch (orientErr) {
-          console.warn(`[Place EXIF] ${file.name}: Could not read orientation:`, orientErr);
-        }
-
-        // Bildabmessungen lesen
-        try {
-          const dimExif = await exifr.parse(file, { exif: true, pickTags: ['ImageWidth', 'ImageHeight', 'ExifImageWidth', 'ExifImageHeight'] });
-          exifWidth = dimExif?.ImageWidth || dimExif?.ExifImageWidth;
-          exifHeight = dimExif?.ImageHeight || dimExif?.ExifImageHeight;
-          if (exifWidth && exifHeight) {
-            console.log(`[Place EXIF] ${file.name}: EXIF dimensions ${exifWidth}x${exifHeight}`);
-          }
-        } catch (dimErr) {
-          console.warn(`[Place EXIF] ${file.name}: Could not read dimensions:`, dimErr);
-        }
-
-        // Korrigierte Preview erstellen (immer, wie in TripPublishForm.tsx)
-        correctedPreviewUrl = await createCorrectedPreview(file, exifWidth, exifHeight, exifOrientation);
-      } catch (exifError) {
-        console.warn(`[Place EXIF] Failed to read EXIF from ${file.name}:`, exifError);
-        // Fallback: Original file als Preview
-        correctedPreviewUrl = URL.createObjectURL(file);
-      }
-
-      // Setze die korrigierte Preview als Anzeige-URL (nur temporär)
-      if (correctedPreviewUrl) {
-        setImage(correctedPreviewUrl);
-      }
-
-      // Speichere das File für KI-Generierung
-      setImageFile(file);
-
-      // Upload des Original-File → echte Blossom-URL holen und speichern
-      const [urlTag] = await uploadFile(file);
-      const uploadedUrl = urlTag[1]; // Blossom-URL: https://blossom.../hash
-      if (uploadedUrl) {
-        setImage(uploadedUrl); // Überschreibt blob:// mit der echten URL
-        console.log(`[Place Upload] Titelbild hochgeladen: ${uploadedUrl}`);
-      }
-
-      // Extract GPS from title image
-      try {
-        const gpsData = await extractGpsFromImage(file);
-        if (gpsData) {
-          setImageGps(gpsData);
-          setImageGpsStatus('detected');
-          console.log(`[Place GPS] Extracted from ${file.name}:`, gpsData);
-        } else {
-          // Fallback: Capacitor Native EXIF (umgeht Browser-Strip im APK)
-          console.log(`[Place GPS] exifr keine GPS, versuche Capacitor native EXIF für ${file.name}...`);
-          const nativeGps = await extractGpsCrossPlatform(file, null);
-          if (nativeGps) {
-            setImageGps(nativeGps);
-            setImageGpsStatus('detected');
-            console.log(`[Place GPS] ✓ Native EXIF GPS für ${file.name}:`, nativeGps);
-          } else {
-            setImageGps(null);
-            setImageGpsStatus('not_found');
-          }
-        }
-      } catch (error) {
-        console.error(`[Place GPS] Failed to extract from ${file.name}:`, error);
-        setImageGpsStatus('error');
-      }
-
-      toast({
-        title: 'Upload erfolgreich!',
-        description: 'Titelbild wurde hochgeladen.',
-      });
-    } catch (error) {
-      toast({
-        title: 'Fehler',
-        description: 'Bild-Upload fehlgeschlagen.',
-        variant: 'destructive'
-      });
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleAdditionalImagesUpload = async (files: File[]) => {
-    try {
-      const newUrls: string[] = [];
-      for (const file of files) {
-        const [urlTag] = await uploadFile(file);
-        newUrls.push(urlTag[1]);
-      }
-      setAdditionalImages(prev => [...prev, ...newUrls]);
-    } catch (error) {
-      toast({
-        title: 'Fehler',
-        description: 'Upload zusatzlicher Bilder fehlgeschlagen.',
-        variant: 'destructive'
-      });
-    }
-  };
+  const { handleImageFile, handleAdditionalImagesUpload } = usePlaceImageUpload({ toast, uploadFile, setImage, setImageFile, setImageGps, setImageGpsStatus, setIsUploading, setAdditionalImages });
 
   const handleSubmit = () => {
     if (!name.trim()) {
