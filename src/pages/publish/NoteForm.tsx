@@ -14,9 +14,7 @@ import { getApiBaseUrl } from "@/lib/apiBase";
 import { useContinuityTracking } from "@/hooks/useContinuityTracking";
 import { AUTO_TRANSLATE_STORAGE_KEY } from "@/config/translation";
 import { ImageOptimizationToggle } from "@/components/ImageOptimizationToggle";
-import { GpsEditor } from "@/components/GpsEditor";
 import { GpsStatusIndicator } from "@/components/GpsStatusIndicator";
-import { LocationPicker } from "@/components/LocationPicker";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { type GenderType } from "@/config/prompts/lifestyles";
 import { type TextModelTier } from "@/components/ModelSelect";
@@ -38,14 +36,15 @@ import { TripPublishForm } from "@/components/TripPublishForm";
 import { RemotionVideoBlock } from "@/components/RemotionVideoBlock";
 import { SlideshowBlock } from "@/components/SlideshowBlock";
 import { Progress } from "@/components/ui/progress";
-import { Upload, UploadCloud, ImageIcon, Video, Music, File as FileIcon, Camera, MapPin, Calendar, Tag, Battery, Sun, Wrench, Hammer, Cpu, Mountain, Lightbulb, Dog, Trees, Droplets, Waves, Eye, Loader2, CheckCircle, Route, FileText, MessageSquare, Map } from "@/lib/icons";
-import { formatCoordinatesSimple, type GpsStatus } from '@/lib/gpsExtraction';
+import { Upload, UploadCloud, ImageIcon, Video, Music, File as FileIcon, Camera, Calendar, Tag, Battery, Sun, Wrench, Hammer, Cpu, Mountain, Lightbulb, Dog, Trees, Droplets, Waves, Eye, Loader2, CheckCircle, Route, FileText, MessageSquare, Map } from "@/lib/icons";
+import type { GpsStatus } from '@/lib/gpsExtraction';
 import type { NostrEvent } from "@nostrify/nostrify";
 import { NOTE_COUNTRY_TAGS } from './noteForm/noteFormConstants';
 import { NoteTagsSection } from './noteForm/NoteTagsSection';
 import { NoteAiSection } from './noteForm/NoteAiSection';
 import { useNoteGps } from './noteForm/useNoteGps';
 import { useNoteImageUpload } from './noteForm/useNoteImageUpload';
+import { NoteImageGallery } from './noteForm/NoteImageGallery';
 
 export function NoteForm({ editEvent }: { editEvent?: any }) {
   const [content, setContent] = useState('');
@@ -484,132 +483,14 @@ export function NoteForm({ editEvent }: { editEvent?: any }) {
             </div>
           )}
 
-          {/* Uploaded Images */}
-          {imageUrls.length > 0 && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm">Hochgeladene Bilder ({imageUrls.length})</Label>
-                <Button
-                  onClick={() => {
-                    setImageUrls([]);
-                    setImageGpsData({});
-                    setImageGpsStatuses({});
-                  }}
-                  variant="outline"
-                  size="sm"
-                >
-                  Alle entfernen
-                </Button>
-              </div>
-               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                 {imageUrls.map((url, index) => {
-                   const gpsData = imageGpsData[index];
-                   const gpsStatus = imageGpsStatuses[index];
-                   return (
-                     <div key={index} className="relative group border rounded-lg overflow-hidden">
-                       <img
-                         src={url}
-                         alt={`Uploaded ${index + 1}`}
-                         className="w-full h-20 object-cover"
-                       />
-
-                        {/* GPS Display */}
-                        {gpsData && gpsStatus && gpsData.latitude && gpsData.longitude && editingGpsImage !== index && (
-                          <div className="space-y-2 cursor-pointer" onClick={() => openGpsEditor(index)}>
-                            <GpsStatusIndicator status={gpsStatus} gps={gpsData} />
-                            <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                              <div className="flex items-center gap-1.5 text-[10px] text-gray-700 dark:text-gray-300">
-                                <MapPin className="h-2.5 w-2.5 text-green-600 dark:text-green-400" />
-                                <span className="truncate font-mono">
-                                  {formatCoordinatesSimple(gpsData.latitude, gpsData.longitude)}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                       {/* Add GPS Button */}
-                       {!gpsData && editingGpsImage !== index && (
-                         <Button
-                           size="sm"
-                           variant="outline"
-                           className="absolute bottom-1 right-1 text-xs h-6 px-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                           onClick={() => openGpsEditor(index)}
-                         >
-                           <MapPin className="h-2.5 w-2.5 mr-1" />
-                           GPS+
-                         </Button>
-                       )}
-
-                        {/* GPS Editor */}
-                        {editingGpsImage === index && (
-                          <div className="absolute bottom-0 left-0 right-0 z-10 p-2 bg-white dark:bg-gray-800 border-t">
-                            {/* Toggle between Simple Editor and Map */}
-                            <div className="flex gap-2 mb-2">
-                              <Button
-                                size="sm"
-                                variant={!showMapPicker ? 'default' : 'outline'}
-                                className="flex-1 h-7 text-xs"
-                                onClick={() => setShowMapPicker(false)}
-                              >
-                                <span className="mr-1">✏️</span>
-                                Einfach
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant={showMapPicker ? 'default' : 'outline'}
-                                className="flex-1 h-7 text-xs"
-                                onClick={() => setShowMapPicker(true)}
-                              >
-                                <span className="mr-1">🗺️</span>
-                                Karte
-                              </Button>
-                            </div>
-
-                            {/* Show Map Picker */}
-                            {showMapPicker ? (
-                              <LocationPicker
-                                gps={gpsData}
-                                onSave={(gps) => saveGps(index, gps)}
-                                onCancel={closeGpsEditor}
-                                initialZoom={13}
-                                height="300px"
-                                onCountryDetected={(country) => {
-                                  console.log('[NoteForm] Country detected:', country);
-                                  setSelectedCountry(country);
-                                }}
-                                onLocationDetected={(locationText) => {
-                                  console.log('[NoteForm] Location detected:', locationText);
-                                  setLocation(locationText);
-                                }}
-                              />
-                            ) : (
-                              /* Show Simple Editor */
-                              <GpsEditor
-                                gps={gpsData || undefined}
-                                onSave={(gps) => saveGps(index, gps)}
-                                onCancel={closeGpsEditor}
-                                onRemove={() => removeGps(index)}
-                              />
-                            )}
-                          </div>
-                        )}
-
-                       {/* Delete Button */}
-                       <Button
-                         variant="destructive"
-                         size="sm"
-                         className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity z-20"
-                         onClick={() => removeImageUrl(index)}
-                       >
-                         ×
-                       </Button>
-                     </div>
-                   );
-                 })}
-               </div>
-            </div>
-          )}
+          <NoteImageGallery
+            imageUrls={imageUrls} imageGpsData={imageGpsData} imageGpsStatuses={imageGpsStatuses}
+            editingGpsImage={editingGpsImage} showMapPicker={showMapPicker} setShowMapPicker={setShowMapPicker}
+            openGpsEditor={openGpsEditor} closeGpsEditor={closeGpsEditor} saveGps={saveGps} removeGps={removeGps}
+            removeImageUrl={removeImageUrl}
+            setImageUrls={setImageUrls} setImageGpsData={setImageGpsData} setImageGpsStatuses={setImageGpsStatuses}
+            setLocation={setLocation} setSelectedCountry={setSelectedCountry}
+          />
         </div>
 
          {/* Location (auto-filled from GPS) */}
