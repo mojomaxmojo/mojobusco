@@ -1,12 +1,35 @@
 /**
  * pinStorage.ts – localStorage-Fallback für gespeicherte Pins + sicherer JSON-Parse
  * aus PromotionDashboard.tsx (1:1 verschoben, PLAN6 Schritt 25).
- *
- * Hinweis (unveränderter Bestand, siehe PLAN6 Phase-C-Vorab-Hinweis):
- * Der Typ SavedPin ist im Original nicht definiert/importiert.
  */
 
 export const LOCAL_PINS_KEY = 'promotion_saved_pins'
+
+/**
+ * Gespeicherter Pinterest-Pin (klar definiert im Nachgang zu PLAN6 – vorher
+ * wurde der Typ benutzt, war aber nirgends definiert; Struktur 1:1 aus dem
+ * bisherigen savePin-Payload und der Saved-Pins-Liste abgeleitet).
+ */
+export interface SavedPin {
+  id: string
+  articleTitle?: string
+  pinData?: {
+    title?: string
+    description?: string
+    hashtags?: string[] | string
+    altText?: string
+    template?: string
+    model?: string
+  }
+  imageUrl?: string
+  pinterestUrl?: string
+  status?: string
+  template?: string
+  createdAt: string
+  updatedAt: string
+  /** Server kann zusätzliche Felder liefern (lokal gespeicherte Pins spiegeln sie mit) */
+  [key: string]: unknown
+}
 
 export const loadPinsFromLocal = (): SavedPin[] => {
   try {

@@ -7,7 +7,7 @@
 import { useState, useEffect } from 'react'
 import { getApiBaseUrl } from '@/lib/apiBase'
 import { useToast } from '@/hooks/useToast'
-import { loadPinsFromLocal, savePinsToLocal, safeResJson } from './pinStorage'
+import { loadPinsFromLocal, savePinsToLocal, safeResJson, type SavedPin } from './pinStorage'
 
 export function usePromotionPins({
   articleTitle,
