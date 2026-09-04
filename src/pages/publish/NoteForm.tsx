@@ -29,6 +29,7 @@ import { SlideshowBlock } from "@/components/SlideshowBlock";
 import { Progress } from "@/components/ui/progress";
 import { Upload, UploadCloud, ImageIcon, Video, Music, File as FileIcon, Camera, Calendar, Tag, Battery, Sun, Wrench, Hammer, Cpu, Mountain, Lightbulb, Dog, Trees, Droplets, Waves, Eye, Loader2, CheckCircle, Route, FileText, MessageSquare, Map } from "@/lib/icons";
 import type { GpsStatus } from '@/lib/gpsExtraction';
+import { getTagValues } from '@/lib/nostrEventUtils';
 import { NOTE_COUNTRY_TAGS } from './noteForm/noteFormConstants';
 import { NoteTagsSection } from './noteForm/NoteTagsSection';
 import { NoteAiSection } from './noteForm/NoteAiSection';
@@ -144,7 +145,7 @@ export function NoteForm({ editEvent }: { editEvent?: any }) {
   useEffect(() => {
     if (editEvent) {
       setContent(editEvent.content || '');
-      const eventTags = editEvent.tags?.filter((tag: any) => tag[0] === 't')?.map((tag: any) => tag[1]) || [];
+      const eventTags = getTagValues(editEvent, 't');
       setTags(eventTags);
 
       // Extract country from tags
@@ -155,17 +156,17 @@ export function NoteForm({ editEvent }: { editEvent?: any }) {
       }
 
       // Extract images from edit content
-      const imageTags = editEvent.tags?.filter((tag: any) => tag[0] === 'image')?.map((tag: any) => tag[1]) || [];
+      const imageTags = getTagValues(editEvent, 'image');
       if (imageTags.length > 0) {
         setImageUrls(imageTags);
 
         // Load GPS data from tags for each image
         // GPS tags are stored sequentially with image tags
-        const allGpsLatTags = editEvent.tags?.filter((tag: any) => tag[0] === 'gps_lat')?.map((tag: any) => tag[1]) || [];
-        const allGpsLonTags = editEvent.tags?.filter((tag: any) => tag[0] === 'gps_lon')?.map((tag: any) => tag[1]) || [];
-        const allGpsAltTags = editEvent.tags?.filter((tag: any) => tag[0] === 'gps_alt')?.map((tag: any) => tag[1]) || [];
-        const allGpsPrecisionTags = editEvent.tags?.filter((tag: any) => tag[0] === 'gps_precision')?.map((tag: any) => tag[1]) || [];
-        const allGpsSourceTags = editEvent.tags?.filter((tag: any) => tag[0] === 'gps_source')?.map((tag: any) => tag[1]) || [];
+        const allGpsLatTags = getTagValues(editEvent, 'gps_lat');
+        const allGpsLonTags = getTagValues(editEvent, 'gps_lon');
+        const allGpsAltTags = getTagValues(editEvent, 'gps_alt');
+        const allGpsPrecisionTags = getTagValues(editEvent, 'gps_precision');
+        const allGpsSourceTags = getTagValues(editEvent, 'gps_source');
 
         // Assign GPS data to images by index
         allGpsLatTags.forEach((lat, index) => {

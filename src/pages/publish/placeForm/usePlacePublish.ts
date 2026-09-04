@@ -11,6 +11,7 @@ import { createRequiredTags } from "@/config/contentCategories";
 import { getCountryTag } from "@/components/CountrySelector";
 import { buildSmartSlug } from "@/config/assistant";
 import { createLongformTeaser } from "@/lib/createLongformTeaser";
+import { getTagValue } from "@/lib/nostrEventUtils";
 import { placeUrl, canonicalUrl, canonicalNaddr } from "@/lib/canonicalUrl";
 import { notifyPublishedPipeline } from "@/lib/publishNotify";
 import type { useToast } from "@/hooks/useToast";
@@ -193,11 +194,11 @@ export function usePlacePublish({
     const baseTags = createRequiredTags('places', manualTagsWithoutCountry);
 
     // Get original d-tag for edit, or create new one
-    const originalDTag = editEvent?.tags?.find((tag: any) => tag[0] === 'd')?.[1];
+    const originalDTag = getTagValue(editEvent, 'd');
     const dTag = originalDTag || `place-${Date.now()}`;
 
     // published_at / visit_date: Beim Edit ORIGINALES Datum behalten, bei Neuem visitDate oder heute
-    const existingPublishedAt = editEvent?.tags?.find((tag: any) => tag[0] === 'published_at')?.[1];
+    const existingPublishedAt = getTagValue(editEvent, 'published_at');
     const visitTimestamp = editEvent && existingPublishedAt
       ? existingPublishedAt
       : (visitDate ? Math.floor(new Date(visitDate).getTime() / 1000).toString() : Math.floor(Date.now() / 1000).toString());

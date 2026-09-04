@@ -30,7 +30,7 @@ import { RemotionVideoBlock } from "@/components/RemotionVideoBlock";
 import { SlideshowBlock } from "@/components/SlideshowBlock";
 import { Progress } from "@/components/ui/progress";
 import { Upload, UploadCloud, Video, Music, File as FileIcon, Camera, Calendar, Tag, Battery, Sun, Wrench, Hammer, Cpu, Mountain, Lightbulb, Dog, Trees, Droplets, Waves, Eye, Loader2, CheckCircle, Route, Sparkles, FileText, MessageSquare, Map, Info } from "@/lib/icons";
-import { type GpsStatus } from "@/lib/gpsExtraction";
+import { getTagValue, getTagValues, getEventGpsTags } from "@/lib/nostrEventUtils";
 import { resolveBildPlaceholders } from "./publishUtils";
 import { canonicalUrl, articleUrl, canonicalNaddr } from "@/lib/canonicalUrl";
 import { AssistantSection } from "@/components/assistant/AssistantSection";
@@ -288,23 +288,23 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
   useEffect(() => {
     if (editEvent) {
       // Bei bearbeiteten Beiträgen: Daten aus dem Event laden
-      setTitle(editEvent.tags?.find((tag: any) => tag[0] === 'title')?.[1] || '');
-      setSummary(editEvent.tags?.find((tag: any) => tag[0] === 'summary')?.[1] || '');
+      setTitle(getTagValue(editEvent, 'title') || '');
+      setSummary(getTagValue(editEvent, 'summary') || '');
 
       // Content ist bereits Markdown (vom MilkdownEditor)
       setContent(editEvent.content || '');
 
-      setImage(editEvent.tags?.find((tag: any) => tag[0] === 'image')?.[1] || '');
-      setCategory(editEvent.tags?.find((tag: any) => tag[0] === 'category')?.[1] || '');
+      setImage(getTagValue(editEvent, 'image') || '');
+      setCategory(getTagValue(editEvent, 'category') || '');
 
       // SEO-Felder (Assistent) aus dem Event laden — ohne dieses Laden
       // würde ein Edit+Republish die Tags stillschweigend löschen
-      setSeoTitle(editEvent.tags?.find((tag: any) => tag[0] === 'seo_title')?.[1] || '');
-      setSeoMetaDescription(editEvent.tags?.find((tag: any) => tag[0] === 'meta_description')?.[1] || '');
-      setSeoSlug(editEvent.tags?.find((tag: any) => tag[0] === 'slug')?.[1] || '');
+      setSeoTitle(getTagValue(editEvent, 'seo_title') || '');
+      setSeoMetaDescription(getTagValue(editEvent, 'meta_description') || '');
+      setSeoSlug(getTagValue(editEvent, 'slug') || '');
 
       // Datum aus dem Event extrahieren (published_at Tag)
-      const publishedAtTag = editEvent.tags?.find((tag: any) => tag[0] === 'published_at')?.[1];
+      const publishedAtTag = getTagValue(editEvent, 'published_at');
       if (publishedAtTag) {
         // Wenn Unix-Timestamp, in Datum umwandeln
         if ( /^\d+$/.test(publishedAtTag)) {
@@ -315,7 +315,7 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
         }
       }
 
-      const eventTags = editEvent.tags?.filter((tag: any) => tag[0] === 't')?.map((tag: any) => tag[1]) || [];
+      const eventTags = getTagValues(editEvent, 't');
       setTags(eventTags);
 
       // Extract country from tags
@@ -326,11 +326,7 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
       }
 
       // Load GPS data from tags
-      const gpsLat = editEvent.tags?.find((tag: any) => tag[0] === 'gps_lat')?.[1];
-      const gpsLon = editEvent.tags?.find((tag: any) => tag[0] === 'gps_lon')?.[1];
-      const gpsAlt = editEvent.tags?.find((tag: any) => tag[0] === 'gps_alt')?.[1];
-      const gpsPrecision = editEvent.tags?.find((tag: any) => tag[0] === 'gps_precision')?.[1];
-      const gpsSource = editEvent.tags?.find((tag: any) => tag[0] === 'gps_source')?.[1] as GpsStatus;
+      const { gpsLat, gpsLon, gpsAlt, gpsPrecision, gpsSource } = getEventGpsTags(editEvent);
 
       if (gpsLat && gpsLon) {
         setImageGps({
@@ -473,7 +469,7 @@ export function ArticleForm({ editEvent }: { editEvent?: any }) {
             ? canonicalUrl(articleUrl(canonicalNaddr({
                 kind: editEvent.kind,
                 pubkey: editEvent.pubkey,
-                identifier: editEvent.tags?.find((tag: any) => tag[0] === 'd')?.[1] || ''
+                identifier: getTagValue(editEvent, 'd') || ''
               })))
             : null}
           onApplyIdea={(idea: AssistantIdea) => {

@@ -11,6 +11,7 @@
 import { createRequiredTags } from "@/config/contentCategories";
 import { getCountryTag } from "@/components/CountrySelector";
 import { createLongformTeaser } from "@/lib/createLongformTeaser";
+import { getTagValue } from "@/lib/nostrEventUtils";
 import { canonicalUrl, articleUrl, canonicalNaddr } from "@/lib/canonicalUrl";
 import { buildAuthorInput, buildSmartSlug } from "@/config/assistant";
 import { nip19 } from "nostr-tools";
@@ -300,11 +301,11 @@ export function useArticlePublish({
     const baseTags = createRequiredTags('articles', displayTagsWithoutCountry);
 
     // Get the original d-tag for edit, or create new one
-    const originalDTag = editEvent?.tags?.find((tag: any) => tag[0] === 'd')?.[1];
+    const originalDTag = getTagValue(editEvent, 'd');
     const dTag = originalDTag || `article-${Date.now()}`;
 
     // published_at: Beim Edit ORIGINALES Datum behalten, bei Neuem aktuelles Datum setzen
-    const existingPublishedAt = editEvent?.tags?.find((tag: any) => tag[0] === 'published_at')?.[1];
+    const existingPublishedAt = getTagValue(editEvent, 'published_at');
     const publishedAtTimestamp = editEvent && existingPublishedAt
       ? existingPublishedAt
       : Math.floor(new Date(publishedAt).getTime() / 1000).toString();

@@ -21,6 +21,7 @@ import { RemotionVideoBlock } from "@/components/RemotionVideoBlock";
 import { CreateVideoDialog } from "@/components/CreateVideoDialog";
 import { Upload, UploadCloud, ImageIcon, Video, Camera, Calendar, Tag, Battery, Sun, Hammer, Cpu, Mountain, Lightbulb, Dog, Trees, Droplets, Waves, Eye, Loader2, CheckCircle, Route, Sparkles, FileText, MessageSquare, Map } from "@/lib/icons";
 import { extractGpsFromImage, reverseGeocode, mapCountryCode, type GpsStatus, type LocationData } from "@/lib/gpsExtraction";
+import { getTagValue, getTagValues } from "@/lib/nostrEventUtils";
 import { extractGpsCrossPlatform, getCurrentPosition, positionToGpsData, isCapacitorNative, pickFilesNative } from "@/lib/capacitorGps";
 import { createCorrectedPreview, mediaTypes, mainCategories, subCategories, type MediaFile } from "./publishUtils";
 import exifr from "exifr";
@@ -220,7 +221,7 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
       }
 
       // Extract tags
-      const eventTags = editEvent.tags?.filter((tag: any) => tag[0] === 't')?.map((tag: any) => tag[1]) || [];
+      const eventTags = getTagValues(editEvent, 't');
       const categoryTag = eventTags.find(tag => ['vanlife', 'technik', 'reisen', 'leben', 'natur'].includes(tag));
       if (categoryTag) {
         setMainCategory(categoryTag);
@@ -239,8 +240,8 @@ export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
           setSelectedSubTags(eventTags.filter(tag => tag !== categoryTag));
         }
       }
-      setLocation(editEvent.tags?.find((tag: any) => tag[0] === 'location')?.[1] || '');
-      const dateTag = editEvent.tags?.find((tag: any) => tag[0] === 'published_at')?.[1];
+      setLocation(getTagValue(editEvent, 'location') || '');
+      const dateTag = getTagValue(editEvent, 'published_at');
       if (dateTag) {
         // Wenn Unix-Timestamp, in Datum umwandeln
         if (/^\d+$/.test(dateTag)) {

@@ -5,6 +5,50 @@
  * Konsolidiert aus: PromotionDashboard.tsx, ContentSelector.tsx
  */
 
+import type { GpsStatus } from './gpsExtraction';
+
+/**
+ * Liefert den Wert des ersten Tags mit dem gegebenen Namen
+ * (z. B. `getTagValue(event, 'title')`) oder undefined.
+ */
+export function getTagValue(
+  event: { tags?: string[][] } | null | undefined,
+  name: string
+): string | undefined {
+  return event?.tags?.find((t) => t[0] === name)?.[1];
+}
+
+/**
+ * Liefert die Werte aller Tags mit dem gegebenen Namen
+ * (z. B. `getTagValues(event, 't')` für alle Hashtags).
+ */
+export function getTagValues(
+  event: { tags?: string[][] } | null | undefined,
+  name: string
+): string[] {
+  return event?.tags?.filter((t) => t[0] === name)?.map((t) => t[1]) ?? [];
+}
+
+/**
+ * GPS-Tags aus einem Event auslesen (gps_lat/gps_lon/gps_alt/gps_precision/gps_source).
+ * Ersetzt den identisch duplizierten Einlese-Block in PlaceForm.tsx und ArticleForm.tsx.
+ */
+export function getEventGpsTags(event: { tags?: string[][] } | null | undefined): {
+  gpsLat: string | undefined;
+  gpsLon: string | undefined;
+  gpsAlt: string | undefined;
+  gpsPrecision: string | undefined;
+  gpsSource: GpsStatus | undefined;
+} {
+  return {
+    gpsLat: event?.tags?.find((t) => t[0] === 'gps_lat')?.[1],
+    gpsLon: event?.tags?.find((t) => t[0] === 'gps_lon')?.[1],
+    gpsAlt: event?.tags?.find((t) => t[0] === 'gps_alt')?.[1],
+    gpsPrecision: event?.tags?.find((t) => t[0] === 'gps_precision')?.[1],
+    gpsSource: event?.tags?.find((t) => t[0] === 'gps_source')?.[1] as GpsStatus | undefined,
+  };
+}
+
 /**
  * Extrahiert alle Bild-URLs aus einem Nostr-Event.
  * Durchsucht image-Tags, Markdown-Bilder, HTML-img-Tags und direkte Bild-URLs im Content.

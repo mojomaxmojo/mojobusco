@@ -36,6 +36,7 @@ import { SlideshowBlock } from "@/components/SlideshowBlock";
 import { Progress } from "@/components/ui/progress";
 import { Upload, UploadCloud, ImageIcon, Video, Music, File as FileIcon, Camera, Calendar, Tag, Battery, Sun, Wrench, Hammer, Cpu, Mountain, Lightbulb, Dog, Trees, Droplets, Waves, Eye, Loader2, CheckCircle, Route, Sparkles, FileText, MessageSquare, Map } from "@/lib/icons";
 import { type GpsData, type GpsStatus, type LocationData } from "@/lib/gpsExtraction";
+import { getTagValue, getTagValues, getEventGpsTags } from "@/lib/nostrEventUtils";
 import { getCurrentPosition, positionToGpsData, isCapacitorNative } from "@/lib/capacitorGps";
 import { extractPlaceImageUrls } from "./placeForm/placeFormUtils";
 import { usePlaceFormHandlers } from "./placeForm/usePlaceFormHandlers";
@@ -109,12 +110,12 @@ export function PlaceForm({ editEvent }: { editEvent?: any }) {
    // Load edit data
   useEffect(() => {
     if (editEvent) {
-      setName(editEvent.tags?.find((tag: any) => tag[0] === 'name')?.[1] || '');
+      setName(getTagValue(editEvent, 'name') || '');
 
       // Bestimme das Event-Format basierend auf dem type-Tag
       // Neue Plätze haben type=place und HTML-Content
       // Alte Plätze haben type=article und Markdown-Content
-      const eventType = editEvent.tags?.find((tag: any) => tag[0] === 'type')?.[1];
+      const eventType = getTagValue(editEvent, 'type');
       const isPlaceType = eventType === 'place';
 
       // Wenn es ein place-Event ist, den Content bereinigen und verwenden (HTML)
@@ -176,46 +177,46 @@ export function PlaceForm({ editEvent }: { editEvent?: any }) {
 
       setDescription(contentToSet);
 
-      setLocation(editEvent.tags?.find((tag: any) => tag[0] === 'location')?.[1] || '');
-      const latTag = editEvent.tags?.find((tag: any) => tag[0] === 'lat')?.[1];
-      const lngTag = editEvent.tags?.find((tag: any) => tag[0] === 'lng')?.[1];
+      setLocation(getTagValue(editEvent, 'location') || '');
+      const latTag = getTagValue(editEvent, 'lat');
+      const lngTag = getTagValue(editEvent, 'lng');
       if (latTag && lngTag) {
         setCoordinates({ lat: latTag, lng: lngTag });
       }
-      setCategory(editEvent.tags?.find((tag: any) => tag[0] === 'category')?.[1] || '');
-      const ratingTag = editEvent.tags?.find((tag: any) => tag[0] === 'rating')?.[1];
+      setCategory(getTagValue(editEvent, 'category') || '');
+      const ratingTag = getTagValue(editEvent, 'rating');
       if (ratingTag) {
         setRating(parseInt(ratingTag));
       }
-      const facilityTags = editEvent.tags?.filter((tag: any) => tag[0] === 'facility')?.map((tag: any) => tag[1]) || [];
+      const facilityTags = getTagValues(editEvent, 'facility');
       setFacilities(facilityTags);
-      const bestForTags = editEvent.tags?.filter((tag: any) => tag[0] === 'best_for')?.map((tag: any) => tag[1]) || [];
+      const bestForTags = getTagValues(editEvent, 'best_for');
       setBestFor(bestForTags);
-      setPrice(editEvent.tags?.find((tag: any) => tag[0] === 'price')?.[1] || '');
+      setPrice(getTagValue(editEvent, 'price') || '');
 
       // SEO-Felder (Assistent) aus dem Event laden — ohne dieses Laden
       // würde ein Edit+Republish die Tags stillschweigend löschen
-      setSeoTitle(editEvent.tags?.find((tag: any) => tag[0] === 'seo_title')?.[1] || '');
-      setSeoMetaDescription(editEvent.tags?.find((tag: any) => tag[0] === 'meta_description')?.[1] || '');
-      setSeoSlug(editEvent.tags?.find((tag: any) => tag[0] === 'slug')?.[1] || '');
+      setSeoTitle(getTagValue(editEvent, 'seo_title') || '');
+      setSeoMetaDescription(getTagValue(editEvent, 'meta_description') || '');
+      setSeoSlug(getTagValue(editEvent, 'slug') || '');
 
       // Load visit date (from published_at or visit_date tag)
-      const visitDateTag = editEvent.tags?.find((tag: any) => tag[0] === 'visit_date')?.[1]
-        || editEvent.tags?.find((tag: any) => tag[0] === 'published_at')?.[1];
+      const visitDateTag = getTagValue(editEvent, 'visit_date')
+        || getTagValue(editEvent, 'published_at');
       if (visitDateTag) {
         const d = new Date(parseInt(visitDateTag) * 1000);
         setVisitDate(d.toISOString().split('T')[0]);
       }
 
       // Load images
-      const imageTags = editEvent.tags?.filter((tag: any) => tag[0] === 'image')?.map((tag: any) => tag[1]) || [];
+      const imageTags = getTagValues(editEvent, 'image');
       if (imageTags.length > 0) {
         setImage(imageTags[0]); // First image is title image
         setAdditionalImages(imageTags.slice(1)); // Rest are additional images
       }
 
       // Load manual tags (excluding place-specific tags)
-      const allTags = editEvent.tags?.filter((tag: any) => tag[0] === 't')?.map((tag: any) => tag[1]) || [];
+      const allTags = getTagValues(editEvent, 't');
       const excludedTags = ['location', 'places', 'place', 'campingplatz', 'wildcamping', 'stellplatz', 'aussichtspunkt', 'strand', 'berg', 'see', 'stadt', 'natur', 'portugal', 'spanien', 'italien', 'frankreich', 'deutschland', 'algarve', 'andalusien', 'katalonien', 'toskana', 'strom', 'wasser', 'wc', 'dusche', 'wlan', 'shop', 'familien', 'paare', 'single', 'wohnmobil', 'zelt'];
       const manualTagsOnly = allTags.filter(tag => !excludedTags.includes(tag));
       setManualTags(manualTagsOnly);
@@ -228,11 +229,7 @@ export function PlaceForm({ editEvent }: { editEvent?: any }) {
       }
 
       // Load GPS data from tags
-      const gpsLat = editEvent.tags?.find((tag: any) => tag[0] === 'gps_lat')?.[1];
-      const gpsLon = editEvent.tags?.find((tag: any) => tag[0] === 'gps_lon')?.[1];
-      const gpsAlt = editEvent.tags?.find((tag: any) => tag[0] === 'gps_alt')?.[1];
-      const gpsPrecision = editEvent.tags?.find((tag: any) => tag[0] === 'gps_precision')?.[1];
-      const gpsSource = editEvent.tags?.find((tag: any) => tag[0] === 'gps_source')?.[1] as GpsStatus;
+      const { gpsLat, gpsLon, gpsAlt, gpsPrecision, gpsSource } = getEventGpsTags(editEvent);
 
       if (gpsLat && gpsLon) {
         setImageGps({
