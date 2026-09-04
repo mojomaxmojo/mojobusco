@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,10 +7,7 @@ import { Label } from "@/components/ui/label";
 import { ExperiencesConfirm } from "@/components/assistant/ExperiencesConfirm";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/useToast";
-import { useNostrPublish } from "@/hooks/useNostrPublish";
-import { useAutoTranslate } from "@/hooks/useAutoTranslate";
 import { getApiBaseUrl } from "@/lib/apiBase";
-import { useContinuityTracking } from "@/hooks/useContinuityTracking";
 import { AUTO_TRANSLATE_STORAGE_KEY } from "@/config/translation";
 import { ImageOptimizationToggle } from "@/components/ImageOptimizationToggle";
 import { GpsStatusIndicator } from "@/components/GpsStatusIndicator";
@@ -20,17 +16,12 @@ import { type GenderType } from "@/config/prompts/lifestyles";
 import { type TextModelTier } from "@/components/ModelSelect";
 import { useNostr } from "@nostrify/react";
 import { useQuery } from "@tanstack/react-query";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { CountrySelector, getCountryTag } from "@/components/CountrySelector";
-import { createRequiredTags } from '@/config/contentCategories';
+import { CountrySelector } from "@/components/CountrySelector";
 import { ARTICLE_CATEGORIES, DIY_CATEGORIES, DIY_TAGS, NATURE_CATEGORIES, NATURE_TAGS, TAG_GROUPS } from "@/config";
 import type { TripType } from "@/config/tags";
 import MAIN_MENU from "@/config/menu";
 import { RV_LIFE_CONFIG } from "@/config/rvlife";
-import { nip19 } from "nostr-tools";
-import { canonicalUrl, noteUrl } from "@/lib/canonicalUrl";
-import { notifyPublishedPipeline } from "@/lib/publishNotify";
 import { MilkdownEditor } from "@/components/MilkdownEditor";
 import { TripPublishForm } from "@/components/TripPublishForm";
 import { RemotionVideoBlock } from "@/components/RemotionVideoBlock";
@@ -38,13 +29,13 @@ import { SlideshowBlock } from "@/components/SlideshowBlock";
 import { Progress } from "@/components/ui/progress";
 import { Upload, UploadCloud, ImageIcon, Video, Music, File as FileIcon, Camera, Calendar, Tag, Battery, Sun, Wrench, Hammer, Cpu, Mountain, Lightbulb, Dog, Trees, Droplets, Waves, Eye, Loader2, CheckCircle, Route, FileText, MessageSquare, Map } from "@/lib/icons";
 import type { GpsStatus } from '@/lib/gpsExtraction';
-import type { NostrEvent } from "@nostrify/nostrify";
 import { NOTE_COUNTRY_TAGS } from './noteForm/noteFormConstants';
 import { NoteTagsSection } from './noteForm/NoteTagsSection';
 import { NoteAiSection } from './noteForm/NoteAiSection';
 import { useNoteGps } from './noteForm/useNoteGps';
 import { useNoteImageUpload } from './noteForm/useNoteImageUpload';
 import { NoteImageGallery } from './noteForm/NoteImageGallery';
+import { useNotePublish } from './noteForm/useNotePublish';
 
 export function NoteForm({ editEvent }: { editEvent?: any }) {
   const [content, setContent] = useState('');
@@ -62,10 +53,8 @@ export function NoteForm({ editEvent }: { editEvent?: any }) {
     setIsDragging, setImageFiles, setImageUrls,
     handleImageSelect, handleDrop, removeImageFile, uploadImages, removeImageUrl,
   } = useNoteImageUpload({ setImageGpsData, setImageGpsStatuses });
-  const [isPublishing, setIsPublishing] = useState(false);
   // Ehrlichkeits-Gate für KI-generierte Notes (Standard: bestätigt, abwählbar)
   const [experiencesConfirmed, setExperiencesConfirmed] = useState(true);
-  const [publishProgress, setPublishProgress] = useState({ stage: '', status: '' });
   const [isGeneratingNote, setIsGeneratingNote] = useState(false);
   const [selectedModel, setSelectedModel] = useState<TextModelTier>('medium');
   const [lifestyle, setLifestyle] = useState<'mojobus' | 'vanlife' | 'rvlife' | 'beachlife' | 'wohnmobil' | 'perpetual-travelers'>('mojobus');
@@ -77,9 +66,14 @@ export function NoteForm({ editEvent }: { editEvent?: any }) {
     return stored === null ? true : stored !== 'false';
   });
 
+  const { handleSubmit, isPublishing, publishProgress } = useNotePublish({
+    content, tags, imageFiles, imageUrls, imageGpsData, imageGpsStatuses,
+    location, selectedCountry, autoTranslateEn,
+    setContent, setTags, setLocation, setSelectedCountry,
+    setImageFiles, setImageUrls, setImageGpsData, setImageGpsStatuses,
+  });
+
   const { toast } = useToast();
-  const { mutateAsync: publishEvent } = useNostrPublish();
-  const { mutateAsync: uploadFile } = useUploadFile();
   const { gender: autoGender } = useCurrentUser(); // Automatisch erkannte Perspektive (Mojo=male, Susanne=female)
   const [perspectiveTouched, setPerspectiveTouched] = useState(false);
   const [perspective, setPerspective] = useState<GenderType>(autoGender);
@@ -87,9 +81,6 @@ export function NoteForm({ editEvent }: { editEvent?: any }) {
     if (!perspectiveTouched) setPerspective(autoGender);
   }, [autoGender, perspectiveTouched]);
   const gender = perspective;
-  const navigate = useNavigate();
-  const { translateAndPublish } = useAutoTranslate();
-  const { trackPublishedPost } = useContinuityTracking();
 
   // KI-Notiz generieren (Foster Huntington Stil)
   const generateNoteWithAI = async () => {
@@ -200,156 +191,6 @@ export function NoteForm({ editEvent }: { editEvent?: any }) {
   }, [editEvent]);
 
 
-
-  const handleSubmit = () => {
-    if (!content.trim()) {
-      toast({
-        title: 'Fehler',
-        description: 'Bitte gib einen Text ein.',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    // Warn if there are unsaved images
-    if (imageFiles.length > 0) {
-      toast({
-        title: 'Achtung',
-        description: 'Bitte lade die ausgewählten Bilder zuerst hoch.',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    setIsPublishing(true);
-    setPublishProgress({ stage: 'publish', status: 'Event wird zu Nostr gesendet...' });
-
-    // Entferne Country-Tags aus tags, um Duplikate zu vermeiden
-    const countryList = NOTE_COUNTRY_TAGS;
-    const tagsWithoutCountry = tags.filter(tag =>
-      !countryList.includes(tag.toLowerCase()) && !tag.startsWith('#') && !countryList.includes(tag.replace('#', '').toLowerCase())
-    );
-
-    // Create event tags with country tags and #mojobus
-    const baseTags = createRequiredTags('notes', tagsWithoutCountry);
-    const additionalTags = [
-      ['type', 'note'],      // Explicit type marker
-      ['t', 'mojobus'],     // #mojobus tag
-      ['t', 'note'],        // Standard tag #note
-      ['t', 'notiz']        // Standard tag #notiz
-    ];
-
-    // Add location tag if set
-    if (location.trim()) {
-      additionalTags.push(['location', location.trim()]);
-    }
-
-    // Add country tags (nur wenn selectedCountry gewählt wurde)
-    if (selectedCountry) {
-      const countryTags = getCountryTag(selectedCountry);
-      countryTags.forEach(tag => additionalTags.push(['t', tag]));
-    }
-
-    // Add image tags if images exist
-    imageUrls.forEach((url, index) => {
-      additionalTags.push(['image', url]);
-
-      // Add GPS tags if available for this image
-      const gpsData = imageGpsData[index];
-      const gpsStatus = imageGpsStatuses[index];
-      if (gpsData && gpsStatus) {
-        additionalTags.push(['gps_lat', gpsData.latitude.toString()], ['gps_lon', gpsData.longitude.toString()]);
-        if (gpsData.altitude) {
-          additionalTags.push(['gps_alt', gpsData.altitude.toString()]);
-        }
-        additionalTags.push(['gps_precision', gpsData.precision]);
-        additionalTags.push(['gps_source', gpsStatus]);
-      }
-    });
-
-    const eventTags = [
-      ...baseTags,
-      ...additionalTags
-    ];
-
-    // Create content with images
-    let articleContent = content.trim();
-    if (imageFiles.length > 0) {
-      articleContent += '\n\n'; // Add spacing before images
-      imageFiles.forEach((file, index) => {
-        articleContent += `\n![Titelbild ${index + 1}](${URL.createObjectURL(file)})`;
-      });
-    }
-
-    publishEvent({
-      kind: 1, // Note
-      content: articleContent,
-      tags: eventTags
-    }, {
-      onSuccess: (data: NostrEvent) => {
-        setIsPublishing(false);
-        setPublishProgress({ stage: 'success', status: 'Erfolgreich veröffentlicht!' });
-
-        toast({
-          title: 'Erfolg!',
-          description: 'Note erfolgreich veroeffentlicht.'
-        });
-
-        // Kontinuitäts-Tracking: Motive/Entitäten/Stimmung/offene Fäden erfassen
-        trackPublishedPost({
-          id: data.id,
-          type: 'note',
-          kind: 1,
-          location,
-          content: articleContent,
-          url: data.id ? canonicalUrl(noteUrl(nip19.noteEncode(data.id))) : undefined,
-        });
-
-        // Publish-Pipeline sofort triggern (Prerender/Sitemap/Feed + IndexNow)
-        if (data.id) {
-          notifyPublishedPipeline({
-            d_tag: data.id,
-            url: canonicalUrl(noteUrl(nip19.noteEncode(data.id))),
-          });
-        }
-
-        // Auto-Übersetzung (DE→EN): EN-Version im Hintergrund veröffentlichen
-        if (autoTranslateEn) {
-          translateAndPublish({
-            type: 'note', kind: 1, originalEventId: data.id,
-            pubkey: data.pubkey, title: '', summary: '',
-            content: articleContent, baseTags: eventTags, publishTeaser: false,
-          });
-        }
-
-        // Reset form and redirect
-        setContent('');
-        setTags([]);
-        setLocation('');
-        setSelectedCountry('');
-        setImageFiles([]);
-        setImageUrls([]);
-        setImageGpsData({});
-        setImageGpsStatuses({});
-        setPublishProgress({ stage: '', status: '' });
-
-        // Redirect to notes page after successful publish
-        setTimeout(() => {
-          navigate('/notes');
-        }, 1000);
-      },
-      onError: (error) => {
-        setIsPublishing(false);
-        setPublishProgress({ stage: 'error', status: 'Veröffentlichung fehlgeschlagen' });
-
-        toast({
-          title: 'Fehler',
-          description: 'Veröffentlichung fehlgeschlagen. Bitte versuche es erneut.',
-          variant: 'destructive'
-        });
-      }
-    });
-  };
 
   return (
     <Card>
