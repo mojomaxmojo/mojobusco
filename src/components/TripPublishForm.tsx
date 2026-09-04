@@ -25,18 +25,8 @@ import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/useToast';
-import { useUploadFile } from '@/hooks/useUploadFile';
-import { useNostrPublish } from '@/hooks/useNostrPublish';
-import { useAutoTranslate } from '@/hooks/useAutoTranslate';
-import { useContinuityTracking } from '@/hooks/useContinuityTracking';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { PerspectiveSelector } from '@/components/PerspectiveSelector';
 import { type GenderType } from '@/config/prompts/lifestyles';
-import { ModelSelect, type TextModelTier } from '@/components/ModelSelect';
-import { canonicalUrl, tripUrl, canonicalNaddr } from '@/lib/canonicalUrl';
-import { notifyPublishedPipeline } from '@/lib/publishNotify';
-import { createLongformTeaser } from '@/lib/createLongformTeaser';
-import { AUTO_TRANSLATE_STORAGE_KEY } from '@/config/translation';
 import { useTrip } from '@/hooks/useTrips';
 import { GpsEditor } from '@/components/GpsEditor';
 import { GpsStatusIndicator } from '@/components/GpsStatusIndicator';
@@ -44,11 +34,11 @@ import { LocationPicker } from '@/components/LocationPicker';
 import { CountrySelector } from '@/components/CountrySelector';
 import { VanillaMap, TILE_LAYERS, type MapMarker } from '@/components/VanillaMap';
 import { TRIP_TYPES, type TripType } from '@/config/tags';
-import { 
-  Camera, Upload, MapPin, Loader2, CheckCircle, GripVertical, X, 
+import {
+  Camera, Upload, MapPin, Loader2, CheckCircle, GripVertical, X,
   ChevronLeft, ChevronRight, Route, Clock, Map as MapIcon, Trash2, Edit3
 } from '@/lib/icons';
-import { 
+import {
   extractGpsFromImage, formatCoordinatesSimple, reverseGeocode, mapCountryCode,
   type GpsData, type GpsStatus
 } from '@/lib/gpsExtraction';
@@ -90,7 +80,7 @@ export function TripPublishForm() {
   const [editDtag, setEditDtag] = useState<string | null>(null); // Store d-tag for updates
 
   // Upload state: siehe ./tripPublishForm/useTripUpload
-  const [isPublishing, setIsPublishing] = useState(false);
+  // Publish state: siehe ./tripPublishForm/useTripPublish
   // KI-Generierung state: siehe ./tripPublishForm/useTripGeneration
   // Ehrlichkeits-Gate für KI-generierte Trip-Texte (Standard: bestätigt, abwählbar)
   const [experiencesConfirmed, setExperiencesConfirmed] = useState(true);
@@ -101,8 +91,6 @@ export function TripPublishForm() {
 
   // Hooks
   const { toast } = useToast();
-  const { mutateAsync: publishEvent } = useNostrPublish();
-  const { trackPublishedPost } = useContinuityTracking();
   const { gender: autoGender, user } = useCurrentUser(); // Automatisch erkannte Perspektive (Mojo=male, Susanne=female)
   const [perspectiveTouched, setPerspectiveTouched] = useState(false);
   const [perspective, setPerspective] = useState<GenderType>(autoGender);
@@ -110,7 +98,6 @@ export function TripPublishForm() {
     if (!perspectiveTouched) setPerspective(autoGender);
   }, [autoGender, perspectiveTouched]);
   const gender = perspective;
-  const { translateAndPublish } = useAutoTranslate();
 
   // KI-Artikelgenerierung: siehe ./tripPublishForm/useTripGeneration
   const {
@@ -175,51 +162,7 @@ export function TripPublishForm() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEditMode, existingTrip, isLoadingExisting]);
 
-  // Auto-fill trip metadata from first station
-  useEffect(() => {
-    const autoFill = async () => {
-      const firstStationWithGps = stations.find(s => s.gps && s.gpsStatus === 'detected');
-      if (firstStationWithGps?.gps && !tripData.country) {
-        const locationData = await reverseGeocode(
-          firstStationWithGps.gps.latitude,
-          firstStationWithGps.gps.longitude
-        );
-        if (locationData) {
-          const locationParts = [
-            locationData.city,
-            locationData.neighbourhood,
-            locationData.suburb
-          ].filter(Boolean);
-          
-          const loc = locationParts.join(', ');
-          const country = mapCountryCode(locationData);
-          
-          // Update station with location
-          setStations(prev => prev.map(s => 
-            s.id === firstStationWithGps.id 
-              ? { ...s, location: loc }
-              : s
-          ));
-          
-          // Update trip data
-          if (country && !tripData.country) {
-            setTripData(prev => ({ ...prev, country }));
-          }
-          
-          // Auto-generate title if empty
-          if (!tripData.title && loc) {
-            setTripData(prev => ({ 
-              ...prev, 
-              title: `Trip nach ${loc}`,
-              summary: `Eine Reise durch ${loc} und Umgebung.`
-            }));
-          }
-        }
-      }
-    };
-    
-    autoFill();
-  }, [stations, tripData.country, tripData.title]);
+  // Auto-fill trip metadata: siehe ./tripPublishForm/useTripGpsFill
 
   // Handle file selection + Drag-Sortierung + Blossom-Upload: siehe ./tripPublishForm/useTripUpload
   const {
@@ -262,219 +205,29 @@ export function TripPublishForm() {
 
   // Upload all images: siehe ./tripPublishForm/useTripUpload
 
-  // Publish trip
-  // Teaser-Note State
-  const [publishTeaserNote, setPublishTeaserNote] = useState(true);
-
-  // Auto-Übersetzung (DE→EN) State
-  const [autoTranslateEn, setAutoTranslateEn] = useState(() => {
-    const stored = localStorage.getItem(AUTO_TRANSLATE_STORAGE_KEY);
-    return stored === null ? true : stored !== 'false';
+  // Publish trip: siehe ./tripPublishForm/useTripPublish
+  const {
+    isPublishing,
+    publishTeaserNote,
+    setPublishTeaserNote,
+    autoTranslateEn,
+    setAutoTranslateEn,
+    handlePublish,
+  } = useTripPublish({
+    stations,
+    setStations,
+    tripData,
+    setTripData,
+    editDtag,
+    setEditDtag,
+    isEditMode,
+    slideshowVideoUrl,
+    setSlideshowVideoUrl,
+    gender,
+    user,
+    setCurrentStep,
+    uploadImages,
   });
-
-  const handlePublish = async () => {
-    // First upload all images and get updated stations
-    const uploadedStations = await uploadImages();
-    
-    if (uploadedStations.length === 0) {
-      console.error('[Trip Publish] No stations uploaded');
-      return;
-    }
-    
-    // Check for GPS stations
-    const gpsStations = uploadedStations.filter(s => s.gps && s.uploadedUrl);
-    if (gpsStations.length < 2) {
-      toast({
-        title: 'Nicht genug GPS-Daten',
-        description: 'Mindestens 2 Stationen mit GPS erforderlich.',
-        variant: 'destructive'
-      });
-      return;
-    }
-    
-    // Create trip event (Kind 30025 - compatible with mojotravel)
-    // Use existing d-tag for updates, or create new one
-    const dTag = editDtag || `trip-${Date.now()}`;
-    
-    console.log('[Trip Publish] Publishing with', uploadedStations.length, 'stations');
-    console.log('[Trip Publish] GPS stations:', gpsStations.length);
-    console.log('[Trip Publish] Mode:', isEditMode ? 'UPDATE' : 'CREATE');
-    console.log('[Trip Publish] d-tag:', dTag);
-    
-    const waypointTags = buildWaypointTags(gpsStations);
-
-    const imageTags = buildImageTags(uploadedStations);
-
-    const totalDistance = calculateTotalDistance(gpsStations);
-
-    const content = buildTripContent(uploadedStations, tripData);
-
-    console.log('[Trip Publish] Waypoint tags:', waypointTags.length);
-    console.log('[Trip Publish] Image tags:', imageTags.length);
-
-    const tags = buildTripTags(dTag, tripData, waypointTags, imageTags, totalDistance, slideshowVideoUrl);
-    
-    // Publish
-    setIsPublishing(true);
-
-    const doPublish = async (retryCount = 0): Promise<boolean> => {
-      try {
-        await publishEvent({
-          kind: 30025, // Trip events (Kind 30025 - Parameterized Replaceable)
-          content,
-          tags,
-        });
-
-        toast({
-          title: isEditMode ? 'Trip aktualisiert!' : 'Trip veröffentlicht!',
-          description: isEditMode
-            ? 'Dein Trip wurde erfolgreich aktualisiert.'
-            : 'Dein Trip wurde erfolgreich veröffentlicht.',
-        });
-
-        // Kontinuitäts-Tracking: Motive/Entitäten/Stimmung/offene Fäden erfassen
-        // (nur der erste/Hauptort, Wegpunkt 1)
-        trackPublishedPost({
-          id: dTag,
-          type: 'trip',
-          kind: 30025,
-          title: tripData.title,
-          location: gpsStations[0]?.location || gpsStations[0]?.title || '',
-          country: tripData.country,
-          content,
-          url: user?.pubkey
-            ? canonicalUrl(tripUrl(canonicalNaddr({ kind: 30025, pubkey: user.pubkey, identifier: dTag })))
-            : undefined,
-        });
-
-        // Publish-Pipeline sofort triggern (Prerender/Sitemap/Feed + IndexNow)
-        if (user?.pubkey) {
-          notifyPublishedPipeline({
-            d_tag: dTag,
-            url: canonicalUrl(tripUrl(canonicalNaddr({ kind: 30025, pubkey: user.pubkey, identifier: dTag }))),
-          });
-        }
-
-        // Auto-Übersetzung (DE→EN): EN-Version im Hintergrund veröffentlichen
-        if (autoTranslateEn && user?.pubkey) {
-          translateAndPublish({
-            type: 'trip', kind: 30025, originalDTag: dTag,
-            pubkey: user.pubkey, title: tripData.title, summary: tripData.summary,
-            content, baseTags: tags, publishTeaser: publishTeaserNote,
-          });
-        }
-
-        return true;
-      } catch (error: any) {
-        console.error('[Trip Publish] Error:', error);
-
-        // Retry up to 3 times
-        if (retryCount < 3) {
-          console.log(`[Trip Publish] Retrying... (${retryCount + 1}/3)`);
-          toast({
-            title: 'Veröffentlichung wird erneut versucht...',
-            description: `Versuch ${retryCount + 1} von 3`,
-          });
-          await new Promise(r => setTimeout(r, 2000)); // Wait 2 seconds
-          return doPublish(retryCount + 1);
-        }
-
-        toast({
-          title: 'Fehler beim Veröffentlichen',
-          description: `Der Trip konnte nicht veröffentlicht werden: ${error?.message || 'Unbekannter Fehler'}. Bitte versuche es später erneut.`,
-          variant: 'destructive',
-        });
-        return false;
-      }
-    };
-
-    const success = await doPublish();
-    setIsPublishing(false);
-
-    if (!success) return;
-
-    // Teaser-Note (Kind 1) automatisch posten
-    if (publishTeaserNote && user?.pubkey) {
-      const teaserLoggerPrefix = '[Trip Teaser]';
-      try {
-        const firstStation = uploadedStations.find(s => s.uploadedUrl);
-        const firstImageUrl = firstStation?.uploadedUrl;
-        const teaserSummary = tripData.summary.trim().slice(0, 120) + (tripData.summary.trim().length > 120 ? '…' : '');
-
-        const tripTeaserTags = [
-          'trip',
-          'reisen',
-          ...(tripData.tripType ? [tripData.tripType] : []),
-        ];
-
-        console.log(`${teaserLoggerPrefix} Erstelle Teaser...`, {
-          title: tripData.title.trim(),
-          summaryLength: teaserSummary.length,
-          imageUrl: firstImageUrl,
-          videoUrl: slideshowVideoUrl,
-          tags: tripTeaserTags,
-          country: tripData.country
-        });
-
-        const teaser = createLongformTeaser({
-          type: 'trip',
-          title: tripData.title.trim() || 'Trip',
-          body: tripData.summary.trim(),
-          summary: teaserSummary,
-          pubkey: user.pubkey,
-          dTag,
-          kind: 30025,
-          imageUrl: firstImageUrl,
-          videoUrl: slideshowVideoUrl,
-          tags: tripTeaserTags,
-          country: tripData.country,
-        });
-
-        console.log(`${teaserLoggerPrefix} Teaser erstellt:`, {
-          contentLength: teaser.content.length,
-          tagCount: teaser.tags.length,
-          tags: teaser.tags,
-          naddr: teaser.naddr
-        });
-
-        const publishResult = await publishEvent({
-          kind: 1,
-          content: teaser.content,
-          tags: teaser.tags,
-        });
-
-        console.log(`${teaserLoggerPrefix} publishEvent result:`, publishResult);
-
-        toast({
-          title: '✅ Teaser-Note veröffentlicht!',
-          description: 'Erscheint im Nostr-Feed bei Primal, Amethyst & Damus',
-        });
-      } catch (teaserErr: any) {
-        const errorMessage = teaserErr?.message || 'Unbekannter Fehler';
-        const errorStack = teaserErr?.stack || '';
-        console.error(`${teaserLoggerPrefix} Teaser-Post fehlgeschlagen:`, teaserErr);
-        console.error(`${teaserLoggerPrefix} Details:`, {
-          message: errorMessage,
-          stack: errorStack,
-          fullError: JSON.stringify(teaserErr, Object.getOwnPropertyNames(teaserErr))
-        });
-
-        toast({
-          title: '⚠️ Trip gespeichert',
-          description: `Teaser-Note konnte nicht gepostet werden: ${errorMessage}`,
-          variant: 'destructive',
-        });
-      }
-    }
-
-    // Reset + Redirect
-    setStations([]);
-    setTripData({ title: '', summary: '', country: '', tripType: '' });
-    setEditDtag(null);
-    setSlideshowVideoUrl(null);
-    setCurrentStep('upload');
-    navigate('/map/trips');
-  };
 
   // Render step content
   const renderStepContent = () => {
