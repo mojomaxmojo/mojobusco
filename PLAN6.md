@@ -587,18 +587,18 @@ Route im Web: `/promotion` („Pinterest Promotion", 5 Schritte). Zielordner: `s
 
 ---
 
-## Ergebnis nach allen Phasen
+## Ergebnis (IST nach Umsetzung)
 
-| Datei | vorher | nachher (ca.) |
+| Datei | vorher | nachher |
 |---|---:|---:|
-| `src/pages/VideoPromotion.tsx` | 3.174 | ~650 |
-| `src/pages/videoPromotion/*` (15 Module) | – | je < 500 |
-| `src/components/TripPublishForm.tsx` | 1.916 | ~450 |
-| `src/components/tripPublishForm/*` (7 Module) | – | je < 500 |
-| `src/pages/PromotionDashboard.tsx` | 1.594 | ~550 |
-| `src/pages/promotionDashboard/*` (11 Module) | – | je < 500 |
+| `src/pages/VideoPromotion.tsx` | 3.174 | 963 |
+| `src/pages/videoPromotion/*` (15 Module) | – | 81–502 (größte: `Step3RenderSection.tsx` 502) |
+| `src/components/TripPublishForm.tsx` | 1.916 | 413 |
+| `src/components/tripPublishForm/*` (7 Module) | – | 96–513 (größte: `DetailsStep.tsx` 513) |
+| `src/pages/PromotionDashboard.tsx` | 1.594 | 629 |
+| `src/pages/promotionDashboard/*` (11 Module) | – | 46–411 |
 
-Alle API-Routen, Nostr-Kinds, Canonical-URLs, Capacitor-Präfixe (`getApiBaseUrl()`) und die KI-Logik bleiben **zeilenidentisch** erhalten – es wird nur umgezogen.
+Alle API-Routen, Nostr-Kinds, Canonical-URLs, Capacitor-Präfixe (`getApiBaseUrl()`) und die KI-Logik blieben **zeilenidentisch** erhalten – es wurde nur umgezogen.
 
 ---
 
