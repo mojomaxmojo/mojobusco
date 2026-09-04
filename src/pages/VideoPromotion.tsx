@@ -111,6 +111,7 @@ import {
   type RenderStatus,
 } from './videoPromotion/videoPromotionConfig'
 import { SortableThumb } from './videoPromotion/SortableThumb'
+import { buildPreviewUrl, playOneShotPreview, stopPreview } from './videoPromotion/audioPreview'
 
 // ═══════════════════════════════════════════════════════════
 // Drag&Drop – @dnd-kit für Medien-Sortierung
@@ -1237,61 +1238,7 @@ export function VideoPromotion() {
   }
 
   // ── HOOK INTRO AUDIO VORSCHAU ═══════════════════════════
-  const buildPreviewUrl = (filename: string, folder?: string) => {
-    return folder
-      ? `${getApiBaseUrl()}/server/music/${folder}/${encodeURIComponent(filename)}`
-      : `${getApiBaseUrl()}/server/music/${encodeURIComponent(filename)}`
-  }
-
-  const playOneShotPreview = (
-    url: string,
-    volume: number,
-    setPlaying: (playing: boolean) => void,
-    audioRef: React.MutableRefObject<HTMLAudioElement | null>,
-  ) => {
-    if (audioRef.current) {
-      audioRef.current.pause()
-      audioRef.current = null
-    }
-
-    const audio = new Audio()
-    audio.volume = volume
-    audioRef.current = audio
-
-    audio.oncanplay = () => {
-      audio.play().then(() => {
-        setPlaying(true)
-      }).catch((err) => {
-        console.warn('[IntroPreview] play() fehlgeschlagen:', err)
-        setPlaying(false)
-        audioRef.current = null
-      })
-    }
-
-    audio.onerror = () => {
-      setPlaying(false)
-      audioRef.current = null
-    }
-
-    audio.onended = () => {
-      setPlaying(false)
-      audioRef.current = null
-    }
-
-    audio.src = url
-    audio.load()
-  }
-
-  const stopPreview = (
-    setPlaying: (playing: boolean) => void,
-    audioRef: React.MutableRefObject<HTMLAudioElement | null>,
-  ) => {
-    if (audioRef.current) {
-      audioRef.current.pause()
-      audioRef.current = null
-    }
-    setPlaying(false)
-  }
+  // (buildPreviewUrl / playOneShotPreview / stopPreview: siehe ./videoPromotion/audioPreview)
 
   const toggleStingPreview = () => {
     if (playingStingPreview) {
