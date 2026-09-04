@@ -101,13 +101,13 @@ import {
   hasVideoUrls,
   stripHeroMarkup,
   type TikTokTemplate,
-  type RenderStatus,
 } from './videoPromotion/videoPromotionConfig'
 import { SortableThumb } from './videoPromotion/SortableThumb'
 import { useLongformChapters } from './videoPromotion/useLongformChapters'
 import { useVideoMusicAudio } from './videoPromotion/useVideoMusicAudio'
 import { useVideoContentSelection } from './videoPromotion/useVideoContentSelection'
 import { useVideoTextGeneration } from './videoPromotion/useVideoTextGeneration'
+import { useVideoRenderPolling } from './videoPromotion/useVideoRenderPolling'
 
 // ═══════════════════════════════════════════════════════════
 // Drag&Drop – @dnd-kit für Medien-Sortierung
@@ -154,7 +154,19 @@ export function VideoPromotion() {
 
   // ── STEP STATE ═══════════════════════════════════════════
   const [step, setStep] = useState(1)
-  const [rendering, setRendering] = useState(false)
+  // rendering/renderStatus/renderProgress/downloadedMp4/pollRef: siehe ./videoPromotion/useVideoRenderPolling
+  const {
+    rendering,
+    setRendering,
+    renderStatus,
+    setRenderStatus,
+    renderProgress,
+    setRenderProgress,
+    downloadedMp4,
+    setDownloadedMp4,
+    startPolling,
+    pollRef,
+  } = useVideoRenderPolling({ toast, setStep })
 
   // ── TEMPLATE ═════════════════════════════════════════════
   const [template, setTemplate] = useState<TikTokTemplate>('story')
@@ -320,12 +332,6 @@ export function VideoPromotion() {
     articleImageCount: articleImages.length,
   })
   // gpsRoute/gpsRouteLoading/location/country: siehe ./videoPromotion/useVideoContentSelection
-
-  // ── RENDER ═══════════════════════════════════════════════
-  const [renderStatus, setRenderStatus] = useState<RenderStatus | null>(null)
-  const [renderProgress, setRenderProgress] = useState(0)
-  const [downloadedMp4, setDownloadedMp4] = useState(false)
-  const pollRef = useRef<number | null>(null)
 
   // ── REMOTION STATUS ══════════════════════════════════════
   const [remotionAvailable, setRemotionAvailable] = useState<boolean | null>(null)
@@ -600,46 +606,7 @@ export function VideoPromotion() {
     }
   }
 
-  // ── POLLING ═════════════════════════════════════════════
-
-  const startPolling = useCallback((jobId: string) => {
-    if (pollRef.current) clearInterval(pollRef.current)
-
-    pollRef.current = window.setInterval(async () => {
-      try {
-        const base = getApiBaseUrl()
-        const res = await fetch(`${base}/api/render-remotion/status/${jobId}`)
-        const data = await res.json()
-
-        setRenderStatus(prev => prev ? { ...prev, ...data } : null)
-        setRenderProgress(data.progress || 0)
-
-        if (data.status === 'completed' || data.status === 'failed') {
-          if (pollRef.current) clearInterval(pollRef.current)
-          pollRef.current = null
-
-          if (data.status === 'completed') {
-            setRendering(false)
-            setDownloadedMp4(true)
-            setStep(4)
-            toast({
-              title: '✅ Video fertig!',
-              description: `${data.fileSizeMB}MB · ${data.videoDurationSec}s${data.loudness?.normalized ? ` · 🔊 ${data.loudness.targetI} LUFS` : ''}`,
-            })
-          } else {
-            setRendering(false)
-            toast({
-              title: '❌ Render fehlgeschlagen',
-              description: data.error || 'Unbekannter Fehler',
-              variant: 'destructive',
-            })
-          }
-        }
-      } catch (e) {
-        // Polling-Fehler ignorieren – beim nächsten Intervall erneut versuchen
-      }
-    }, 2000)
-  }, [])
+  // ── POLLING: siehe ./videoPromotion/useVideoRenderPolling
 
   // ── UPLOAD ZU BLOSSOM ════════════════════════════════════
 
