@@ -31,6 +31,13 @@ import { Upload, UploadCloud, ImageIcon, Video, Music, File as FileIcon, Camera,
 import type { GpsStatus } from '@/lib/gpsExtraction';
 import { getTagValues } from '@/lib/nostrEventUtils';
 import type { NostrEvent } from '@nostrify/nostrify';
+import { NOTE_COUNTRY_TAGS } from './noteForm/noteFormConstants';
+import { NoteTagsSection } from './noteForm/NoteTagsSection';
+import { NoteAiSection } from './noteForm/NoteAiSection';
+import { useNoteGps } from './noteForm/useNoteGps';
+import { useNoteImageUpload } from './noteForm/useNoteImageUpload';
+import { NoteImageGallery } from './noteForm/NoteImageGallery';
+import { useNotePublish } from './noteForm/useNotePublish';
 
 export function NoteForm({ editEvent }: { editEvent?: NostrEvent }) {
   const [content, setContent] = useState('');
