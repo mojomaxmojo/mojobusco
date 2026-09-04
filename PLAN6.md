@@ -631,7 +631,7 @@ Alle API-Routen, Nostr-Kinds, Canonical-URLs, Capacitor-Präfixe (`getApiBaseUrl
 - [x] Schritt 22: `useTripPublish.ts` ⚠️ – Commit + Build ✓
 
 **Phase C – PromotionDashboard.tsx (`/promotion`)**
-- [ ] Vor Schritt 23: Klärung `SavedPin`-Typ (eigener Mini-Commit, kein Teil dieses Plans) – **offen, Typ-Referenz unverändert übernommen**
+- [x] Vor Schritt 23: Klärung `SavedPin`-Typ – **nachgeholt im Folge-Batch** (Interface in `pinStorage.ts`, in `usePromotionPins.ts` importiert)
 - [x] Schritt 23: `promotionDashboardConfig.ts` – Commit + Build ✓
 - [x] Schritt 24: `PinboardSuggestions.tsx` – Commit + Build ✓
 - [x] Schritt 25: `pinStorage.ts` – Commit + Build ✓
