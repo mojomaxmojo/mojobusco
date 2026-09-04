@@ -605,43 +605,43 @@ Alle API-Routen, Nostr-Kinds, Canonical-URLs, Capacitor-Präfixe (`getApiBaseUrl
 # Checkliste – Schritt für Schritt abhaken
 
 **Phase A – VideoPromotion.tsx (`/promotion/tiktok`)**
-- [ ] Schritt 1: `videoPromotionConfig.ts` (Konstanten/Typen/reine Helfer) – Commit + Build ✓
-- [ ] Schritt 2: `SortableThumb.tsx` – Commit + Build ✓
-- [ ] Schritt 3: `audioPreview.ts` – Commit + Build ✓
-- [ ] Schritt 4: `useLongformChapters.ts` – Commit + Build ✓
-- [ ] Schritt 5: `useVideoMusicAudio.ts` – Commit + Build ✓
-- [ ] Schritt 6: `useVideoContentSelection.ts` – Commit + Build ✓
-- [ ] Schritt 7: `useVideoTextGeneration.ts` – Commit + Build ✓
-- [ ] Schritt 8: `useVideoRenderPolling.ts` – Commit + Build ✓
-- [ ] Schritt 9: `useVideoPublishHistory.ts` ⚠️ – Commit + Build ✓
-- [ ] Schritt 10: `Step1Section.tsx` – Commit + Build ✓
-- [ ] Schritt 11: `Step2Section.tsx` – Commit + Build ✓
-- [ ] Schritt 12: `Step3TextSection.tsx` – Commit + Build ✓
-- [ ] Schritt 13: `Step3RenderSection.tsx` – Commit + Build ✓
-- [ ] Schritt 14: `Step3AudioSection.tsx` – Commit + Build ✓
-- [ ] Schritt 15: `PublishSection.tsx` – Commit + Build ✓
+- [x] Schritt 1: `videoPromotionConfig.ts` (Konstanten/Typen/reine Helfer) – Commit + Build ✓
+- [x] Schritt 2: `SortableThumb.tsx` – Commit + Build ✓
+- [x] Schritt 3: `audioPreview.ts` – Commit + Build ✓
+- [x] Schritt 4: `useLongformChapters.ts` – Commit + Build ✓
+- [x] Schritt 5: `useVideoMusicAudio.ts` – Commit + Build ✓
+- [x] Schritt 6: `useVideoContentSelection.ts` – Commit + Build ✓
+- [x] Schritt 7: `useVideoTextGeneration.ts` – Commit + Build ✓
+- [x] Schritt 8: `useVideoRenderPolling.ts` – Commit + Build ✓
+- [x] Schritt 9: `useVideoPublishHistory.ts` ⚠️ – Commit + Build ✓
+- [x] Schritt 10: `Step1Section.tsx` – Commit + Build ✓
+- [x] Schritt 11: `Step2Section.tsx` – Commit + Build ✓
+- [x] Schritt 12: `Step3TextSection.tsx` – Commit + Build ✓
+- [x] Schritt 13: `Step3RenderSection.tsx` – Commit + Build ✓
+- [x] Schritt 14: `Step3AudioSection.tsx` – Commit + Build ✓
+- [x] Schritt 15: `PublishSection.tsx` – Commit + Build ✓
 
 **Phase B – TripPublishForm.tsx (`/veroeffentlichen` → Tab „Trips")**
-- [ ] Schritt 16: `UploadStep.tsx` – Commit + Build ✓
-- [ ] Schritt 17: `DetailsStep.tsx` – Commit + Build ✓
-- [ ] Schritt 18: `PreviewStep.tsx` – Commit + Build ✓
-- [ ] Schritt 19: `useTripGpsFill.ts` – Commit + Build ✓
-- [ ] Schritt 20: `useTripUpload.ts` – Commit + Build ✓
-- [ ] Schritt 21: `useTripGeneration.ts` ⚠️ – Commit + Build ✓
-- [ ] Schritt 22: `useTripPublish.ts` ⚠️ – Commit + Build ✓
+- [x] Schritt 16: `UploadStep.tsx` – Commit + Build ✓
+- [x] Schritt 17: `DetailsStep.tsx` – Commit + Build ✓
+- [x] Schritt 18: `PreviewStep.tsx` – Commit + Build ✓
+- [x] Schritt 19: `useTripGpsFill.ts` – Commit + Build ✓ (Nachtrag in Schritt 22: versehentlich doppelt belassenen Auto-Fill-Effect entfernt)
+- [x] Schritt 20: `useTripUpload.ts` – Commit + Build ✓
+- [x] Schritt 21: `useTripGeneration.ts` ⚠️ – Commit + Build ✓
+- [x] Schritt 22: `useTripPublish.ts` ⚠️ – Commit + Build ✓
 
 **Phase C – PromotionDashboard.tsx (`/promotion`)**
-- [ ] Vor Schritt 23: Klärung `SavedPin`-Typ (eigener Mini-Commit, kein Teil dieses Plans)
-- [ ] Schritt 23: `promotionDashboardConfig.ts` – Commit + Build ✓
-- [ ] Schritt 24: `PinboardSuggestions.tsx` – Commit + Build ✓
-- [ ] Schritt 25: `pinStorage.ts` – Commit + Build ✓
-- [ ] Schritt 26: `Step1Section.tsx` – Commit + Build ✓
-- [ ] Schritt 27: `Step2Section.tsx` – Commit + Build ✓
-- [ ] Schritt 28: `Step3Section.tsx` – Commit + Build ✓
-- [ ] Schritt 29: `Step4Section.tsx` – Commit + Build ✓
-- [ ] Schritt 30: `Step5Section.tsx` – Commit + Build ✓
-- [ ] Schritt 31: `usePromotionPins.ts` – Commit + Build ✓
-- [ ] Schritt 32: `usePinGeneration.ts` ⚠️ – Commit + Build ✓
-- [ ] Schritt 33: `usePinRender.ts` ⚠️ – Commit + Build ✓
+- [ ] Vor Schritt 23: Klärung `SavedPin`-Typ (eigener Mini-Commit, kein Teil dieses Plans) – **offen, Typ-Referenz unverändert übernommen**
+- [x] Schritt 23: `promotionDashboardConfig.ts` – Commit + Build ✓
+- [x] Schritt 24: `PinboardSuggestions.tsx` – Commit + Build ✓
+- [x] Schritt 25: `pinStorage.ts` – Commit + Build ✓
+- [x] Schritt 26: `Step1Section.tsx` – Commit + Build ✓
+- [x] Schritt 27: `Step2Section.tsx` – Commit + Build ✓
+- [x] Schritt 28: `Step3Section.tsx` – Commit + Build ✓
+- [x] Schritt 29: `Step4Section.tsx` – Commit + Build ✓
+- [x] Schritt 30: `Step5Section.tsx` – Commit + Build ✓
+- [x] Schritt 31: `usePromotionPins.ts` – Commit + Build ✓
+- [x] Schritt 32: `usePinGeneration.ts` ⚠️ – Commit + Build ✓
+- [x] Schritt 33: `usePinRender.ts` ⚠️ – Commit + Build ✓
 
 ⚠️ = berührt KI-Server/Nostr/Blossom – nur mit erreichbarem Server voll testbar; UI-Teile sind jederzeit prüfbar.

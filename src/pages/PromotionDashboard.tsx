@@ -18,10 +18,6 @@ import { useNavigate } from 'react-router-dom'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { getApiBaseUrl } from '@/lib/apiBase'
 import { useToast } from '@/hooks/useToast'
-import { useNostr } from '@/hooks/useNostr'
-import { useUploadFile } from '@/hooks/useUploadFile'
-import { NOSTR_CONFIG } from '@/config/nostr'
-import { DEFAULT_PERFORMANCE_CONFIG } from '@/config/performance'
 
 // UI Components
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -44,7 +40,7 @@ import {
 } from 'lucide-react'
 
 // Pin Components
-import { PIN_TEMPLATES, renderPinTemplate, type PinTemplateType } from '@/components/pin/PinTemplates'
+import { PIN_TEMPLATES, type PinTemplateType } from '@/components/pin/PinTemplates'
 import { ContentSelector, type ContentItem } from '@/components/pin/ContentSelector'
 import { extractImagesFromEvent, extractTitle, extractSummary } from '@/lib/nostrEventUtils'
 import { PinboardSuggestions } from './promotionDashboard/PinboardSuggestions'
@@ -70,7 +66,6 @@ export function PromotionDashboard() {
   const { user } = useCurrentUser()
   const navigate = useNavigate()
   const { toast } = useToast()
-  const uploadFile = useUploadFile()
 
   // ── LOGIN SCHUTZ ═══════════════════════════════════════
   useEffect(() => {
