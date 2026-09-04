@@ -60,14 +60,12 @@ import { EFFECT_PRESETS, type EffectPreset, type EffectPresetId } from '@/config
 import { FormatSelector } from '@/components/video/FormatSelector'
 import { LongformSettings } from '@/components/video/LongformSettings'
 import { ChapterMarkerList } from '@/components/video/ChapterMarkerList'
-import type { ChapterMarker } from '@/components/video/ChapterMarkerList'
 import {
   VIDEO_FORMATS,
   LONGFORM_DEFAULTS,
   calculateSecondsPerImage,
   type VideoFormat,
 } from '@/config/videoFormats'
-import { buildChaptersFromSlides, buildChaptersFromChapterTitles, formatChaptersForDescription } from '@/lib/youtubeChapters'
 import {
   type SlideLayout,
   SLIDE_LAYOUT_ORDER,
@@ -112,6 +110,7 @@ import {
 } from './videoPromotion/videoPromotionConfig'
 import { SortableThumb } from './videoPromotion/SortableThumb'
 import { buildPreviewUrl, playOneShotPreview, stopPreview } from './videoPromotion/audioPreview'
+import { useLongformChapters } from './videoPromotion/useLongformChapters'
 
 // ═══════════════════════════════════════════════════════════
 // Drag&Drop – @dnd-kit für Medien-Sortierung
@@ -234,16 +233,12 @@ export function VideoPromotion() {
   const [hashtags, setHashtags] = useState('')
   const [thumbnailText, setThumbnailText] = useState('')
 
-  // ── YOUTUBE LONGFORM METADATEN ═══════════════════════════
-  const [videoDescription, setVideoDescription] = useState('')
-  const [youtubeTags, setYoutubeTags] = useState<string[]>([])
-  const [chapterTitles, setChapterTitles] = useState<string[]>([])
+  // ── YOUTUBE LONGFORM METADATEN + KAPITEL: siehe ./videoPromotion/useLongformChapters
 
   // ── FORMAT & LONGFORM ════════════════════════════════════
   const [format, setFormat] = useState<VideoFormat>('shorts')
   const [targetDurationMin, setTargetDurationMin] = useState(VIDEO_FORMATS.longform.defaultDurationMin)
   const [generateThumbnail, setGenerateThumbnail] = useState(false)
-  const [chapters, setChapters] = useState<ChapterMarker[]>([])
 
   // ── PLATTFORM ═════════════════════════════════════════════
   const [platform, setPlatform] = useState<'tiktok' | 'reels' | 'youtube'>('tiktok')
@@ -326,59 +321,26 @@ export function VideoPromotion() {
     return calculateSecondsPerImage(targetDurationMin, articleImages.length, hookSecondsForFormat)
   }, [format, targetDurationMin, articleImages.length, secondsPerImage, hookSecondsForFormat])
 
-  // ── KAPITEL AUS BODY-LINES / KI-CHAPTER-TITLES ═══════════
-  useEffect(() => {
-    if (format !== 'longform') {
-      setChapters([])
-      return
-    }
-
-    if (chapterTitles.length > 0) {
-      // KI hat Kapitel geliefert (5–15 möglich). Robust über Bilder verteilen.
-      const calculated = buildChaptersFromChapterTitles(
-        chapterTitles,
-        articleImages.length,
-        effectiveSecondsPerImage,
-        hookSecondsForFormat,
-        hookText
-      )
-      setChapters(calculated)
-      return
-    }
-
-    // Fallback: Kapitel aus bodyLines
-    if (!bodyText.trim()) {
-      setChapters([])
-      return
-    }
-    const bodyLines = bodyText.split('\n').filter((l) => l.trim().length > 0)
-    const titles = [hookText || 'Intro', ...bodyLines]
-    const calculated = buildChaptersFromSlides({
-      titles,
-      secondsPerSlide: effectiveSecondsPerImage,
-      hookSeconds: hookSecondsForFormat,
-    })
-    setChapters(calculated)
-  }, [format, bodyText, hookText, effectiveSecondsPerImage, hookSecondsForFormat, chapterTitles, articleImages.length])
+  // ── KAPITEL + LONGFORM-BESCHREIBUNG: siehe ./videoPromotion/useLongformChapters
+  const {
+    chapters,
+    videoDescription,
+    setVideoDescription,
+    youtubeTags,
+    setYoutubeTags,
+    setChapterTitles,
+    longformDescription,
+  } = useLongformChapters({
+    format,
+    bodyText,
+    hookText,
+    effectiveSecondsPerImage,
+    hookSecondsForFormat,
+    articleImageCount: articleImages.length,
+  })
   // Echte Route aus GPS-Tags der Events (null = keine GPS-Daten → Demo-Fallback)
   const [gpsRoute, setGpsRoute] = useState<RouteResult | null>(null)
   const [gpsRouteLoading, setGpsRouteLoading] = useState(false)
-
-  // ── YOUTUBE LONGFORM BESCHREIBUNG ════════════════════════
-  const longformDescription = useMemo(() => {
-    if (format !== 'longform') return ''
-    const chapterBlock = formatChaptersForDescription(chapters)
-    return [
-      videoDescription,
-      '',
-      chapterBlock ? 'Kapitel:' : '',
-      chapterBlock,
-      '',
-      '➡️ Mehr auf mojobus.co',
-      '',
-      youtubeTags.length > 0 ? `Tags: ${youtubeTags.join(', ')}` : '',
-    ].filter(Boolean).join('\n')
-  }, [format, videoDescription, chapters, youtubeTags])
 
   // ── LOCATION (aus Content extrahiert) ════════════════════
   const [location, setLocation] = useState('')
