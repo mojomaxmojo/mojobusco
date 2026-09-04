@@ -38,10 +38,18 @@ import { useArticleAutosave } from "./articleForm/useArticleAutosave";
 import { useArticleMediaGenerators } from "./articleForm/useArticleMediaGenerators";
 import { useArticlePublish } from "./articleForm/useArticlePublish";
 import { ArticleImageGpsSection } from "./articleForm/ArticleImageGpsSection";
-import { COUNTRY_TAG_LIST } from "./articleForm/articleFormConfig";
+import { COUNTRY_TAG_LIST, ARTICLE_LENGTH_OPTIONS, getDIYIcon, RV_LIFE_TAG_OPTIONS, STRAND_ORT_TAG_OPTIONS } from "./articleForm/articleFormConfig";
 import { extractImageUrlsFromMarkdown } from "./articleForm/articleFormUtils";
 import { buildAuthorInput } from "@/config/assistant";
 import type { AssistantIdea } from "@/components/assistant/IdeasPanel";
+import { useAssistantApi } from "@/components/assistant/useAssistantApi";
+import { AssistantSection } from "@/components/assistant/AssistantSection";
+import { SeoPublishPanel } from "@/components/assistant/SeoPublishPanel";
+import { DraftsOverview } from "@/components/assistant/DraftsOverview";
+import { MediaLibraryPanel } from "@/components/assistant/MediaLibraryPanel";
+import { canonicalUrl, articleUrl, canonicalNaddr } from "@/lib/canonicalUrl";
+import { resolveBildPlaceholders } from "./publishUtils";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 export function ArticleForm({ editEvent }: { editEvent?: NostrEvent }) {
   const [title, setTitle] = useState('');
