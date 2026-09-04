@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Slider } from '@/components/ui/slider'
 import { Loader2, Video, Music, Volume2, Type, Play, Square } from 'lucide-react'
 import {
   TRANSITION_OPTIONS,
@@ -22,14 +21,7 @@ import {
   LAYOUT_IMAGE_COUNTS,
   type SlideLayout,
 } from '@/config/slideLayouts'
-import {
-  INTRO_NONE_VALUE,
-  INTRO_NONE_OPTION,
-  INTRO_STING_LABEL,
-  INTRO_BED_LABEL,
-  INTRO_STING_HINT,
-  INTRO_BED_HINT,
-} from '@/config/hookAudio'
+import { Step3AudioSection } from './Step3AudioSection'
 
 export function Step3RenderSection({
   articleImages,
@@ -373,111 +365,25 @@ export function Step3RenderSection({
           </p>
         </div>
 
-        {/* Hook Intro Audio */}
-        <div className="p-3 bg-muted/30 rounded-lg space-y-3">
-          <div className="flex items-center gap-1.5">
-            <Music className="w-3.5 h-3.5 text-primary" />
-            <Label className="text-xs sm:text-sm font-medium">Hook Intro Audio</Label>
-          </div>
-
-          {/* Sting */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs">{INTRO_STING_LABEL}</Label>
-              <span className="text-[10px] text-muted-foreground tabular-nums">
-                {Math.round(introStingVolume * 100)}%
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Select value={introStingFilename} onValueChange={handleStingChange}>
-                <SelectTrigger className="text-sm flex-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={INTRO_NONE_VALUE}>{INTRO_NONE_OPTION.label}</SelectItem>
-                  {stingTracks.map(track => (
-                    <SelectItem key={track.filename} value={track.filename}>
-                      {track.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                type="button"
-                size="icon"
-                variant={playingStingPreview ? 'default' : 'outline'}
-                className="h-9 w-9 shrink-0"
-                disabled={introStingFilename === INTRO_NONE_VALUE || stingTracks.length === 0}
-                onClick={toggleStingPreview}
-                title={playingStingPreview ? 'Stoppen' : 'Vorschau abspielen'}
-              >
-                {playingStingPreview
-                  ? <Square className="w-3.5 h-3.5 fill-current" />
-                  : <Play className="w-3.5 h-3.5 fill-current" />
-                }
-              </Button>
-            </div>
-            <Slider
-              value={[introStingVolume]}
-              onValueChange={([v]) => setIntroStingVolume(v)}
-              min={0}
-              max={1}
-              step={0.05}
-            />
-            <p className="text-[10px] text-muted-foreground leading-relaxed">
-              {INTRO_STING_HINT}
-            </p>
-          </div>
-
-          {/* Bed */}
-          <div className="space-y-1.5 pt-2 border-t border-border/50">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs">{INTRO_BED_LABEL}</Label>
-              <span className="text-[10px] text-muted-foreground tabular-nums">
-                {Math.round(introBedVolume * 100)}%
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Select value={introBedFilename} onValueChange={handleBedChange}>
-                <SelectTrigger className="text-sm flex-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={INTRO_NONE_VALUE}>{INTRO_NONE_OPTION.label}</SelectItem>
-                  {bedTracks.map(track => (
-                    <SelectItem key={track.filename} value={track.filename}>
-                      {track.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                type="button"
-                size="icon"
-                variant={playingBedPreview ? 'default' : 'outline'}
-                className="h-9 w-9 shrink-0"
-                disabled={introBedFilename === INTRO_NONE_VALUE || bedTracks.length === 0}
-                onClick={toggleBedPreview}
-                title={playingBedPreview ? 'Stoppen' : 'Vorschau abspielen'}
-              >
-                {playingBedPreview
-                  ? <Square className="w-3.5 h-3.5 fill-current" />
-                  : <Play className="w-3.5 h-3.5 fill-current" />
-                }
-              </Button>
-            </div>
-            <Slider
-              value={[introBedVolume]}
-              onValueChange={([v]) => setIntroBedVolume(v)}
-              min={0}
-              max={1}
-              step={0.05}
-            />
-            <p className="text-[10px] text-muted-foreground leading-relaxed">
-              {INTRO_BED_HINT}
-            </p>
-          </div>
-        </div>
+        {/* Hook Intro Audio: siehe ./Step3AudioSection */}
+        <Step3AudioSection
+          introStingFilename={introStingFilename}
+          setIntroStingFilename={setIntroStingFilename}
+          introBedFilename={introBedFilename}
+          setIntroBedFilename={setIntroBedFilename}
+          introStingVolume={introStingVolume}
+          setIntroStingVolume={setIntroStingVolume}
+          introBedVolume={introBedVolume}
+          setIntroBedVolume={setIntroBedVolume}
+          stingTracks={stingTracks}
+          bedTracks={bedTracks}
+          playingStingPreview={playingStingPreview}
+          playingBedPreview={playingBedPreview}
+          handleStingChange={handleStingChange}
+          handleBedChange={handleBedChange}
+          toggleStingPreview={toggleStingPreview}
+          toggleBedPreview={toggleBedPreview}
+        />
 
         {/* Sticker-Pops */}
         <div className="p-2 bg-muted/20 rounded-lg space-y-1.5">
