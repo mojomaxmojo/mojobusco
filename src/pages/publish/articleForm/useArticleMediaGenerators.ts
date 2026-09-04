@@ -14,6 +14,7 @@
 import { useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { getApiBaseUrl } from "@/lib/apiBase";
+import { getErrorMessage } from "@/lib/utils";
 import type { useToast } from "@/hooks/useToast";
 import type { useUploadFile } from "@/hooks/useUploadFile";
 import { extractImageUrlsFromMarkdown } from "./articleFormUtils";
@@ -181,14 +182,14 @@ export function useArticleMediaGenerators({
               description: `Permanent verfügbar · ${videoDuration}s · 720p`
             });
 
-          } catch (uploadErr: any) {
+          } catch (uploadErr) {
             // Blossom-Upload fehlgeschlagen → xAI URL verwenden (temporär)
-            console.warn('[Video] Blossom-Upload fehlgeschlagen, verwende xAI URL:', uploadErr.message);
+            console.warn('[Video] Blossom-Upload fehlgeschlagen, verwende xAI URL:', getErrorMessage(uploadErr));
             setGeneratedVideoUrl(xaiUrl);
             setVideoProgress('completed');
             toast({
               title: '⚠️ Video fertig (temporäre URL)',
-              description: `Blossom-Upload fehlgeschlagen: ${uploadErr.message}. URL läuft ab!`,
+              description: `Blossom-Upload fehlgeschlagen: ${getErrorMessage(uploadErr)}. URL läuft ab!`,
               variant: 'destructive'
             });
           }
@@ -203,11 +204,11 @@ export function useArticleMediaGenerators({
 
       await poll();
 
-    } catch (err: any) {
+    } catch (err) {
       setVideoProgress('failed');
       toast({
         title: 'Video-Fehler',
-        description: err?.message || 'Unbekannter Fehler beim Video generieren.',
+        description: getErrorMessage(err) || 'Unbekannter Fehler beim Video generieren.',
         variant: 'destructive'
       });
     } finally {
@@ -304,9 +305,9 @@ export function useArticleMediaGenerators({
       };
       await poll();
 
-    } catch (err: any) {
+    } catch (err) {
       setSlideshowStatus('failed');
-      toast({ title: 'Slideshow Fehler', description: err.message, variant: 'destructive' });
+      toast({ title: 'Slideshow Fehler', description: getErrorMessage(err), variant: 'destructive' });
     } finally {
       setIsGeneratingSlideshow(false);
     }

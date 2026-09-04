@@ -12,6 +12,7 @@ import { getCountryTag } from "@/components/CountrySelector";
 import { buildSmartSlug } from "@/config/assistant";
 import { createLongformTeaser } from "@/lib/createLongformTeaser";
 import { getTagValue } from "@/lib/nostrEventUtils";
+import { getErrorMessage } from "@/lib/utils";
 import type { GpsData, GpsStatus } from "@/lib/gpsExtraction";
 import type { NostrEvent } from "@nostrify/nostrify";
 import { placeUrl, canonicalUrl, canonicalNaddr } from "@/lib/canonicalUrl";
@@ -349,7 +350,7 @@ export function usePlacePublish({
               title: '✅ Teaser veröffentlicht!',
               description: 'Der Ort erscheint im Nostr-Feed.',
             });
-          } catch (teaserErr: any) {
+          } catch (teaserErr) {
             console.warn('[Place] Teaser-Post fehlgeschlagen:', teaserErr);
             toast({
               title: '⚠️ Ort gespeichert',
@@ -382,10 +383,10 @@ export function usePlacePublish({
         setTimeout(() => {
           navigate('/plaetze');
         }, 1000);
-      } catch (err: any) {
+      } catch (err) {
         toast({
           title: 'Fehler',
-          description: err.message || 'Ort konnte nicht gespeichert werden.',
+          description: getErrorMessage(err) || 'Ort konnte nicht gespeichert werden.',
           variant: 'destructive',
         });
       }

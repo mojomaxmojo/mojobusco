@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { canonicalUrl, imageUrl } from "@/lib/canonicalUrl";
 import { nip19 } from "nostr-tools";
 import { notifyPublishedPipeline } from "@/lib/publishNotify";
+import { getErrorMessage } from "@/lib/utils";
 import { useToast } from "@/hooks/useToast";
 import { useUploadFile } from "@/hooks/useUploadFile";
 import { useNostrPublish } from "@/hooks/useNostrPublish";
@@ -234,15 +235,16 @@ export function useMediaPublish({ files, title, description, customTags,
             url: canonicalUrl(imageUrl(nip19.noteEncode(publishedEvent.id))),
           });
         }
-      } catch (publishError: any) {
+      } catch (publishError) {
+        const errDetails = publishError instanceof Error ? publishError : undefined;
         console.error('[MediaUpload] Publish failed:', publishError);
         console.error('[MediaUpload] Error details:', {
-          name: publishError?.name,
-          message: publishError?.message,
-          stack: publishError?.stack,
-          cause: publishError?.cause
+          name: errDetails?.name,
+          message: errDetails?.message,
+          stack: errDetails?.stack,
+          cause: errDetails?.cause
         });
-        throw new Error(`Publishing failed: ${publishError?.message || 'Unknown error'}`);
+        throw new Error(`Publishing failed: ${getErrorMessage(publishError) || 'Unknown error'}`);
       }
 
       // SUCCESS!

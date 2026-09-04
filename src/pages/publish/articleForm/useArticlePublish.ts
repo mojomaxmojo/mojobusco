@@ -405,7 +405,7 @@ export function useArticlePublish({
           title: '✅ Teaser-Note veröffentlicht!',
           description: 'Erscheint im Nostr-Feed bei Primal, Amethyst & Damus',
         });
-      } catch (teaserErr: any) {
+      } catch (teaserErr) {
         console.warn('[Article] Teaser-Post fehlgeschlagen:', teaserErr);
         toast({
           title: '⚠️ Bericht gespeichert',

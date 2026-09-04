@@ -726,7 +726,7 @@ Schreibe deinen Artikel hier...
           {/* Lifestyle Auswahl */}
           <div className="space-y-2">
             <Label>Lifestyle</Label>
-            <Select value={lifestyle} onValueChange={(value: any) => setLifestyle(value)}>
+            <Select value={lifestyle} onValueChange={(value: string) => setLifestyle(value as typeof lifestyle)}>
               <SelectTrigger>
                 <SelectValue placeholder="Wähle deinen Lifestyle" />
               </SelectTrigger>

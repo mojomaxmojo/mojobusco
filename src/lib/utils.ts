@@ -6,6 +6,15 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
+ * Extrahiert eine Fehlermeldung aus einem unbekannten Catch-Wert.
+ * Semantisch identisch zum bisherigen `err?.message` (undefined → ''),
+ * damit bestehende `|| 'Fallback'`-Ketten unverändert funktionieren.
+ */
+export function getErrorMessage(e: unknown): string {
+  return e instanceof Error ? e.message : '';
+}
+
+/**
  * Konvertiert alle URLs im Text in klickbare Links
  * Unterstützt HTTP, HTTPS, FTP, E-Mail-Adressen, Nostr-Bech32-Adressen und Video-Links
  */

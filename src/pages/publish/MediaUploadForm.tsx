@@ -680,7 +680,7 @@ export function MediaUploadForm({ editEvent }: { editEvent?: NostrEvent }) {
               {/* Lifestyle Selection */}
                <div className="mt-4 space-y-3">
                  <Label className="text-sm font-medium">Lifestyle auswählen:</Label>
-                 <Select value={lifestyle} onValueChange={(value: any) => setLifestyle(value)}>
+                  <Select value={lifestyle} onValueChange={(value: string) => setLifestyle(value as typeof lifestyle)}>
                    <SelectTrigger>
                      <SelectValue placeholder="Wähle deinen Lifestyle" />
                    </SelectTrigger>
