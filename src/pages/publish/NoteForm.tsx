@@ -42,9 +42,8 @@ import { SlideshowBlock } from "@/components/SlideshowBlock";
 import { Progress } from "@/components/ui/progress";
 import { Upload, UploadCloud, ImageIcon, Video, Music, File as FileIcon, Camera, MapPin, Calendar, Tag, Battery, Sun, Wrench, Hammer, Cpu, Mountain, Lightbulb, Dog, Trees, Droplets, Waves, Eye, Loader2, CheckCircle, Route, Sparkles, FileText, MessageSquare, Map } from "@/lib/icons";
 import { extractGpsFromImage, formatCoordinatesSimple, reverseGeocode, mapCountryCode, type GpsData, type GpsStatus, type LocationData } from "@/lib/gpsExtraction";
-import { createCorrectedPreview } from "./publishUtils";
 import type { NostrEvent } from "@nostrify/nostrify";
-import exifr from "exifr";
+import { createImagePreview } from './noteForm/noteImagePreview';
 import { NOTE_COUNTRY_TAGS } from './noteForm/noteFormConstants';
 
 export function NoteForm({ editEvent }: { editEvent?: any }) {
@@ -220,34 +219,9 @@ export function NoteForm({ editEvent }: { editEvent?: any }) {
     // Process each image file for EXIF correction
     for (const file of imageFiles) {
       let correctedPreviewUrl: string | undefined;
-      let exifWidth: number | undefined;
-      let exifHeight: number | undefined;
-      let exifOrientation: number | undefined;
 
       try {
-        // EXIF-Daten lesen (wie in TripPublishForm.tsx)
-        // Orientation separat lesen (funktioniert auch wenn parse fehlschlägt)
-        try {
-          exifOrientation = await exifr.orientation(file);
-          console.log(`[Note EXIF] ${file.name}: Orientation (via exifr.orientation) = ${exifOrientation || 'not found'}`);
-        } catch (orientErr) {
-          console.warn(`[Note EXIF] ${file.name}: Could not read orientation:`, orientErr);
-        }
-
-        // Bildabmessungen lesen
-        try {
-          const dimExif = await exifr.parse(file, { exif: true, pickTags: ['ImageWidth', 'ImageHeight', 'ExifImageWidth', 'ExifImageHeight'] });
-          exifWidth = dimExif?.ImageWidth || dimExif?.ExifImageWidth;
-          exifHeight = dimExif?.ImageHeight || dimExif?.ExifImageHeight;
-          if (exifWidth && exifHeight) {
-            console.log(`[Note EXIF] ${file.name}: EXIF dimensions ${exifWidth}x${exifHeight}`);
-          }
-        } catch (dimErr) {
-          console.warn(`[Note EXIF] ${file.name}: Could not read dimensions:`, dimErr);
-        }
-
-        // Korrigierte Preview erstellen (immer, wie in TripPublishForm.tsx)
-        correctedPreviewUrl = await createCorrectedPreview(file, exifWidth, exifHeight, exifOrientation);
+        correctedPreviewUrl = await createImagePreview(file);
       } catch (exifError) {
         console.warn(`[Note EXIF] Failed to read EXIF from ${file.name}:`, exifError);
         // Fallback: Original file als Preview
