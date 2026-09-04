@@ -40,13 +40,14 @@ import { RemotionVideoBlock } from "@/components/RemotionVideoBlock";
 import { SlideshowBlock } from "@/components/SlideshowBlock";
 import { Progress } from "@/components/ui/progress";
 import { Upload, UploadCloud, ImageIcon, Video, Music, File as FileIcon, Camera, Calendar, Tag, Battery, Sun, Wrench, Hammer, Cpu, Mountain, Lightbulb, Dog, Trees, Droplets, Waves, Eye, Loader2, CheckCircle, Route, Sparkles, FileText, MessageSquare, Map } from "@/lib/icons";
-import { reverseGeocode, mapCountryCode, type GpsData, type GpsStatus, type LocationData } from "@/lib/gpsExtraction";
+import { type GpsData, type GpsStatus, type LocationData } from "@/lib/gpsExtraction";
 import { getCurrentPosition, positionToGpsData, isCapacitorNative } from "@/lib/capacitorGps";
 import { resolveBildPlaceholders } from "./publishUtils";
 import { extractPlaceImageUrls } from "./placeForm/placeFormUtils";
 import { usePlaceFormHandlers } from "./placeForm/usePlaceFormHandlers";
 import { PlaceTitleImageSection } from "./placeForm/PlaceTitleImageSection";
 import { usePlaceImageUpload } from "./placeForm/usePlaceImageUpload";
+import { usePlaceGpsAutoFill } from "./placeForm/usePlaceGpsAutoFill";
 import { categories, facilityOptions, bestForOptions } from "./placeForm/placeFormConfig";
 
 export function PlaceForm({ editEvent }: { editEvent?: any }) {
@@ -351,38 +352,7 @@ export function PlaceForm({ editEvent }: { editEvent?: any }) {
     }
    }, [editEvent]);
 
-    // Auto-fill location and country from GPS data
-   useEffect(() => {
-     const autoFillLocation = async () => {
-       if (imageGps) {
-         console.log('[Place GPS] GPS detected, reverse geocoding...');
-         const locationData = await reverseGeocode(imageGps.latitude, imageGps.longitude);
-         if (locationData) {
-           // Set location to city + neighbourhood/suburb (no postcode)
-           const locationParts = [
-             locationData.city,
-             locationData.neighbourhood,
-             locationData.suburb
-           ].filter(Boolean);
-           const loc = locationParts.join(', ');
-           setLocation(loc);
-           console.log('[Place GPS] Location found:', loc);
-
-           // Also set coordinates
-           setCoordinates({ lat: imageGps.latitude.toString(), lng: imageGps.longitude.toString() });
-
-           // Auto-fill country if detected
-           const country = mapCountryCode(locationData);
-           if (country && !selectedCountry) {
-             setSelectedCountry(country);
-             console.log('[Place GPS] Country auto-filled:', country);
-           }
-         }
-       }
-     };
-
-      autoFillLocation();
-    }, [imageGps]);
+  usePlaceGpsAutoFill({ imageGps, selectedCountry, setLocation, setCoordinates, setSelectedCountry });
 
   const { handleImageFile, handleAdditionalImagesUpload } = usePlaceImageUpload({ toast, uploadFile, setImage, setImageFile, setImageGps, setImageGpsStatus, setIsUploading, setAdditionalImages });
 
