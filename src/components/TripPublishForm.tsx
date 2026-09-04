@@ -62,6 +62,7 @@ import type { TripStation, TripData, WizardStep } from '@/lib/trip/tripTypes';
 import { UploadStep } from './tripPublishForm/UploadStep';
 import { DetailsStep } from './tripPublishForm/DetailsStep';
 import { PreviewStep } from './tripPublishForm/PreviewStep';
+import { useTripGpsFill } from './tripPublishForm/useTripGpsFill';
 
 export function TripPublishForm() {
   // URL params for edit mode
@@ -537,84 +538,21 @@ export function TripPublishForm() {
     setDraggedId(null);
   };
 
-  // GPS editing
-  const saveGps = async (stationId: string, gps: GpsData) => {
-    // Update station
-    setStations(prev => prev.map(s => 
-      s.id === stationId 
-        ? { ...s, gps, gpsStatus: 'manual' as GpsStatus }
-        : s
-    ));
-    
-    // Reverse geocode for location
-    try {
-      const locationData = await reverseGeocode(gps.latitude, gps.longitude);
-      if (locationData) {
-        // Use specificLocation (first 3 parts of address) for more precision
-        const loc = locationData.specificLocation || 
-                    locationData.display_name?.split(',').slice(0, 3).join(', ') ||
-                    [locationData.city, locationData.suburb].filter(Boolean).join(', ');
-        
-        setStations(prev => prev.map(s => 
-          s.id === stationId 
-            ? { ...s, location: loc, title: s.title || loc }
-            : s
-        ));
-        
-        // Also update country if not set
-        const country = mapCountryCode(locationData);
-        if (country && !tripData.country) {
-          setTripData(prev => ({ ...prev, country }));
-        }
-      }
-    } catch (error) {
-      console.error('[Trip GPS] Reverse geocoding failed:', error);
-    }
-    
-    setEditingStation(null);
-    setShowMapPicker(false);
-  };
-
-  const removeGps = (stationId: string) => {
-    setStations(prev => prev.map(s => {
-      if (s.id === stationId) {
-        const updated = { ...s };
-        delete updated.gps;
-        updated.gpsStatus = 'not_found';
-        delete updated.location;
-        return updated;
-      }
-      return s;
-    }));
-    setEditingStation(null);
-    setShowMapPicker(false);
-  };
-
-  // Update station fields
-  const updateStation = (id: string, field: keyof TripStation, value: string) => {
-    setStations(prev => prev.map(s => 
-      s.id === id ? { ...s, [field]: value } : s
-    ));
-  };
-
-  // Calculate map markers
-  const mapMarkers: MapMarker[] = useMemo(() => {
-    return stations
-      .filter(s => s.gps)
-      .map((s, index) => ({
-        id: s.id,
-        lat: s.gps!.latitude,
-        lng: s.gps!.longitude,
-        title: s.title || s.location || `Station ${index + 1}`,
-        description: s.location,
-        isCurrent: false,
-      }));
-  }, [stations]);
-
-  // Count stations with GPS
-  const stationsWithGps = useMemo(() => 
-    stations.filter(s => s.gps).length,
-  [stations]);
+  // GPS-Logik + Auto-Fill + Marker: siehe ./tripPublishForm/useTripGpsFill
+  const {
+    saveGps,
+    removeGps,
+    updateStation,
+    mapMarkers,
+    stationsWithGps,
+  } = useTripGpsFill({
+    stations,
+    setStations,
+    tripData,
+    setTripData,
+    setEditingStation,
+    setShowMapPicker,
+  });
 
   // Validate for each step
   const canProceedToDetails = stations.length >= 2;
