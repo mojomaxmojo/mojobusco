@@ -48,6 +48,7 @@ import { PIN_TEMPLATES, renderPinTemplate, type PinTemplateType } from '@/compon
 import { ContentSelector, type ContentItem } from '@/components/pin/ContentSelector'
 import { extractImagesFromEvent, extractTitle, extractSummary } from '@/lib/nostrEventUtils'
 import { PinboardSuggestions } from './promotionDashboard/PinboardSuggestions'
+import { loadPinsFromLocal, savePinsToLocal, safeResJson } from './promotionDashboard/pinStorage'
 
 // ═══════════════════════════════════════════════════════════
 // Image extraction helper (same as ContentSelector)
@@ -144,32 +145,7 @@ export function PromotionDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // ── LOKALE PIN-VERWALTUNG (localStorage-Fallback) ═══════
-  const LOCAL_PINS_KEY = 'promotion_saved_pins'
-
-  const loadPinsFromLocal = (): SavedPin[] => {
-    try {
-      const raw = localStorage.getItem(LOCAL_PINS_KEY)
-      if (!raw) return []
-      return JSON.parse(raw) as SavedPin[]
-    } catch { return [] }
-  }
-
-  const savePinsToLocal = (pins: SavedPin[]) => {
-    try {
-      localStorage.setItem(LOCAL_PINS_KEY, JSON.stringify(pins))
-    } catch { /* storage full? */ }
-  }
-
-  // Sicherer JSON-Parse: gibt null zurück wenn Antwort kein JSON ist
-  const safeResJson = async (res: Response): Promise<any | null> => {
-    const text = await res.text()
-    try {
-      return JSON.parse(text)
-    } catch {
-      return null
-    }
-  }
+  // ── LOKALE PIN-VERWALTUNG (localStorage-Fallback): siehe ./promotionDashboard/pinStorage
 
   const loadSavedPins = async () => {
     try {
