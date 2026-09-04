@@ -55,6 +55,7 @@ import { PreviewStep } from './tripPublishForm/PreviewStep';
 import { useTripGpsFill } from './tripPublishForm/useTripGpsFill';
 import { useTripUpload } from './tripPublishForm/useTripUpload';
 import { useTripGeneration } from './tripPublishForm/useTripGeneration';
+import { useTripPublish } from './tripPublishForm/useTripPublish';
 
 export function TripPublishForm() {
   // URL params for edit mode

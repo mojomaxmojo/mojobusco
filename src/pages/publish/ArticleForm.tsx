@@ -32,6 +32,16 @@ import { Progress } from "@/components/ui/progress";
 import { Upload, UploadCloud, Video, Music, File as FileIcon, Camera, Calendar, Tag, Battery, Sun, Wrench, Hammer, Cpu, Mountain, Lightbulb, Dog, Trees, Droplets, Waves, Eye, Loader2, CheckCircle, Route, Sparkles, FileText, MessageSquare, Map, Info } from "@/lib/icons";
 import { getTagValue, getTagValues, getEventGpsTags } from "@/lib/nostrEventUtils";
 import type { NostrEvent } from '@nostrify/nostrify';
+import { useArticleTagCategories } from "./articleForm/useArticleTagCategories";
+import { useArticleImageGps } from "./articleForm/useArticleImageGps";
+import { useArticleAutosave } from "./articleForm/useArticleAutosave";
+import { useArticleMediaGenerators } from "./articleForm/useArticleMediaGenerators";
+import { useArticlePublish } from "./articleForm/useArticlePublish";
+import { ArticleImageGpsSection } from "./articleForm/ArticleImageGpsSection";
+import { COUNTRY_TAG_LIST } from "./articleForm/articleFormConfig";
+import { extractImageUrlsFromMarkdown } from "./articleForm/articleFormUtils";
+import { buildAuthorInput } from "@/config/assistant";
+import type { AssistantIdea } from "@/components/assistant/IdeasPanel";
 
 export function ArticleForm({ editEvent }: { editEvent?: NostrEvent }) {
   const [title, setTitle] = useState('');
