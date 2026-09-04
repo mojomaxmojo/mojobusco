@@ -52,6 +52,7 @@ export function usePinRender({
   const [pinImageUrl, setPinImageUrl] = useState<string>('')
   const [isRendering, setIsRendering] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [uploadedPinUrl, setUploadedPinUrl] = useState<string>('')
 
   // ── PIN RENDERN (Canvas) ══════════════════════════════
 

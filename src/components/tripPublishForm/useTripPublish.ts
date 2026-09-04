@@ -62,6 +62,8 @@ export function useTripPublish({
     return stored === null ? true : stored !== 'false';
   });
 
+  const [isPublishing, setIsPublishing] = useState(false);
+
   const handlePublish = async () => {
     // First upload all images and get updated stations
     const uploadedStations = await uploadImages();
