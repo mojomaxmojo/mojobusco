@@ -24,7 +24,7 @@ import { useUploadFile } from '@/hooks/useUploadFile'
 import { useNostrPublish } from '@/hooks/useNostrPublish'
 import { useNostrDelete } from '@/hooks/useNostrDelete'
 import { useNostr } from '@/hooks/useNostr'
-import { buildRouteFromContent, type RouteResult } from '@/lib/routeFromGps'
+import { buildRouteFromContent } from '@/lib/routeFromGps'
 import { canonicalUrl } from '@/lib/canonicalUrl'
 import { createLongformTeaser } from '@/lib/createLongformTeaser'
 
@@ -107,6 +107,7 @@ import {
 import { SortableThumb } from './videoPromotion/SortableThumb'
 import { useLongformChapters } from './videoPromotion/useLongformChapters'
 import { useVideoMusicAudio } from './videoPromotion/useVideoMusicAudio'
+import { useVideoContentSelection } from './videoPromotion/useVideoContentSelection'
 
 // ═══════════════════════════════════════════════════════════
 // Drag&Drop – @dnd-kit für Medien-Sortierung
@@ -156,20 +157,31 @@ export function VideoPromotion() {
   const [generating, setGenerating] = useState(false)
   const [rendering, setRendering] = useState(false)
 
-  // ── CONTENT ══════════════════════════════════════════════
-  const [selectedContent, setSelectedContent] = useState<ContentItem[]>([])
-  const [articleTitle, setArticleTitle] = useState('')
-  const [articleSummary, setArticleSummary] = useState('')
-  const [hasVideo, setHasVideo] = useState(false)
-
   // ── TEMPLATE ═════════════════════════════════════════════
   const [template, setTemplate] = useState<TikTokTemplate>('story')
 
+  // ── CONTENT + BILD-SORTIERUNG + GPS-ROUTE + LOCATION: siehe ./videoPromotion/useVideoContentSelection
+  const {
+    selectedContent,
+    articleTitle,
+    articleSummary,
+    hasVideo,
+    location,
+    country,
+    gpsRoute,
+    gpsRouteLoading,
+    articleImages,
+    handleDragEnd,
+    removeImage,
+    selectContent,
+  } = useVideoContentSelection({
+    template,
+    setTemplate,
+    toast,
+  })
+
   // ── KI-MODELL ═════════════════════════════════════════════
   const [aiModel, setAiModel] = useState<TextModelTier>('medium')
-
-  // ── DRAG&DROP SORTIERUNG ═════════════════════════════════
-  const [sortedImages, setSortedImages] = useState<string[]>([])
 
   // ── VIDEO-CLIP-LÄNGE (Sekunden-Override pro Clip, leer = volle Länge) ────
   const [videoSecondsMap, setVideoSecondsMap] = useState<Record<string, string>>({})
@@ -177,47 +189,10 @@ export function VideoPromotion() {
   // ── ORIGINAL-TON (Schritt 2) ──────────────────────────────────
   const [keepOriginalAudio, setKeepOriginalAudio] = useState(DEFAULT_KEEP_ORIGINAL_AUDIO)
 
-  // Sync sortedImages mit selectedContent
-  useEffect(() => {
-    const allImages: string[] = []
-    for (const item of selectedContent) {
-      for (const img of item.images) {
-        if (!allImages.includes(img) && allImages.length < 20) {
-          allImages.push(img)
-        }
-      }
-    }
-    // Vorhandene Sortierung erhalten, neue Bilder anhängen
-    setSortedImages(prev => {
-      const existing = prev.filter(url => allImages.includes(url))
-      const newOnes = allImages.filter(url => !prev.includes(url))
-      const merged = [...existing, ...newOnes]
-      return merged.length > 20 ? merged.slice(0, 20) : merged
-    })
-  }, [selectedContent])
-
   const dndSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event
-    if (!over || active.id === over.id) return
-    setSortedImages(prev => {
-      const oldIdx = prev.indexOf(String(active.id))
-      const newIdx = prev.indexOf(String(over.id))
-      if (oldIdx === -1 || newIdx === -1) return prev
-      return arrayMove(prev, oldIdx, newIdx)
-    })
-  }
-
-  const removeImage = (url: string) => {
-    setSortedImages(prev => prev.filter(u => u !== url))
-  }
-
-  // articleImages wird aus sortedImages abgeleitet (für backward compat)
-  const articleImages = sortedImages
 
   // ── TIKTOK TEXT ══════════════════════════════════════════
   const [hookText, setHookText] = useState('')
@@ -345,13 +320,7 @@ export function VideoPromotion() {
     hookSecondsForFormat,
     articleImageCount: articleImages.length,
   })
-  // Echte Route aus GPS-Tags der Events (null = keine GPS-Daten → Demo-Fallback)
-  const [gpsRoute, setGpsRoute] = useState<RouteResult | null>(null)
-  const [gpsRouteLoading, setGpsRouteLoading] = useState(false)
-
-  // ── LOCATION (aus Content extrahiert) ════════════════════
-  const [location, setLocation] = useState('')
-  const [country, setCountry] = useState('')
+  // gpsRoute/gpsRouteLoading/location/country: siehe ./videoPromotion/useVideoContentSelection
 
   // ── RENDER ═══════════════════════════════════════════════
   const [renderStatus, setRenderStatus] = useState<RenderStatus | null>(null)
@@ -392,61 +361,6 @@ export function VideoPromotion() {
   }, [])
 
   // Musik-Tracks laden: siehe ./videoPromotion/useVideoMusicAudio
-
-  // ── CONTENT AUSWÄHLEN ═══════════════════════════════════
-
-  const selectContent = (items: ContentItem[]) => {
-    setSelectedContent(items)
-
-    // sortedImages wird via useEffect automatisch synchronisiert
-
-    // Bildanzahl für Toast (ohne sortedImages zu überschreiben)
-    const mediaCount = items.reduce((count, item) => count + item.images.length, 0)
-
-    // Titel + Summary aus allen Items kombinieren
-    const titles = items.map(i => i.title).filter(Boolean)
-    setArticleTitle(titles.join(' · ') || 'MojoBus Video')
-    setArticleSummary(items.map(i => i.summary).filter(Boolean).join(' | '))
-
-    // Location & Country aus erstem Item
-    const firstEvent = items[0]?.event
-    const countryTag = firstEvent?.tags?.find((t: any[]) => t[0] === 'country' || t[0] === 'l')?.[1]
-    const locationTag = firstEvent?.tags?.find((t: any[]) => t[0] === 'location')?.[1]
-    setCountry(countryTag || '')
-    setLocation(locationTag || countryTag || '')
-
-    // Prüfe auf Video-URLs in allen Items
-    const hasVideoUrl = items.some(item =>
-      item.images.some(url => /\.(mp4|webm|mov|avi|mkv)(\?|$)/i.test(url))
-    )
-    setHasVideo(hasVideoUrl)
-
-    // Bei Video-Template: automatisch auf movie stellen
-    if (hasVideoUrl && template !== 'movie') {
-      setTemplate('movie')
-    }
-
-    const labels = items.map(i => i.type === 'article' ? 'Artikel' : 'Post').join(', ')
-    toast({
-      title: `${items.length} ${items.length === 1 ? 'Inhalt' : 'Inhalte'} ausgewählt`,
-      description: `${mediaCount} Medien aus ${items.length} ${labels}`,
-    })
-
-    // ── Echte Route aus GPS-Tags der Events berechnen (async, non-blocking) ──
-    // Schnell-Pass ohne Reverse-Geocoding-Labels → schnelleres UI-Feedback,
-    // ABER mit Text-Standort-Fallback (Forward-Geocoding), damit Events ohne
-    // EXIF-GPS (nur Text-Standort wie "Lissabon") nicht in den Demo-Fallback
-    // fallen, obwohl beim finalen Rendern eine echte Route gefunden wird.
-    setGpsRoute(null)
-    setGpsRouteLoading(true)
-    buildRouteFromContent(items, false, true)
-      .then(route => {
-        setGpsRoute(route)
-        console.log(`[RouteMap] GPS-Route: ${route.source === 'gps' ? `${route.points.length} Stationen aus ${route.rawPointCount} GPS-Punkten` : 'keine GPS-Daten → Demo-Fallback'}`)
-      })
-      .catch(() => setGpsRoute(null))
-      .finally(() => setGpsRouteLoading(false))
-  }
 
   // ── KI-GENERIERUNG ═══════════════════════════════════════
 
