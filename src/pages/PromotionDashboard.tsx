@@ -81,7 +81,7 @@ export function PromotionDashboard() {
   // ── STATE ══════════════════════════════════════════════
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
-  const [generating, setGenerating] = useState(false)
+  // generating: siehe ./promotionDashboard/usePinGeneration
   const [uploading, setUploading] = useState(false)
   const [uploadedPinUrl, setUploadedPinUrl] = useState<string>('')
 
@@ -111,6 +111,39 @@ export function PromotionDashboard() {
   const [isRendering, setIsRendering] = useState(false)
 
   // Saved Pins: siehe ./promotionDashboard/usePromotionPins
+
+  // KI-Pin-Text-Generierung: siehe ./promotionDashboard/usePinGeneration
+  const {
+    generating,
+    generatePinText,
+  } = usePinGeneration({
+    articleTitle,
+    articleSummary,
+    articleText,
+    selectedContent,
+    imageUrls,
+    selectedImageIdx,
+    selectedTemplate,
+    kiModel,
+    lifestyle,
+    setPinData,
+    setEditTitle,
+    setEditDesc,
+    setEditHashtags,
+    setEditAltText,
+    setEditTextInput,
+    setEditSubInput,
+    setEditListItems,
+    setEditSteps,
+    setEditQuote,
+    setEditTip,
+    setEditBefore,
+    setEditAfter,
+    setEditWaypoints,
+    setEditInfographicData,
+    setStep,
+    toast,
+  })
 
   // Edit State
   const [editTitle, setEditTitle] = useState('')
@@ -204,99 +237,7 @@ export function PromotionDashboard() {
     if (selectedImageIdx >= imageUrls.length - 1) setSelectedImageIdx(Math.max(0, imageUrls.length - 2))
   }
 
-  // ── PIN-TEXT GENERIEREN ═══════════════════════════════
-
-  const generatePinText = async () => {
-    if (!articleTitle.trim()) {
-      toast({ title: 'Titel erforderlich', description: 'Bitte gib einen Artikel-Titel ein.', variant: 'destructive' })
-      return
-    }
-    if (imageUrls.length === 0) {
-      toast({ title: 'Bild erforderlich', description: 'Bitte füge mindestens ein Bild hinzu.', variant: 'destructive' })
-      return
-    }
-
-    setGenerating(true)
-    try {
-      // Aktuell gewähltes Bild mitschicken für Vision-Analyse
-      const currentImageUrl = imageUrls[selectedImageIdx] || ''
-
-      // createdAt + country aus dem Nostr-Event für storyTag-Berechnung
-      const eventCreatedAt = selectedContent?.event?.created_at ?? null
-      const eventCountry = selectedContent?.event?.tags
-        ?.find((t: any[]) => t[0] === 'country' || t[0] === 'location' || t[0] === 'l')?.[1]
-        || selectedContent?.tags?.find((t: string) =>
-            ['portugal', 'spanien', 'frankreich', 'marokko', 'deutschland', 'österreich', 'schweiz', 'italien', 'kroatien', 'slowenien', 'ungarn', 'rumänien', 'bulgarien', 'griechenland', 'türkei', 'england', 'niederlande', 'belgien', 'dänemark', 'norwegen', 'schweden', 'finnland', 'estland', 'lettland', 'litauen', 'albanien', 'serbien', 'bosnien', 'nordmazedonien', 'montenegro', 'kosovo'].includes(t.toLowerCase())
-          )
-        || ''
-
-      const res = await fetch(`${getApiBaseUrl()}/api/promotion/generate-pin-text`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: articleTitle,
-          summary: articleSummary,
-          text: articleText,
-          template: selectedTemplate,
-          model: kiModel,
-          lifestyle,
-          imageUrl: currentImageUrl,
-          createdAt: eventCreatedAt,
-          country: eventCountry
-        })
-      })
-
-      const data = await safeResJson(res)
-      if (!data) {
-        toast({ title: 'Server nicht erreichbar', description: 'Der KI-Generierungs-Server ist nicht verfügbar. Bitte starte den Backend-Server.', variant: 'destructive' })
-        return
-      }
-      if (!data.success) {
-        toast({ title: 'Generierung fehlgeschlagen', description: data.error || 'Unbekannter Fehler', variant: 'destructive' })
-        return
-      }
-
-      // Pin Data aus der KI übernehmen
-      setPinData(data.pinData)
-
-      // Edit-Felder befüllen
-      setEditTitle(data.pinData.pinTitle || articleTitle)
-      setEditDesc(data.pinData.pinDescription || articleSummary)
-      setEditHashtags((data.pinData.hashtags || []).join(' '))
-      setEditAltText(data.pinData.altText || articleTitle)
-      setEditTextInput(data.pinData.textOverlay || '')
-      setEditSubInput(data.pinData.subOverlay || '')
-      setEditListItems(data.pinData.listItems || [])
-      // mojobus-story: berechneter storyTag (Ort · Tag XXXX) in editSteps[0]
-      if (selectedTemplate === 'mojobus-story') {
-        // data.storyTag kommt vom Server (serverseitig berechnet: "Ort · Tag XXXX")
-        // data.pinData.storyTag ist identisch (wird im Server gesetzt)
-        setEditSteps([data.storyTag || data.pinData.storyTag || 'mojobus.co'])
-      } else {
-        setEditSteps(data.pinData.steps || [])
-      }
-      setEditQuote(data.pinData.quote || '')
-      setEditTip(data.pinData.tip || '')
-      setEditBefore(data.pinData.beforeText || '')
-      setEditAfter(data.pinData.afterText || '')
-      setEditWaypoints(data.pinData.waypoints || [])
-      setEditInfographicData(data.pinData.infographicData || [])
-
-      toast({
-        title: 'Pin-Text generiert!',
-        description: data.imageAnalyzed
-          ? `${kiModel.toUpperCase()} Modell + Bildanalyse ✓ – altText & textOverlay bildbasiert`
-          : `${kiModel.toUpperCase()} Modell hat den Pin-Text erstellt.`
-      })
-
-      // Automatisch nächster Schritt
-      setStep(4)
-    } catch (e: any) {
-      toast({ title: 'Fehler', description: e.message || 'Netzwerk-Fehler', variant: 'destructive' })
-    } finally {
-      setGenerating(false)
-    }
-  }
+  // ── PIN-TEXT GENERIEREN: siehe ./promotionDashboard/usePinGeneration
 
   // ── PIN RENDERN (Canvas) ══════════════════════════════
 
