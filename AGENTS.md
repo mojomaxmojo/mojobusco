@@ -2,7 +2,7 @@
 
 Verzeichniss /projects/mojobusco/
 
-**MojoBus** ist eine Nostr-basierte Vanlife/Travel-Plattform (React 19, TypeScript, Vite 6, Tailwind 3, shadcn/ui, @nostrify/nostrify). Läuft als PWA + Android APK (Capacitor 8, `co.mojobus.app`). Server: AlmaLinux 9.7 CentminMod, Nginx. Domain: https://mojobus.co
+**MojoBus** ist eine Nostr-basierte Vanlife/Travel-Plattform (React 19, TypeScript, Vite 6, Tailwind 3, shadcn/ui, @nostrify/nostrify). Läuft als PWA + Android APK (Capacitor 8, `co.mojobus.app`). Server: CentminMod mit AlmaLinux 9.7 , Nginx. Domain: https://mojobus.co
 Verzeichniss /projects/mojobusco/
 ---
 

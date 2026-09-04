@@ -19,9 +19,8 @@ import { GpsEditor } from "@/components/GpsEditor";
 import { GpsStatusIndicator } from "@/components/GpsStatusIndicator";
 import { LocationPicker } from "@/components/LocationPicker";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { PerspectiveSelector } from "@/components/PerspectiveSelector";
 import { type GenderType } from "@/config/prompts/lifestyles";
-import { ModelSelect, type TextModelTier } from "@/components/ModelSelect";
+import { type TextModelTier } from "@/components/ModelSelect";
 import { useNostr } from "@nostrify/react";
 import { useQuery } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -29,7 +28,7 @@ import { Switch } from "@/components/ui/switch";
 import { CountrySelector, getCountryTag } from "@/components/CountrySelector";
 import { createRequiredTags } from '@/config/contentCategories';
 import { ARTICLE_CATEGORIES, DIY_CATEGORIES, DIY_TAGS, NATURE_CATEGORIES, NATURE_TAGS, TAG_GROUPS } from "@/config";
-import { TRIP_TYPES, type TripType } from "@/config/tags";
+import type { TripType } from "@/config/tags";
 import MAIN_MENU from "@/config/menu";
 import { RV_LIFE_CONFIG } from "@/config/rvlife";
 import { nip19 } from "nostr-tools";
@@ -40,12 +39,13 @@ import { TripPublishForm } from "@/components/TripPublishForm";
 import { RemotionVideoBlock } from "@/components/RemotionVideoBlock";
 import { SlideshowBlock } from "@/components/SlideshowBlock";
 import { Progress } from "@/components/ui/progress";
-import { Upload, UploadCloud, ImageIcon, Video, Music, File as FileIcon, Camera, MapPin, Calendar, Tag, Battery, Sun, Wrench, Hammer, Cpu, Mountain, Lightbulb, Dog, Trees, Droplets, Waves, Eye, Loader2, CheckCircle, Route, Sparkles, FileText, MessageSquare, Map } from "@/lib/icons";
+import { Upload, UploadCloud, ImageIcon, Video, Music, File as FileIcon, Camera, MapPin, Calendar, Tag, Battery, Sun, Wrench, Hammer, Cpu, Mountain, Lightbulb, Dog, Trees, Droplets, Waves, Eye, Loader2, CheckCircle, Route, FileText, MessageSquare, Map } from "@/lib/icons";
 import { extractGpsFromImage, formatCoordinatesSimple, reverseGeocode, mapCountryCode, type GpsData, type GpsStatus, type LocationData } from "@/lib/gpsExtraction";
 import type { NostrEvent } from "@nostrify/nostrify";
 import { createImagePreview } from './noteForm/noteImagePreview';
 import { NOTE_COUNTRY_TAGS } from './noteForm/noteFormConstants';
 import { NoteTagsSection } from './noteForm/NoteTagsSection';
+import { NoteAiSection } from './noteForm/NoteAiSection';
 
 export function NoteForm({ editEvent }: { editEvent?: any }) {
   const [content, setContent] = useState('');
@@ -592,101 +592,14 @@ export function NoteForm({ editEvent }: { editEvent?: any }) {
           </p>
         </div>
 
-        {/* KI-Notiz generieren (Optional) */}
-        <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
-          <div className="flex items-center gap-2 mb-3">
-            <Sparkles className="h-5 w-5 text-ocean-500" />
-            <h3 className="font-semibold">KI-Notiz generieren (Optional)</h3>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Lifestyle</Label>
-            <Select value={lifestyle} onValueChange={(value: any) => setLifestyle(value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Wähle deinen Lifestyle" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="mojobus">🚌 Mojobus - Max &amp; Susanne, US-Oldtimer</SelectItem>
-                <SelectItem value="vanlife">🚐 Vanlife - Van-Life auf Rädern</SelectItem>
-                <SelectItem value="rvlife">🚗 RVlife - Recreational Vehicle</SelectItem>
-                <SelectItem value="beachlife">🏖️ Beachlife - Strand &amp; Surf Lifestyle</SelectItem>
-                <SelectItem value="wohnmobil">🏠 Wohnmobil - Wohnmobil/Camper</SelectItem>
-                <SelectItem value="perpetual-travelers">🌍 Perpetual Travelers - Permanent Reisende</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              Foster Huntington Stil - ehrlich, direkt, authentisch
-            </p>
-          </div>
-
-          {/* Perspektive (Ich/Wir) */}
-          <PerspectiveSelector
-            value={perspective}
-            onChange={(v) => { setPerspective(v); setPerspectiveTouched(true); }}
-          />
-
-          {/* Art der Reise */}
-          <div className="space-y-2">
-            <Label>Art der Reise (optional)</Label>
-            <Select value={tripType || 'none'} onValueChange={(value) => setTripType(value === 'none' ? '' : value as TripType)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Keine Angabe" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">— Keine Angabe —</SelectItem>
-                {TRIP_TYPES.map((type) => (
-                  <SelectItem key={type.id} value={type.id}>
-                    <span className="flex items-center gap-2">
-                      <span>{type.icon}</span>
-                      <span>{type.label}</span>
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              Beeinflusst den KI-Text (z.B. Wandern statt Roadtrip)
-            </p>
-          </div>
-
-          {/* KI-Modell Auswahl */}
-          <div className="space-y-2">
-            <ModelSelect
-              value={selectedModel}
-              onChange={setSelectedModel}
-            />
-          </div>
-
-          <Button
-            type="button"
-            variant="outline"
-            onClick={generateNoteWithAI}
-            disabled={isGeneratingNote || imageFiles.length === 0}
-            className="w-full mt-2"
-          >
-            {isGeneratingNote ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Generiere mit {selectedModel.toUpperCase()} Modell...
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-4 w-4 mr-2" />
-                KI-Notiz generieren ({selectedModel.toUpperCase()} Modell)
-              </>
-            )}
-          </Button>
-          {content.length > 0 && (
-            <p className="text-xs text-muted-foreground">
-              📝 Dein Text ({content.length} Zeichen) wird als Grundlage verwendet.
-            </p>
-          )}
-          {imageFiles.length === 0 && (
-            <p className="text-xs text-muted-foreground">
-              💡 Lade zuerst Bilder hoch, um die KI-Generierung zu nutzen.
-            </p>
-          )}
-        </div>
+        <NoteAiSection
+          lifestyle={lifestyle} setLifestyle={setLifestyle}
+          perspective={perspective} setPerspective={setPerspective} setPerspectiveTouched={setPerspectiveTouched}
+          tripType={tripType} setTripType={setTripType}
+          selectedModel={selectedModel} setSelectedModel={setSelectedModel}
+          generateNoteWithAI={generateNoteWithAI} isGeneratingNote={isGeneratingNote}
+          content={content} imageFiles={imageFiles}
+        />
 
         {/* Image Upload Area */}
         <div className="space-y-4">
