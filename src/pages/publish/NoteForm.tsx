@@ -40,12 +40,13 @@ import { RemotionVideoBlock } from "@/components/RemotionVideoBlock";
 import { SlideshowBlock } from "@/components/SlideshowBlock";
 import { Progress } from "@/components/ui/progress";
 import { Upload, UploadCloud, ImageIcon, Video, Music, File as FileIcon, Camera, MapPin, Calendar, Tag, Battery, Sun, Wrench, Hammer, Cpu, Mountain, Lightbulb, Dog, Trees, Droplets, Waves, Eye, Loader2, CheckCircle, Route, FileText, MessageSquare, Map } from "@/lib/icons";
-import { extractGpsFromImage, formatCoordinatesSimple, reverseGeocode, mapCountryCode, type GpsData, type GpsStatus, type LocationData } from "@/lib/gpsExtraction";
+import { extractGpsFromImage, formatCoordinatesSimple, type GpsStatus } from '@/lib/gpsExtraction';
 import type { NostrEvent } from "@nostrify/nostrify";
 import { createImagePreview } from './noteForm/noteImagePreview';
 import { NOTE_COUNTRY_TAGS } from './noteForm/noteFormConstants';
 import { NoteTagsSection } from './noteForm/NoteTagsSection';
 import { NoteAiSection } from './noteForm/NoteAiSection';
+import { useNoteGps } from './noteForm/useNoteGps';
 
 export function NoteForm({ editEvent }: { editEvent?: any }) {
   const [content, setContent] = useState('');
@@ -56,16 +57,17 @@ export function NoteForm({ editEvent }: { editEvent?: any }) {
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
-  const [imageGpsData, setImageGpsData] = useState<Record<number, GpsData>>({});
-  const [imageGpsStatuses, setImageGpsStatuses] = useState<Record<number, GpsStatus>>({});
+  const {
+    imageGpsData, imageGpsStatuses, setImageGpsData, setImageGpsStatuses,
+    editingGpsImage, showMapPicker, setShowMapPicker,
+    openGpsEditor, closeGpsEditor, saveGps, removeGps,
+  } = useNoteGps({ selectedCountry, setLocation, setSelectedCountry });
   const [isUploadingImages, setIsUploadingImages] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0, status: '' });
   const [isPublishing, setIsPublishing] = useState(false);
   // Ehrlichkeits-Gate für KI-generierte Notes (Standard: bestätigt, abwählbar)
   const [experiencesConfirmed, setExperiencesConfirmed] = useState(true);
   const [publishProgress, setPublishProgress] = useState({ stage: '', status: '' });
-  const [editingGpsImage, setEditingGpsImage] = useState<number | null>(null);
-  const [showMapPicker, setShowMapPicker] = useState(false);
   const [isGeneratingNote, setIsGeneratingNote] = useState(false);
   const [selectedModel, setSelectedModel] = useState<TextModelTier>('medium');
   const [lifestyle, setLifestyle] = useState<'mojobus' | 'vanlife' | 'rvlife' | 'beachlife' | 'wohnmobil' | 'perpetual-travelers'>('mojobus');
@@ -318,101 +320,6 @@ export function NoteForm({ editEvent }: { editEvent?: any }) {
       return rest;
     });
   };
-
-  // GPS editing functions for Note Form
-  const openGpsEditor = (imageIndex: number) => {
-    setEditingGpsImage(imageIndex);
-  };
-
-  const closeGpsEditor = () => {
-    setEditingGpsImage(null);
-    setShowMapPicker(false);
-  };
-
-  const saveGps = async (imageIndex: number, gps: GpsData) => {
-    // Save GPS data
-    setImageGpsData(prev => ({
-      ...prev,
-      [imageIndex]: gps
-    }));
-    setImageGpsStatuses(prev => ({
-      ...prev,
-      [imageIndex]: 'manual'
-    }));
-
-    // Auto-fill location and country using reverse geocoding
-    try {
-      console.log('[Note GPS Manual] Reverse geocoding for manual GPS...', gps);
-      const locationData = await reverseGeocode(gps.latitude, gps.longitude);
-      if (locationData) {
-        // Set location to city + neighbourhood/suburb (no postcode)
-        const locationParts = [
-          locationData.city,
-          locationData.neighbourhood,
-          locationData.suburb
-        ].filter(Boolean);
-        const loc = locationParts.join(', ');
-        setLocation(loc);
-        console.log('[Note GPS Manual] Location found:', loc);
-
-        // Auto-fill country if detected
-        const country = mapCountryCode(locationData);
-        if (country) {
-          setSelectedCountry(country);
-          console.log('[Note GPS Manual] Country auto-filled:', country);
-        }
-      }
-    } catch (error) {
-      console.error('[Note GPS Manual] Reverse geocoding failed:', error);
-    }
-
-    closeGpsEditor();
-  };
-
-  const removeGps = (imageIndex: number) => {
-    setImageGpsData(prev => {
-      const { [imageIndex]: _, ...rest } = prev;
-      return rest;
-    });
-    setImageGpsStatuses(prev => ({
-      ...prev,
-      [imageIndex]: 'not_found'
-    }));
-    closeGpsEditor();
-  };
-
-  // Auto-fill location and country from GPS data (first image)
-  useEffect(() => {
-      const autoFillLocation = async () => {
-        // Use GPS from first image if available
-        const firstGpsData = Object.values(imageGpsData)[0];
-
-        if (firstGpsData) {
-          console.log('[Note GPS] GPS detected, reverse geocoding...');
-          const locationData = await reverseGeocode(firstGpsData.latitude, firstGpsData.longitude);
-          if (locationData) {
-            // Set location to city + neighbourhood/suburb (no postcode)
-            const locationParts = [
-              locationData.city,
-              locationData.neighbourhood,
-              locationData.suburb
-            ].filter(Boolean);
-            const loc = locationParts.join(', ');
-            setLocation(loc);
-            console.log('[Note GPS] Location found:', loc);
-
-            // Auto-fill country if detected
-            const country = mapCountryCode(locationData);
-            if (country && !selectedCountry) {
-              setSelectedCountry(country);
-              console.log('[Note GPS] Country auto-filled:', country);
-            }
-          }
-        }
-      };
-
-      autoFillLocation();
-    }, [imageGpsData]);
 
   const handleSubmit = () => {
     if (!content.trim()) {
