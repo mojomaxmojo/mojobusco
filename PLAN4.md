@@ -857,14 +857,14 @@ export function usePlacePublish({ /* …Params */ }: UsePlacePublishParams) {
 
 ## Checkliste aller Schritte zum Abhaken
 
-- [ ] **Schritt 1** `placeFormConfig.ts` angelegt (3 Konstanten) → Build ok → Test ok
-- [ ] **Schritt 2** `placeFormUtils.ts` angelegt (`extractPlaceImageUrls`) → Build ok → Test ok
-- [ ] **Schritt 3** `usePlaceFormHandlers.ts` angelegt (6 Sync-Handler) → Build ok → Test ok
-- [ ] **Schritt 4** `PlaceTitleImageSection.tsx` angelegt (Titelbild-Karte) → Build ok → Test ok
-- [ ] **Schritt 5** `usePlaceImageUpload.ts` angelegt (Upload/EXIF/GPS + documented special case) → Build ok → Test ok
-- [ ] **Schritt 6** `usePlaceGpsAutoFill.ts` angelegt (Reverse-Geocoding-Auto-Fill) → Build ok → Test ok
-- [ ] **Schritt 7** `usePlaceAiDescription.ts` angelegt (KI-Beschreibung) → Build ok → Test ok
-- [ ] **Schritt 8** `usePlacePublish.ts` angelegt (Veröffentlichen + Route `navigate('/plaetze')`) → Build ok → Test ok
+- [x] **Schritt 1** `placeFormConfig.ts` angelegt (3 Konstanten) → Build ok → Test ok
+- [x] **Schritt 2** `placeFormUtils.ts` angelegt (`extractPlaceImageUrls`) → Build ok → Test ok
+- [x] **Schritt 3** `usePlaceFormHandlers.ts` angelegt (6 Sync-Handler) → Build ok → Test ok
+- [x] **Schritt 4** `PlaceTitleImageSection.tsx` angelegt (Titelbild-Karte) → Build ok → Test ok
+- [x] **Schritt 5** `usePlaceImageUpload.ts` angelegt (Upload/EXIF/GPS + documented special case) → Build ok → Test ok
+- [x] **Schritt 6** `usePlaceGpsAutoFill.ts` angelegt (Reverse-Geocoding-Auto-Fill) → Build ok → Test ok
+- [x] **Schritt 7** `usePlaceAiDescription.ts` angelegt (KI-Beschreibung) → Build ok → Test ok
+- [x] **Schritt 8** `usePlacePublish.ts` angelegt (Veröffentlichen + Route `navigate('/plaetze')`) → Build ok → Test ok
 - [ ] Abschluss-Check: Einen kompletten Ort über Veröffentlichen → Ort
       erstellen (erscheint korrekt auf /plaetze, Karte/Tags ok) **und** einen
       bestehenden Ort bearbeiten + neu speichern (Tags bleiben sauber,
