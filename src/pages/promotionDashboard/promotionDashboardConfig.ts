@@ -1,0 +1,126 @@
+/**
+ * promotionDashboardConfig.ts – Pinwand-Empfehlungen und Tier-Styling
+ * aus PromotionDashboard.tsx (1:1 verschoben, PLAN6 Schritt 23).
+ */
+
+export const PINBOARD_SUGGESTIONS = [
+  {
+    tier: 1,
+    emoji: '🚌',
+    name: '10m Bus Ausbau – Fulltime Living',
+    description: 'Der Ausbau eines 10 Meter langen, 7,5 Tonnen schweren US-Diesel-Busses zum autarken Zuhause. Technik, Stauraum und Design für echtes Fulltime-Leben. // Building out a 10-meter, 7.5-ton US diesel bus into a fully self-sufficient home. Real fulltime living, not weekend van life.',
+    keywords: ['#Busausbau', '#SkoolieLife', '#Fulltimeliving', '#BigRigVanlife', '#Truckcamper'],
+    bestFor: 'Ausbau-Fotos, Interior, Technik-Details',
+    volume: 'Hoch – eigene, wenig gesättigte Nische',
+  },
+  {
+    tier: 1,
+    emoji: '🌊',
+    name: 'Beachlife & Oceanview',
+    description: 'Direkt am Strand aufwachen, das Meer als Nachbarn. Sonnenuntergänge, Klippen und das Gefühl, dass der Horizont dein Zuhause ist. // Waking up right at the beach, the ocean as your neighbor. Sunsets, cliffs, and the feeling that the horizon is home.',
+    keywords: ['#Beachlife', '#Oceanview', '#SunsetVibes', '#CoastalLiving', '#Klippenleben'],
+    bestFor: 'Meer-, Strand- und Sonnenuntergangsfotos',
+    volume: 'Sehr hoch (Repins) – sprachunabhängige Ästhetik',
+  },
+  {
+    tier: 1,
+    emoji: '☀️',
+    name: 'Autark & Offgrid – Solar Setup',
+    description: 'Vollständig autark leben: Solarstrom, Wasserversorgung und Technik für ein Zuhause ohne Netzanschluss. Praxiswissen aus über einem Jahrzehnt Offgrid-Leben. // Fully self-sufficient living: solar power, water systems and tech for a home off the grid. Real-world knowledge from over a decade offgrid.',
+    keywords: ['#OffgridLiving', '#SolarSetup', '#Autark', '#SelfSufficient', '#OffgridLife'],
+    bestFor: 'DIY-Technik, Solar-Anleitungen, Setups',
+    volume: 'Hoch, hohe Kaufabsicht',
+  },
+  {
+    tier: 1,
+    emoji: '🐾',
+    name: 'In Erinnerung an Leon – Unser Seelenhund',
+    description: 'Über ein Jahrzehnt war Leon, unser Rhodesian Ridgeback, der Herzschlag dieser Reise. Ein Tribut an Treue, Freiheit und die tiefste Verbindung zwischen Mensch und Hund. // For over a decade, Leon our Rhodesian Ridgeback was the heartbeat of this journey. A tribute to loyalty, freedom and the deepest bond between human and dog.',
+    keywords: ['#RhodesianRidgeback', '#SoulDog', '#DogTribute', '#LoyalCompanion', '#PetMemorial'],
+    bestFor: 'Leon-Fotos, emotionale Stories, Zitate',
+    volume: 'Sehr hoch – emotionaler Content, hohe Save-Rate',
+  },
+  {
+    tier: 2,
+    emoji: '🕊️',
+    name: 'Perpetual Traveler – Leben ohne festen Wohnsitz',
+    description: 'Seit über 11 Jahren kein fester Wohnsitz – nur Freiheit, Straße und echte Begegnungen. Geschichten eines Lebens jenseits von Terminkalendern. // No fixed address for over 11 years – just freedom, the road and real encounters. Stories of a life beyond calendars and routine.',
+    keywords: ['#PerpetualTraveler', '#Fulltimeliving', '#NomadLife', '#Freiheit', '#Aussteiger'],
+    bestFor: 'Lifestyle-Notes, persönliche Berichte',
+    volume: 'Mittel, wachsend',
+  },
+  {
+    tier: 2,
+    emoji: '🇵🇹',
+    name: 'Portugal & Atlantikküste – Klippen, Strand, Freiheit',
+    description: 'Portugals wilde Atlantikküste, einsame Klippen und endlose Strände – unsere liebste Ecke Europas für autarkes Leben mit Meerblick. // Portugal\'s wild Atlantic coast, remote cliffs and endless beaches – our favorite corner of Europe for self-sufficient living with a sea view.',
+    keywords: ['#PortugalTravel', '#AtlanticCoast', '#PortugalVanlife', '#WestCoastPortugal', '#Klippen'],
+    bestFor: 'Plätze, Trips, Küsten-Fotos',
+    volume: 'Sehr hoch (Sep–Apr)',
+  },
+  {
+    tier: 2,
+    emoji: '₿',
+    name: 'Bitcoin & Nostr – Freedom Tech Lifestyle',
+    description: 'Dezentral, zensurresistent, frei – wie Bitcoin und Nostr unsere Reise digital genauso unabhängig machen wie unser Bus physisch. // Decentralized, censorship-resistant, free – how Bitcoin and Nostr make our journey digitally as independent as our bus is physically.',
+    keywords: ['#Bitcoin', '#Nostr', '#FreedomTech', '#Decentralized', '#DigitalFreedom'],
+    bestFor: 'Notes, Denkanstöße, Community-Content',
+    volume: 'Mittel, aber sehr engagierte Nische',
+  },
+  {
+    tier: 2,
+    emoji: '☕',
+    name: 'Slow Living – Kaffee, Meer, Momente',
+    description: 'Kaffee am Klippenrand, Stille am Morgen, das Rauschen der Wellen als Wecker – kleine, achtsame Momente eines entschleunigten Lebens. // Coffee at the cliff\'s edge, morning silence, waves as your alarm clock – small, mindful moments of a slowed-down life.',
+    keywords: ['#SlowLiving', '#MorningRitual', '#Mindfulness', '#SimpleLiving', '#CoffeeAtSea'],
+    bestFor: 'Lifestyle-Fotos, kurze Notes',
+    volume: 'Hoch (Repins, breite Zielgruppe)',
+  },
+  {
+    tier: 3,
+    emoji: '🔧',
+    name: 'US-Diesel & Technik – Bus Maintenance',
+    description: 'Wartung und Technik-Tipps für einen 10 Meter US-Diesel-Bus im Dauereinsatz. Für alle, die einen Koloss auf Rädern selbst instand halten. // Maintenance and tech tips for a 10-meter US diesel bus in continuous use. For anyone keeping a rolling giant running themselves.',
+    keywords: ['#USDiesel', '#BusMaintenance', '#DieselEngine', '#SelfMaintenance', '#VanRepair'],
+    bestFor: 'DIY-Technik-Artikel, Reparatur-Tipps',
+    volume: 'Mittel, hohe Kaufabsicht',
+  },
+  {
+    tier: 3,
+    emoji: '📷',
+    name: 'Vanlife Fotografie – Meer, Klippen, Sonnenuntergänge',
+    description: 'Die schönsten Lichtstimmungen unterwegs – Sonnenuntergänge, Küstenlinien und Naturmomente vom Leben auf Rädern. // The most beautiful light on the road – sunsets, coastlines and nature moments from life on wheels.',
+    keywords: ['#VanlifePhotography', '#SunsetPhotography', '#CoastalViews', '#NaturePhotography', '#TravelPhotography'],
+    bestFor: 'Reine Bild-Pins, Naturfotografie',
+    volume: 'Sehr hoch (Repins)',
+  },
+  {
+    tier: 3,
+    emoji: '🍳',
+    name: 'Leben auf engstem Raum – Minimalismus & Küche',
+    description: 'Wie man auf wenigen Quadratmetern ein echtes, warmes Zuhause schafft – minimalistisch kochen, wohnen und leben im Bus. // How to create a real, warm home on just a few square meters – minimalist cooking, living and daily life in a bus.',
+    keywords: ['#TinyLiving', '#MinimalistLiving', '#VanKitchen', '#SmallSpaceLiving', '#SimpleCooking'],
+    bestFor: 'Rezepte, Interior-Tipps, DIY-Möbel',
+    volume: 'Mittel (Nische)',
+  },
+  {
+    tier: 3,
+    emoji: '🏕️',
+    name: 'Wildcamping Europa – Freistehen & Stellplätze',
+    description: 'Freistehen und Wildcamping in ganz Europa – legal und sicher. Unsere besten Spots, Regeln und Erfahrungen aus über einem Jahrzehnt Reisen. // Free camping and wild camping across Europe – legal and safe. Our best spots, rules and experience from more than a decade on the road.',
+    keywords: ['#Wildcamping', '#FreeCamping', '#EuropeRoadtrip', '#CampingTips', '#Stellplatz'],
+    bestFor: 'Plätze, Karten, Trip-Berichte',
+    volume: 'Hoch',
+  },
+]
+
+export const TIER_COLORS: Record<number, string> = {
+  1: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800',
+  2: 'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400 border-sky-200 dark:border-sky-800',
+  3: 'bg-muted text-muted-foreground border-border',
+}
+export const TIER_LABELS: Record<number, string> = {
+  1: '🏆 Tier 1 – Sofort starten',
+  2: '🥈 Tier 2 – Mittelfristig',
+  3: '🥉 Tier 3 – Nische',
+}
