@@ -204,24 +204,8 @@ export function PromotionDashboard() {
   const previewRef = useRef<HTMLImageElement>(null)
 
   // Gespeicherte Pins: laden/speichern/löschen – siehe ./promotionDashboard/usePromotionPins
-  const {
-    savedPins,
-    loadSavedPins,
-    savePin,
-    deletePin,
-  } = usePromotionPins({
-    articleTitle,
-    editTitle,
-    editDesc,
-    editHashtags,
-    editAltText,
-    selectedTemplate,
-    kiModel,
-    imageUrls,
-    selectedImageIdx,
-    buildPinterestUrl,
-    resetForm,
-  })
+  // (Hook-Aufruf weiter unten, NACH den Deklarationen von buildPinterestUrl/resetForm,
+  //  da er beide als Argumente erhält – TDZ, siehe Hotfix 6e2353e-Folge)
 
   // ── CONTENT AUSWÄHLEN UND AUSFÜLLEN ═══════════════════
 
@@ -348,6 +332,27 @@ export function PromotionDashboard() {
     setEditWaypoints([])
     setEditInfographicData([])
   }
+
+  // Gespeicherte Pins: laden/speichern/löschen – siehe ./promotionDashboard/usePromotionPins
+  // (bewusst NACH buildPinterestUrl/resetForm deklariert, da beide als Argumente übergeben werden)
+  const {
+    savedPins,
+    loadSavedPins,
+    savePin,
+    deletePin,
+  } = usePromotionPins({
+    articleTitle,
+    editTitle,
+    editDesc,
+    editHashtags,
+    editAltText,
+    selectedTemplate,
+    kiModel,
+    imageUrls,
+    selectedImageIdx,
+    buildPinterestUrl,
+    resetForm,
+  })
 
   // ═══════════════════════════════════════════════════════
   // RENDER
