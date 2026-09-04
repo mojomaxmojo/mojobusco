@@ -12,6 +12,8 @@ import { createRequiredTags } from "@/config/contentCategories";
 import { getCountryTag } from "@/components/CountrySelector";
 import { createLongformTeaser } from "@/lib/createLongformTeaser";
 import { getTagValue } from "@/lib/nostrEventUtils";
+import type { GpsData, GpsStatus } from "@/lib/gpsExtraction";
+import type { NostrEvent } from "@nostrify/nostrify";
 import { canonicalUrl, articleUrl, canonicalNaddr } from "@/lib/canonicalUrl";
 import { buildAuthorInput, buildSmartSlug } from "@/config/assistant";
 import { nip19 } from "nostr-tools";
@@ -41,8 +43,8 @@ interface UseArticlePublishParams {
   content: string;
   image: string;
   imageFile: File | null;
-  imageGps: any;
-  imageGpsStatus: any;
+  imageGps: GpsData | null;
+  imageGpsStatus: GpsStatus;
   imageCapturedAt: Date | null;
   category: string;
   location: string;
@@ -65,7 +67,7 @@ interface UseArticlePublishParams {
   slideshowVideoUrl: string | null;
   currentDraftId: string | null;
   currentDraftStatus: 'draft' | 'published' | null;
-  editEvent?: any;
+  editEvent?: NostrEvent;
   // Helfer
   toast: ToastFn;
   publishEvent: PublishEventFn;
@@ -84,9 +86,9 @@ interface UseArticlePublishParams {
   setSelectedCountry: (v: string) => void;
   setPublishedAt: (v: string) => void;
   setImageFile: (v: File | null) => void;
-  setImageGps: (v: any) => void;
+  setImageGps: (v: GpsData | null) => void;
   setImageCapturedAt: (v: Date | null) => void;
-  setImageGpsStatus: (v: any) => void;
+  setImageGpsStatus: (v: GpsStatus) => void;
   setEditingImageGps: (v: boolean) => void;
   setImageMetaMap: (v: Record<string, { alt?: string; caption?: string; note?: string }>) => void;
   // für loadDraftIntoForm (vom Plan nicht gelistet, technisch nötig)

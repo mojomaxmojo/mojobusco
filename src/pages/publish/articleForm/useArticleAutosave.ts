@@ -15,6 +15,7 @@ import { useState, useEffect } from "react";
 import { AUTOSAVE_KEY, type AutosaveData } from "./articleFormConfig";
 import type { TripType } from "@/config/tags";
 import type { useToast } from "@/hooks/useToast";
+import type { NostrEvent } from "@nostrify/nostrify";
 
 type ToastFn = ReturnType<typeof useToast>['toast'];
 
@@ -40,7 +41,7 @@ interface UseArticleAutosaveValues {
 }
 
 interface UseArticleAutosaveParams {
-  editEvent?: any;
+  editEvent?: NostrEvent;
   currentDraftId: string | null;
   toast: ToastFn;
   // aktuelle Werte (für den Schreib-Effect):

@@ -12,6 +12,8 @@ import { getCountryTag } from "@/components/CountrySelector";
 import { buildSmartSlug } from "@/config/assistant";
 import { createLongformTeaser } from "@/lib/createLongformTeaser";
 import { getTagValue } from "@/lib/nostrEventUtils";
+import type { GpsData, GpsStatus } from "@/lib/gpsExtraction";
+import type { NostrEvent } from "@nostrify/nostrify";
 import { placeUrl, canonicalUrl, canonicalNaddr } from "@/lib/canonicalUrl";
 import { notifyPublishedPipeline } from "@/lib/publishNotify";
 import type { useToast } from "@/hooks/useToast";
@@ -47,9 +49,9 @@ interface UsePlacePublishParams {
   seoSlug: string;
   publishTeaserNote: boolean;
   autoTranslateEn: boolean;
-  imageGps: any;
-  imageGpsStatus: any;
-  editEvent?: any;
+  imageGps: GpsData | null;
+  imageGpsStatus: GpsStatus;
+  editEvent?: NostrEvent;
   // Helfer
   toast: ToastFn;
   publishEvent: PublishEventFn;
@@ -70,8 +72,8 @@ interface UsePlacePublishParams {
   setPrice: (v: string) => void;
   setVisitDate: (v: string) => void;
   setImageFile: (v: File | null) => void;
-  setImageGps: (v: any) => void;
-  setImageGpsStatus: (v: any) => void;
+  setImageGps: (v: GpsData | null) => void;
+  setImageGpsStatus: (v: GpsStatus) => void;
   setEditingImageGps: (v: boolean) => void;
   setImageMetaMap: (v: Record<string, { alt?: string; caption?: string; note?: string }>) => void;
   setIsPublishingTeaser: (v: boolean) => void;

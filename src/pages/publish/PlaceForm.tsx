@@ -46,8 +46,9 @@ import { usePlaceGpsAutoFill } from "./placeForm/usePlaceGpsAutoFill";
 import { usePlaceAiDescription } from "./placeForm/usePlaceAiDescription";
 import { usePlacePublish } from "./placeForm/usePlacePublish";
 import { categories, facilityOptions, bestForOptions } from "./placeForm/placeFormConfig";
+import type { NostrEvent } from '@nostrify/nostrify';
 
-export function PlaceForm({ editEvent }: { editEvent?: any }) {
+export function PlaceForm({ editEvent }: { editEvent?: NostrEvent }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   // SEO-Felder (Assistent) + Ehrlichkeits-Gate (Standard: bestätigt, abwählbar)

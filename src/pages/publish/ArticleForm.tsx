@@ -31,26 +31,9 @@ import { SlideshowBlock } from "@/components/SlideshowBlock";
 import { Progress } from "@/components/ui/progress";
 import { Upload, UploadCloud, Video, Music, File as FileIcon, Camera, Calendar, Tag, Battery, Sun, Wrench, Hammer, Cpu, Mountain, Lightbulb, Dog, Trees, Droplets, Waves, Eye, Loader2, CheckCircle, Route, Sparkles, FileText, MessageSquare, Map, Info } from "@/lib/icons";
 import { getTagValue, getTagValues, getEventGpsTags } from "@/lib/nostrEventUtils";
-import { resolveBildPlaceholders } from "./publishUtils";
-import { canonicalUrl, articleUrl, canonicalNaddr } from "@/lib/canonicalUrl";
-import { AssistantSection } from "@/components/assistant/AssistantSection";
-import type { AssistantIdea } from "@/components/assistant/IdeasPanel";
-import { SeoPublishPanel } from "@/components/assistant/SeoPublishPanel";
-import { DraftsOverview, type AssistantDraftArticle } from "@/components/assistant/DraftsOverview";
-import { useAssistantApi } from "@/components/assistant/useAssistantApi";
-import { MediaLibraryPanel } from "@/components/assistant/MediaLibraryPanel";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { buildAuthorInput } from "@/config/assistant";
-import { COUNTRY_TAG_LIST, ARTICLE_LENGTH_OPTIONS, RV_LIFE_TAG_OPTIONS, STRAND_ORT_TAG_OPTIONS, getDIYIcon } from "./articleForm/articleFormConfig";
-import { extractImageUrlsFromMarkdown } from "./articleForm/articleFormUtils";
-import { useArticleAutosave } from "./articleForm/useArticleAutosave";
-import { useArticleMediaGenerators } from "./articleForm/useArticleMediaGenerators";
-import { useArticleTagCategories } from "./articleForm/useArticleTagCategories";
-import { useArticleImageGps } from "./articleForm/useArticleImageGps";
-import { ArticleImageGpsSection } from "./articleForm/ArticleImageGpsSection";
-import { useArticlePublish } from "./articleForm/useArticlePublish";
+import type { NostrEvent } from '@nostrify/nostrify';
 
-export function ArticleForm({ editEvent }: { editEvent?: any }) {
+export function ArticleForm({ editEvent }: { editEvent?: NostrEvent }) {
   const [title, setTitle] = useState('');
   const [summary, setSummary] = useState('');
   const [content, setContent] = useState('');

@@ -34,7 +34,10 @@ import { useMediaGpsEditing } from "./mediaUploadForm/useMediaGpsEditing";
 import { useMediaPublish } from "./mediaUploadForm/useMediaPublish";
 import { MediaPreviewSection } from "./mediaUploadForm/MediaPreviewSection";
 
-export function MediaUploadForm({ editEvent }: { editEvent?: any }) {
+import { getTagValue, getTagValues } from "@/lib/nostrEventUtils";
+import type { NostrEvent } from '@nostrify/nostrify';
+
+export function MediaUploadForm({ editEvent }: { editEvent?: NostrEvent }) {
   const [files, setFiles] = useState<MediaFile[]>([]);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');

@@ -30,15 +30,9 @@ import { Progress } from "@/components/ui/progress";
 import { Upload, UploadCloud, ImageIcon, Video, Music, File as FileIcon, Camera, Calendar, Tag, Battery, Sun, Wrench, Hammer, Cpu, Mountain, Lightbulb, Dog, Trees, Droplets, Waves, Eye, Loader2, CheckCircle, Route, FileText, MessageSquare, Map } from "@/lib/icons";
 import type { GpsStatus } from '@/lib/gpsExtraction';
 import { getTagValues } from '@/lib/nostrEventUtils';
-import { NOTE_COUNTRY_TAGS } from './noteForm/noteFormConstants';
-import { NoteTagsSection } from './noteForm/NoteTagsSection';
-import { NoteAiSection } from './noteForm/NoteAiSection';
-import { useNoteGps } from './noteForm/useNoteGps';
-import { useNoteImageUpload } from './noteForm/useNoteImageUpload';
-import { NoteImageGallery } from './noteForm/NoteImageGallery';
-import { useNotePublish } from './noteForm/useNotePublish';
+import type { NostrEvent } from '@nostrify/nostrify';
 
-export function NoteForm({ editEvent }: { editEvent?: any }) {
+export function NoteForm({ editEvent }: { editEvent?: NostrEvent }) {
   const [content, setContent] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [location, setLocation] = useState('');
