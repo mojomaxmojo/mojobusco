@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { ExperiencesConfirm } from "@/components/assistant/ExperiencesConfirm";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/useToast";
-import { useUploadFile } from "@/hooks/useUploadFile";
 import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { useAutoTranslate } from "@/hooks/useAutoTranslate";
 import { getApiBaseUrl } from "@/lib/apiBase";
@@ -40,13 +39,13 @@ import { RemotionVideoBlock } from "@/components/RemotionVideoBlock";
 import { SlideshowBlock } from "@/components/SlideshowBlock";
 import { Progress } from "@/components/ui/progress";
 import { Upload, UploadCloud, ImageIcon, Video, Music, File as FileIcon, Camera, MapPin, Calendar, Tag, Battery, Sun, Wrench, Hammer, Cpu, Mountain, Lightbulb, Dog, Trees, Droplets, Waves, Eye, Loader2, CheckCircle, Route, FileText, MessageSquare, Map } from "@/lib/icons";
-import { extractGpsFromImage, formatCoordinatesSimple, type GpsStatus } from '@/lib/gpsExtraction';
+import { formatCoordinatesSimple, type GpsStatus } from '@/lib/gpsExtraction';
 import type { NostrEvent } from "@nostrify/nostrify";
-import { createImagePreview } from './noteForm/noteImagePreview';
 import { NOTE_COUNTRY_TAGS } from './noteForm/noteFormConstants';
 import { NoteTagsSection } from './noteForm/NoteTagsSection';
 import { NoteAiSection } from './noteForm/NoteAiSection';
 import { useNoteGps } from './noteForm/useNoteGps';
+import { useNoteImageUpload } from './noteForm/useNoteImageUpload';
 
 export function NoteForm({ editEvent }: { editEvent?: any }) {
   const [content, setContent] = useState('');
@@ -54,16 +53,16 @@ export function NoteForm({ editEvent }: { editEvent?: any }) {
   const [location, setLocation] = useState('');
   const [selectedCountry, setSelectedCountry] = useState<string>('');
   const [isPublic, setIsPublic] = useState(true);
-  const [imageFiles, setImageFiles] = useState<File[]>([]);
-  const [imageUrls, setImageUrls] = useState<string[]>([]);
-  const [isDragging, setIsDragging] = useState(false);
   const {
     imageGpsData, imageGpsStatuses, setImageGpsData, setImageGpsStatuses,
     editingGpsImage, showMapPicker, setShowMapPicker,
     openGpsEditor, closeGpsEditor, saveGps, removeGps,
   } = useNoteGps({ selectedCountry, setLocation, setSelectedCountry });
-  const [isUploadingImages, setIsUploadingImages] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0, status: '' });
+  const {
+    imageFiles, imageUrls, isDragging, isUploadingImages, uploadProgress,
+    setIsDragging, setImageFiles, setImageUrls,
+    handleImageSelect, handleDrop, removeImageFile, uploadImages, removeImageUrl,
+  } = useNoteImageUpload({ setImageGpsData, setImageGpsStatuses });
   const [isPublishing, setIsPublishing] = useState(false);
   // Ehrlichkeits-Gate für KI-generierte Notes (Standard: bestätigt, abwählbar)
   const [experiencesConfirmed, setExperiencesConfirmed] = useState(true);
@@ -202,124 +201,6 @@ export function NoteForm({ editEvent }: { editEvent?: any }) {
   }, [editEvent]);
 
 
-
-  const handleImageSelect = async (files: FileList | null) => {
-    if (!files) return;
-
-    // Filter for image files only
-    const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
-    const newImageFiles: File[] = [];
-    const newImageUrls: string[] = [];
-
-    // Process each image file for EXIF correction
-    for (const file of imageFiles) {
-      let correctedPreviewUrl: string | undefined;
-
-      try {
-        correctedPreviewUrl = await createImagePreview(file);
-      } catch (exifError) {
-        console.warn(`[Note EXIF] Failed to read EXIF from ${file.name}:`, exifError);
-        // Fallback: Original file als Preview
-        correctedPreviewUrl = URL.createObjectURL(file);
-      }
-
-      newImageFiles.push(file);
-      if (correctedPreviewUrl) {
-        newImageUrls.push(correctedPreviewUrl);
-      }
-    }
-
-    setImageFiles(prev => [...prev, ...newImageFiles]);
-    setImageUrls(prev => [...prev, ...newImageUrls]);
-
-    // Extract GPS from each image immediately upon selection
-    const startIndex = imageUrls.length;
-    for (let i = 0; i < newImageFiles.length; i++) {
-      const file = newImageFiles[i];
-      const index = startIndex + i;
-
-      try {
-        const gpsData = await extractGpsFromImage(file);
-        if (gpsData) {
-          setImageGpsData(prev => ({ ...prev, [index]: gpsData }));
-          setImageGpsStatuses(prev => ({ ...prev, [index]: 'detected' }));
-          console.log(`[Note GPS] Extracted from ${file.name} (image ${index}):`, gpsData);
-        } else {
-          setImageGpsStatuses(prev => ({ ...prev, [index]: 'not_found' }));
-        }
-      } catch (error) {
-        console.error(`[Note GPS] Failed to extract from ${file.name}:`, error);
-        setImageGpsStatuses(prev => ({ ...prev, [index]: 'error' }));
-      }
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    handleImageSelect(e.dataTransfer.files);
-  };
-
-  const removeImageFile = (index: number) => {
-    setImageFiles(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const uploadImages = async () => {
-    if (imageFiles.length === 0) return;
-
-    setIsUploadingImages(true);
-    setUploadProgress({ current: 0, total: imageFiles.length, status: 'Upload läuft...' });
-
-    try {
-      const uploadedUrls: string[] = [];
-
-      for (let i = 0; i < imageFiles.length; i++) {
-        const file = imageFiles[i];
-        const [urlTag] = await uploadFile(file);
-        uploadedUrls.push(urlTag[1]); // URL is in second position
-
-        // Update progress
-        setUploadProgress({ current: i + 1, total: imageFiles.length, status: 'Upload läuft...' });
-      }
-
-      // Ersetze die korrigierten Previews durch die hochgeladenen URLs
-      setImageUrls(prev => {
-        // Entferne die Preview-URLs für die hochgeladenen Bilder und füge die Upload-URLs hinzu
-        const existingUrls = prev.slice(0, prev.length - imageFiles.length);
-        return [...existingUrls, ...uploadedUrls];
-      });
-
-      setImageFiles([]);
-      setIsUploadingImages(false);
-      setUploadProgress({ current: imageFiles.length, total: imageFiles.length, status: '' });
-
-      toast({
-        title: 'Erfolg!',
-        description: `${uploadedUrls.length} Bild(er) erfolgreich hochgeladen.`,
-      });
-    } catch (error) {
-      setIsUploadingImages(false);
-      setUploadProgress({ current: 0, total: 0, status: 'Upload fehlgeschlagen' });
-      toast({
-        title: 'Fehler',
-        description: 'Bild-Upload fehlgeschlagen. Bitte versuche es erneut.',
-        variant: 'destructive'
-      });
-    }
-  };
-
-  const removeImageUrl = (index: number) => {
-    setImageUrls(prev => prev.filter((_, i) => i !== index));
-    // Also remove GPS data for this image
-    setImageGpsData(prev => {
-      const { [index]: _, ...rest } = prev;
-      return rest;
-    });
-    setImageGpsStatuses(prev => {
-      const { [index]: _, ...rest } = prev;
-      return rest;
-    });
-  };
 
   const handleSubmit = () => {
     if (!content.trim()) {
