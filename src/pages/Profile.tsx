@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { EditProfileForm } from '@/components/EditProfileForm';
-import { useCurrentUser, useAuthor } from '@/hooks/useCurrentUser';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -19,13 +19,24 @@ import {
   Zap
 } from 'lucide-react';
 import { genUserName } from '@/lib/genUserName';
+import { nip19 } from 'nostr-tools';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useQuery } from '@tanstack/react-query';
 import { useNostr } from '@nostrify/react';
 import { NOSTR_CONFIG } from '@/config/nostr';
 
 export function Profile() {
-  const { user, metadata, picture, name, display_name, nip05, bot, about, website, banner, lud16 } = useCurrentUser();
+  const { user, metadata } = useCurrentUser();
+  // Profildaten liegen im kind:0-Metadata-Objekt (useCurrentUser spread't author.data)
+  const name = metadata?.name;
+  const picture = metadata?.picture;
+  const display_name = metadata?.display_name;
+  const nip05 = metadata?.nip05;
+  const bot = metadata?.bot;
+  const about = metadata?.about;
+  const website = metadata?.website;
+  const banner = metadata?.banner;
+  const lud16 = metadata?.lud16;
   const [isEditing, setIsEditing] = useState(false);
 
   // Fetch statistics for logged-in user
@@ -243,7 +254,7 @@ export function Profile() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Public Key (npub)</p>
-                    <p className="text-sm font-mono break-all">{user.npub}</p>
+                    <p className="text-sm font-mono break-all">{nip19.npubEncode(user.pubkey)}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Public Key (hex)</p>

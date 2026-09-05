@@ -48,7 +48,7 @@ export function Settings() {
   const { theme, setTheme } = useTheme();
   const { config, updateConfig } = useAppContext();
   const { logout, logoutAll } = useLoginActions();
-  const { user, users } = useCurrentUser();
+  const { user, users, metadata } = useCurrentUser();
   const { toast } = useToast();
 
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -408,7 +408,7 @@ export function Settings() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex items-center gap-3">
-                      <div className="font-medium">{user.metadata?.name || genUserName(user.pubkey)}</div>
+                      <div className="font-medium">{metadata?.name || genUserName(user.pubkey)}</div>
                       <Badge variant="secondary">Aktiv</Badge>
                     </div>
 
@@ -416,12 +416,12 @@ export function Settings() {
                       <div className="flex items-center justify-between p-2 bg-muted rounded">
                         <span className="text-sm font-mono font-medium">NIP-05:</span>
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-mono">{user.metadata?.nip05 || 'Nicht gesetzt'}</span>
-                          {user.metadata?.nip05 && (
+                          <span className="text-sm font-mono">{metadata?.nip05 || 'Nicht gesetzt'}</span>
+                          {metadata?.nip05 && (
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleCopyToClipboard(user.metadata!.nip05!, 'NIP-05')}
+                              onClick={() => handleCopyToClipboard(metadata.nip05, 'NIP-05')}
                             >
                               {copiedKey === 'NIP-05' ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                             </Button>
@@ -485,7 +485,7 @@ export function Settings() {
                         return (
                           <div key={account.pubkey} className="flex items-center justify-between p-3 border rounded-lg">
                             <div>
-                              <div className="font-medium">{account.metadata?.name || genUserName(account.pubkey)}</div>
+                              <div className="font-medium">{genUserName(account.pubkey)}</div>
                               <div className="text-sm text-muted-foreground">
                                 {accountNpub.slice(0, 16)}...
                               </div>

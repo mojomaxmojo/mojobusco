@@ -29,6 +29,12 @@ export function useLoginActions() {
       if (login) {
         removeLogin(login.id);
       }
+    },
+    // Log out all users (clears every stored login)
+    async logoutAll(): Promise<void> {
+      for (const login of logins) {
+        removeLogin(login.id);
+      }
     }
   };
 }

@@ -11,8 +11,8 @@ interface AuthorInfoProps {
 export function AuthorInfo({ pubkey, showAvatar = true, className = '' }: AuthorInfoProps) {
   const { data: author } = useAuthor(pubkey);
   
-  const authorName = author?.data?.metadata?.name || genUserName(pubkey);
-  const authorAvatar = author?.data?.metadata?.picture;
+  const authorName = author?.metadata?.name || genUserName(pubkey);
+  const authorAvatar = author?.metadata?.picture;
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>

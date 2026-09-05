@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Lock, LogIn, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { nip19 } from 'nostr-tools';
 
 interface BudgetAuthGuardProps {
   children: React.ReactNode;
@@ -93,7 +94,7 @@ export function BudgetAuthGuard({ children }: BudgetAuthGuardProps) {
             
             <div className="space-y-2">
               <p className="text-sm text-gray-600">
-                Eingeloggt als: {user.npub?.slice(0, 16)}...
+                Eingeloggt als: {nip19.npubEncode(user.pubkey).slice(0, 16)}...
               </p>
               <p className="text-sm text-gray-600">
                 Um Zugriff zu erhalten, musst du mit einem der folgenden Accounts eingeloggt sein:
