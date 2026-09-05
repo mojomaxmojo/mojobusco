@@ -28,7 +28,6 @@ export function PreviewStep({
   lifestyle,
   setSlideshowVideoUrl,
   slideshowVideoUrl,
-  setSlideshowVideoUrlInput,
   toast,
   experiencesConfirmed,
   setExperiencesConfirmed,

@@ -21,6 +21,8 @@ import { Loader2 } from 'lucide-react';
 import { formatCoordinatesSimple } from '@/lib/gpsExtraction';
 import type { TripStation, TripData } from '@/lib/trip/tripTypes';
 
+type Lifestyle = 'mojobus' | 'vanlife' | 'rvlife' | 'beachlife' | 'wohnmobil' | 'perpetual-travelers';
+
 export function DetailsStep({
   stations,
   tripData, setTripData,
@@ -45,7 +47,7 @@ export function DetailsStep({
   stations: TripStation[]
   tripData: TripData
   setTripData: React.Dispatch<React.SetStateAction<TripData>>
-  lifestyle: string
+  lifestyle: Lifestyle
   setLifestyle: (v: 'mojobus' | 'vanlife' | 'rvlife' | 'beachlife' | 'wohnmobil' | 'perpetual-travelers') => void
   tripLength: string
   setTripLength: (v: 'short' | 'medium' | 'long') => void
@@ -109,7 +111,7 @@ export function DetailsStep({
             {/* Lifestyle Auswahl für KI-Generierung */}
             <div className="mt-4 space-y-2">
               <Label className="text-sm font-medium">Lifestyle für KI-Text:</Label>
-              <Select value={lifestyle} onValueChange={(value) => setLifestyle(value as typeof lifestyle)}>
+              <Select value={lifestyle} onValueChange={(value) => setLifestyle(value as Lifestyle)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Wähle deinen Lifestyle" />
                 </SelectTrigger>

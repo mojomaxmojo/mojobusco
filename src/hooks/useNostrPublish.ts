@@ -13,7 +13,7 @@ interface PublishOptions {
 interface PublishEventInput extends Partial<Omit<NostrEvent, 'id' | 'pubkey' | 'sig'>> {
   kind: number;
   content: string;
-  tags: string[][];
+  tags?: string[][];
   relayUrls?: string[];
 }
 

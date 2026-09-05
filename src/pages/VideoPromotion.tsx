@@ -475,7 +475,7 @@ export function VideoPromotion() {
     const hookCaption = (location || country || '').trim()
 
     // Music-URL
-    let musicUrl = undefined
+    let musicUrl: string | undefined = undefined
     const noMusic = selectedTrack === '__none__'
     if (!noMusic && selectedTrack && selectedTrack !== '__random__') {
       const track = musicTracks.find(t => t.filename === selectedTrack)

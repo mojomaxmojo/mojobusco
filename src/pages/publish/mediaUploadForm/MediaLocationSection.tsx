@@ -51,7 +51,7 @@ export function MediaLocationSection({ files, location, setLocation, selectedCou
           {/* Country Selection */}
           <CountrySelector
             selectedCountry={selectedCountry}
-            onCountryChange={setSelectedCountry}
+            onCountryChange={(country) => setSelectedCountry(country ?? '')}
             placeholder="Land auswaehlen"
           />
         </CardContent>

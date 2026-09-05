@@ -25,7 +25,7 @@ export interface GpsData {
 /**
  * GPS status for tracking extraction state
  */
-export type GpsStatus = 'detected' | 'not_found' | 'manual' | 'error';
+export type GpsStatus = 'detected' | 'not_found' | 'manual' | 'error' | 'geolocation';
 
 /**
  * Extract GPS coordinates from an image file

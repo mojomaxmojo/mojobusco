@@ -329,7 +329,7 @@ export function PlaceForm({ editEvent }: { editEvent?: NostrEvent }) {
         {/* Country Selection */}
         <CountrySelector
           selectedCountry={selectedCountry}
-          onCountryChange={setSelectedCountry}
+          onCountryChange={(country) => setSelectedCountry(country ?? '')}
           placeholder="Land auswaehlen"
         />
 

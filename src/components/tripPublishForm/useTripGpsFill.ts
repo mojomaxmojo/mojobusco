@@ -68,7 +68,7 @@ export function useTripGpsFill({
         const updated = { ...s };
         delete updated.gps;
         updated.gpsStatus = 'not_found';
-        delete updated.location;
+        delete (updated as { location?: string }).location;
         return updated;
       }
       return s;
