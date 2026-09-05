@@ -100,7 +100,7 @@ function drawTextBlock(
 function roundRect(
   ctx: CanvasRenderingContext2D,
   x: number, y: number, w: number, h: number, r: number,
-  fill: string, stroke?: string
+  fill: string | CanvasGradient, stroke?: string
 ) {
   ctx.beginPath()
   ctx.moveTo(x + r, y)
@@ -207,7 +207,7 @@ export async function renderInfographic(
   ctx.textAlign = 'center'
   ctx.fillText('🌊 perennialtravelers  |  mojobus.co', 500, 1040)
 
-  return new Promise(resolve => canvas.toBlob(resolve!, 'image/jpeg', 0.92))
+  return new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Canvas toBlob fehlgeschlagen')), 'image/jpeg', 0.92))
 }
 
 /**
@@ -283,7 +283,7 @@ export async function renderListicle(
   ctx.textAlign = 'center'
   ctx.fillText('🌊 mojobus.co  –  Perpetual Travelers', 500, safeFooterY + 40)
 
-  return new Promise(resolve => canvas.toBlob(resolve!, 'image/jpeg', 0.92))
+  return new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Canvas toBlob fehlgeschlagen')), 'image/jpeg', 0.92))
 }
 
 /**
@@ -363,7 +363,7 @@ export async function renderHowTo(
   ctx.textAlign = 'center'
   ctx.fillText('🌊 mojobus.co  –  Perpetual Travelers', 500, safeFooterY + 40)
 
-  return new Promise(resolve => canvas.toBlob(resolve!, 'image/jpeg', 0.92))
+  return new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Canvas toBlob fehlgeschlagen')), 'image/jpeg', 0.92))
 }
 
 /**
@@ -418,7 +418,7 @@ export async function renderTestimonial(
   ctx.textAlign = 'center'
   ctx.fillText('🌊 mojobus.co  –  Perpetual Travelers', 500, 1240)
 
-  return new Promise(resolve => canvas.toBlob(resolve!, 'image/jpeg', 0.92))
+  return new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Canvas toBlob fehlgeschlagen')), 'image/jpeg', 0.92))
 }
 
 /**
@@ -466,7 +466,7 @@ export async function renderQuickTip(
   ctx.textAlign = 'center'
   ctx.fillText('🌊 mojobus.co  –  Perpetual Travelers', 500, 1140)
 
-  return new Promise(resolve => canvas.toBlob(resolve!, 'image/jpeg', 0.92))
+  return new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Canvas toBlob fehlgeschlagen')), 'image/jpeg', 0.92))
 }
 
 /**
@@ -531,7 +531,7 @@ export async function renderBeforeAfter(
   ctx.font = '22px Arial'
   ctx.fillText('🌊 mojobus.co  –  Perpetual Travelers', 500, 1240)
 
-  return new Promise(resolve => canvas.toBlob(resolve!, 'image/jpeg', 0.92))
+  return new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Canvas toBlob fehlgeschlagen')), 'image/jpeg', 0.92))
 }
 
 /**
@@ -618,7 +618,7 @@ export async function renderRoute(
   ctx.textAlign = 'center'
   ctx.fillText('🌊 mojobus.co  –  Perpetual Travelers', 500, safeFooterY + 40)
 
-  return new Promise(resolve => canvas.toBlob(resolve!, 'image/jpeg', 0.92))
+  return new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Canvas toBlob fehlgeschlagen')), 'image/jpeg', 0.92))
 }
 
 // ═══════════════════════════════════════════════════════════

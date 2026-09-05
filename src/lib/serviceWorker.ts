@@ -74,7 +74,8 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
 export async function unregisterServiceWorker(): Promise<void> {
   if (!registration) {
     try {
-      registration = await navigator.serviceWorker.getRegistration();
+      // getRegistration() liefert undefined, wenn nicht registriert
+      registration = await navigator.serviceWorker.getRegistration() ?? null;
     } catch (error) {
       console.warn('⚠️ Keine Service Worker Registrierung gefunden');
       return;
@@ -101,14 +102,11 @@ export function sendMessageToSW(message: any): Promise<any> {
     }
 
     // Erstelle Message Channel für Antwort
+    // (Hinweis: MessagePort hat kein onerror-Event – der bisherige Handler
+    // hätte nie gefeuert; Fehlerfälle laufen über den Query-Timeout)
     const messageChannel = new MessageChannel();
     messageChannel.port1.onmessage = (event) => {
       resolve(event.data);
-    };
-
-    messageChannel.port1.onerror = (error) => {
-      console.error('❌ MessageChannel Fehler:', error);
-      reject(error);
     };
 
     navigator.serviceWorker.controller.postMessage(message, [messageChannel.port2]);

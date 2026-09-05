@@ -147,5 +147,6 @@ export const generateNameFromPubkey = (pubkey: string): string => {
 // EXPORTS
 // ============================================================================
 
-export type { AuthorConfig };
+// (AuthorConfig ist bereits über `export interface` exportiert – ein
+// zusätzliches `export type` hier würde TS2484 werfen)
 export default KNOWN_AUTHORS;

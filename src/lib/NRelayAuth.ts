@@ -10,6 +10,8 @@ export class NRelayAuth extends NRelay1 {
   private signEvent: ((event: Partial<NostrEvent>) => Promise<NostrEvent>) | null = null;
   private authenticated = false;
   private authPromise: Promise<void> | null = null;
+  /** Eigene URL-Kopie (NRelay1.url ist private) */
+  private relayUrl: string;
 
   constructor(
     url: string,
@@ -18,6 +20,7 @@ export class NRelayAuth extends NRelay1 {
     }
   ) {
     super(url);
+    this.relayUrl = url;
     this.signEvent = options?.signEvent || null;
   }
 
@@ -36,7 +39,7 @@ export class NRelayAuth extends NRelay1 {
         kind: 22242,
         content: '',
         tags: [
-          ['relay', this.url],
+          ['relay', this.relayUrl],
           ['challenge', challenge],
         ],
         created_at: Math.floor(Date.now() / 1000),
@@ -53,15 +56,6 @@ export class NRelayAuth extends NRelay1 {
       console.error('[NRelayAuth] Failed to authenticate:', error);
       throw error;
     }
-  }
-
-  async req(filters: NostrFilter[], opts?: { signal?: AbortSignal }): Promise<NostrEvent[]> {
-    // Wait for authentication if needed
-    if (this.authPromise) {
-      await this.authPromise;
-    }
-
-    return super.req(filters, opts);
   }
 
   async event(event: NostrEvent, opts?: { signal?: AbortSignal }): Promise<void> {

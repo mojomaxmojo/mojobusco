@@ -180,8 +180,10 @@ export async function pickFilesNative(options: {
         // Versuch A: exifr.gps(file)
         try {
           console.log(`[CapacitorGPS] ${name}: exifr.gps(file) ...`);
-          gpsData = await exifr.gps(file);
-          if (gpsData?.latitude && gpsData?.longitude && gpsData.latitude !== 0 && gpsData.longitude !== 0) {
+          const gps = await exifr.gps(file);
+          if (gps?.latitude && gps?.longitude && gps.latitude !== 0 && gps.longitude !== 0) {
+            // exifr.gps liefert nur latitude/longitude – GpsData braucht precision
+            gpsData = { latitude: gps.latitude, longitude: gps.longitude, precision: 'high' };
             console.log(`[CapacitorGPS] ${name}: ✓ GPS via exifr.gps(file):`, gpsData);
           } else {
             console.log(`[CapacitorGPS] ${name}: exifr.gps(file) kein GPS`);

@@ -84,7 +84,10 @@ export function ServiceWorkerStatus() {
       });
     } else {
       // Fallback: Einfach neu laden
-      window.location.reload();
+      // (globales location statt window.location: im else-Zweig von
+      // 'caches' in window narrowt TS window zu never, da Window caches
+      // immer deklariert)
+      location.reload();
     }
   };
 
