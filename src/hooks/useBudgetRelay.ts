@@ -25,7 +25,10 @@ export function useBudgetRelay(): BudgetRelayState {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const { query } = useNostr();
+  // FIX (PLAN7): useNostr liefert { nostr } (NPool) – `query` existiert dort
+  // nicht, der Destructuring-Fehler machte jeden Fetch zur TypeError-Explosion
+  // (still im catch verschwunden, Budget-Einträge luden nie aus dem Relay).
+  const { nostr } = useNostr();
   const isFetchingRef = useRef(false);
   const hasFetchedRef = useRef(false);
 
@@ -43,16 +46,17 @@ export function useBudgetRelay(): BudgetRelayState {
     try {
       console.log('[BudgetRelay] Fetching budget entries from relay...');
 
-      const events = await query([
+      const events = await nostr.query([
         {
           kinds: [BUDGET_CONFIG.KINDS.ENTRY, BUDGET_CONFIG.LEGACY.ENTRY],
           authors: AUTHOR_PUBKEYS,
           limit: 1000,
         }
       ], {
-        relayUrls: RELAY_PRESETS.budget.relayUrls,
-        maxRelays: RELAY_PRESETS.budget.maxRelays,
-        queryTimeout: RELAY_PRESETS.budget.queryTimeout,
+        // NPool.query kennt nur { signal } – Relay-URL-Targeting (relayUrls/
+        // maxRelays/queryTimeout) unterstützt es nicht; Timeout aus der
+        // Budget-Config übernehmen.
+        signal: AbortSignal.timeout(RELAY_PRESETS.budget.queryTimeout ?? 10000),
       });
 
       console.log('[BudgetRelay] Received events:', events?.length || 0);

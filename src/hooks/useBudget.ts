@@ -31,6 +31,7 @@ import {
   DEFAULT_CATEGORIES,
   getCategoryById,
 } from '@/config/budget';
+import type { NostrEvent } from '@nostrify/nostrify';
 
 // Deduplizierung: Behält nur den neuesten Eintrag pro content.id
 function deduplicateById<T extends { id: string; createdAt: number; date: number }>(entries: T[]): T[] {
@@ -66,7 +67,9 @@ export function useBudgetCategories() {
 }
 
 export function useBudget() {
-  const { query } = useNostr();
+  // FIX (PLAN7): useNostr liefert { nostr } (NPool) – `query` existiert dort
+  // nicht (siehe useBudgetRelay).
+  const { nostr } = useNostr();
   const publishMutation = useNostrPublish();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -76,14 +79,10 @@ export function useBudget() {
     return AUTHORS.map(a => a.pubkey);
   }, []);
 
-  // Private Relay-Konfiguration aus zentraler Config
-  const budgetRelayConfig = useMemo(() => {
-    return {
-      relayUrls: RELAY_PRESETS.budget.relayUrls,
-      maxRelays: RELAY_PRESETS.budget.maxRelays,
-      queryTimeout: RELAY_PRESETS.budget.queryTimeout,
-    };
-  }, []);
+  // Timeout für Budget-Queries aus der zentralen Relay-Config
+  // (Hinweis: NPool.query unterstützt kein Relay-URL-Targeting; die Queries
+  // laufen über die Standard-Relays des NostrProvider)
+  const budgetQueryTimeout = RELAY_PRESETS.budget.queryTimeout ?? 10000;
 
   // Budget-Einträge abrufen
   const useBudgetEntries = (filter?: BudgetFilter) => {
@@ -94,16 +93,16 @@ export function useBudget() {
           console.log('Fetching budget entries from relay...');
           
           // Query für Budget-Einträge mit Fallback
-          let events = [];
+          let events: NostrEvent[] = [];
           try {
             // Alte + neue Kinds für Migration (addressable + legacy)
-            events = await query([
+            events = await nostr.query([
               {
                 kinds: [BUDGET_CONFIG.KINDS.ENTRY, BUDGET_CONFIG.LEGACY.ENTRY],
                 authors: authorPubkeys,
                 limit: 1000,
               }
-            ], budgetRelayConfig) || [];
+            ], { signal: AbortSignal.timeout(budgetQueryTimeout) }) || [];
           } catch (queryError: any) {
             console.warn('Query failed (expected AbortSignal error):', queryError?.message);
             // Bei AbortSignal-Fehler: Leeres Array zurückgeben
@@ -449,16 +448,16 @@ export function useBudget() {
         try {
           console.log('Fetching AFA entries from relay...');
           
-          let events = [];
+          let events: NostrEvent[] = [];
           try {
             // Alte + neue Kinds für Migration (addressable + legacy)
-            events = await query([
+            events = await nostr.query([
               {
                 kinds: [BUDGET_CONFIG.KINDS.AFA, BUDGET_CONFIG.LEGACY.AFA],
                 authors: authorPubkeys,
                 limit: 1000,
               }
-            ], budgetRelayConfig) || [];
+            ], { signal: AbortSignal.timeout(budgetQueryTimeout) }) || [];
           } catch (queryError: any) {
             console.warn('AFA Query failed:', queryError?.message);
             return [];
