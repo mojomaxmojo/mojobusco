@@ -2,16 +2,16 @@ import { useState } from 'react';
 
 import { nip19 } from 'nostr-tools';
 
-import { DEFAULT_TEASER_RELAY } from '@/config/longformTeaser';
+import {
+  DEFAULT_TEASER_RELAY,
+  type LongformTeaserType,
+} from '@/config/longformTeaser';
 import { buildTranslatedDTag } from '@/config/translation';
 import {
   buildLanguageTags,
   buildTranslationRefTag,
 } from '@/lib/translationTags';
-import {
-  createLongformTeaser,
-  type LongformTeaserType,
-} from '@/lib/createLongformTeaser';
+import { createLongformTeaser } from '@/lib/createLongformTeaser';
 
 import { useNostrPublish } from './useNostrPublish';
 import { useToast } from './useToast';

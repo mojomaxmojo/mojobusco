@@ -62,12 +62,12 @@ export const MAIN_MENU_CONFIG: MainMenuItem[] = [
     icon: 'FileText',
     children: [
       { label: 'Alle Artikel', path: '/artikel', icon: 'FileText' },
-      { divider: true },
+      { divider: true, label: '' },
       { label: 'Nach Länder', icon: 'Flag', source: 'countries', pathPrefix: '/artikel/' },
       { label: 'DIY', emoji: '🛠️', icon: 'Wrench', children: DIY_ITEMS },
       { label: 'RV Life', emoji: '🚐', icon: 'MapPin', children: RV_LIFE_ITEMS },
       { label: 'Strand/Ort', labelKey: 'nav_articles_strandort', path: '/artikel/strand-ort', emoji: '🏖️', icon: 'Waves' },
-      { divider: true },
+      { divider: true, label: '' },
       { label: 'Leon Story', path: '/artikel/leon', emoji: '🦁', icon: 'Dog' },
       { label: 'Notes', path: '/artikel/notes', emoji: '📝', icon: 'StickyNote' },
     ],
@@ -80,9 +80,9 @@ export const MAIN_MENU_CONFIG: MainMenuItem[] = [
     icon: 'MapPin',
     children: [
       { label: 'Alle Plätze', path: '/plaetze', icon: 'MapPin' },
-      { divider: true },
+      { divider: true, label: '' },
       { label: 'Nach Länder', icon: 'Flag', source: 'countries', pathPrefix: '/plaetze/' },
-      { divider: true },
+      { divider: true, label: '' },
       {
         label: 'Nach Typen', icon: 'MapPin',
         children: [
@@ -115,9 +115,9 @@ export const MAIN_MENU_CONFIG: MainMenuItem[] = [
     icon: 'Camera',
     children: [
       { label: 'Alle Bilder', path: '/bilder', icon: 'Images' },
-      { divider: true },
+      { divider: true, label: '' },
       { label: 'Nach Länder', icon: 'Flag', source: 'countries', pathPrefix: '/bilder/' },
-      { divider: true },
+      { divider: true, label: '' },
       { label: 'Natur', icon: 'Sun', children: NATURE_ITEMS },
     ],
   },

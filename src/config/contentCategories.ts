@@ -217,7 +217,7 @@ export function eventBelongsToCategory(event: any, categoryId: string): boolean 
 
   const eventTags = event.tags?.filter((tag: any) => tag[0] === 't')?.map((tag: any) => tag[1]) || [];
 
-  return category.tags.filter.some(filterTag => eventTags.includes(filterTag));
+  return (category.tags.filter || []).some(filterTag => eventTags.includes(filterTag));
 }
 
 /**
