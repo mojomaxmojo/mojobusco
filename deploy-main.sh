@@ -364,6 +364,18 @@ deploy_files() {
         info_msg "✓ src/config/prompts/ deployed"
     fi
 
+    # src/config/api-auth.js + authors.json kopieren (NIP-98-Server-Imports!)
+    # server/middleware/nostr-auth.js + server/server.js importieren api-auth.js
+    # zur Laufzeit; nostr-auth.js liest authors.json (Autoren-Allowlist).
+    # Single Source of Truth bleibt src/config/ — hier nur die Deploy-Kopie.
+    for AUTH_FILE in api-auth.js authors.json; do
+        if [ -f "$PROJECT_DIR/src/config/$AUTH_FILE" ]; then
+            mkdir -p "$DEPLOY_DIR/src/config"
+            cp "$PROJECT_DIR/src/config/$AUTH_FILE" "$DEPLOY_DIR/src/config/" || error_exit "Kopieren von src/config/$AUTH_FILE fehlgeschlagen"
+            info_msg "✓ src/config/$AUTH_FILE deployed"
+        fi
+    done
+
     # ── Media-Library wiederherstellen (hochgeladene Artikel-Bilder) ─────────
     # Default-MEDIA_DIR liegt im Webroot (images/articles) und muss nach dem
     # Wipe neu angelegt + mit den gesicherten Bildern befüllt werden.

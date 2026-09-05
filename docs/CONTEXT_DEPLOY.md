@@ -138,6 +138,12 @@ Autoren-Allowlist (`src/config/authors.json`).
 **Deploy-Rollout (Reihenfolge wichtig):**
 1. Deploy (Frontend + Server) mit `AI_AUTH_REQUIRED=0` — Frontend sendet
    NIP-98-Header schon, Server ignoriert sie noch. Nichts bricht.
+   **Wichtig**: `deploy-main.sh` kopiert `src/config/api-auth.js` +
+   `src/config/authors.json` extra auf den VPS (`$DEPLOY_DIR/src/config/`) —
+   der Server importiert/liest diese beiden Dateien zur Laufzeit
+   (gleiches Muster wie `src/config/prompts/`). Fehlen sie: ai-api
+   crasht beim Start mit `ERR_MODULE_NOT_FOUND` (api-auth.js) bzw.
+   leere Allowlist (authors.json → alle 403 bei Flag=1).
 2. Autoren-Test: KI-Generierung, Video-Render, Assistent, Pinterest-Dashboard
    (getestet wird implizit mit, da authedFetch nur bei geschützten Routen signiert).
 3. Scharf schalten: in `/etc/systemd/system/ai-api.env` `AI_AUTH_REQUIRED=1`
