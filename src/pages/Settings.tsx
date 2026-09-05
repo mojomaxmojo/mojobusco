@@ -421,7 +421,7 @@ export function Settings() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleCopyToClipboard(metadata.nip05, 'NIP-05')}
+                              onClick={() => handleCopyToClipboard(metadata.nip05!, 'NIP-05')}
                             >
                               {copiedKey === 'NIP-05' ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                             </Button>

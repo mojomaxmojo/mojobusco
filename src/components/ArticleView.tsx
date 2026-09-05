@@ -524,7 +524,7 @@ export function ArticleView({ naddr }: ArticleViewProps) {
       meta: metaEntries,
       link: [
         { rel: 'canonical', href: canonicalHref },
-        { rel: 'author', href: authorProfileUrl, title: authorName },
+        { rel: 'author', href: authorProfileUrl, title: currentAuthorName },
         ...(pairNaddr ? [
           { rel: 'alternate', href: getCanonicalUrl(lang === 'de' ? `/en/${pairNaddr}` : `/${pairNaddr}`), hreflang: otherLang },
           { rel: 'alternate', href: getCanonicalUrl(lang === 'de' ? `/${canonicalNaddr(naddr)}` : `/en/${canonicalNaddr(naddr)}`), hreflang: articleLang },

@@ -250,8 +250,9 @@ export function useZaps(
       const zapAmount = amount * 1000; // convert to millisats
 
       // Create the zap request with all required properties
+      // (nur `event` übergeben: die Implementation nutzt params.event.pubkey
+      // als 'p'-Tag, ein zusätzliches profile wäre eine Excess-Property)
       const zapRequestTemplate = nip57.makeZapRequest({
-        profile: actualTarget.pubkey,
         event: event,
         amount: zapAmount,
         relays: [config.write.activeRelay],

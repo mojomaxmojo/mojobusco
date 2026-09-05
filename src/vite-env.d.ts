@@ -13,3 +13,11 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+// Capacitor/iOS: WKWebView-Bridge (window.webkit.messageHandlers) für
+// Native-Broadcasts (nostr-broadcast-Handler im Swift-Code)
+interface Window {
+  webkit?: {
+    messageHandlers?: Record<string, { postMessage: (message: unknown) => void }>;
+  };
+}
