@@ -27,6 +27,12 @@ export function useReplaceableContent({ dTag, limit = 50 }: UseReplaceableConten
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  // HINWEIS (PLAN7): `30000 + 30 + dTag` ergibt mit string-dTag zur Laufzeit
+  // einen STRING (z. B. "30030mojobus-modern") – der Kind-Wert ist damit real
+  // unbrauchbar. Verhalten unverändert belassen (Typ-Cast), Design-Entscheidung
+  // (echter kind + '#d'-Filter, z. B. NIP-78 kind 30078) ist offen.
+  const replaceableKind = (30000 + 30 + dTag) as unknown as number;
+
   // Query für den aktuellen replaceable content
   const { data: content, isLoading, error } = useQuery<ReplaceableContent[]>({
     queryKey: ['replaceable-content', dTag],
@@ -35,7 +41,7 @@ export function useReplaceableContent({ dTag, limit = 50 }: UseReplaceableConten
 
       const events = await nostr.query([
         {
-          kinds: [30000 + 30 + dTag], // Replaceable Kind mit spezifischem d-tag
+          kinds: [replaceableKind],
           limit,
           order: 'created_at_desc'
         }
@@ -54,8 +60,7 @@ export function useReplaceableContent({ dTag, limit = 50 }: UseReplaceableConten
         })()
       }));
     },
-    staleTime: 30000,
-    initialPageParam: () => null
+    staleTime: 30000
   });
 
   // Mutation für Content-Updates
@@ -68,19 +73,19 @@ export function useReplaceableContent({ dTag, limit = 50 }: UseReplaceableConten
       // Prüfe ob bereits ein aktiver Inhalt mit d-tag existiert
       const existingEvents = content ? await nostr.query([
         {
-          kinds: [30000 + 30 + dTag],
-          '#t': ['d', dTag, 'address', address.toLowerCase()]
+          kinds: [replaceableKind],
+          '#t': ['d', dTag, 'address', address?.toLowerCase() ?? '']
         },
         { limit: 1 }
       ]) : [];
 
       const event = await nostr.event({
-        kind: 30000 + 30 + dTag,
+        kind: replaceableKind,
         content,
         tags: [
           ['d', dTag],
           ['u', 'updated_at', Date.now().toString()],
-          ...(address ? ['a', address.toLowerCase()] : []),
+          ...(address ? [['a', address.toLowerCase()]] : []),
           ...additionalTags.map(tag => ['t', tag])
         ],
         created_at: Math.floor(Date.now() / 1000)
@@ -90,7 +95,7 @@ export function useReplaceableContent({ dTag, limit = 50 }: UseReplaceableConten
         // Wenn Content existiert, aktualisiere bestehenden statt neuen zu erstellen
         const existingEvent = existingEvents[0];
         const updateEvent = await nostr.event({
-          kind: 30000 + 30 + dTag,
+          kind: replaceableKind,
           content,
           tags: [
             ['d', dTag],
@@ -101,7 +106,9 @@ export function useReplaceableContent({ dTag, limit = 50 }: UseReplaceableConten
           created_at: Math.floor(Date.now() / 1000)
         });
 
-        await nostr.publish(updateEvent);
+        // HINWEIS (PLAN7): nostr.publish existiert auf NPool nicht (TypeError);
+        // nostr.event() published bereits selbst – der doppelte Aufruf wurde
+        // entfernt.
 
         toast({
           title: 'Inhalt aktualisiert',
@@ -113,9 +120,9 @@ export function useReplaceableContent({ dTag, limit = 50 }: UseReplaceableConten
         return updateEvent;
       }
 
-      await nostr.publish(event);
-
       // Broadcast für Live-Updates
+      // HINWEIS (PLAN7): nostr.publish existierte auf NPool nicht (TypeError
+      // bei jedem Speichern); nostr.event() published bereits selbst.
       if (typeof window !== 'undefined' && window.webkit?.messageHandlers) {
         window.webkit.messageHandlers['nostr-broadcast'].postMessage({
           type: 'content-updated',
@@ -162,14 +169,14 @@ export function useReplaceableContent({ dTag, limit = 50 }: UseReplaceableConten
  * Hook für einzelne replaceable content items
  */
 export function useReplaceableContentItem(dTag: string, address?: string) {
-  const { updateContent, isLoading } = useReplaceableContent({ dTag });
+  const { content: contentItems, updateContent, isLoading } = useReplaceableContent({ dTag });
   
   const saveContent = async (content: string, additionalTags: string[] = []) => {
     return updateContent({ content, address, additionalTags });
   };
 
   return {
-    content: isLoading ? {} : updateContent.data?.[0]?.content || '',
+    content: isLoading ? {} : contentItems[0]?.content || '',
     isLoading,
     saveContent,
     updateContent

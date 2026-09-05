@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, type ReactElement } from 'react';
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { ScrollToTop } from "./components/ScrollToTop";
 import { Header } from "./components/Header";
@@ -46,7 +46,7 @@ const NotFound = lazy(() => import("./pages/NotFound").then(m => ({ default: m.d
 // sein müssen. Diese werden weiter unten zweimal gemappt (einmal ohne Präfix,
 // einmal mit `/en`), statt jede Zeile händisch zu duplizieren. Interne
 // Redaktions-Tools stehen NICHT hier und bleiben daher ohne `/en/`-Zugriff.
-const PUBLIC_ROUTE_DEFINITIONS: { path: string; element: JSX.Element }[] = [
+const PUBLIC_ROUTE_DEFINITIONS: { path: string; element: ReactElement }[] = [
   { path: "/", element: <Home /> },
   { path: "/artikel", element: <Articles /> },
   { path: "/artikel/:country", element: <Articles /> },
@@ -100,7 +100,9 @@ function App() {
               <Route path="/settings/nostr-handler" element={<NIP89SetupPage />} />
               <Route path="/budget" element={<BudgetPage />} />
                <Route path="/veroeffentlichen" element={<Publish />} />
-               <Route path="/veroeffentlichen/modern" element={<ContentEditorMinimal />} />
+               {/* Demo-Route: ContentEditorFixed braucht einen d-Tag (POC-Editor,
+                   keine Produktion – siehe useReplaceableContent-Hinweise) */}
+               <Route path="/veroeffentlichen/modern" element={<ContentEditorMinimal dTag="mojobus-modern" />} />
                 <Route path="/perpetual-travelers" element={<PerpetualTravelers />} />
                 <Route path="/promotion" element={<PromotionDashboard />} />
                 <Route path="/promotion/tiktok" element={<VideoPromotion />} />

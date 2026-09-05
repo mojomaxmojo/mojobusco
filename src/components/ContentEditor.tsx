@@ -36,7 +36,7 @@ export function ContentEditorFixed({ dTag, initialContent = '', onSave, mode = '
     }
 
     try {
-      await updateContent(content);
+      await updateContent({ content });
       
       if (onSave) {
         onSave(content);
