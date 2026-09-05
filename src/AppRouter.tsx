@@ -27,7 +27,6 @@ const TripsPage = lazy(() => import("./pages/TripsPage").then(m => ({ default: m
 const TripDetail = lazy(() => import("./pages/TripDetail").then(m => ({ default: m.default })));
 const ImageDetail = lazy(() => import("./pages/ImageDetail").then(m => ({ default: m.ImageDetail })));
 const Publish = lazy(() => import("./pages/Publish").then(m => ({ default: m.Publish })));
-const PerpetualTravelers = lazy(() => import("./pages/PerpetualTravelers").then(m => ({ default: m.PerpetualTravelers })));
 const PromotionDashboard = lazy(() => import("./pages/PromotionDashboard").then(m => ({ default: m.PromotionDashboard })));
 const Profile = lazy(() => import("./pages/Profile").then(m => ({ default: m.Profile })));
 const Settings = lazy(() => import("./pages/Settings").then(m => ({ default: m.Settings })));
@@ -98,9 +97,8 @@ function App() {
               <Route path="/settings/service-worker" element={<ServiceWorkerSettings />} />
               <Route path="/settings/nostr-handler" element={<NIP89SetupPage />} />
               <Route path="/budget" element={<BudgetPage />} />
-               <Route path="/veroeffentlichen" element={<Publish />} />
-                <Route path="/perpetual-travelers" element={<PerpetualTravelers />} />
-                <Route path="/promotion" element={<PromotionDashboard />} />
+                <Route path="/veroeffentlichen" element={<Publish />} />
+                 <Route path="/promotion" element={<PromotionDashboard />} />
                 <Route path="/promotion/tiktok" element={<VideoPromotion />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

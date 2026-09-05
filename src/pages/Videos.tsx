@@ -1,5 +1,5 @@
 /**
- * Videos.tsx – MojoBus Video-Feed
+ * Videos.tsx — MojoBus Video-Feed
  *
  * Vertikaler Scroll-Feed wie TikTok/Reels – kein Grid.
  * - 9:16 Videos: max 420px breit, zentriert
@@ -356,10 +356,10 @@ export function Videos() {
   const deVideos = videos.filter(v => getEventLanguage(v.event) === 'de')
 
   useHead({
-    title: 'Videos – MojoBus',
+    title: 'Videos — MojoBus',
     meta: [
       { name: 'description', content: 'Kurzvideos, Reels und Momente von Max & Susanne im Mojobus.' },
-      { property: 'og:title', content: 'Videos – MojoBus' },
+      { property: 'og:title', content: 'Videos — MojoBus' },
       { property: 'og:description', content: 'Kurzvideos, Reels und Momente von Max & Susanne im Mojobus.' },
       { property: 'og:url', content: canonicalUrl('/videos') },
     ],

@@ -24,16 +24,16 @@ import { useLanguage } from '@/hooks/useLanguage';
 export function StrandOrt() {
   // SEO Meta Tags
   useHead({
-    title: 'Strand/Ort - MojoBus',
+    title: 'Strand/Ort — MojoBus',
     meta: [
       { name: 'description', content: 'Strände, Berge, Wälder, Meer und besondere Orte. Tipps, Geschichten und Inspiration für Vanlife-Reisende.' },
       { name: 'keywords', content: 'Strand, Berg, Wald, Meer, Ort, Vanlife, Reisen, Camping, Europa' },
-      { property: 'og:title', content: 'Strand/Ort - MojoBus' },
+      { property: 'og:title', content: 'Strand/Ort — MojoBus' },
       { property: 'og:description', content: 'Strände, Berge, Wälder, Meer und besondere Orte. Tipps, Geschichten und Inspiration für Vanlife-Reisende.' },
       { property: 'og:url', content: canonicalUrl('/artikel/strand-ort') },
       { property: 'og:type', content: 'website' },
       { property: 'og:image', content: ogImageUrl() },
-      { name: 'twitter:title', content: 'Strand/Ort - MojoBus' },
+      { name: 'twitter:title', content: 'Strand/Ort — MojoBus' },
       { name: 'twitter:description', content: 'Strände, Berge, Wälder, Meer und besondere Orte. Tipps, Geschichten und Inspiration für Vanlife-Reisende.' },
     ],
     link: [

@@ -5,6 +5,53 @@
 
 ---
 
+## SEO-Audit-Umsetzung: 7 Fixes (2026-09-06)
+
+**Auftrag**: „Schau dir die ganze Seite noch einmal an, ob wir nun alles für
+SEO getan haben. Dann Vorschlag zur Behebung" → User: „JA 1–7" +
+„/perpetual-travelers löschen".
+
+**Umgesetzt**:
+1. **`/perpetual-travelers` gelöscht** — Route + Lazy-Import aus
+   `AppRouter.tsx` entfernt, `src/pages/PerpetualTravelers.tsx` gelöscht
+   (internes KI-Tool mit Upload-Formular, war fälschlich in der Sitemap).
+   Sitemap-Eintrag aus `generate-sitemap.js` entfernt.
+   (Die `'perpetual-travelers'`-Lifestyle-Typen in `prompts/lifestyles.ts`
+   sind davon UNBERÜHRT — nur die Route wurde gelöscht.)
+2. **`/artikel/strand-ort` in Sitemap aufgenommen** (Route existierte, fehlte
+   in den statischen Einträgen).
+3. **robots.txt**: `Disallow: /admin` ergänzt; neue Sektion „Maschinen-Routen"
+   (`/api/`, `/data/`) — JSON-Dumps + API sind App-only, kein Crawl-Budget.
+4. **index.html**: `hreflang="en"` → `https://mojobus.co/en/` (die /en/-Welt
+   existierte, wurde aber im Head nicht deklariert), `og:locale:alternate`
+   de_DE→en_US, feed-en.xml als zweiten RSS-Link, `apple-touch-icon` +
+   favicon-32/192-Links (Dateien existierten, waren nicht verlinkt).
+5. **favicon.ico + Icons**: Skript `scripts/generate-icons.js` existierte,
+   war aber NIE gelaufen (alle icon-*.png = identische 152×152-Kopien,
+   favicon.ico = 0 Bytes). `jimp@^1.6.1` + `png-to-ico@^3.0.2` als
+   devDependencies ergänzt. **Ausführen auf dem VPS** (hier kein Node):
+   `npm install && node scripts/generate-icons.js` → danach generierte Dateien
+   committen + Deploy.
+6. **Titel-Suffix vereinheitlicht** auf ` — MojoBus` (Geviertstrich, wie
+   Prerender + Doku): Articles, Notes, DIY, RVLife, StrandOrt, Leon
+   (`- MojoBus` → ` — MojoBus`) und Videos (`– MojoBus` → ` — MojoBus`).
+7. **NotFound**: `robots: noindex, follow` + deutsche Texte (vorher
+   englischer Titel „404 - Page Not Found", Soft-404-Risiko).
+8. **mojobus.co.ssl.conf**: eigener 443-Serverblock für www.mojobus.co mit
+   301 auf kanonische Domain (vorher servierte der Hauptblock www mit
+   vollem Content = Duplicate-Host) + HSTS (`max-age=31536000`, bewusst
+   ohne includeSubDomains) auf Server-Ebene UND in der HTML-Location
+   (nginx-Gotcha: eigene add_header brechen Server-Level-Vererbung).
+   **Aktivierung nur auf dem VPS** — VORHER prüfen, dass das Zertifikat
+   www.mojobus.co abdeckt (SAN), sonst TLS-Fehler vor dem Redirect;
+   dann `nginx -t && nginx -s reload`.
+
+**Noch auf dem VPS nötig** (Kleber im Befehlsblock der Chat-Antwort):
+`npm install && node scripts/generate-icons.js` (einmalig),
+Sitemap-Regenerierung läuft über den 6:00-Cron bzw. Publish-Pipeline.
+
+---
+
 ## KI-Routen-Schutz: NIP-98 Author-Auth (nur Max & Susanne) (2026-09-06)
 
 **Auftrag**: „Zur Zeit sind die KI-Routen alle ungeschützt" — nur die 2

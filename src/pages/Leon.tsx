@@ -81,7 +81,7 @@ export function Leon() {
   }, [leonArticles, searchTerm]);
 
   // Simple SEO Meta Tags
-  const pageTitle = `Leon Stories (${filteredArticles.length}) - MojoBus`;
+  const pageTitle = `Leon Stories (${filteredArticles.length}) — MojoBus`;
   const pageDescription = `Entdecke ${filteredArticles.length} Geschichten von Leon (Lionhunter) - unser Hund, unser Begleiter beim Vanlife.`;
 
   // Simple SEO Meta Tags

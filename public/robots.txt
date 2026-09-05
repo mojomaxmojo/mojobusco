@@ -32,6 +32,11 @@ Disallow: /settings
 Disallow: /veroeffentlichen
 Disallow: /budget
 Disallow: /promotion
+Disallow: /admin
+
+# Keine Maschinen-Routen (JSON-Dumps + API nur für die App)
+Disallow: /api/
+Disallow: /data/
 
 # Sitemaps
 Sitemap: https://mojobus.co/sitemap.xml

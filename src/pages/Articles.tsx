@@ -125,8 +125,8 @@ function Articles() {
 
   // Simple SEO Meta Tags
   const pageTitle = currentCountry
-    ? `Artikel aus ${currentCountry.name} ${currentCountry.flag} (${filteredArticles.length}) - MojoBus`
-    : `Artikel (${filteredArticles.length}) - MojoBus`;
+    ? `Artikel aus ${currentCountry.name} ${currentCountry.flag} (${filteredArticles.length}) — MojoBus`
+    : `Artikel (${filteredArticles.length}) — MojoBus`;
 
   const pageDescription = currentCountry
     ? `Entdecke ${filteredArticles.length} Reiseberichte und Geschichten aus ${currentCountry.name}.`

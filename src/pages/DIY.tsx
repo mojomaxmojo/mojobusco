@@ -25,15 +25,15 @@ import { useLanguage } from '@/hooks/useLanguage';
 export function DIY() {
   // SEO Meta Tags
   useHead({
-    title: 'DIY Vanlife Umbau & Solar - MojoBus',
+    title: 'DIY Vanlife Umbau & Solar — MojoBus',
     meta: [
       { name: 'description', content: 'DIY-Anleitungen für den Vanlife-Umbau: Solaranlage, Innenausbau, Reparaturen und Selbstbau-Projekte für Wohnmobil und Camper.' },
       { name: 'keywords', content: 'DIY, Vanlife Umbau, Solaranlage, Wohnmobil Selbstbau, Camper Ausbau, Reparatur, Offgrid' },
-      { property: 'og:title', content: 'DIY Vanlife Umbau & Solar - MojoBus' },
+      { property: 'og:title', content: 'DIY Vanlife Umbau & Solar — MojoBus' },
       { property: 'og:description', content: 'DIY-Anleitungen für den Vanlife-Umbau: Solaranlage, Innenausbau, Reparaturen und Selbstbau-Projekte.' },
       { property: 'og:url', content: canonicalUrl('/artikel/diy') },
       { property: 'og:type', content: 'website' },
-      { name: 'twitter:title', content: 'DIY Vanlife Umbau & Solar - MojoBus' },
+      { name: 'twitter:title', content: 'DIY Vanlife Umbau & Solar — MojoBus' },
       { name: 'twitter:description', content: 'DIY-Anleitungen für den Vanlife-Umbau: Solaranlage, Innenausbau, Reparaturen und Selbstbau-Projekte.' },
     ],
     link: [

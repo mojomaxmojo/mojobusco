@@ -395,7 +395,7 @@ async function main() {
     { loc: BASE_URL + '/map',            priority: '0.7', changefreq: 'weekly',  lastmod: today },
     { loc: BASE_URL + '/map/trips',      priority: '0.7', changefreq: 'weekly',  lastmod: today },
     { loc: BASE_URL + '/about',          priority: '0.5', changefreq: 'monthly', lastmod: today },
-    { loc: BASE_URL + '/perpetual-travelers', priority: '0.6', changefreq: 'weekly', lastmod: today },
+    { loc: BASE_URL + '/artikel/strand-ort', priority: '0.8', changefreq: 'weekly', lastmod: today },
     { loc: BASE_URL + '/feed.xml',       priority: '0.4', changefreq: 'hourly',  lastmod: today },
   ];
 

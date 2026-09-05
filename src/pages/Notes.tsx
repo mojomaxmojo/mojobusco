@@ -53,8 +53,8 @@ export function Notes() {
 
   // SEO Meta Tags
   const pageTitle = currentCountry
-    ? `Notes aus ${currentCountry.name} ${currentCountry.flag} - MojoBus`
-    : 'Notes - MojoBus';
+    ? `Notes aus ${currentCountry.name} ${currentCountry.flag} — MojoBus`
+    : 'Notes — MojoBus';
 
   const pageDescription = currentCountry
     ? `Aktuelle Updates und Gedanken aus ${currentCountry.name}. Vanlife, Offgrid und tägliche Abenteuer.`
