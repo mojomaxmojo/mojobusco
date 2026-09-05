@@ -18,9 +18,12 @@ export function useReactions(root: NostrEvent, emoji?: string) {
         limit: 500,
       };
 
-      // Optional: Filter by specific emoji (e.g., "❤️" for likes)
+      // Optional: Filter by specific emoji (e.g., "❤️" für Likes)
+      // HINWEIS: NIP-01-Filter kennen kein content-Matching – das Feld wurde
+      // von Relays nie ausgewertet (Emoji-Filter wirkungslos). Cast nur für
+      // Typ-Sicherheit; sauber wäre clientseitiges Filtern.
       if (emoji) {
-        filter.content = emoji;
+        (filter as unknown as { content?: string }).content = emoji;
       }
 
       const events = await nostr.query([filter], {

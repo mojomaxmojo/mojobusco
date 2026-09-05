@@ -8,6 +8,7 @@
  * handleSubmit (inkl. Route navigate('/artikel')).
  */
 
+import type { Dispatch, SetStateAction } from "react";
 import { createRequiredTags } from "@/config/contentCategories";
 import { getCountryTag } from "@/components/CountrySelector";
 import { createLongformTeaser } from "@/lib/createLongformTeaser";
@@ -18,6 +19,9 @@ import { canonicalUrl, articleUrl, canonicalNaddr } from "@/lib/canonicalUrl";
 import { buildAuthorInput, buildSmartSlug } from "@/config/assistant";
 import { nip19 } from "nostr-tools";
 import { AUTOSAVE_KEY } from "./articleFormConfig";
+
+/** Gleicher Lifestyle-Typ wie der ArticleForm-State (vgl. useArticleAutosave) */
+type ArticleLifestyle = 'mojobus' | 'wohnmobil' | 'rvlife' | 'vanlife' | 'beachlife' | 'perpetual-travelers';
 import { COUNTRY_TAG_LIST } from "./articleFormConfig";
 import type { TripType } from "@/config/tags";
 import type { AssistantDraftArticle } from "@/components/assistant/DraftsOverview";
@@ -97,7 +101,10 @@ interface UseArticlePublishParams {
   // für loadDraftIntoForm (vom Plan nicht gelistet, technisch nötig)
   setArticleLength: (v: 'short' | 'medium' | 'long') => void;
   setTripType: (v: TripType) => void;
-  setLifestyle: (v: string) => void;
+  // Dispatch-Union (gleicher Lifestyle-Typ wie ArticleForm-State, Muster
+  // NoteAiSection) – ein plain (v: string) => void passt nicht auf den
+  // Dispatch aus useState<Union>
+  setLifestyle: Dispatch<SetStateAction<ArticleLifestyle>>;
   setResearchFacts: (v: string) => void;
   setExperienceNotes: (v: string) => void;
   // Teaser-Publish-Indikator (State bleibt in ArticleForm, Setter wird weitergereicht)
@@ -191,7 +198,7 @@ export function useArticlePublish({
       setArticleLength(article.article_length);
     }
     if (article.trip_type) setTripType(article.trip_type as TripType);
-    if (article.lifestyle) setLifestyle(article.lifestyle as typeof lifestyle);
+    if (article.lifestyle) setLifestyle(article.lifestyle as ArticleLifestyle);
     setSeoTitle(article.seo_title || '');
     setSeoMetaDescription(article.meta_description || '');
     setSeoSlug(article.slug || '');

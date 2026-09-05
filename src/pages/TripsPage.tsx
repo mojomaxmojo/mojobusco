@@ -42,7 +42,10 @@ function TripCard({ trip, onHover }: { trip: Trip; onHover?: (id: string | null)
   const displayName = metadata?.name || genUserName(trip.author);
   const profileImage = metadata?.picture;
   
-  const distance = trip.distance || calculateTripDistance(trip.waypoints);
+  // trip.distance ist ein String-Tag → in km-Zahl umwandeln, sonst berechnen
+  const distance = trip.distance
+    ? (parseFloat(trip.distance) || calculateTripDistance(trip.waypoints))
+    : calculateTripDistance(trip.waypoints);
   const gpsPoints = trip.waypoints.filter(w => w.lat && w.lon).length;
   
   // Optimize thumbnail URL via images.weserv.nl
@@ -108,7 +111,7 @@ function TripCard({ trip, onHover }: { trip: Trip; onHover?: (id: string | null)
               variant="outline" 
               className="bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 text-yellow-800 dark:text-yellow-200"
             >
-              {trip.categoryEmoji} {trip.category?.charAt(0).toUpperCase() + trip.category?.slice(1)}
+              {trip.categoryEmoji} {trip.category ? trip.category.charAt(0).toUpperCase() + trip.category.slice(1) : ''}
             </Badge>
             {distance > 0 && (
               <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/20 border-blue-300">

@@ -23,7 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { CountrySelector } from "@/components/CountrySelector";
 import { CONTENT_CATEGORIES, getOptionalTags, getTabConfig } from "@/config/contentCategories";
-import { ARTICLE_CATEGORIES, DIY_CATEGORIES, DIY_TAGS, NATURE_CATEGORIES, NATURE_TAGS, TAG_GROUPS } from "@/config";
+import { ARTICLE_CATEGORIES, DIY_CATEGORIES, DIY_TAGS, TAG_GROUPS } from "@/config";
 import { TRIP_TYPES, type TripType } from "@/config/tags";
 import MAIN_MENU from "@/config/menu";
 import { RV_LIFE_CONFIG } from "@/config/rvlife";
@@ -172,8 +172,13 @@ export function PlaceForm({ editEvent }: { editEvent?: NostrEvent }) {
         // Clean up extra whitespace
         cleanContent = cleanContent.replace(/\n\s*\n\s*\n/g, '\n\n').trim();
 
-        // Markdown zu HTML konvertieren
-        contentToSet = markdownToHtml(cleanContent || '');
+        // PLAN7-Entscheidung (Offenpunkt aus prompt.md §4.1): markdownToHtml
+        // existierte nirgends im Projekt (ReferenceError beim Editieren alter
+        // type=article-Orte). ArticleForm/NoteForm laden den Content ebenfalls
+        // ROH – daher jetzt identisch: rohes Markdown in den Editor, keine
+        // HTML-Konvertierung. Falls der Editor doch HTML braucht: remark-
+        // basierte Konvertierung nachrüsten (remark-parse/rehype via Milkdown).
+        contentToSet = cleanContent || '';
       }
 
       setDescription(contentToSet);

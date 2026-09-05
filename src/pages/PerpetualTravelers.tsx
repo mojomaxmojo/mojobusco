@@ -1,15 +1,15 @@
-import { useState } from 'react'
+import { useState, type ChangeEvent } from 'react'
 import { getApiBaseUrl } from '@/lib/apiBase'
 
 export function PerpetualTravelers() {
-  const [images, setImages] = useState([])
+  const [images, setImages] = useState<File[]>([])
   const [text, setText] = useState('')
   const [article, setArticle] = useState('')
   const [videoUrl, setVideoUrl] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const handleImageUpload = (e) => {
-    const files = Array.from(e.target.files)
+  const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? [])
     if (files.length > 10) {
       alert('Max 10 Bilder erlaubt')
       return

@@ -23,7 +23,7 @@ import { Upload, UploadCloud, ImageIcon, Video, Camera, Calendar, Tag, Battery, 
 import { extractGpsFromImage, reverseGeocode, mapCountryCode, type GpsStatus, type LocationData } from "@/lib/gpsExtraction";
 import { getTagValue, getTagValues } from "@/lib/nostrEventUtils";
 import { extractGpsCrossPlatform, getCurrentPosition, positionToGpsData, isCapacitorNative, pickFilesNative } from "@/lib/capacitorGps";
-import { createCorrectedPreview, mediaTypes, mainCategories, subCategories, type MediaFile } from "./publishUtils";
+import { createCorrectedPreview, mediaTypes, mainCategories, subCategories, type MediaFile, type UploadProgress } from "./publishUtils";
 import exifr from "exifr";
 import { natureSubcategories, countryTags } from "./mediaUploadForm/mediaUploadFormConfig";
 import { TagSummarySection } from "./mediaUploadForm/TagSummarySection";
@@ -58,7 +58,7 @@ export function MediaUploadForm({ editEvent }: { editEvent?: NostrEvent }) {
   const [selectedModel, setSelectedModel] = useState<TextModelTier>('medium');
   const [lifestyle, setLifestyle] = useState<'mojobus' | 'vanlife' | 'rvlife' | 'beachlife' | 'wohnmobil' | 'perpetual-travelers'>('mojobus');
   const [tripType, setTripType] = useState<TripType | ''>('');
-  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0, stage: '', status: '' });
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress>({ current: 0, total: 0, stage: '', status: '' });
   const [createVideoOpen, setCreateVideoOpen] = useState(false);
 
   // Status-Text für nativen Dateipicker (sichtbar im UI, keine Toasts)
@@ -161,7 +161,7 @@ export function MediaUploadForm({ editEvent }: { editEvent?: NostrEvent }) {
        const firstGpsImage = files.find(f => f.type === 'image' && f.gps && f.gpsStatus === 'detected');
        if (firstGpsImage && !location) {
          console.log('[Media GPS] GPS detected, reverse geocoding...');
-         const locationData = await reverseGeocode(firstGpsImage.gps.latitude, firstGpsImage.gps.longitude);
+         const locationData = await reverseGeocode(firstGpsImage.gps!.latitude, firstGpsImage.gps!.longitude);
          if (locationData) {
            // Set location to city + neighbourhood/suburb (no postcode)
            const locationParts = [
@@ -409,7 +409,7 @@ export function MediaUploadForm({ editEvent }: { editEvent?: NostrEvent }) {
     const firstGpsImage = newFiles.find(f => f.type === 'image' && f.gps && f.gpsStatus === 'detected');
     if (firstGpsImage && !location) {
       try {
-        const locationData = await reverseGeocode(firstGpsImage.gps.latitude, firstGpsImage.gps.longitude);
+        const locationData = await reverseGeocode(firstGpsImage.gps!.latitude, firstGpsImage.gps!.longitude);
         if (locationData) {
           const locationParts = [locationData.city, locationData.neighbourhood, locationData.suburb].filter(Boolean);
           const loc = locationParts.join(', ');

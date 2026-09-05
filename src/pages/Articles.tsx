@@ -35,8 +35,8 @@ function Articles() {
   const { data: articles, isLoading } = usePreloadedArticles();
   const { lang } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTag, setSelectedTag] = useState(null);
-  const [selectedAuthor, setSelectedAuthor] = useState(null);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [selectedAuthor, setSelectedAuthor] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(30);
 
   // Infinite Scroll trigger

@@ -20,7 +20,7 @@ import { type GenderType } from "@/config/prompts/lifestyles";
 import { ModelSelect, type TextModelTier } from "@/components/ModelSelect";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { ARTICLE_CATEGORIES, DIY_CATEGORIES, DIY_TAGS, NATURE_CATEGORIES, NATURE_TAGS, TAG_GROUPS } from "@/config";
+import { ARTICLE_CATEGORIES, DIY_CATEGORIES, DIY_TAGS, TAG_GROUPS } from "@/config";
 import { TRIP_TYPES, type TripType } from "@/config/tags";
 import { RV_LIFE_CONFIG } from "@/config/rvlife";
 import { STRANDORT_CONFIG } from "@/config/strandort";

@@ -349,7 +349,7 @@ export default function TripDetail() {
                     variant="outline" 
                     className="bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300"
                   >
-                    {trip.categoryEmoji} {trip.category?.charAt(0).toUpperCase() + trip.category?.slice(1)}
+                    {trip.categoryEmoji} {trip.category ? trip.category.charAt(0).toUpperCase() + trip.category.slice(1) : ''}
                   </Badge>
                   {distance > 0 && (
                     <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/20 border-blue-300">

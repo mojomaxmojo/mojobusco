@@ -74,8 +74,11 @@ function Places() {
 
   // Filter Events nach Country
   const languageFilteredEvents = (events || []).filter(e => getEventLanguage(e) === lang);
+  // FIX (PLAN7): vorher wurde das CountryInfo-Objekt übergeben (erwartet ist
+  // der Länder-Code-String) → includes()-Vergleich griff nie und Länderseiten
+  // zeigten leere Listen
   const filteredEvents = currentCountry
-    ? filterEventsByCountry(languageFilteredEvents, currentCountry)
+    ? filterEventsByCountry(languageFilteredEvents, country)
     : languageFilteredEvents;
 
   // Filter Events nach Search Query

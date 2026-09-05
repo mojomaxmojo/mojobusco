@@ -47,6 +47,8 @@ interface ImageEvent {
   content: string;
   created_at: number;
   tags: string[][];
+  /** Signatur (von Relays immer geliefert, fehlte bisher im Interface) */
+  sig: string;
 }
 
 function Images() {

@@ -93,13 +93,16 @@ export function useMediaGpsEditing({ files, setFiles, setLocation, setSelectedCo
 
   const applyGpsToAll = (sourceFileId: string) => {
     const sourceFile = files.find(f => f.id === sourceFileId);
-    if (!sourceFile || !sourceFile.gps) return;
+    // gps in eine Konstante ziehen – das Narrowing des Guards überlebt
+    // nicht in den map-Callback hinein
+    const sourceGps = sourceFile?.gps;
+    if (!sourceFile || !sourceGps) return;
 
     setFiles(prev => prev.map(file => {
       if (file.type === 'image' && file.id !== sourceFileId) {
         return {
           ...file,
-          gps: { ...sourceFile.gps },
+          gps: { ...sourceGps },
           gpsStatus: 'manual',
         };
       }

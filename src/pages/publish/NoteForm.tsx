@@ -18,7 +18,7 @@ import { useNostr } from "@nostrify/react";
 import { useQuery } from "@tanstack/react-query";
 import { Switch } from "@/components/ui/switch";
 import { CountrySelector } from "@/components/CountrySelector";
-import { ARTICLE_CATEGORIES, DIY_CATEGORIES, DIY_TAGS, NATURE_CATEGORIES, NATURE_TAGS, TAG_GROUPS } from "@/config";
+import { ARTICLE_CATEGORIES, DIY_CATEGORIES, DIY_TAGS, TAG_GROUPS } from "@/config";
 import type { TripType } from "@/config/tags";
 import MAIN_MENU from "@/config/menu";
 import { RV_LIFE_CONFIG } from "@/config/rvlife";

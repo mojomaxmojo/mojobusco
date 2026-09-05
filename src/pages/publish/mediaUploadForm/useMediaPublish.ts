@@ -182,7 +182,7 @@ export function useMediaPublish({ files, title, description, customTags,
           additionalTags.push(['gps_alt', firstGpsImage.gps.altitude.toString()]);
         }
         additionalTags.push(['gps_precision', firstGpsImage.gps.precision]);
-        additionalTags.push(['gps_source', firstGpsImage.gpsStatus]);
+        if (firstGpsImage.gpsStatus) additionalTags.push(['gps_source', firstGpsImage.gpsStatus]);
       }
 
       // Add location and date tags
