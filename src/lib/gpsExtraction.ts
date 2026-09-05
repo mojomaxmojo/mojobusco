@@ -66,11 +66,9 @@ export async function extractGpsFromImage(file: File): Promise<GpsData | null> {
     // === METHOD 1: Try exifr.gps() (standard EXIF GPS) ===
     let exifData;
     try {
-      exifData = await exifr.gps(file, {
-        exif: true,
-        xmp: true,
-        iptc: true,
-      });
+      // exifr.gps nimmt nur (input) – ein Options-Argument wird zur Laufzeit
+      // nicht ausgewertet ( gps() nutzt fixe gpsOnlyOptions)
+      exifData = await exifr.gps(file);
       console.log('[GPS Extraction] Method 1 - exifr.gps() result:', exifData);
     } catch (e1) {
       console.warn('[GPS Extraction] Method 1 failed:', e1);
@@ -97,8 +95,8 @@ export async function extractGpsFromImage(file: File): Promise<GpsData | null> {
         gps: true,
         iptc: true,
         mergeOutput: false,
-        chunked: true,  // Better for large files
-      });
+        chunked: true,  // Better for large files (runtime-valide Option, fehlt nur in exifrs .d.ts)
+      } as NonNullable<Parameters<typeof exifr.parse>[1]>);
     } catch (e2) {
       console.warn('[GPS Extraction] Full parse failed:', e2);
     }

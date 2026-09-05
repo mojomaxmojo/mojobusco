@@ -25,7 +25,7 @@ export async function readImageExif(file: File): Promise<{
 
     // Datum separat lesen
     try {
-      const dateExif = await exifr.parse(file, { exif: true, pickTags: ['DateTimeOriginal', 'CreateDate', 'GPSDateStamp', 'GPSTimeStamp'] });
+      const dateExif = await exifr.parse(file, { exif: true, pickTags: ['DateTimeOriginal', 'CreateDate', 'GPSDateStamp', 'GPSTimeStamp'] } as NonNullable<Parameters<typeof exifr.parse>[1]>);
       const exifDate = dateExif?.DateTimeOriginal || dateExif?.CreateDate;
 
       // GPS timestamp als Fallback
@@ -83,7 +83,7 @@ export async function readImageExif(file: File): Promise<{
 
     // Bildabmessungen versuchen zu lesen
     try {
-      const dimExif = await exifr.parse(file, { exif: true, pickTags: ['ImageWidth', 'ImageHeight', 'ExifImageWidth', 'ExifImageHeight'] });
+      const dimExif = await exifr.parse(file, { exif: true, pickTags: ['ImageWidth', 'ImageHeight', 'ExifImageWidth', 'ExifImageHeight'] } as NonNullable<Parameters<typeof exifr.parse>[1]>);
       exifWidth = dimExif?.ImageWidth || dimExif?.ExifImageWidth;
       exifHeight = dimExif?.ImageHeight || dimExif?.ExifImageHeight;
       if (exifWidth && exifHeight) {

@@ -74,7 +74,7 @@ export function useArticleImageGps({
 
         // Bildabmessungen lesen
         try {
-          const dimExif = await exifr.parse(file, { exif: true, pickTags: ['ImageWidth', 'ImageHeight', 'ExifImageWidth', 'ExifImageHeight'] });
+          const dimExif = await exifr.parse(file, { exif: true, pickTags: ['ImageWidth', 'ImageHeight', 'ExifImageWidth', 'ExifImageHeight'] } as NonNullable<Parameters<typeof exifr.parse>[1]>);
           exifWidth = dimExif?.ImageWidth || dimExif?.ExifImageWidth;
           exifHeight = dimExif?.ImageHeight || dimExif?.ExifImageHeight;
           if (exifWidth && exifHeight) {

@@ -299,7 +299,7 @@ export function MediaUploadForm({ editEvent }: { editEvent?: NostrEvent }) {
 
            // Bildabmessungen lesen
            try {
-             const dimExif = await exifr.parse(file, { exif: true, pickTags: ['ImageWidth', 'ImageHeight', 'ExifImageWidth', 'ExifImageHeight'] });
+             const dimExif = await exifr.parse(file, { exif: true, pickTags: ['ImageWidth', 'ImageHeight', 'ExifImageWidth', 'ExifImageHeight'] } as NonNullable<Parameters<typeof exifr.parse>[1]>);
              exifWidth = dimExif?.ImageWidth || dimExif?.ExifImageWidth;
              exifHeight = dimExif?.ImageHeight || dimExif?.ExifImageHeight;
              if (exifWidth && exifHeight) {
@@ -325,7 +325,7 @@ export function MediaUploadForm({ editEvent }: { editEvent?: NostrEvent }) {
       let exifDate: number | undefined;
       if (mediaType === 'image') {
         try {
-          const dateMeta = await exifr.parse(file, { exif: true, pickTags: ['DateTimeOriginal', 'CreateDate', 'DateTime'] });
+          const dateMeta = await exifr.parse(file, { exif: true, pickTags: ['DateTimeOriginal', 'CreateDate', 'DateTime'] } as NonNullable<Parameters<typeof exifr.parse>[1]>);
           const rawDate = dateMeta?.DateTimeOriginal || dateMeta?.CreateDate || dateMeta?.DateTime;
           if (rawDate instanceof Date) {
             exifDate = rawDate.getTime();
