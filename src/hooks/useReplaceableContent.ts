@@ -48,7 +48,10 @@ export function useReplaceableContent({ dTag, limit = 50 }: UseReplaceableConten
         kind: event.kind,
         address: event.tags.find(t => t[0] === 'd' && t[1] === dTag)?.[1] || '',
         created_at: event.created_at,
-        updated_at: event.tags.find(t => t[0] === 'u' && t[1] === 'updated_at')?.[1] ? parseInt(t[1]) : undefined
+        updated_at: (() => {
+          const u = event.tags.find(t => t[0] === 'u' && t[1] === 'updated_at')?.[1];
+          return u ? parseInt(u) : undefined;
+        })()
       }));
     },
     staleTime: 30000,

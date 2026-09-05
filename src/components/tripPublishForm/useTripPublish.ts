@@ -42,7 +42,7 @@ export function useTripPublish({
   slideshowVideoUrl: string | null
   setSlideshowVideoUrl: (v: string | null) => void
   gender: string
-  user: { pubkey?: string } | null
+  user: { pubkey?: string } | null | undefined
   setCurrentStep: (v: 'upload' | 'details' | 'preview' | 'publish') => void
   uploadImages: () => Promise<TripStation[]>
 }) {

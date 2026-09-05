@@ -10,12 +10,19 @@ interface PublishOptions {
   signal?: AbortSignal;
 }
 
-export function useNostrPublish(): UseMutationResult<NostrEvent, Error, Omit<NostrEvent, 'id' | 'pubkey' | 'sig'> & { relayUrls?: string[] }> {
+interface PublishEventInput extends Partial<Omit<NostrEvent, 'id' | 'pubkey' | 'sig'>> {
+  kind: number;
+  content: string;
+  tags: string[][];
+  relayUrls?: string[];
+}
+
+export function useNostrPublish(): UseMutationResult<NostrEvent, Error, PublishEventInput> {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
 
   return useMutation({
-    mutationFn: async (t: Omit<NostrEvent, 'id' | 'pubkey' | 'sig'> & { relayUrls?: string[] }) => {
+    mutationFn: async (t: PublishEventInput) => {
       if (user) {
         const tags = t.tags ?? [];
 

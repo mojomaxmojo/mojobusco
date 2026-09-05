@@ -12,6 +12,7 @@ import { ModelSelect, type TextModelTier } from '@/components/ModelSelect'
 import { FormatSelector } from '@/components/video/FormatSelector'
 import { LongformSettings } from '@/components/video/LongformSettings'
 import { EffectPresetSelector } from '@/components/pin/EffectPresetSelector'
+import type { EffectPresetId } from '@/config/effectPresets'
 import { TEMPLATES } from './videoPromotionConfig'
 import { SortableThumb } from './SortableThumb'
 import { KEEP_ORIGINAL_AUDIO_LABEL, KEEP_ORIGINAL_AUDIO_HINT } from '@/config/videoAudio'
@@ -54,7 +55,7 @@ export function Step2Section({
   template: string
   setTemplate: (v: 'story' | 'listicle' | 'reveal' | 'movie' | 'retention') => void
   hasVideo: boolean
-  activeEffectPreset: string | null
+  activeEffectPreset: EffectPresetId | null
   applyEffectPreset: (preset: any) => void
   aiModel: TextModelTier
   setAiModel: (v: TextModelTier) => void

@@ -110,7 +110,7 @@ export function Publish() {
 
           <TabsContent value="media">
             <Suspense fallback={<PageLoader text="Wird geladen..." />}>
-              <MediaUploadForm editEvent={editType === 'media' ? editEvent : undefined} />
+              <MediaUploadForm editEvent={editType === 'media' ? (editEvent ?? undefined) : undefined} />
             </Suspense>
           </TabsContent>
 
@@ -122,19 +122,19 @@ export function Publish() {
 
           <TabsContent value="article">
             <Suspense fallback={<PageLoader text="Wird geladen..." />}>
-              <ArticleForm editEvent={editType === 'article' ? editEvent : undefined} />
+              <ArticleForm editEvent={editType === 'article' ? (editEvent ?? undefined) : undefined} />
             </Suspense>
           </TabsContent>
 
           <TabsContent value="place">
             <Suspense fallback={<PageLoader text="Wird geladen..." />}>
-              <PlaceForm editEvent={editType === 'place' ? editEvent : undefined} />
+              <PlaceForm editEvent={editType === 'place' ? (editEvent ?? undefined) : undefined} />
             </Suspense>
           </TabsContent>
 
           <TabsContent value="note">
             <Suspense fallback={<PageLoader text="Wird geladen..." />}>
-              <NoteForm editEvent={editType === 'note' ? editEvent : undefined} />
+              <NoteForm editEvent={editType === 'note' ? (editEvent ?? undefined) : undefined} />
             </Suspense>
           </TabsContent>
         </Tabs>

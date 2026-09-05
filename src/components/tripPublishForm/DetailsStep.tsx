@@ -46,7 +46,7 @@ export function DetailsStep({
   tripData: TripData
   setTripData: React.Dispatch<React.SetStateAction<TripData>>
   lifestyle: string
-  setLifestyle: (v: string) => void
+  setLifestyle: (v: 'mojobus' | 'vanlife' | 'rvlife' | 'beachlife' | 'wohnmobil' | 'perpetual-travelers') => void
   tripLength: string
   setTripLength: (v: 'short' | 'medium' | 'long') => void
   selectedModel: TextModelTier

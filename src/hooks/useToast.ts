@@ -180,3 +180,6 @@ function useToast() {
 }
 
 export { useToast, toast }
+
+/** Signatur der toast()-Funktion – für Hook-/Komponenten-Props (z. B. ToastFn-Params). */
+export type ToastFn = typeof toast

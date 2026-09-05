@@ -5,13 +5,16 @@
 
 import { useState, useRef, useCallback } from 'react'
 import { getApiBaseUrl } from '@/lib/apiBase'
+import type { useToast } from '@/hooks/useToast'
 import type { RenderStatus } from './videoPromotionConfig'
+
+type ToastFn = ReturnType<typeof useToast>['toast']
 
 export function useVideoRenderPolling({
   toast,
   setStep,
 }: {
-  toast: (opts: { title: string; description?: string; variant?: string }) => void
+  toast: ToastFn
   setStep: (v: number) => void
 }) {
   const [rendering, setRendering] = useState(false)

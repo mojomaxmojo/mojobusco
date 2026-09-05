@@ -10,6 +10,9 @@ import { Loader2, Download, Copy, CloudUpload, CheckCircle2, Globe, Eye, Trash2 
 import { getApiBaseUrl } from '@/lib/apiBase'
 import { stripHeroMarkup } from './videoPromotionConfig'
 import type { RenderStatus } from './videoPromotionConfig'
+import type { useToast } from '@/hooks/useToast'
+
+type ToastFn = ReturnType<typeof useToast>['toast']
 
 export function PublishSection({
   renderStatus,
@@ -61,7 +64,7 @@ export function PublishSection({
   setRenderStatus: (v: RenderStatus | null) => void
   setDownloadedMp4: (v: boolean) => void
   setBlossomUrl: (v: string) => void
-  toast: (opts: { title: string; description?: string; variant?: string }) => void
+  toast: ToastFn
 }) {
   return (
     <div className="max-w-4xl mx-auto space-y-4">

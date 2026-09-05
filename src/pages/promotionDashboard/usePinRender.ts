@@ -6,6 +6,7 @@
 import { useState } from 'react'
 import { useUploadFile } from '@/hooks/useUploadFile'
 import { useToast } from '@/hooks/useToast'
+import type { ToastFn } from '@/hooks/useToast'
 import { renderPinTemplate } from '@/components/pin/PinTemplates'
 import type { PinTemplateType } from '@/components/pin/PinTemplates'
 
@@ -29,7 +30,7 @@ export function usePinRender({
   editInfographicData,
   toast,
 }: {
-  user: { pubkey?: string } | null
+  user: { pubkey?: string } | null | undefined
   imageUrls: string[]
   selectedImageIdx: number
   setImageUrls: React.Dispatch<React.SetStateAction<string[]>>
@@ -46,7 +47,7 @@ export function usePinRender({
   editAfter: string
   editWaypoints: string[]
   editInfographicData: Array<{ icon: string; label: string; value: string }>
-  toast: (opts: { title: string; description?: string; variant?: string }) => void
+  toast: ToastFn
 }) {
   const { mutateAsync: uploadFile } = useUploadFile();
   const [pinImageUrl, setPinImageUrl] = useState<string>('')
@@ -134,7 +135,7 @@ export function usePinRender({
       const filename = `${(editTitle || 'pin').replace(/[^a-zA-Z0-9äüöÄÜÖß]/g, '-').substring(0, 40)}-pin.jpg`
       const file = new File([blob], filename, { type: 'image/jpeg' })
 
-      const tags = await uploadFile.mutateAsync(file)
+      const tags = await uploadFile(file)
       const url = tags.find((t: string[]) => t[0] === 'url')?.[1]
 
       if (url) {

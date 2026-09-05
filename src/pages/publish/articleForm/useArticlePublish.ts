@@ -85,6 +85,9 @@ interface UseArticlePublishParams {
   setLocation: (v: string) => void;
   setSelectedCountry: (v: string) => void;
   setPublishedAt: (v: string) => void;
+  setSeoTitle: (v: string) => void;
+  setSeoMetaDescription: (v: string) => void;
+  setSeoSlug: (v: string) => void;
   setImageFile: (v: File | null) => void;
   setImageGps: (v: GpsData | null) => void;
   setImageCapturedAt: (v: Date | null) => void;
@@ -152,6 +155,9 @@ export function useArticlePublish({
   setLocation,
   setSelectedCountry,
   setPublishedAt,
+  setSeoTitle,
+  setSeoMetaDescription,
+  setSeoSlug,
   setImageFile,
   setImageGps,
   setImageCapturedAt,

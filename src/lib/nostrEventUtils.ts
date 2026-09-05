@@ -5,7 +5,7 @@
  * Konsolidiert aus: PromotionDashboard.tsx, ContentSelector.tsx
  */
 
-import type { GpsStatus } from './gpsExtraction';
+import type { GpsData, GpsStatus } from './gpsExtraction';
 
 /**
  * Liefert den Wert des ersten Tags mit dem gegebenen Namen
@@ -37,14 +37,14 @@ export function getEventGpsTags(event: { tags?: string[][] } | null | undefined)
   gpsLat: string | undefined;
   gpsLon: string | undefined;
   gpsAlt: string | undefined;
-  gpsPrecision: string | undefined;
+  gpsPrecision: GpsData['precision'] | undefined;
   gpsSource: GpsStatus | undefined;
 } {
   return {
     gpsLat: event?.tags?.find((t) => t[0] === 'gps_lat')?.[1],
     gpsLon: event?.tags?.find((t) => t[0] === 'gps_lon')?.[1],
     gpsAlt: event?.tags?.find((t) => t[0] === 'gps_alt')?.[1],
-    gpsPrecision: event?.tags?.find((t) => t[0] === 'gps_precision')?.[1],
+    gpsPrecision: event?.tags?.find((t) => t[0] === 'gps_precision')?.[1] as GpsData['precision'] | undefined,
     gpsSource: event?.tags?.find((t) => t[0] === 'gps_source')?.[1] as GpsStatus | undefined,
   };
 }

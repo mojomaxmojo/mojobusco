@@ -366,7 +366,9 @@ export function ArticleForm({ editEvent }: { editEvent?: NostrEvent }) {
     trackPublishedPost,
     // Reset-Setter fürs Formular-Clearing
     setTitle, setSummary, setContent, setImage, setCategory, setTags,
-    setLocation, setSelectedCountry, setPublishedAt, setImageFile,
+    setLocation, setSelectedCountry, setPublishedAt,
+    setSeoTitle, setSeoMetaDescription, setSeoSlug,
+    setImageFile,
     setImageGps, setImageCapturedAt, setImageGpsStatus, setEditingImageGps,
     setImageMetaMap,
     setArticleLength, setTripType, setLifestyle, setResearchFacts,

@@ -15,6 +15,10 @@ import { createLongformTeaser } from '@/lib/createLongformTeaser'
 import { stripHeroMarkup } from './videoPromotionConfig'
 import type { RenderStatus } from './videoPromotionConfig'
 
+import type { useToast } from '@/hooks/useToast'
+
+type ToastFn = ReturnType<typeof useToast>['toast']
+
 export function useVideoPublishHistory({
   user,
   renderStatus,
@@ -27,7 +31,7 @@ export function useVideoPublishHistory({
   format,
   toast,
 }: {
-  user: { pubkey?: string } | null
+  user: { pubkey?: string } | null | undefined | undefined
   renderStatus: RenderStatus | null
   hookText: string
   bodyText: string
@@ -36,7 +40,7 @@ export function useVideoPublishHistory({
   hashtags: string
   articleImages: string[]
   format: string
-  toast: (opts: { title: string; description?: string; variant?: string }) => void
+  toast: ToastFn
 }) {
   // ── HISTORY ═══════════════════════════════════════════════
   const [history, setHistory] = useState<any[]>([])

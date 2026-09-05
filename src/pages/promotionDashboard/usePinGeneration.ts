@@ -8,6 +8,7 @@ import { getApiBaseUrl } from '@/lib/apiBase'
 import { useToast } from '@/hooks/useToast'
 import { safeResJson } from './pinStorage'
 import type { ContentItem } from '@/components/pin/ContentSelector'
+import type { ToastFn } from '@/hooks/useToast'
 
 export function usePinGeneration({
   articleTitle,
@@ -62,7 +63,7 @@ export function usePinGeneration({
   setEditWaypoints: (v: string[]) => void
   setEditInfographicData: (v: Array<{ icon: string; label: string; value: string }>) => void
   setStep: (v: number) => void
-  toast: (opts: { title: string; description?: string; variant?: string }) => void
+  toast: ToastFn
 }) {
   const [generating, setGenerating] = useState(false)
 

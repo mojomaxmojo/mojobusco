@@ -34,7 +34,6 @@ import { useMediaGpsEditing } from "./mediaUploadForm/useMediaGpsEditing";
 import { useMediaPublish } from "./mediaUploadForm/useMediaPublish";
 import { MediaPreviewSection } from "./mediaUploadForm/MediaPreviewSection";
 
-import { getTagValue, getTagValues } from "@/lib/nostrEventUtils";
 import type { NostrEvent } from '@nostrify/nostrify';
 
 export function MediaUploadForm({ editEvent }: { editEvent?: NostrEvent }) {

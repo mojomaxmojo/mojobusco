@@ -8,6 +8,9 @@ import type { DragEndEvent } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import type { ContentItem } from '@/components/pin/ContentSelector'
 import { buildRouteFromContent, type RouteResult } from '@/lib/routeFromGps'
+import type { useToast } from '@/hooks/useToast'
+
+type ToastFn = ReturnType<typeof useToast>['toast']
 
 export function useVideoContentSelection({
   template,
@@ -16,7 +19,7 @@ export function useVideoContentSelection({
 }: {
   template: string
   setTemplate: (t: 'movie') => void
-  toast: (opts: { title: string; description?: string; variant?: string }) => void
+  toast: ToastFn
 }) {
   // ── CONTENT ══════════════════════════════════════════════
   const [selectedContent, setSelectedContent] = useState<ContentItem[]>([])

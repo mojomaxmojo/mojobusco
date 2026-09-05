@@ -161,7 +161,6 @@ export function PromotionDashboard() {
     setPinImageUrl,
     isRendering,
     uploading,
-    setUploading,
     uploadedPinUrl,
     setUploadedPinUrl,
     renderPin,

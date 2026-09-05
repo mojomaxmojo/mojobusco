@@ -16,6 +16,7 @@ import { ExperiencesConfirm } from '@/components/assistant/ExperiencesConfirm';
 import { ChevronLeft, MapPin, Route, Upload, Map as MapIcon } from '@/lib/icons';
 import { Loader2 } from 'lucide-react';
 import { AUTO_TRANSLATE_STORAGE_KEY } from '@/config/translation';
+import type { ToastFn } from '@/hooks/useToast';
 import type { TripStation, TripData } from '@/lib/trip/tripTypes';
 
 export function PreviewStep({
@@ -48,7 +49,7 @@ export function PreviewStep({
   lifestyle: string
   setSlideshowVideoUrl: (v: string | null) => void
   slideshowVideoUrl: string | null
-  toast: (opts: { title: string; description?: string; variant?: string }) => void
+  toast: ToastFn
   experiencesConfirmed: boolean
   setExperiencesConfirmed: (v: boolean) => void
   canPublish: boolean

@@ -7,6 +7,9 @@ import { useState } from 'react'
 import { getApiBaseUrl } from '@/lib/apiBase'
 import { cleanMarkdown } from './videoPromotionConfig'
 import type { ContentItem } from '@/components/pin/ContentSelector'
+import type { useToast } from '@/hooks/useToast'
+
+type ToastFn = ReturnType<typeof useToast>['toast']
 
 export function useVideoTextGeneration({
   articleTitle,
@@ -42,7 +45,7 @@ export function useVideoTextGeneration({
   format: string
   platform: string
   targetDurationMin: number
-  toast: (opts: { title: string; description?: string; variant?: string; duration?: number }) => void
+  toast: ToastFn
   setHookText: (v: string) => void
   setHookAlternatives: (v: string[]) => void
   setBodyText: (v: string) => void
