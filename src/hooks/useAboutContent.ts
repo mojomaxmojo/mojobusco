@@ -4,7 +4,7 @@
  * Datenhaltung: Replaceable Event mit d-tag "co.mojobus.app.about-page"
  * Fallback: DEFAULT_ABOUT_DATA aus src/config/about.ts
  *
- * Analog zu: TikTok-History (kind 30078) und useReplaceableContent
+ * Analog zu: TikTok-History (kind 30078)
  */
 
 import { useState, useEffect, useCallback } from 'react';

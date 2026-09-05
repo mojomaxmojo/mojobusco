@@ -530,7 +530,6 @@ export function useBudget() {
   
   {/* Publishing */}
   <Route path="/veroeffentlichen" element={<Publish />} />
-  <Route path="/veroeffentlichen/modern" element={<ContentEditorMinimal />} />
   
   {/* User */}
   <Route path="/profile" element={<Profile />} />
