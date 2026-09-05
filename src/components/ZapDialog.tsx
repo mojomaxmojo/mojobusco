@@ -63,7 +63,8 @@ interface ZapContentProps {
   openInWallet: () => void;
   setAmount: (amount: number | string) => void;
   setComment: (comment: string) => void;
-  inputRef: React.RefObject<HTMLInputElement>;
+  // React 19: useRef<HTMLInputElement>(null) liefert RefObject<HTMLInputElement | null>
+  inputRef: React.RefObject<HTMLInputElement | null>;
   zap: (amount: number, comment: string) => void;
 }
 

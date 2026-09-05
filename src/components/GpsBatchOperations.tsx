@@ -77,7 +77,7 @@ export function GpsBatchOperations({
       latitude: sumLat / selected.length,
       longitude: sumLon / selected.length,
       altitude: sumAlt > 0 ? sumAlt / selected.length : undefined,
-      precision: 'medium',
+      precision: 'medium' as const,
     };
   }, [filesWithGps, selectedFiles]);
 
@@ -202,7 +202,7 @@ export function GpsBatchOperations({
           </Badge>
           {filesWithGps.length > 0 && firstFileWithGps && (
             <span className="text-xs">
-              Erstes GPS: {formatCoordinatesSimple(firstFileWithGps.gps.latitude, firstFileWithGps.gps.longitude)}
+              Erstes GPS: {formatCoordinatesSimple(firstFileWithGps.gps!.latitude, firstFileWithGps.gps!.longitude)}
             </span>
           )}
         </div>

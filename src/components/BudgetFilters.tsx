@@ -185,7 +185,7 @@ export function BudgetFilters({ filters, onChange, onReset }: BudgetFiltersProps
               initialFocus
               mode="range"
               defaultMonth={dateRange.from}
-              selected={dateRange}
+              selected={dateRange as { from: Date; to?: Date }}
               onSelect={handleDateChange}
               numberOfMonths={2}
               locale={de}

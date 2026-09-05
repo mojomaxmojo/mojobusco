@@ -68,7 +68,9 @@ class EditorErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySta
 
   render() {
     if (this.state.hasError) {
-      return React.cloneElement(this.props.fallback as React.ReactElement, {
+      // React 19: ReactElement-Props sind unknown → Element-Typ mit
+      // error-Prop angeben, damit cloneElement sie akzeptiert
+      return React.cloneElement(this.props.fallback as React.ReactElement<{ error?: Error | null }>, {
         error: this.state.error
       });
     }

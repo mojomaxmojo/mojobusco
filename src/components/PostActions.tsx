@@ -10,7 +10,7 @@ import {
 import { MoreHorizontal, Edit, Trash2, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { useNostr } from '@nostrify/react';
+import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { nip19 } from 'nostr-tools';
 import {
   AlertDialog,
@@ -42,7 +42,10 @@ export function PostActions({
   const [isDeleting, setIsDeleting] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { nostr } = useNostr();
+  // FIX (PLAN7): vorher nostr.event() mit unsigned Template (NPool erwartet
+  // signierte Events → Relays lehnen ab, Löschen war wirkungslos). useNostrPublish
+  // signiert über den User-Signer und published.
+  const { mutateAsync: publishEvent } = useNostrPublish();
 
   const handleEdit = () => {
     // Navigate to edit page with event details
@@ -90,7 +93,7 @@ export function PostActions({
 
     try {
       // Delete event using nip09 delete event
-      await nostr.event({
+      await publishEvent({
         kind: 5, // Delete event
         tags: [['e', event.id]],
         content: 'Post gelöscht'

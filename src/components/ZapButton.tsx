@@ -5,6 +5,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useAuthor } from '@/hooks/useAuthor';
 import { Zap } from 'lucide-react';
 import type { Event } from 'nostr-tools';
+import type { ReactNode } from 'react';
 
 interface ZapButtonProps {
   target: Event;
@@ -17,6 +18,11 @@ interface ZapButtonProps {
    * In Feed-Cards (compact) deaktivieren – spart pro Card einen Intervall-Request.
    */
   poll?: boolean;
+  /**
+   * Optionaler Custom-Inhalt (z. B. SocialBar-Icon + Zähler). Ohne children
+   * rendert ZapButton den Standard-Inhalt (Blitz + label/count).
+   */
+  children?: ReactNode;
 }
 
 export function ZapButton({
@@ -25,7 +31,8 @@ export function ZapButton({
   showCount = true,
   zapData: externalZapData,
   label = "Zap",
-  poll = true
+  poll = true,
+  children
 }: ZapButtonProps) {
   const { user } = useCurrentUser();
   const { data: author } = useAuthor(target?.pubkey || '');
@@ -71,36 +78,42 @@ export function ZapButton({
         className={`flex items-center gap-1 group border border-orange-500 rounded px-2 py-1 hover:bg-orange-500/5 cursor-pointer ${className}`}
         onClick={handleZapClick}
       >
-        <Zap className="h-4 w-4 text-orange-500 group-hover:fill-orange-500 transition-all group-hover:scale-125" />
-        <span className="text-xs group-hover:text-orange-500 transition-colors">
-          {showLoading ? (
-            '...'
-          ) : showCount && totalSats > 0 ? (
-            `${totalSats.toLocaleString()}`
-          ) : (
-            label
-          )}
-        </span>
+        {children ?? (
+          <>
+            <Zap className="h-4 w-4 text-orange-500 group-hover:fill-orange-500 transition-all group-hover:scale-125" />
+            <span className="text-xs group-hover:text-orange-500 transition-colors">
+              {showLoading ? (
+                '...'
+              ) : showCount && totalSats > 0 ? (
+                `${totalSats.toLocaleString()}`
+              ) : (
+                label
+              )}
+            </span>
+          </>
+        )}
       </div>
     );
   }
 
   return (
     <ZapDialog target={target} poll={poll}>
-      <div
-        className={`flex items-center gap-1 group border border-orange-500 rounded px-2 py-1 hover:bg-orange-500/5 cursor-pointer ${className}`}
-      >
-        <Zap className="h-4 w-4 text-orange-500 group-hover:fill-orange-500 transition-all group-hover:scale-125" />
-        <span className="text-xs group-hover:text-orange-500 transition-colors">
-          {showLoading ? (
-            '...'
-          ) : showCount && totalSats > 0 ? (
-            `${totalSats.toLocaleString()}`
-          ) : (
-            label
-          )}
-        </span>
-      </div>
+      {children ?? (
+        <div
+          className={`flex items-center gap-1 group border border-orange-500 rounded px-2 py-1 hover:bg-orange-500/5 cursor-pointer ${className}`}
+        >
+          <Zap className="h-4 w-4 text-orange-500 group-hover:fill-orange-500 transition-all group-hover:scale-125" />
+          <span className="text-xs group-hover:text-orange-500 transition-colors">
+            {showLoading ? (
+              '...'
+            ) : showCount && totalSats > 0 ? (
+              `${totalSats.toLocaleString()}`
+            ) : (
+              label
+            )}
+          </span>
+        </div>
+      )}
     </ZapDialog>
   );
 }

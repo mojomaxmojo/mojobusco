@@ -26,8 +26,8 @@ export function LivePositionIndicator() {
       const metadata = extractArticleMetadata(current);
       const latestMetadata = extractArticleMetadata(latest);
 
-      const currentDate = metadata.published_at || current.created_at;
-      const latestDate = latestMetadata.published_at || latest.created_at;
+      const currentDate = metadata.publishedAt || current.created_at;
+      const latestDate = latestMetadata.publishedAt || latest.created_at;
 
       return currentDate > latestDate ? current : latest;
     }, placesToCheck[0]);
@@ -36,7 +36,7 @@ export function LivePositionIndicator() {
 
     const metadata = extractArticleMetadata(latestPlace);
     const locationTag = latestPlace.tags?.find(tag => tag[0] === 'location');
-    const publishedAt = metadata.published_at || latestPlace.created_at;
+    const publishedAt = metadata.publishedAt || latestPlace.created_at;
 
     if (!locationTag) return;
 

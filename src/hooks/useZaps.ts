@@ -23,7 +23,7 @@ export interface UseZapsOptions {
 }
 
 export function useZaps(
-  target: Event | Event[],
+  target: Event | Event[] | null,
   webln: WebLNProvider | null,
   _nwcConnection: NWCConnection | null,
   onZapSuccess?: () => void,

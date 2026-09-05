@@ -246,7 +246,8 @@ export function VanillaMap({
         scrollWheelZoom: true,
         minZoom: minZoom,
         maxZoom: maxZoom,
-        zIndex: 0, // Niedriger z-index damit Dialoge über der Karte liegen
+        // z-index: 0 sitzt am Container-Div (inline style, unten) – Leaflets
+        // MapOptions kennen kein zIndex (Option war wirkungslos).
       });
 
       L.tileLayer(tileUrl, {
