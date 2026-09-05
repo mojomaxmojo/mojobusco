@@ -46,7 +46,9 @@ export function ImageDetail() {
   try {
     if (noteId?.startsWith('note1')) {
       const decoded = nip19.decode(noteId);
-      eventId = decoded.data;
+      if (decoded.type === 'note') {
+        eventId = decoded.data;
+      }
     }
   } catch (error) {
     console.error('Error decoding nip19:', error);
@@ -92,7 +94,7 @@ export function ImageDetail() {
 
     // Match image URLs with extensions OR from known image hosting services
     const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|mp4|webm|mov|avi|mkv)|https?:\/\/i\.imgur\.com\/[^\s]+|https?:\/\/cdn\.blossom\.social\/[^\s]+|https?:\/\/blossom\.primal\.net\/[^\s]+|https?:\/\/nostr\.build\/[^\s]+|https?:\/\/imgur\.com\/[^\s]+)/gi;
-    const matches = content.match(urlRegex) || [];
+    const matches: string[] = content.match(urlRegex) || [];
 
     // Filter out URLs that are not actually image or video files
     const mediaUrls = matches.filter(url => {

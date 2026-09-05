@@ -34,7 +34,8 @@ import {
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useHead } from '@unhead/react';
-import { nip19, type AddressPointer } from 'nostr-tools';
+import { nip19 } from 'nostr-tools';
+import type { AddressPointer } from 'nostr-tools/nip19';
 import { canonicalUrl as getCanonicalUrl, articleUrl, profileUrl, ogImageUrl, canonicalNaddr } from '@/lib/canonicalUrl';
 import { getArticleHeaderUrl, generateSrcset, generateSizes, getResponsiveImageUrl } from '@/lib/imageUtils';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
@@ -66,10 +67,9 @@ function removeTitleImageFromContent(content: string): string {
   const lines = content.split('\n');
   const filteredLines = lines.filter((line, index) => {
     const trimmedLine = line.trim();
-    // Remove first image line
+    // Remove first image line (und jede weitere Titelbild-Zeile)
     if (trimmedLine.startsWith('![') && trimmedLine.includes('Titelbild')) {
-      // Also remove empty line that follows
-      return index === 0 ? false : !lines[index + 1]?.trim() === '';
+      return false;
     }
     return true;
   });
@@ -209,7 +209,7 @@ function MarkdownWithLinks({ content, pageUrl, pageTitle, pageDescription, pageH
             const extractVideoUrl = (child: React.ReactNode): string | null => {
               if (typeof child === 'string' && isVideoContent(child.trim())) return child.trim();
               if (child && typeof child === 'object') {
-                const el = child as React.ReactElement;
+                const el = child as React.ReactElement<{ href?: string }>;
                 if (el.props?.href && isVideoContent(el.props.href)) return el.props.href;
               }
               return null;
@@ -344,7 +344,9 @@ export function ArticleView({ naddr }: ArticleViewProps) {
   const isAuthor = user?.pubkey === naddr.pubkey;
 
   // Dynamic SEO Meta Tags mit JSON-LD Structured Data
-  useHead(() => {
+  // (IIFE-Objekt statt Getter-Funktion – @unhead/react v2 akzeptiert kein
+  // Callback-Input; die Funktion würde still ignoriert und kein Meta gesetzt)
+  useHead((() => {
     if (!article) return {};
 
     const metadata = extractArticleMetadata(article);
@@ -540,7 +542,7 @@ export function ArticleView({ naddr }: ArticleViewProps) {
         }
       ]
     };
-  });
+  })());
 
   const handleDelete = async () => {
     if (!article) return;

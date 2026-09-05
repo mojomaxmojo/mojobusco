@@ -29,7 +29,12 @@ const PRESET_OPTIONS: PresetOption[] = [
   },
 ];
 
-export function RelaySelector() {
+interface RelaySelectorProps {
+  /** Optional: CSS-Klassen für den äußeren Container */
+  className?: string;
+}
+
+export function RelaySelector({ className = '' }: RelaySelectorProps) {
   const { config, updateConfig } = useAppContext();
   const { toast } = useToast();
 
@@ -132,7 +137,7 @@ export function RelaySelector() {
   };
 
 return (
-<div className="space-y-6">
+<div className={`space-y-6 ${className}`}>
 <div>
 <h3 className="text-lg font-semibold mb-4">Relay-Preset wählen</h3>
 <p className="text-sm text-muted-foreground mb-6">

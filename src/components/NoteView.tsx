@@ -116,7 +116,9 @@ export function NoteView({ eventId }: NoteViewProps) {
   const authorName = author.data?.metadata?.name || author.data?.metadata?.display_name || genUserName(note?.pubkey || '');
 
   // Dynamic SEO Meta Tags mit JSON-LD
-  useHead(() => {
+  // (IIFE-Objekt statt Getter-Funktion – @unhead/react v2 akzeptiert kein
+  // Callback-Input; die Funktion würde still ignoriert und kein Meta gesetzt)
+  useHead((() => {
     if (!note) return {};
 
     const title = `Note von ${authorName}`;
@@ -206,7 +208,7 @@ export function NoteView({ eventId }: NoteViewProps) {
         { type: 'application/ld+json', innerHTML: JSON.stringify(breadcrumbLd) }
       ]
     };
-  });
+  })());
 
   const handleDelete = async () => {
     if (!note) return;

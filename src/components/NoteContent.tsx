@@ -114,7 +114,7 @@ export const NoteContent = memo(function NoteContent({
       // Check if it's a Nostr reference
       if (href && (href.startsWith('nostr:') || /^(npub1|note1|nprofile1|nevent1|naddr1)/.test(href))) {
         try {
-          const nostrId = href.startsWith('nostr:') ? href.slice(6) : href;
+          const nostrId: string = href.startsWith('nostr:') ? href.slice(6) : href;
           const decoded = nip19.decode(nostrId);
 
           if (decoded.type === 'npub') {

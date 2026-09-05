@@ -17,7 +17,9 @@ export function useEditData(editEventId: string | null) {
       try {
         if (editEventId.startsWith('note1')) {
           const decoded = nip19.decode(editEventId);
-          eventId = decoded.data;
+          if (decoded.type === 'note') {
+            eventId = decoded.data;
+          }
         }
       } catch (error) {
         eventId = editEventId;

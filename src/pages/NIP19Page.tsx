@@ -27,7 +27,7 @@ import NotFound from './NotFound';
 const ProfileView = ({ pubkey }: { pubkey: string }) => {
   const author = useAuthor(pubkey);
 
-  useHead(() => {
+  useHead((() => {
     const metadata = author.data?.metadata;
     const name = metadata?.name || genUserName(pubkey);
     const displayName = metadata?.display_name || name;
@@ -46,7 +46,7 @@ const ProfileView = ({ pubkey }: { pubkey: string }) => {
         { rel: 'canonical', href: getCanonicalUrl(profileUrl(nip19.npubEncode(pubkey))) }
       ]
     };
-  });
+  })());
 
   if (author.isLoading) {
     return (
