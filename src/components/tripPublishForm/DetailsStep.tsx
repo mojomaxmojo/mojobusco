@@ -276,7 +276,7 @@ export function DetailsStep({
 
           <CountrySelector
             selectedCountry={tripData.country}
-            onCountryChange={(country) => setTripData(prev => ({ ...prev, country }))}
+            onCountryChange={(country) => setTripData(prev => ({ ...prev, country: country ?? '' }))}
             placeholder="Land auswählen"
           />
         </CardContent>

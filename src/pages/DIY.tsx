@@ -14,7 +14,7 @@ import { canonicalNaddr } from '@/lib/canonicalUrl';
 import { Wrench, Loader2 } from 'lucide-react';
 
 import type { NostrEvent } from '@nostrify/nostrify';
-import { memo, useState } from 'react';
+import { memo } from 'react';
 import { getListThumbnailUrl, getImagePlaceholder, generateSrcset, generateSizes } from '@/lib/imageUtils';
 import { DEFAULT_PERFORMANCE_CONFIG } from '@/config/performance';
 import { useHead } from '@unhead/react';
@@ -45,7 +45,8 @@ export function DIY() {
   const { lang } = useLanguage();
   const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useInfiniteLongformArticles({
     '#t': ['diy'],
-    limit: DEFAULT_PERFORMANCE_CONFIG.infiniteScroll.itemsPerPage,
+    // (limit entfernen: der Hook steuert die Page-Size selbst, eine
+    // limit-Option existiert nicht und wurde vorher still ignoriert)
   });
 
   const flattenData = (data?.pages.flat() || []).filter(a => getEventLanguage(a) === lang);

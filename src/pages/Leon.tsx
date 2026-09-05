@@ -31,7 +31,8 @@ export function Leon() {
   const { data: articles, isLoading, error, hasNextPage, fetchNextPage, isFetchingNextPage } = useInfiniteLongformArticles({
     kinds: [30023],
     '#t': ['leon'],
-    limit: DEFAULT_PERFORMANCE_CONFIG.infiniteScroll.itemsPerPage,
+    // (limit entfernen: der Hook steuert die Page-Size selbst, eine
+    // limit-Option existiert nicht und wurde vorher still ignoriert)
   });
 
   // Infinite Scroll trigger
@@ -57,7 +58,7 @@ export function Leon() {
     return allArticles.filter(article => {
       const eventTags = article.tags.filter(([name]) => name === 't').map(([, value]) => value);
       // Prüfe ob der Artikel mindestens ein Leon-Tag hat
-      return eventTags.some(tag => LEON_CONFIG.tags.includes(tag));
+      return eventTags.some(tag => (LEON_CONFIG.tags as readonly string[]).includes(tag));
     });
   }, [allArticles]);
 

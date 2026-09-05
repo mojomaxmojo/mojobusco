@@ -18,7 +18,7 @@ import { RV_LIFE_CONFIG } from '@/config/rvlife';
 import { getListThumbnailUrl, getImagePlaceholder, generateSrcset, generateSizes } from '@/lib/imageUtils';
 
 import type { NostrEvent } from '@nostrify/nostrify';
-import { memo, useState } from 'react';
+import { memo } from 'react';
 import { useHead } from '@unhead/react';
 import { canonicalUrl } from '@/lib/canonicalUrl';
 import { getEventLanguage } from '@/lib/translationTags';
@@ -66,7 +66,7 @@ export function RVLife() {
     const eventTags = article.tags.filter(([name]) => name === 't').map(([, value]) => value);
 
     // Prüfe ob der Artikel mindestens ein RV Life Auto-Tag hat
-    const hasRVLifeTag = eventTags.some(tag => autoTags.includes(tag));
+    const hasRVLifeTag = eventTags.some(tag => (autoTags as readonly string[]).includes(tag));
 
     if (!hasRVLifeTag) return false;
 
@@ -76,7 +76,7 @@ export function RVLife() {
       const categoryConfig = Object.values(RV_LIFE_CONFIG.categories).find(cat => cat.id === category.toLowerCase());
       if (categoryConfig) {
         const categoryTags = [...categoryConfig.tags.primary, ...categoryConfig.tags.optional];
-        return eventTags.some(tag => categoryTags.includes(tag));
+        return eventTags.some(tag => (categoryTags as string[]).includes(tag));
       }
       return eventTags.includes(category);
     }

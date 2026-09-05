@@ -62,7 +62,7 @@ export function StrandOrt() {
     const eventTags = article.tags.filter(([name]) => name === 't').map(([, value]) => value);
 
     // Prüfe ob der Artikel mindestens einen Strand/Ort Tag hat
-    const hasStrandOrtTag = eventTags.some(tag => allStrandOrtTags.includes(tag));
+    const hasStrandOrtTag = eventTags.some(tag => (allStrandOrtTags as string[]).includes(tag));
 
     if (!hasStrandOrtTag) return false;
 
@@ -70,7 +70,7 @@ export function StrandOrt() {
     if (category) {
       const categoryConfig = Object.values(STRANDORT_CONFIG.categories).find(cat => cat.id === category.toLowerCase());
       if (categoryConfig) {
-        return eventTags.some(tag => categoryConfig.tags.primary.includes(tag));
+        return eventTags.some(tag => (categoryConfig.tags.primary as string[]).includes(tag));
       }
       return eventTags.includes(category);
     }

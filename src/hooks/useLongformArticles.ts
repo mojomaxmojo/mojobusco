@@ -51,7 +51,7 @@ function isPlaceEvent(event: NostrEvent): boolean {
   const typeTag = event.tags.find(([name]) => name === 'type')?.[1];
   const placeTag = event.tags.some(([name, value]) => name === 't' && ['place', 'places'].includes(value));
   const identifier = event.tags.find(([name]) => name === 'd')?.[1] || '';
-  const hasPlaceIdentifier = identifier && identifier.startsWith('place-');
+  const hasPlaceIdentifier = identifier.startsWith('place-');
 
   return typeTag === 'place' || placeTag || hasPlaceIdentifier;
 }
