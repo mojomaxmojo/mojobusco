@@ -5,6 +5,88 @@
 
 ---
 
+## PLAN7 abgeschlossen: tsc = 0 Fehler, Typ-Gate scharf, Demo-Route entfernt (2026-09-05)
+
+**Auftrag** (prompt.md, Übergabe aus Vorgänger-Session): Typ-Schulden-Räumung
+auf 0 Fehler, dann `check`-Gate in build/deploy scharf schalten.
+
+**Verlauf**: ~150 tsc-Fehler (tsc-out4, Stand `e1dfbf0`) → 16 Runden (Commits
+`3217034` … `c65af9e`), ein Commit pro Kategorie/Fix-Batch, nach jedem Batch
+`build_project` (esbuild) im VFS und die autoritative Prüfung `npm run check`
+auf dem VPS (Zwischenstand 120 → tsc-out5 → 8 → **0 Fehler**, tsc-out6 leer).
+
+**Gate** (`4e686f3`): `build` und `deploy` verketten jetzt `npm run check`
+vor build-intelligent.js bzw. nostr-deploy-cli. Grund: esbuild prüft weder
+Typen noch TDZ/undefinierte Bezeichner — nur tsc ist der Beweis. Das Gate war
+in `b8ea291` bewusst zurückgenommen worden (Schulden-Berg hätte jeden Deploy
+blockiert). Escape-Hatch bleibt `npm run build:force` (ohne check).
+
+**Echte Runtime-Bugs, die erst der tsc aufdeckte** (je im Commit benannt):
+1. **Zaps auf normale Events ungültig** — `nip57.makeZapRequest` erwartet seit
+   nostr-tools ≥2.23 das Event-Objekt (`params.event.id`); der Code übergab die
+   ID als String → `'e'`-Tag undefined. useZaps.ts.
+2. **Budget-/AFA-Einträge luden nie aus dem Relay** — `const { query } =
+   useNostr()` (useBudget/useBudgetRelay): `query` existiert auf dem
+   NPool-Kontext nicht → TypeError, still im try/catch verschwunden.
+   Fix: `nostr.query([...], { signal: AbortSignal.timeout(...) })`.
+3. **Artikel-Löschen wirkungslos** — `nostr.event()` mit unsigned Template
+   (NPool erwartet signierte Events, Relays lehnen ab). PostActions →
+   useNostrPublish.
+4. **Places-Länderseiten zeigten leere Listen** — `filterEventsByCountry`
+   bekam das CountryInfo-Objekt statt des Länder-Codes.
+5. **SEO-Meta fehlte bei Client-Navigation** — @unhead/react v2 akzeptiert
+   keine Getter-Funktionen als useHead-Input (UseHeadInput = ResolvableHead |
+   SerializableHead); die Callbacks wurden still ignoriert. ArticleView/
+   NoteView/NIP19Page auf IIFE-Objekt-Input umgestellt.
+6. **TDZ-Crash in ArticleView** (authorName in der useHead-IIFE vor
+   Deklaration) — meine eigene Runde-5-Umstellung; nur der VPS-tsc fand ihn,
+   esbuild/build_project nicht. Lesson 1 erneut bestätigt.
+7. **npub-Anzeigen „..."** — `user.npub` existiert auf nostrify-NUser nicht →
+   `nip19.npubEncode(user.pubkey)` (Profile, BudgetAuthGuard, Settings).
+8. **ZapButton-children verworfen** — SocialBar übergab Custom-Inhalt, der
+   still gedroppt wurde; children-Prop ergänzt (Fallback: Standard-Rendering).
+9. **useReplaceableContent Publish-Doppelfehler** — `nostr.publish` existiert
+   auf NPool nicht, `nostr.event` ohne Signierung; a-Tag-Paar war flach im
+   tags-Array (invalides Event). Hook letztlich gelöscht (s.u.).
+10. **Places/Articles `useState(null)`** — `selectedTag.toLowerCase()` auf
+    never; `useState<string | null>(null)`.
+
+**Gelöschte Totdateien** (nie kompiliert/bzw. nirgends referenziert):
+- `src/config/tagConfigs.ts`, `src/components/TagDropdown.tsx` (importierten
+  eine TAG_CATEGORIES/TagOption-API, die seit dem Tag-Refaktor auf TAG_GROUPS
+  nicht mehr existiert)
+- `src/components/ui/chart.tsx` (shadcn-Legacy, importierte recharts — Paket
+  war nie installiert)
+- `src/components/ContentEditor.tsx`, `src/hooks/useReplaceableContent.ts`
+  samt Route `/veroeffentlichen/modern` (POC ohne Funktion: String-Kind via
+  `30000+30+dTag`, NPool.event ohne Signierung, `#handleAuth` nie verdrahtet)
+  — **User-Entscheidung vom 2026-09-05**. useAboutContent (About-Seite, kind
+  30078 + `#d`-Filter) ist davon NICHT betroffen.
+
+**Konfiguration**:
+- `tsconfig.json`: lib/target ES2020 → ES2022 (löst `replaceAll`, `Error.cause`)
+- `@testing-library/dom` als devDependency ergänzt (deklarierter Peer von
+  @testing-library/react v16 — fehlte, daher TS2305 `screen` in den Tests;
+  auf dem VPS `npm i` nötig!)
+
+**Doku**: DOKUMENTATION.md-Routenliste bereinigt; prompt.md mit
+Abschluss-Banner versehen (Archiv/Lessons).
+
+**Offen geblieben** (User-Entscheidungen / eigene Session-Themen):
+1. PlaceForm markdownToHtml (prompt.md §4.1): jetzt rohes Markdown wie
+   ArticleForm/NoteForm; remark-basierte Konvertierung nur falls der Editor
+   HTML braucht.
+2. `deploy-git/` (SSH-Key!) liegt untracked im VPS-Repo-Ordner → in
+   .gitignore aufnehmen, NIEMALS committen.
+3. `public/sw.js` lokal auf dem VPS modifiziert (git status) → committen,
+   verwerfen oder Version bumpen. Bei „immer noch kaputt" nach Deploy zuerst
+   SW-Cache ausschließen.
+4. 14 Dateien >500 Zeilen (RemotionVideoBlock 945, ArticleView ~900, …) —
+   Refactoring nach PLAN6-Methode, eigenes Session-Thema.
+5. `components/pin/` umbenennen — nur auf ausdrücklichen User-Wunsch.
+
+---
+
 ## Fix Berichte/Plätze: `[BILD_1]` blieb als Literaltext im Artikel stehen (2026-09-02)
 
 **Symptom**: Bei mehreren Bildern mit Beschreibungen blieb immer wieder der

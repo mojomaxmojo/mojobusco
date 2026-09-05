@@ -1,5 +1,12 @@
 # prompt.md — MojoBus: Typ-Schulden-Räumung (PLAN7) + offene Restposten
 
+> **✅ ABGESCHLOSSEN am 2026-09-05.** PLAN7 ist durchgeführt: `npm run check`
+> = 0 Fehler (VPS, tsc-out6), Typ-Gate in build/deploy scharf (`4e686f3`),
+> Demo-Route `/veroeffentlichen/modern` + useReplaceableContent entfernt
+> (User-Entscheidung), verbleibende Restposten siehe §4 und
+> **MOJOBUS_CHANGELOG.md** (Abschnitt „PLAN7 abgeschlossen", 2026-09-05).
+> Dieses Dokument bleibt als Archiv/Kontext (Lessons in §5!) bestehen.
+
 > Übergabe-Prompt für eine neue Session. Enthält Projekt-Kontext, aktuelle Lage,
 > die vollständige Restaufgabe und die Arbeitsregeln. AGENTS.md im Projekt-Root
 > gilt zusätzlich uneingeschränkt.
