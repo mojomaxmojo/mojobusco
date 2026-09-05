@@ -70,7 +70,7 @@ export function StrandOrt() {
     if (category) {
       const categoryConfig = Object.values(STRANDORT_CONFIG.categories).find(cat => cat.id === category.toLowerCase());
       if (categoryConfig) {
-        return eventTags.some(tag => (categoryConfig.tags.primary as string[]).includes(tag));
+        return eventTags.some(tag => (categoryConfig.tags.primary as readonly string[]).includes(tag));
       }
       return eventTags.includes(category);
     }

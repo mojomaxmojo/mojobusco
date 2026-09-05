@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNostr } from '@nostrify/react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/useToast';
+import { useNostrPublish } from '@/hooks/useNostrPublish';
 
 // Replaceable Content Hook für MojoBus - die finale Lösung
 export interface ReplaceableContent {
@@ -26,6 +27,10 @@ export function useReplaceableContent({ dTag, limit = 50 }: UseReplaceableConten
   const { nostr } = useNostr();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  // FIX (PLAN7): nostr.event() mit unsigned Template ist auf NPool nicht
+  // aufrufbar (erwartet signierte Events) – useNostrPublish signiert über
+  // den User-Signer und published.
+  const { mutateAsync: publishEvent } = useNostrPublish();
 
   // HINWEIS (PLAN7): `30000 + 30 + dTag` ergibt mit string-dTag zur Laufzeit
   // einen STRING (z. B. "30030mojobus-modern") – der Kind-Wert ist damit real
@@ -42,8 +47,7 @@ export function useReplaceableContent({ dTag, limit = 50 }: UseReplaceableConten
       const events = await nostr.query([
         {
           kinds: [replaceableKind],
-          limit,
-          order: 'created_at_desc'
+          limit
         }
       ], { signal: abortSignal });
 
@@ -79,7 +83,7 @@ export function useReplaceableContent({ dTag, limit = 50 }: UseReplaceableConten
         { limit: 1 }
       ]) : [];
 
-      const event = await nostr.event({
+      const event = await publishEvent({
         kind: replaceableKind,
         content,
         tags: [
@@ -94,7 +98,7 @@ export function useReplaceableContent({ dTag, limit = 50 }: UseReplaceableConten
       if (existingEvents.length > 0 && content) {
         // Wenn Content existiert, aktualisiere bestehenden statt neuen zu erstellen
         const existingEvent = existingEvents[0];
-        const updateEvent = await nostr.event({
+        const updateEvent = await publishEvent({
           kind: replaceableKind,
           content,
           tags: [

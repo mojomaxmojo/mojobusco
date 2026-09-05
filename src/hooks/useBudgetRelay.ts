@@ -102,7 +102,7 @@ export function useBudgetRelay(): BudgetRelayState {
     } finally {
       isFetchingRef.current = false;
     }
-  }, [query]);
+  }, [nostr]);
 
   useEffect(() => {
     // Nur einmal beim Mount laden

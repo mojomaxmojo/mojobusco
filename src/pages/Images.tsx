@@ -43,7 +43,7 @@ import { useHead } from '@unhead/react';
 interface ImageEvent {
   id: string;
   pubkey: string;
-  kind?: number;
+  kind: number;
   content: string;
   created_at: number;
   tags: string[][];
