@@ -17,7 +17,7 @@ import { useToast } from '@/hooks/useToast';
 import { genUserName } from '@/lib/genUserName';
 import { nip19 } from 'nostr-tools';
 import { RelaySelector } from '@/components/RelaySelector';
-import { RELAY_PRESETS } from '@/config/relays';
+import { RELAY_PRESETS, type RelayPreset, type RelayPresetType } from '@/config/relays';
 import { THEME_CONFIG } from '@/config';
 import { CacheManager } from '@/components/ServiceWorkerStatus';
 import {
@@ -54,13 +54,17 @@ export function Settings() {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [selectedPreset, setSelectedPreset] = useState<string>('mojobus');
 
+  // Gewähltes Preset als getyptes Objekt (für Anzeige im Relays-Tab)
+  const selectedPresetConfig = RELAY_PRESETS[selectedPreset as RelayPresetType];
+  const selectedPresetTimeout = selectedPresetConfig?.queryTimeout;
+
   // Apply relay preset
   const applyPreset = async (preset: string) => {
-    const presetConfig = RELAY_PRESETS[preset as keyof typeof RELAY_PRESETS];
+    const presetConfig: RelayPreset = RELAY_PRESETS[preset as RelayPresetType];
 
     if (presetConfig) {
       try {
-        const newRelays = presetConfig.relayUrls;
+        const newRelays = presetConfig.relayUrls ?? [];
 
         console.log("Applying relay preset:", preset);
         console.log("New relay configuration:", presetConfig);
@@ -119,7 +123,11 @@ export function Settings() {
   };
 
   const handleRelayChange = (relayUrl: string) => {
-    updateConfig({ relayUrl });
+    updateConfig((currentConfig) => ({
+      ...currentConfig,
+      relayUrls: [relayUrl],
+      activeRelay: relayUrl,
+    }));
     toast({
       title: 'Relay aktualisiert',
       description: `Neuer Relay: ${relayUrl}`,
@@ -298,20 +306,20 @@ export function Settings() {
                         <div>
                           <span className="font-medium">Relays:</span>
                           <div className="text-muted-foreground font-mono">
-                            {RELAY_PRESETS[selectedPreset as keyof typeof RELAY_PRESETS]?.relayUrls.join(', ') || '-'}
+                            {selectedPresetConfig?.relayUrls?.join(', ') || '-'}
                           </div>
                         </div>
                         <div>
                           <span className="font-medium">Max Relays:</span>
                           <div className="text-muted-foreground">
-                            {RELAY_PRESETS[selectedPreset as keyof typeof RELAY_PRESETS]?.maxRelays || '-'}
+                            {selectedPresetConfig?.maxRelays || '-'}
                           </div>
                         </div>
                         <div>
                           <span className="font-medium">Timeout:</span>
                           <div className="text-muted-foreground">
-                            {RELAY_PRESETS[selectedPreset as keyof typeof RELAY_PRESETS]?.queryTimeout
-                              ? `${RELAY_PRESETS[selectedPreset as keyof typeof RELAY_PRESETS].queryTimeout / 1000}s`
+                            {selectedPresetTimeout
+                              ? `${selectedPresetTimeout / 1000}s`
                               : '-'}
                           </div>
                         </div>
@@ -343,21 +351,21 @@ export function Settings() {
                         <SelectValue placeholder="Wähle einen Relay-Server" />
                       </SelectTrigger>
                       <SelectContent>
-                        {RELAY_PRESETS.fast.relayUrls.map((url) => (
+                        {(RELAY_PRESETS.fast.relayUrls ?? []).map((url) => (
                           <SelectItem key={url} value={url}>
                             <div>
                               <div className="font-medium font-mono">{url}</div>
                             </div>
                           </SelectItem>
                         ))}
-                        {RELAY_PRESETS.balanced.relayUrls.map((url) => (
+                        {(RELAY_PRESETS.balanced.relayUrls ?? []).map((url) => (
                           <SelectItem key={url} value={url}>
                             <div>
                               <div className="font-medium font-mono">{url}</div>
                             </div>
                           </SelectItem>
                         ))}
-                        {RELAY_PRESETS.mojobus.relayUrls.map((url) => (
+                        {(RELAY_PRESETS.mojobus.relayUrls ?? []).map((url) => (
                           <SelectItem key={url} value={url}>
                             <div>
                               <div className="font-medium font-mono">{url}</div>
@@ -372,14 +380,14 @@ export function Settings() {
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium">Aktueller Relay:</span>
                       <div className="flex items-center gap-2">
-                        <Badge variant={config.relayUrl ? 'default' : 'destructive'}>
-                          {config.relayUrl ? <Wifi className="h-3 w-3 mr-1" /> : <WifiOff className="h-3 w-3 mr-1" />}
-                          {config.relayUrl || 'Nicht verbunden'}
+                        <Badge variant={config.write.activeRelay ? 'default' : 'destructive'}>
+                          {config.write.activeRelay ? <Wifi className="h-3 w-3 mr-1" /> : <WifiOff className="h-3 w-3 mr-1" />}
+                          {config.write.activeRelay || 'Nicht verbunden'}
                         </Badge>
                       </div>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {config.relayUrl ? 'Verbunden mit Nostr Relay-Server' : 'Kein Relay-Server konfiguriert'}
+                      {config.write.activeRelay ? 'Verbunden mit Nostr Relay-Server' : 'Kein Relay-Server konfiguriert'}
                     </p>
                   </div>
                 </CardContent>
@@ -597,8 +605,8 @@ export function Settings() {
                         </div>
                         <div className="flex justify-between">
                           <span>Relay:</span>
-                          <Badge variant={config.relayUrl ? 'default' : 'destructive'}>
-                            {config.relayUrl || 'Kein Relay'}
+                          <Badge variant={config.write.activeRelay ? 'default' : 'destructive'}>
+                            {config.write.activeRelay || 'Kein Relay'}
                           </Badge>
                         </div>
                         <div className="flex justify-between">

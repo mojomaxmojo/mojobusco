@@ -59,7 +59,7 @@ export function useZaps(
       // Nur pollen wenn: (a) Polling nicht explizit deaktiviert (compact-Cards),
       // (b) die Query beobachtet wird (Komponente gemountet) und
       // (c) die Query aktiv ist (verhindert Intervall auf disabled Queries).
-      return poll && query.getObserversCount() > 0 && query.isEnabled
+      return poll && query.getObserversCount() > 0 && query.isActive()
         ? 60000
         : false;
     },
@@ -241,12 +241,11 @@ export function useZaps(
       return;
     }
 
-      // Create zap request - use appropriate event format based on kind
-      // For addressable events (30000-39999), pass the object to get 'a' tag
-      // For all other events, pass the ID string to get 'e' tag
-      const event = (actualTarget.kind >= 30000 && actualTarget.kind < 40000)
-        ? actualTarget
-        : actualTarget.id;
+      // Create zap request - always pass the event object.
+      // nostr-tools ≥2.23 erwartet das NostrEvent-Objekt (baut 'e'-, 'a'- und
+      // 'k'-Tags selbst; bei Übergabe der ID als String bliebe 'e' undefined
+      // und der Zap-Request wäre ungültig).
+      const event = actualTarget;
 
       const zapAmount = amount * 1000; // convert to millisats
 
@@ -255,14 +254,14 @@ export function useZaps(
         profile: actualTarget.pubkey,
         event: event,
         amount: zapAmount,
-        relays: [config.relayUrl],
+        relays: [config.write.activeRelay],
         comment
       });
 
       // Build a complete event template with all required fields
       // Filter out any tags that contain null values (nostr-tools bug with relays tag)
       const validTags = (zapRequestTemplate.tags || [])
-        .filter(tag => !tag.includes(null))
+        .filter(tag => !tag.includes(null as unknown as string))
         .map(tag => tag.filter((value): value is string => typeof value === 'string'));
 
       const zapRequestEventTemplate: EventTemplate = {
@@ -273,7 +272,7 @@ export function useZaps(
       };
 
       // Sign the zap request (but don't publish to relays - only send to LNURL endpoint)
-      if (!user.signer) {
+      if (!user || !user.signer) {
         throw new Error('No signer available');
       }
       const signedZapRequest = await user.signer.signEvent(zapRequestEventTemplate);

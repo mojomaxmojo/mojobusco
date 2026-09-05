@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { RELAY_PRESETS } from "@/config/relays";
+import { RELAY_PRESETS, type RelayPreset, type RelayPresetType } from "@/config/relays";
 import { useAppContext } from "@/hooks/useAppContext";
 import { useToast } from "@/hooks/useToast";
 
@@ -63,8 +63,12 @@ export function RelaySelector() {
     return 'mojobus';
   });
 
+  // Gewähltes Preset als getyptes Objekt (für Anzeige unten)
+  const selectedPresetConfig = RELAY_PRESETS[selectedPreset as RelayPresetType];
+  const selectedPresetTimeout = selectedPresetConfig?.queryTimeout;
+
   const applyPreset = async (preset: string) => {
-    const presetConfig = RELAY_PRESETS[preset as keyof typeof RELAY_PRESETS];
+    const presetConfig: RelayPreset = RELAY_PRESETS[preset as RelayPresetType];
 
     if (!presetConfig || !presetConfig.relayUrls) {
       console.error("Invalid preset:", preset);
@@ -171,19 +175,19 @@ Wähle einen Relay-Preset für optimale Performance
         <div>
           <span className="font-medium">Relays:</span>
           <div className="text-muted-foreground">
-            {RELAY_PRESETS[selectedPreset as keyof typeof RELAY_PRESETS]?.relayUrls.join(", ") || "-"}
+            {selectedPresetConfig?.relayUrls?.join(", ") || "-"}
           </div>
         </div>
         <div>
           <span className="font-medium">Max Relays:</span>
           <div className="text-muted-foreground">
-            {RELAY_PRESETS[selectedPreset as keyof typeof RELAY_PRESETS]?.maxRelays || "-"}
+            {selectedPresetConfig?.maxRelays || "-"}
           </div>
         </div>
         <div>
           <span className="font-medium">Timeout:</span>
           <div className="text-muted-foreground">
-            {RELAY_PRESETS[selectedPreset as keyof typeof RELAY_PRESETS]?.queryTimeout ? `${RELAY_PRESETS[selectedPreset as keyof typeof RELAY_PRESETS].queryTimeout / 1000}s` : "-"}
+            {selectedPresetTimeout ? `${selectedPresetTimeout / 1000}s` : "-"}
           </div>
         </div>
         <div>

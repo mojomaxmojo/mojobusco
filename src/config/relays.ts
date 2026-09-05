@@ -159,7 +159,7 @@ export const RELAYS: RelayConfig[] = [
 // PRESET RELAY-KONFIGURATIONEN
 // ============================================================================
 
-export const RELAY_PRESETS = {
+export const RELAY_PRESETS: Record<RelayPresetType, RelayPreset> = {
   // MojoBus Preset - Hauptkonfiguration für MojoBus Blog
   // Erstbesucher: 2 Relays parallel (relay.mojobus.co + primal) für Zuverlässigkeit.
   mojobus: {
@@ -238,7 +238,7 @@ export const RELAY_PRESETS = {
     maxRelays: 1,
     queryTimeout: 10000, // 10s for AUTH
   },
-} as const;
+};
 
 // ============================================================================
 // KATEGORIE-FILTER
@@ -317,25 +317,25 @@ export const DEFAULT_APP_CONFIG = {
   // READ KONFIGURATION (Abrufen/Queries) - MOJOBUS Preset
   // ============================================================================
   read: {
-    relayUrls: RELAY_PRESETS.mojobus.relayUrls, // relay.mojobus.co
-    maxRelays: RELAY_PRESETS.mojobus.maxRelays, // 1 Relay
-    queryTimeout: RELAY_PRESETS.mojobus.queryTimeout, // 3000ms - Ausreichend nach Optimierung
+    relayUrls: RELAY_PRESETS.mojobus.relayUrls ?? [], // relay.mojobus.co
+    maxRelays: RELAY_PRESETS.mojobus.maxRelays ?? 2, // 2 Relays
+    queryTimeout: RELAY_PRESETS.mojobus.queryTimeout ?? 3000, // 3000ms - Ausreichend nach Optimierung
   },
 
   // ============================================================================
   // WRITE KONFIGURATION (Veröffentlichen) - MOJOBUS Preset
   // ============================================================================
   write: {
-    relayUrls: RELAY_PRESETS.mojobus.relayUrls, // relay.mojobus.co
-    maxRelays: RELAY_PRESETS.mojobus.maxRelays, // 1 Relay
-    activeRelay: RELAY_PRESETS.mojobus.relayUrls[0], // relay.mojobus.co als aktiver Relay
+    relayUrls: RELAY_PRESETS.mojobus.relayUrls ?? [], // relay.mojobus.co
+    maxRelays: RELAY_PRESETS.mojobus.maxRelays ?? 2, // 2 Relays
+    activeRelay: RELAY_PRESETS.mojobus.relayUrls?.[0] ?? 'wss://relay.mojobus.co', // relay.mojobus.co als aktiver Relay
   },
 
   // ============================================================================
   // GEMEINSAME OPTIONEN
   // ============================================================================
   enableDeduplication: true, // Deduplizierung von Events aktivieren
-} as const;
+};
 
 // ============================================================================
 // AUTOR-SPEZIFISCHE RELAY-KONFIGURATION

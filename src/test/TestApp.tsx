@@ -23,7 +23,17 @@ export function TestApp({ children }: TestAppProps) {
 
   const defaultConfig: AppConfig = {
     theme: 'light',
-    relayUrl: 'wss://relay.mojobus.co',
+    read: {
+      relayUrls: ['wss://relay.mojobus.co'],
+      maxRelays: 1,
+      queryTimeout: 3000,
+    },
+    write: {
+      relayUrls: ['wss://relay.mojobus.co'],
+      maxRelays: 1,
+      activeRelay: 'wss://relay.mojobus.co',
+    },
+    enableDeduplication: true,
   };
 
   return (
