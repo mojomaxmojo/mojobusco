@@ -8,6 +8,7 @@ import { ExperiencesConfirm } from "@/components/assistant/ExperiencesConfirm";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/useToast";
 import { getApiBaseUrl } from "@/lib/apiBase";
+import { authedFetch } from "@/lib/apiAuth";
 import { AUTO_TRANSLATE_STORAGE_KEY } from "@/config/translation";
 import { ImageOptimizationToggle } from "@/components/ImageOptimizationToggle";
 import { GpsStatusIndicator } from "@/components/GpsStatusIndicator";
@@ -113,7 +114,7 @@ export function NoteForm({ editEvent }: { editEvent?: NostrEvent }) {
       formData.append('gender', gender || 'neutral');
       formData.append('tripType', tripType || '');
 
-      const response = await fetch(`${getApiBaseUrl()}/api/generate-note`, {
+      const response = await authedFetch(`${getApiBaseUrl()}/api/generate-note`, {
         method: 'POST',
         body: formData
       });

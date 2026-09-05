@@ -5,6 +5,7 @@
 
 import { useState } from 'react'
 import { getApiBaseUrl } from '@/lib/apiBase'
+import { authedFetch } from '@/lib/apiAuth'
 import { cleanMarkdown } from './videoPromotionConfig'
 import type { ContentItem } from '@/components/pin/ContentSelector'
 import type { useToast } from '@/hooks/useToast'
@@ -104,7 +105,7 @@ export function useVideoTextGeneration({
         title: '🔍 Bilder werden analysiert...',
         description: `${articleImages.length} Bilder · Vision-KI`,
       })
-      const visionRes = await fetch(`${base}/api/tiktok/analyze-images`, {
+      const visionRes = await authedFetch(`${base}/api/tiktok/analyze-images`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -136,7 +137,7 @@ export function useVideoTextGeneration({
         .join('\n\n---\n\n')
         .substring(0, 2000) || ''
 
-      const res = await fetch(`${base}/api/tiktok/generate-text`, {
+      const res = await authedFetch(`${base}/api/tiktok/generate-text`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

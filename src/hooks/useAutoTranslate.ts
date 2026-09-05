@@ -22,6 +22,7 @@ import { useToast } from './useToast';
  * (relativer Pfad). Zentral in src/lib/apiBase.ts (vorher lokale Kopie).
  */
 import { getApiBaseUrl } from '@/lib/apiBase';
+import { authedFetch } from '@/lib/apiAuth';
 
 /** Eingabe für `translateAndPublish()`. */
 export interface TranslateAndPublishInput {
@@ -115,7 +116,7 @@ export function useAutoTranslate() {
 
     try {
       // 1. DE→EN-Übersetzung vom Server holen
-      const response = await fetch(`${getApiBaseUrl()}/api/translate-content`, {
+      const response = await authedFetch(`${getApiBaseUrl()}/api/translate-content`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

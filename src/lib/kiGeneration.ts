@@ -16,6 +16,7 @@
 
 import { type LifestyleType, type GenderType } from '@/config/prompts/lifestyles';
 import { DEFAULT_TEXT_MODEL } from '@/config/ai-models';
+import { authedFetch } from '@/lib/apiAuth';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
@@ -85,7 +86,7 @@ export async function generateMediaArticle(options: GenerateMediaOptions): Promi
   formData.append('model', options.model || DEFAULT_TEXT_MODEL);
   formData.append('gender', options.gender || 'neutral');
 
-  const response = await fetch(`${API_BASE}/api/generate-media-article`, {
+  const response = await authedFetch(`${API_BASE}/api/generate-media-article`, {
     method: 'POST',
     body: formData
   });
@@ -136,7 +137,7 @@ export async function startTripGeneration(options: GenerateTripOptions): Promise
   formData.append('model', options.model || DEFAULT_TEXT_MODEL);
   formData.append('gender', options.gender || 'neutral');
 
-  const response = await fetch(`${API_BASE}/api/generate-trip`, {
+  const response = await authedFetch(`${API_BASE}/api/generate-trip`, {
     method: 'POST',
     body: formData
   });
@@ -153,7 +154,7 @@ export async function startTripGeneration(options: GenerateTripOptions): Promise
  * Fragt den aktuellen Status eines Trip-Generierungs-Jobs ab.
  */
 export async function getTripGenerationStatus(jobId: string): Promise<TripJobStatus> {
-  const response = await fetch(`${API_BASE}/api/generate-trip/${jobId}`);
+  const response = await authedFetch(`${API_BASE}/api/generate-trip/${jobId}`);
 
   if (!response.ok) {
     const error = await response.json();
@@ -167,7 +168,7 @@ export async function getTripGenerationStatus(jobId: string): Promise<TripJobSta
  * Bricht einen laufenden Trip-Generierungs-Job ab.
  */
 export async function cancelTripGeneration(jobId: string): Promise<void> {
-  await fetch(`${API_BASE}/api/generate-trip/${jobId}/cancel`, {
+  await authedFetch(`${API_BASE}/api/generate-trip/${jobId}/cancel`, {
     method: 'POST'
   });
 }
@@ -225,7 +226,7 @@ export async function generateArticle(options: GenerateArticleOptions): Promise<
   formData.append('model', options.model || DEFAULT_TEXT_MODEL);
   formData.append('gender', options.gender || 'neutral');
 
-  const response = await fetch(`${API_BASE}/api/generate-article`, {
+  const response = await authedFetch(`${API_BASE}/api/generate-article`, {
     method: 'POST',
     body: formData
   });
@@ -264,7 +265,7 @@ export async function generatePlaceDescription(options: GeneratePlaceOptions): P
   formData.append('model', options.model || DEFAULT_TEXT_MODEL);
   formData.append('gender', options.gender || 'neutral');
 
-  const response = await fetch(`${API_BASE}/api/generate-place`, {
+  const response = await authedFetch(`${API_BASE}/api/generate-place`, {
     method: 'POST',
     body: formData
   });
@@ -300,7 +301,7 @@ export async function generateNote(options: GenerateNoteOptions): Promise<{
   formData.append('model', options.model || DEFAULT_TEXT_MODEL);
   formData.append('gender', options.gender || 'neutral');
 
-  const response = await fetch(`${API_BASE}/api/generate-note`, {
+  const response = await authedFetch(`${API_BASE}/api/generate-note`, {
     method: 'POST',
     body: formData
   });

@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { Video, Loader2, CheckCircle } from "@/lib/icons";
 import { useToast } from "@/hooks/useToast";
 import { getApiBaseUrl } from "@/lib/apiBase";
+import { authedFetch } from "@/lib/apiAuth";
 import type { MediaFile } from "@/pages/publish/publishUtils";
 
 interface CreateVideoDialogProps {
@@ -44,7 +45,7 @@ export function CreateVideoDialog({ open, onOpenChange, onVideoCreated }: Create
       const formData = new FormData();
       formData.append('video', file);
 
-      const uploadRes = await fetch(`${getApiBaseUrl()}/api/transcode-video`, {
+      const uploadRes = await authedFetch(`${getApiBaseUrl()}/api/transcode-video`, {
         method: 'POST',
         body: formData,
       });
@@ -61,7 +62,7 @@ export function CreateVideoDialog({ open, onOpenChange, onVideoCreated }: Create
       await new Promise<{ status: string; progress: number; error?: string }>((resolve, reject) => {
         const interval = setInterval(async () => {
           try {
-            const statusRes = await fetch(`${getApiBaseUrl()}/api/transcode-video/status/${jobId}`);
+            const statusRes = await authedFetch(`${getApiBaseUrl()}/api/transcode-video/status/${jobId}`);
             if (!statusRes.ok) {
               clearInterval(interval);
               reject(new Error('Status-Abfrage fehlgeschlagen'));
@@ -104,6 +105,7 @@ export function CreateVideoDialog({ open, onOpenChange, onVideoCreated }: Create
         prev ? { ...prev, progress: 99, status: '⬇️ Lade verarbeitetes Video herunter...' } : prev,
       );
 
+      // Download-Route bewusst öffentlich (Capability-URL, siehe api-auth.js)
       const downloadRes = await fetch(`${getApiBaseUrl()}/api/transcode-video/download/${jobId}`);
       if (!downloadRes.ok) throw new Error('Download fehlgeschlagen');
 

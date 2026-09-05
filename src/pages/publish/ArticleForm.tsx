@@ -12,6 +12,7 @@ import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { useAutoTranslate } from "@/hooks/useAutoTranslate";
 import { useContinuityTracking } from "@/hooks/useContinuityTracking";
 import { getApiBaseUrl } from "@/lib/apiBase";
+import { authedFetch } from "@/lib/apiAuth";
 import { ImageOptimizationToggle } from "@/components/ImageOptimizationToggle";
 import { LocationPicker } from "@/components/LocationPicker";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -234,7 +235,7 @@ export function ArticleForm({ editEvent }: { editEvent?: NostrEvent }) {
         formData.append('markdownImageMeta', JSON.stringify(markdownImageMeta));
       }
 
-      const response = await fetch(`${getApiBaseUrl()}/api/generate-article`, {
+      const response = await authedFetch(`${getApiBaseUrl()}/api/generate-article`, {
         method: 'POST',
         body: formData
       });

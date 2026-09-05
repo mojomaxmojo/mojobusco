@@ -57,6 +57,16 @@
 
 ## API-Endpunkte (Port 3002, Systemd `ai-api`)
 
+**Auth (NIP-98)**: Alle KI-/Render-Routen verlangen (bei `AI_AUTH_REQUIRED=1`
+in ai-api.env) ein NIP-98-Auth-Event (kind 27235), signiert von einem Autoren-
+Pubkey aus `src/config/authors.json` (Max/Susanne). Frontend: `authedFetch()`
+(`src/lib/apiAuth.ts`, Cache 240s), Prefix-Liste + öffentliche Ausnahmen
+zentral: `src/config/api-auth.js`. Middleware: `server/middleware/nostr-auth.js`.
+Öffentlich bleiben: Downloads/Thumbnails (`render-remotion/download|thumbnail`,
+`transcode-video/download` — Capability-URLs mit Random-JobId, 1h Löschung),
+`GET /api/tiktok/uploads/:filename`, `/api/music/*`, `/api/health`,
+`/api/prerender-resolve`.
+
 | Endpunkt | Methode | Funktion |
 |----------|---------|----------|
 | `/api/render-remotion` | POST | Video rendern |

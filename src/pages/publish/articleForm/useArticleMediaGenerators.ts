@@ -14,6 +14,7 @@
 import { useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { getApiBaseUrl } from "@/lib/apiBase";
+import { authedFetch } from "@/lib/apiAuth";
 import { getErrorMessage } from "@/lib/utils";
 import type { useToast } from "@/hooks/useToast";
 import type { useUploadFile } from "@/hooks/useUploadFile";
@@ -97,7 +98,7 @@ export function useArticleMediaGenerators({
 
     try {
       // Schritt 1: Job über eigenen Server einreichen (XAI_API_KEY liegt auf VPS)
-      const submitRes = await fetch(`${getApiBaseUrl()}/api/generate-video`, {
+      const submitRes = await authedFetch(`${getApiBaseUrl()}/api/generate-video`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -139,7 +140,7 @@ export function useArticleMediaGenerators({
         }
         attempts++;
 
-        const pollRes = await fetch(`${getApiBaseUrl()}/api/video-status/${jobId}`);
+        const pollRes = await authedFetch(`${getApiBaseUrl()}/api/video-status/${jobId}`);
         const pollData = await pollRes.json();
 
         if (pollData.status === 'completed' && pollData.videoUrl) {
@@ -244,7 +245,7 @@ export function useArticleMediaGenerators({
 
     try {
       // Job starten
-      const res = await fetch(`${getApiBaseUrl()}/api/generate-slideshow`, {
+      const res = await authedFetch(`${getApiBaseUrl()}/api/generate-slideshow`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
@@ -268,7 +269,7 @@ export function useArticleMediaGenerators({
       let attempts = 0;
       const poll = async (): Promise<void> => {
         if (attempts++ > 400) throw new Error('Timeout nach 20 Minuten.');
-        const pollRes = await fetch(`${getApiBaseUrl()}/api/slideshow-status/${data.jobId}`);
+        const pollRes = await authedFetch(`${getApiBaseUrl()}/api/slideshow-status/${data.jobId}`);
         const pollData = await pollRes.json();
 
         setSlideshowProgress(pollData.progress || 0);

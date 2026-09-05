@@ -3,15 +3,15 @@
  *
  * - Prefixt alle Endpunkte mit `${getApiBaseUrl()}` (AGENTS.md Regel 3,
  *   Capacitor: relative fetch-URLs schlagen im file:///-Kontext fehl)
- * - Setzt den Bearer-Token aus `import.meta.env.VITE_ASSISTANT_TOKEN`
- *   (geschützte Schreib-Routen: Drafts, Upload, Publish)
+ * - Auth via authedFetch (NIP-98): signiert mit dem Login des Autors.
+ *   Früher Bearer-VITE_ASSISTANT_TOKEN (öffentlich im Bundle!) — seit dem
+ *   NIP-98-Umbau kryptografisch an die Autoren-Pubkeys gebunden
+ *   (src/config/authors.json, serverseitig geprüft).
  */
 
 import { useCallback } from 'react';
 import { getApiBaseUrl } from '@/lib/apiBase';
-
-const ASSISTANT_TOKEN: string =
-  (import.meta.env.VITE_ASSISTANT_TOKEN as string | undefined) ?? '';
+import { authedFetch } from '@/lib/apiAuth';
 
 interface AssistantApiErrorBody {
   error?: string;
@@ -24,11 +24,8 @@ export function useAssistantApi() {
     if (!headers.has('Content-Type')) {
       headers.set('Content-Type', 'application/json');
     }
-    if (ASSISTANT_TOKEN) {
-      headers.set('Authorization', `Bearer ${ASSISTANT_TOKEN}`);
-    }
 
-    const response = await fetch(`${getApiBaseUrl()}${endpoint}`, {
+    const response = await authedFetch(`${getApiBaseUrl()}${endpoint}`, {
       ...options,
       headers
     });
@@ -52,21 +49,15 @@ export function useAssistantApi() {
 
 /**
  * Multipart-Upload für die Media-Library (kein JSON-Body).
- * Feldname: `image`. Setzt den Bearer-Token wie der Hook.
+ * Feldname: `image`. Auth via authedFetch (NIP-98) wie im Hook.
  */
 export async function assistantUpload<T>(endpoint: string, file: File): Promise<T> {
   const formData = new FormData();
   formData.append('image', file);
 
-  const headers: HeadersInit = {};
-  if (ASSISTANT_TOKEN) {
-    (headers as Record<string, string>)['Authorization'] = `Bearer ${ASSISTANT_TOKEN}`;
-  }
-
-  const response = await fetch(`${getApiBaseUrl()}${endpoint}`, {
+  const response = await authedFetch(`${getApiBaseUrl()}${endpoint}`, {
     method: 'POST',
     body: formData,
-    headers
   });
 
   if (!response.ok) {

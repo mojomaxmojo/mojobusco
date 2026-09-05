@@ -5,6 +5,36 @@
 
 ---
 
+## KI-Routen-Schutz: NIP-98 Author-Auth (nur Max & Susanne) (2026-09-06)
+
+**Auftrag**: „Zur Zeit sind die KI-Routen alle ungeschützt" — nur die 2
+eingeloggten Autoren sollen die KI-Endpunkte nutzen können.
+
+**Lösung**: NIP-98 HTTP-Auth (kind 27235). Frontend signiert mit dem Login
+des Autors (NIP-07/nsec/Bunker) via neuem `authedFetch()` (~30 Call-Sites in
+22 Dateien umgestellt), Server verifiziert Signatur + Zeitfenster + `u`/
+`method`-Tags + Autoren-Allowlist (`src/config/authors.json`). Keine neue
+Dependency (nostr-tools war schon da). Rollout-Flag `AI_AUTH_REQUIRED=0/1`
+in ai-api.env — Scharfschalten erst nach Frontend-Deploy.
+
+**Neu**:
+- `src/config/api-auth.js` — Prefix-Liste (21 geschützte Routen) + öffentliche
+  Ausnahmen, von Server UND Frontend importiert (Single Source of Truth)
+- `server/middleware/nostr-auth.js` — NIP-98-Verify (nostr-tools `verifyEvent`)
+- `src/lib/apiAuth.ts` + `src/components/ApiAuthBridge.tsx` — authedFetch mit
+  240s-Token-Cache (schont Extension-Signier-Popups), 401/403 → dt. Fehlermeldung
+
+**Sicherheits-Gewinn**: Bearer-VITE_ASSISTANT_TOKEN (öffentlich im Bundle!)
+deprecated — die 🔒-Routen (Drafts/Upload/Published, `assistant/auth.js`)
+nutzen jetzt denselben NIP-98-Schutz. Öffentlich bleiben bewusst: Downloads/
+Thumbnails (Capability-URLs + 1h Löschung), `music/list`, `health`,
+`prerender-resolve`, `bot-cache/clear`.
+
+**Details/Doku**: docs/CONTEXT_DEPLOY.md (Abschnitt „KI-Routen-Schutz
+NIP-98" + Rollout), docs/CONTEXT_TIKTOK.md (API-Auth-Block).
+
+---
+
 ## PLAN7 abgeschlossen: tsc = 0 Fehler, Typ-Gate scharf, Demo-Route entfernt (2026-09-05)
 
 **Auftrag** (prompt.md, Übergabe aus Vorgänger-Session): Typ-Schulden-Räumung

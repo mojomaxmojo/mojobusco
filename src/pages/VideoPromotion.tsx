@@ -85,6 +85,7 @@ import {
 // Im Desktop-Browser: leerer String → relative URLs funktionieren wie gewohnt.
 // Zentral in src/lib/apiBase.ts (vorher lokale Kopie).
 import { getApiBaseUrl } from '@/lib/apiBase';
+import { authedFetch } from '@/lib/apiAuth';
 
 // ── Hero-Wort-Markup, Konstanten & Typen: siehe ./videoPromotion/videoPromotionConfig
 import {
@@ -369,7 +370,7 @@ export function VideoPromotion() {
   // Remotion-Status beim Laden prüfen
   useEffect(() => {
     const base = getApiBaseUrl()
-    fetch(`${base}/api/render-remotion/check`)
+    authedFetch(`${base}/api/render-remotion/check`)
       .then(r => r.json())
       .then(data => {
         setRemotionAvailable(data.remotion === 'installed')
@@ -378,7 +379,6 @@ export function VideoPromotion() {
       })
       .catch(() => setRemotionAvailable(false))
   }, [])
-
   // Musik-Tracks laden: siehe ./videoPromotion/useVideoMusicAudio
 
   // ── KI-GENERIERUNG: siehe ./videoPromotion/useVideoTextGeneration
@@ -579,7 +579,7 @@ export function VideoPromotion() {
 
     try {
       const base = getApiBaseUrl()
-      const res = await fetch(`${base}/api/render-remotion`, {
+      const res = await authedFetch(`${base}/api/render-remotion`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

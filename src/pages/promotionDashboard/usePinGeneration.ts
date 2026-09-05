@@ -5,6 +5,7 @@
 
 import { useState } from 'react'
 import { getApiBaseUrl } from '@/lib/apiBase'
+import { authedFetch } from '@/lib/apiAuth'
 import { useToast } from '@/hooks/useToast'
 import { safeResJson } from './pinStorage'
 import type { ContentItem } from '@/components/pin/ContentSelector'
@@ -93,7 +94,7 @@ export function usePinGeneration({
           )
         || ''
 
-      const res = await fetch(`${getApiBaseUrl()}/api/promotion/generate-pin-text`, {
+      const res = await authedFetch(`${getApiBaseUrl()}/api/promotion/generate-pin-text`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

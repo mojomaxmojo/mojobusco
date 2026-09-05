@@ -102,8 +102,58 @@ kann alte Homepage-Shells für Bot-UA-Anfragen zwischengespeichert haben.
 
 ```bash
 # Bundle-Cache leeren (nach Remotion-Änderungen):
-curl -X POST http://localhost:3002/api/render-remotion/invalidate-bundle
+# Seit NIP-98-Schutz verlangt der Endpunkt Autoren-Auth — für den VPS-Admin
+# ist `systemctl restart ai-api` der Weg (leert In-Memory-Caches mit).
+systemctl restart ai-api
 ```
+
+---
+
+## KI-Routen-Schutz NIP-98 (nur Autoren Max & Susanne)
+
+**Problem**: Alle KI-/Render-/Assistent-Routen auf Port 3002 waren offen —
+jeder konnte OpenRouter-/XAI-/GSC-/DFS-Credits verbrennen. Rate-Limit (Nr. 15)
+war nur eine Missbrauchsbremse.
+
+**Lösung** (umgesetzt 2026-09): NIP-98 HTTP-Auth (kind 27235). Das Frontend
+signiert mit dem Login des Autors (NIP-07/nsec/Bunker) und sendet
+`Authorization: Nostr <base64>`. Der Server prüft Signatur (nostr-tools,
+bereits Dependency), Zeitfenster (±300s), `u`/`method`-Tags und die
+Autoren-Allowlist (`src/config/authors.json`).
+
+| Baustein | Datei |
+|----------|-------|
+| Prefix-Liste + Ausnahmen (Server & Frontend) | `src/config/api-auth.js` |
+| Middleware (NIP-98-Verify + Allowlist) | `server/middleware/nostr-auth.js` |
+| Frontend-Signierung (authedFetch, Cache 240s) | `src/lib/apiAuth.ts` + `src/components/ApiAuthBridge.tsx` |
+| 🔒-Assistent-Routen (Drafts/Upload/Published) | `server/routes/assistant/auth.js` → `requireAuthor` |
+
+**Öffentlich bleiben** (bewusst): `/api/health`, `/api/prerender-resolve`,
+`/api/music/*`, `/api/bot-cache/clear` sowie Downloads/Thumbnails
+(`render-remotion/download|thumbnail`, `transcode-video/download`,
+`GET /api/media`, `GET /api/media/file/:id`, `GET /api/tiktok/uploads/:filename`)
+— Capability-URLs mit unerratbarer Random-JobId + 1h Auto-Löschung, teils als
+`<img src>`/`<a href>` im Einsatz (dort geht kein Authorization-Header).
+
+**Deploy-Rollout (Reihenfolge wichtig):**
+1. Deploy (Frontend + Server) mit `AI_AUTH_REQUIRED=0` — Frontend sendet
+   NIP-98-Header schon, Server ignoriert sie noch. Nichts bricht.
+2. Autoren-Test: KI-Generierung, Video-Render, Assistent, Pinterest-Dashboard
+   (getestet wird implizit mit, da authedFetch nur bei geschützten Routen signiert).
+3. Scharf schalten: in `/etc/systemd/system/ai-api.env` `AI_AUTH_REQUIRED=1`
+   setzen + `systemctl restart ai-api`. Start-Log bestätigt:
+   `[Server] NIP-98 Author-Schutz AKTIV für 21 API-Prefixe`.
+4. Verifikation (ohne Login → 401, mit Autoren-Login → 200):
+   ```bash
+   curl -sk -X POST https://mojobus.co/api/generate-note -o /dev/null -w "%{http_code}\n"
+   # AI_AUTH_REQUIRED=1 erwartet: 401 (code: AUTH_REQUIRED)
+   journalctl -u ai-api -f | grep "\[Auth\]"   # 401/403-Gründe live sehen
+   ```
+
+**Wichtig**: Bei künftigen NEUEN KI-Endpunkten das Prefix in
+`src/config/api-auth.js` ergänzen (Server verlangt es sonst nicht,
+Frontend signiert nicht) — Deployment-Matrix: `server/server.js`-nahe
+Änderungen → `deploy --force` + `systemctl restart ai-api`.
 
 ---
 
@@ -131,10 +181,11 @@ Abschnitt „Berichte-Assistent") braucht folgende Variablen in
 
 | Variable | Zweck |
 |----------|-------|
+| `AI_AUTH_REQUIRED` | **NIP-98-Author-Schutz** für alle KI-Routen (siehe Abschnitt „KI-Routen-Schutz NIP-98"): `1` = nur Autoren-Pubkeys aus `src/config/authors.json` (Max/Susanne) kommen durch; `0`/leer = alles offen (Rollout). Prefix-Liste: `src/config/api-auth.js` |
 | `OPENROUTER_API_KEY`, `XAI_API_KEY`, `GROQ_API_KEY` | vorhanden — aus der alten Unit-Config übernehmen |
 | `GSC_CLIENT_EMAIL` + `GSC_PRIVATE_KEY` + `GSC_SITE_URL` | Search Console Service-Account (read-only). Fehlen sie: Assistent läuft weiter, nur ohne GSC-Daten (`gsc: false`) |
 | `INDEXNOW_KEY` | IndexNow-Ping nach Publish; Verifikationsdatei `public/<INDEXNOW_KEY>.txt` wird mit dem Deploy ausgeliefert |
-| `ASSISTANT_API_TOKEN` | Bearer-Token für Schreib-Routen (Drafts/Upload/Published); erzeugen z. B. mit `openssl rand -hex 32` |
+| ~~`ASSISTANT_API_TOKEN`~~ | **DEPRECATED** (NIP-98-Umbau): Schreib-Routen (Drafts/Upload/Published) nutzen jetzt denselben NIP-98-Schutz wie alle KI-Routen (`server/routes/assistant/auth.js` → `requireAuthor`). Eintrag kann aus ai-api.env entfernt werden |
 | `DATAFORSEO_LOGIN` + `DATAFORSEO_PASSWORD` | DataForSEO-API (Stufe 2 „Themen mit Nachfrage"): echte Monatsvolumina + 12-Monats-Historie. **Ohne Keys läuft der Endpunkt weiter** (degradiert auf GSC-Daten). Prepaid: **$1 gratis Test-Credit bei Registrierung**, Mindest-Top-up **50 €** (kein Abo), ~$0,075 pro Task (bis 1.000 Keywords) — Rate-Limit-Bucket „ideas" schützt das Guthaben. Optional: `DATAFORSEO_LOCATION_CODE` (Default 2276 = Germany), `DATAFORSEO_LANGUAGE_NAME` (Default „German") |
 | `ASSISTANT_TOPICS_CACHE_DAYS` | Cache-TTL für „Themen mit Nachfrage" (Default **30** Tage — Suchvolumina ändern sich monatsweise; spart DFS-Credits). `?refresh=1` umgeht den Cache (Frontend: ↻-Button). **Deploy-sicher**: assistant.db (mit seo_cache) wird vor dem Deploy-Wipe gesichert und wiederhergestellt — DFS-Daten überleben Deploy |
 | `MEDIA_DIR` (Default `/home/nginx/domains/mojobus.co/public/images/articles`) + `MEDIA_PUBLIC_BASE` (Default `https://mojobus.co/images/articles`) | Media-Library-Speicherort + öffentliche URL-Basis |

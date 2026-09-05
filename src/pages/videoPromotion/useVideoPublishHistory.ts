@@ -6,6 +6,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { getApiBaseUrl } from '@/lib/apiBase'
+import { authedFetch } from '@/lib/apiAuth'
 import { useUploadFile } from '@/hooks/useUploadFile'
 import { useNostrPublish } from '@/hooks/useNostrPublish'
 import { useNostrDelete } from '@/hooks/useNostrDelete'
@@ -299,7 +300,7 @@ export function useVideoPublishHistory({
   const loadServerHistory = async () => {
     try {
       const base = getApiBaseUrl()
-      const res = await fetch(`${base}/api/render-remotion/history`)
+      const res = await authedFetch(`${base}/api/render-remotion/history`)
       const data = await res.json()
       if (data?.jobs) setHistory(data.jobs)
     } catch {}

@@ -54,6 +54,8 @@ import {
 // ── Bot Meta-Tag Middleware ────────────────────────────────
 import { botMiddleware, getBotCacheStats, clearBotCache } from './bot/middleware.js'
 import { rateLimit } from './middleware/rate-limit.js'
+import { requireAuthor } from './middleware/nostr-auth.js'
+import { PROTECTED_API_PREFIXES } from '../src/config/api-auth.js'
 
 // ── Pinterest Promotion API ────────────────────────────────
 import promotionRouter from './routes/promotion/index.js'
@@ -109,6 +111,20 @@ app.use('/api/assistant/weather', rateLimit('light'))
 app.use('/api/assistant/continuity-suggestions', rateLimit('light'))
 app.use('/api/assistant/link-suggestions', rateLimit('light'))
 app.use('/api/assistant/threads/resolve', rateLimit('light'))
+
+// ===== NIP-98 AUTHOR-SCHUTZ — nur Max & Susanne (authors.json) =====
+// Prefix-Liste: src/config/api-auth.js (Single Source of Truth, auch vom
+// Frontend genutzt). Enforcen NUR mit AI_AUTH_REQUIRED=1 in ai-api.env —
+// ohne Flag läuft alles offen (Rollout-Modus, siehe .env.example).
+// Steht NACH den Rate-Limits (billige Drossel zuerst), VOR allen Routen.
+for (const prefix of PROTECTED_API_PREFIXES) {
+  app.use(prefix, requireAuthor)
+}
+if (process.env.AI_AUTH_REQUIRED === '1') {
+  console.log(`[Server] NIP-98 Author-Schutz AKTIV für ${PROTECTED_API_PREFIXES.length} API-Prefixe (nur authors.json-Pubkeys)`)
+} else {
+  console.warn('[Server] AI_AUTH_REQUIRED != 1 → KI-Routen UNgeschützt (Rollout-Modus)!')
+}
 
 // ===== CONTENT GENERIERUNG ROUTEN =====
 // Alle Content-Generierungs-Routen aus server/routes/content.js

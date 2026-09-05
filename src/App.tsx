@@ -6,6 +6,7 @@ import { createHead, UnheadProvider } from '@unhead/react/client';
 import { InferSeoMetaPlugin } from '@unhead/addons';
 import { Suspense } from 'react';
 import NostrProvider from '@/components/NostrProvider';
+import ApiAuthBridge from '@/components/ApiAuthBridge';
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { NostrLoginProvider } from '@nostrify/react/login';
@@ -55,6 +56,8 @@ export function App() {
             <NostrProvider>
               <NWCProvider>
                 <TooltipProvider>
+                  {/* NIP-98: meldet den User-Signer an authedFetch an (KI-Routen-Schutz) */}
+                  <ApiAuthBridge />
                   <Toaster />
                   <ServiceWorkerStatus />
                   <Suspense>

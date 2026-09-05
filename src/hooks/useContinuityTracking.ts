@@ -16,6 +16,7 @@
  */
 
 import { getApiBaseUrl } from '@/lib/apiBase';
+import { authedFetch } from '@/lib/apiAuth';
 
 /** Eingabe für `trackPublishedPost()`. */
 export interface TrackPublishedPostInput {
@@ -33,7 +34,7 @@ export interface TrackPublishedPostInput {
 
 export function useContinuityTracking() {
   const trackPublishedPost = (input: TrackPublishedPostInput): void => {
-    fetch(`${getApiBaseUrl()}/api/continuity/track`, {
+    authedFetch(`${getApiBaseUrl()}/api/continuity/track`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input),

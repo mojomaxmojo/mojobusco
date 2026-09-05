@@ -23,6 +23,7 @@ import { Label } from '@/components/ui/label';
 import { Video, Loader2, CheckCircle, Sparkles } from '@/lib/icons';
 import { useUploadFile } from '@/hooks/useUploadFile';
 import { getApiBaseUrl } from '@/lib/apiBase';
+import { authedFetch } from '@/lib/apiAuth';
 import { useToast } from '@/hooks/useToast';
 import { canonicalUrl } from '@/lib/canonicalUrl';
 import { Badge } from '@/components/ui/badge';
@@ -213,7 +214,7 @@ export function RemotionVideoBlock({
 
   useEffect(() => {
     if (enabled && !remotionStatus.checked) {
-      fetch(`${getApiBaseUrl()}/api/render-remotion/check`)
+      authedFetch(`${getApiBaseUrl()}/api/render-remotion/check`)
         .then(r => r.json())
         .then(data => {
           setRemotionStatus({
@@ -318,7 +319,7 @@ export function RemotionVideoBlock({
 
     try {
       // 1. Render-Job starten
-      const res = await fetch(`${getApiBaseUrl()}/api/render-remotion`, {
+      const res = await authedFetch(`${getApiBaseUrl()}/api/render-remotion`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -362,7 +363,7 @@ export function RemotionVideoBlock({
       const poll = async (): Promise<void> => {
         if (attempts++ > 600) throw new Error('Timeout nach 30 Minuten.');
 
-        const pollRes = await fetch(`${getApiBaseUrl()}/api/render-remotion/status/${jobId}`);
+        const pollRes = await authedFetch(`${getApiBaseUrl()}/api/render-remotion/status/${jobId}`);
         const pollData = await safeJson(pollRes);
 
         if (pollData.progress) setProgress(pollData.progress);
@@ -372,6 +373,8 @@ export function RemotionVideoBlock({
           setStatus('downloading');
           toast({ title: '📥 Video herunterladen...', description: `${pollData.fileSizeMB}MB` });
 
+          // Download-Route ist bewusst öffentlich (Capability-URL, siehe
+          // api-auth.js) → plain fetch ohne NIP-98-Header.
           const videoRes = await fetch(`${getApiBaseUrl()}/api/render-remotion/download/${jobId}`);
           if (!videoRes.ok) throw new Error(`Download fehlgeschlagen: HTTP ${videoRes.status}`);
           const blob = await videoRes.blob();

@@ -5,6 +5,7 @@
  */
 
 import { getApiBaseUrl } from "@/lib/apiBase";
+import { authedFetch } from "@/lib/apiAuth";
 import { resolveBildPlaceholders } from "../publishUtils";
 import { extractPlaceImageUrls } from "./placeFormUtils";
 import type { useToast } from "@/hooks/useToast";
@@ -129,7 +130,7 @@ export function usePlaceAiDescription({
          formData.append('markdownImageMeta', JSON.stringify(markdownImageMeta));
        }
 
-       const response = await fetch(`${getApiBaseUrl()}/api/generate-place`, {
+       const response = await authedFetch(`${getApiBaseUrl()}/api/generate-place`, {
          method: 'POST',
          body: formData
        });

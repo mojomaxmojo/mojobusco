@@ -5,6 +5,7 @@
 
 import { useState, useRef, useCallback } from 'react'
 import { getApiBaseUrl } from '@/lib/apiBase'
+import { authedFetch } from '@/lib/apiAuth'
 import type { useToast } from '@/hooks/useToast'
 import type { RenderStatus } from './videoPromotionConfig'
 
@@ -33,7 +34,7 @@ export function useVideoRenderPolling({
     pollRef.current = window.setInterval(async () => {
       try {
         const base = getApiBaseUrl()
-        const res = await fetch(`${base}/api/render-remotion/status/${jobId}`)
+        const res = await authedFetch(`${base}/api/render-remotion/status/${jobId}`)
         const data = await res.json()
 
         setRenderStatus(prev => prev ? { ...prev, ...data } : null)

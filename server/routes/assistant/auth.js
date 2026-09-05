@@ -6,28 +6,17 @@
  * würde beim Modul-Linking mit "does not provide an export named"
  * crashen).
  *
- * Prüft `Authorization: Bearer <ASSISTANT_API_TOKEN>` (timing-safe).
- * Ohne gültigen Token: 401.
+ * Historie: prüfte früher `Authorization: Bearer <ASSISTANT_API_TOKEN>` —
+ * ein statischer Token, der im Frontend-Bundle lag und damit öffentlich
+ * war. Mittlerweile NIP-98 (kind 27235): Das Frontend signiert das
+ * Auth-Event mit dem Login des Autors; geprüft werden Signatur +
+ * Autoren-Allowlist (src/config/authors.json). ASSISTANT_API_TOKEN /
+ * VITE_ASSISTANT_TOKEN sind damit überflüssig.
  */
 
-import crypto from 'crypto'
+import { requireAuthor } from '../../middleware/nostr-auth.js'
 
+/** Alias mit historischem Namen — alle importierenden Dateien bleiben unverändert. */
 export function requireAssistantToken(req, res, next) {
-  const expected = process.env.ASSISTANT_API_TOKEN
-  if (!expected) {
-    console.error('[Assistant] ASSISTANT_API_TOKEN nicht konfiguriert — Schreib-Routen gesperrt')
-    return res.status(500).json({ error: 'ASSISTANT_API_TOKEN nicht konfiguriert' })
-  }
-
-  const authHeader = req.headers.authorization || ''
-  const provided = authHeader.startsWith('Bearer ') ? authHeader.slice('Bearer '.length) : ''
-
-  const a = Buffer.from(provided)
-  const b = Buffer.from(expected)
-  const valid = a.length === b.length && crypto.timingSafeEqual(a, b)
-
-  if (!valid) {
-    return res.status(401).json({ error: 'Ungültiger oder fehlender Token' })
-  }
-  next()
+  return requireAuthor(req, res, next)
 }

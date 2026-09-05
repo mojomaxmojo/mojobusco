@@ -1,5 +1,6 @@
 import { useState, type ChangeEvent } from 'react'
 import { getApiBaseUrl } from '@/lib/apiBase'
+import { authedFetch } from '@/lib/apiAuth'
 
 export function PerpetualTravelers() {
   const [images, setImages] = useState<File[]>([])
@@ -27,7 +28,7 @@ export function PerpetualTravelers() {
       const formData = new FormData()
       images.forEach(img => formData.append('images', img))
       formData.append('text', text)
-      const response = await fetch(`${getApiBaseUrl()}/api/generate-article`, {
+      const response = await authedFetch(`${getApiBaseUrl()}/api/generate-article`, {
         method: 'POST',
         body: formData
       })
@@ -46,7 +47,7 @@ export function PerpetualTravelers() {
     }
     setLoading(true)
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/generate-video`, {
+      const response = await authedFetch(`${getApiBaseUrl()}/api/generate-video`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ article, imageUrls: images.map(img => img.name) })

@@ -6,6 +6,7 @@
 
 import { useState, useEffect } from 'react'
 import { getApiBaseUrl } from '@/lib/apiBase'
+import { authedFetch } from '@/lib/apiAuth'
 import { useToast } from '@/hooks/useToast'
 import { loadPinsFromLocal, savePinsToLocal, safeResJson, type SavedPin } from './pinStorage'
 
@@ -45,7 +46,7 @@ export function usePromotionPins({
 
   const loadSavedPins = async () => {
     try {
-      const res = await fetch(`${getApiBaseUrl()}/api/promotion/pins`)
+      const res = await authedFetch(`${getApiBaseUrl()}/api/promotion/pins`)
       const data = await safeResJson(res)
       if (data?.success && Array.isArray(data.pins)) {
         setSavedPins(data.pins)
@@ -96,7 +97,7 @@ export function usePromotionPins({
 
       // 2) Zusätzlich auf Server speichern (best-effort)
       try {
-        const res = await fetch(`${getApiBaseUrl()}/api/promotion/pins`, {
+        const res = await authedFetch(`${getApiBaseUrl()}/api/promotion/pins`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(pinPayload)
@@ -126,7 +127,7 @@ export function usePromotionPins({
   const deletePin = async (pinId: string) => {
     try {
       try {
-        await fetch(`${getApiBaseUrl()}/api/promotion/pins/${pinId}`, { method: 'DELETE' })
+        await authedFetch(`${getApiBaseUrl()}/api/promotion/pins/${pinId}`, { method: 'DELETE' })
       } catch { /* Server nicht erreichbar */ }
       // Immer lokal entfernen
       const updated = loadPinsFromLocal().filter(p => p.id !== pinId)

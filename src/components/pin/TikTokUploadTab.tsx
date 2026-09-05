@@ -23,6 +23,7 @@ import { Upload, FileText } from 'lucide-react'
 
 // ── Capacitor-Fix: absolute API-URL – zentral in src/lib/apiBase.ts ────────
 import { getApiBaseUrl } from '@/lib/apiBase'
+import { authedFetch } from '@/lib/apiAuth'
 
 // ── Props ───────────────────────────────────────────────────────────────────
 
@@ -81,7 +82,7 @@ export function TikTokUploadTab({ onUploaded }: TikTokUploadTabProps) {
       formData.append('contentLine', contentLine)
 
       const base = getApiBaseUrl()
-      const response = await fetch(`${base}/api/tiktok/upload-media`, {
+      const response = await authedFetch(`${base}/api/tiktok/upload-media`, {
         method: 'POST',
         body: formData,
       })

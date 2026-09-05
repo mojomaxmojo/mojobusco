@@ -8,6 +8,7 @@ import { ExperiencesConfirm } from "@/components/assistant/ExperiencesConfirm";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/useToast";
 import { getApiBaseUrl } from "@/lib/apiBase";
+import { authedFetch } from "@/lib/apiAuth";
 import { ImageOptimizationToggle } from "@/components/ImageOptimizationToggle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { PerspectiveSelector } from "@/components/PerspectiveSelector";
@@ -124,7 +125,7 @@ export function MediaUploadForm({ editEvent }: { editEvent?: NostrEvent }) {
       // Wetter-Kontext: Aufnahmedatum (Server-Fallback: heute)
       if (date) formData.append('publishedAt', date);
 
-      const response = await fetch(`${getApiBaseUrl()}/api/generate-media-article`, {
+      const response = await authedFetch(`${getApiBaseUrl()}/api/generate-media-article`, {
         method: 'POST',
         body: formData
       });
