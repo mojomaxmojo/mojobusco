@@ -5,6 +5,57 @@
 
 ---
 
+## Interne Links automatisch einstreuen — Stufe 1 (2026-09-06)
+
+**Auftrag**: „prüfe wie die in dem Artikel dann gesetzt werden die interne
+verlinkung? am beste wäre an passende stelle automatisch einstreuen
+## Vorschlag kein code" → Vorschlag präsentiert → User: „Stufe 1 JA".
+
+**Analyse vorher**: Interne Verlinkung war 100 % manuell — SEO-Ampel warnte
+„Keine — Assistent-Block „Interne Links" nutzen", der
+LinkSuggestionsBlock fügt `[Titel](URL)` nur per Klick ein (Cursorposition
+oder Textende). Scoring-Logik existierte bereits (getLinkSuggestions,
+report-assistant.js).
+
+**Umsetzung (deterministisch, serverseitig — bewusst NICHT KI-Weaving)**:
+Die Einbau-Anweisung hätte in die Tabu-Prompts (src/config/prompts/) oder
+in „WAS DER AUTOR SAGT" gemusst; plus Risiko erfundener/falsch
+abgeschriebener naddr-URLs durch die KI. Stattdessen Code-Insertion mit
+garantiert korrekten canonical URLs:
+
+1. **`server/config/internal-links.js`** (neu): Schutzgeländer als Config —
+   MAX_LINKS 3, MIN_WORD_DISTANCE 150, MIN_ARTICLE_WORDS 200,
+   SKIP_FIRST_PARAGRAPH true, MIN_CANDIDATE_SCORE 1,
+   MIN_ANCHOR_TOKEN_LENGTH 4.
+2. **`server/services/internal-links.js`** (neu): `insertInternalLinks()`
+   — lädt Kandidaten aus sitemap.json + articles.json (eigene
+   loadJsonArray/tokenize-Kopien, bewusst ohne Import aus
+   report-assistant.js: Generierungs-Pfad soll nicht von der
+   Assistant-Import-Kette GSC/DataForSEO/assistant.db abhängen), scoret
+   gegen Artikel-Tokens + Formular-Ort/Tags (Muster wie
+   getLinkSuggestions: Titel +2, Summary +1, Tags +2, exakter
+   Formular-Tag-Match +3, Ort-Token-Bonus), findet pro Block den ersten
+   natürlichen Anker (2-Token-Phrase aus Kandidaten-Titel bevorzugt,
+   sonst längstes Token; Regex mit Unicode-Lookarounds — keine Treffer
+   mitten in Wörtern/Hashtags), verwandelt ihn in `[Anker](URL)`.
+   Catch-all: fehlende Dumps/Exception → Artikel UNVERÄNDERT (nie fatal).
+3. **`server/routes/content/article.js`**: Aufruf NACH dem
+   generateWithModel-Call, VOR Summary/Titel (diese sehen den finalen
+   Text). Neues Response-Feld `internalLinks` (Array inserted) für
+   Debug/Future-UI. Server-Log `[KI] Interne Links eingestreut: N → …`.
+
+**Frontend: KEINE Änderung** — Editor erhält den verlinkten Artikel via
+response.article, die SeoChecklist-Ampel zeigt dadurch automatisch
+„Interne Links: ok — N gesetzt". Beachtet: `[BILD_N]`-Platzhalter,
+Überschriften, Bildzeilen, Code-Fences und bereits verlinkte Absätze
+werden nie angetastet; Anker = im Text vorhandene Wortfolge (liest sich
+natürlich, kein künstlicher „Siehe auch"-Block).
+
+**Doku**: MOJOBUS_CONTEXT.md (Abschnitt nach Kontinuitäts-Gedächtnis,
+neuer Block „Interne Links — automatisches Einstreuen").
+
+---
+
 ## SEO-Audit-Umsetzung: 7 Fixes (2026-09-06)
 
 **Auftrag**: „Schau dir die ganze Seite noch einmal an, ob wir nun alles für

@@ -13,6 +13,7 @@ import { handleMulterError, sanitizeInput, validateApiKey, safelyParseJSON } fro
 import { generateWithModel } from '../../services/ai-content.js'
 import { analyzeImageBase64 } from './vision.js'
 import { getGenerationContext } from '../../services/generation-context.js'
+import { insertInternalLinks } from '../../services/internal-links.js'
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -189,15 +190,25 @@ router.post('/api/generate-article', (req, res, next) => {
     })
     console.log(`[KI] Artikel fertig: ${article.length} Zeichen`)
 
+    // Stufe 1: Interne Links automatisch an passenden Stellen einstreuen —
+    // deterministisch, NUR echte Einträge aus sitemap.json/articles.json →
+    // garantiert korrekte canonical URLs (AGENTS.md Regel 2). Gibt den Text
+    // unverändert zurück, wenn keine Kandidaten/Daten vorliegen (nie fatal).
+    const linked = insertInternalLinks(article, { title, location, tags })
+    if (linked.inserted.length > 0) {
+      console.log(`[KI] Interne Links eingestreut: ${linked.inserted.length} → ${linked.inserted.map(l => l.title).join(' | ')}`)
+    }
+    const articleWithLinks = linked.content
+
     // Schritt 2: Summary + 3 Titel-Vorschläge parallel aus dem fertigen Artikel generieren
     const summaryPromptText = generateArticleSummaryPrompt({
-      articleText: article,
+      articleText: articleWithLinks,
       title,
       lifestyleConfig,
       gender
     })
     const titlesPromptText = generateArticleTitlesPrompt({
-      articleText: article,
+      articleText: articleWithLinks,
       currentTitle: title,
       lifestyleConfig,
       gender
@@ -227,11 +238,12 @@ router.post('/api/generate-article', (req, res, next) => {
     console.log(`[KI] Summary: "${summary.substring(0, 60)}..."`)
     console.log(`[KI] Titel-Vorschläge: ${JSON.stringify(titleSuggestions)}`)
 
-    const hashtags = article.match(/#\w+/g) || []
+    const hashtags = articleWithLinks.match(/#\w+/g) || []
     const uniqueHashtags = [...new Set(hashtags.map(tag => tag.replace('#', '')))]
 
     res.json({
-      article,
+      article: articleWithLinks,
+      internalLinks: linked.inserted, // Info für Frontend/Debug (aktuell nicht gerendert)
       summary,             // Kurzfassung (1-2 Sätze) → geht ins Summary-Feld
       titleSuggestions,    // 3 Titel-Vorschläge → klickbar im Frontend
       hashtags: uniqueHashtags.join(' '),

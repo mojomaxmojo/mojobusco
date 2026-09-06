@@ -292,6 +292,31 @@ abbruch-/fortsetzbar). better-sqlite3 ist auch als Root-Deps eingetragen
 Hintergrund: Vor Deploy-Fix 882527a wurde server/data/ bei jedem Deploy
 gelöscht — die Historie der Altartikel fehlte.
 
+**Interne Links — automatisches Einstreuen (Stufe 1, nur Berichte):**
+`server/services/internal-links.js` + `server/config/internal-links.js`.
+Nach der Artikel-Generierung (`/api/generate-article`: NACH dem
+generateWithModel-Call, VOR Summary/Titel-Generierung) scannt
+`insertInternalLinks(article, {title, location, tags})` den fertigen
+Markdown und streut bis zu 3 interne Links an thematisch passenden
+Stellen ein. Kandidaten = eigene Artikel aus `data/sitemap.json` +
+`data/articles.json` (gleiche Datenbasis wie getLinkSuggestions,
+bewusst NICHT aus report-assistant importiert — Generierungs-Pfad soll
+nicht von der Assistant-Import-Kette abhängen). Score gegen
+Artikel-Tokens + Formular-Ort/Tags; Anker = im Text VORHANDENE Wortfolge
+aus Kandidaten-Titel-Tokens (2-Token-Phrase bevorzugt, sonst längstes
+Token ≥4 Zeichen). Bewusst deterministisch statt KI-Weaving: garantiert
+korrekte canonical URLs (AGENTS.md Regel 2 — die KI könnte naddrs nur
+falsch abschreiben), kein Kontakt zu den Tabu-Prompts, NIE fatal
+(fehlende Dumps — lokal ist public/data/ leer — oder Exception →
+Artikel unverändert, catch-all im Service). Schutzgeländer
+(server/config/internal-links.js): max. 3 Links, ≥150 Wörter Abstand,
+<200-Wörter-Artikel unverändert, erster Absatz/Überschriften/Bild-/
+Code-/bereits verlinkte Zeilen/[BILD_N] tabu, jeder Kandidat nur 1×,
+bestehende interne Links im Text zählen gegen das Limit. Response-Feld
+`internalLinks` (Array inserted) für Debug/Future-UI. Frontend-Änderung:
+KEINE (Editor erhält den verlinkten Artikel via response.article; die
+SeoChecklist-Ampel zeigt dadurch automatisch „ok: N gesetzt").
+
 ---
 
 ## Berichte-Assistent (/veroeffentlichen)
