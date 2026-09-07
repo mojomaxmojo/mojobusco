@@ -167,8 +167,27 @@ app.use((err, req, res, next) => {
   res.status(status).json({ error: err.message || 'Interner Server-Fehler' })
 })
 
-// Health Check
+// Health Check – ungekürzt, aber NUR mit X-Clear-Token abrufbar (Fix #3).
+// Ohne/gültigem Token: 401. Monitoring nutzt curl mit Header.
+// BOT_CACHE_TOKEN in ai-api.env setzen (openssl rand -hex 32).
+// Fail-closed: ohne Env-Var ist /api/health komplett zu (503).
+const requireSharedSecret = (req, res) => {
+  const token = process.env.BOT_CACHE_TOKEN
+  if (!token) {
+    res.status(503).json({ error: 'BOT_CACHE_TOKEN nicht konfiguriert' })
+    return false
+  }
+  const provided = req.get('X-Clear-Token')
+  if (!provided || provided.length !== token.length ||
+      !crypto.timingSafeEqual(Buffer.from(provided), Buffer.from(token))) {
+    res.status(401).json({ error: 'Ungültiges Token' })
+    return false
+  }
+  return true
+}
+
 app.get('/api/health', (req, res) => {
+  if (!requireSharedSecret(req, res)) return
   res.json({
     status: 'ok',
     groqApiKey: process.env.GROQ_API_KEY ? 'configured' : 'missing',
@@ -184,8 +203,9 @@ app.get('/api/health', (req, res) => {
 })
 
 // Bot-Cache leeren (nach Deployment aufrufen)
-// POST /api/bot-cache/clear
+// POST /api/bot-cache/clear – geschützt per X-Clear-Token (Fix #3)
 app.post('/api/bot-cache/clear', (req, res) => {
+  if (!requireSharedSecret(req, res)) return
   const cleared = clearBotCache()
   res.json({ ok: true, cleared, message: `${cleared} Cache-Einträge geleert` })
 })
