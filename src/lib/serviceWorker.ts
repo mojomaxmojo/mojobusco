@@ -57,6 +57,13 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
           if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
             console.log('✨ Neuer Service Worker verfügbar - Bitte Seite neu laden');
           }
+          // Fix #9: Update-Toast. sw.js ruft self.skipWaiting() beim Install
+          // auf → der neue Worker wird sofort 'activated'. Wir feuern dann ein
+          // globales Event, auf das <ServiceWorkerUpdateToast /> hört.
+          // Erste Installation (controller === null) löst KEINEN Toast aus.
+          if (newWorker.state === 'activated' && navigator.serviceWorker.controller) {
+            window.dispatchEvent(new CustomEvent('sw-update-ready'));
+          }
         });
       }
     });

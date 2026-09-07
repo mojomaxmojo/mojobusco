@@ -136,6 +136,13 @@ app.use('/api/assistant/continuity-suggestions', rateLimit('light'))
 app.use('/api/assistant/link-suggestions', rateLimit('light'))
 app.use('/api/assistant/threads/resolve', rateLimit('light'))
 
+// ===== Fix #10: Promotion-Routen drosseln =====
+// generate-pin-text nutzt KI (teuer) → 'generate'-Bucket; pins-CRUD ist
+// 🔒-geschützt (NIP-98, siehe PROTECTED_API_PREFIXES) aber trotzdem im
+// 'light'-Bucket als Missbrauchsbremse.
+app.use('/api/promotion/generate-pin-text', rateLimit('generate'))
+app.use('/api/promotion', rateLimit('light'))
+
 // ===== NIP-98 AUTHOR-SCHUTZ — nur Max & Susanne (authors.json) =====
 // Prefix-Liste: src/config/api-auth.js (Single Source of Truth, auch vom
 // Frontend genutzt). Enforcen NUR mit AI_AUTH_REQUIRED=1 in ai-api.env —

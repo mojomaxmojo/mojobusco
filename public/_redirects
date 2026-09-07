@@ -12,8 +12,8 @@
 /*.woff2    Cache-Control: public, max-age=2592000, immutable
 /*.ttf      Cache-Control: public, max-age=2592000, immutable
 
-# Cache HTML for 24 hours
-/*.html     Cache-Control: public, max-age=86400, must-revalidate
+# Cache HTML – Fix #9: sofortige Update-Verteilung (war: 24h)
+/*.html     Cache-Control: public, max-age=0, must-revalidate
 
 # Cache manifest for 7 days
 /manifest.webmanifest Cache-Control: public, max-age=604800

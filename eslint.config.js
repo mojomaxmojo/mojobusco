@@ -39,6 +39,10 @@ export default tseslint.config(
           "ignoreRestSiblings": true,
         },
       ],
+      // AGENTS.md Regel 5: Niemals `any` — explizit als Fehler erzwingen
+      // (ist Teil von tseslint recommended, wird hier dokumentiert
+      // hinterlegt, damit es nicht versehentlich downgegradet wird).
+      "@typescript-eslint/no-explicit-any": "error",
       "custom/no-placeholder-comments": "error",
       "no-warning-comments": [
         "error",

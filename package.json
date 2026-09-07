@@ -10,6 +10,7 @@
     "build:optimize": "node scripts/optimize-build.js",
     "build:force": "FORCE_REBUILD=true node build-intelligent.js",
     "analyze": "node scripts/analyze-bundle.mjs",
+    "audit": "npm audit --audit-level=high && cd server && npm audit --audit-level=high",
     "test": "npm run build && vitest run",
     "deploy": "npm run check && npm run build && npx -y nostr-deploy-cli deploy --skip-setup",
     "icons:generate": "node scripts/generate-icons.js",
