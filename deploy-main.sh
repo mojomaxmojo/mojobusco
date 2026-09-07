@@ -474,14 +474,11 @@ restart_server() {
         warn_msg "⚠ Kein bekannter Service-Manager — Server manuell neu starten!"
     fi
 
-    # Bundle-Cache nach Neustart invalidieren
-    sleep 3
-    if curl -s -X POST http://localhost:3002/api/render-remotion/invalidate-cache \
-        -o /dev/null -w "%{http_code}" 2>/dev/null | grep -q "200"; then
-        success_msg "✓ Remotion Bundle-Cache geleert"
-    else
-        info_msg "Bundle-Cache konnte nicht geleert werden (Server läuft ggf. noch nicht)"
-    fi
+    # HINWEIS: Kein POST /api/render-remotion/invalidate-cache mehr nötig!
+    # Der Remotion Bundle-Cache liegt In-Memory (server/remotion/bundle.js,
+    # let bundleCache) und ist nach jedem Prozess-Neustart automatisch leer.
+    # Der frühere curl-Aufruf hier war wirkungslos und wurde seit
+    # AI_AUTH_REQUIRED=1 mit 401 abgewiesen (Fix #2/#3, Juni 2026).
 }
 
 # ============================================

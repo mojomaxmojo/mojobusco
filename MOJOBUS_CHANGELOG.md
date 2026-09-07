@@ -5,6 +5,27 @@
 
 ---
 
+## deploy-main.sh: Redundanten invalidate-cache-Call entfernt (2026-09-07)
+
+**Symptom**: Nach jedem Deploy erschien im ai-api-Journal:
+`[Auth] 401 POST /api/render-remotion/invalidate-cache — kein Nostr-Authorization-Header`
+
+**Ursache**: `restart_server()` in `deploy-main.sh` curlte ~3 s nach dem
+Neustart `POST http://localhost:3002/api/render-remotion/invalidate-cache`
+(direkt am Port, nicht via Nginx → daher leerer access.log). Seit
+AI_AUTH_REQUIRED=1 (Fix #2) weist requireAuthor den unauthentifizierten
+Call korrekt mit 401 ab.
+
+**Erkenntnis**: Der Call war seit jeher wirkungslos – der Remotion
+Bundle-Cache liegt In-Memory (`server/remotion/bundle.js`,
+`let bundleCache`) und ist nach jedem Prozess-Neustart automatisch leer.
+
+**Fix**: curl-Block aus `restart_server()` entfernt + Hinweis-Kommentar
+hinterlassen. Kein Code in `server/` nötig. Ab dem nächsten Deploy nach
+`git pull` verschwindet die 401-Logzeile.
+
+---
+
 ## Interne Links automatisch einstreuen — Stufe 1 (2026-09-06)
 
 **Auftrag**: „prüfe wie die in dem Artikel dann gesetzt werden die interne
