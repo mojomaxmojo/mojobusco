@@ -76,7 +76,31 @@ initAssistantDatabase()
 const app = express()
 const PORT = process.env.PORT || 3002
 
-app.use(cors())
+// ===== CORS-ALLOWLIST (Fix #4) =====
+// Nur bekannte Frontend-Origins bekommen Access-Control-Allow-Origin.
+// curl/Monitoring/Server-zu-Server sind NICHT betroffen (CORS ist ein
+// Browser-Mechanismus – Non-Browser-Clients ignorieren die Header).
+// Zusätzliche Origins (z. B. lokale Dev-Ports) ohne Code-Änderung:
+//   CORS_EXTRA_ORIGINS=http://localhost:5173,http://192.168.1.50:5173
+const ALLOWED_ORIGINS = [
+  'https://mojobus.co',
+  'https://www.mojobus.co',
+  'https://localhost',        // Capacitor WebView (iOS/Android Default)
+  'capacitor://localhost',    // Capacitor native scheme (Android)
+]
+if (process.env.CORS_EXTRA_ORIGINS) {
+  ALLOWED_ORIGINS.push(
+    ...process.env.CORS_EXTRA_ORIGINS.split(',').map(o => o.trim()).filter(Boolean)
+  )
+}
+app.use(cors({
+  origin: (origin, callback) => {
+    // Kein Origin (curl, same-origin, Server-zu-Server) → durchlassen
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) return callback(null, true)
+    // Fremder Origin → KEIN CORS-Header (Browser blockt die Antwort)
+    return callback(null, false)
+  },
+}))
 app.use(express.json())
 
 // ============================================================
