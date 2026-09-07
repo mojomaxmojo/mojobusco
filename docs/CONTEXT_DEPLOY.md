@@ -66,6 +66,7 @@ node scripts/generate-site-data.js
 | `server/routes/prerender-fallback.js` | `deploy --force` + `systemctl restart ai-api` |
 | `server/remotion/` | `deploy --force` + `restart ai-api` + **Bundle-Invalidate** |
 | Nginx-Config | Backup + `cp mojobus.co.ssl.conf /usr/local/nginx/conf/conf.d/` + `nginx -t && systemctl reload nginx` |
+| Security-Header (Fix #5) | Repo: `security-headers.conf` → `cp security-headers.conf /usr/local/nginx/conf/security-headers.conf`. Wird inkludiert in `location ~* \.(html|htm)$` + `location @prerender_resolve` (nginx-Gotcha: Locations mit eigenen add_header verlieren Server-Level-Header). CSP aktuell **Report-Only** (Phase 1) – nach 1-2 Wochen Log-Analyse auf erzwingendes `Content-Security-Policy` umstellen. |
 | `prerender-fallback.js` **+** Nginx-Config | beide Zeilen zusammen (Resolver-Endpunkt + `@prerender_resolve` gehören zusammen) |
 
 ### Prerender-Resolve (Bug B: Relay-Hint-Mismatch)
