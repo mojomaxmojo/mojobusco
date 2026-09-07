@@ -21,6 +21,18 @@ export function getErrorMessage(e: unknown): string {
 export function convertTextLinks(text: string): string {
   if (!text) return text;
 
+  // XSS-Schutz (Fix #1): Rohtext ZUERST HTML-escapen, bevor die Link-Regex
+  // HTML-Strings erzeugen. Dadurch sind die von uns generierten <a>-Tags die
+  // einzigen HTML-Elemente im Ergebnis – Angreifer-Syntax wie `" onmouseover=…`
+  // oder `<script>` im Rohtext wird zu &quot;/&lt;script&gt; und bleibt Text.
+  const escapeHtml = (s: string): string =>
+    s
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+
   // Nostr Bech32-Muster (npub, nsec, note, nevent, nprofile, naddr)
   const nostrPattern = /(\b(npub1|nsec1|note1|nevent1|nprofile1|naddr1)[ac-hj-np-z02-9]{58,}\b)/gim;
 
@@ -43,11 +55,19 @@ export function convertTextLinks(text: string): string {
   // Hashtag-Muster
   const hashtagPattern = /(^|\s)#(\w+)/gim;
 
-  let result = text;
+  let result: string;
+  result = escapeHtml(text);
+
+  // href-Allowlist (Fix #1): Nur http/https/mailto werden verlinkt –
+  // javascript:, data:, vbscript: etc. bleiben reiner Text.
+  const isSafeHref = (url: string): boolean => {
+    return /^(https?:\/\/|mailto:|\/|www\.)/i.test(url);
+  };
 
   // Konvertiere YouTube-Videos mit spezieller Klasse für Video-Erkennung
   result = result.replace(youtubePattern, (match) => {
-    return `<a href="${match}" class="video-link text-primary hover:underline" data-video-type="youtube" target="_blank" rel="noopener noreferrer">${match}</a>`;
+    const href = /^https?:\/\//i.test(match) ? match : `https://${match}`;
+    return `<a href="${href}" class="video-link text-primary hover:underline" data-video-type="youtube" target="_blank" rel="noopener noreferrer">${match}</a>`;
   });
 
   // Konvertiere Direct Videos mit spezieller Klasse
@@ -73,6 +93,7 @@ export function convertTextLinks(text: string): string {
     if (match.includes('.mp4') || match.includes('.webm') || match.includes('youtube.com') || match.includes('youtu.be')) {
       return match;
     }
+    if (!isSafeHref(match)) return match;
     return `<a href="${match}" class="text-primary hover:underline" target="_blank" rel="noopener noreferrer">${match}</a>`;
   });
 
