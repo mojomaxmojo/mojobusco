@@ -1,126 +1,82 @@
-# MojoBus – Nächste Session (Start 25.06.2026)
+# MojoBus – Nächste Session (Start 07.09.2026)
 
-## Letzter Commit
-`bf008e9` – "Fix: execFile + promisify fehlten im Import – ffprobe war immer undefined"
-Repo: https://github.com/mojomaxmojo/mojobusco
-
-## Deployment
-```bash
-cd /root/deploy-git/mojobusco && git pull origin main && bash deploy-main.sh --force
+## Letzte Commits (Sicherheits-/SEO-Hardening, alle 10 Punkte fertig)
 ```
-VPS: AlmaLinux 9.7, CentminMod, Nginx  
-Server: `ai-api` (Systemd, Port 3002)  
-Pfad: `/home/nginx/domains/mojobus.co/public/`
-
-## 💥 KRITISCH – Diese Session fixen
-
-### 1. ffprobe imports fixen ✅ (Commit bf008e9)
-- `execFile` und `promisify` fehlten in `server/remotion/render.js` imports
-- Dadurch waren ALLE Voiceover-Dauern = 0.00s → Sync basierte nur auf Lesezeit
-- **Muss deployed werden!** Der Commit ist noch nicht auf dem VPS.
-
-### 2. Nach Deploy testen
-- TikTok Video rendern
-- `journalctl -u ai-api -f | grep -i "ffprobe\|duration\|Segment"` prüfen
-- Sollte zeigen: `Dauer: 2.34s` statt `0.00s` und `ffprobe für Segment` ohne "fehlgeschlagen"
+45bc5c4  HTML-Caching must-revalidate + SW-Update-Toast (#9), ESLint no-explicit-any, npm-audit, Promotion-Rate-Limits (#10)
+b473786  Prerender-Unterkategorien DE+EN, EN-Home /en/, Sitemap-hreflang (#7A–7C)
+edec28b  nsec-Login-Warnhinweis (#6)
+d506359  CORS-Allowlist (#4)
+93b5e38  X-Clear-Token für /api/health + /api/bot-cache/clear (#3)
+3697e33  Nginx Security-Header + CSP Report-Only (#5)
+7f8415d  XSS-Fix convertTextLinks (#1)
+17da704  Analyse-Plan: PLAN_SICHERHEIT_SEO_OPTIMIERUNG.md
+```
+Repo: https://github.com/mojomaxmojo/mojobusco
+Details: `MOJOBUS_CONTEXT.md` → Abschnitt „Sicherheits-Hardening"
 
 ---
 
-## ✅ Letzte Session erledigt (22.-24.06.2026)
+## 🚀 VPS-Check / Deploy-Plan (als erstes in der Session!)
 
-### About Backoffice (`/admin/about`)
-- Neue Config: `src/config/about.ts` – Typen + Default-Inhalte
-- Neuer Hook: `src/hooks/useAboutContent.ts` – kind 30078, d-tag: `co.mojobus.app.about-page`
-- Admin-Seite: `src/pages/admin/AboutAdmin.tsx` – Tab-basierte Maske mit Markdown-Editoren
-- Menü: Account → "📝 About verwalten"
-- Route: `/admin/about` (login-geschützt, nur Mojo/Susanne)
-- Fallback: DEFAULT_ABOUT_DATA wenn kein Event existiert
+```bash
+ssh root@server
+cd /root/deploy-git/mojobusco && git pull origin main
 
-### TikTok Voiceover-Sync
-- **Statt einer großen MP3**: Per-Segment Voiceover + ffmpeg concat
-- `concatVoiceoverSegments()` in `render.js` – concat alle Segmente zu `voiceover_sync.mp3`
-- Jedes Segment bekommt `duration $slideDur` – ffmpeg pad't automatisch mit Stille
-- **Achtung**: `execFile` + `promisify` fehlten im Import – Dauer wurde nie ausgelesen
+# ── 1. Frontend + server/ deployen ──────────────────────────────
+bash deploy-main.sh --force
+systemctl restart ai-api          # Fix #3 (Token) + #4 (CORS) + #10 (Rate-Limits)
 
-### perSlideArray (dynamische Slide-Längen)
-- Berechnung IMMER (auch ohne Voiceover):
-  - Lesezeit = max(3.5s, textLen/14 + 0.5s Atempause)
-  - +1s Transition
-  - Voiceover-Dauer (via ffprobe, wenn verfügbar)
-  - min = secondsPerImage (User-Einstellung)
-- `calculateDuration()` akzeptiert `perSlideArray` für korrekte Gesamtlänge
+# ── 2. Nginx-Config (Fix #5 Header + #7 Rewrites + #9 Caching) ──
+cp /usr/local/nginx/conf/conf.d/mojobus.co.ssl.conf \
+   /usr/local/nginx/conf/conf.d/mojobus.co.ssl.conf.bak-$(date +%F)
+cp security-headers.conf /usr/local/nginx/conf/security-headers.conf   # falls noch nicht geschehen
+cp mojobus.co.ssl.conf /usr/local/nginx/conf/conf.d/mojobus.co.ssl.conf
+nginx -t && systemctl reload nginx
 
-### Captions (PerSlideCaption)
-- Neue Komponente ersetzt AutoCaptions/WordHighlightCaptions
-- Timing basiert auf `slidesFrames` (dynamisch, aus perSlideArray)
-- Stile: `chunked` (Default), `tiktok`, `full-line`
-- Position: `bottom: 35%` (Safe Zone)
-- RouteMap-Slide: Caption ausgeblendet (leerer String im Array)
+# ── 3. Prerender + Sitemap einmalig anstoßen (Cron macht 6:00/6:15) ──
+node scripts/prerender-static.js
+node scripts/generate-sitemap.js
 
-### RouteMap als EXTRA Slide
-- Früher: RouteMap ERSETZTE Slide 2 → Bild + Voiceover verloren
-- Jetzt: RouteMap wird dazwischengeschoben
-- `slideDefs[]` baut flache Liste: [img0, img1, route, img2, ...]
-- `muteVoiceoverSlide` → silence statt Voiceover für Karten-Slide
-- Caption: leerer String für Route-Slide → nichts sichtbar
+# ── 4. Token in Shell laden (für curl-Tests) ────────────────────
+export BOT_CACHE_TOKEN=$(grep '^BOT_CACHE_TOKEN=' <PFAD_ZU>/ai-api.env | cut -d= -f2-)
+```
 
-### Weitere Fixes
-- Musik "Keine Musik" funktioniert (`noMusic: true` im Payload)
-- Musik Volume: 0.54 → 0.49 (−10%)
-- Atmo: ffmpeg Filter von aeval auf anoisesrc+bandpass umgestellt
-- MP4 wird 24h behalten (vorher 30s)
-- Bilder-Download sequentiell (wie Original)
+## ✅ Verifikations-Checkliste
 
----
+```bash
+# Security-Header (alle 7 sichtbar?)
+curl -sI -H "Host: mojobus.co" --resolve mojobus.co:443:127.0.0.1 \
+  https://mojobus.co/ | grep -iE "x-frame|nosniff|referrer|strict-transport|permissions|security-policy"
 
-## ❌ Bekannte Baustellen
+# Token-Schutz (#3): 401 ohne Header, 200 mit
+curl -s https://mojobus.co/api/health -H "X-Clear-Token: $BOT_CACHE_TOKEN"
+curl -s https://mojobus.co/api/health
 
-### 1. ffprobe Import-Fehlt (MUSS gefixt werden)
-- `render.js` importiert weder `execFile` noch `promisify`
-- → `execFileAsync` ist undefined → ffprobe schlägt immer fehl
-- → Commit `bf008e9` deployed diesen Fix
+# CORS (#4): Header DA bei erlaubtem Origin, ABSENT bei evil.com
+curl -sI https://mojobus.co/api/health -H "Origin: https://mojobus.co" -H "X-Clear-Token: $BOT_CACHE_TOKEN" | grep -i access-control
+curl -sI https://mojobus.co/api/health -H "Origin: https://evil.com"   -H "X-Clear-Token: $BOT_CACHE_TOKEN" | grep -i access-control
 
-### 2. KI generiert mehrere Zeilen pro Bild
-- `bodyLines` werden via `while(overflow)` zusammengeführt
-- Prompt verstärkt: "Mehrere Sätze in EINE Zeile (durch Punkt getrennt)"
-- Funktioniert meist, aber nicht immer perfekt
+# HTML-Caching (#9): max-age=0, must-revalidate
+curl -sI https://mojobus.co/ | grep -i cache-control
 
-### 3. `npm ci` schlägt fehl
-- deploy-main.sh fällt auf `npm install` zurück (funktioniert trotzdem)
+# Bot-Prerender (#7): korrekte Titel?
+curl -s -A "Googlebot" https://mojobus.co/artikel/diy | grep -o "<title>[^<]*"
+curl -s -A "Googlebot" https://mojobus.co/en/         | grep -o "<title>[^<]*"
+grep -c "xhtml:link" /home/nginx/domains/mojobus.co/public/sitemap.xml
 
-### 4. TransitionWrapper importiert aber ungenutzt
-- `MojoBusVideo.tsx` importiert `TransitionWrapper` aus TransitionSlideshow
-- Wird im neuen slideDefs-Rendering nicht mehr verwendet
-- Könnte entfernt werden
+# XSS-Fix (#1) Frontend: Build läuft, TextWithLinks rendert Links wie gehabt
+npm run check
+```
 
----
+## ⏳ Offene Punkte
 
-## 📋 Nächste Roadmap-Features
+1. **CSP Phase 2** (nach 1–2 Wochen): Browser-Konsole auf mojobus.co prüfen
+   (`[Report Only]`-Meldungen), dann in `security-headers.conf` + Server-Level-Block
+   `Content-Security-Policy-Report-Only` → `Content-Security-Policy`, `nginx -t && reload`
+2. **BOT_CACHE_TOKEN dauerhaft in ~/.bashrc** (optional, siehe Chat)
+3. **npm run audit** ausführen + Befunde prüfen
+4. Android-App nach Deploy testen (CORS-Origins `https://localhost` + `capacitor://localhost` sind allowlisted)
 
-### Stufe 1 (Einfach – Frontend)
-1. ✅ **Kapitel-Marker** – (umgesetzt: separate HookCaption + CTAText)
-2. ✅ **Medien per Drag&Drop** – (umgesetzt: @dnd-kit in Step 2)
-3. ⬜ **Einfacher Trim** – Video von Sekunde X bis Y via FFmpeg
-
-### Stufe 2 (Mittel – Backend + Dashboard)
-4. ⬜ **Timeline-Editor** – visuelle Zeitleiste
-5. ⬜ **Multi-Download als ZIP**
-6. ⬜ **Video-Split** – langes Video in X Clips
-7. ⬜ **Render-Queue** – nacheinander, kein Parallel
-
----
-
-## 🔧 Wichtige Configs
-
-| Config | Ort |
-|--------|-----|
-| Autoren | `src/config/authors.json` (Single Source of Truth) |
-| Relays | `src/config/relays.ts` |
-| Blossom | `src/config/blossom.ts` |
-| Video | `src/config/video.ts` |
-| Performance | `src/config/performance.ts` |
-| About Defaults | `src/config/about.ts` |
-
-## ⛔ Tabu-Zonen – Niemals ändern
-- `src/config/prompts/` – KI-Prompt-Vorlagen
-- `server/` – Node.js Backend (Systemd `ai-api`)
+## ✅ Erledigt in vorheriger Session (05.–07.09.2026)
+- Sicherheits-/SEO-Analyse: 10-Punkte-Plan erstellt und komplett umgesetzt (siehe oben)
+- Alle Commits gebaut ✅ (`build_project` fehlerfrei)

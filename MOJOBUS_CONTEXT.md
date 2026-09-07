@@ -49,10 +49,37 @@ Autoren prüfen: `cat src/config/authors.json | jq '.authors[] | {name, pubkey, 
 | `src/pages/Videos.tsx` | Video-Feed (kind 34236 NIP-71, 9:16 + 16:9) |
 | `src/lib/routeFromGps.ts` | GPS→Route: Haversine-Dedupe, Nominatim, 9:16-Aspect |
 | `public/sw.js` | Service Worker v21: staleWhileRevalidate + Cache-First |
+| `src/components/ServiceWorkerUpdateToast.tsx` | Toast „Neue Version verfügbar" + Reload-Button bei aktiviertem SW-Update (Fix #9, kein Auto-Reload) |
 | `scripts/generate-site-data.js` | Slim-JSON-Dumps ohne content (Cron 6:15) |
-| `scripts/prerender-static.js` | Statische HTML-Seiten mit NIP-19 Dateinamen (Cron 6:00) |
-| `scripts/generate-sitemap.js` | `sitemap.xml` + `sitemap-videos.xml` (Cron 6:00) |
+| `scripts/prerender-static.js` | Statische HTML-Seiten mit NIP-19 Dateinamen (Cron 6:00); seit Fix #7A auch Artikel-Unterkategorien diy/rvlife/leon/strand-ort DE+EN + `category-home-en.html` (Fix #7B) |
+| `scripts/prerender-subcategory-templates.js` | Render-Funktionen für Artikel-Unterkategorien + EN-Home. **Tag-Listen spiegeln `src/config/rvlife.ts` / `strandort.ts`** (Node kann TS-Configs nicht importieren → bei Config-Änderung doppelt pflegen!) |
+| `scripts/generate-sitemap.js` | `sitemap.xml` + `sitemap-videos.xml` (Cron 6:00); seit Fix #7C hreflang de↔en auf ALLEN statischen Seiten |
 | `scripts/generate-feed.js` | `feed.xml` (DE) + `feed-en.xml` (EN), getrennt nach `l`-Tag (Cron alle 6h) |
+
+---
+
+## Sicherheits-Hardening (Juni 2026 – PLAN_SICHERHEIT_SEO_OPTIMIERUNG.md)
+
+Alle 10 Punkte umgesetzt (Commits `17da704`…`45bc5c4`):
+
+| # | Maßnahme | Ort |
+|---|----------|-----|
+| 1 | XSS-Fix: HTML-Escaping VOR Link-Interpolation + href-Allowlist (`isSafeHref`) | `src/lib/utils.ts` `convertTextLinks()` |
+| 2 | `AI_AUTH_REQUIRED=1` aktiv (NIP-98-Schutz für KI-Routen) | VPS `ai-api.env` |
+| 3 | `/api/health` + `/api/bot-cache/clear` nur mit `X-Clear-Token`-Header (fail-closed 503, timing-safe) | `server/server.js`; Token: `BOT_CACHE_TOKEN` in `ai-api.env` |
+| 4 | CORS-Allowlist statt `cors()`-Wildcard: mojobus.co + Capacitor-Origins; Extras via `CORS_EXTRA_ORIGINS`-Env | `server/server.js` |
+| 5 | Security-Header zentral: `security-headers.conf` (VPS: `/usr/local/nginx/conf/`); CSP aktuell **Report-Only Phase 1** → nach 1-2 Wochen Log-Check auf erzwingend umstellen | `mojobus.co.ssl.conf` inkludiert sie in HTML-Location + `@prerender_resolve` (nginx-Gotcha!) |
+| 6 | nsec-Login-Warnhinweis (Extension/Bunker bevorzugen) | `src/components/auth/LoginDialog.tsx` |
+| 7 | Prerender: 4 Artikel-Unterkategorien (diy/rvlife/leon/strand-ort) DE+EN, EN-Home `/en/`, hreflang in Sitemap | `scripts/prerender-*.js`, `generate-sitemap.js`, Nginx-Bot-Rewrites |
+| 8 | hreflang-Validierung de/en (in #7C aufgegangen) | – |
+| 9 | HTML-Caching `max-age=0, must-revalidate` (Nginx + `_redirects`); SW-Update-Toast | `mojobus.co.ssl.conf`, `public/_redirects`, `src/lib/serviceWorker.ts` |
+| 10 | ESLint `no-explicit-any: error`; `npm run audit` (beide Pakete); Promotion-Rate-Limits (`generate`-Bucket für pin-text, `light` für Rest) | `eslint.config.js`, `package.json`, `server/server.js` |
+
+**curl-Beispiele mit Token** (nach `export BOT_CACHE_TOKEN=$(grep '^BOT_CACHE_TOKEN=' <pfad>/ai-api.env | cut -d= -f2-)`):
+```bash
+curl -s https://mojobus.co/api/health -H "X-Clear-Token: $BOT_CACHE_TOKEN"
+curl -X POST https://mojobus.co/api/bot-cache/clear -H "X-Clear-Token: $BOT_CACHE_TOKEN"
+```
 | `scripts/prerender-helpers.js` | Gemeinsame Helfer aller Prerender-Skripte: `isMojobusKind1()`, `isTeaserNote()`, `isPlace/isTrip/isMedia`, `encodeNaddr`, `findTranslationPair`, `isTripEvent()`, `encodeTripNaddr()`, `extractTripWaypoints/Photos/Distance()` (Trips = kind:30025, siehe unten) |
 | `scripts/prerender-meta.js` | SEO-Head-Baustein (`buildHead`) + JSON-LD-Builder für alle Prerender-Templates |
 | `scripts/prerender-entity-templates.js` | HTML-Templates je Event-Typ (Artikel, Note, Ort, Trip, Video, Bild, Profil) |
