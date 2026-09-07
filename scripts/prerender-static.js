@@ -32,6 +32,11 @@ import {
   renderTripsPage,
   renderAboutPage,
 } from './prerender-category-templates.js';
+// Fix #7A/#7B: Artikel-Unterkategorien (DIY/RVLife/Leon/StrandOrt) + EN-Home
+import {
+  renderArtikelSubcategory,
+  renderHomePage,
+} from './prerender-subcategory-templates.js';
 
 const DEPLOY_DIR = '/home/nginx/domains/mojobus.co/public';
 const PRERENDER_DIR = path.join(DEPLOY_DIR, 'prerender');
@@ -272,6 +277,12 @@ async function main() {
 
   const categories = [
     { key: 'artikel', deName: 'category-artikel.html', renderDe: () => renderArtikelPage(lists.articles, 'de'), renderEn: () => renderArtikelPage(lists.articles, 'en') },
+    // Fix #7A: Unterkategorien – decken die Bot-Rewrites für
+    // /artikel/{diy,rvlife,leon,strand-ort} ab (vorher leeres SPA-HTML)
+    { key: 'artikel-diy', deName: 'category-artikel-diy.html', renderDe: () => renderArtikelSubcategory('diy', lists.articles, 'de'), renderEn: () => renderArtikelSubcategory('diy', lists.articles, 'en') },
+    { key: 'artikel-rvlife', deName: 'category-artikel-rvlife.html', renderDe: () => renderArtikelSubcategory('rvlife', lists.articles, 'de'), renderEn: () => renderArtikelSubcategory('rvlife', lists.articles, 'en') },
+    { key: 'artikel-leon', deName: 'category-artikel-leon.html', renderDe: () => renderArtikelSubcategory('leon', lists.articles, 'de'), renderEn: () => renderArtikelSubcategory('leon', lists.articles, 'en') },
+    { key: 'artikel-strand-ort', deName: 'category-artikel-strand-ort.html', renderDe: () => renderArtikelSubcategory('strand-ort', lists.articles, 'de'), renderEn: () => renderArtikelSubcategory('strand-ort', lists.articles, 'en') },
     { key: 'notes', deName: 'category-notes.html', renderDe: () => renderNotesPage(lists.notes, 'de'), renderEn: () => renderNotesPage(lists.notes, 'en') },
     { key: 'bilder', deName: 'category-bilder.html', renderDe: () => renderBilderPage(lists.media, 'de'), renderEn: () => renderBilderPage(lists.media, 'en') },
     { key: 'videos', deName: 'category-videos.html', renderDe: () => renderVideosPage(lists.videos, 'de'), renderEn: () => renderVideosPage(lists.videos, 'en') },
@@ -309,6 +320,17 @@ async function main() {
 <body></body>
 </html>`;
   writePrerenderFile('index.html', indexHtml);
+
+  // Fix #7B: Englische Startseite /en/ — Bots bekommen sonst index.html
+  // mit deutschen Meta-Tags (widerspricht dem hreflang-Verweis).
+  try {
+    const homeEnHtml = renderHomePage('en');
+    writePrerenderFile('category-home-en.html', homeEnHtml);
+    rendered.push({ type: 'Kategorie home-en', identifier: 'category-home-en.html' });
+    console.log('[Prerender]  → category-home-en.html generiert');
+  } catch (e) {
+    console.warn(`[Prerender] home-en fehlgeschlagen: ${e.message}`);
+  }
 
   const byType = {};
   for (const r of rendered) {

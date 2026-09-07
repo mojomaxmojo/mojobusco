@@ -35,6 +35,20 @@
   (`prerender-helpers.js`), kein `isMojobusKind1()`-Filter nötig, da
   kind:30025 ausschließlich über das Publish-Formular erzeugt wird.
   Migration abgeschlossen (`FEATURE-XXX-PLAN.md`, 7 Schritte).
+- **Artikel-Unterkategorien (Fix #7A)**: `prerender-static.js` generiert
+  jetzt auch `category-artikel-{diy,rvlife,leon,strand-ort}.html`
+  (+ `-en`-Varianten) via `renderArtikelSubcategory()`
+  (`scripts/prerender-subcategory-templates.js`). Nginx hat passende
+  Bot-Rewrites. **Tag-Listen doppelt gepflegt**: Die t-Tag-Filter spiegeln
+  `src/config/rvlife.ts` (autoTags) und `src/config/strandort.ts`
+  (categories primary) — bei Config-Änderung dort auch im
+  Prerender-Skript anpassen (TS-Configs sind in Node nicht importierbar).
+- **EN-Startseite (Fix #7B)**: `category-home-en.html` wird generiert;
+  Nginx-Rewrite `^/en/?$` liefert sie Bots (vorher: index.html mit
+  deutschen Meta-Tags unter /en/).
+- **Sitemap-hreflang (Fix #7C)**: `generate-sitemap.js` verlinkt alle
+  statischen Seiten de<->en per `xhtml:link` (davor nur dynamische
+  Einträge). feed.xml/feed-en.xml bewusst ohne hreflang-Paar.
 
 ---
 

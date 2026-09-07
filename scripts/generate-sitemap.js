@@ -382,22 +382,24 @@ async function main() {
   // lastmod ist bei ALLEN statischen Seiten gesetzt (Freshness-Signal für
   // Google). Vorher fehlte es bei den meisten Einträgen komplett.
   const today = new Date().toISOString().split('T')[0];
+  // path = SPA-Route; enPath = englische Variante (Fix #7C: für die
+  // hreflang-Verlinkung). feed.xml → feed-en.xml ist der Sonderfall.
   const staticPages = [
-    { loc: BASE_URL + '/',               priority: '1.0', changefreq: 'daily',   lastmod: today },
-    { loc: BASE_URL + '/artikel',        priority: '0.9', changefreq: 'daily',   lastmod: today },
-    { loc: BASE_URL + '/artikel/diy',    priority: '0.8', changefreq: 'weekly',  lastmod: today },
-    { loc: BASE_URL + '/artikel/rvlife', priority: '0.8', changefreq: 'weekly',  lastmod: today },
-    { loc: BASE_URL + '/artikel/leon',   priority: '0.8', changefreq: 'weekly',  lastmod: today },
-    { loc: BASE_URL + '/plaetze',        priority: '0.9', changefreq: 'daily',   lastmod: today },
-    { loc: BASE_URL + '/bilder',         priority: '0.8', changefreq: 'daily',   lastmod: today },
-    { loc: BASE_URL + '/notes',          priority: '0.7', changefreq: 'daily',   lastmod: today },
-    { loc: BASE_URL + '/videos',         priority: '0.8', changefreq: 'daily',   lastmod: today },
-    { loc: BASE_URL + '/map',            priority: '0.7', changefreq: 'weekly',  lastmod: today },
-    { loc: BASE_URL + '/map/trips',      priority: '0.7', changefreq: 'weekly',  lastmod: today },
-    { loc: BASE_URL + '/about',          priority: '0.5', changefreq: 'monthly', lastmod: today },
-    { loc: BASE_URL + '/artikel/strand-ort', priority: '0.8', changefreq: 'weekly', lastmod: today },
-    { loc: BASE_URL + '/feed.xml',       priority: '0.4', changefreq: 'hourly',  lastmod: today },
-  ];
+    { path: '/',               enPath: '/',               priority: '1.0', changefreq: 'daily',   lastmod: today },
+    { path: '/artikel',        enPath: '/artikel',        priority: '0.9', changefreq: 'daily',   lastmod: today },
+    { path: '/artikel/diy',    enPath: '/artikel/diy',    priority: '0.8', changefreq: 'weekly',  lastmod: today },
+    { path: '/artikel/rvlife', enPath: '/artikel/rvlife', priority: '0.8', changefreq: 'weekly',  lastmod: today },
+    { path: '/artikel/leon',   enPath: '/artikel/leon',   priority: '0.8', changefreq: 'weekly',  lastmod: today },
+    { path: '/plaetze',        enPath: '/plaetze',        priority: '0.9', changefreq: 'daily',   lastmod: today },
+    { path: '/bilder',         enPath: '/bilder',         priority: '0.8', changefreq: 'daily',   lastmod: today },
+    { path: '/notes',          enPath: '/notes',          priority: '0.7', changefreq: 'daily',   lastmod: today },
+    { path: '/videos',         enPath: '/videos',         priority: '0.8', changefreq: 'daily',   lastmod: today },
+    { path: '/map',            enPath: '/map',            priority: '0.7', changefreq: 'weekly',  lastmod: today },
+    { path: '/map/trips',      enPath: '/map/trips',      priority: '0.7', changefreq: 'weekly',  lastmod: today },
+    { path: '/about',          enPath: '/about',          priority: '0.5', changefreq: 'monthly', lastmod: today },
+    { path: '/artikel/strand-ort', enPath: '/artikel/strand-ort', priority: '0.8', changefreq: 'weekly', lastmod: today },
+    { path: '/feed.xml',       enPath: '/feed-en.xml',    priority: '0.4', changefreq: 'hourly',  lastmod: today },
+  ].map(page => ({ ...page, loc: BASE_URL + page.path }));
 
   // Für jede statische Seite zusätzlich das `/en/`-Pendant mit gleicher
   // priority/changefreq. Ausnahme: feed.xml liegt NICHT unter /en/feed.xml,
@@ -405,12 +407,28 @@ async function main() {
   // generate-feed.js) – daher separat behandelt statt über das generische
   // /en/-Präfix-Mapping.
   const enStaticPages = staticPages
-    .filter(page => !page.loc.endsWith('/feed.xml'))
+    .filter(page => page.path !== '/feed.xml')
     .map(page => {
-      const path = page.loc.slice(BASE_URL.length) || '/';
-      return { ...page, loc: buildLocalizedUrl(path, 'en') };
+      return { ...page, loc: buildLocalizedUrl(page.path, 'en'), enPath: page.enPath };
     });
   enStaticPages.push({ loc: BASE_URL + '/feed-en.xml', priority: '0.4', changefreq: 'hourly', lastmod: today });
+
+  // Fix #7C: hreflang-Verlinkung de<->en für ALLE statischen Seiten.
+  // Vorher hatten nur dynamische Einträge (Artikel/Orte/Trips/Videos)
+  // xhtml:link-Alternates — Google fand die en-Versionen der statischen
+  // Seiten nur über Zufall.
+  const enByPath = new Map(enStaticPages.map(p => [p.path, p]));
+  for (const page of staticPages) {
+    const enPage = enByPath.get(page.path);
+    if (enPage) {
+      page.alternates = [
+        { hreflang: 'de', href: page.loc },
+        { hreflang: 'en', href: enPage.loc },
+      ];
+      enPage.alternates = page.alternates;
+    }
+  }
+  // feed.xml/feed-en.xml sind keine Sprach-Paare im SPA-Sinne → ohne hreflang.
 
   const allUrls = [...staticPages, ...enStaticPages];
   const seen = new Set(); // Deduplizierung

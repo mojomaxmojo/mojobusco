@@ -19,7 +19,8 @@ function buildBreadcrumb(name, url, lang = 'de') {
   ];
 }
 
-function renderListPage({ title, description, canonicalUrl, items, listName }, lang = 'de') {
+// Exportiert für prerender-subcategory-templates.js (Fix #7A/7B)
+export function renderListPage({ title, description, canonicalUrl, items, listName }, lang = 'de') {
   const jsonLd = [
     buildItemListLd(items, canonicalUrl, listName),
     buildBreadcrumbLd(buildBreadcrumb(title.split(' — ')[0], canonicalUrl, lang)),
@@ -56,7 +57,8 @@ function renderListPage({ title, description, canonicalUrl, items, listName }, l
 </html>`;
 }
 
-function toArticleItem(event) {
+// Exportiert für prerender-subcategory-templates.js (Fix #7A)
+export function toArticleItem(event) {
   const naddr = encodeNaddr(event);
   return {
     name: event.tags?.find(t => t[0] === 'title')?.[1] || 'Artikel',
