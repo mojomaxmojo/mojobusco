@@ -288,6 +288,16 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
                   {errors.nsec && (
                     <p className="text-sm text-red-500">{errors.nsec}</p>
                   )}
+                  {/* Sicherheitshinweis (Fix #6): nsec landet im Browser-Speicher.
+                      Für Publisher-Accounts Extension oder Bunker bevorzugen. */}
+                  <Alert className="border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40">
+                    <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                    <AlertDescription className="text-xs text-amber-800 dark:text-amber-300">
+                      Achtung: Dein nsec wird im Browser-Speicher verarbeitet.
+                      Für wichtige Accounts (Publisher) lieber <strong>Extension</strong> oder{' '}
+                      <strong>Bunker</strong> nutzen. Teile deinen nsec nie.
+                    </AlertDescription>
+                  </Alert>
                 </div>
 
                 <Button
