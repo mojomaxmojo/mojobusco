@@ -370,7 +370,9 @@ nur weiter:
 **Aktivierung** (Schritte stehen kommentiert im Vhost-File):
 Zertifikat (SAN mojobus.org + www) → `node scripts/generate-wp-redirects.js`
 → **report.json prüfen** (Trefferquote, Review-Liste) → Map + Vhost nach
-`/usr/local/nginx/conf/conf.d/` kopieren → `nginx -t && reload` →
+`/usr/local/nginx/conf/conf.d/` kopieren (Map heißt dort
+`mojobus.org.redirects.map` — .map wird vom CMM-`*.conf`-Glob nicht
+eigenständig geladen, nur per include im Vhost) → `nginx -t && reload` →
 `deploy-main.sh --force` (ai-api-Endpoint) → curl-Checks.
 
 **Dateien:**
