@@ -344,6 +344,46 @@ Verbindung pro Query, mehrere REQs darauf (schont Havens Connection-Limiter).
 
 ---
 
+## mojobus.org → mojobus.co Migration (WP-Rente, 301)
+
+Die alte WordPress-Seite (mojobus.org, vorher rvlove.co) ist stillgelegt.
+Der Vhost `mojobus.org.ssl.conf` serviert KEINEN Content, sondern leitet
+nur weiter:
+
+1. **Exakt** (1 Hop): statische Map `redirects/wp-redirects.map` — generiert
+   von `scripts/generate-wp-redirects.js`. Match-Stufe 1 nutzt die WP-Post-
+   IDs in den Nostr-d-Tags (`wp-<id>-…`, bei der Migration übernommen),
+   Stufe 2 normalisierte Titel.
+2. **Resolver-Fallback** (2 Hops): alles Unmatchte → ai-api
+   `server/routes/wp-redirect.js` → `GET /api/wp-redirect?uri=…` → Stufe
+   Map → live `wp-<id>`-Lookup in articles.json → fuzzy auf Titel → sonst
+   `301 /artikel`. Deckt auch später migrierte Artikel ab.
+3. **WP-Systempfade**: `/wp-content/uploads/` (alte Bilder) → 301 Homepage
+   (Entscheidung 2026-09-08), `/wp-admin|wp-json|wp-login` → 301 Homepage,
+   `wp-cron/xmlrpc` → 410, `/robots.txt`+`/sitemap.xml` → neue Pendants.
+
+**Aktivierung** (Schritte stehen kommentiert im Vhost-File):
+Zertifikat (SAN mojobus.org + www) → `node scripts/generate-wp-redirects.js`
+→ **report.json prüfen** (Trefferquote, Review-Liste) → Map + Vhost nach
+`/usr/local/nginx/conf/conf.d/` kopieren → `nginx -t && reload` →
+`deploy-main.sh --force` (ai-api-Endpoint) → curl-Checks.
+
+**Dateien:**
+| Pfad | Zweck |
+|------|-------|
+| `scripts/generate-wp-redirects.js` | Match-Skript (WP-REST-API → nginx-Map + JSON + Report) |
+| `redirects/wp-redirects.{map,json}` | generiert; liegt im VPS-Repo (untracked überlebt Deploy-Stash/Reset — NICHT `git clean -fd`!) |
+| `server/routes/wp-redirect.js` | Resolver-Endpoint (ai-api, Tabu-Auftrag erteilt 2026-09-08) |
+| `mojobus.org.ssl.conf` | Vhost-Vorlage |
+
+**SEO-Checkliste:** 301 permanent, alte Seite komplett offline (kein
+Duplicate-Content), 301s mind. 12 Monate halten, Search Console:
+beide Properties verifiziert → Change of Address mojobus.org → mojobus.co.
+Alte rvlove.co-Links (`/?p=<id>`, s. WP-GUIDs) können später über denselben
+Resolver bedient werden (eigener Vhost, gleiche Map-Logik).
+
+---
+
 ## Prerender + SW Cache-System
 
 **Ablauf**:

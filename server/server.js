@@ -28,6 +28,7 @@ import createVideoRouter from './routes/video/index.js'
 import tiktokRouter from './routes/tiktok/index.js'
 import assistantRouter from './routes/assistant/index.js'
 import prerenderFallbackRouter from './routes/prerender-fallback.js'
+import wpRedirectRouter from './routes/wp-redirect.js'
 
 // ===== PROMPTS AUS src/config/prompts/ IMPORTIEREN =====
 // Alle Prompts sind zentral in src/config/prompts/ definiert
@@ -169,6 +170,11 @@ app.use(assistantRouter)
 // Nginx leitet 404s aus /prerender/ hierher: naddr/nevent mit Relay-Hints
 // werden dekodiert und per 301 auf die kanonische (hint-freie) URL geleitet.
 app.use(prerenderFallbackRouter)
+
+// ===== WP-REDIRECT-RESOLVER (mojobus.org → mojobus.co Migration) =====
+// Nginx (mojobus.org-Vhost) reicht alle Alt-URLs OHNE statischen Map-Treffer
+// hierher: 3-Stufen-Auflösung (Map → wp-<id>-d-Tag → fuzzy) → 301.
+app.use(wpRedirectRouter)
 
 if (!fs.existsSync('uploads')) {
   fs.mkdirSync('uploads')
