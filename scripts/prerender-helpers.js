@@ -265,20 +265,23 @@ export async function queryRelay(relayUrl, filters, opts = {}) {
 
     // Eine Seite = ein REQ auf der bestehenden Verbindung. Watchdog löst
     // mit dem bis dahin Empfangenen auf, falls kein EOSE kommt.
+    // WICHTIG: Das Promise muss die Seite (pageBuf-Snapshot) als Wert
+    // auflösen — sonst ist `page` in der Walk-Schleife undefined und der
+    // stille Catch liefert 0 Events (Bug 2026-09-08, VPS-Lauf).
     const fetchPage = (filter, subId) => new Promise((res) => {
       pageBuf = [];
       activeSub = subId;
       const watchdog = setTimeout(() => {
         pageResolver = null;
-        res();
+        res(pageBuf.slice()); // Snapshot: pageBuf wird pro Seite neu gesetzt
       }, timeoutMs);
-      pageResolver = () => { clearTimeout(watchdog); res(); };
+      pageResolver = () => { clearTimeout(watchdog); res(pageBuf.slice()); };
       try {
         ws.send(JSON.stringify(['REQ', subId, filter]));
       } catch {
         clearTimeout(watchdog);
         pageResolver = null;
-        res();
+        res(pageBuf.slice());
       }
     });
 
@@ -289,6 +292,15 @@ export async function queryRelay(relayUrl, filters, opts = {}) {
         finish();
         return;
       }
+
+      // Nach erfolgreichem Open: Verbindungsabbruch/Fehler beendet den
+      // laufenden Seiten-Fetch sofort (Watchdog bleibt als Fallback).
+      const settlePendingPage = () => {
+        const r = pageResolver;
+        if (r) { pageResolver = null; r(); }
+      };
+      ws.onclose = settlePendingPage;
+      ws.onerror = settlePendingPage;
 
       const base = filters[0] || {};
       let until = base.until ?? (Math.floor(Date.now() / 1000) + 3600 * 24 * 365);
@@ -334,7 +346,10 @@ export async function queryRelay(relayUrl, filters, opts = {}) {
         console.log(`[queryRelay] ${label}: ${events.length} Events in ${pagesFetched} Seiten (PAGE_SIZE ${PAGE_SIZE})`);
       }
       finish();
-    })().catch(() => finish());
+    })().catch((err) => {
+      console.warn(`[queryRelay] ${label}: Fehler im Seiten-Walk: ${err?.message || err}`);
+      finish();
+    });
   });
 }
 

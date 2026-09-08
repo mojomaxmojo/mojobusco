@@ -199,6 +199,18 @@ async function main() {
 
   console.log(`[SiteData]  → ${allEvents.length} unique Events total`);
 
+  // ── Total-Ausfall-Schutz: 0 Events über ALLE Relays ist nie ein legitimer
+  // Zustand dieser Pipeline (Haven hat Content). Ohne diesen Guard schrieben
+  // z. B. deploy-geleerte Dumps + Relay-Störung leere articles.json etc.
+  // live (passiert 2026-09-08 beim queryRelay-Bug). Exit 1 → bestehende
+  // Dumps bleiben, bei geleertem data/ fehlen die Dateien → SPA fällt auf
+  // Relay-Queries zurück — beides besser als leere Dumps online.
+  if (allEvents.length === 0 && allVideoEvents.length === 0 && allTripEvents.length === 0) {
+    console.error('[SiteData] ❌ ALLE Relays lieferten 0 Events — vermutlich Relay-/Netzwerk-Problem.');
+    console.error('[SiteData]    Dumps werden NICHT überschrieben. Später erneut ausführen.');
+    process.exit(1);
+  }
+
   // ── Klassifizierung: EINMAL berechnen, überall gleich verwenden ────────
   // Dieselben Event-Listen stecken in den Metadaten (unten), in den Dumps
   // (writeJSON-Block) und im Kollaps-Schutz — vorher wurden die Filter an
