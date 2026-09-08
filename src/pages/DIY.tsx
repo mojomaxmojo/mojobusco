@@ -14,6 +14,7 @@ import { canonicalNaddr } from '@/lib/canonicalUrl';
 import { Wrench, Loader2 } from 'lucide-react';
 
 import type { NostrEvent } from '@nostrify/nostrify';
+import { useInView } from 'react-intersection-observer';
 import { memo } from 'react';
 import { getListThumbnailUrl, getImagePlaceholder, generateSrcset, generateSizes } from '@/lib/imageUtils';
 import { DEFAULT_PERFORMANCE_CONFIG } from '@/config/performance';
@@ -48,6 +49,21 @@ export function DIY() {
     // (limit entfernen: der Hook steuert die Page-Size selbst, eine
     // limit-Option existiert nicht und wurde vorher still ignoriert)
   });
+
+  // Infinite Scroll trigger
+  // FIX: fetchNextPage wurde vorher nie aufgerufen – der Loader existierte,
+  // aber es wurde nie nachgeladen
+  const { ref, inView } = useInView({
+    threshold: 0.1,
+    rootMargin: '100px',
+  });
+
+  // Fetch more articles when scroll trigger is visible
+  useEffect(() => {
+    if (inView && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const flattenData = (data?.pages.flat() || []).filter(a => getEventLanguage(a) === lang);
   const [searchParams] = useSearchParams();
@@ -200,7 +216,7 @@ export function DIY() {
 
           {/* Infinite Scroll Loader */}
           {hasNextPage && (
-            <div className="py-8 flex justify-center">
+            <div ref={ref} className="py-8 flex justify-center">
               {isFetchingNextPage && (
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Loader2 className="h-5 w-5 animate-spin" />

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -6,20 +6,28 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { ImagePlaceholder } from '@/components/ImagePlaceholder';
-import { useLongformArticles, extractArticleMetadata } from '@/hooks/useLongformArticles';
+import { useInfiniteLongformArticles, extractArticleMetadata } from '@/hooks/useLongformArticles';
 import { useAuthor } from '@/hooks/useAuthor';
 import { genUserName } from '@/lib/genUserName';
 import { canonicalNaddr } from '@/lib/canonicalUrl';
-import { Search, Calendar, User, Waves, Mountain, Trees, Droplets, MapPin } from 'lucide-react';
+import { Search, Calendar, User, Waves, Mountain, Trees, Droplets, MapPin, Loader2 } from 'lucide-react';
 import { STRANDORT_CONFIG } from '@/config/strandort';
 import { getListThumbnailUrl, getImagePlaceholder, generateSrcset, generateSizes } from '@/lib/imageUtils';
 
 import type { NostrEvent } from '@nostrify/nostrify';
 import { memo } from 'react';
+import { useInView } from 'react-intersection-observer';
 import { useHead } from '@unhead/react';
 import { canonicalUrl, ogImageUrl } from '@/lib/canonicalUrl';
 import { getEventLanguage } from '@/lib/translationTags';
 import { useLanguage } from '@/hooks/useLanguage';
+
+// Alle Strand/Ort Tags (stabiles Module-Level-Array, für Relay- und Client-Filter)
+const ALL_STRANDORT_TAGS: string[] = [
+  ...new Set(
+    Object.values(STRANDORT_CONFIG.categories).flatMap(cat => [...cat.tags.primary])
+  ),
+];
 
 export function StrandOrt() {
   // SEO Meta Tags
@@ -46,40 +54,55 @@ export function StrandOrt() {
   const { lang } = useLanguage();
 
   // Alle Artikel abrufen
-  const { data: articles, isLoading, error } = useLongformArticles({
+  // (Infinite Scroll statt Hard-Limit: Relay filtert per #t auf die Strand/Ort Tags,
+  //  30 Events pro Seite, ältere Artikel werden beim Scrollen nachgeladen)
+  const { data, isLoading, error, hasNextPage, fetchNextPage, isFetchingNextPage } = useInfiniteLongformArticles({
     kinds: [30023],
-    limit: 50
+    '#t': ALL_STRANDORT_TAGS,
   });
 
-  // Alle Strand/Ort Tags
-  const allStrandOrtTags = Object.values(STRANDORT_CONFIG.categories).flatMap(cat => cat.tags.primary);
+  // Infinite Scroll trigger
+  const { ref, inView } = useInView({
+    threshold: 0.1,
+    rootMargin: '100px',
+  });
 
-  // Filtere Artikel, die Strand/Ort Kategorien haben
-  const displayArticles = articles?.filter(article => {
-    if (getEventLanguage(article) !== lang) return false;
-
-    // Extrahiere Tags aus Nostr-Event für bessere Filterung
-    const eventTags = article.tags.filter(([name]) => name === 't').map(([, value]) => value);
-
-    // Prüfe ob der Artikel mindestens einen Strand/Ort Tag hat
-    const hasStrandOrtTag = eventTags.some(tag => (allStrandOrtTags as string[]).includes(tag));
-
-    if (!hasStrandOrtTag) return false;
-
-    // Wenn Kategorie spezifiziert, filtere danach
-    if (category) {
-      const categoryConfig = Object.values(STRANDORT_CONFIG.categories).find(cat => cat.id === category.toLowerCase());
-      if (categoryConfig) {
-        return eventTags.some(tag => (categoryConfig.tags.primary as readonly string[]).includes(tag));
-      }
-      return eventTags.includes(category);
+  // Fetch more articles when scroll trigger is visible
+  useEffect(() => {
+    if (inView && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
     }
+  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-    // Zeige alle Artikel mit Strand/Ort Tags
-    return true;
-  }) || [];
+  // Flatten pages + Filtere Artikel, die Strand/Ort Kategorien haben
+  const displayArticles = useMemo(() => {
+    return (data?.pages.flat() || []).filter(article => {
+      if (getEventLanguage(article) !== lang) return false;
 
-  const isDemoMode = !displayArticles || displayArticles.length === 0;
+      // Extrahiere Tags aus Nostr-Event für bessere Filterung
+      const eventTags = article.tags.filter(([name]) => name === 't').map(([, value]) => value);
+
+      // Prüfe ob der Artikel mindestens einen Strand/Ort Tag hat
+      const hasStrandOrtTag = eventTags.some(tag => (ALL_STRANDORT_TAGS as string[]).includes(tag));
+
+      if (!hasStrandOrtTag) return false;
+
+      // Wenn Kategorie spezifiziert, filtere danach
+      if (category) {
+        const categoryConfig = Object.values(STRANDORT_CONFIG.categories).find(cat => cat.id === category.toLowerCase());
+        if (categoryConfig) {
+          return eventTags.some(tag => (categoryConfig.tags.primary as readonly string[]).includes(tag));
+        }
+        return eventTags.includes(category);
+      }
+
+      // Zeige alle Artikel mit Strand/Ort Tags
+      return true;
+    });
+  }, [data, lang, category]);
+
+  // Demo-Modus nur wenn definitiv keine (weiteren) Artikel kommen
+  const isDemoMode = displayArticles.length === 0 && !hasNextPage;
 
   const currentCategory = category
     ? Object.values(STRANDORT_CONFIG.categories).find(cat => cat.id === category.toLowerCase())
@@ -279,6 +302,18 @@ export function StrandOrt() {
               {filteredArticles.map((article) => (
                 <StrandOrtArticleCard key={article.id} article={article} />
               ))}
+            </div>
+          )}
+
+          {/* Infinite Scroll Loader */}
+          {hasNextPage && !isLoading && !error && (
+            <div ref={ref} className="py-8 flex justify-center">
+              {isFetchingNextPage && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <span>Lade mehr Strand/Ort Artikel...</span>
+                </div>
+              )}
             </div>
           )}
         </div>

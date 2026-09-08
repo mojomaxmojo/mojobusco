@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -7,18 +7,19 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { ImagePlaceholder } from '@/components/ImagePlaceholder';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { useLongformArticles, extractArticleMetadata } from '@/hooks/useLongformArticles';
+import { useInfiniteLongformArticles, extractArticleMetadata } from '@/hooks/useLongformArticles';
 import { useAuthor } from '@/hooks/useAuthor';
 import { genUserName } from '@/lib/genUserName';
 import { canonicalNaddr } from '@/lib/canonicalUrl';
 import { DEFAULT_PERFORMANCE_CONFIG } from '@/config/performance';
-import { Search, Calendar, User, Home, ChefHat, Compass, Truck, Sparkles } from 'lucide-react';
+import { Search, Calendar, User, Home, ChefHat, Compass, Truck, Sparkles, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RV_LIFE_CONFIG } from '@/config/rvlife';
 import { getListThumbnailUrl, getImagePlaceholder, generateSrcset, generateSizes } from '@/lib/imageUtils';
 
 import type { NostrEvent } from '@nostrify/nostrify';
 import { memo } from 'react';
+import { useInView } from 'react-intersection-observer';
 import { useHead } from '@unhead/react';
 import { canonicalUrl } from '@/lib/canonicalUrl';
 import { getEventLanguage } from '@/lib/translationTags';
@@ -48,44 +49,60 @@ export function RVLife() {
   const { lang } = useLanguage();
 
   // Alle RV Life Artikel mit relevanten Tags abrufen
-  const { data: articles, isLoading, error } = useLongformArticles({
+  // (Infinite Scroll statt Hard-Limit: Relay filtert per #t auf die RV Life Auto-Tags,
+  //  30 Events pro Seite, ältere Artikel werden beim Scrollen nachgeladen)
+  const { data, isLoading, error, hasNextPage, fetchNextPage, isFetchingNextPage } = useInfiniteLongformArticles({
     kinds: [30023],
-    limit: 50
+    '#t': [...RV_LIFE_CONFIG.autoTags],
   });
+
+  // Infinite Scroll trigger
+  const { ref, inView } = useInView({
+    threshold: 0.1,
+    rootMargin: '100px',
+  });
+
+  // Fetch more articles when scroll trigger is visible
+  useEffect(() => {
+    if (inView && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   // Automatische RV Life Tags
   const autoTags = RV_LIFE_CONFIG.autoTags;
 
-  // Filtere Artikel, die RV Life Kategorien haben
-  const displayArticles = articles?.filter(article => {
-    if (getEventLanguage(article) !== lang) return false;
+  // Flatten pages + Filtere Artikel, die RV Life Kategorien haben
+  const displayArticles = useMemo(() => {
+    return (data?.pages.flat() || []).filter(article => {
+      if (getEventLanguage(article) !== lang) return false;
 
-    const metadata = extractArticleMetadata(article);
+      // Extrahiere Tags aus Nostr-Event für bessere Filterung
+      const eventTags = article.tags.filter(([name]) => name === 't').map(([, value]) => value);
 
-    // Extrahiere Tags aus Nostr-Event für bessere Filterung
-    const eventTags = article.tags.filter(([name]) => name === 't').map(([, value]) => value);
+      // Prüfe ob der Artikel mindestens ein RV Life Auto-Tag hat
+      const hasRVLifeTag = eventTags.some(tag => (autoTags as readonly string[]).includes(tag));
 
-    // Prüfe ob der Artikel mindestens ein RV Life Auto-Tag hat
-    const hasRVLifeTag = eventTags.some(tag => (autoTags as readonly string[]).includes(tag));
+      if (!hasRVLifeTag) return false;
 
-    if (!hasRVLifeTag) return false;
-
-    // Wenn Kategorie spezifiziert, filtere danach
-    if (category) {
-      // Prüfe Kategorie-Key und zugehörige Tags
-      const categoryConfig = Object.values(RV_LIFE_CONFIG.categories).find(cat => cat.id === category.toLowerCase());
-      if (categoryConfig) {
-        const categoryTags = [...categoryConfig.tags.primary, ...categoryConfig.tags.optional];
-        return eventTags.some(tag => (categoryTags as string[]).includes(tag));
+      // Wenn Kategorie spezifiziert, filtere danach
+      if (category) {
+        // Prüfe Kategorie-Key und zugehörige Tags
+        const categoryConfig = Object.values(RV_LIFE_CONFIG.categories).find(cat => cat.id === category.toLowerCase());
+        if (categoryConfig) {
+          const categoryTags = [...categoryConfig.tags.primary, ...categoryConfig.tags.optional];
+          return eventTags.some(tag => (categoryTags as string[]).includes(tag));
+        }
+        return eventTags.includes(category);
       }
-      return eventTags.includes(category);
-    }
 
-    // Zeige alle Artikel mit RV Life Tags
-    return true;
-  }) || [];
+      // Zeige alle Artikel mit RV Life Tags
+      return true;
+    });
+  }, [data, lang, category, autoTags]);
 
-  const isDemoMode = !displayArticles || displayArticles.length === 0;
+  // Demo-Modus nur wenn definitiv keine (weiteren) Artikel kommen
+  const isDemoMode = displayArticles.length === 0 && !hasNextPage;
 
   const currentCategory = category
     ? Object.values(RV_LIFE_CONFIG.categories).find(cat => cat.id === category.toLowerCase())
@@ -284,6 +301,18 @@ export function RVLife() {
               {filteredArticles.map((article) => (
                 <RVLifeArticleCard key={article.id} article={article} />
               ))}
+            </div>
+          )}
+
+          {/* Infinite Scroll Loader */}
+          {hasNextPage && !isLoading && !error && (
+            <div ref={ref} className="py-8 flex justify-center">
+              {isFetchingNextPage && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <span>Lade mehr RV Life Artikel...</span>
+                </div>
+              )}
             </div>
           )}
         </div>
