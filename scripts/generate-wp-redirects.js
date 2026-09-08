@@ -280,6 +280,10 @@ const entries = JSON.parse(fs.readFileSync(ARTICLES_FILE, 'utf-8'));
         source: sourcePath,
         sourceNoSlash: sourcePath.replace(/\/$/, ''),
         sourceIdOnly: kind === 'post' && wpId ? `/${wpId}/` : null,
+        // Query-Variante: /?p=<id> (alte WP-Permalink-Struktur). nginx-Map
+        // matcht $request_uri inkl. Query — der Vhost-`location = /`-Block
+        // prüft die Map deshalb VOR dem Homepage-Redirect.
+        sourceQuery: kind === 'post' && wpId ? `/?p=${wpId}` : null,
         target,
         match: result.match,
         confidence: result.confidence,
@@ -306,6 +310,7 @@ const entries = JSON.parse(fs.readFileSync(ARTICLES_FILE, 'utf-8'));
     mapEntries.push(`"${r.source}" ${r.target};`);
     mapEntries.push(`"${r.sourceNoSlash}" ${r.target};`);
     if (r.sourceIdOnly) mapEntries.push(`"${r.sourceIdOnly}" ${r.target};`);
+    if (r.sourceQuery) mapEntries.push(`"${r.sourceQuery}" ${r.target};`);
   }
   if (INCLUDE_FUZZY_IN_MAP) {
     for (const r of review) {
