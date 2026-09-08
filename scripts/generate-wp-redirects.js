@@ -184,7 +184,14 @@ async function main() {
   console.log(`[WP-Redirect] Quelle: ${WP_SOURCE}`);
   console.log(`[WP-Redirect] Artikel-Index: ${ARTICLES_FILE}`);
 
-  const entries = JSON.parse(fs.readFileSync(ARTICLES_FILE, 'utf-8'));
+  if (!fs.existsSync(ARTICLES_FILE)) {
+  console.error(`[WP-Redirect] ❌ ${ARTICLES_FILE} nicht gefunden.`);
+  console.error('[WP-Redirect]    Die JSON-Dumps erzeugt generate-site-data.js (node.sh-Schritt 1');
+  console.error('[WP-Redirect]    bzw. Cron alle 3h). Nach jedem deploy-main.sh zuerst laufen lassen:');
+  console.error('[WP-Redirect]      node scripts/generate-site-data.js');
+  process.exit(1);
+}
+const entries = JSON.parse(fs.readFileSync(ARTICLES_FILE, 'utf-8'));
   if (!Array.isArray(entries) || entries.length === 0) {
     console.error('[WP-Redirect] ❌ sitemap.json leer — erst node.sh laufen lassen.');
     process.exit(1);
