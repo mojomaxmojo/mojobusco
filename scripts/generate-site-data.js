@@ -28,7 +28,13 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { nip19 } from 'nostr-tools';
-import { isMojobusKind1, isTripEvent } from './prerender-helpers.js';
+import {
+  isMojobusKind1,
+  isTripEvent,
+  isPlace,
+  classifyKind1,
+  queryRelay,
+} from './prerender-helpers.js';
 
 // ── Autoren aus zentraler JSON-Config (Single Source of Truth) ────────────
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -43,12 +49,15 @@ const AUTHOR_PUBKEYS = AUTHORS.map(a => a.pubkey);
 const DATA_DIR = '/home/nginx/domains/mojobus.co/public/data';
 const BASE_URL = 'https://mojobus.co';
 const RELAYS = ['wss://relay.mojobus.co', 'wss://relay.primal.net'];
-const QUERY_TIMEOUT = 20000; // 20s (eigenes Relay → grosszügig)
-const MAX_EVENTS = 2000;     // Alle Events auf einmal (unser Relay schafft das)
-// Explizite Zeitgrenzen — ERHEBLICH: mit since/until liefert das Relay ~341
-// Longform-Events, ohne nur ~250 (beobachtet; vermutlich Relay-internes
-// Query-Verhalten). Prerender/Sitemap-Queries nutzen die Bounds seit jeher,
-// site-data jetzt auch — damit der Sitemap-Event-Dump vollständig ist.
+const QUERY_TIMEOUT = 20000; // pro Seite / Verbindungsaufbau
+// Paginierung: queryRelay() aus prerender-helpers.js holt ALLE passenden
+// Events seitenweise (PAGE_SIZE, env RELAY_PAGE_SIZE, Default 500). Grund:
+// Haven/badger kappt Filter mit limit > MaxLimit (badger: 1000) still auf
+// MaxLimit/4 = 250 — deshalb enthielten die Dumps früher nur ~250 der >500
+// Artikel vom eigenen Relay (Quarter-Cap, siehe prerender-helpers.js).
+// since/until-Bounds bleiben gesetzt (Haven-Trap #5: Bounds werden auf
+// uint32 verengt — Werte bis 2106 sind safe, große Werte wrapen → leere
+// Antwort. FAR_FUTURE ist bewusst ~1 Jahr, nicht tausende Jahre).
 const FAR_FUTURE = Math.floor(Date.now() / 1000) + 3600 * 24 * 365;
 
 // ── Länder-Konfiguration (für Indizierung) ──────────────────────────────────
@@ -61,27 +70,6 @@ const COUNTRIES = {
   luxemburg: { code: 'luxemburg', name: 'Luxemburg', flag: '🇱🇺', keywords: ['luxemburg', 'luxembourg', 'luxemburgisch'] },
   deutschland: { code: 'deutschland', name: 'Deutschland', flag: '🇩🇪', keywords: ['deutschland', 'deutsch', 'germany', 'berlin', 'münchen', 'hamburg', 'köln'] },
 };
-
-// ── Simple WS-Query ────────────────────────────────────────────────────────
-
-function queryRelay(relayUrl, filters, timeoutMs = QUERY_TIMEOUT) {
-  return new Promise((resolve) => {
-    let ws;
-    const timeout = setTimeout(() => { if (ws) ws.close(); resolve([]); }, timeoutMs);
-    try { ws = new WebSocket(relayUrl); } catch (e) { resolve([]); return; }
-    const events = [];
-    const reqId = 'data-req';
-    ws.onopen = () => ws.send(JSON.stringify(['REQ', reqId, ...filters]));
-    ws.onmessage = (msg) => {
-      try {
-        const data = JSON.parse(msg.data);
-        if (data[0] === 'EVENT' && data[1] === reqId) events.push(data[2]);
-        if (data[0] === 'EOSE') { clearTimeout(timeout); ws.close(); resolve(events); }
-      } catch (e) { /* ignore */ }
-    };
-    ws.onerror = () => { clearTimeout(timeout); resolve([]); };
-  });
-}
 
 // ── Metadaten-Extraktion (analog zu extractArticleMetadata) ────────────────
 
@@ -147,44 +135,12 @@ function extractSummary(content) {
   return first.length > 200 ? first.substring(0, 197) + '...' : first;
 }
 
-function isPlace(event) {
-  const tags = event.tags || [];
-  const typeTag = tags.find(t => t[0] === 'type')?.[1];
-  const placeTag = tags.some(t => t[0] === 't' && ['place', 'places'].includes(t[1]));
-  const identifier = tags.find(t => t[0] === 'd')?.[1] || '';
-  return typeTag === 'place' || placeTag || identifier.startsWith('place-');
-}
-
-function isTrip(event) {
-  const tags = event.tags || [];
-  const tripTag = tags.some(t => t[0] === 't' && ['trip', 'trips', 'travel', 'reise'].includes(t[1]));
-  const titleTag = tags.find(t => t[0] === 'title')?.[1];
-  return tripTag && titleTag;
-}
-
-/**
- * Prüft, ob es sich um eine automatisch erzeugte Longform-Teaser-Note
- * handelt (siehe src/lib/createLongformTeaser.ts). Teaser-Notes sind reine
- * Verweis-Posts auf einen Artikel/Ort/Trip/Video (erkennbar am `a`-Tag
- * `kind:pubkey:dTag`) und dürfen nicht als eigenständiger Medien-Post im
- * bilder.json landen, auch wenn ihr Content eine Bild-URL enthält.
- */
-function isTeaserNote(event) {
-  const tags = event.tags || [];
-  return tags.some(t => t[0] === 'a' && /^\d+:[0-9a-f]{64}:/.test(t[1] || ''));
-}
-
-function isMedia(event) {
-  if (isTeaserNote(event)) return false;
-  const tags = event.tags || [];
-  const mediaTag = tags.some(t => t[0] === 't' && ['media', 'medien', 'bilder', 'images', 'galerie'].includes(t[1]));
-  const imageTags = tags.filter(t => t[0] === 'image');
-  return mediaTag || imageTags.length >= 2;
-}
-
-function isNote(event) {
-  return event.kind === 1 && !isPlace(event) && !isTrip(event) && !isMedia(event);
-}
+// Klassifizierung (isPlace/isNote/classifyKind1) kommt aus
+// prerender-helpers.js — Single Source of Truth für SiteData, Prerender und
+// Sitemap. Vorher existierte hier eine zweite isPlace/isTrip/isMedia/isNote-
+// Kopie mit abweichenden Kriterien (kein camping/stellplatz, dafür
+// d-Präfix-Check; isTrip nur MIT title-Tag) — daraus entstanden die
+// Zähl-Diskrepanzen (Orte 5 vs. 17, Notes 29 vs. 28, Bilder 48 vs. 46).
 
 // ── Main ───────────────────────────────────────────────────────────────────
 
@@ -202,21 +158,21 @@ async function main() {
     console.log(`[SiteData] Frage ab: ${relay}`);
 
     // Longform-Artikel (kind 30023)
-    const articles = await queryRelay(relay, [{ kinds: [30023], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS, since: 0, until: FAR_FUTURE }]);
+    const articles = await queryRelay(relay, [{ kinds: [30023], authors: AUTHOR_PUBKEYS, since: 0, until: FAR_FUTURE }], { timeoutMs: QUERY_TIMEOUT, label: `${relay} kind:30023` });
     console.log(`[SiteData]  → ${articles.length} Longform-Events`);
 
     // Notes (kind 1) – enthält auch Fremd-Posts der Autoren aus anderen
     // Nostr-Clients; wird weiter unten über isMojobusKind1() gefiltert.
-    const notes = await queryRelay(relay, [{ kinds: [1], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS, since: 0, until: FAR_FUTURE }]);
+    const notes = await queryRelay(relay, [{ kinds: [1], authors: AUTHOR_PUBKEYS, since: 0, until: FAR_FUTURE }], { timeoutMs: QUERY_TIMEOUT, label: `${relay} kind:1` });
     const mojobusNotesCount = notes.filter(isMojobusKind1).length;
     console.log(`[SiteData]  → ${notes.length} Kind-1-Events (${mojobusNotesCount} von mojobus.co, ${notes.length - mojobusNotesCount} Fremd-Posts)`);
 
     // Video-Events NIP-71: kind 34236 (Short/Reels 9:16) + kind 34235 (Normal 16:9)
-    const videos = await queryRelay(relay, [{ kinds: [34236, 34235], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS, since: 0, until: FAR_FUTURE }]);
+    const videos = await queryRelay(relay, [{ kinds: [34236, 34235], authors: AUTHOR_PUBKEYS, since: 0, until: FAR_FUTURE }], { timeoutMs: QUERY_TIMEOUT, label: `${relay} videos` });
     console.log(`[SiteData]  → ${videos.length} Video-Events (kind 34236/34235)`);
 
     // Trips (kind 30025) – echte Trip-Events statt kind:1-Teaser-Notes
-    const tripEvents = await queryRelay(relay, [{ kinds: [30025], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS, since: 0, until: FAR_FUTURE }]);
+    const tripEvents = await queryRelay(relay, [{ kinds: [30025], authors: AUTHOR_PUBKEYS, since: 0, until: FAR_FUTURE }], { timeoutMs: QUERY_TIMEOUT, label: `${relay} kind:30025` });
     console.log(`[SiteData]  → ${tripEvents.length} Trip-Events (kind 30025)`);
 
     for (const event of [...articles, ...notes]) {
@@ -243,37 +199,31 @@ async function main() {
 
   console.log(`[SiteData]  → ${allEvents.length} unique Events total`);
 
-  // Metadaten extrahieren
+  // ── Klassifizierung: EINMAL berechnen, überall gleich verwenden ────────
+  // Dieselben Event-Listen stecken in den Metadaten (unten), in den Dumps
+  // (writeJSON-Block) und im Kollaps-Schutz — vorher wurden die Filter an
+  // jeder Stelle separat (und teils mit abweichenden Kriterien) berechnet.
   //
-  // WICHTIG (kind:1-Filterung): Die Autoren-Pubkeys werden auch in anderen
-  // Nostr-Clients (Primal, Amethyst, Damus) für private Notes, Replies und
-  // Reposts verwendet, die NICHTS mit mojobus.co zu tun haben. isMojobusKind1()
-  // (siehe prerender-helpers.js) lässt nur kind:1-Events durch, die entweder
-  // explizit das ['t','mojobus']-Tag tragen (alle über /veroeffentlichen
-  // erstellten Posts) oder eine automatisch erzeugte Teaser-Note sind
-  // (a-Tag-Verweis auf ein Original-Event). Ohne diesen Filter landeten
-  // fremde Notes fälschlich in notes.json/bilder.json/trips.json, was auch
-  // die überhöhte Zahl an "Kind-1-Events" in der Sitemap erklärte.
-  //
-  // kind:30023 (Artikel/Plätze) ist NICHT betroffen: diese Events werden nur
-  // über ArticleForm/PlaceForm erzeugt, es gibt keinen "Fremd-Client"-Fall.
-  const metaArticles = allEvents
-    .filter(e => e.kind === 30023 && !isPlace(e))
-    .map(extractMeta);
+  // WICHTIG (kind:1-Filterung, AGENTS.md Regel 15): Die Autoren-Pubkeys
+  // werden auch in anderen Nostr-Clients (Primal, Amethyst, Damus) für
+  // private Notes, Replies und Reposts verwendet, die NICHTS mit mojobus.co
+  // zu tun haben. isMojobusKind1() (prerender-helpers.js) lässt nur
+  // kind:1-Events durch, die das ['t','mojobus']-Tag tragen oder
+  // Teaser-Notes sind (a-Tag-Verweis auf ein Original-Event).
+  // classifyKind1() ordnet dann JEDEM verbleibenden kind:1-Event genau EINEN
+  // Bucket zu: Ort > Media > Note (identisch zu Prerender + Sitemap).
+  // kind:30023 (Artikel/Plätze) ist nicht betroffen: nur über
+  // ArticleForm/PlaceForm erzeugt, kein "Fremd-Client"-Fall.
+  const articleEvents = allEvents.filter(e => e.kind === 30023 && !isPlace(e));
+  const placeEvents = allEvents.filter(e => isPlace(e) && (e.kind === 30023 || (e.kind === 1 && isMojobusKind1(e))));
+  const bildEvents = allEvents.filter(e => e.kind === 1 && isMojobusKind1(e) && classifyKind1(e) === 'media');
+  const noteEvents = allEvents.filter(e => e.kind === 1 && isMojobusKind1(e) && classifyKind1(e) === 'note');
 
-  const metaPlaces = allEvents
-    .filter(e => isPlace(e) && (e.kind === 30023 || isMojobusKind1(e)))
-    .map(extractMeta);
-
+  const metaArticles = articleEvents.map(extractMeta);
+  const metaPlaces = placeEvents.map(extractMeta);
   const metaTrips = allTripEvents.map(extractMeta);
-
-  const metaBilder = allEvents
-    .filter(e => e.kind === 1 && isMedia(e) && isMojobusKind1(e))
-    .map(extractMeta);
-
-  const metaNotes = allEvents
-    .filter(e => e.kind === 1 && isNote(e) && isMojobusKind1(e))
-    .map(extractMeta);
+  const metaBilder = bildEvents.map(extractMeta);
+  const metaNotes = noteEvents.map(extractMeta);
 
   // Sortieren (neueste zuerst)
   const byDate = (a, b) => b.createdAt - a.createdAt;
@@ -373,7 +323,7 @@ async function main() {
     const oldArticles = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'articles.json'), 'utf-8'));
     if (Array.isArray(oldArticles)) oldArticlesCount = oldArticles.length;
   } catch { /* Erstlauf — Guard inaktiv */ }
-  const newArticlesCount = allEvents.filter(e => e.kind === 30023 && !isPlace(e)).length;
+  const newArticlesCount = articleEvents.length;
   if (oldArticlesCount >= 50 && newArticlesCount < oldArticlesCount * 0.5) {
     console.error(`[SiteData] ❌ Kollaps-Schutz: Nur ${newArticlesCount} Artikel gefunden (bestehend: ${oldArticlesCount}) — vermutlich Relay-Timeout.`);
     console.error('[SiteData]    Dumps werden NICHT überschrieben. Später erneut ausführen.');
@@ -381,14 +331,14 @@ async function main() {
   }
 
   // Artikel + Plätze: kein Content (nur Tags für Listenseite)
-  // Dieselben Filter wie bei der Metadaten-Extraktion oben (inkl.
-  // isMojobusKind1() für kind:1-Events) – siehe Kommentar dort.
-  writeJSON('articles.json', allEvents.filter(e => e.kind === 30023 && !isPlace(e)).map(stripArticle));
-  writeJSON('places.json', allEvents.filter(e => isPlace(e) && (e.kind === 30023 || isMojobusKind1(e))).map(stripArticle));
+  // Dieselben Event-Listen wie bei der Metadaten-Extraktion oben —
+  // Klassifizierung existiert nur noch an EINER Stelle.
+  writeJSON('articles.json', articleEvents.map(stripArticle));
+  writeJSON('places.json', placeEvents.map(stripArticle));
   writeJSON('trips.json', allTripEvents.map(stripTrip));
   // Bilder + Notes: 200 Zeichen Content (für Vorschautext in der Karte)
-  writeJSON('bilder.json', allEvents.filter(e => e.kind === 1 && isMedia(e) && isMojobusKind1(e)).map(stripNote));
-  writeJSON('notes.json', allEvents.filter(e => e.kind === 1 && isNote(e) && isMojobusKind1(e)).map(stripNote));
+  writeJSON('bilder.json', bildEvents.map(stripNote));
+  writeJSON('notes.json', noteEvents.map(stripNote));
   // Videos: kind 34236 + 34235 (NIP-71), nach Datum sortiert
   const videosSorted = allVideoEvents.sort((a, b) => b.created_at - a.created_at);
   writeJSON('videos.json', videosSorted.map(stripVideo));

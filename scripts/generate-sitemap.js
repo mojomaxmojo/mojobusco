@@ -24,7 +24,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { nip19 } from 'nostr-tools';
-import { buildLocalizedUrl, findTranslationPair, getEventLangFromTags, isMojobusKind1, encodeTripNaddr } from './prerender-helpers.js';
+import { buildLocalizedUrl, findTranslationPair, getEventLangFromTags, isMojobusKind1, isPlace, isMedia, encodeTripNaddr, queryRelay } from './prerender-helpers.js';
 
 // ── Autoren aus zentraler JSON-Config (Single Source of Truth) ────────────
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -50,53 +50,7 @@ const RELAYS = [
   'wss://relay.primal.net',
 ];
 
-const MAX_EVENTS = 500;
 const QUERY_TIMEOUT = 20000;
-
-// ── Simple Nostr Event Fetcher ────────────────────────────────────────────
-async function queryRelay(relayUrl, filters, timeoutMs = QUERY_TIMEOUT) {
-  return new Promise((resolve) => {
-    let ws;
-    const timeout = setTimeout(() => {
-      if (ws) ws.close();
-      resolve([]);
-    }, timeoutMs);
-
-    try {
-      ws = new WebSocket(relayUrl);
-    } catch (e) {
-      resolve([]);
-      return;
-    }
-
-    const events = [];
-
-    ws.onopen = () => {
-      ws.send(JSON.stringify(['REQ', 'sitemap-req', ...filters]));
-    };
-
-    ws.onmessage = (msg) => {
-      try {
-        const data = JSON.parse(msg.data);
-        if (data[0] === 'EVENT' && data[1] === 'sitemap-req') {
-          events.push(data[2]);
-        }
-        if (data[0] === 'EOSE') {
-          clearTimeout(timeout);
-          ws.close();
-          resolve(events);
-        }
-      } catch (e) {
-        // ignore
-      }
-    };
-
-    ws.onerror = () => {
-      clearTimeout(timeout);
-      resolve([]);
-    };
-  });
-}
 
 // ── Helper: naddr-Enkodierung ────────────────────────────────────────────
 function encodeNaddr(event) {
@@ -297,14 +251,15 @@ function extractNoteImageUrls(event) {
 // Replies oder Reposts aus anderen Nostr-Clients (Primal, Amethyst), die
 // zufällig ein #trip/#media/#place-Hashtag enthalten oder einfach nur
 // kind:1 sind (Catch-all am Ende der Funktion).
+// Klassifizierung jetzt über die gemeinsamen Helpers (isPlace/isMedia) —
+// identisch zu generate-site-data.js (classifyKind1: Ort > Media > Note).
+// Vorher: eigene t-Tag-Checks ohne 'places'/'galerie' und ohne
+// d-Präfix-Check → Events landeten in anderen Buckets als in den Dumps.
 function buildNoteEntry(event) {
   if (!isMojobusKind1(event)) return null;
 
-  const tTags = new Set((event.tags?.filter(t => t[0] === 't').map(t => t[1]) || []).map(t => t.toLowerCase()));
-  const typeTag = (event.tags?.find(t => t[0] === 'type')?.[1] || '').toLowerCase();
-
-  // Orte mit type=place → /{naddr} (wenn kind 30023) oder /{note}
-  if (typeTag === 'place' || tTags.has('place') || tTags.has('camping') || tTags.has('stellplatz')) {
+  // Orte → /{naddr} (wenn kind 30023) oder /{note}
+  if (isPlace(event)) {
     if (event.kind === 30023) {
       const naddr = encodeNaddr(event);
       return naddr ? { path: `/${naddr}`, priority: '0.7' } : null;
@@ -317,7 +272,7 @@ function buildNoteEntry(event) {
   }
 
   // Bilder/Media → /bild/{note}
-  if (tTags.has('media') || tTags.has('medien') || tTags.has('bilder') || tTags.has('images') || tTags.has('galerie')) {
+  if (isMedia(event)) {
     try {
       return { path: `/bild/${nip19.noteEncode(event.id)}`, priority: '0.6' };
     } catch {
@@ -454,10 +409,10 @@ async function main() {
       console.log(`[Sitemap] Frage ab: ${relay}`);
       batches.push({
         label: relay,
-        articles: await queryRelay(relay, [{ kinds: [30023], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS, since: 0, until: FAR_FUTURE }]),
-        videoEvents: await queryRelay(relay, [{ kinds: [34235, 34236], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS, since: 0, until: FAR_FUTURE }]),
-        tripEvents: await queryRelay(relay, [{ kinds: [30025], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS, since: 0, until: FAR_FUTURE }]),
-        notes: await queryRelay(relay, [{ kinds: [1], authors: AUTHOR_PUBKEYS, limit: MAX_EVENTS, since: 0, until: FAR_FUTURE }]),
+        articles: await queryRelay(relay, [{ kinds: [30023], authors: AUTHOR_PUBKEYS, since: 0, until: FAR_FUTURE }], { timeoutMs: QUERY_TIMEOUT, label: `${relay} kind:30023` }),
+        videoEvents: await queryRelay(relay, [{ kinds: [34235, 34236], authors: AUTHOR_PUBKEYS, since: 0, until: FAR_FUTURE }], { timeoutMs: QUERY_TIMEOUT, label: `${relay} videos` }),
+        tripEvents: await queryRelay(relay, [{ kinds: [30025], authors: AUTHOR_PUBKEYS, since: 0, until: FAR_FUTURE }], { timeoutMs: QUERY_TIMEOUT, label: `${relay} kind:30025` }),
+        notes: await queryRelay(relay, [{ kinds: [1], authors: AUTHOR_PUBKEYS, since: 0, until: FAR_FUTURE }], { timeoutMs: QUERY_TIMEOUT, label: `${relay} kind:1` }),
       });
     }
   }
@@ -679,7 +634,12 @@ async function main() {
   try {
     fs.writeFileSync(SITEMAP_PATH, xml, 'utf-8');
     console.log(`[Sitemap] ✅ Geschrieben: ${SITEMAP_PATH}`);
-    console.log(`[Sitemap]   ${allUrls.length} URLs (${staticPages.length} statisch + ${allUrls.length - staticPages.length} dynamisch)`);
+    // Fix: allUrls enthält initial ALLE statischen Seiten (DE + EN hreflang-
+    // Paare). Vorher wurde nur staticPages.length (14, DE) abgezogen — die 14
+    // EN-Statics erschienen fälschlich als "dynamisch" (Log: "14 statisch +
+    // 445 dynamisch", real 28 statisch + 431 dynamisch).
+    const staticUrlCount = staticPages.length + enStaticPages.length;
+    console.log(`[Sitemap]   ${allUrls.length} URLs (${staticUrlCount} statisch DE+EN + ${allUrls.length - staticUrlCount} dynamisch)`);
 
     fs.writeFileSync(VIDEO_SITEMAP_PATH, videoXml, 'utf-8');
     console.log(`[Sitemap] ✅ Video-Sitemap geschrieben: ${VIDEO_SITEMAP_PATH}`);

@@ -67,7 +67,10 @@ const DB_PATH = path.join(DATA_DIR, 'continuity.db')
 const WEBROOT_NODE_MODULES = process.env.CONTINUITY_WEBROOT_NODE_MODULES
   || '/home/nginx/domains/mojobus.co/public/server/node_modules/'
 
-// Wie generate-site-data.js: großzügiges Limit, damit keine Events fehlen
+// Limit pro REQ (singlePage). Achtung: > 1000 bringt nichts — badger kappt
+// still auf MaxLimit/4 = 250 (siehe queryRelay-Kommentar in
+// prerender-helpers.js). Für vollständige Läufe: singlePage entfernen,
+// dann walkt queryRelay() alle Seiten.
 const QUERY_LIMIT = 2000;
 // Schonpause zwischen LLM-Aufrufen (Rate-Limit-Freundlichkeit)
 const DELAY_MS = 500;
@@ -411,11 +414,17 @@ async function main() {
   console.log(`[Backfill] DB: ${DB_PATH}`)
 
   // ── 1) Events von den Relays sammeln (dedupliziert per Event-ID) ──────────
+  // singlePage bewusst: 1 REQ wie bisher — jeder Event durchläuft die
+  // KI-Extraktion, ein paginierter Voll-Walk würde die KI-Kosten unkontrolliert
+  // erhöhen. Hinweis: ein Filter mit limit > MaxLimit (badger 1000) wird vom
+  // Relay still auf MaxLimit/4 = 250 gekappt (siehe queryRelay-Kommentar in
+  // prerender-helpers.js) — QUERY_LIMIT > 1000 bringt also nichts.
+  // Für einen vollständigen Re-Backfill: `{ singlePage: true }` entfernen.
   const byId = new Map();
   for (const relay of RELAYS) {
-    const articles = await queryRelay(relay, [{ kinds: [30023], authors: AUTHOR_PUBKEYS, limit: QUERY_LIMIT }]);
-    const trips = await queryRelay(relay, [{ kinds: [30025], authors: AUTHOR_PUBKEYS, limit: QUERY_LIMIT }]);
-    const notes = await queryRelay(relay, [{ kinds: [1], authors: AUTHOR_PUBKEYS, limit: QUERY_LIMIT }]);
+    const articles = await queryRelay(relay, [{ kinds: [30023], authors: AUTHOR_PUBKEYS, limit: QUERY_LIMIT }], { singlePage: true });
+    const trips = await queryRelay(relay, [{ kinds: [30025], authors: AUTHOR_PUBKEYS, limit: QUERY_LIMIT }], { singlePage: true });
+    const notes = await queryRelay(relay, [{ kinds: [1], authors: AUTHOR_PUBKEYS, limit: QUERY_LIMIT }], { singlePage: true });
     for (const event of [...articles, ...trips, ...notes]) {
       if (!byId.has(event.id)) byId.set(event.id, event);
     }

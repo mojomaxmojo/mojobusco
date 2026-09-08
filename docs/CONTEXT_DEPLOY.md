@@ -7,7 +7,11 @@
 
 ## Server-Infos
 
-- **Domain**: https://mojobus.co | **Relay**: wss://relay.mojobus.co
+- **Domain**: https://mojobus.co | **Relay**: wss://relay.mojobus.co — **Haven**
+  (Multi-Relay-Suite, Go, Port 3355). Die Root-URL ist das **Outbox-Relay**
+  (genau das fragen alle Skripte ab); `/private`, `/chat`, `/inbox` sind
+  separate Relays mit eigenen DBs. `DB_ENGINE="badger"` → siehe Abschnitt
+  „Relay-Queries & Paginierung" (Quarter-Cap).
 - **Repo**: https://github.com/mojomaxmojo/mojobusco
 - **Server**: AlmaLinux 9.7 CentminMod (yum), Nginx, Node.js, Brotli
 - **AI-API**: Systemd-Service `ai-api`, Port 3002 (`server/`)
@@ -310,11 +314,41 @@ der vollständige Baum für alle Maschinen im Repo verankert ist.
 
 ---
 
+## Relay-Queries & Paginierung (Haven / Quarter-Cap)
+
+**Warum Paginierung:** Havens Event-Backend (eventstore badger/lmdb) beantwortet
+Filter mit `limit > MaxLimit` (badger: 1000, lmdb: 1500) oder `limit = 0` mit
+einem **Viertel** von MaxLimit — still, ohne Warnung (badger → 250 Events). Ein
+einmaliger REQ liefert bei großen Beständen also unvollständige Ergebnisse
+(beobachtet: 250 Longform-Events mit limit 2000 vs. 500 mit limit 500 vom
+selben Relay innerhalb von Minuten → Ursache der Zahlen-Diskrepanzen zwischen
+Dumps, Prerender und Sitemap).
+
+**Fix (2026-09-08):** `queryRelay()` in `prerender-helpers.js` walkt seitenweise
+(Muster: Haven `eventscan.go eachEvent()`): Seite 1 mit `limit = PAGE_SIZE`,
+Folge-REQ mit `until` = ältestes `created_at` der vorigen Seite (inklusiv),
+Dedup der Grenzsekunde, Ende bei kurzer Seite ohne Neues. Eine WebSocket-
+Verbindung pro Query, mehrere REQs darauf (schont Havens Connection-Limiter).
+
+- `PAGE_SIZE` env-steuerbar: `RELAY_PAGE_SIZE` (Default 500 — safe auf badger
+  UND lmdb; auf lmdb darf 1000–1500 gesetzt werden → halbiert die Roundtrips).
+  Setzen in `node.sh`/Cron-Env, NICHT in der Haven-.env.
+- `generate-feed.js` + `backfill-continuity.js` laufen bewusst im
+  `singlePage`-Modus (Feed braucht nur die 50 neuesten; Backfill-KI-Kosten).
+- Klassifizierung kind:1 über `classifyKind1()` (Ort > Media > Note) aus
+  prerender-helpers.js — `isTrip` für kind:1 entfernt (Trips = kind:30025).
+- Kollaps-Schutz bleibt aktiv; beim ersten paginierten Lauf springen die
+  Zahlen deutlich nach oben (erwartet: articles.json ~500+, places.json ~17,
+  Prerender/Sitemap deckungsgleich mit den Dumps). Inhalte vor dem
+  Haven-`IMPORT_START_DATE` (.env) sind auf dem Relay nicht vorhanden.
+
+---
+
 ## Prerender + SW Cache-System
 
 **Ablauf**:
-1. Cron alle 3h :00 → `generate-site-data.js` → JSON-Dumps `/data/` (inkl. `sitemap-events.json`, Laufzeit ~1–2 s)
-2. Cron alle 3h :05 → `prerender-static.js` → HTML mit NIP-19 Dateinamen (~1–2 min für 491 Seiten)
+1. Cron alle 3h :00 → `generate-site-data.js` → JSON-Dumps `/data/` (inkl. `sitemap-events.json`, Laufzeit ~5–20 s, paginiert)
+2. Cron alle 3h :05 → `prerender-static.js` → HTML mit NIP-19 Dateinamen (Laufzeit wächst mit Seitenzahl, paginierte Voll-Abfrage)
 3. Cron alle 3h :10 → `generate-sitemap.js` → `sitemap.xml`/`sitemap-videos.xml`
 4. Cron alle 3h :15 → `generate-feed.js` → `feed.xml` (DE) + `feed-en.xml` (EN)
 
@@ -375,7 +409,7 @@ journalctl -u ai-api -f | grep -E "\[Continuity\]|\[Wetter\]"
 
 | Problem | Detail |
 |---------|--------|
-| **primal.net** | 0 Events bei generate-site-data.js (Timeout 20s läuft immer voll → Cron ~40s). Nur relay.mojobus.co produktiv. |
+| **primal.net** | Flake: lieferte je nach Lauf 0 Events (Timeout) oder ~90 Longform — nicht reproduzierbar. Sekundär-Relay, produktive Quelle ist relay.mojobus.co (Haven). |
 | **SW Cache** | Nach Deploy + generate-site-data.js liefert SW alte JSONs → Hard-Reload (Shift+F5) nötig |
 | **413 Payload** | Multer-Limit 20 MB/Datei. Canvas-Resize (max 1920px) vorgesehen. |
 | **Bundle-Cache** | Nach Remotion-Änderungen automatisch geleert durch deploy-main.sh |

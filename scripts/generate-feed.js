@@ -16,7 +16,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { nip19 } from 'nostr-tools';
-import { getEventLangFromTags, isPlace } from './prerender-helpers.js';
+import { getEventLangFromTags, isPlace, queryRelay } from './prerender-helpers.js';
 
 // ── Autoren aus zentraler JSON-Config (Single Source of Truth) ────────────
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -39,25 +39,6 @@ const AUTHORS_META = AUTHORS.map(a => ({
 }));
 
 const MAX_ITEMS = 50; // Max Artikel im Feed
-
-// ── Simple WS-Query ──────────────────────────────────────────────────────
-async function queryRelay(relayUrl, filters, timeoutMs = 15000) {
-  return new Promise((resolve) => {
-    let ws;
-    const timeout = setTimeout(() => { if (ws) ws.close(); resolve([]); }, timeoutMs);
-    try { ws = new WebSocket(relayUrl); } catch (e) { resolve([]); return; }
-    const events = [];
-    ws.onopen = () => ws.send(JSON.stringify(['REQ', 'feed-req', ...filters]));
-    ws.onmessage = (msg) => {
-      try {
-        const data = JSON.parse(msg.data);
-        if (data[0] === 'EVENT' && data[1] === 'feed-req') events.push(data[2]);
-        if (data[0] === 'EOSE') { clearTimeout(timeout); ws.close(); resolve(events); }
-      } catch (e) { /* ignore */ }
-    };
-    ws.onerror = () => { clearTimeout(timeout); resolve([]); };
-  });
-}
 
 // ── Author Lookup ────────────────────────────────────────────────────────
 function getAuthor(pubkey) {
@@ -233,7 +214,10 @@ async function main() {
     // PlaceForm.tsx). Ohne den isPlace()-Filter landeten Orte fälschlich als
     // "Artikel" im RSS-Feed – mit Place-typischem Kurztext statt echtem
     // Artikel-Inhalt und falscher Kategorisierung für Feed-Reader.
-    const longformEvents = await queryRelay(relay, [{ kinds: [30023], authors: AUTHOR_PUBKEYS, limit: MAX_ITEMS }]);
+    //
+    // singlePage bewusst: ein RSS-Feed braucht nur die MAX_ITEMS neuesten
+    // Artikel — eine paginierte Voll-Abfrage wäre reiner Overhead.
+    const longformEvents = await queryRelay(relay, [{ kinds: [30023], authors: AUTHOR_PUBKEYS, limit: MAX_ITEMS }], { singlePage: true, timeoutMs: 15000, label: `${relay} feed` });
     const articles = longformEvents.filter(e => !isPlace(e));
     console.log(`[Feed]  → ${articles.length} Artikel (${longformEvents.length - articles.length} Orte ausgefiltert)`);
 

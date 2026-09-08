@@ -4,15 +4,13 @@ import { nip19 } from 'nostr-tools';
 import {
   BASE_URL,
   RELAYS,
-  MAX_PER_RELAY,
   AUTHOR_PUBKEYS,
   encodeNaddr,
   encodeTripNaddr,
   queryRelay,
   isPlace,
-  isTrip,
-  isMedia,
   isMojobusKind1,
+  classifyKind1,
 } from './prerender-helpers.js';
 import {
   renderArticleHtml,
@@ -79,7 +77,7 @@ async function main() {
     // statt lists.places (→ falsche category-artikel.html / category-
     // plaetze.html Zuordnung). Erkennung erfolgt über isPlace() – dieselbe
     // Funktion, die auch renderPlaceHtml()/generate-sitemap.js verwenden.
-    const longformEvents = await queryRelay(relay, [{ kinds: [30023], authors: AUTHOR_PUBKEYS, limit: MAX_PER_RELAY, since: 0, until: FAR_FUTURE }]);
+    const longformEvents = await queryRelay(relay, [{ kinds: [30023], authors: AUTHOR_PUBKEYS, since: 0, until: FAR_FUTURE }], { label: `${relay} kind:30023` });
     const articles = longformEvents.filter(e => !isPlace(e));
     const placesFromArticles = longformEvents.filter(e => isPlace(e));
     console.log(`[Prerender]  → ${articles.length} Artikel, ${placesFromArticles.length} Orte (kind:30023)`);
@@ -95,19 +93,21 @@ async function main() {
       rendered.push({ type: 'Artikel', identifier: naddr });
     }
 
-    // isMojobusKind1() filtert Fremd-Posts heraus: die Autoren-Pubkeys
-    // werden auch in anderen Nostr-Clients (Primal, Amethyst) genutzt, wo
-    // zufällig dieselben Hashtags (#place, #camping, ...) vorkommen können,
-    // ohne dass der Post über mojobus.co veröffentlicht wurde.
-    const placesFromNotesRaw = await queryRelay(relay, [{
-      kinds: [1],
-      authors: AUTHOR_PUBKEYS,
-      '#t': ['place', 'camping', 'stellplatz', 'places'],
-      limit: MAX_PER_RELAY,
-      since: 0,
-      until: FAR_FUTURE,
-    }]);
-    const placesFromNotes = placesFromNotesRaw.filter(isMojobusKind1);
+    // ── kind:1 EINMAL pro Relay abfragen und klassifizieren ───────────────
+    // Vorher: 3 parallele Queries (#t-Orte, #t-Media, Catch-all) — ein Event
+    // mit doppelten Tags (t=place + t=media) landete je nach Query-Reihenfolge
+    // doppelt oder gar nicht (Bilder 48 gezählt vs. 46 Seiten, Notes 29 vs. 28).
+    // classifyKind1() (prerender-helpers.js) ordnet JEDES Event genau EINEM
+    // Bucket zu (Ort > Media > Note) — identisch zu generate-site-data.js und
+    // generate-sitemap.js. isMojobusKind1() filtert Fremd-Posts heraus
+    // (AGENTS.md Regel 15): private Notes/Reposts aus anderen Nostr-Clients.
+    const kind1Raw = await queryRelay(relay, [{ kinds: [1], authors: AUTHOR_PUBKEYS, since: 0, until: FAR_FUTURE }], { label: `${relay} kind:1` });
+    const kind1Mojobus = kind1Raw.filter(isMojobusKind1);
+    const placesFromNotes = kind1Mojobus.filter(e => classifyKind1(e) === 'place');
+    const mediaItems = kind1Mojobus.filter(e => classifyKind1(e) === 'media');
+    const pureNotes = kind1Mojobus.filter(e => classifyKind1(e) === 'note');
+    console.log(`[Prerender]  → kind:1: ${kind1Raw.length} Events (${kind1Raw.length - kind1Mojobus.length} Fremd-Posts ausgefiltert) → ${placesFromNotes.length} Orte, ${mediaItems.length} Bilder, ${pureNotes.length} Notes`);
+
     const places = [...placesFromArticles, ...placesFromNotes];
     console.log(`[Prerender]  → ${places.length} Orte gesamt (30023 + kind:1)`);
     for (const event of places) {
@@ -144,9 +144,9 @@ async function main() {
     }
 
     const trips = await queryRelay(relay, [{
-      kinds: [30025], authors: AUTHOR_PUBKEYS, limit: MAX_PER_RELAY,
+      kinds: [30025], authors: AUTHOR_PUBKEYS,
       since: 0, until: FAR_FUTURE,
-    }]);
+    }], { label: `${relay} kind:30025` });
     console.log(`[Prerender]  → ${trips.length} Trips (kind:30025)`);
     for (const event of trips) {
       if (seen.has(event.id)) continue;
@@ -159,16 +159,9 @@ async function main() {
       rendered.push({ type: 'Trip', identifier: naddr });
     }
 
-    const mediaItemsRaw = await queryRelay(relay, [{
-      kinds: [1],
-      authors: AUTHOR_PUBKEYS,
-      '#t': ['media', 'medien', 'bilder', 'images'],
-      limit: MAX_PER_RELAY,
-      since: 0,
-      until: FAR_FUTURE,
-    }]);
-    const mediaItems = mediaItemsRaw.filter(isMojobusKind1);
-    console.log(`[Prerender]  → ${mediaItems.length} Bilder (${mediaItemsRaw.length - mediaItems.length} Fremd-Posts ausgefiltert)`);
+    // Bilder: mediaItems wurde oben per classifyKind1() aus der EINEN
+    // kind:1-Query abgeleitet (inkl. t=galerie und ≥2-image-Tags-Events,
+    // die die alte '#t'-Query verpasste).
     for (const event of mediaItems) {
       if (seen.has(event.id)) continue;
       seen.add(event.id);
@@ -187,14 +180,10 @@ async function main() {
       }
     }
 
-    // isMojobusKind1() ist hier besonders wichtig: ohne diesen Filter landet
-    // JEDES kind:1-Event der Autoren, das nicht per Zufall auf ein Place/
-    // Trip/Media-Hashtag matcht, als "Note" im Prerendering – auch private
-    // Notes, Replies oder Reposts aus anderen Nostr-Clients.
-    const notesRaw = await queryRelay(relay, [{ kinds: [1], authors: AUTHOR_PUBKEYS, limit: MAX_PER_RELAY, since: 0, until: FAR_FUTURE }]);
-    const notes = notesRaw.filter(isMojobusKind1);
-    const pureNotes = notes.filter(event => !isPlace(event) && !isTrip(event) && !isMedia(event));
-    console.log(`[Prerender]  → ${pureNotes.length} Notes (${notesRaw.length - notes.length} Fremd-Posts ausgefiltert)`);
+    // Notes: pureNotes wurde oben per classifyKind1() aus der EINEN
+    // kind:1-Query abgeleitet. Die alte isTrip()-Heuristik ist weg:
+    // kind:1-Events mit Travel-Hashtags sind Notes (Trips = kind:30025
+    // via isTripEvent) — vorher verschwanden sie komplett aus dem Prerender.
     for (const event of pureNotes) {
       if (seen.has(event.id)) continue;
       seen.add(event.id);
@@ -212,10 +201,9 @@ async function main() {
     const videoEvents = await queryRelay(relay, [{
       kinds: [34236, 34235],
       authors: AUTHOR_PUBKEYS,
-      limit: MAX_PER_RELAY,
       since: 0,
       until: FAR_FUTURE,
-    }]);
+    }], { label: `${relay} videos` });
     console.log(`[Prerender]  → ${videoEvents.length} Video-Events`);
     for (const event of videoEvents) {
       if (seen.has(event.id)) continue;
