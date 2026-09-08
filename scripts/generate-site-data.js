@@ -152,6 +152,7 @@ async function main() {
   const allEvents = [];
   const allVideoEvents = [];
   const allTripEvents = [];
+  const allProfileEvents = []; // kind 0 — für die Prerender-Profil-Seiten im Dump-Modus
   const seenIds = new Set();
 
   for (const relay of RELAYS) {
@@ -175,6 +176,12 @@ async function main() {
     const tripEvents = await queryRelay(relay, [{ kinds: [30025], authors: AUTHOR_PUBKEYS, since: 0, until: FAR_FUTURE }], { timeoutMs: QUERY_TIMEOUT, label: `${relay} kind:30025` });
     console.log(`[SiteData]  → ${tripEvents.length} Trip-Events (kind 30025)`);
 
+    // Profile (kind 0, replaceable — Relay liefert das neueste je pubkey).
+    // Nur für den sitemap-events.json-Dump (Prerender rendert Profil-Seiten
+    // im Dump-Modus daraus); die Dumps articles.json etc. nutzen sie nicht.
+    const profiles = await queryRelay(relay, [{ kinds: [0], authors: AUTHOR_PUBKEYS, since: 0, until: FAR_FUTURE }], { timeoutMs: QUERY_TIMEOUT, label: `${relay} profiles` });
+    console.log(`[SiteData]  → ${profiles.length} Profile (kind 0)`);
+
     for (const event of [...articles, ...notes]) {
       if (!seenIds.has(event.id)) {
         seenIds.add(event.id);
@@ -193,6 +200,13 @@ async function main() {
       if (!seenIds.has(event.id)) {
         seenIds.add(event.id);
         allTripEvents.push(event);
+      }
+    }
+
+    for (const event of profiles) {
+      if (!seenIds.has(event.id)) {
+        seenIds.add(event.id);
+        allProfileEvents.push(event);
       }
     }
   }
@@ -370,22 +384,26 @@ async function main() {
 
   writeJSON('sitemap.json', sitemap);
 
-  // ── Sitemap-Event-Dump: generate-sitemap.js liest diese Datei statt das
-  // Relay ein zweites Mal abzufragen (immer konsistent mit diesen Dumps,
-  // kein zweites Timeout-Risiko). Vollständige Tags; content nur bei Videos
-  // (extractVideoMeta nutzt ihn für die Video-Sitemap-Beschreibung).
+  // ── Sitemap-Event-Dump: GEMEINSAME Quelle für generate-sitemap.js UND
+  // prerender-static.js (Fix 5, siehe loadSiteDataEventsDump in
+  // prerender-helpers.js). Der Prerender rendert Bot-HTML aus dem Event-
+  // Content (Artikel-Bodies via renderArticleHtml, Note-/Media-Texte,
+  // Trip-Beschreibungen, Profil-JSON) — deshalb enthält der Dump jetzt den
+  // Content ALLER Events (vorher: nur Videos). Datei wächst dadurch in den
+  // MB-Bereich, enthält aber ausschließlich öffentlichen Content.
   const minimalSitemapEvent = (e) => ({
     id: e.id,
     pubkey: e.pubkey,
     kind: e.kind,
     created_at: e.created_at,
     tags: e.tags || [],
-    ...(e.kind === 34235 || e.kind === 34236 ? { content: e.content || '' } : {}),
+    content: e.content || '',
   });
   writeJSON('sitemap-events.json', [
     ...allEvents.map(minimalSitemapEvent),
     ...allVideoEvents.map(minimalSitemapEvent),
     ...allTripEvents.map(minimalSitemapEvent),
+    ...allProfileEvents.map(minimalSitemapEvent),
   ]);
 
   // ── Index ──────────────────────────────────────────────────────────────

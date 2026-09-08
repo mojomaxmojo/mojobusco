@@ -24,7 +24,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { nip19 } from 'nostr-tools';
-import { buildLocalizedUrl, findTranslationPair, getEventLangFromTags, isMojobusKind1, isPlace, isMedia, encodeTripNaddr, queryRelay } from './prerender-helpers.js';
+import { buildLocalizedUrl, findTranslationPair, getEventLangFromTags, isMojobusKind1, isPlace, isMedia, encodeTripNaddr, queryRelay, loadSiteDataEventsDump } from './prerender-helpers.js';
 
 // ── Autoren aus zentraler JSON-Config (Single Source of Truth) ────────────
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -292,43 +292,10 @@ function buildNoteEntry(event) {
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────
-const SITEMAP_EVENTS_DUMP = '/home/nginx/domains/mojobus.co/public/data/sitemap-events.json';
-// Dump nur nutzen, wenn frisch (Publish-Pipeline schreibt ihn direkt vor dem
-// Sitemap-Lauf). Der 6:00-Cron läuft VOR dem 6:15-site-data-Cron — dessen
-// Dump wäre ~24h alt → dann Relay-Fallback (Frische wie bisher).
-const DUMP_MAX_AGE_MS =
-  (Number.isFinite(parseInt(process.env.SITEMAP_EVENTS_DUMP_MAX_AGE_H || '', 10))
-    ? parseInt(process.env.SITEMAP_EVENTS_DUMP_MAX_AGE_H, 10)
-    : 2) * 60 * 60 * 1000;
-
-/**
- * Lädt den Event-Dump von generate-site-data.js — bevorzugte Quelle:
- * immer konsistent mit den übrigen Dumps, keine zweite Relay-Abfrage,
- * kein Timeout-Risiko. Nur wenn FRISCH (mtime < DUMP_MAX_AGE_MS — der
- * 6:00-Cron läuft vor dem 6:15-site-data-Cron, dessen Dump wäre sonst
- * bis zu 24h alt). Fallback: direkte Relay-Abfrage (altes Verhalten).
- * @returns {Array|null} Events oder null (→ Relay-Fallback)
- */
-function loadSitemapEventsDump() {
-  try {
-    const stat = fs.statSync(SITEMAP_EVENTS_DUMP);
-    const ageHours = (Date.now() - stat.mtimeMs) / 3600000;
-    if (Date.now() - stat.mtimeMs > DUMP_MAX_AGE_MS) {
-      console.warn(`[Sitemap] sitemap-events.json ist ${ageHours.toFixed(1)} h alt (> Limit) — Fallback auf Relay-Abfrage.`);
-      return null;
-    }
-    const raw = fs.readFileSync(SITEMAP_EVENTS_DUMP, 'utf-8');
-    const events = JSON.parse(raw);
-    if (Array.isArray(events) && events.length >= 10) {
-      console.log(`[Sitemap] Event-Quelle: data/sitemap-events.json (${events.length} Events, ${ageHours.toFixed(1)} h alt)`);
-      return events;
-    }
-    console.warn('[Sitemap] sitemap-events.json leer/zu klein — Fallback auf Relay-Abfrage.');
-  } catch {
-    console.warn('[Sitemap] sitemap-events.json nicht gefunden — Fallback auf Relay-Abfrage.');
-  }
-  return null;
-}
+// Dump-Loader jetzt in prerender-helpers.js (loadSiteDataEventsDump) —
+// geteilt mit prerender-static.js (Fix 5): Sitemap UND Prerender nutzen
+// denselben sitemap-events.json-Dump mit derselben Frische-Prüfung
+// (env SITEMAP_EVENTS_DUMP_MAX_AGE_H, Default 2 h).
 
 async function main() {
   console.log('[Sitemap] Generiere Sitemaps...');
@@ -393,7 +360,7 @@ async function main() {
   // ── Event-Quelle: Dump (bevorzugt) oder Relay-Abfrage ─────────────────
   // Jeder Batch = ein Satz per-Typ-Arrays; die Verarbeitung darunter ist
   // für beide Quellen identisch.
-  const dumpEvents = loadSitemapEventsDump();
+  const dumpEvents = loadSiteDataEventsDump('[Sitemap]');
 
   const batches = [];
   if (dumpEvents) {

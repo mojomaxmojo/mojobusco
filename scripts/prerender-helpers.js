@@ -470,6 +470,51 @@ export function extractTripPhotos(event) {
   return (event.tags || []).filter(t => t[0] === 'image').map(t => t[1]);
 }
 
+// ── Event-Dump als gemeinsame Pipeline-Quelle (Fix 5) ─────────────────────
+//
+// generate-site-data.js schreibt data/sitemap-events.json (ALLE Content-Events
+// inkl. Content + Profile). generate-sitemap.js UND prerender-static.js
+// lesen diesen Dump als bevorzugte Quelle — dadurch zeigen Dumps, Prerender
+// und Sitemap im selben node.sh-Lauf EXAKT dieselben Events (kein Lauf-zu-
+// Lauf-Drift mehr, keine zweite Relay-Abfrage).
+// Nur wenn der Dump fehlt/zu alt ist → Fallback auf direkte Relay-Queries.
+// Datei enthält ausschließlich öffentlichen Content; Größe wächst mit dem
+// Content (Artikel-Bodies) — Stand 2026-09: ~975 Events, mehrstelliges MB.
+export const SITE_DATA_DUMP_PATH = '/home/nginx/domains/mojobus.co/public/data/sitemap-events.json';
+
+/**
+ * Lädt den Event-Dump von generate-site-data.js, wenn er FRISCH ist.
+ * Die Frische-Grenze kommt aus env SITEMAP_EVENTS_DUMP_MAX_AGE_H (Stunden,
+ * Default 2) — der node.sh-Pipeline-Lauf (site-data → prerender → sitemap,
+ * je 60 s Abstand) ist damit immer im Dump-Modus; der 6:00-Cron-Kombilauf
+ * ebenso. Nur bei manuellen Einzelläufen > 2 h nach dem letzten site-data
+ * greift der Relay-Fallback.
+ * @param {string} label Log-Präfix ('[Sitemap]' | '[Prerender]')
+ * @returns {Array|null} Events oder null (→ Relay-Fallback)
+ */
+export function loadSiteDataEventsDump(label = '[Pipeline]') {
+  try {
+    const stat = fs.statSync(SITE_DATA_DUMP_PATH);
+    const ageHours = (Date.now() - stat.mtimeMs) / 3600000;
+    const maxAgeHours = Number.isFinite(parseInt(process.env.SITEMAP_EVENTS_DUMP_MAX_AGE_H || '', 10))
+      ? parseInt(process.env.SITEMAP_EVENTS_DUMP_MAX_AGE_H, 10)
+      : 2;
+    if (Date.now() - stat.mtimeMs > maxAgeHours * 60 * 60 * 1000) {
+      console.warn(`${label} sitemap-events.json ist ${ageHours.toFixed(1)} h alt (> ${maxAgeHours} h) — Fallback auf Relay-Abfrage.`);
+      return null;
+    }
+    const events = JSON.parse(fs.readFileSync(SITE_DATA_DUMP_PATH, 'utf-8'));
+    if (Array.isArray(events) && events.length >= 10) {
+      console.log(`${label} Event-Quelle: data/sitemap-events.json (${events.length} Events, ${ageHours.toFixed(1)} h alt)`);
+      return events;
+    }
+    console.warn(`${label} sitemap-events.json leer/zu klein — Fallback auf Relay-Abfrage.`);
+  } catch {
+    console.warn(`${label} sitemap-events.json nicht gefunden — Fallback auf Relay-Abfrage.`);
+  }
+  return null;
+}
+
 /**
  * Ermittelt die Distanz eines Trips in km.
  * Liest zuerst `distance`/`distance_unit`-Tags, fällt sonst auf eine

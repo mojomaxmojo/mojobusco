@@ -352,15 +352,17 @@ Verbindung pro Query, mehrere REQs darauf (schont Havens Connection-Limiter).
 3. Cron alle 3h :10 → `generate-sitemap.js` → `sitemap.xml`/`sitemap-videos.xml`
 4. Cron alle 3h :15 → `generate-feed.js` → `feed.xml` (DE) + `feed-en.xml` (EN)
 
-**Sitemap-Event-Quelle (seit Pipeline-Robustheit):** `generate-sitemap.js`
-liest `data/sitemap-events.json` (geschrieben von generate-site-data.js 10
-Minuten vorher) — die Frische-Prüfung (mtime < 2 h, Env:
-`SITEMAP_EVENTS_DUMP_MAX_AGE_H`) ist im Cron-Betrieb **immer erfüllt**, der
-Dump wird also immer genutzt und die zweite Relay-Abfrage-Runde entfällt.
-Nur bei manuellen Sitemap-Läufen > 2 h nach dem letzten site-data greift der
-Relay-Fallback. Reihenfolge/Pausen im Cron unverändert lassen (5-min-Gaps
-reichen: site-data ~2 s, prerender ~2 min); Kollaps-Schutz greift in jedem
-Modus — Relay-Hiccup ⇒ sauberer Abbruch, alter Bestand bleibt online.
+**Event-Dump als gemeinsame Quelle (Fix 5, 2026-09-08):** `generate-site-data.js`
+schreibt `data/sitemap-events.json` mit ALLEN Content-Events — inkl. Content
+(Artikel-Bodies etc., nötig weil der Prerender Bot-HTML daraus rendert) und
+Profilen (kind 0). Sowohl `generate-sitemap.js` als auch `prerender-static.js`
+lesen diesen Dump als bevorzugte Quelle (Frische-Prüfung < 2 h, Env:
+`SITEMAP_EVENTS_DUMP_MAX_AGE_H`) — im node.sh-Lauf (site-data → prerender →
+sitemap, je 60 s Pause) greift sie immer: Dumps, Prerender und Sitemap zeigen
+exakt dieselben Events, kein Lauf-zu-Lauf-Drift (vorher 732 vs. 738
+kind:30023). Nur bei manuellen Einzelläufen > 2 h nach dem letzten site-data
+greift der Relay-Fallback (paginiert). Der Dump enthält ausschließlich
+öffentlichen Content, Größe im MB-Bereich — bewusst im Webroot.
 4. Bot/User → Nginx liefert statisches HTML (kein Relay!)
 5. Fehlt Prerender → Fallback auf SPA → lädt vom Relay
 

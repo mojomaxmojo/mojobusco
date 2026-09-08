@@ -11,6 +11,7 @@ import {
   isPlace,
   isMojobusKind1,
   classifyKind1,
+  loadSiteDataEventsDump,
 } from './prerender-helpers.js';
 import {
   renderArticleHtml,
@@ -48,6 +49,45 @@ function writePrerenderFile(filename, html) {
 // Kollaps-Schutz: alle in diesem Lauf geschriebenen Dateinamen
 const writtenFiles = new Set();
 
+// ── Event-Batches: Dump bevorzugt, Relay-Fallback ─────────────────────────
+
+// Fix 5: Der Dump aus generate-site-data.js ist die gemeinsame Quelle für
+// Prerender UND Sitemap — im selben node.sh-Lauf rendert der Prerender
+// exakt die Events, die in den Dumps landen (kein Lauf-zu-Lauf-Drift mehr,
+// z. B. vorher 732 vs. 738 kind:30023). relayHint = eigenes Relay, da der
+// Dump die Herkunfts-Relays nicht mitführt (kanonischer Hint für nevent).
+function buildBatchFromDump(events) {
+  return {
+    label: 'data/sitemap-events.json',
+    relayHint: RELAYS[0],
+    longform: events.filter(e => e.kind === 30023),
+    kind1: events.filter(e => e.kind === 1),
+    trips: events.filter(e => e.kind === 30025),
+    videos: events.filter(e => e.kind === 34236 || e.kind === 34235),
+    profiles: events.filter(e => e.kind === 0),
+  };
+}
+
+// Fallback, wenn kein frischer Dump vorliegt (manueller Einzellauf > 2 h
+// nach dem letzten site-data): direkte Relay-Abfragen wie bisher.
+async function collectRelayBatches() {
+  console.log('[Prerender] Kein frischer Dump — Relay-Abfrage (Fallback).');
+  const batches = [];
+  for (const relay of RELAYS) {
+    console.log(`[Prerender] Frage ab: ${relay}`);
+    batches.push({
+      label: relay,
+      relayHint: relay,
+      longform: await queryRelay(relay, [{ kinds: [30023], authors: AUTHOR_PUBKEYS, since: 0, until: FAR_FUTURE }], { label: `${relay} kind:30023` }),
+      kind1: await queryRelay(relay, [{ kinds: [1], authors: AUTHOR_PUBKEYS, since: 0, until: FAR_FUTURE }], { label: `${relay} kind:1` }),
+      trips: await queryRelay(relay, [{ kinds: [30025], authors: AUTHOR_PUBKEYS, since: 0, until: FAR_FUTURE }], { label: `${relay} kind:30025` }),
+      videos: await queryRelay(relay, [{ kinds: [34236, 34235], authors: AUTHOR_PUBKEYS, since: 0, until: FAR_FUTURE }], { label: `${relay} videos` }),
+      profiles: await queryRelay(relay, [{ kinds: [0], authors: AUTHOR_PUBKEYS, limit: 10, since: 0, until: FAR_FUTURE }], { label: `${relay} profiles` }),
+    });
+  }
+  return batches;
+}
+
 async function main() {
   fs.mkdirSync(PRERENDER_DIR, { recursive: true });
 
@@ -64,8 +104,17 @@ async function main() {
   const lists = { articles: [], notes: [], places: [], trips: [], media: [], videos: [], profiles: [] };
   const rendered = [];
 
-  for (const relay of RELAYS) {
-    console.log(`[Prerender] Frage ab: ${relay}`);
+  // ── Event-Quelle: Dump (bevorzugt, Fix 5) oder Relay-Fallback ─────────
+  // Im Pipeline-Lauf (site-data → prerender, 60 s Abstand) liefert der
+  // Frische-Check den Dump → prerender rendert EXAKT die Events aus den
+  // Dumps, identisch zu generate-sitemap.js.
+  const dumpEvents = loadSiteDataEventsDump('[Prerender]');
+  const batches = dumpEvents
+    ? [buildBatchFromDump(dumpEvents)]
+    : await collectRelayBatches();
+
+  for (const batch of batches) {
+    console.log(`[Prerender] Quelle: ${batch.label}`);
 
     // kind:30023 enthält ZWEI unterschiedliche Content-Typen: echte
     // Longform-Artikel UND Orte/Stellplätze (siehe PlaceForm.tsx – Orte
@@ -77,7 +126,7 @@ async function main() {
     // statt lists.places (→ falsche category-artikel.html / category-
     // plaetze.html Zuordnung). Erkennung erfolgt über isPlace() – dieselbe
     // Funktion, die auch renderPlaceHtml()/generate-sitemap.js verwenden.
-    const longformEvents = await queryRelay(relay, [{ kinds: [30023], authors: AUTHOR_PUBKEYS, since: 0, until: FAR_FUTURE }], { label: `${relay} kind:30023` });
+    const longformEvents = batch.longform;
     const articles = longformEvents.filter(e => !isPlace(e));
     const placesFromArticles = longformEvents.filter(e => isPlace(e));
     console.log(`[Prerender]  → ${articles.length} Artikel, ${placesFromArticles.length} Orte (kind:30023)`);
@@ -93,15 +142,12 @@ async function main() {
       rendered.push({ type: 'Artikel', identifier: naddr });
     }
 
-    // ── kind:1 EINMAL pro Relay abfragen und klassifizieren ───────────────
-    // Vorher: 3 parallele Queries (#t-Orte, #t-Media, Catch-all) — ein Event
-    // mit doppelten Tags (t=place + t=media) landete je nach Query-Reihenfolge
-    // doppelt oder gar nicht (Bilder 48 gezählt vs. 46 Seiten, Notes 29 vs. 28).
+    // ── kind:1 aus dem Batch klassifizieren ────────────────────────────────
     // classifyKind1() (prerender-helpers.js) ordnet JEDES Event genau EINEM
     // Bucket zu (Ort > Media > Note) — identisch zu generate-site-data.js und
     // generate-sitemap.js. isMojobusKind1() filtert Fremd-Posts heraus
     // (AGENTS.md Regel 15): private Notes/Reposts aus anderen Nostr-Clients.
-    const kind1Raw = await queryRelay(relay, [{ kinds: [1], authors: AUTHOR_PUBKEYS, since: 0, until: FAR_FUTURE }], { label: `${relay} kind:1` });
+    const kind1Raw = batch.kind1;
     const kind1Mojobus = kind1Raw.filter(isMojobusKind1);
     const placesFromNotes = kind1Mojobus.filter(e => classifyKind1(e) === 'place');
     const mediaItems = kind1Mojobus.filter(e => classifyKind1(e) === 'media');
@@ -143,10 +189,7 @@ async function main() {
       rendered.push({ type: 'Ort', identifier });
     }
 
-    const trips = await queryRelay(relay, [{
-      kinds: [30025], authors: AUTHOR_PUBKEYS,
-      since: 0, until: FAR_FUTURE,
-    }], { label: `${relay} kind:30025` });
+    const trips = batch.trips;
     console.log(`[Prerender]  → ${trips.length} Trips (kind:30025)`);
     for (const event of trips) {
       if (seen.has(event.id)) continue;
@@ -159,15 +202,15 @@ async function main() {
       rendered.push({ type: 'Trip', identifier: naddr });
     }
 
-    // Bilder: mediaItems wurde oben per classifyKind1() aus der EINEN
-    // kind:1-Query abgeleitet (inkl. t=galerie und ≥2-image-Tags-Events,
+    // Bilder: mediaItems wurde oben per classifyKind1() aus dem EINEN
+    // kind:1-Batch abgeleitet (inkl. t=galerie und ≥2-image-Tags-Events,
     // die die alte '#t'-Query verpasste).
     for (const event of mediaItems) {
       if (seen.has(event.id)) continue;
       seen.add(event.id);
       try {
         const noteId = nip19.noteEncode(event.id);
-        const nevent = nip19.neventEncode({ id: event.id, relays: [relay], author: event.pubkey });
+        const nevent = nip19.neventEncode({ id: event.id, relays: [batch.relayHint], author: event.pubkey });
         writePrerenderFile(`bild-${noteId}.html`, renderMediaHtml(event, noteId));
         rendered.push({ type: 'Bild', identifier: noteId });
         if (nevent !== noteId) {
@@ -198,12 +241,7 @@ async function main() {
       }
     }
 
-    const videoEvents = await queryRelay(relay, [{
-      kinds: [34236, 34235],
-      authors: AUTHOR_PUBKEYS,
-      since: 0,
-      until: FAR_FUTURE,
-    }], { label: `${relay} videos` });
+    const videoEvents = batch.videos;
     console.log(`[Prerender]  → ${videoEvents.length} Video-Events`);
     for (const event of videoEvents) {
       if (seen.has(event.id)) continue;
@@ -220,13 +258,7 @@ async function main() {
       }
     }
 
-    const profiles = await queryRelay(relay, [{
-      kinds: [0],
-      authors: AUTHOR_PUBKEYS,
-      limit: 10,
-      since: 0,
-      until: FAR_FUTURE,
-    }]);
+    const profiles = batch.profiles;
     console.log(`[Prerender]  → ${profiles.length} Profile`);
     for (const event of profiles) {
       if (seen.has(event.id)) continue;
