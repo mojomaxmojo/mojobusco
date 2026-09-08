@@ -39,7 +39,10 @@ const FUZZY_THRESHOLD = Number(process.env.WP_FUZZY_THRESHOLD || 0.55)
 // ── Caches (mtime-geprüft, laufend frisch ohne Neustart) ──────────────────
 
 let mapCache = { mtimeMs: 0, bySource: new Map() }
-let articlesCache = { mtimeMs: 0, byWpId: new Map(), list: [] }
+let articlesCache = { mtimeMs: 0, byWpId: new Map(), byTagSuffix: new Map(), list: [] }
+
+// d-tag-Schemata der Migration: wp-<id>-… UND article-<id>-… (IDs = WP-Post-IDs)
+const WPID_TAG_RE = /^(?:wp|article)-(\d+)-/
 
 function loadRedirects() {
   try {
@@ -69,17 +72,20 @@ function loadArticles() {
     if (stat.mtimeMs === articlesCache.mtimeMs) return articlesCache
     const list = JSON.parse(fs.readFileSync(ARTICLES_FILE, 'utf-8'))
     const byWpId = new Map()
+    const byTagSuffix = new Map()
     for (const a of Array.isArray(list) ? list : []) {
       if (a.kind !== 30023) continue
       const d = a.tags?.find(t => t[0] === 'd')?.[1] || ''
-      const m = /^wp-(\d+)-/.exec(d)
+      const m = WPID_TAG_RE.exec(d)
       if (m) {
         const id = m[1]
         if (!byWpId.has(id)) byWpId.set(id, [])
         byWpId.get(id).push(a)
+        const suffix = d.slice(m[0].length)
+        if (suffix && !byTagSuffix.has(suffix)) byTagSuffix.set(suffix, a)
       }
     }
-    articlesCache = { mtimeMs: stat.mtimeMs, byWpId, list: Array.isArray(list) ? list : [] }
+    articlesCache = { mtimeMs: stat.mtimeMs, byWpId, byTagSuffix, list: Array.isArray(list) ? list : [] }
   } catch {
     // data/articles.json fehlt (z. B. nach Deploy vor erstem node.sh) — leer weiter
   }
@@ -127,12 +133,6 @@ function naddrOf(article) {
   }
 }
 
-/** Wählt DE-Version (d-tag ohne "-en"-Suffix) aus Kandidaten mit gleicher wp-id. */
-function pickArticle(list) {
-  const de = list.find(a => !/-en$/.test(dTagOf(a)))
-  return de || list[0]
-}
-
 // ── Router ────────────────────────────────────────────────────────────────
 
 const router = Router()
@@ -165,23 +165,34 @@ router.get('/api/wp-redirect', (req, res) => {
   const mapped = map.bySource.get(pathname) || map.bySource.get(rawUri)
   if (mapped) return send(mapped)
 
-  // Post-ID aus Pfad (/98632/...) oder ?p=98632
+  // Post-ID aus Pfad (/98632/...) oder ?p=98632; Slug = erstes Nicht-Zahlen-Segment
   const pathMatch = /^\/(\d+)(?:\/|$)/.exec(pathname)
   const wpId = pathMatch ? pathMatch[1] : (pParam && /^\d+$/.test(pParam) ? pParam : null)
+  const slug = pathname.split('/').filter(Boolean).find(seg => !/^\d+$/.test(seg)) || ''
 
-  // Stufe 2: wp-<id>-d-Tag live aus articles.json
+  // Stufe 2: wp-<id>- / article-<id>-d-Tag live aus articles.json
   if (wpId) {
     const articles = loadArticles()
     const candidates = articles.byWpId.get(wpId)
     if (candidates && candidates.length > 0) {
-      const article = pickArticle(candidates)
+      // DE-Version bevorzugen (d-tag ohne "-en"-Suffix)
+      const article = candidates.find(a => !/-en$/.test(a.tags?.find(t => t[0] === 'd')?.[1] || '')) || candidates[0]
       const naddr = naddrOf(article)
       if (naddr) return send(`${SITE_URL}/${naddr}`)
     }
   }
 
+  // Stufe 2b: WP-Slug == d-tag-Suffix (nach wp-/article-<id>-)
+  if (slug) {
+    const articles = loadArticles()
+    const bySuffix = articles.byTagSuffix.get(slug)
+    if (bySuffix) {
+      const naddr = naddrOf(bySuffix)
+      if (naddr) return send(`${SITE_URL}/${naddr}`)
+    }
+  }
+
   // Stufe 3: fuzzy — Slug (Pfadsegment) vs. Artikel-Titel
-  const slug = pathname.split('/').filter(Boolean).find(seg => !/^\d+$/.test(seg)) || ''
   if (slug) {
     const articles = loadArticles()
     let best = null

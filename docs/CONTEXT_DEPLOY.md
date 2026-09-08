@@ -351,9 +351,14 @@ Der Vhost `mojobus.org.ssl.conf` serviert KEINEN Content, sondern leitet
 nur weiter:
 
 1. **Exakt** (1 Hop): statische Map `redirects/wp-redirects.map` — generiert
-   von `scripts/generate-wp-redirects.js`. Match-Stufe 1 nutzt die WP-Post-
-   IDs in den Nostr-d-Tags (`wp-<id>-…`, bei der Migration übernommen),
-   Stufe 2 normalisierte Titel.
+   von `scripts/generate-wp-redirects.js`. URL-Enumeration primär über
+   `wp-sitemap.xml` (WP-Core-Sitemap) — die REST-API war Plugin-abhängig
+   gefiltert (2026-09-08: nur 3 Posts trotz vollem Blog; Plugins aus =
+   REST ok, Sitemap bleibt die robuste Quelle). Match-Stufe 1 nutzt die
+   WP-Post-IDs in den d-Tags — **ZWEI Schemata**: `wp-<id>-…` (frühe
+   Migration) und `article-<id>-…` (spätere Migration; IDs = WP-Post-IDs,
+   z. B. article-98632-oldtimer-reparatur-luna-zeit-fuer-neues),
+   Stufe 2 Slug == d-Tag-Suffix / normalisierte Titel.
 2. **Resolver-Fallback** (2 Hops): alles Unmatchte → ai-api
    `server/routes/wp-redirect.js` → `GET /api/wp-redirect?uri=…` → Stufe
    Map → live `wp-<id>`-Lookup in articles.json → fuzzy auf Titel → sonst
