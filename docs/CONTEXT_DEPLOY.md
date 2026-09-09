@@ -344,6 +344,22 @@ Verbindung pro Query, mehrere REQs darauf (schont Havens Connection-Limiter).
 
 ---
 
+## Security-Audit (2026-09-08)
+
+Gefunden & gefixt (Live-Probes): ai-api deployt nach `public/server/` = **Webroot** —
+`/server/data/assistant.db` (SQLite-Live-DB) und `/server/server.js` waren öffentlich
+ladbar; ebenso KI-Prompts unter `/src/config/prompts/`. Fix in
+`mojobus.co.ssl.conf`: `location ^~ /server/ → 404` (erlaubt nur
+`/server/music/` für die PWA) + `location ^~ /src/ → 404` (`^~` überspringt
+Regex-Locations wie die `.js$`-Regel). ai-api bindet jetzt auf
+`127.0.0.1:3002` (vorher `*:3002`). API-Keys waren nie exponiert
+(`EnvironmentFile=/etc/systemd/system/ai-api.env` liegt außerhalb des
+Webroots). **Pflicht-Einstellung:** `AI_AUTH_REQUIRED=1` in ai-api.env —
+ohne Flag laufen die KI-Routen offen (nur Rate-Limit als Bremse). Prüfen:
+`journalctl -u ai-api | grep AI_AUTH`.
+
+---
+
 ## mojobus.org → mojobus.co Migration (WP-Rente, 301)
 
 Die alte WordPress-Seite ist stillgelegt; alle Alt-URLs werden per 301 auf
