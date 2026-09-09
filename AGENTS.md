@@ -64,6 +64,7 @@ Verzeichniss /projects/mojobusco/
 | Remotion / Video-Render / Voiceover / TTS / Effekte | `docs/CONTEXT_REMOTION.md` |
 | TikTok-Prompts / KI-Texte / API-Endpunkte / Roadmap | `docs/CONTEXT_TIKTOK.md` |
 | Deploy / VPS / Nginx / Cron / Debug / bekannte Einschränkungen | `docs/CONTEXT_DEPLOY.md` |
+| WP-Migration mojobus.org (301-Maps, Resolver, Regenerieren) | `docs/MIGRATION_WP_MOJOBUS_ORG.md` |
 | Nostr-Framework: Hooks, NIPs, Query-Patterns, UI-Patterns | `AGENTS_NOSTR_REF.md` |
 | Änderungshistorie / Debugging vergangener Fixes | `MOJOBUS_CHANGELOG.md` |
 
