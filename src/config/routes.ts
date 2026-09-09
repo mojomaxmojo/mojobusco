@@ -4,6 +4,8 @@ export const ROUTES: Route[] = [
   { path: '/', component: 'Home', title: 'Home', description: 'MojoBus Perpetual Travelers Blog' },
   { path: '/artikel', component: 'Articles', title: 'Artikel', category: 'articles' },
   { path: '/artikel/:country', component: 'Articles', title: 'Artikel aus Land', category: 'articles' },
+  { path: '/artikel/jahre', component: 'ArticlesYear', title: 'Artikel Archiv nach Jahren', category: 'articles' },
+  { path: '/artikel/jahr/:year', component: 'ArticlesYear', title: 'Artikel Jahr Archiv', category: 'articles' },
   { path: '/artikel/diy', component: 'DIY', title: 'DIY Anleitungen', category: 'diy' },
   { path: '/artikel/diy/:category', component: 'DIY', title: 'DIY Kategorie', category: 'diy' },
   { path: '/artikel/leon', component: 'Leon', title: 'Leon Stories', category: 'leon' },

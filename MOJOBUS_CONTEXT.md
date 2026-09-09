@@ -29,6 +29,7 @@
 | `blossom.ts` | Blossom-Server für Medien-Uploads |
 | `routes.ts` | Routen-Definitionen |
 | `mainMenu.ts` | Hauptnavigation Desktop + Mobile |
+| `years.ts` | **Artikel-Jahresarchiv**: Startjahr 2012 statisch, Ende = laufendes Jahr („\*"); `getArchiveYears()/isValidArchiveYear()/yearArchivePath()` – Quelle für Menü-Eintrag „Jahre", Switcher + Routen-Validierung (`/artikel/jahre`, `/artikel/jahr/:year`) |
 | `cache.ts` | Cache-Zeiten (24h Listen, 7d Profile, 1y Bilder) |
 | `performance.ts` | **Schlank (ausgemistet)**: `FIRST_PAINT_CONFIG` (2s Fast-Timeout, Limit 15, 3 Home-Cards) + `DEFAULT_PERFORMANCE_CONFIG` (itemsPerPage 15, QueryClient cache/retry-Defaults). Build-Performance lebt in `performance.config.ts` |
 | `imageService.ts` | Bildoptimierung (weserv/imgproxy/Cloudflare) |
@@ -46,6 +47,7 @@ Autoren prüfen: `cat src/config/authors.json | jq '.authors[] | {name, pubkey, 
 | `src/hooks/usePreloadedData.ts` | Hybrid-Hook: JSON-Dump sofort + Live-Relay im Hintergrund; Fallback zweistufig (2s Fast + Full progressiv) |
 | `src/hooks/useVideos.ts` | Lädt kind 34236+34235, Hybrid-Hook, Capacitor-kompatibel |
 | `src/pages/VideoPromotion.tsx` | Social-Video-Generator (TikTok/Reels/YouTube Shorts + Longform UI) |
+| `src/pages/ArticlesYear.tsx` | Jahres-Archiv (`/artikel/jahre` + `/artikel/jahr/:year`): Jahr-Switcher + identische Cards wie `/artikel` (ArticleCard aus Articles.tsx exportiert); Canonical je Jahr auf `/artikel/jahr/{year}` (kein Duplicate Content für die Einstiegsseite) |
 | `src/pages/Videos.tsx` | Video-Feed (kind 34236 NIP-71, 9:16 + 16:9) |
 | `src/lib/routeFromGps.ts` | GPS→Route: Haversine-Dedupe, Nominatim, 9:16-Aspect |
 | `public/sw.js` | Service Worker v21: staleWhileRevalidate + Cache-First |

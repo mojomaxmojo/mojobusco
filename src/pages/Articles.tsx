@@ -420,7 +420,8 @@ function Articles() {
   );
 }
 
-const ArticleCard = memo(function ArticleCard({
+// Exportiert für Wiederverwendung auf der Jahres-Archivseite (ArticlesYear.tsx)
+export const ArticleCard = memo(function ArticleCard({
   article,
   authorsMap,
   articlesMetadata,

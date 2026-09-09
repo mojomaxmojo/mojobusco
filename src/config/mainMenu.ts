@@ -10,6 +10,7 @@ import { COUNTRIES } from './countries';
 import { DIY_CATEGORIES } from './diy';
 import { RV_LIFE_CONFIG } from './rvlife';
 import { MAIN_MENU } from './menu';
+import { YEARS_OVERVIEW_PATH } from './years';
 
 // ── Typen ──────────────────────────────────────────────────────────────────
 
@@ -62,6 +63,7 @@ export const MAIN_MENU_CONFIG: MainMenuItem[] = [
     icon: 'FileText',
     children: [
       { label: 'Alle Artikel', path: '/artikel', icon: 'FileText' },
+      { label: 'Jahre', path: YEARS_OVERVIEW_PATH, emoji: '📅', icon: 'Calendar' },
       { divider: true, label: '' },
       { label: 'Nach Länder', icon: 'Flag', source: 'countries', pathPrefix: '/artikel/' },
       { label: 'DIY', emoji: '🛠️', icon: 'Wrench', children: DIY_ITEMS },

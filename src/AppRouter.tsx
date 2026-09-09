@@ -14,6 +14,7 @@ import { Home } from "./pages/Home";
 // (Außnahme: Home, siehe oben – Landing Page eager für CLS-Stabilität)
 
 const Articles = lazy(() => import("./pages/Articles").then(m => ({ default: m.default })));
+const ArticlesYear = lazy(() => import("./pages/ArticlesYear").then(m => ({ default: m.ArticlesYear })));
 const DIY = lazy(() => import("./pages/DIY").then(m => ({ default: m.DIY })));
 const Leon = lazy(() => import("./pages/Leon").then(m => ({ default: m.Leon })));
 const RVLife = lazy(() => import("./pages/RVLife").then(m => ({ default: m.RVLife })));
@@ -48,6 +49,8 @@ const PUBLIC_ROUTE_DEFINITIONS: { path: string; element: ReactElement }[] = [
   { path: "/", element: <Home /> },
   { path: "/artikel", element: <Articles /> },
   { path: "/artikel/:country", element: <Articles /> },
+  { path: "/artikel/jahre", element: <ArticlesYear /> },
+  { path: "/artikel/jahr/:year", element: <ArticlesYear /> },
   { path: "/artikel/diy", element: <DIY /> },
   { path: "/artikel/diy/:category", element: <DIY /> },
   { path: "/artikel/leon", element: <Leon /> },

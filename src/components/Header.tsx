@@ -8,7 +8,7 @@ import { OfflineBanner } from '@/components/ServiceWorkerStatus';
 import {
   Menu, X, Home, FileText, Info, MapPin, Map, Camera, Images, StickyNote,
   ChevronDown, Flag, Wrench, Dog, Sun, Route, PenSquare, User, Settings,
-  LogOut, Wallet, Pin, Film, Video,
+  LogOut, Wallet, Pin, Film, Video, Calendar,
 } from '@/lib/icons';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -24,7 +24,7 @@ import { useLanguage } from '@/hooks/useLanguage';
 
 const iconMap: Record<string, React.ComponentType<any>> = {
   Home, FileText, Info, MapPin, Map, Camera, Images, StickyNote,
-  Flag, Wrench, Dog, Sun, Route, PenSquare, User, Settings, Wallet, Pin, Film, Video,
+  Flag, Wrench, Dog, Sun, Route, PenSquare, User, Settings, Wallet, Pin, Film, Video, Calendar,
 };
 
 function MenuIcon({ icon, emoji, className }: { icon?: string; emoji?: string; className?: string }) {
