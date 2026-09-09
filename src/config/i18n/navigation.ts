@@ -13,6 +13,7 @@ export const NAV_STRINGS: Record<UiLang, Record<string, string>> = {
   de: {
     nav_home: 'Home',
     nav_articles: 'Artikel',
+    nav_articles_strandort: 'Strand/Ort',
     nav_notes: 'Notes',
     nav_places: 'Plätze',
     nav_trips: 'Trips',
@@ -36,6 +37,7 @@ export const NAV_STRINGS: Record<UiLang, Record<string, string>> = {
   en: {
     nav_home: 'Home',
     nav_articles: 'Articles',
+    nav_articles_strandort: 'Strand/Beach',
     nav_notes: 'Notes',
     nav_places: 'Places',
     nav_trips: 'Trips',
