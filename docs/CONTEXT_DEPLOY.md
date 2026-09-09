@@ -15,7 +15,8 @@
 - **Repo**: https://github.com/mojomaxmojo/mojobusco
 - **Server**: AlmaLinux 9.7 CentminMod (yum), Nginx, Node.js, Brotli
 - **AI-API**: Systemd-Service `ai-api`, Port 3002 (`server/`)
-- **Cron**: Prerender 6:00, JSON-Dumps 6:15, RSS alle 6h, Sitemap 6:00
+- **Cron**: node.sh-Pipeline (site-data → prerender → sitemap → feed) läuft
+  **alle 3 h** (`0 */3` – 6:00, 9:00, 12:00, …), RSS-Feeds alle 6h
 - **Sitemaps**: `sitemap.xml` (Haupt) + `sitemap-videos.xml` (Video). Das Repo
   enthält statische Fallback-Versionen in `public/` – jeder Deploy liefert
   also valides XML; der Cron überschreibt mit den dynamischen Vollversionen.

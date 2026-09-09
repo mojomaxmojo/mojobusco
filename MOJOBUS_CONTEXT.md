@@ -52,10 +52,10 @@ Autoren prüfen: `cat src/config/authors.json | jq '.authors[] | {name, pubkey, 
 | `src/lib/routeFromGps.ts` | GPS→Route: Haversine-Dedupe, Nominatim, 9:16-Aspect |
 | `public/sw.js` | Service Worker v21: staleWhileRevalidate + Cache-First |
 | `src/components/ServiceWorkerUpdateToast.tsx` | Toast „Neue Version verfügbar" + Reload-Button bei aktiviertem SW-Update (Fix #9, kein Auto-Reload) |
-| `scripts/generate-site-data.js` | Slim-JSON-Dumps ohne content (Cron 6:15) |
-| `scripts/prerender-static.js` | Statische HTML-Seiten mit NIP-19 Dateinamen (Cron 6:00); seit Fix #7A auch Artikel-Unterkategorien diy/rvlife/leon/strand-ort DE+EN + `category-home-en.html` (Fix #7B); seit Jahr-Archiv auch `category-artikel-jahr-{YYYY}.html` (+ `-en`) für alle Jahre 2012–heute MIT Artikeln + `category-artikel-jahre.html` (+ `-en`, Canonical auf laufendes Jahr) |
+| `scripts/generate-site-data.js` | Slim-JSON-Dumps ohne content (3-h-Cron via node.sh-Pipeline) |
+| `scripts/prerender-static.js` | Statische HTML-Seiten mit NIP-19 Dateinamen (3-h-Cron via node.sh-Pipeline); seit Fix #7A auch Artikel-Unterkategorien diy/rvlife/leon/strand-ort DE+EN + `category-home-en.html` (Fix #7B); seit Jahr-Archiv auch `category-artikel-jahr-{YYYY}.html` (+ `-en`) für alle Jahre 2012–heute MIT Artikeln + `category-artikel-jahre.html` (+ `-en`, Canonical auf laufendes Jahr) |
 | `scripts/prerender-subcategory-templates.js` | Render-Funktionen für Artikel-Unterkategorien + EN-Home. **Tag-Listen spiegeln `src/config/rvlife.ts` / `strandort.ts`** (Node kann TS-Configs nicht importieren → bei Config-Änderung doppelt pflegen!) |
-| `scripts/generate-sitemap.js` | `sitemap.xml` + `sitemap-videos.xml` (Cron 6:00); seit Fix #7C hreflang de↔en auf ALLEN statischen Seiten; seit Jahr-Archiv auch `/artikel/jahr/{YYYY}`-URLs (nur Jahre mit Artikeln, hreflang-Paar nur bei beiden Sprachen) |
+| `scripts/generate-sitemap.js` | `sitemap.xml` + `sitemap-videos.xml` (3-h-Cron via node.sh-Pipeline); seit Fix #7C hreflang de↔en auf ALLEN statischen Seiten; seit Jahr-Archiv auch `/artikel/jahr/{YYYY}`-URLs (nur Jahre mit Artikeln, hreflang-Paar nur bei beiden Sprachen) |
 | `scripts/generate-feed.js` | `feed.xml` (DE) + `feed-en.xml` (EN), getrennt nach `l`-Tag (Cron alle 6h) |
 
 ---
