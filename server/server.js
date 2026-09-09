@@ -251,7 +251,10 @@ app.post('/api/bot-cache/clear', (req, res) => {
 // Alle Routen: /api/promotion/*
 app.use(promotionRouter)
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, '127.0.0.1', () => {
+  // Bind auf 127.0.0.1 (Security 2026-09-08): nginx proxied /api/ lokal —
+  // direkter Internet-Zugriff auf Port 3002 ist nicht nötig. Vorher:
+  // LISTEN *:3002 → abhängig von der Firewall öffentlich erreichbar.
   // Langsame Endpunkte (z.B. Vision-Analyse mit 20 Bildern) dürfen nicht
   // nach dem Node-Standard-Timeout von 2 Minuten abgebrochen werden.
   server.timeout = 600000 // 10 Minuten
