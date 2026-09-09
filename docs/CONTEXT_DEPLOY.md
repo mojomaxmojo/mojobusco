@@ -53,6 +53,22 @@
 - **Sitemap-hreflang (Fix #7C)**: `generate-sitemap.js` verlinkt alle
   statischen Seiten de<->en per `xhtml:link` (davor nur dynamische
   Einträge). feed.xml/feed-en.xml bewusst ohne hreflang-Paar.
+- **Jahr-Archiv (Artikel-Jahresarchiv 2012–heute)**: `prerender-static.js`
+  generiert `category-artikel-jahr-{YYYY}.html` (+ `-en`) für JEDES Jahr mit
+  mindestens einem sprach-gefilterten Artikel via
+  `renderArtikelYearPage()` (`prerender-category-templates.js`) — Jahre ohne
+  Artikel bekommen bewusst KEINE Datei (echter 404 statt Thin Content). Die
+  Einstiegsseite `category-artikel-jahre.html` (+ `-en`) ist nur die
+  Bot-Ansicht des laufenden Jahres mit Canonical auf
+  `/artikel/jahr/{currentYear}` (identisch zum SPA-Verhalten, kein Duplicate
+  Content) und gehört bewusst NICHT in die Sitemap. `generate-sitemap.js`
+  listet die Jahr-URLs (`/artikel/jahr/{YYYY}`, priority 0.6) mit
+  hreflang-Paar nur, wenn beide Sprachvarianten existieren.
+  Startjahr 2012 doppelt gepflegt: `src/config/years.ts` (Frontend) +
+  `YEAR_ARCHIVE_START` in `prerender-helpers.js` (Node kann TS nicht
+  importieren). Nginx-Bot-Rewrites: `^/artikel/jahre$` +
+  `^/artikel/jahr/([0-9]{4})$` (+ `/en/`-Varianten) → bei Nginx-Deploy
+  mit ausrollen (Deploy-Matrix-Zeile Nginx-Config).
 
 ---
 

@@ -549,3 +549,38 @@ export function extractTripDistance(event) {
 
   return { distance: String(Math.round(totalDistance)), distanceUnit: 'km' };
 }
+
+// ── Artikel-Jahresarchiv (Spiegel von src/config/years.ts) ────────────────
+// TS-Configs sind in Node nicht importierbar → Startjahr doppelt pflegen
+// (gleiches Muster wie rvlife.ts/strandort.ts, siehe MOJOBUS_CONTEXT.md).
+// Wird von prerender-static.js UND generate-sitemap.js genutzt, damit beide
+// exakt dieselben Jahr-Seiten erzeugen (Datei existiert ⟺ Sitemap-Eintrag).
+
+/** Erstes Jahr des Archivs (statisch, wie gewünscht 2012). */
+export const YEAR_ARCHIVE_START = 2012;
+
+/** Einstiegsseite des Archivs (SPA-Default = laufendes Jahr). */
+export const YEARS_OVERVIEW_PATH = '/artikel/jahre';
+
+/** Publikationsjahr eines Events (created_at, wie die Frontend-Cards zeigen). */
+export function getEventYear(event) {
+  return new Date(event.created_at * 1000).getFullYear();
+}
+
+/**
+ * Zählt Artikel pro Archiv-Jahr, optional gefiltert auf eine Sprache
+ * (`l`-Tag, Fallback 'de'). Jahre außerhalb des Archiv-Zeitraums
+ * (vor YEAR_ARCHIVE_START / nach dem laufenden Jahr) werden ignoriert.
+ * @returns {Map<number, number>} Jahr → Anzahl Artikel
+ */
+export function getArticleYearCounts(articles, lang = null) {
+  const currentYear = new Date().getFullYear();
+  const counts = new Map();
+  for (const event of articles || []) {
+    if (lang && getEventLangFromTags(event) !== lang) continue;
+    const year = getEventYear(event);
+    if (year < YEAR_ARCHIVE_START || year > currentYear) continue;
+    counts.set(year, (counts.get(year) || 0) + 1);
+  }
+  return counts;
+}

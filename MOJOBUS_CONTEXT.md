@@ -53,9 +53,9 @@ Autoren prüfen: `cat src/config/authors.json | jq '.authors[] | {name, pubkey, 
 | `public/sw.js` | Service Worker v21: staleWhileRevalidate + Cache-First |
 | `src/components/ServiceWorkerUpdateToast.tsx` | Toast „Neue Version verfügbar" + Reload-Button bei aktiviertem SW-Update (Fix #9, kein Auto-Reload) |
 | `scripts/generate-site-data.js` | Slim-JSON-Dumps ohne content (Cron 6:15) |
-| `scripts/prerender-static.js` | Statische HTML-Seiten mit NIP-19 Dateinamen (Cron 6:00); seit Fix #7A auch Artikel-Unterkategorien diy/rvlife/leon/strand-ort DE+EN + `category-home-en.html` (Fix #7B) |
+| `scripts/prerender-static.js` | Statische HTML-Seiten mit NIP-19 Dateinamen (Cron 6:00); seit Fix #7A auch Artikel-Unterkategorien diy/rvlife/leon/strand-ort DE+EN + `category-home-en.html` (Fix #7B); seit Jahr-Archiv auch `category-artikel-jahr-{YYYY}.html` (+ `-en`) für alle Jahre 2012–heute MIT Artikeln + `category-artikel-jahre.html` (+ `-en`, Canonical auf laufendes Jahr) |
 | `scripts/prerender-subcategory-templates.js` | Render-Funktionen für Artikel-Unterkategorien + EN-Home. **Tag-Listen spiegeln `src/config/rvlife.ts` / `strandort.ts`** (Node kann TS-Configs nicht importieren → bei Config-Änderung doppelt pflegen!) |
-| `scripts/generate-sitemap.js` | `sitemap.xml` + `sitemap-videos.xml` (Cron 6:00); seit Fix #7C hreflang de↔en auf ALLEN statischen Seiten |
+| `scripts/generate-sitemap.js` | `sitemap.xml` + `sitemap-videos.xml` (Cron 6:00); seit Fix #7C hreflang de↔en auf ALLEN statischen Seiten; seit Jahr-Archiv auch `/artikel/jahr/{YYYY}`-URLs (nur Jahre mit Artikeln, hreflang-Paar nur bei beiden Sprachen) |
 | `scripts/generate-feed.js` | `feed.xml` (DE) + `feed-en.xml` (EN), getrennt nach `l`-Tag (Cron alle 6h) |
 
 ---
@@ -82,10 +82,10 @@ Alle 10 Punkte umgesetzt (Commits `17da704`…`45bc5c4`):
 curl -s https://mojobus.co/api/health -H "X-Clear-Token: $BOT_CACHE_TOKEN"
 curl -X POST https://mojobus.co/api/bot-cache/clear -H "X-Clear-Token: $BOT_CACHE_TOKEN"
 ```
-| `scripts/prerender-helpers.js` | Gemeinsame Helfer aller Prerender-Skripte: `isMojobusKind1()`, `isTeaserNote()`, `isPlace/isTrip/isMedia`, `encodeNaddr`, `findTranslationPair`, `isTripEvent()`, `encodeTripNaddr()`, `extractTripWaypoints/Photos/Distance()` (Trips = kind:30025, siehe unten) |
+| `scripts/prerender-helpers.js` | Gemeinsame Helfer aller Prerender-Skripte: `isMojobusKind1()`, `isTeaserNote()`, `isPlace/isTrip/isMedia`, `encodeNaddr`, `findTranslationPair`, `isTripEvent()`, `encodeTripNaddr()`, `extractTripWaypoints/Photos/Distance()` (Trips = kind:30025, siehe unten), Jahr-Archiv-Helper (`YEAR_ARCHIVE_START=2012` als Node-Spiegel von `src/config/years.ts`, `getArticleYearCounts()`) |
 | `scripts/prerender-meta.js` | SEO-Head-Baustein (`buildHead`) + JSON-LD-Builder für alle Prerender-Templates |
 | `scripts/prerender-entity-templates.js` | HTML-Templates je Event-Typ (Artikel, Note, Ort, Trip, Video, Bild, Profil) |
-| `scripts/prerender-category-templates.js` | HTML-Templates für Kategorie-/Listenseiten (`/artikel`, `/notes`, `/plaetze`, ...) |
+| `scripts/prerender-category-templates.js` | HTML-Templates für Kategorie-/Listenseiten (`/artikel`, `/notes`, `/plaetze`, ...) + `renderArtikelYearPage()` für das Jahr-Archiv |
 | `mojobus.co.ssl.conf` | Nginx: Bot-Prerender, Brotli, `/data/` max-age=86400 |
 
 **Wichtig – `isMojobusKind1()` (`scripts/prerender-helpers.js`)**: Alle

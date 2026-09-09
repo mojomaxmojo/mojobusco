@@ -12,6 +12,8 @@ import {
   isMojobusKind1,
   classifyKind1,
   loadSiteDataEventsDump,
+  YEAR_ARCHIVE_START,
+  getArticleYearCounts,
 } from './prerender-helpers.js';
 import {
   renderArticleHtml,
@@ -24,6 +26,7 @@ import {
 } from './prerender-entity-templates.js';
 import {
   renderArtikelPage,
+  renderArtikelYearPage,
   renderNotesPage,
   renderBilderPage,
   renderVideosPage,
@@ -326,6 +329,45 @@ async function main() {
         console.warn(`[Prerender] Kategorie ${category.key} fehlgeschlagen: ${e.message}`);
       }
     }
+  }
+
+  // ── Jahr-Archiv (/artikel/jahr/:year + /artikel/jahre) ───────────────────
+  // Nur Jahre MIT mindestens einem sprach-gefilterten Artikel bekommen eine
+  // Datei — Jahre ohne Artikel bleiben weg (Nginx → 404 via Resolver), damit
+  // keine Thin-Content-Seiten indexiert werden. Der Switcher in den
+  // Templates verlinkt dieselbe Jahre-Menge (getArticleYearCounts), Bots
+  // crawlen also keine toten Jahr-URLs.
+  // Einstiegsseite /artikel/jahre: zeigt im SPA das laufende Jahr mit
+  // Canonical auf /artikel/jahr/{currentYear} (kein Duplicate Content) —
+  // nur erzeugt, wenn die Canonical-Ziel-Datei dieses Lauf auch bekommt.
+  const currentYear = new Date().getFullYear();
+  const yearCounts = { de: getArticleYearCounts(lists.articles, 'de'), en: getArticleYearCounts(lists.articles, 'en') };
+  for (const lang of ['de', 'en']) {
+    const suffix = lang === 'en' ? '-en' : '';
+    const counts = yearCounts[lang];
+    for (let year = currentYear; year >= YEAR_ARCHIVE_START; year--) {
+      if (!counts.has(year)) continue;
+      const filename = `category-artikel-jahr-${year}${suffix}.html`;
+      try {
+        writePrerenderFile(filename, renderArtikelYearPage(year, lists.articles, lang));
+        rendered.push({ type: `Kategorie jahr-${year}${suffix}`, identifier: filename });
+      } catch (e) {
+        console.warn(`[Prerender] Jahr-Archiv ${year}${suffix} fehlgeschlagen: ${e.message}`);
+      }
+    }
+    if (counts.has(currentYear)) {
+      const overviewName = `category-artikel-jahre${suffix}.html`;
+      try {
+        writePrerenderFile(
+          overviewName,
+          renderArtikelYearPage(currentYear, lists.articles, lang, { canonicalPath: `/artikel/jahr/${currentYear}` })
+        );
+        rendered.push({ type: `Kategorie jahre${suffix}`, identifier: overviewName });
+      } catch (e) {
+        console.warn(`[Prerender] Jahr-Archiv-Einstieg${suffix} fehlgeschlagen: ${e.message}`);
+      }
+    }
+    console.log(`[Prerender]  → Jahr-Archiv ${lang}: ${counts.size} Jahre (2012–${currentYear})`);
   }
 
   const indexHtml = `<!DOCTYPE html>

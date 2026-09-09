@@ -8,6 +8,8 @@ import {
   formatDate,
   buildLocalizedUrl,
   getEventLangFromTags,
+  getEventYear,
+  getArticleYearCounts,
 } from './prerender-helpers.js';
 import { buildHead, buildItemListLd, buildBreadcrumbLd } from './prerender-meta.js';
 import { nip19 } from 'nostr-tools';
@@ -137,6 +139,85 @@ export function renderArtikelPage(articles = [], lang = 'de') {
     items: articles.filter(e => getEventLangFromTags(e) === lang).slice(0, 50).map(toArticleItem),
     listName: 'MojoBus Artikel',
   }, lang);
+}
+
+/**
+ * Rendert eine Jahr-Archiv-Seite: /artikel/jahr/{year} (+ Einstiegsseite
+ * /artikel/jahre, die im SPA das laufende Jahr mit Canonical auf die
+ * Jahr-URL zeigt — für die Einstiegsseite canonicalPath übergeben).
+ *
+ * articles = lists.articles aus prerender-static.js (kind-30023 ohne Orte).
+ * Der Jahr-Switcher verlinkt nur Jahre, für die es Artikel dieser Sprache
+ * gibt — exakt die Jahre, für die prerender-static.js auch Dateien schreibt
+ * (Jahre ohne Artikel → keine Datei → echter 404 für Bots, keine
+ * Thin-Content-Seiten).
+ */
+export function renderArtikelYearPage(year, articles = [], lang = 'de', { canonicalPath = null } = {}) {
+  const isEn = lang === 'en';
+
+  const yearItems = articles
+    .filter(e => getEventLangFromTags(e) === lang)
+    .filter(e => getEventYear(e) === year)
+    .slice(0, 50)
+    .map(toArticleItem);
+
+  const canonicalUrl = buildLocalizedUrl(canonicalPath || `/artikel/jahr/${year}`, lang);
+  const title = isEn ? `Articles ${year} — MojoBus` : `Artikel ${year} — MojoBus`;
+  const description = isEn
+    ? `All travel stories and articles from ${year}. MojoBus year archive.`
+    : `Alle Reiseberichte und Geschichten aus dem Jahr ${year}. MojoBus Jahresarchiv.`;
+
+  // Jahr-Switcher: nur Jahre mit ≥1 Artikel dieser Sprache, absteigend
+  const counts = getArticleYearCounts(articles, lang);
+  const years = [...counts.keys()].sort((a, b) => b - a);
+
+  const jsonLd = [
+    buildItemListLd(yearItems, canonicalUrl, isEn ? `MojoBus Articles ${year}` : `MojoBus Artikel ${year}`),
+    buildBreadcrumbLd([
+      { name: isEn ? 'Home' : 'Startseite', item: BASE_URL },
+      { name: isEn ? 'Articles' : 'Artikel', item: buildLocalizedUrl('/artikel', lang) },
+      { name: String(year), item: canonicalUrl },
+    ]),
+  ];
+
+  const head = buildHead({
+    title,
+    description,
+    canonicalUrl,
+    image: yearItems[0]?.image || DEFAULT_IMAGE,
+    imageAlt: title,
+    ogType: 'website',
+    jsonLd,
+    lang,
+  });
+
+  const listHtml = yearItems.length
+    ? yearItems.map(item => `
+    <li style="margin-bottom:1.5rem">
+      <a href="${escapeHtml(item.url)}">
+        ${item.image ? `<img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}" style="max-width:200px;display:block" />` : ''}
+        <h3>${escapeHtml(item.name)}</h3>
+        <p>${escapeHtml(item.description)}</p>
+      </a>
+    </li>`).join('')
+    : `<li>${isEn ? 'No articles yet for this year.' : 'Für dieses Jahr gibt es noch keine Artikel.'}</li>`;
+
+  const yearNav = years
+    .map(y => {
+      const url = buildLocalizedUrl(`/artikel/jahr/${y}`, lang);
+      const label = y === year ? `<strong>${y}</strong>` : `${y}`;
+      return `<a href="${escapeHtml(url)}">${label}</a>`;
+    })
+    .join(' · ');
+
+  return `${head}
+  <h1>${escapeHtml(isEn ? `Articles ${year}` : `Artikel ${year}`)}</h1>
+  <p>${escapeHtml(description)}</p>
+  <p><nav aria-label="${isEn ? 'Years' : 'Jahre'}">${yearNav}</nav></p>
+  <ul>${listHtml}</ul>
+  <p><a href="${escapeHtml(buildLocalizedUrl('/artikel', lang))}">${escapeHtml(isEn ? 'All articles' : 'Alle Artikel')} →</a></p>
+</body>
+</html>`;
 }
 
 export function renderNotesPage(notes = [], lang = 'de') {

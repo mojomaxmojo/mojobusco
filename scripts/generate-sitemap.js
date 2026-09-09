@@ -24,7 +24,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { nip19 } from 'nostr-tools';
-import { buildLocalizedUrl, findTranslationPair, getEventLangFromTags, isMojobusKind1, isPlace, isMedia, encodeTripNaddr, queryRelay, loadSiteDataEventsDump } from './prerender-helpers.js';
+import { buildLocalizedUrl, findTranslationPair, getEventLangFromTags, isMojobusKind1, isPlace, isMedia, encodeTripNaddr, queryRelay, loadSiteDataEventsDump, YEAR_ARCHIVE_START, getArticleYearCounts } from './prerender-helpers.js';
 
 // ── Autoren aus zentraler JSON-Config (Single Source of Truth) ────────────
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -356,6 +356,7 @@ async function main() {
   const seen = new Set(); // Deduplizierung
   const videoUrls = []; // Für separate Video-Sitemap
   const imageUrls = []; // Für separate Image-Sitemap
+  const yearArticleEvents = []; // Deduplizierte Artikel fürs Jahr-Archiv (unten)
 
   // ── Event-Quelle: Dump (bevorzugt) oder Relay-Abfrage ─────────────────
   // Jeder Batch = ein Satz per-Typ-Arrays; die Verarbeitung darunter ist
@@ -398,6 +399,7 @@ async function main() {
       seen.add(event.id);
       const naddr = encodeNaddr(event);
       if (!naddr) continue;
+      yearArticleEvents.push(event);
       const lang = getEventLangFromTags(event);
       const path = `/${naddr}`;
       const pair = findTranslationPair(articles, event);
@@ -566,6 +568,44 @@ async function main() {
         }
       }
     }
+  }
+
+  // ── Jahr-Archiv-Seiten (/artikel/jahr/:year) ─────────────────────────────
+  // Gleiche Menge wie prerender-static.js: nur Jahre mit ≥1 sprach-gefiltertem
+  // Artikel (Jahre ohne Artikel bekommen im Prerender keine Datei → echter
+  // 404, keine Thin-Content-Seiten). hreflang-Paar nur, wenn BEIDE
+  // Sprachvarianten existieren. Die Einstiegsseite /artikel/jahre gehört
+  // bewusst NICHT in die Sitemap — sie canonicalisiert auf das laufende Jahr.
+  const sitemapCurrentYear = new Date().getFullYear();
+  const sitemapYearCounts = {
+    de: getArticleYearCounts(yearArticleEvents, 'de'),
+    en: getArticleYearCounts(yearArticleEvents, 'en'),
+  };
+  for (let year = sitemapCurrentYear; year >= YEAR_ARCHIVE_START; year--) {
+    const deCount = sitemapYearCounts.de.get(year) || 0;
+    const enCount = sitemapYearCounts.en.get(year) || 0;
+    if (deCount === 0 && enCount === 0) continue;
+
+    const yearPath = `/artikel/jahr/${year}`;
+    const deLoc = BASE_URL + yearPath;
+    const enLoc = buildLocalizedUrl(yearPath, 'en');
+    const base = { priority: '0.6', changefreq: 'monthly', lastmod: today };
+
+    if (deCount > 0 && enCount > 0) {
+      const alternates = [
+        { hreflang: 'de', href: deLoc },
+        { hreflang: 'en', href: enLoc },
+      ];
+      allUrls.push({ loc: deLoc, ...base, alternates });
+      allUrls.push({ loc: enLoc, ...base, alternates });
+    } else if (deCount > 0) {
+      allUrls.push({ loc: deLoc, ...base });
+    } else {
+      allUrls.push({ loc: enLoc, ...base });
+    }
+  }
+  if (sitemapYearCounts.de.size + sitemapYearCounts.en.size > 0) {
+    console.log(`[Sitemap]  → Jahr-Archiv: ${sitemapYearCounts.de.size} DE-Jahre, ${sitemapYearCounts.en.size} EN-Jahre (2012–${sitemapCurrentYear})`);
   }
 
   // ── Kollaps-Schutz: Sitemap NICHT überschreiben bei Relay-Timeouts ──────
