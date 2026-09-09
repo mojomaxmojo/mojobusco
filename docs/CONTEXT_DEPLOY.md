@@ -69,6 +69,18 @@
   importieren). Nginx-Bot-Rewrites: `^/artikel/jahre$` +
   `^/artikel/jahr/([0-9]{4})$` (+ `/en/`-Varianten) → bei Nginx-Deploy
   mit ausrollen (Deploy-Matrix-Zeile Nginx-Config).
+- **Publish-Pipeline & Webroot-Skripte**: `publish-pipeline.js` (ai-api)
+  führt die Pipeline-Skripte aus dem WEBROOT aus
+  (`public/server/services/../../scripts` = `public/scripts/`).
+  `deploy-main.sh` kopiert deshalb bei jedem Deploy `scripts/` in den
+  Webroot UND setzt den Symlink `public/node_modules → server/node_modules`
+  (die Skripte importieren `nostr-tools` als ESM-Bare-Import; Node resolvt
+  nur über node_modules im Ancestor-Pfad, `nostr-tools` steckt in
+  `server/package.json`). Vorher: Pipeline schlug nach jedem Deploy mit
+  `MODULE_NOT_FOUND` fehl. Nginx blockt `/scripts/` + `/node_modules/`
+  (`location ^~ ... return 404`) — filesystem-Ausführung ist davon
+  unberührt, es geht nur um HTTP-Schutz (Muster wie /server/ + /src/).
+  Alle Pipeline-Skripte schreiben mit absoluten Pfaden (cwd-unabhängig).
 
 ---
 

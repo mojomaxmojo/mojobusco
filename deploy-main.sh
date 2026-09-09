@@ -376,6 +376,27 @@ deploy_files() {
         fi
     done
 
+    # ── scripts/ deployieren (Publish-Pipeline) ──────────────────────────────
+    # publish-pipeline.js (ai-api) rechnet SCRIPTS_DIR = public/server/services/
+    # ../../scripts = public/scripts — die Skripte werden also aus dem WEBROOT
+    # ausgeführt. Ohne diesen Schritt schlägt die Publish-Pipeline nach JEDEM
+    # Deploy mit MODULE_NOT_FOUND fehl (deploy wipt $DEPLOY_DIR/* komplett).
+    if [ -d "$PROJECT_DIR/scripts" ]; then
+        rm -rf "$DEPLOY_DIR/scripts"
+        cp -r "$PROJECT_DIR/scripts" "$DEPLOY_DIR/scripts" || warn_msg "⚠ scripts/ Kopieren fehlgeschlagen (Pipeline-Skripte fehlen im Webroot!)"
+        info_msg "✓ scripts/ deployed (Publish-Pipeline: site-data, prerender, sitemap, feed)"
+
+        # node_modules-Symlink: Die Skripte importieren 'nostr-tools' als
+        # ESM-Bare-Import — Node resolvert nur über node_modules im
+        # Ancestor-Pfad des importierenden Files. public/scripts/ findet das
+        # Paket über public/node_modules → server/node_modules (nostr-tools
+        # ist Dependency in server/package.json, npm install läuft oben).
+        # ACHTUNG: Symlink niemals auflösen — chown/chmod -R folgen ihm nicht
+        # (-P-Default von find/chown -R), server/node_modules bleibt intakt.
+        ln -sfn server/node_modules "$DEPLOY_DIR/node_modules" || warn_msg "⚠ node_modules-Symlink fehlgeschlagen (nostr-tools-Import der Pipeline-Skripte würde scheitern)"
+        info_msg "✓ node_modules-Symlink gesetzt (public/node_modules → server/node_modules)"
+    fi
+
     # ── Media-Library wiederherstellen (hochgeladene Artikel-Bilder) ─────────
     # Default-MEDIA_DIR liegt im Webroot (images/articles) und muss nach dem
     # Wipe neu angelegt + mit den gesicherten Bildern befüllt werden.
