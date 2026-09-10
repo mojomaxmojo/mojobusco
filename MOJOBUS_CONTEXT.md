@@ -269,6 +269,12 @@ Schwelle Forecast/Archiv: 92 Tage; >16 Tage Zukunft → Wetter überspringen
 (Archiv-Branch bleibt Tagesaggregat).
 
 **Weitere Features (Nr. 5/10/11/12/13 + Pipeline-Trigger):**
+- **Assistenten-Hilfe (AssistantHelpSheet):** ⓘ im Assistenten-Header (AssistantSection,
+  optionaler Prop `onOpenHelp`) + Link im „Was fließt in den Text ein?"-Popover (ArticleForm)
+  öffnen ein Sheet mit 10 Nutzungsschritten aller Eingabefelder, 7 häufigsten Fehlern und dem
+  Contentplan-Prompt zum Kopieren. Inhalte als Daten in `src/config/assistantHelp.ts`, Prompt
+  als Laufzeit-Kopie in `src/config/contentplanPromptTemplate.ts` (Referenz:
+  PROMPT_CONTENTPLAN_VORLAGE.md). Nur in /veroeffentlichen gemountet → automatisch hinter Auth.
 - **Nr. 5** `ExistingContentHint` (AssistantSection, über Ideen): ab
   Ort-Eingabe automatischer Continuity-Abfrage (debounced) → Warn-Banner
   „X frühere Posts am Ort — Freshness-Update statt neu".

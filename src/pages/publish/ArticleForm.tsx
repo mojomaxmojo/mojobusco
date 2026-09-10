@@ -45,6 +45,7 @@ import { buildAuthorInput } from "@/config/assistant";
 import type { AssistantIdea } from "@/components/assistant/IdeasPanel";
 import { useAssistantApi } from "@/components/assistant/useAssistantApi";
 import { AssistantSection } from "@/components/assistant/AssistantSection";
+import { AssistantHelpSheet } from "@/components/assistant/AssistantHelpSheet";
 import { SeoPublishPanel } from "@/components/assistant/SeoPublishPanel";
 import { DraftsOverview } from "@/components/assistant/DraftsOverview";
 import { MediaLibraryPanel } from "@/components/assistant/MediaLibraryPanel";
@@ -81,6 +82,10 @@ export function ArticleForm({ editEvent }: { editEvent?: NostrEvent }) {
   const [showMediaLibrary, setShowMediaLibrary] = useState(false);
   // Info-i am Generieren-Button: erklärt, welche Inputs in den Text fließen
   const [showGenerationInfo, setShowGenerationInfo] = useState(false);
+  // Ausführliche Anleitung (AssistantHelpSheet) — ⓘ im Assistenten-Header
+  // + Link im „Was fließt in den Text ein?"-Popover. Nur hier gemountet;
+  // /veroeffentlichen ist Login-geschützt → Hilfe automatisch hinter Auth.
+  const [helpOpen, setHelpOpen] = useState(false);
   // Aktuell geladener Entwurf (DraftsOverview)
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
   const [currentDraftStatus, setCurrentDraftStatus] = useState<'draft' | 'published' | null>(null);
@@ -493,7 +498,9 @@ export function ArticleForm({ editEvent }: { editEvent?: NostrEvent }) {
           onAppendMarkdown={(markdown) => {
             setContent(prev => prev ? `${prev}\n${markdown}` : markdown);
           }}
+          onOpenHelp={() => setHelpOpen(true)}
         />
+        <AssistantHelpSheet open={helpOpen} onOpenChange={setHelpOpen} />
 
         <div className="space-y-2">
           <Label htmlFor="article-title">Titel</Label>
@@ -840,6 +847,14 @@ Schreibe deinen Artikel hier...
                   erfindet nichts — fehlende Fakten bleiben einfach weg (Ehrlichkeits-Gate).
                   Ort, Datum, Perspektive, Art der Reise und Länge steuern Tonalität und Umfang.
                 </p>
+                <button
+                  type="button"
+                  onClick={() => setHelpOpen(true)}
+                  className="inline-flex items-center gap-1 font-medium text-foreground underline hover:text-ocean-600 dark:hover:text-ocean-400 transition-colors"
+                >
+                  <Info className="h-3.5 w-3.5" />
+                  Ausführliche Anleitung — alle Eingabefelder step by step
+                </button>
               </div>
             )}
           </div>

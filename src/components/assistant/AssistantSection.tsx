@@ -11,7 +11,7 @@ import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles } from '@/lib/icons';
+import { Sparkles, Info } from '@/lib/icons';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { IdeasPanel, type AssistantIdea } from './IdeasPanel';
 import { TopicsWithDemandBlock } from './TopicsWithDemandBlock';
@@ -54,6 +54,8 @@ export interface AssistantSectionProps {
   onAppendMarkdown: (markdown: string) => void;
   /** Kanonische URL des geladenen veröffentlichten Artikels (GSC-Ranking-Block) */
   publishedUrl?: string | null;
+  /** ⓘ-Klick: ausführliche Anleitung (AssistantHelpSheet) öffnen */
+  onOpenHelp?: () => void;
 }
 
 export function AssistantSection({
@@ -71,7 +73,8 @@ export function AssistantSection({
   onApplyFacts,
   onApplyExperiences,
   onAppendMarkdown,
-  publishedUrl
+  publishedUrl,
+  onOpenHelp
 }: AssistantSectionProps) {
   const [isCollapsed, setIsCollapsed] = useState(() => {
     return localStorage.getItem(COLLAPSE_STORAGE_KEY) === 'true';
@@ -86,22 +89,35 @@ export function AssistantSection({
 
   return (
     <Card>
-      <Button
-        variant="ghost"
-        onClick={toggleCollapsed}
-        className="w-full flex items-center justify-between p-4 h-auto"
-      >
-        <span className="flex items-center gap-2 text-sm font-semibold">
-          <Sparkles className="h-4 w-4" />
-          Assistent
-          <Badge variant="secondary" className="text-xs">Vorschläge</Badge>
-        </span>
-        {isCollapsed ? (
-          <ChevronDown className="h-4 w-4" />
-        ) : (
-          <ChevronUp className="h-4 w-4" />
+      <div className="flex w-full items-center">
+        <Button
+          variant="ghost"
+          onClick={toggleCollapsed}
+          className="flex-1 flex items-center justify-between p-4 h-auto"
+        >
+          <span className="flex items-center gap-2 text-sm font-semibold">
+            <Sparkles className="h-4 w-4" />
+            Assistent
+            <Badge variant="secondary" className="text-xs">Vorschläge</Badge>
+          </span>
+          {isCollapsed ? (
+            <ChevronDown className="h-4 w-4" />
+          ) : (
+            <ChevronUp className="h-4 w-4" />
+          )}
+        </Button>
+        {onOpenHelp && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onOpenHelp}
+            title="So benutzt du den Assistenten — Anleitung (alle Eingabefelder)"
+            className="shrink-0 mr-1 text-muted-foreground hover:text-foreground"
+          >
+            <Info className="h-4 w-4" />
+          </Button>
         )}
-      </Button>
+      </div>
 
       {!isCollapsed && (
         <CardContent className="space-y-6 pt-0">
