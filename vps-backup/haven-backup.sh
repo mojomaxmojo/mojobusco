@@ -129,29 +129,38 @@ if [ "$COUNT" -gt "$KEEP_BACKUPS" ]; then
 fi
 
 # ── 5) R2-Speicherbelegung melden ────────────────────────────────────────────
+# Zeigt am Ende: Verbraucht / Frei im 10-GB-Gratis-Tarif
+
+R2_FREE_BYTES=$((10 * 1024 * 1024 * 1024))   # Gratis-Tarif: 10 GiB
+
+hr_bytes() {
+    numfmt --to=iec --suffix=B "${1:-0}" 2>/dev/null || echo "${1:-0} Bytes"
+}
 
 echo "--- R2-Speicherbelegung ---"
 
-if HAVEN_SIZE=$(rclone size "$CRYPT_REMOTE:$CRYPT_PREFIX/" 2>/dev/null); then
-    echo "HAVEN-Backups (verschluesselt):"
-    echo "$HAVEN_SIZE" | sed 's/^/    /'
-else
-    echo "    [WARN] Groesse der HAVEN-Backups konnte nicht ermittelt werden."
-fi
+HAVEN_BYTES=$(rclone size "$CRYPT_REMOTE:$CRYPT_PREFIX/" --json 2>/dev/null \
+              | grep -o '"bytes":[0-9]*' | cut -d: -f2 | tail -1)
+BLOSSOM_BYTES=$(rclone size "$REMOTE:$BUCKET/$BLOSSOM_PREFIX/" --json 2>/dev/null \
+                | grep -o '"bytes":[0-9]*' | cut -d: -f2 | tail -1)
+HAVEN_BYTES=${HAVEN_BYTES:-0}
+BLOSSOM_BYTES=${BLOSSOM_BYTES:-0}
+TOTAL_BYTES=$(( HAVEN_BYTES + BLOSSOM_BYTES ))
 
-if BLOSSOM_SIZE=$(rclone size "$REMOTE:$BUCKET/$BLOSSOM_PREFIX/" 2>/dev/null); then
-    echo "Blossom-Medien:"
-    echo "$BLOSSOM_SIZE" | sed 's/^/    /'
-else
-    echo "    [WARN] Groesse der Blossom-Medien konnte nicht ermittelt werden."
-fi
+echo "    HAVEN-Backups (verschluesselt):  $(hr_bytes "$HAVEN_BYTES")"
+echo "    Blossom-Medien:                  $(hr_bytes "$BLOSSOM_BYTES")"
+echo "    -----------------------------------------"
+echo "    Verbraucht gesamt:               $(hr_bytes "$TOTAL_BYTES")"
 
-# Kostenloser R2-Tarif: 10 GB. Warnung, wenn knapp darunter.
-TOTAL_BYTES=$( { rclone size "$CRYPT_REMOTE:$CRYPT_PREFIX/" --json 2>/dev/null | grep -o '"bytes":[0-9]*' | cut -d: -f2; \
-                 rclone size "$REMOTE:$BUCKET/$BLOSSOM_PREFIX/" --json 2>/dev/null | grep -o '"bytes":[0-9]*' | cut -d: -f2; } \
-               | awk '{s+=$1} END {print s+0}')
+FREE_BYTES=$(( R2_FREE_BYTES - TOTAL_BYTES ))
+if [ "$FREE_BYTES" -lt 0 ]; then FREE_BYTES=0; fi
+PCT=$(( TOTAL_BYTES * 100 / R2_FREE_BYTES ))
+
+echo "    R2-Gratis-Tarif:                 10 GiB"
+echo "    Frei:                            $(hr_bytes "$FREE_BYTES")  ($PCT% belegt)"
+
 if [ "$TOTAL_BYTES" -ge $(( 9 * 1024 * 1024 * 1024 )) ]; then
-    echo "[WARN] R2-Belegung naehert sich dem 10-GB-Gratis-Limit ($(numfmt --to=iec ${TOTAL_BYTES:-0} 2>/dev/null || echo "$TOTAL_BYTES Bytes"))."
+    echo "[WARN] R2-Belegung naehert sich dem 10-GB-Gratis-Limit - alte Backups pruefen oder KEEP_BACKUPS senken!"
 fi
 
 echo "[OK] Backup abgeschlossen: $(date '+%F %T')"
