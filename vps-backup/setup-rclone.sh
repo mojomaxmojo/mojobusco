@@ -8,6 +8,7 @@
 #
 # Voraussetzungen:
 #   - R2-Bucket "mojobus-backup" im Cloudflare-Dashboard angelegt
+#     -> Location: NICHT EU! (z. B. Western North America oder Automatic)
 #   - R2-API-Token erstellt (Dashboard -> R2 -> Manage R2 API Tokens)
 #     mit Berechtigung "Object Read & Write" fuer diesen Bucket
 #
@@ -37,9 +38,15 @@ read -r -p "Cloudflare Account ID (32-stellig):  " ACC
 read -r -p "Bucket-Name                          [mojobus-backup]: " BUCKET
 BUCKET=${BUCKET:-mojobus-backup}
 echo ""
-echo "Hinweis zum Endpoint:"
-echo "  Standard-Bucket (Location: Automatic):  https://$ACC.r2.cloudflarestorage.com"
-echo "  Bucket mit EU-Jurisdiction:             https://$ACC.eu.r2.cloudflarestorage.com"
+echo "WICHTIG - Bucket-Location:"
+echo "  Der Bucket muss NICHT in der EU liegen!"
+echo "  Beim Anlegen im Dashboard daher:"
+echo "    - Location hint:  z. B. 'Western North America' oder 'Automatic'"
+echo "    - KEINE EU-Jurisdiction waehlen!"
+echo ""
+echo "  Passender Endpoint dafuer:"
+echo "    Standard (Automatic/NAM-Location):  https://$ACC.r2.cloudflarestorage.com"
+echo "    (EU-Ware nutzte: https://$ACC.eu.r2.cloudflarestorage.com  <- NICHT verwenden!)"
 read -r -p "R2 Endpoint: " ENDPOINT
 
 if [ -z "$AK" ] || [ -z "$SK" ] || [ -z "$ACC" ] || [ -z "$ENDPOINT" ]; then
