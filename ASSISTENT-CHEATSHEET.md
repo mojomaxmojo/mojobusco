@@ -2,6 +2,7 @@
 
 > Berichte-Assistent (/veroeffentlichen, Berichte-Tab). Stand: 2026-09-02.
 > Ausführlich: FEATURE-BAND-SCHAETZUNG-PLAN.md · RECOVERY.md
+> Aktiver Contentplan: **CONTENTPLAN_FIGUEIRA_BUDENS.md** (Figueira/Budens/Vila do Bispo, 30 Artikel, 8 Wochen)
 
 ---
 
@@ -78,7 +79,10 @@
 
 ---
 
-## Artikel-Typen-Mapping für den Armação-Contentplan
+## Artikel-Typen-Mapping für den Figueira/Budens-Contentplan
+
+Siehe `CONTENTPLAN_FIGUEIRA_BUDENS.md` (§1 Flow, §2 Top-SEO-Briefs, §3 30-Artikel-Roadmap).
+Das alte Armação-Mapping bleibt als Vorlage gültig:
 
 | Contentplan-Typ | MojoBus-Formular | Länge | Timing |
 |---|---|---|---|
