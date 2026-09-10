@@ -108,7 +108,8 @@ echo "[OK] HAVEN-Backup verschluesselt hochgeladen."
 # dem lokalen Zustand. Der VPS bleibt die Quelle der Wahrheit.
 
 if ! rclone sync "$BLOSSOM_DIR/" "$REMOTE:$BUCKET/$BLOSSOM_PREFIX/" \
-        --transfers 4 --checkers 8 --fast-list --s3-no-check-bucket -v; then
+        --transfers 4 --checkers 16 --fast-list --s3-no-check-bucket \
+        --stats-one-line -v; then
     echo "[FEHLER] Blossom-Sync fehlgeschlagen."
     exit 1
 fi
