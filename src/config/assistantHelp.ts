@@ -187,6 +187,7 @@ export const ASSISTANT_HELP_STEPS: HelpStep[] = [
       },
       { label: 'Bild-Platzhalter-Button', what: 'Setzt einen KI-Bild-Platzhalter in den Editor — nur per explizitem Klick.' },
     ],
+    tips: ['Interne Links zuerst setzen, bevor die Bilder verteilt werden — dann landen sie nahe der verlinkten Abschnitte.'],
   },
   {
     num: 8,
@@ -236,6 +237,7 @@ export const ASSISTANT_HELP_STEPS: HelpStep[] = [
         rule: 'Publish-Gate — ohne Häkchen wird nicht veröffentlicht.',
       },
     ],
+    tips: ['Slug und Meta-Description können leer bleiben — die Fallbacks (Smart-Slug, Summary) greifen automatisch.'],
     avoid: ['seo_title über 60 Zeichen — Google kürzt mit „…" und schneidet den Ort ab.'],
   },
   {
