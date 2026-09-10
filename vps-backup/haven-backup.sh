@@ -127,4 +127,30 @@ if [ "$COUNT" -gt "$KEEP_BACKUPS" ]; then
     done
 fi
 
+# ── 5) R2-Speicherbelegung melden ────────────────────────────────────────────
+
+echo "--- R2-Speicherbelegung ---"
+
+if HAVEN_SIZE=$(rclone size "$CRYPT_REMOTE:$CRYPT_PREFIX/" 2>/dev/null); then
+    echo "HAVEN-Backups (verschluesselt):"
+    echo "$HAVEN_SIZE" | sed 's/^/    /'
+else
+    echo "    [WARN] Groesse der HAVEN-Backups konnte nicht ermittelt werden."
+fi
+
+if BLOSSOM_SIZE=$(rclone size "$REMOTE:$BUCKET/$BLOSSOM_PREFIX/" 2>/dev/null); then
+    echo "Blossom-Medien:"
+    echo "$BLOSSOM_SIZE" | sed 's/^/    /'
+else
+    echo "    [WARN] Groesse der Blossom-Medien konnte nicht ermittelt werden."
+fi
+
+# Kostenloser R2-Tarif: 10 GB. Warnung, wenn knapp darunter.
+TOTAL_BYTES=$( { rclone size "$CRYPT_REMOTE:$CRYPT_PREFIX/" --json 2>/dev/null | grep -o '"bytes":[0-9]*' | cut -d: -f2; \
+                 rclone size "$REMOTE:$BUCKET/$BLOSSOM_PREFIX/" --json 2>/dev/null | grep -o '"bytes":[0-9]*' | cut -d: -f2; } \
+               | awk '{s+=$1} END {print s+0}')
+if [ "$TOTAL_BYTES" -ge $(( 9 * 1024 * 1024 * 1024 )) ]; then
+    echo "[WARN] R2-Belegung naehert sich dem 10-GB-Gratis-Limit ($(numfmt --to=iec ${TOTAL_BYTES:-0} 2>/dev/null || echo "$TOTAL_BYTES Bytes"))."
+fi
+
 echo "[OK] Backup abgeschlossen: $(date '+%F %T')"
