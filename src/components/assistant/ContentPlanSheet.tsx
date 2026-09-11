@@ -37,6 +37,61 @@ import {
   type ContentPlanFile,
 } from '@/config/contentplanSchema';
 
+const TYP_LABEL: Record<string, string> = {
+  pillar: 'Pillar',
+  listicle: 'Listicle',
+  guide: 'Guide',
+  erlebnis: 'Erlebnis',
+};
+
+const TYP_BADGE: Record<string, string> = {
+  pillar: 'bg-ocean-100 text-ocean-800 dark:bg-ocean-950 dark:text-ocean-200',
+  listicle: 'bg-violet-100 text-violet-800 dark:bg-violet-950 dark:text-violet-200',
+  guide: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200',
+  erlebnis: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200',
+};
+
+/** ISO-Wochenstart → „14. Sep 2026“ */
+function formatStart(startDate: string): string {
+  const d = new Date(startDate);
+  if (Number.isNaN(d.getTime())) return startDate;
+  return d.toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function ProgressBar({ done, total }: { done: number; total: number }) {
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  return (
+    <div className="flex items-center gap-2">
+      <div className="h-2 flex-1 rounded-full bg-muted overflow-hidden">
+        <div
+          className="h-full rounded-full bg-primary transition-all duration-300"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+        {done}/{total}
+      </span>
+    </div>
+  );
+}
+
+/** Aktuelle Plan-Woche (1-basiert) aus Startdatum — null vor Start/nach Ende. */
+function currentWeek(plan: ContentPlanFile): number | null {
+  const start = new Date(plan.startDate);
+  if (Number.isNaN(start.getTime())) return null;
+  const diffMs = Date.now() - start.getTime();
+  const week = Math.floor(diffMs / (7 * 24 * 3600 * 1000)) + 1;
+  if (week < 1 || week > plan.weeks) return null;
+  return week;
+}
+
+/** Anfänger-taugliche Längen-/Bildvorgabe aus dem Plandatum. */
+function lengthHint(length: 'K' | 'M' | 'L'): string {
+  if (length === 'K') return 'Kurz (500–1.000 Wörter) · 2–4 Bilder — Erlebnis';
+  if (length === 'M') return 'Mittel (1.000–2.000) · 4–8 Bilder — Guide/Vergleich';
+  return 'Lang (2.000–3.000) · 8–12 Bilder — Pillar/Listicle (Wörter in die Items)';
+}
+
 interface ContentPlanSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
