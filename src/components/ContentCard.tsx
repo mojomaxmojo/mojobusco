@@ -22,7 +22,7 @@ export type ContentItem = {
   parsedData?: Trip;
 };
 
-export const ContentCard = memo(function ContentCard({ item }: { item: ContentItem }) {
+export const ContentCard = memo(function ContentCard({ item, eager = false }: { item: ContentItem; eager?: boolean }) {
   const author = useAuthor(item.event.pubkey);
   const authorName = author.data?.metadata?.name || genUserName(item.event.pubkey);
 
@@ -80,7 +80,11 @@ export const ContentCard = memo(function ContentCard({ item }: { item: ContentIt
                 sizes={sizes}
                 alt={title}
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
-                loading="lazy"
+                loading={eager ? 'eager' : 'lazy'}
+                // LCP-Kandidat (erste Card im Viewport): hohe Priorität, damit
+                // das Bild nicht hinter dem Rest-Booting wartet. Cards 2/3
+                // bleiben lazy (Bandbreite gehört dem LCP-Bild allein).
+                fetchPriority={eager ? 'high' : undefined}
                 decoding="async"
               />
             )}

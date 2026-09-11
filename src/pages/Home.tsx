@@ -278,7 +278,9 @@ export function Home() {
                   {recentItems.map((item, index) => (
                     <div key={item.event.id} className="fade-in-up" style={{ animationDelay: `${index * 100}ms` }}>
                       <Suspense fallback={<CardSkeleton />}>
-                        <ContentCard item={item} />
+                        {/* Erste Card = LCP-Kandidat → eager + fetchPriority=high,
+                            Rest lazy (siehe ContentCard) */}
+                        <ContentCard item={item} eager={index === 0} />
                       </Suspense>
                     </div>
                   ))}
