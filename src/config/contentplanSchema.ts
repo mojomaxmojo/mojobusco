@@ -35,6 +35,8 @@ export interface ContentPlanArticle {
   slug?: string | null;
   seoTitle?: string | null;
   meta?: string | null;
+  /** Refresh-Stempel: „Update <Monat/Jahr> — was aktualisieren" (Saison-/Jahres-Artikel) */
+  refresh?: string | null;
 }
 
 export interface ContentPlanBrief {
@@ -49,6 +51,8 @@ export interface ContentPlanBrief {
   /** Suchanfrage für den Recherche-Block (FAKTEN) */
   factsSeed: string;
   szenen?: string[];
+  /** „People also ask"-Fragen — FAQ-Basis für Pillars/Listicles */
+  paa?: string[];
   verlinkung?: string[];
   bildPlan?: string;
 }
@@ -176,6 +180,7 @@ function parseArticle(raw: unknown): ContentPlanArticle | null {
     slug: asStringOrNull(r.slug),
     seoTitle: asStringOrNull(r.seoTitle),
     meta: asStringOrNull(r.meta),
+    refresh: asStringOrNull(r.refresh),
   };
 }
 
@@ -194,6 +199,7 @@ function parseBrief(raw: unknown): ContentPlanBrief | null {
     meta: asString(r.meta),
     factsSeed: asString(r.factsSeed),
     szenen: asStringArray(r.szenen),
+    paa: asStringArray(r.paa),
     verlinkung: asStringArray(r.verlinkung),
     bildPlan: asStringOrNull(r.bildPlan) ?? undefined,
   };
