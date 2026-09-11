@@ -1,0 +1,15 @@
+{
+  "plans": [
+    {
+      "id": "figueira-budens",
+      "title": "Figueira / Budens / Vila do Bispo",
+      "ort": "Praia da Figueira (Budens)",
+      "region": "Algarve",
+      "land": "Portugal",
+      "weeks": 8,
+      "startDate": "2026-09-15",
+      "articleCount": 30,
+      "file": "figueira-budens.json"
+    }
+  ]
+}

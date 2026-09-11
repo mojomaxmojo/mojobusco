@@ -46,6 +46,7 @@ import type { AssistantIdea } from "@/components/assistant/IdeasPanel";
 import { useAssistantApi } from "@/components/assistant/useAssistantApi";
 import { AssistantSection } from "@/components/assistant/AssistantSection";
 import { AssistantHelpSheet } from "@/components/assistant/AssistantHelpSheet";
+import { ContentPlanSheet } from "@/components/assistant/ContentPlanSheet";
 import { SeoPublishPanel } from "@/components/assistant/SeoPublishPanel";
 import { DraftsOverview } from "@/components/assistant/DraftsOverview";
 import { MediaLibraryPanel } from "@/components/assistant/MediaLibraryPanel";
@@ -86,6 +87,9 @@ export function ArticleForm({ editEvent }: { editEvent?: NostrEvent }) {
   // + Link im „Was fließt in den Text ein?"-Popover. Nur hier gemountet;
   // /veroeffentlichen ist Login-geschützt → Hilfe automatisch hinter Auth.
   const [helpOpen, setHelpOpen] = useState(false);
+  // Contentplan-Verzeichnis (ContentPlanSheet) — 📋 im Assistenten-Header;
+  // Abhak-Progress localStorage + Server-Sync, Artikel ins Formular übernehmbar.
+  const [plansOpen, setPlansOpen] = useState(false);
   // Aktuell geladener Entwurf (DraftsOverview)
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
   const [currentDraftStatus, setCurrentDraftStatus] = useState<'draft' | 'published' | null>(null);
@@ -499,8 +503,25 @@ export function ArticleForm({ editEvent }: { editEvent?: NostrEvent }) {
             setContent(prev => prev ? `${prev}\n${markdown}` : markdown);
           }}
           onOpenHelp={() => setHelpOpen(true)}
+          onOpenPlans={() => setPlansOpen(true)}
         />
         <AssistantHelpSheet open={helpOpen} onOpenChange={setHelpOpen} />
+        <ContentPlanSheet
+          open={plansOpen}
+          onOpenChange={setPlansOpen}
+          onApplyArticle={(article) => {
+            if (article.title) setTitle(article.title);
+            if (article.keyword && !tags.includes(article.keyword)) {
+              setTags([...tags, article.keyword]);
+            }
+            toast({
+              title: 'Aus dem Contentplan übernommen',
+              description: article.keyword
+                ? `Titel + Keyword „${article.keyword}" gesetzt — Artikellänge und Input folgen dem Plan.`
+                : 'Titel gesetzt — Artikellänge und Input folgen dem Plan.'
+            });
+          }}
+        />
 
         <div className="space-y-2">
           <Label htmlFor="article-title">Titel</Label>

@@ -91,8 +91,9 @@ Prerender, Sitemap, Feed, IndexNow, Continuity-Track.
 Recherchiere per Websuche und liefere am Ende des Plans eine
 **verifizierte FAKTEN-Liste mit Quellen-URLs** (landet später im
 Recherche-Block). Pflicht:
-
 - Exakte Schreibweise, Gemeinde/Kreis, GPS-Koordinaten des Hauptorts
+- **Ausgabe-Format der FAKTEN: Einzelpunkte im Format `Fakt — Quelle-URL`**
+  (wird später 1:1 in den Recherche-Block und die App übernommen)
 - **Verwechslungsgefahr:** gleichnamige Orte/Strände in der Nähe oder in
   anderen Regionen (jede Verwechslung = eigener Differenzierungs-Absatz
   im Pillar → Snippet-Chance)
@@ -142,9 +143,12 @@ Kreis/Region-Reiseführer, optional das meistgesuchte regulierte Thema
 ## SCHRITT 4 — ARTIKEL-ROADMAP ({{ANZAHL ARTIKEL}} Artikel)
 
 Eine Tabelle: **Nr | Woche | Titel (Foster-kurz, 2–6 Wörter) | Typ |
-Länge K/M/L | Zielkeyword (— bei reinen Erlebnissen) | verlinkt auf |
-Timing/Peak**
+Länge K/M/L | Zielkeyword (— bei reinen Erlebnissen) | Formular
+(Kategorie · Art der Reise · Perspektive) | verlinkt auf | Timing/Peak**
 
+Kategorie-Werte: reisen/technik/leben/diy/strand-ort. Art der Reise:
+wandern/strand/ort/… (strand/ort = keine Anreise im Text). Perspektive:
+ich/wir.
 Regeln:
 - Mix: ~⅓ Erlebnisse (K), ~⅓ Guides/Vergleiche (M), Rest Pillar/Listicles (L)
 - Peak-getrieben: alles mit Saison-Peak VOR dem Peak publizieren
@@ -163,15 +167,14 @@ Regeln:
 
 ## SCHRITT 5 — DIE ANDEREN TABS
 
-- **Places (~15–20):** Liste mit exakten Namen + GPS-Hinweis + je 1 Zeile
-  Inhalt; Long-Tail-Landingpages für „strand x" / „ort y", direkt vor Ort
-  befüllen
-- **Trips (3–5):** Wander-/Rad-/Strand-Routen als GPS-Tracks (kind 30025)
-- **Media + Notes (täglich, 10 min):** EXIF intakt lassen (GPS +
+- Places (~15–20): Liste mit exakten Namen + GPS-Hinweis + je 1 Zeile
+  Inhalt; Long-Tail-Landingpages für „strand x" / „ort y", direkt vor
+  Ort befüllen — **Richtwert: 2–3 Places pro Woche**
+- Trips (3–5): Wander-/Rad-/Strand-Routen als GPS-Tracks (kind 30025) —
+  **1 Trip pro Aktivitäts-Cluster**, mit Artikel gekoppelt
+- Media + Notes (**täglich, 10 min**): EXIF intakt lassen (GPS +
   Aufnahmezeit → Wetter-Block/Karte), Notes = Vorabend-Ideen,
   Brand-DNA-Futter für spätere Generierungen
-
----
 
 ## SCHRITT 6 — SEO-MECHANIK + WOCHENBUDGET
 
@@ -198,6 +201,12 @@ Regeln:
   (5) Publish + GSC-Lern-Schleife nach 7–28 Tagen
 - Keine erfundenen Zahlen, keine erfundenen Festivals — nur Verifiziertes
   oder „PRÜFEN VOR ORT"
+
+**Nach der Generierung (Shakespeare):** Den Plan als JSON konvertieren und
+speichern als `public/data/contentplans/<id>.json` (Schema:
+`src/config/contentplanSchema.ts`) + Eintrag in
+`public/data/contentplans/index.json` — danach ist er im Assistenten
+(📋-Button) abhakbar.
 
 ═══════════════════════════════════════════════════════════════
 COPY BIS HIER

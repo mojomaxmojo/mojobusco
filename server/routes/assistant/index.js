@@ -37,12 +37,16 @@ import { getGenerationContext } from '../../services/generation-context.js'
 import { runPublishPipeline } from '../../services/publish-pipeline.js'
 import { resolveThread } from '../../services/continuity-store.js'
 import mediaRouter from './media.js'
+import contentplanRouter from './contentplan.js'
 import { requireAssistantToken } from './auth.js'
 
 const router = express.Router()
 
 // Media-Library-Routen in den Assistant-Router einbinden
 router.use(mediaRouter)
+
+// Contentplan-Fortschritt (Phase 2, NIP-98 via /api/assistant-Prefix)
+router.use(contentplanRouter)
 
 // ============================================================
 // OFFENE ROUTEN (nur lesend / ask)

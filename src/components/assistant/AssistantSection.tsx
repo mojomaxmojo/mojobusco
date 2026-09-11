@@ -12,7 +12,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Sparkles, Info } from '@/lib/icons';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, ListChecks } from 'lucide-react';
+import { useContentPlanBadge } from './useContentPlans';
 import { IdeasPanel, type AssistantIdea } from './IdeasPanel';
 import { TopicsWithDemandBlock } from './TopicsWithDemandBlock';
 import { ResearchBlock } from './ResearchBlock';
@@ -56,6 +57,8 @@ export interface AssistantSectionProps {
   publishedUrl?: string | null;
   /** ⓘ-Klick: ausführliche Anleitung (AssistantHelpSheet) öffnen */
   onOpenHelp?: () => void;
+  /** 📋-Klick: Contentplan-Verzeichnis (ContentPlanSheet) öffnen */
+  onOpenPlans?: () => void;
 }
 
 export function AssistantSection({
@@ -74,11 +77,16 @@ export function AssistantSection({
   onApplyExperiences,
   onAppendMarkdown,
   publishedUrl,
-  onOpenHelp
+  onOpenHelp,
+  onOpenPlans
 }: AssistantSectionProps) {
   const [isCollapsed, setIsCollapsed] = useState(() => {
     return localStorage.getItem(COLLAPSE_STORAGE_KEY) === 'true';
   });
+
+  // Fortschritts-Badge des zuletzt aktiven Contentplans (localStorage + Events,
+  // Total einmalig aus index.json)
+  const planBadge = useContentPlanBadge();
 
   const toggleCollapsed = () => {
     setIsCollapsed(prev => {
@@ -106,6 +114,24 @@ export function AssistantSection({
             <ChevronUp className="h-4 w-4" />
           )}
         </Button>
+        {onOpenPlans && (
+          <Button
+            variant="ghost"
+            onClick={onOpenPlans}
+            title="Contentpläne — Roadmap abhaken, Artikel ins Formular übernehmen"
+            className="shrink-0 mr-1 text-muted-foreground hover:text-foreground"
+          >
+            <ListChecks className="h-4 w-4" />
+            {planBadge.planId && planBadge.totalCount ? (
+              <Badge
+                variant="secondary"
+                className="ml-1 text-[10px] px-1.5 py-0 h-4 tabular-nums"
+              >
+                {planBadge.doneCount}/{planBadge.totalCount}
+              </Badge>
+            ) : null}
+          </Button>
+        )}
         {onOpenHelp && (
           <Button
             variant="ghost"

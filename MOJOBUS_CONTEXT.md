@@ -269,6 +269,19 @@ Schwelle Forecast/Archiv: 92 Tage; >16 Tage Zukunft → Wetter überspringen
 (Archiv-Branch bleibt Tagesaggregat).
 
 **Weitere Features (Nr. 5/10/11/12/13 + Pipeline-Trigger):**
+- **Contentplan-Verzeichnis (ContentPlanSheet, Phase 1+2):** 📋-Button mit Fortschritts-Badge
+  im Assistenten-Header (AssistantSection, `onOpenPlans`-Prop; nur gemountet in ArticleForm →
+  Auth). Pläne = statische JSON-Dumps in `public/data/contentplans/` (index.json + `<id>.json`,
+  Schema: `src/config/contentplanSchema.ts`), geladen via getDataBaseUrl() — APK-kompatibel.
+  Detail-Ansicht: 30 Artikel als abhakbare Checkliste pro Woche (aktuelle Woche markiert),
+  Places/Trips abhakbar, Top-Briefs mit FAKTEN-Seed-Copy, „→ ins Formular" übernimmt
+  Titel + Keyword (Muster onApplyIdea). Progress: localStorage `contentplan:progress:v1`
+  (itemKey → {done, at}) + **Server-Sync** via GET/POST `/api/assistant/contentplan-state`
+  (`server/services/contentplan-store.js` + `server/routes/assistant/contentplan.js`,
+  eigene SQLite `server/data/contentplan-progress.db`, Blob-Store, Merge per Item-Timestamp
+  im Client, NIP-98 via /api/assistant-Prefix). Route fehlt/404 → graceful rein lokal.
+  Deploy: Server-Neustart nötig (`systemctl restart ai-api`), DB entsteht automatisch.
+  Quell-Doku: PROMPT_CONTENTPLAN_VORLAGE.md + CONTENTPLAN_FIGUEIRA_BUDENS.md.
 - **Assistenten-Hilfe (AssistantHelpSheet):** ⓘ im Assistenten-Header (AssistantSection,
   optionaler Prop `onOpenHelp`) + Link im „Was fließt in den Text ein?"-Popover (ArticleForm)
   öffnen ein Sheet mit 10 Nutzungsschritten aller Eingabefelder, 7 häufigsten Fehlern und dem
