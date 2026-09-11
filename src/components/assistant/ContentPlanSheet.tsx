@@ -26,6 +26,7 @@ import {
   useContentPlans,
   usePlanCardProgress,
   type PlanProgress,
+  type SyncStatus,
 } from './useContentPlans';
 import {
   articleKey,
@@ -162,6 +163,7 @@ export function ContentPlanSheet({ open, onOpenChange, onApplyArticle }: Content
               plan={activePlan}
               progress={progress}
               total={activePlanItemCount}
+              syncStatus={syncStatus}
               onBack={closePlan}
               onToggle={(key) => toggleItem(activePlan.id, key)}
               onApplyArticle={onApplyArticle}
@@ -227,6 +229,8 @@ interface PlanDetailProps {
   plan: ContentPlanFile;
   progress: PlanProgress;
   total: number;
+  /** Sync-Status aus useContentPlans (Footer: „lokal" vs. „Server") */
+  syncStatus: SyncStatus;
   onBack: () => void;
   onToggle: (itemKey: string) => void;
   onApplyArticle?: (article: ContentPlanArticle) => void;
@@ -236,7 +240,7 @@ interface PlanDetailProps {
 }
 
 function PlanDetail(props: PlanDetailProps) {
-  const { plan } = props;
+  const { plan, syncStatus } = props;
   const doneCount = Object.values(props.progress).filter(p => p.done).length;
   const week = currentWeek(plan);
 
