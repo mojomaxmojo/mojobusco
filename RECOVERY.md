@@ -164,7 +164,7 @@ Validierung weg (degradiert statt erfindet, Wetter-Gate-Philosophie).
   `server/services/band-estimate.js` (NEU: Validierung, Cache, 5-Runs/Tag-Counter) ·
   `server/prompts/assistant-prompts.js` (`buildBandEstimatePrompt`) ·
   `server/services/report-assistant.js` (`getTopicSuggestions`: DFS-Pfad UNVERÄNDERT,
-  sonst Band-Pfad; Topics-Cache 30 T. deckt Bänder mit ab) ·
+  sonst Band-Pfad; Topics-Cache 90 T. deckt Bänder mit ab) ·
   `src/components/assistant/TopicsWithDemandBlock.tsx` (Band-Zeile + SaisonSparkline
   + Quellen-Badge) · `src/config/bandEstimate.ts` (NEU: Anzeige-Konstanten)
 - Modell: Tier `test` = **GLM 5.3 Flash** (ai-models.js), env `BAND_MODEL_TIER`

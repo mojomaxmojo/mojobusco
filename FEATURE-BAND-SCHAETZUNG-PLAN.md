@@ -268,7 +268,7 @@ node --check server/prompts/assistant-prompts.js
 cd /home/nginx/domains/mojobus.co/public
 node -e "import('./server/services/report-assistant.js').then(()=>{console.log('LINK OK');process.exit(0)}).catch(e=>{console.error('LINK FAIL:',e.message);process.exit(1)})"
 systemctl restart ai-api
-# Smoke-Test (refresh=1 umgeht den 30-Tage-Topics-Cache):
+# Smoke-Test (refresh=1 umgeht den 90-Tage-Topics-Cache):
 curl -s "http://127.0.0.1:3002/api/assistant/topic-ideas?seed=Armacao%20de%20Pera&refresh=1" | head -c 600
 ```
 

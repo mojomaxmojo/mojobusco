@@ -76,7 +76,7 @@
 | Themen mit Nachfrage (`ideas`) | 10/Tag | Mini-LLM ~0,002 €/Run |
 | Band-Schätzung (echte Flash-Runs) | 5/Tag | ~0,0006 €/Run — Cache 7 T. |
 | DataForSEO | Opt-in-Checkbox | ~0,10 €/Keyword — bewusst sparsam |
-| Topics-Cache | 30 Tage | gleicher Seed = gratis |
+| Topics-Cache | 90 Tage | gleicher Seed = gratis (deckt einen kompletten 8-Wochen-Plan) |
 | Band-Cache | 7 Tage | gleiche Keywords = gratis |
 
 ---

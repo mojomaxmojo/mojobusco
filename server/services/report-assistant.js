@@ -26,6 +26,7 @@ import { isDataForSEOConfigured, getKeywordData } from './dataforseo-client.js'
 // Fehler beim Start (Crash-Loop, s. RECOVERY.md §4 Fehlerklasse 5).
 import { getBandEstimates, isBandEstimateEnabled, getBandModelLabel } from './band-estimate.js'
 import { BAND_CONFIG } from '../config/band-estimate.js'
+import { TOPICS_CACHE_DAYS } from '../../src/config/assistant-cache.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -430,9 +431,11 @@ function matchGscQuery(keyword, gscQueries) {
  *      b) Band-Schätzung (Default): Zahlen-BÄNDER aus festem Raster + grobe
  *         Saison-Kurve via Flash-Modell — KEINE Punktwerte
  *         (services/band-estimate.js, FEATURE-BAND-SCHAETZUNG-PLAN.md).
- * Cache: 7 Tage (env: ASSISTANT_TOPICS_CACHE_DAYS) — Suchvolumina ändern
- * sich monatsweise, nicht täglich; schützt auch DFS-Credits. Mit
- * `refresh: true` wird der Cache umgangen (manuelle Frisch-Anfrage).
+ * Cache: 90 Tage (Default: TOPICS_CACHE_DAYS aus
+ * src/config/assistant-cache.js, env: ASSISTANT_TOPICS_CACHE_DAYS) —
+ * Suchvolumina ändern sich monatsweise, nicht täglich; deckt die Länge
+ * eines Contentplans (8 Wochen + Reserve) und schützt auch DFS-Credits.
+ * Mit `refresh: true` wird der Cache umgangen (manuelle Frisch-Anfrage).
  * @param {{ seed: string, windowDays?: number, refresh?: boolean, useDfs?: boolean }} params
  */
 export async function getTopicSuggestions({ seed, windowDays = 28, refresh = false, useDfs = false } = {}) {
@@ -442,7 +445,7 @@ export async function getTopicSuggestions({ seed, windowDays = 28, refresh = fal
   const dfsConfigured = isDataForSEOConfigured()
   const dfsActive = dfsConfigured && Boolean(useDfs)
   const cacheKey = `topics:${trimmed.toLowerCase()}:${windowDays}:${dfsActive ? 'dfs' : 'nodfs'}`
-  const ttlDays = Math.max(1, parseInt(process.env.ASSISTANT_TOPICS_CACHE_DAYS || '30', 10) || 30)
+  const ttlDays = Math.max(1, parseInt(process.env.ASSISTANT_TOPICS_CACHE_DAYS || String(TOPICS_CACHE_DAYS), 10) || TOPICS_CACHE_DAYS)
   const ttlMs = ttlDays * 24 * 60 * 60 * 1000
   const cached = refresh ? null : getCached(cacheKey, ttlMs)
   if (cached && typeof cached === 'object' && Array.isArray(cached.topics)) {

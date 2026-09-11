@@ -177,7 +177,7 @@ Jeder Artikel im SEO-Panel: seo_title ≤ 60 (Keyword vorn, Ort hinten; überreg
 
 ## §6 SEO-WOCHEBUDGET
 
-Generierungen ~39–40 über 8 Wochen (≈ 5/Woche, Limit 15/Tag) · Ideen-Runs 1–2/Woche · Band 4–5/Woche (Cache 7 T.) · Recherche 1/SEO-Artikel (2–3/Woche) · DataForSEO nur Briefs 1–6: 12–24 Keywords ≈ 1,20–2,40 € (W1/W2) · Topics-Cache 30 T. (Seeds nicht doppelt) · Cadence: Mo Erlebnis · Di SEO-Artikel · Mi zweiter/Ideen · Fr Nachgenerierung + GSC (ab W3) + Notes → Brand-DNA.
+Generierungen ~39–40 über 8 Wochen (≈ 5/Woche, Limit 15/Tag) · Ideen-Runs 1–2/Woche · Band 4–5/Woche (Cache 7 T.) · Recherche 1/SEO-Artikel (2–3/Woche) · DataForSEO nur Briefs 1–6: 12–24 Keywords ≈ 1,20–2,40 € (W1/W2) · Topics-Cache 90 T. (Seeds nicht doppelt) · Cadence: Mo Erlebnis · Di SEO-Artikel · Mi zweiter/Ideen · Fr Nachgenerierung + GSC (ab W3) + Notes → Brand-DNA.
 
 ---
 

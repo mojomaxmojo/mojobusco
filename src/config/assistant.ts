@@ -6,6 +6,8 @@
  * Author-Input der Artikel-Generierung.
  */
 
+import { TOPICS_CACHE_DAYS } from './assistant-cache.js'
+
 export interface AssistantTabConfig {
   tabKey: string;
 }
@@ -47,6 +49,11 @@ export const ASSISTANT_CONFIG = {
 
   // Google Search Console: Zeitfenster für Striking-Distance-Queries (Tage)
   gscWindowDays: 28,
+
+  // Themen-Vorschläge: Cache-TTL in Tagen (gleicher Seed = gratis).
+  // Single Source: src/config/assistant-cache.js (Server liest dieselbe Datei,
+  // Override via ASSISTANT_TOPICS_CACHE_DAYS in ai-api.env).
+  topicsCacheDays: TOPICS_CACHE_DAYS,
 
   // Cache-TTL für serverseitige Assistent-Ergebnisse (Stunden)
   cacheTtlHours: 24,

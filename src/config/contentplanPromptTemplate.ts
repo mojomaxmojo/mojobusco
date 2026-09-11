@@ -95,7 +95,7 @@ Publish-Gate. Canonical immer https://mojobus.co/{naddr}.
   neue URL — Google liest das neue Datum als Freshness-Signal)
 
 **Limits:** 15 Artikel-Generierungen/Tag · 10 Ideen-Runs/Tag · 5
-Band-Schätzungen/Tag (Cache 7 Tage) · Topics-Cache 30 Tage ·
+Band-Schätzungen/Tag (Cache 7 Tage) · Topics-Cache 90 Tage ·
 DataForSEO bewusst sparsam. Pipeline nach Publish automatisch:
 Prerender, Sitemap, Feed, IndexNow, Continuity-Track.
 

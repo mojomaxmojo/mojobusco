@@ -176,7 +176,7 @@
   ],
   "budget": [
     "~40 Generierungs-Runs (30 Artikel + ~30 % Nachgenierer) — Limit 15/Tag locker über 8 Wochen",
-    "~12 Themen-Runs (6 Seeds × 2) — Limit 10/Tag, Topics-Cache 30 Tage",
+    "~12 Themen-Runs (6 Seeds × 2) — Limit 10/Tag, Topics-Cache 90 Tage",
     "~15 Flash-Band-Schätzungen — Limit 5/Tag, Band-Cache 7 Tage",
     "DataForSEO nur Top-6-Briefs: ~10–12 Keywords ≈ ~1 €",
     "Cadence: Mo/Di/Mi/Fr je 1 Artikel, So = Places/Media/Notes + Momente-✓",

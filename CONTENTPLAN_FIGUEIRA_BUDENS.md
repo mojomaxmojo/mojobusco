@@ -64,7 +64,7 @@
 13. Nach 7–28 Tagen: **Ranking (Search Console)**-Block am Artikel öffnen → gefundene Queries → neue Themen → zurück zu Phase 1.
 14. Zusätzlich 2×/Woche „Themen-Ideen laden" (IdeasPanel): Long-Tails + GSC-Striking-Distance → pinnen → Roadmap ergänzen.
 
-> **Limits (je Tag):** 15 Generierungen · 10 Ideen-Runs · 5 Band-Schätzungen · Topics-Cache 30 T. · Band-Cache 7 T.
+> **Limits (je Tag):** 15 Generierungen · 10 Ideen-Runs · 5 Band-Schätzungen · Topics-Cache 90 T. · Band-Cache 7 T.
 > Kadenz 30 Artikel / 8 Wochen = ~4/Woche → Limits nie am Anschlag, Platz für Doppel-Generierungen.
 
 ---
