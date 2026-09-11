@@ -31,6 +31,10 @@ export interface ContentPlanArticle {
   perspektive?: 'ich' | 'wir' | null;
   /** ⭐ Top-SEO-Artikel */
   star?: boolean;
+  /** Fertige SEO-Felder aus dem Plan (optional, für Copy-Button im Sheet) */
+  slug?: string | null;
+  seoTitle?: string | null;
+  meta?: string | null;
 }
 
 export interface ContentPlanBrief {
@@ -169,6 +173,9 @@ function parseArticle(raw: unknown): ContentPlanArticle | null {
     tripType: asStringOrNull(r.tripType),
     perspektive,
     star: r.star === true,
+    slug: asStringOrNull(r.slug),
+    seoTitle: asStringOrNull(r.seoTitle),
+    meta: asStringOrNull(r.meta),
   };
 }
 

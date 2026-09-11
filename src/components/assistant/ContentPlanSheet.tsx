@@ -317,6 +317,20 @@ function PlanDetail(props: PlanDetailProps) {
                         {a.timing && <span>· {a.timing}</span>}
                       </p>
                     </div>
+                    {a.meta && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="shrink-0 h-7 px-2"
+                        title="seo_title + Slug + Meta-Description kopieren"
+                        onClick={() => void props.copyText(
+                          `seo_title: ${a.seoTitle || '(kreativer Titel — SEO-Panel leer lassen)'}\nslug: ${a.slug || ''}\nmeta_description: ${a.meta}`,
+                          'SEO-Felder kopiert — ins SEO-Panel eintragen'
+                        )}
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    )}
                     {props.onApplyArticle && (
                       <Button
                         size="sm"

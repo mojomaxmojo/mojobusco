@@ -10,6 +10,17 @@
       "startDate": "2026-09-15",
       "articleCount": 30,
       "file": "figueira-budens.json"
+    },
+    {
+      "id": "manta-rota",
+      "title": "Manta Rota / Ostalgarve (Sotavento)",
+      "ort": "Manta Rota (Praia de Manta Rota)",
+      "region": "Algarve (Sotavento)",
+      "land": "Portugal",
+      "weeks": 8,
+      "startDate": "2026-09-14",
+      "articleCount": 30,
+      "file": "manta-rota.json"
     }
   ]
 }
