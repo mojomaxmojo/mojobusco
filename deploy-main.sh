@@ -364,11 +364,14 @@ deploy_files() {
         info_msg "✓ src/config/prompts/ deployed"
     fi
 
-    # src/config/api-auth.js + authors.json kopieren (NIP-98-Server-Imports!)
+    # src/config/api-auth.js + authors.json + assistant-cache.js kopieren
+    # (NIP-98-Server-Imports + Assistent-Cache-Konstanten)
     # server/middleware/nostr-auth.js + server/server.js importieren api-auth.js
-    # zur Laufzeit; nostr-auth.js liest authors.json (Autoren-Allowlist).
+    # zur Laufzeit; server/services/report-assistant.js importiert
+    # assistant-cache.js (Topics-Cache-TTL, Single Source: src/config/);
+    # nostr-auth.js liest authors.json (Autoren-Allowlist).
     # Single Source of Truth bleibt src/config/ — hier nur die Deploy-Kopie.
-    for AUTH_FILE in api-auth.js authors.json; do
+    for AUTH_FILE in api-auth.js authors.json assistant-cache.js; do
         if [ -f "$PROJECT_DIR/src/config/$AUTH_FILE" ]; then
             mkdir -p "$DEPLOY_DIR/src/config"
             cp "$PROJECT_DIR/src/config/$AUTH_FILE" "$DEPLOY_DIR/src/config/" || error_exit "Kopieren von src/config/$AUTH_FILE fehlgeschlagen"
