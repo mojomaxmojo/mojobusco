@@ -21,6 +21,17 @@
       "startDate": "2026-09-14",
       "articleCount": 30,
       "file": "manta-rota.json"
+    },
+    {
+      "id": "armacao-de-pera",
+      "title": "Armação de Pêra / Zentralalgarve",
+      "ort": "Armação de Pêra",
+      "region": "Algarve (Zentralalgarve)",
+      "land": "Portugal",
+      "weeks": 8,
+      "startDate": "2026-09-14",
+      "articleCount": 30,
+      "file": "armacao-de-pera.json"
     }
   ]
 }
