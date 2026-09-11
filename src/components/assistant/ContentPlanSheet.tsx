@@ -20,8 +20,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/useToast';
-import { ArrowLeft, CloudOff, Copy, ListChecks, MapPin, Route, Star } from 'lucide-react';
-import { Loader2, Cloud } from '@/lib/icons';
+import { ArrowLeft, ChevronDown, CloudOff, Copy, ListChecks, MapPin, Route, Star } from 'lucide-react';
+import { CheckCircle, Info, Loader2, Cloud } from '@/lib/icons';
 import {
   useContentPlans,
   usePlanCardProgress,
@@ -42,57 +42,11 @@ interface ContentPlanSheetProps {
   onOpenChange: (open: boolean) => void;
   /** Titel + Keyword in das Berichte-Formular übernehmen */
   onApplyArticle?: (article: ContentPlanArticle) => void;
+  /** „Nächste Schritte“-Panel: AssistantHelpSheet (ⓘ) öffnen */
+  onOpenHelp?: () => void;
 }
 
-const TYP_LABEL: Record<string, string> = {
-  pillar: 'Pillar',
-  listicle: 'Listicle',
-  guide: 'Guide',
-  erlebnis: 'Erlebnis',
-};
-
-const TYP_BADGE: Record<string, string> = {
-  pillar: 'bg-ocean-100 text-ocean-800 dark:bg-ocean-950 dark:text-ocean-200',
-  listicle: 'bg-violet-100 text-violet-800 dark:bg-violet-950 dark:text-violet-200',
-  guide: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200',
-  erlebnis: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200',
-};
-
-/** ISO-Wochenstart → „15. Sep“ */
-function formatStart(startDate: string): string {
-  const d = new Date(startDate);
-  if (Number.isNaN(d.getTime())) return startDate;
-  return d.toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
-/** Aktuelle Plan-Woche (1-basiert) aus Startdatum — null vor Start/nach Ende. */
-function currentWeek(plan: ContentPlanFile): number | null {
-  const start = new Date(plan.startDate);
-  if (Number.isNaN(start.getTime())) return null;
-  const diffMs = Date.now() - start.getTime();
-  const week = Math.floor(diffMs / (7 * 24 * 3600 * 1000)) + 1;
-  if (week < 1 || week > plan.weeks) return null;
-  return week;
-}
-
-function ProgressBar({ done, total }: { done: number; total: number }) {
-  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
-  return (
-    <div className="flex items-center gap-2">
-      <div className="h-2 flex-1 rounded-full bg-muted overflow-hidden">
-        <div
-          className="h-full rounded-full bg-primary transition-all duration-300"
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <span className="text-xs text-muted-foreground tabular-nums shrink-0">
-        {done}/{total}
-      </span>
-    </div>
-  );
-}
-
-export function ContentPlanSheet({ open, onOpenChange, onApplyArticle }: ContentPlanSheetProps) {
+export function ContentPlanSheet({ open, onOpenChange, onApplyArticle, onOpenHelp }: ContentPlanSheetProps) {
   const {
     index, isLoadingIndex, activePlan, isLoadingPlan, error, syncStatus,
     openPlan, closePlan, progress, toggleItem, activePlanItemCount,
@@ -164,6 +118,7 @@ export function ContentPlanSheet({ open, onOpenChange, onApplyArticle }: Content
               progress={progress}
               total={activePlanItemCount}
               syncStatus={syncStatus}
+              onOpenHelp={onOpenHelp}
               onBack={closePlan}
               onToggle={(key) => toggleItem(activePlan.id, key)}
               onApplyArticle={onApplyArticle}
@@ -231,6 +186,8 @@ interface PlanDetailProps {
   total: number;
   /** Sync-Status aus useContentPlans (Footer: „lokal" vs. „Server") */
   syncStatus: SyncStatus;
+  /** ⓘ-Link im „Nächste Schritte"-Panel → AssistantHelpSheet öffnen */
+  onOpenHelp?: () => void;
   onBack: () => void;
   onToggle: (itemKey: string) => void;
   onApplyArticle?: (article: ContentPlanArticle) => void;
@@ -243,6 +200,24 @@ function PlanDetail(props: PlanDetailProps) {
   const { plan, syncStatus } = props;
   const doneCount = Object.values(props.progress).filter(p => p.done).length;
   const week = currentWeek(plan);
+  // Aufgeklappte Work-Cards + „Nächste Schritte"-Panel nach „→ ins Formular"
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const [stepsFor, setStepsFor] = useState<number | null>(null);
+
+  const toggleExpanded = (num: number) => {
+    setExpanded(prev => {
+      const next = new Set(prev);
+      if (next.has(num)) next.delete(num);
+      else next.add(num);
+      return next;
+    });
+  };
+
+  /** „→ ins Formular": übernehmen + Schritt-für-Schritt-Panel öffnen */
+  const handleApply = (a: ContentPlanArticle) => {
+    props.onApplyArticle?.(a);
+    setStepsFor(a.num);
+  };
 
   // Wochen gruppieren
   const weeksMap = new Map<number, ContentPlanArticle[]>();
@@ -299,53 +274,138 @@ function PlanDetail(props: PlanDetailProps) {
               {articles.map((a) => {
                 const entry = props.progress[articleKey(a.num)];
                 const checked = entry?.done ?? false;
+                const isOpen = expanded.has(a.num);
                 return (
-                  <li key={a.num} className="flex items-start gap-2.5 px-3 py-2.5">
-                    <Checkbox
-                      checked={checked}
-                      onCheckedChange={() => props.onToggle(articleKey(a.num))}
-                      className="mt-0.5"
-                      aria-label={`Artikel ${a.num} abhaken`}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm leading-snug ${checked ? 'line-through text-muted-foreground' : ''}`}>
-                        {a.num}. {a.star && <Star className="inline h-3.5 w-3.5 mb-0.5 text-amber-500 fill-amber-500" />}{' '}
-                        {a.title}
-                      </p>
-                      <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
-                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${TYP_BADGE[a.typ]}`}>
-                          {TYP_LABEL[a.typ]}
-                        </Badge>
-                        <span>{a.length}</span>
-                        {a.keyword && <span>· {a.keyword}</span>}
-                        {a.timing && <span>· {a.timing}</span>}
-                      </p>
-                    </div>
-                    {a.meta && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="shrink-0 h-7 px-2"
-                        title="seo_title + Slug + Meta-Description kopieren"
-                        onClick={() => void props.copyText(
-                          `seo_title: ${a.seoTitle || '(kreativer Titel — SEO-Panel leer lassen)'}\nslug: ${a.slug || ''}\nmeta_description: ${a.meta}`,
-                          'SEO-Felder kopiert — ins SEO-Panel eintragen'
+                  <li key={a.num} className="px-3 py-2.5">
+                    <div className="flex items-start gap-2.5">
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={() => props.onToggle(articleKey(a.num))}
+                        className="mt-0.5"
+                        aria-label={`Artikel ${a.num} abhaken`}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <button
+                          type="button"
+                          onClick={() => toggleExpanded(a.num)}
+                          className="w-full text-left group"
+                          title="Arbeitskarte auf-/zuklappen"
+                        >
+                          <span className={`text-sm leading-snug ${checked ? 'line-through text-muted-foreground' : ''}`}>
+                            {a.num}. {a.star && <Star className="inline h-3.5 w-3.5 mb-0.5 text-amber-500 fill-amber-500" />}{' '}
+                            {a.title}
+                            <ChevronDown
+                              className={`inline h-3.5 w-3.5 ml-1 mb-0.5 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                            />
+                          </span>
+                        </button>
+                        <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+                          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${TYP_BADGE[a.typ]}`}>
+                            {TYP_LABEL[a.typ]}
+                          </Badge>
+                          <span>{a.length}</span>
+                          {a.keyword && <span>· {a.keyword}</span>}
+                          {a.timing && <span>· {a.timing}</span>}
+                        </p>
+
+                        {/* Work-Card: Anfänger-Kontext aus den Plandaten */}
+                        {isOpen && (
+                          <div className="mt-2 rounded-md border bg-muted/30 p-3 space-y-1.5 text-xs">
+                            <p><span className="font-medium">Länge:</span> {lengthHint(a.length)}</p>
+                            <p>
+                              <span className="font-medium">Formular:</span>{' '}
+                              Kategorie {a.kategorie || '—'} · Art der Reise {a.tripType || '—'} · Perspektive {a.perspektive || '—'}
+                            </p>
+                            <p>
+                              <span className="font-medium">Verlinkt auf:</span>{' '}
+                              {a.linksTo.length ? `Nr. ${a.linksTo.join(', ')}` : 'keine interne Verlinkung'}
+                              {' '}— einfügen, sobald die Ziele veröffentlicht sind (Erlebnisse dürfen 0 Links haben)
+                            </p>
+                            {a.keyword ? (
+                              <p>
+                                <span className="font-medium">Recherche-Seed:</span> „{a.keyword}{' '}“
+                                {' '}in „Themen mit Nachfrage“ + Recherche-Block nutzen · SEO per 📋-Button kopieren
+                              </p>
+                            ) : (
+                              <p>
+                                <span className="font-medium">SEO:</span> seo_title im SEO-Panel{' '}
+                                <span className="font-medium">leer lassen</span> — der kreative Titel reicht; Meta per 📋-Button kopieren
+                              </p>
+                            )}
+                            {a.refresh && (
+                              <p className="text-amber-600 dark:text-amber-400">♻️ {a.refresh}</p>
+                            )}
+                          </div>
                         )}
-                      >
-                        <Copy className="h-3 w-3" />
-                      </Button>
-                    )}
-                    {props.onApplyArticle && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="shrink-0 h-7 px-2 text-xs"
-                        title="Titel + Keyword ins Formular übernehmen"
-                        onClick={() => props.onApplyArticle?.(a)}
-                      >
-                        → Formular
-                      </Button>
-                    )}
+
+                        {/* Nächste Schritte — nach „→ ins Formular“ */}
+                        {stepsFor === a.num && (
+                          <div className="mt-2 rounded-md border border-primary/40 bg-primary/5 p-3 space-y-1.5 text-xs">
+                            <p className="font-medium">Nächste Schritte im Formular:</p>
+                            <ol className="list-decimal ml-4 space-y-1 text-muted-foreground">
+                              <li>Länge wählen ({lengthHint(a.length)}) · Ort + Land eintragen</li>
+                              <li>Titelbild mit intaktem EXIF hochladen (GPS + Aufnahmezeit automatisch)</li>
+                              <li>Momente/Erlebnisse sammeln → „in Autor-Input übernehmen“</li>
+                              <li>Roh-Skizze in den Editor → „KI-Artikel generieren“ → Zahlen gegen FAKTEN prüfen</li>
+                              <li>Meta per 📋 kopieren → SEO-Panel → Publish → dann hier abhaken ✓</li>
+                            </ol>
+                            {!a.keyword && (
+                              <p className="text-muted-foreground">
+                                💡 Kein Keyword nötig — seo_title im SEO-Panel leer lassen, der kreative Titel reicht.
+                              </p>
+                            )}
+                            <div className="flex flex-wrap gap-2 pt-1">
+                              {props.onOpenHelp && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs"
+                                  onClick={() => props.onOpenHelp?.()}
+                                >
+                                  <Info className="h-3 w-3 mr-1" /> Ausführliche Anleitung
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                className="h-7 text-xs"
+                                onClick={() => {
+                                  props.onToggle(articleKey(a.num));
+                                  setStepsFor(null);
+                                }}
+                              >
+                                <CheckCircle className="h-3 w-3 mr-1" /> Artikel abhaken ✓
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      {a.meta && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="shrink-0 h-7 px-2"
+                          title="seo_title + Slug + Meta-Description kopieren"
+                          onClick={() => void props.copyText(
+                            `seo_title: ${a.seoTitle || '(kreativer Titel — SEO-Panel leer lassen)'}\nslug: ${a.slug || ''}\nmeta_description: ${a.meta}`,
+                            'SEO-Felder kopiert — ins SEO-Panel eintragen'
+                          )}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      )}
+                      {props.onApplyArticle && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="shrink-0 h-7 px-2 text-xs"
+                          title="Titel + Keyword ins Formular übernehmen"
+                          onClick={() => handleApply(a)}
+                        >
+                          → Formular
+                        </Button>
+                      )}
+                    </div>
                   </li>
                 );
               })}

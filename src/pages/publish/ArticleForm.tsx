@@ -509,6 +509,7 @@ export function ArticleForm({ editEvent }: { editEvent?: NostrEvent }) {
         <ContentPlanSheet
           open={plansOpen}
           onOpenChange={setPlansOpen}
+          onOpenHelp={() => setHelpOpen(true)}
           onApplyArticle={(article) => {
             if (article.title) setTitle(article.title);
             if (article.keyword && !tags.includes(article.keyword)) {

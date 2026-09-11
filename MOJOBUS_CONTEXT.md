@@ -274,8 +274,13 @@ Schwelle Forecast/Archiv: 92 Tage; >16 Tage Zukunft → Wetter überspringen
   Auth). Pläne = statische JSON-Dumps in `public/data/contentplans/` (index.json + `<id>.json`,
   Schema: `src/config/contentplanSchema.ts`), geladen via getDataBaseUrl() — APK-kompatibel.
   Detail-Ansicht: 30 Artikel als abhakbare Checkliste pro Woche (aktuelle Woche markiert),
-  Places/Trips abhakbar, Top-Briefs mit FAKTEN-Seed-Copy, „→ ins Formular" übernimmt
-  Titel + Keyword (Muster onApplyIdea). Progress: localStorage `contentplan:progress:v1`
+  **je Artikel aufklappbare Work-Card** (Längen-/Bildvorgabe, Formular-Felder Kategorie·TripType·
+  Perspektive, Link-Ziele mit „Erlebnisse dürfen 0 Links haben“, Recherche-Seed bzw.
+  „seo_title leer lassen“-Hinweis bei keyword-losen Erlebnissen, Refresh-Stempel);
+  **„→ ins Formular“ öffnet das „Nächste Schritte“-Panel** (5 Schritte: Länge/Ort → Titelbild-EXIF →
+  Momente → Skizze+Generieren → Meta+Publish) mit ⓘ-Link (AssistantHelpSheet) und
+  „Artikel abhaken ✓“-Button; Places/Trips abhakbar, Top-Briefs mit FAKTEN-Seed-Copy,
+  „→ ins Formular" übernimmt Titel + Keyword (Muster onApplyIdea). Progress: localStorage `contentplan:progress:v1`
   (itemKey → {done, at}) + **Server-Sync** via GET/POST `/api/assistant/contentplan-state`
   (`server/services/contentplan-store.js` + `server/routes/assistant/contentplan.js`,
   eigene SQLite `server/data/contentplan-progress.db`, Blob-Store, Merge per Item-Timestamp
