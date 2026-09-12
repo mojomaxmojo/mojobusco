@@ -48,6 +48,7 @@ import { breadcrumbJsonLd } from '@/lib/jsonld';
 import { 
   ArrowLeft, MapPin, Camera, Calendar, Navigation, Pencil, Trash2
 } from '@/lib/icons';
+import { Hash } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 // Generate a user name from pubkey
@@ -152,6 +153,14 @@ export default function TripDetail() {
   const { naddr } = useParams<{ naddr: string }>();
   const navigate = useNavigate();
   const { data: trip, isLoading } = useTrip(naddr || '');
+  // Hashtags (t-Tags) — für die Tag-Zeile unterhalb vom Content
+  const tripTags = useMemo(
+    () => (trip?.event?.tags || [])
+      .filter(([name]) => name === 't')
+      .map(([, value]) => value)
+      .filter(Boolean),
+    [trip]
+  );
   const { data: authorData } = useAuthor(trip?.author || '');
   const metadata = authorData?.metadata;
   const { user } = useCurrentUser();
@@ -489,6 +498,18 @@ export default function TripDetail() {
 
             </CardContent>
           </Card>
+
+          {/* Hashtags — unterhalb vom Trip-Content (wenn vorhanden) */}
+          {tripTags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-6">
+              {tripTags.map(tag => (
+                <Badge key={tag} variant="secondary" className="gap-1">
+                  <Hash className="h-3 w-3" />
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          )}
 
           {/* Comments */}
           {trip.event && (
