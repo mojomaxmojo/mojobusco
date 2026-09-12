@@ -98,9 +98,11 @@ let injected = false;
 export function initUmamiOnIdle(): void {
   if (typeof window === 'undefined') return;
   const run = (): void => {
-    if ('requestIdleCallback' in window) {
-      (window as Window & { requestIdleCallback: (cb: () => void, opts?: { timeout: number }) => void })
-        .requestIdleCallback(() => initUmami(), { timeout: 4000 });
+    const w = window as Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => void;
+    };
+    if (typeof w.requestIdleCallback === 'function') {
+      w.requestIdleCallback(() => initUmami(), { timeout: 4000 });
     } else {
       window.setTimeout(initUmami, 2000);
     }
