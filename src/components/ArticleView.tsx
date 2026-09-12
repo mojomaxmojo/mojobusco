@@ -719,14 +719,28 @@ export function ArticleView({ naddr }: ArticleViewProps) {
               { label: metadata.title },
             ]} />
 
-            <ShareButtons
-              url={getCanonicalUrl(articleUrl(canonicalNaddr(naddr)))}
-              title={metadata.title}
-              description={metadata.summary}
-              image={metadata.image || ogImageUrl()}
-            />
+            {/* Title — Share-Button in einer Zeile rechts daneben */}
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
+                  {metadata.title}
+                </h1>
+                {isPlace && (
+                  <Badge className="bg-ocean-100 text-ocean-800 border-ocean-200">
+                    📍 Ort
+                  </Badge>
+                )}
+              </div>
+              <ShareButtons
+                url={getCanonicalUrl(articleUrl(canonicalNaddr(naddr)))}
+                title={metadata.title}
+                description={metadata.summary}
+                image={metadata.image || ogImageUrl()}
+                compact
+              />
+            </div>
 
-            {/* Tags */}
+            {/* Tags direkt unter dem Titel */}
             {metadata.tags.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {metadata.tags.map(tag => (
@@ -737,18 +751,6 @@ export function ArticleView({ naddr }: ArticleViewProps) {
                 ))}
               </div>
             )}
-
-            {/* Title */}
-            <div className="flex items-center gap-3">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
-                {metadata.title}
-              </h1>
-              {isPlace && (
-                <Badge className="bg-ocean-100 text-ocean-800 border-ocean-200">
-                  📍 Ort
-                </Badge>
-              )}
-            </div>
 
             {/* Summary */}
             {metadata.summary && (

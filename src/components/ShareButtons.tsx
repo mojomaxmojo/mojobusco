@@ -16,9 +16,11 @@ interface ShareButtonsProps {
   title: string;
   description?: string;
   image?: string;
+  /** Kompakt: nur Icon-Button (z. B. in einer Zeile neben dem Titel) */
+  compact?: boolean;
 }
 
-export function ShareButtons({ url, title, description, image }: ShareButtonsProps) {
+export function ShareButtons({ url, title, description, image, compact = false }: ShareButtonsProps) {
   const [copied, setCopied] = useState(false);
 
   const handleShare = async () => {
@@ -44,7 +46,7 @@ export function ShareButtons({ url, title, description, image }: ShareButtonsPro
     <div className="flex flex-wrap items-center gap-2">
       <Button variant="outline" size="sm" onClick={handleShare}>
         {copied ? <Check className="h-4 w-4 mr-2" /> : <Share2 className="h-4 w-4 mr-2" />}
-        {copied ? 'Kopiert' : 'Teilen'}
+        {!compact && (copied ? 'Kopiert' : 'Teilen')}
       </Button>
     </div>
   );
