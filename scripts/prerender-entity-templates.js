@@ -37,7 +37,7 @@ import {
  *   mit eigenem Proxy + srcset) — das Prerender-HTML dient primär
  *   Crawlern + NoJS-Fallback
  */
-function imageTag(image, alt) {
+function imageTag(image, alt, { eager = false } = {}) {
   if (!image || image === DEFAULT_IMAGE) return '';
   let src = image;
   try {
@@ -55,7 +55,12 @@ function imageTag(image, alt) {
   } catch {
     src = image; // unparsbar → Roh-URL
   }
-  return `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt || '')}" style="max-width:600px;width:100%;aspect-ratio:4/3;object-fit:cover" loading="lazy" />`;
+  // LCP-Kandidat (eager): keine Lazy-Markierung + fetchpriority=high;
+  // alle weiteren Bilder bleiben lazy (Bandbreite dem LCP-Bild allein)
+  const lazyAttrs = eager
+    ? 'fetchpriority="high"'
+    : 'loading="lazy"';
+  return `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt || '')}" style="max-width:600px;width:100%;aspect-ratio:4/3;object-fit:cover" ${lazyAttrs} />`;
 }
 
 export function renderArticleHtml(event, allEventsOfType = []) {
@@ -119,7 +124,7 @@ export function renderArticleHtml(event, allEventsOfType = []) {
   return `${head}
   <h1>${escapeHtml(title)}</h1>
   <p>${escapeHtml(description)}</p>
-  ${imageTag(image, title)}
+  ${imageTag(image, title, { eager: true })}
   <div>${escapeHtml(contentText)}</div>
   <p><a href="${escapeHtml(canonicalUrl)}">Weiterlesen auf MojoBus →</a></p>
 </body>
@@ -182,7 +187,7 @@ export function renderNoteHtml(event, allEventsOfType = []) {
   return `${head}
   <h1>${escapeHtml(title)}</h1>
   <p>${escapeHtml(description)}</p>
-  ${images.slice(0, 1).map(url => imageTag(url, title)).join('')}
+  ${images.slice(0, 1).map(url => imageTag(url, title, { eager: true })).join('')}
   <p><a href="${escapeHtml(canonicalUrl)}">Auf MojoBus ansehen →</a></p>
 </body>
 </html>`;
@@ -301,7 +306,7 @@ export function renderPlaceHtml(event, allEventsOfType = []) {
   <h1>${escapeHtml(name)}</h1>
   ${location ? `<p>📍 ${escapeHtml(location)}</p>` : ''}
   <p>${escapeHtml(cleanDesc)}</p>
-  ${imageTag(image, name)}
+  ${imageTag(image, name, { eager: true })}
   <p><a href="${escapeHtml(canonicalUrl)}">Auf MojoBus ansehen →</a></p>
 </body>
 </html>`;
@@ -358,9 +363,10 @@ export function renderTripHtml(event, allEventsOfType = []) {
     ? `<div>
   ${waypoints.map((wp, i) => {
     const wpImage = wp.image || photos[i];
+    // Waypoint-Bild 1 = unter dem Hero → LCP-Kandidat (eager), Rest lazy
     return `<div>
     <h2>${escapeHtml(String(i + 1))}. ${escapeHtml(wp.name)}</h2>
-    ${wpImage ? imageTag(wpImage, wp.name) : ''}
+    ${wpImage ? imageTag(wpImage, wp.name, { eager: i === 0 }) : ''}
     ${wp.description ? `<p>${escapeHtml(wp.description)}</p>` : ''}
   </div>`;
   }).join('\n  ')}
@@ -370,7 +376,7 @@ export function renderTripHtml(event, allEventsOfType = []) {
   return `${head}
   <h1>${escapeHtml(title)}</h1>
   <p>${escapeHtml(cleanDesc)}</p>
-  ${imageTag(image, title)}
+  ${imageTag(image, title, { eager: waypoints.length === 0 })}
   ${distanceHtml}
   ${waypointsHtml}
   <p><a href="${escapeHtml(canonicalUrl)}">Weiterlesen auf MojoBus →</a></p>
@@ -424,7 +430,7 @@ export function renderVideoHtml(event) {
   return `${head}
   <h1>${escapeHtml(title)}</h1>
   <p>${escapeHtml(cleanDesc.substring(0, 160))}</p>
-  ${thumbnailUrl !== DEFAULT_IMAGE ? imageTag(thumbnailUrl, title) : ''}
+  ${thumbnailUrl !== DEFAULT_IMAGE ? imageTag(thumbnailUrl, title, { eager: true }) : ''}
   ${videoUrl ? `<video src="${escapeHtml(videoUrl)}" poster="${escapeHtml(thumbnailUrl)}" controls style="max-width:400px"></video>` : ''}
   <p><a href="${escapeHtml(videosListUrl)}">Alle Videos auf MojoBus ansehen →</a></p>
 </body>
@@ -466,7 +472,7 @@ export function renderMediaHtml(event, fileId = null) {
   return `${head}
   <h1>${escapeHtml(title)}</h1>
   <p>${escapeHtml(cleanDesc)}</p>
-  ${images.slice(0, 3).map(url => imageTag(url, title)).join('')}
+  ${images.slice(0, 3).map((url, i) => imageTag(url, title, { eager: i === 0 })).join('')}
   <p><a href="${escapeHtml(canonicalUrl)}">Galerie auf MojoBus ansehen →</a></p>
 </body>
 </html>`;
