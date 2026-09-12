@@ -712,25 +712,13 @@ export function ArticleView({ naddr }: ArticleViewProps) {
               </div>
             )}
 
-            {/* Breadcrumbs */}
-            <Breadcrumbs items={[
-              { label: 'Home', href: '/' },
-              { label: isPlace ? 'Plätze' : 'Artikel', href: isPlace ? '/plaetze' : '/artikel' },
-              { label: metadata.title },
-            ]} />
-
-            {/* Title — Share-Button in einer Zeile rechts daneben */}
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
-                  {metadata.title}
-                </h1>
-                {isPlace && (
-                  <Badge className="bg-ocean-100 text-ocean-800 border-ocean-200">
-                    📍 Ort
-                  </Badge>
-                )}
-              </div>
+            {/* Breadcrumbs + Share-Button in einer Zeile (Share rechts) */}
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <Breadcrumbs items={[
+                { label: 'Home', href: '/' },
+                { label: isPlace ? 'Plätze' : 'Artikel', href: isPlace ? '/plaetze' : '/artikel' },
+                { label: metadata.title },
+              ]} />
               <ShareButtons
                 url={getCanonicalUrl(articleUrl(canonicalNaddr(naddr)))}
                 title={metadata.title}
@@ -740,17 +728,17 @@ export function ArticleView({ naddr }: ArticleViewProps) {
               />
             </div>
 
-            {/* Tags direkt unter dem Titel */}
-            {metadata.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {metadata.tags.map(tag => (
-                  <Badge key={tag} variant="secondary" className="gap-1">
-                    <Hash className="h-3 w-3" />
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            )}
+            {/* Title */}
+            <div className="flex items-center gap-3">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
+                {metadata.title}
+              </h1>
+              {isPlace && (
+                <Badge className="bg-ocean-100 text-ocean-800 border-ocean-200">
+                  📍 Ort
+                </Badge>
+              )}
+            </div>
 
             {/* Summary */}
             {metadata.summary && (
@@ -873,6 +861,18 @@ export function ArticleView({ naddr }: ArticleViewProps) {
                     />
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Hashtags — unterhalb vom Artikel / Platz (Ende des Contents) */}
+            {metadata.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {metadata.tags.map(tag => (
+                  <Badge key={tag} variant="secondary" className="gap-1">
+                    <Hash className="h-3 w-3" />
+                    {tag}
+                  </Badge>
+                ))}
               </div>
             )}
 
