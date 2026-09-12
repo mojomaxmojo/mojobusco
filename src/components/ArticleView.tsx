@@ -271,13 +271,13 @@ function MarkdownWithLinks({ content, pageUrl, pageTitle, pageDescription, pageH
           img: ({ src, alt }) => {
             if (!src) return null;
             return (
-              <div className="relative">
+              <div className="relative rounded-lg overflow-hidden bg-muted" style={{ aspectRatio: '4 / 3' }}>
                 <img
                   src={getArticleHeaderUrl(src)}
                   srcSet={generateSrcset(src, 'gallery')}
                   sizes={generateSizes('hero')}
                   alt={alt || ''}
-                  className="w-full h-auto rounded-lg"
+                  className="absolute inset-0 w-full h-full object-cover"
                   loading="lazy"
                 />
                 {pageUrl && (
@@ -796,15 +796,19 @@ export function ArticleView({ naddr }: ArticleViewProps) {
       <div className="py-12">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto space-y-12">
-            {/* Featured Image */}
+            {/* Featured Image — aspectRatio reserviert die Höhe vor dem
+                Laden → kein Layout-Shift (CLS), unabhängig vom Seitenverhältnis */}
             {metadata.image && (
-              <div className="relative rounded-xl overflow-hidden shadow-lg bg-muted">
+              <div
+                className="relative rounded-xl overflow-hidden shadow-lg bg-muted"
+                style={{ aspectRatio: '16 / 9' }}
+              >
                 <img
                   src={getArticleHeaderUrl(metadata.image)}
                   srcSet={generateSrcset(metadata.image)}
                   sizes={generateSizes('header')}
                   alt={metadata.title}
-                  className="w-full h-auto"
+                  className="absolute inset-0 w-full h-full object-cover"
                   loading="eager"
                   decoding="sync"
                 />
