@@ -303,6 +303,15 @@ Schwelle Forecast/Archiv: 92 Tage; >16 Tage Zukunft → Wetter überspringen
   alle Formularfelder in `assistant:autosave:article`; Banner mit
   „Wiederherstellen/Verwerfen" nur bei leerem Formular ohne Entwurf/Edit;
   Clear nach Publish. Server-Sync bleibt manuell.
+- **Topics-Cache 90 Tage (2026-09-11):** Single Source
+  `src/config/assistant-cache.js` (dual-world, api-auth.js-Muster: Node
+  importiert ohne Build) → `TOPICS_CACHE_DAYS = 90`. report-assistant.js
+  nutzt den Default statt hartcodiertem '30' (Override:
+  ASSISTANT_TOPICS_CACHE_DAYS in ai-api.env); ASSISTANT_CONFIG.topicsCacheDays
+  im Frontend liest dieselbe Datei. Begründung: gleicher Seed = 3 Monate
+  gratis, deckt genau die Länge eines Contentplans (8 Wochen + Reserve).
+  Deploy: ai-api-Neustart nötig; deploy-main.sh kopiert die Datei in die
+  Webroot-Whitelist (AUTH_FILE-Loop).
 - **Pipeline-Trigger für alle Typen**: `notifyPublishedPipeline()`
   (src/lib/publishNotify.ts, 🔒) ruft aus PlaceForm/NoteForm/
   MediaUploadForm/TripPublishForm POST /api/assistant/published →
@@ -436,6 +445,37 @@ Generierungen), Media-Reads, 🔒 Token-Routen. Zähler sind In-Memory —
 ai-api-Restart setzt sie zurück (bewusst ok: Missbrauchsbremse, keine
 Abrechnung). Echte Zugriffs-Absicherung (NIP-98, pubkey ∈ authors.json)
 ist zurückgestellt — APK signiert über Amber (kann kind 27235), machbar.
+
+---
+
+## Performance / Core-Web-Vitals (Stand 2026-09-12)
+
+**PSI-Ausgangslage → Ergebnis (mobil, Moto G Power + Slow-4G-Lab):**
+Home 72 → **92** · Artikel-Detail CLS 0,204 → ~0 (Score ~96) ·
+Trip-Detail 52 → **97** (Nutzlast 69 MB → 0,9 MB, LCP 92 s → 2,6 s).
+
+| Fix | Datei | Mechanismus |
+|-----|-------|-------------|
+| Home-LCP eager | `src/components/ContentCard.tsx` (Prop `eager`) + `src/pages/Home.tsx` | erste Card `loading=eager` + `fetchPriority=high` (React 19), Cards 2/3 bleiben lazy — Bandbreite gehört dem LCP-Bild |
+| Vendor-Kette | `vite.config.ts` Plugin `eagerVendorModulePreload()` | injiziert `<link rel="modulepreload" crossorigin>` für die 4 eager-Chunks (react/react-query/nostr/router-vendor) in `dist/index.html` — Browser lädt sie parallel statt nach Entry-Parse (LCP-Aufschlüsselung: 2.280 ms Render-Delay am Hero-h1) |
+| Analytics out of critical path | `src/config/umami.ts` `initUmamiOnIdle()` (load + requestIdleCallback, Timeout 4 s) | Umami-Script konkurriert nie mit FCP/LCP; Pageview-Tracking unverändert |
+| Footer-Logo | `src/components/Footer.tsx` | 17-KiB-PNG lädt jetzt lazy (below-the-fold) |
+| Artikel-CLS | `src/components/ArticleView.tsx` | Featured-Image-Container `aspectRatio: 16/9` + Bild `absolute inset-0`/object-cover; Markdown-Content-Bilder (img-Renderer) 4/3 — Höhe vor Load reserviert |
+| **Prerender-Bilder** | `scripts/prerender-entity-templates.js` → `imageTag(image, alt, { eager })` | weserv-Proxy (WebP 900×675 q85, idempotent) statt roher Relay-Blobs (3–6,7 MB!), `aspect-ratio:4/3` + object-fit im style, erstes Bild pro Template `fetchpriority=high`, Rest `loading=lazy` (Trip: Waypoint 1; Media: Bild 1; Profil-Avatar lazy) — wirkt auf Artikel/Note/Place/Trip/Video/Media-Templates; Nginx serviert dieses HTML an Bots/Lighthouse |
+| deploy-main.sh | Webroot-Whitelist | `assistant-cache.js` in der AUTH_FILE-Loop ergänzt (sonst ai-api Crash-Loop: ERR_MODULE_NOT_FOUND) |
+
+**Mess-Hinweise:** PSI über pagespeed.web.dev ODER Lighthouse im
+Inkognito-Fenster (Browser-Extensions verfälschen den kritischen Pfad —
+Fall `lusthome.com/en-us/cart.js`: Cashback-Extension probeblockt
+Shopify-cart.js, 0 Treffer im gesamten Webroot = kein Server-Problem).
+Lighthouse 13.4.1 emuliert „Moto G Power / Slow 4G". VPS-tsc
+(`npm run check`) prüft strenger als der esbuild-Local-Build —
+TS2304-Fälle (syncStatus-Prop, fehlende Modul-Helfer) wurden erst auf
+dem VPS sichtbar; bei größeren Edits Definitionen-vs-Referenzen prüfen.
+„Agentisches Browsing" (Lighthouse-SEO): 2/2 ohne Zusatzaufwand —
+Prerender-HTML + JSON-LD decken KI-Agents ab; JSON-LD-FAQPage für die
+PAA-Fragen aus den Contentplänen = künftiger Hebel, wenn KI-Referrer
+(chatgpt.com/perplexity.ai/gemini.google.com) in Umami sichtbar werden.
 
 ---
 

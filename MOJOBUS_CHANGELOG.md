@@ -5,6 +5,88 @@
 
 ---
 
+## Performance-Sprint: PSI Home 72→92, Trips 52→97 (2026-09-11/12)
+
+**Auslöser**: PSI-Reports (mobil, Moto G Power + Slow-4G-Lab). Home 72,
+Artikel CLS 0,204, Trip-Detail 52 mit **69 MB Nutzlast** (19 × 3–6,7 MB
+Raw-Relay-JPGs) und **LCP 92,3 s**.
+
+**Ursachen + Fixes** (Details in MOJOBUS_CONTEXT.md → „Performance /
+Core-Web-Vitals"):
+
+1. **LCP-Kette am Hero** (Home, LCP-Element = Hero-h1, 2.280 ms
+   Render-Delay): Vite-Plugin `eagerVendorModulePreload()` (vite.config.ts,
+   closeBundle) injiziert `<link rel="modulepreload">` für die 4
+   eager-Vendor-Chunks in dist/index.html — Downloads parallel statt
+   sequenziell nach Entry-Parse. LCP 5,1 → 3,0 s, TBT 170 → 30 ms,
+   Score 72 → 92.
+2. **ContentCard/Home**: erste Card `eager` + `fetchPriority=high`,
+   Rest lazy (ContentCard.tsx Prop `eager`).
+3. **Umami** (`initUmamiOnIdle`): Analytics lädt erst nach window load +
+   requestIdleCallback — raus aus dem kritischen Pfad. TS2339-Fix:
+   window-Narrowing via einmaligem typed Cast + typeof-Guard.
+4. **Artikel-CLS** (ArticleView): Featured-Image 16/9-Container +
+   absolute/object-cover; Content-Images 4/3 — Höhe vor Load reserviert
+   (keine width/height-Rate bei Nostr-Bildern möglich).
+5. **Prerender-imageTag** (prerender-entity-templates.js): weserv-Proxy
+   (WebP 900×675 q85) statt Raw-Relay-Blobs + aspect-ratio 4/3 + lazy;
+   dann Verfeinerung: erstes Bild pro Template `fetchpriority=high`
+   (Trip = Waypoint 1), Rest lazy. Trip 52 → 97 (Nutzlast 0,9 MB,
+   LCP 2,6 s, CLS 0).
+6. **Deko-Fund**: `lusthome.com/en-us/cart.js` im DevTools-Lighthouse-
+   kritischen Pfad = Cashback-Browser-Extension (probeblockt Shopify-
+   cart.js auf jeder Seite) — 0 Treffer im gesamten Webroot, kein
+   Server-Problem; künftig messen in Inkognito/pagespeed.web.dev.
+
+**Deploy-Lektionen**: (a) deploy-main.sh-Whitelist für
+`src/config/assistant-cache.js` ergänzen, sonst ai-api
+ERR_MODULE_NOT_FOUND-Crash-Loop; (b) VPS-`tsc --noEmit` ist strenger als
+der lokale esbuild-Build — zwei TS2304-Wellen (syncStatus-Prop,
+fehlende Modul-Helfer) fielen erst dort auf.
+
+**Ergebnis**: Home 92 · Artikel ~96 · Trips 97 · SEO 100 ·
+„Agentisches Browsing" 2/2 (Prerender + JSON-LD decken KI-Agents ab).
+
+---
+
+## Topics-Cache 30 → 90 Tage, zentral (2026-09-11)
+
+- Neue Single Source `src/config/assistant-cache.js` (dual-world, Node
+  importiert ohne Build): `TOPICS_CACHE_DAYS = 90`. report-assistant.js
+  nutzt den Default (env ASSISTANT_TOPICS_CACHE_DAYS bleibt Override);
+  ASSISTANT_CONFIG.topicsCacheDays liest dieselbe Datei.
+- Begründung: Suchvolumina ändern sich monatsweise — 90 Tage decken
+  genau einen Contentplan (8 Wochen + Reserve); schützt DataForSEO-
+  Credits + Ideen-Runs.
+- Doku synchron (CHEATSHEET, RECOVERY, FEATURE-BAND-PLAN, Prompt-Vorlage
+  .md + TS, alle 3 Contentpläne MD + JSON, .env.example).
+
+---
+
+## Contentplan-System: 3 Pläne + Sheet + Server-Sync (2026-09-10/11)
+
+- ContentPlanSheet (📋-Button, Fortschritts-Badge): Liste aller Pläne →
+  Detail mit Wochen-Checklisten, Work-Cards je Artikel, „Nächste
+  Schritte"-Panel nach „→ ins Formular" (mit ⓘ-Link + „abhaken ✓"),
+  Top-Briefs mit FAKTEN-Seed-Copy + SEO-Copy-Button, Places/Trips
+  abhakbar, FAKTEN mit Quellen-Links.
+- Pläne: `public/data/contentplans/{index,figueira-budens,manta-rota,
+  armacao-de-pera}.json` (Schema src/config/contentplanSchema.ts,
+  defensives Parsing).
+- Server (Phase 2): contentplan-store.js (SQLite
+  contentplan-progress.db) + routes/assistant/contentplan.js
+  (GET/POST /api/assistant/contentplan-state, NIP-98 via
+  /api/assistant-Prefix), Merge per Item-Timestamp im Client,
+  404-Fallback = rein lokal.
+- Prompt-Vorlage V2 (PROMPT_CONTENTPLAN_VORLAGE.md +
+  contentplanPromptTemplate.ts): SERP-Check, PAA-Fragen, FAQ-Block,
+  Jahreszahl-Drei-Zonen-Regel (Slug nie Jahr; Refresh-Stempel-Pflicht),
+  Schritt 7 Verteilung (Pinterest/EN/OG), UMFANG 30|15, direkter
+  JSON-Block nach Schema — Konvertieren entfällt.
+- ASSISTENT-CHEATSHEET.md verweist auf Plan + Vorlage + ⓘ-Anleitung.
+
+---
+
 ## deploy-main.sh: Redundanten invalidate-cache-Call entfernt (2026-09-07)
 
 **Symptom**: Nach jedem Deploy erschien im ai-api-Journal:
