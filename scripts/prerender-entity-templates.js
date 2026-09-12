@@ -26,9 +26,36 @@ import {
   buildImageLd,
 } from './prerender-meta.js';
 
+/**
+ * Optimiertes <img> für Prerender-HTML.
+ *
+ * - URL über images.weserv.nl (WebP, max. 900px) statt roher Relay-Blobs
+ *   (PSI-Befund: 3–6,7 MB Raw-JPGs → 69 MB Nutzlast, LCP 92 s)
+ * - aspect-ratio 4/3 reserviert die Höhe vor dem Load → kein Layout-Shift
+ * - loading=lazy: Bots/Lighthouse laden so keine Off-Screen-Bilder;
+ *   echte Besucher landen ohnehin in der React-App (ArticleView/TripDetail
+ *   mit eigenem Proxy + srcset) — das Prerender-HTML dient primär
+ *   Crawlern + NoJS-Fallback
+ */
 function imageTag(image, alt) {
   if (!image || image === DEFAULT_IMAGE) return '';
-  return `<img src="${escapeHtml(image)}" alt="${escapeHtml(alt || '')}" style="max-width:600px" />`;
+  let src = image;
+  try {
+    const u = new URL(image);
+    if (!u.hostname.includes('images.weserv.nl')) {
+      const params = new URLSearchParams({
+        url: image,
+        w: '900',
+        h: '675',
+        q: '85',
+        output: 'webp',
+      });
+      src = `https://images.weserv.nl/?${params.toString()}`;
+    }
+  } catch {
+    src = image; // unparsbar → Roh-URL
+  }
+  return `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt || '')}" style="max-width:600px;width:100%;aspect-ratio:4/3;object-fit:cover" loading="lazy" />`;
 }
 
 export function renderArticleHtml(event, allEventsOfType = []) {
