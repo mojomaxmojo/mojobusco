@@ -6,10 +6,11 @@ import './index.css';
 // Register Service Worker
 import '@/lib/serviceWorker';
 
-// Umami Analytics (self-hosted) – injiziert das Tracking-Script nur,
-// wenn in src/config/umami.ts eine websiteId hinterlegt ist
-import { initUmami } from '@/config/umami';
-initUmami();
+// Umami Analytics (self-hosted) – lädt nach dem kritischen Pfad (load +
+// requestIdleCallback), damit Analytics nie mit FCP/LCP konkurriert.
+// Siehe src/config/umami.ts → initUmamiOnIdle
+import { initUmamiOnIdle } from '@/config/umami';
+initUmamiOnIdle();
 
 // Globaler Handler für unbehandelte Promise Rejections
 if (typeof window !== 'undefined') {

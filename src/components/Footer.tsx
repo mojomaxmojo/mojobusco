@@ -18,6 +18,8 @@ export function Footer() {
                 width="50"
                 height="50"
                 className="h-14 w-14 object-contain hover:scale-110 transition-transform duration-300"
+                loading="lazy"
+                decoding="async"
               />
               <span className="font-bold text-2xl gradient-text">MojoBus</span>
             </div>

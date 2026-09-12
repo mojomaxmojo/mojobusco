@@ -4,6 +4,50 @@ import react from "@vitejs/plugin-react-swc";
 import { defineConfig } from "vitest/config";
 import { DEFAULT_PERFORMANCE_CONFIG } from "./src/config/performance.config";
 
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+
+/**
+ * EAGER-VENDOR-MODULEPRELOAD — verkürzt die LCP-Kette.
+ *
+ * Der Entry-Chunk (index-*.js) importiert die Vendor-Chunks statisch, aber
+ * der Browser entdeckt sie erst nach Download + Parse des Entries
+ * (sequenziell: 1 RTT pro Chunk). Die Links hier starten ALLE Downloads
+ * parallel zur Entry-Navigation → der Hero (LCP-Element) rendert früher.
+ *
+ * Nur die wirklich eager geladenen Vendor-Chunks — lazy-Feature-Chunks
+ * (milkdown, map, qrcode, radix-Teile) bleiben beim Code-Splitting.
+ */
+const EAGER_VENDOR_RE = /^(react|react-query|nostr|router)-vendor-/;
+
+function eagerVendorModulePreload() {
+  return {
+    name: "eager-vendor-modulepreload",
+    apply: "build" as const,
+    closeBundle() {
+      try {
+        const assetsDir = join(process.cwd(), "dist", "assets");
+        const vendors = readdirSync(assetsDir)
+          .filter((f) => f.endsWith(".js") && EAGER_VENDOR_RE.test(f))
+          .map((f) => `/assets/${f}`);
+        if (vendors.length === 0) return;
+
+        const htmlPath = join(process.cwd(), "dist", "index.html");
+        const html = readFileSync(htmlPath, "utf8");
+        if (html.includes("modulepreload")) return; // idempotent
+        if (!html.includes("</head>")) return;
+        const injected = vendors
+          .map((href) => `    <link rel="modulepreload" crossorigin href="${href}" />`)
+          .join("\n");
+        writeFileSync(htmlPath, html.replace("</head>", `${injected}\n  </head>`));
+        console.log(`[preload] ${vendors.length} Vendor-Chunks als modulepreload injiziert: ${vendors.join(", ")}`);
+      } catch (error) {
+        console.warn("[eager-vendor-modulepreload] fehlgeschlagen:", (error as Error).message);
+      }
+    },
+  };
+}
+
 // https://vitejs.dev/config/
 export default defineConfig(() => ({
   server: {
@@ -12,6 +56,7 @@ export default defineConfig(() => ({
   },
   plugins: [
     react(),
+    eagerVendorModulePreload(),
   ],
   optimizeDeps: {
     include: [

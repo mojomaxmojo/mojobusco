@@ -89,6 +89,30 @@ export const isUmamiActive = (): boolean =>
 let injected = false;
 
 /**
+ * Injiziert das Umami-Script erst, wenn der kritische Pfad durch ist
+ * (window load + requestIdleCallback) — Lighthouse-Disziplin: Analytics
+ * darf nie um Bandbreite/Main-Thread mit FCP/LCP konkurrieren.
+ * Das Pageview-Tracking funktioniert unverändert (Umami trackt beim
+ * Script-Exec; SPA-Routenwechsel danach genauso).
+ */
+export function initUmamiOnIdle(): void {
+  if (typeof window === 'undefined') return;
+  const run = (): void => {
+    if ('requestIdleCallback' in window) {
+      (window as Window & { requestIdleCallback: (cb: () => void, opts?: { timeout: number }) => void })
+        .requestIdleCallback(() => initUmami(), { timeout: 4000 });
+    } else {
+      window.setTimeout(initUmami, 2000);
+    }
+  };
+  if (document.readyState === 'complete') {
+    run();
+  } else {
+    window.addEventListener('load', run, { once: true });
+  }
+}
+
+/**
  * Injiziert das Umami-Tracking-Script in den <head>.
  * - Idempotent (HMR/StrictMode-sicher)
  * - No-Op, wenn keine Website-ID gesetzt ist (siehe isUmamiActive)
