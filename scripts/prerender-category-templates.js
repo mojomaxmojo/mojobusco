@@ -1,3 +1,6 @@
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import {
   BASE_URL,
   DEFAULT_IMAGE,
@@ -13,6 +16,8 @@ import {
 } from './prerender-helpers.js';
 import { buildHead, buildItemListLd, buildBreadcrumbLd } from './prerender-meta.js';
 import { nip19 } from 'nostr-tools';
+
+const __dirnameTemplates = path.dirname(fileURLToPath(import.meta.url));
 
 function buildBreadcrumb(name, url, lang = 'de') {
   return [
@@ -340,6 +345,125 @@ export function renderAboutPage(lang = 'de') {
   <h2>${isEn ? 'The Team' : 'Die Macher'}</h2>
   <ul>${membersHtml}</ul>
   <p><a href="${escapeHtml(canonicalUrl)}">${isEn ? 'More about MojoBus' : 'Mehr über MojoBus'} →</a></p>
+</body>
+</html>`;
+}
+
+// ── Reiseziele (/reiseziele) ────────────────────────────────────────────────
+
+/**
+ * Lädt public/data/destinations.json (Reiseziele-Hub). Auf dem VPS liegt
+ * die Datei nach dem Deploy unter DEPLOY_DIR/data/ (gleicher Pfad wie die
+ * Contentplan-JSONs), lokal als Fallback im Repo. Cache pro Lauf.
+ */
+let destinationsCache = undefined;
+function loadDestinations() {
+  if (destinationsCache !== undefined) return destinationsCache;
+  const paths = [
+    '/home/nginx/domains/mojobus.co/public/data/destinations.json',
+    path.join(__dirnameTemplates, '..', 'public', 'data', 'destinations.json'),
+  ];
+  for (const p of paths) {
+    try {
+      destinationsCache = JSON.parse(fs.readFileSync(p, 'utf-8'));
+      return destinationsCache;
+    } catch {
+      // nächste Quelle probieren
+    }
+  }
+  throw new Error('destinations.json nicht gefunden (VPS + Repo)');
+}
+
+/** Minimal-Parser (Spiegel von src/config/destinationsSchema.ts). */
+function parseDestinations(raw) {
+  if (!raw || typeof raw !== 'object' || !Array.isArray(raw.regions)) return null;
+  const regions = raw.regions.filter(r =>
+    r && typeof r === 'object' && r.id && r.region
+    && Array.isArray(r.destinations) && r.destinations.length > 0
+  );
+  return regions.length ? { regions } : null;
+}
+
+/** ItemList-JSON-LD mit Regionen als Gruppen (identisch zur SPA-Struktur). */
+function buildDestinationsItemLd(data, listUrl, lang) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: lang === 'en' ? 'Destinations — MojoBus' : 'Reiseziele — MojoBus',
+    url: listUrl,
+    itemListElement: data.regions.map(region => ({
+      '@type': 'ItemList',
+      name: region.region,
+      itemListElement: region.destinations.map((d, i) => {
+        const item = {
+          '@type': 'ListItem',
+          position: i + 1,
+          name: d.pillarTitle || d.title,
+        };
+        if (d.pillarNaddr) item.url = `${BASE_URL}/${d.pillarNaddr}`;
+        return item;
+      }),
+    })),
+  };
+}
+
+/**
+ * Rendert die Reiseziele-Index-Seite /reiseziele (DE + EN).
+ * Datenquelle: destinations.json — gleiche Links wie die SPA. Destinations
+ * ohne pillarNaddr erscheinen mit „bald"-Vermerk, ohne Link (keine toten
+ * URLs für Bots).
+ */
+export function renderReisezielePage(lang = 'de') {
+  const isEn = lang === 'en';
+  const canonicalUrl = buildLocalizedUrl('/reiseziele', lang);
+  const title = isEn ? 'Destinations — MojoBus' : 'Reiseziele — MojoBus';
+  const description = isEn
+    ? 'Our travel destinations: guides, beaches, places and stories – the central hub for every region MojoBus has explored.'
+    : 'Unsere Reiseziele: Guides, Strände, Orte und Erlebnisse – der zentrale Hub für alle Regionen, in denen MojoBus unterwegs war.';
+
+  const data = parseDestinations(loadDestinations());
+  if (!data) throw new Error('destinations.json kaputt (regions leer)');
+
+  const regionsHtml = data.regions.map(region => {
+    const destinationsHtml = region.destinations.map(d => {
+      const name = d.pillarTitle || d.title;
+      const ortHtml = d.ort ? `<p>${escapeHtml(d.ort)}</p>` : '';
+      const guideHtml = d.regionGuide
+        ? `<p><a href="${escapeHtml(`${BASE_URL}/${d.regionGuide}`)}">${isEn ? 'Region guide' : 'Region-Guide'} →</a></p>`
+        : '';
+      const inner = `<h3>${escapeHtml(name)}</h3>${ortHtml}`;
+      return d.pillarNaddr
+        ? `<li><a href="${escapeHtml(`${BASE_URL}/${d.pillarNaddr}`)}">${inner}</a>${guideHtml}</li>`
+        : `<li>${inner}<p><em>${isEn ? 'coming soon' : 'bald'}</em></p>${guideHtml}</li>`;
+    }).join('');
+    return `
+    <section>
+      <h2>${escapeHtml(`${region.flag || ''} ${region.region}`.trim())}${region.land ? ` <small>(${escapeHtml(region.land)})</small>` : ''}</h2>
+      <ul>${destinationsHtml}</ul>
+    </section>`;
+  }).join('\n');
+
+  const jsonLd = [
+    buildDestinationsItemLd(data, canonicalUrl, lang),
+    buildBreadcrumbLd(buildBreadcrumb(isEn ? 'Destinations' : 'Reiseziele', canonicalUrl, lang)),
+  ];
+
+  const head = buildHead({
+    title,
+    description,
+    canonicalUrl,
+    image: DEFAULT_IMAGE,
+    imageAlt: title,
+    ogType: 'website',
+    jsonLd,
+    lang,
+  });
+
+  return `${head}
+  <h1>${escapeHtml(isEn ? 'Destinations' : 'Reiseziele')}</h1>
+  <p>${escapeHtml(description)}</p>
+  ${regionsHtml}
+  <p><a href="${escapeHtml(canonicalUrl)}">${escapeHtml(isEn ? 'All destinations on MojoBus' : 'Alle Reiseziele auf MojoBus')} →</a></p>
 </body>
 </html>`;
 }

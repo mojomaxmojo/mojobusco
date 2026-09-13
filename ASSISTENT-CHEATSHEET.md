@@ -4,7 +4,7 @@
 > Ausführlich: FEATURE-BAND-SCHAETZUNG-PLAN.md · RECOVERY.md
 > Aktiver Contentplan: **CONTENTPLAN_FIGUEIRA_BUDENS.md** (Figueira/Budens/Vila do Bispo, 30 Artikel, 8 Wochen) — in der App abhakbar: **📋-Button im Assistenten-Header**
 > Weitere Pläne: Manta Rota + Armação de Pêra (gleiche Struktur) · Vorlage für neue Orte: **PROMPT_CONTENTPLAN_VORLAGE.md** (Copy-&-Paste-Prompt, auch im ⓘ-Sheet per Button)
-> Reiseziele-Hub (Menüpunkt + Index-Seite): Spec in **PROMPT_REISEZIELE.md** (Copy-&-Paste-Prompt für den Bau)
+> Reiseziele-Hub ✅ **GEBAUT** (Stand 2026-09-13): Menüpunkt 🗺️ + Index-Seite `/reiseziele` — Pillar-naddr nach Publish in `public/data/destinations.json` pflegen (Spec/Regeln: **PROMPT_REISEZIELE.md**)
 > In-App-Anleitung: ⓘ im Assistenten-Header (Sheet mit allen Feldern step by step)
 
 ---

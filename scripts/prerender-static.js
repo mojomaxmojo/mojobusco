@@ -33,6 +33,7 @@ import {
   renderPlaetzePage,
   renderTripsPage,
   renderAboutPage,
+  renderReisezielePage,
 } from './prerender-category-templates.js';
 // Fix #7A/#7B: Artikel-Unterkategorien (DIY/RVLife/Leon/StrandOrt) + EN-Home
 import {
@@ -310,6 +311,7 @@ async function main() {
     { key: 'bilder', deName: 'category-bilder.html', renderDe: () => renderBilderPage(lists.media, 'de'), renderEn: () => renderBilderPage(lists.media, 'en') },
     { key: 'videos', deName: 'category-videos.html', renderDe: () => renderVideosPage(lists.videos, 'de'), renderEn: () => renderVideosPage(lists.videos, 'en') },
     { key: 'plaetze', deName: 'category-plaetze.html', renderDe: () => renderPlaetzePage(lists.places, 'de'), renderEn: () => renderPlaetzePage(lists.places, 'en') },
+    { key: 'reiseziele', deName: 'category-reiseziele.html', renderDe: () => renderReisezielePage('de'), renderEn: () => renderReisezielePage('en') },
     { key: 'trips', deName: 'category-map-trips.html', renderDe: () => renderTripsPage(lists.trips, 'de'), renderEn: () => renderTripsPage(lists.trips, 'en') },
     { key: 'about', deName: 'category-about.html', renderDe: () => renderAboutPage('de'), renderEn: () => renderAboutPage('en') },
   ];

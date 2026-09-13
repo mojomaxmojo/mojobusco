@@ -21,6 +21,7 @@ const RVLife = lazy(() => import("./pages/RVLife").then(m => ({ default: m.RVLif
 const StrandOrt = lazy(() => import("./pages/StrandOrt").then(m => ({ default: m.StrandOrt })));
 const Notes = lazy(() => import("./pages/Notes").then(m => ({ default: m.Notes })));
 const About = lazy(() => import("./pages/About").then(m => ({ default: m.About })));
+const DestinationsPage = lazy(() => import("./pages/DestinationsPage").then(m => ({ default: m.default })));
 const Places = lazy(() => import("./pages/Places").then(m => ({ default: m.default })));
 const Images = lazy(() => import("./pages/Images").then(m => ({ default: m.default })));
 const MapPage = lazy(() => import("./pages/MapPage").then(m => ({ default: m.default })));
@@ -73,6 +74,7 @@ const PUBLIC_ROUTE_DEFINITIONS: { path: string; element: ReactElement }[] = [
   { path: "/artikel/notes/:country", element: <Notes /> },
   { path: "/videos", element: <Videos /> },
   { path: "/video/:naddr", element: <VideoDetail /> },
+  { path: "/reiseziele", element: <DestinationsPage /> },
   { path: "/about", element: <About /> },
   { path: "/:nip19", element: <NIP19Page /> },
 ];

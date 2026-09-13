@@ -56,6 +56,9 @@ const NATURE_ITEMS: MainMenuItem[] = Object.values(MAIN_MENU.nature).map(cat => 
 export const MAIN_MENU_CONFIG: MainMenuItem[] = [
   { label: 'Home', labelKey: 'nav_home', path: '/', icon: 'Home' },
 
+  // ── Reiseziele ──────────────────────────────────────────────────────────
+  { label: 'Reiseziele', labelKey: 'nav_destinations', path: '/reiseziele', emoji: '🗺️', icon: 'Route' },
+
   // ── Artikel ────────────────────────────────────────────────────────────
   {
     label: 'Artikel',

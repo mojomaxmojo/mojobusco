@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "regions": [
+    {
+      "id": "westalgarve-costa-vicentina",
+      "region": "Westalgarve / Costa Vicentina",
+      "land": "Portugal",
+      "flag": "🇵🇹",
+      "destinations": [
+        {
+          "planId": "figueira-budens",
+          "title": "Figueira / Budens / Vila do Bispo",
+          "ort": "Praia da Figueira (Budens)",
+          "pillarNaddr": null,
+          "pillarTitle": "Figueira / Budens / Vila do Bispo",
+          "regionGuide": null
+        }
+      ]
+    },
+    {
+      "id": "sotavento-ostalgarve",
+      "region": "Sotavento / Ostalgarve",
+      "land": "Portugal",
+      "flag": "🇵🇹",
+      "destinations": [
+        {
+          "planId": "manta-rota",
+          "title": "Manta Rota / Ostalgarve (Sotavento)",
+          "ort": "Manta Rota (Praia de Manta Rota)",
+          "pillarNaddr": null,
+          "pillarTitle": "Manta Rota: Strandort-Guide für die Ostalgarve",
+          "regionGuide": null
+        }
+      ]
+    },
+    {
+      "id": "zentralalgarve",
+      "region": "Zentralalgarve",
+      "land": "Portugal",
+      "flag": "🇵🇹",
+      "destinations": [
+        {
+          "planId": "armacao-de-pera",
+          "title": "Armação de Pêra / Zentralalgarve",
+          "ort": "Armação de Pêra",
+          "pillarNaddr": null,
+          "pillarTitle": "Armação de Pêra / Zentralalgarve",
+          "regionGuide": null
+        }
+      ]
+    }
+  ]
+}

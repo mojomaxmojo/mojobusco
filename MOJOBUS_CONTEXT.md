@@ -49,11 +49,13 @@ Autoren prüfen: `cat src/config/authors.json | jq '.authors[] | {name, pubkey, 
 | `src/pages/VideoPromotion.tsx` | Social-Video-Generator (TikTok/Reels/YouTube Shorts + Longform UI) |
 | `src/pages/ArticlesYear.tsx` | Jahres-Archiv (`/artikel/jahre` + `/artikel/jahr/:year`): Jahr-Switcher + identische Cards wie `/artikel` (ArticleCard aus Articles.tsx exportiert); Canonical je Jahr auf `/artikel/jahr/{year}` (kein Duplicate Content für die Einstiegsseite) |
 | `src/pages/Videos.tsx` | Video-Feed (kind 34236 NIP-71, 9:16 + 16:9) |
+| `src/pages/DestinationsPage.tsx` | **Reiseziele-Hub `/reiseziele`**: Index-Seite, lädt `public/data/destinations.json` (Capacitor-safe via `getDataBaseUrl()`), Regions-Cards, `pillarNaddr` → Link `/{naddr}` (null → Badge „bald"), SEOHead + ItemList-JSON-LD (Regionen als Gruppen). Menü: 🗺️ direkt nach Home (`mainMenu.ts`, `nav_destinations` in i18n/navigation.ts). |
+| `src/config/destinationsSchema.ts` | Typen + defensiver Parser für `destinations.json` (Muster contentplanSchema.ts, null-tolerant) |
 | `src/lib/routeFromGps.ts` | GPS→Route: Haversine-Dedupe, Nominatim, 9:16-Aspect |
 | `public/sw.js` | Service Worker v21: staleWhileRevalidate + Cache-First |
 | `src/components/ServiceWorkerUpdateToast.tsx` | Toast „Neue Version verfügbar" + Reload-Button bei aktiviertem SW-Update (Fix #9, kein Auto-Reload) |
 | `scripts/generate-site-data.js` | Slim-JSON-Dumps ohne content (3-h-Cron via node.sh-Pipeline) |
-| `scripts/prerender-static.js` | Statische HTML-Seiten mit NIP-19 Dateinamen (3-h-Cron via node.sh-Pipeline); seit Fix #7A auch Artikel-Unterkategorien diy/rvlife/leon/strand-ort DE+EN + `category-home-en.html` (Fix #7B); seit Jahr-Archiv auch `category-artikel-jahr-{YYYY}.html` (+ `-en`) für alle Jahre 2012–heute MIT Artikeln + `category-artikel-jahre.html` (+ `-en`, Canonical auf laufendes Jahr) |
+| `scripts/prerender-static.js` | Statische HTML-Seiten mit NIP-19 Dateinamen (3-h-Cron via node.sh-Pipeline); seit Fix #7A auch Artikel-Unterkategorien diy/rvlife/leon/strand-ort DE+EN + `category-home-en.html` (Fix #7B); seit Jahr-Archiv auch `category-artikel-jahr-{YYYY}.html` (+ `-en`) für alle Jahre 2012–heute MIT Artikeln + `category-artikel-jahre.html` (+ `-en`, Canonical auf laufendes Jahr); seit Reiseziele-Hub auch `category-reiseziele.html` (+ `-en`, Quelle: `destinations.json`, fehlt die Datei → Warnung, Kategorie-Seite entfällt für den Lauf) |
 | `scripts/prerender-subcategory-templates.js` | Render-Funktionen für Artikel-Unterkategorien + EN-Home. **Tag-Listen spiegeln `src/config/rvlife.ts` / `strandort.ts`** (Node kann TS-Configs nicht importieren → bei Config-Änderung doppelt pflegen!) |
 | `scripts/generate-sitemap.js` | `sitemap.xml` + `sitemap-videos.xml` (3-h-Cron via node.sh-Pipeline); seit Fix #7C hreflang de↔en auf ALLEN statischen Seiten; seit Jahr-Archiv auch `/artikel/jahr/{YYYY}`-URLs (nur Jahre mit Artikeln, hreflang-Paar nur bei beiden Sprachen) |
 | `scripts/generate-feed.js` | `feed.xml` (DE) + `feed-en.xml` (EN), getrennt nach `l`-Tag (Cron alle 6h) |
@@ -119,6 +121,8 @@ Server-seitige Dateien (`server/`) → `docs/CONTEXT_REMOTION.md` bzw. `docs/CON
 
 | Datei | Inhalt |
 |-------|--------|
+| `destinations.json` | **Handgepflegt (KEIN Skript-Output)**: Reiseziele-Hub-Daten für `/reiseziele` — Regionen mit Destinations (`planId`, `pillarNaddr`, `pillarTitle`, `regionGuide`). Pflege nach jedem Pillar-Publish: naddr aus der Artikel-URL eintragen (Schema: `src/config/destinationsSchema.ts`). |
+| `contentplans/index.json` + `<id>.json` | Contentpläne (Assistent, Sheet) — handgepflegt via Sheet-Sync |
 | `articles.json` | kind-30023, kein content, Tags: title/summary/image/d/t |
 | `places.json` | kind-30023 type=place ODER kind-1 (nur `isMojobusKind1()`-gefiltert), kein/wenig content |
 | `notes.json` | kind-1, nur `isMojobusKind1()`-gefiltert, content max 200 Zeichen |
@@ -148,6 +152,29 @@ Nach Deploy ausführen: `node scripts/generate-site-data.js`
 "Artikel" im Feed). `<enclosure>` nutzt den echten MIME-Type der
 Bild-Endung + versucht die echte Byte-Größe per HEAD-Request zu holen.
 Generiert von `scripts/generate-feed.js` (Cron alle 6h).
+
+---
+
+## Reiseziele-Hub (`/reiseziele`)
+
+Zentrale Index-Seite (Stand 2026-09-13), die alle Reiseziel-Pillars aus den
+Contentplänen bündelt. Menü 🗺️ **Reiseziele** direkt nach Home (Desktop +
+Mobile), i18n `nav_destinations` (de „Reiseziele" / en „Destinations").
+
+- **Daten**: `public/data/destinations.json` (handgepflegt, Schema
+  `src/config/destinationsSchema.ts`) — Seed: figueira-budens →
+  Westalgarve/Costa Vicentina · manta-rota → Sotavento/Ostalgarve ·
+  armacao-de-pera → Zentralalgarve
+- **Seite**: `src/pages/DestinationsPage.tsx` (lazy, öffentlich, `/reiseziele`
+  + `/en/reiseziele`), SEOHead (Canonical `https://mojobus.co/reiseziele`) +
+  ItemList-JSON-LD mit Regionen als Gruppen; `pillarNaddr: null` → Badge
+  „bald" statt Link
+- **Prerender**: `category-reiseziele.html` + `-en` (Nginx-Rewrites für Bots
+  in `mojobus.co.ssl.conf` vorhanden) — gleiche Datenquelle/Links
+- **Pflege (1 min/Plan)**: Pillar publishen → naddr aus URL in
+  `destinations.json` eintragen → Commit + Deploy
+- **Phase 2 (später)**: Auto-Erkennung via `t`-Tag `hub` am Pillar →
+  generate-site-data sammelt naddrs automatisch
 
 ---
 

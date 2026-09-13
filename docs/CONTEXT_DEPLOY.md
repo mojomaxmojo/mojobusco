@@ -430,6 +430,16 @@ greift der Relay-Fallback (paginiert). Der Dump enthält ausschließlich
 Änderungen an gemeinsamer Logik (z. B. `isMojobusKind1()`) wirken sich
 auf alle 3 Cron-Skripte aus – bei Tests immer alle 3 neu laufen lassen.
 
+**Reiseziele-Hub (2026-09-13)**: `category-reiseziele.html` (+ `-en`) wird
+aus `data/destinations.json` gerendert (`renderReisezielePage()` in
+`prerender-category-templates.js`) — die Datei wird per Deploy nach
+`public/data/` ausgeliefert, der Prerender liest sie vom VPS-Pfad (Fallback:
+Repo). Fehlt/kaputt → Warnung, Kategorie-Seite entfällt für den Lauf
+(kein Crash). Bots unter `/reiseziele` + `/en/reiseziele` werden per
+Nginx-Rewrite bedient (Rewrites in `mojobus.co.ssl.conf`, nach Config-
+Änderung auf dem VPS: Config nach `/usr/local/nginx/conf/conf.d/` syncen
++ `nginx -t && nginx -s reload`).
+
 **SW v21**: staleWhileRevalidate für `/data/`, Cache-First für `/prerender/`.
 SW-Version wird bei jedem Deploy automatisch erhöht (`bump_sw_version()` in `deploy-main.sh`).
 

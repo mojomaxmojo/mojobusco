@@ -12,6 +12,7 @@ export type UiLang = 'de' | 'en';
 export const NAV_STRINGS: Record<UiLang, Record<string, string>> = {
   de: {
     nav_home: 'Home',
+    nav_destinations: 'Reiseziele',
     nav_articles: 'Artikel',
     nav_articles_strandort: 'Strand/Ort',
     nav_notes: 'Notes',
@@ -36,6 +37,7 @@ export const NAV_STRINGS: Record<UiLang, Record<string, string>> = {
   },
   en: {
     nav_home: 'Home',
+    nav_destinations: 'Destinations',
     nav_articles: 'Articles',
     nav_articles_strandort: 'Strand/Beach',
     nav_notes: 'Notes',
