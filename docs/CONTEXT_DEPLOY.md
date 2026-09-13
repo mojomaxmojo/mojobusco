@@ -438,7 +438,9 @@ Repo). Fehlt/kaputt → Warnung, Kategorie-Seite entfällt für den Lauf
 (kein Crash). Bots unter `/reiseziele` + `/en/reiseziele` werden per
 Nginx-Rewrite bedient (Rewrites in `mojobus.co.ssl.conf`, nach Config-
 Änderung auf dem VPS: Config nach `/usr/local/nginx/conf/conf.d/` syncen
-+ `nginx -t && nginx -s reload`).
++ `nginx -t && nginx -s reload`). Ebenfalls registriert: `generate-sitemap.js`
+(statische Pages, Priority 0.9, hreflang de↔en) und `robots.txt`
+(`Allow: /reiseziele`) — bei Cron-Änderungen nichts weiter zu tun.
 
 **SW v21**: staleWhileRevalidate für `/data/`, Cache-First für `/prerender/`.
 SW-Version wird bei jedem Deploy automatisch erhöht (`bump_sw_version()` in `deploy-main.sh`).

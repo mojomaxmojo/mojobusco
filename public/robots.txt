@@ -3,6 +3,7 @@
 
 User-agent: *
 Allow: /
+Allow: /reiseziele
 Allow: /artikel
 Allow: /plaetze
 Allow: /bilder

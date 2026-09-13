@@ -57,7 +57,7 @@ Autoren prüfen: `cat src/config/authors.json | jq '.authors[] | {name, pubkey, 
 | `scripts/generate-site-data.js` | Slim-JSON-Dumps ohne content (3-h-Cron via node.sh-Pipeline) |
 | `scripts/prerender-static.js` | Statische HTML-Seiten mit NIP-19 Dateinamen (3-h-Cron via node.sh-Pipeline); seit Fix #7A auch Artikel-Unterkategorien diy/rvlife/leon/strand-ort DE+EN + `category-home-en.html` (Fix #7B); seit Jahr-Archiv auch `category-artikel-jahr-{YYYY}.html` (+ `-en`) für alle Jahre 2012–heute MIT Artikeln + `category-artikel-jahre.html` (+ `-en`, Canonical auf laufendes Jahr); seit Reiseziele-Hub auch `category-reiseziele.html` (+ `-en`, Quelle: `destinations.json`, fehlt die Datei → Warnung, Kategorie-Seite entfällt für den Lauf) |
 | `scripts/prerender-subcategory-templates.js` | Render-Funktionen für Artikel-Unterkategorien + EN-Home. **Tag-Listen spiegeln `src/config/rvlife.ts` / `strandort.ts`** (Node kann TS-Configs nicht importieren → bei Config-Änderung doppelt pflegen!) |
-| `scripts/generate-sitemap.js` | `sitemap.xml` + `sitemap-videos.xml` (3-h-Cron via node.sh-Pipeline); seit Fix #7C hreflang de↔en auf ALLEN statischen Seiten; seit Jahr-Archiv auch `/artikel/jahr/{YYYY}`-URLs (nur Jahre mit Artikeln, hreflang-Paar nur bei beiden Sprachen) |
+| `scripts/generate-sitemap.js` | `sitemap.xml` + `sitemap-videos.xml` (3-h-Cron via node.sh-Pipeline); seit Fix #7C hreflang de↔en auf ALLEN statischen Seiten; seit Jahr-Archiv auch `/artikel/jahr/{YYYY}`-URLs (nur Jahre mit Artikeln, hreflang-Paar nur bei beiden Sprachen); seit Reiseziele-Hub auch `/reiseziele` + `/en/reiseziele` (statische Pages, Priority 0.9) |
 | `scripts/generate-feed.js` | `feed.xml` (DE) + `feed-en.xml` (EN), getrennt nach `l`-Tag (Cron alle 6h) |
 
 ---
@@ -171,6 +171,8 @@ Mobile), i18n `nav_destinations` (de „Reiseziele" / en „Destinations").
   „bald" statt Link
 - **Prerender**: `category-reiseziele.html` + `-en` (Nginx-Rewrites für Bots
   in `mojobus.co.ssl.conf` vorhanden) — gleiche Datenquelle/Links
+- **SEO-Registry**: `generate-sitemap.js` (statische Pages, Priority 0.9,
+  hreflang de↔en via `/en/reiseziele`) + `robots.txt` (`Allow: /reiseziele`)
 - **Pflege (1 min/Plan)**: Pillar publishen → naddr aus URL in
   `destinations.json` eintragen → Commit + Deploy
 - **Phase 2 (später)**: Auto-Erkennung via `t`-Tag `hub` am Pillar →

@@ -7,7 +7,7 @@
  * Alle URLs zeigen auf die korrekten SPA-Routen (/{naddr}, /{note}, /trip/{naddr}, /bild/{nevent}).
  *
  * SPA-Routen (aus AppRouter.tsx):
- *   Statisch: /, /artikel, /plaetze, /bilder, /notes, /map, /about, etc.
+ *   Statisch: /, /reiseziele, /artikel, /plaetze, /bilder, /notes, /map, /about, etc.
  *   Artikel (kind 30023): /{naddr}
  *   Orte (kind 30023 / kind 1): /{naddr} oder /{note}
  *   Trips (kind 1): /trip/{naddr}
@@ -312,6 +312,7 @@ async function main() {
     { path: '/artikel/diy',    enPath: '/artikel/diy',    priority: '0.8', changefreq: 'weekly',  lastmod: today },
     { path: '/artikel/rvlife', enPath: '/artikel/rvlife', priority: '0.8', changefreq: 'weekly',  lastmod: today },
     { path: '/artikel/leon',   enPath: '/artikel/leon',   priority: '0.8', changefreq: 'weekly',  lastmod: today },
+    { path: '/reiseziele',     enPath: '/reiseziele',     priority: '0.9', changefreq: 'weekly',  lastmod: today },
     { path: '/plaetze',        enPath: '/plaetze',        priority: '0.9', changefreq: 'daily',   lastmod: today },
     { path: '/bilder',         enPath: '/bilder',         priority: '0.8', changefreq: 'daily',   lastmod: today },
     { path: '/notes',          enPath: '/notes',          priority: '0.7', changefreq: 'daily',   lastmod: today },
