@@ -130,9 +130,7 @@ export const MAIN_MENU_CONFIG: MainMenuItem[] = [
   },
 
   // ── Videos ─────────────────────────────────────────────────────────────
-  // iconOnly: Desktop-Nav zeigt nur das 🎬-Icon (Label bleibt für Mobile +
-  // aria-label erhalten)
-  { label: 'Videos', labelKey: 'nav_videos', path: '/videos', icon: 'Film', emoji: '🎬', iconOnly: true },
+  { label: 'Videos', labelKey: 'nav_videos', path: '/videos', icon: 'Film', emoji: '🎬' },
 
   // ── About ──────────────────────────────────────────────────────────────
   { label: 'About', labelKey: 'nav_about', path: '/about', icon: 'Info' },

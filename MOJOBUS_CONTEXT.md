@@ -28,7 +28,7 @@
 | `relays.ts` | Relay-Listen, Autor-Zuordnung, DEFAULT_APP_CONFIG |
 | `blossom.ts` | Blossom-Server für Medien-Uploads |
 | `routes.ts` | Routen-Definitionen |
-| `mainMenu.ts` | Hauptnavigation Desktop + Mobile; `iconOnly: true` = Desktop-Nav nur Icon statt Icon+Label (z. B. Videos 🎬; Mobile + `aria-label` bleiben) |
+| `mainMenu.ts` | Hauptnavigation Desktop + Mobile; `iconOnly: true` = Desktop-Nav nur Icon statt Icon+Label (Mechanismus vorhanden, aktuell kein Eintrag aktiv; Mobile + `aria-label` bleiben immer) |
 | `years.ts` | **Artikel-Jahresarchiv**: Startjahr 2012 statisch, Ende = laufendes Jahr („\*"); `getArchiveYears()/isValidArchiveYear()/yearArchivePath()` – Quelle für Menü-Eintrag „Jahre", Switcher + Routen-Validierung (`/artikel/jahre`, `/artikel/jahr/:year`) |
 | `cache.ts` | Cache-Zeiten (24h Listen, 7d Profile, 1y Bilder) |
 | `performance.ts` | **Schlank (ausgemistet)**: `FIRST_PAINT_CONFIG` (2s Fast-Timeout, Limit 15, 3 Home-Cards) + `DEFAULT_PERFORMANCE_CONFIG` (itemsPerPage 15, QueryClient cache/retry-Defaults). Build-Performance lebt in `performance.config.ts` |

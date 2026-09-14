@@ -188,7 +188,7 @@ export function Header() {
                 return (
                   <DropdownMenu key={item.label}>
                     <DropdownMenuTrigger asChild>
-                      <button className="flex items-center gap-2 text-foreground hover:text-primary px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 hover:bg-primary/10 hover:shadow-md">
+                      <button className="flex items-center gap-2 text-foreground hover:text-primary px-2 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 hover:bg-primary/10 hover:shadow-md">
                         <MenuIcon icon={item.icon} emoji={item.emoji} />
                         {itemLabel}
                         <ChevronDown className="h-3 w-3 transition-transform duration-200 group-hover:rotate-180" />
@@ -206,7 +206,7 @@ export function Header() {
                   to={localizePath(item.path!)}
                   aria-label={itemLabel}
                   title={itemLabel}
-                  className="flex items-center gap-2 text-foreground hover:text-primary px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 hover:bg-primary/10 hover:shadow-md"
+                  className="flex items-center gap-2 text-foreground hover:text-primary px-2 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 hover:bg-primary/10 hover:shadow-md"
                 >
                   <MenuIcon icon={item.icon} emoji={item.emoji} />
                   {!item.iconOnly && itemLabel}
