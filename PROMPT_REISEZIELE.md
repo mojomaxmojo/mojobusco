@@ -170,6 +170,13 @@ In `mainMenu.ts` → `MAIN_MENU_CONFIG` **direkt nach Home**:
 
 ## NACH DEM BAU (Pflege-Routine, 1 Min pro Contentplan)
 
+> ✅ **ÜBERHOLT — seit 2026-09-13 vollautomatisch** (PLAN_DESTINATIONS_ADMIN.md):
+> Pillar publishen mit Checkbox „🗺️ Reiseziel-Hub (Pillar)" + Plan-Auswahl →
+> `t=hub` + `plan`-Tag → generate-site-data schreibt die naddr automatisch in
+> destinations.json (≤ 3 h). Regionen editieren: Account-Menü
+> „🗺️ Reiseziele verwalten" (NIP-78-Event, `/admin/destinations`).
+> Die manuelle Routine unten gilt nur noch als Notfall-Fallback.
+
 1. Pillar-Artikel des Plans publishen → naddr aus der URL kopieren
 2. In `public/data/destinations.json` bei der Destination
    `pillarNaddr` eintragen (+ ggf. `regionGuide`)

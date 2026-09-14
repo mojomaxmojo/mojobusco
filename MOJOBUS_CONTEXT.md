@@ -121,7 +121,7 @@ Server-seitige Dateien (`server/`) → `docs/CONTEXT_REMOTION.md` bzw. `docs/CON
 
 | Datei | Inhalt |
 |-------|--------|
-| `destinations.json` | **Handgepflegt (KEIN Skript-Output)**: Reiseziele-Hub-Daten für `/reiseziele` — Regionen mit Destinations (`planId`, `pillarNaddr`, `pillarTitle`, `regionGuide`). Pflege nach jedem Pillar-Publish: naddr aus der Artikel-URL eintragen (Schema: `src/config/destinationsSchema.ts`). |
+| `destinations.json` | **Generiert aus NIP-78-Event** (kind 30078, `d=co.mojobus.app.destinations`, Quelle: Reiseziele-Admin `/admin/destinations`) + Auto-Erkennung `t=hub`/`plan`-Tag → generate-site-data.js. Repo-Datei = Seed/Fallback. Pillar-naddr: Event-Override gewinnt, sonst Auto-Match per planId. |
 | `contentplans/index.json` + `<id>.json` | Contentpläne (Assistent, Sheet) — handgepflegt via Sheet-Sync |
 | `articles.json` | kind-30023, kein content, Tags: title/summary/image/d/t |
 | `places.json` | kind-30023 type=place ODER kind-1 (nur `isMojobusKind1()`-gefiltert), kein/wenig content |
@@ -173,10 +173,22 @@ Mobile), i18n `nav_destinations` (de „Reiseziele" / en „Destinations").
   in `mojobus.co.ssl.conf` vorhanden) — gleiche Datenquelle/Links
 - **SEO-Registry**: `generate-sitemap.js` (statische Pages, Priority 0.9,
   hreflang de↔en via `/en/reiseziele`) + `robots.txt` (`Allow: /reiseziele`)
-- **Pflege (1 min/Plan)**: Pillar publishen → naddr aus URL in
-  `destinations.json` eintragen → Commit + Deploy
-- **Phase 2 (später)**: Auto-Erkennung via `t`-Tag `hub` am Pillar →
-  generate-site-data sammelt naddrs automatisch
+- **Verwaltung (seit 2026-09-13, PLAN_DESTINATIONS_ADMIN.md)**: Editor
+  `/admin/destinations` (Account-Menü „🗺️ Reiseziele verwalten", nur Autoren,
+  Muster AboutAdmin) — Struktur wird als **NIP-78-Event** gespeichert
+  (kind 30078, `d=co.mojobus.app.destinations`, Muster: About-Seite).
+  `useDestinationsAdmin` lädt Event → `/data/destinations.json` → leer.
+  30078 ist replaceable **pro pubkey** → bei 2 Autoren gewinnt das neueste
+  Event („wer zuletzt speichert").
+- **Pillar-Auto-Erkennung (Phase 2)**: Artikel-Formular hat Checkbox
+  „🗺️ Reiseziel-Hub (Pillar)" (`DestinationHubSection`) → setzt `t=hub` +
+  `plan=<planId>` am kind-30023-Event. generate-site-data.js filtert daraus
+  die Hubs (keine Extra-Relay-Query) und schreibt die naddrs automatisch in
+  destinations.json; `pillarNaddr` aus dem Event = Override. Kein Event →
+  bestehende Datei bleibt UNVERÄNDERT (Guard). Repo-JSON = Seed/Fallback.
+- **Pflege-Workflow**: Pillar mit hub-Checkbox publishen (Zuordnung zum Plan
+  wählen) → fertig. Neue Regionen/Destinations: im Editor. Live jeweils ≤ 3 h
+  (Cron-Rhythmus).
 
 ---
 

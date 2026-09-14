@@ -142,6 +142,42 @@ function extractSummary(content) {
 // d-Präfix-Check; isTrip nur MIT title-Tag) — daraus entstanden die
 // Zähl-Diskrepanzen (Orte 5 vs. 17, Notes 29 vs. 28, Bilder 48 vs. 46).
 
+// ── destinations.json-Parser (Spiegel von src/config/destinationsSchema.ts,
+// defensiv — Node kann TS-Configs nicht importieren; bei Schema-Änderung
+// dort UND hier pflegen) ─────────────────────────────────────────────────────
+
+function parseDestinationsStructure(raw) {
+  if (!raw || typeof raw !== 'object' || !Array.isArray(raw.regions)) return null;
+  const regions = raw.regions
+    .filter(r => r && typeof r === 'object' && r.id && r.region
+      && Array.isArray(r.destinations) && r.destinations.length > 0)
+    .map(r => ({
+      id: String(r.id),
+      region: String(r.region),
+      land: typeof r.land === 'string' ? r.land : '',
+      flag: typeof r.flag === 'string' ? r.flag : '',
+      destinations: r.destinations
+        .filter(d => d && typeof d === 'object' && d.planId && d.title)
+        .map(d => ({
+          planId: String(d.planId),
+          title: String(d.title),
+          ort: typeof d.ort === 'string' ? d.ort : '',
+          pillarNaddr: typeof d.pillarNaddr === 'string' && d.pillarNaddr.trim()
+            ? d.pillarNaddr.trim()
+            : null,
+          pillarTitle: typeof d.pillarTitle === 'string' && d.pillarTitle.trim()
+            ? d.pillarTitle
+            : String(d.title),
+          regionGuide: typeof d.regionGuide === 'string' && d.regionGuide.trim()
+            ? d.regionGuide.trim()
+            : null,
+        }))
+        .filter(d => d.planId && d.title),
+    }))
+    .filter(r => r.destinations.length > 0);
+  return regions.length ? { version: 1, regions } : null;
+}
+
 // ── Main ───────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -153,6 +189,7 @@ async function main() {
   const allVideoEvents = [];
   const allTripEvents = [];
   const allProfileEvents = []; // kind 0 — für die Prerender-Profil-Seiten im Dump-Modus
+  const allDestinationEvents = []; // kind 30078 — Reiseziele-Struktur (destinations.json)
   const seenIds = new Set();
 
   for (const relay of RELAYS) {
@@ -182,6 +219,14 @@ async function main() {
     const profiles = await queryRelay(relay, [{ kinds: [0], authors: AUTHOR_PUBKEYS, since: 0, until: FAR_FUTURE }], { timeoutMs: QUERY_TIMEOUT, label: `${relay} profiles` });
     console.log(`[SiteData]  → ${profiles.length} Profile (kind 0)`);
 
+    // Reiseziele-Struktur (NIP-78, kind 30078, d = co.mojobus.app.destinations)
+    // — Quelle für destinations.json (Reiseziele-Hub /reiseziele). Replaceable
+    // PRO pubkey: mehrere Autoren → mehrere Events, das neueste gewinnt (Merge
+    // unten). Fehlt/kaputt das Event → bestehende destinations.json bleibt
+    // UNVERÄNDERT (Guard unten), kein Seed-Rückfall.
+    const destinationsEvents = await queryRelay(relay, [{ kinds: [30078], '#d': ['co.mojobus.app.destinations'], authors: AUTHOR_PUBKEYS, since: 0, until: FAR_FUTURE, limit: 10 }], { timeoutMs: QUERY_TIMEOUT, label: `${relay} destinations` });
+    console.log(`[SiteData]  → ${destinationsEvents.length} Reiseziele-Struktur-Events (kind 30078)`);
+
     for (const event of [...articles, ...notes]) {
       if (!seenIds.has(event.id)) {
         seenIds.add(event.id);
@@ -207,6 +252,13 @@ async function main() {
       if (!seenIds.has(event.id)) {
         seenIds.add(event.id);
         allProfileEvents.push(event);
+      }
+    }
+
+    for (const event of destinationsEvents) {
+      if (!seenIds.has(event.id)) {
+        seenIds.add(event.id);
+        allDestinationEvents.push(event);
       }
     }
   }
@@ -273,7 +325,7 @@ async function main() {
   // Einsparung: articles.json ~80% kleiner (von ~2MB → ~400KB bei 250 Artikeln)
 
   // Tags die für Listenseiten relevant sind (alle anderen werden weggefiltert)
-  const RELEVANT_TAGS_30023 = new Set(['d', 'title', 'name', 'summary', 'image', 'published_at', 'type', 't', 'l', 'L']);
+  const RELEVANT_TAGS_30023 = new Set(['d', 'title', 'name', 'summary', 'image', 'published_at', 'type', 't', 'l', 'L', 'plan']);
   const RELEVANT_TAGS_KIND1 = new Set(['t', 'type', 'image', 'imeta', 'r', 'title']);
 
   const stripArticle = (e) => ({
@@ -368,6 +420,63 @@ async function main() {
   // Videos: kind 34236 + 34235 (NIP-71), nach Datum sortiert
   const videosSorted = allVideoEvents.sort((a, b) => b.created_at - a.created_at);
   writeJSON('videos.json', videosSorted.map(stripVideo));
+
+  // ── destinations.json: Reiseziele-Hub (/reiseziele) ─────────────────────
+  // Struktur kommt aus dem NIP-78-Event (Reiseziele-Admin /admin/destinations),
+  // Pillar-naddr werden zusätzlich AUTO erkannt: Artikel (kind 30023) mit
+  // t=hub + plan=<planId> (Phase 2, PLAN_DESTINATIONS_ADMIN.md). Event-Wert
+  // am pillarNaddr-Feld = Override und gewinnt. Kein/kaputtes Event →
+  // bestehende Datei bleibt UNVERÄNDERT (kein Seed-Rückfall).
+  const hubEvents = articleEvents
+    .filter(e => (e.tags || []).some(t => t[0] === 't' && t[1] === 'hub'))
+    .sort((a, b) => b.created_at - a.created_at); // neueste zuerst
+  const hubsByPlan = new Map(); // planId → { naddr, title }
+  for (const e of hubEvents) {
+    const plan = (e.tags.find(t => t[0] === 'plan') || [])[1] || '';
+    if (!plan || hubsByPlan.has(plan)) continue;
+    const dTag = (e.tags.find(t => t[0] === 'd') || [])[1] || e.id;
+    try {
+      hubsByPlan.set(plan, {
+        naddr: nip19.naddrEncode({ kind: 30023, pubkey: e.pubkey, identifier: dTag }),
+        title: (e.tags.find(t => t[0] === 'title') || [])[1] || '',
+      });
+    } catch { /* naddr-Encoding-Fehler → Plan übersprungen */ }
+  }
+
+  const structureEvent = allDestinationEvents
+    .sort((a, b) => b.created_at - a.created_at)[0] || null;
+  if (!structureEvent) {
+    console.warn('[SiteData] ⚠️ Kein Reiseziele-Struktur-Event (kind 30078, d=co.mojobus.app.destinations) gefunden — bestehende destinations.json bleibt unverändert.');
+  } else {
+    try {
+      const parsed = parseDestinationsStructure(JSON.parse(structureEvent.content));
+      if (!parsed) {
+        console.warn('[SiteData] ⚠️ destinations-Event kaputt (Parser null) — bestehende destinations.json bleibt unverändert.');
+      } else {
+        let autoFilled = 0;
+        let overrides = 0;
+        for (const region of parsed.regions) {
+          for (const dest of region.destinations) {
+            if (dest.pillarNaddr) { overrides++; continue; } // Override gewinnt
+            const hub = hubsByPlan.get(dest.planId);
+            if (hub) {
+              dest.pillarNaddr = hub.naddr;
+              if (!dest.pillarTitle) dest.pillarTitle = hub.title;
+              autoFilled++;
+            }
+          }
+        }
+        // Pretty-Print (2-space, diff-freundlich) — bewusst NICHT writeJSON
+        // (das schreibt kompakt); Parität mit dem Editor-Export.
+        const destJson = JSON.stringify(parsed, null, 2);
+        fs.writeFileSync(path.join(DATA_DIR, 'destinations.json'), destJson, 'utf-8');
+        const destKb = (Buffer.byteLength(destJson, 'utf-8') / 1024).toFixed(1);
+        console.log(`[SiteData]  ✅ destinations.json (${parsed.regions.length} Regionen, ${autoFilled} auto-naddr, ${overrides} Overrides, ${hubEvents.length} hub-Events, ${destKb} KB)`);
+      }
+    } catch (e) {
+      console.warn(`[SiteData] ⚠️ destinations-Merge fehlgeschlagen: ${e.message} — bestehende destinations.json bleibt unverändert.`);
+    }
+  }
 
   // ── naddr-Sitemap ──────────────────────────────────────────────────────
 
