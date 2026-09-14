@@ -38,6 +38,7 @@ import { useArticleImageGps } from "./articleForm/useArticleImageGps";
 import { useArticleAutosave } from "./articleForm/useArticleAutosave";
 import { useArticleMediaGenerators } from "./articleForm/useArticleMediaGenerators";
 import { useArticlePublish } from "./articleForm/useArticlePublish";
+import { DestinationHubSection } from "./articleForm/DestinationHubSection";
 import { ArticleImageGpsSection } from "./articleForm/ArticleImageGpsSection";
 import { COUNTRY_TAG_LIST, ARTICLE_LENGTH_OPTIONS, getDIYIcon, RV_LIFE_TAG_OPTIONS, STRAND_ORT_TAG_OPTIONS } from "./articleForm/articleFormConfig";
 import { extractImageUrlsFromMarkdown } from "./articleForm/articleFormUtils";
@@ -97,6 +98,9 @@ export function ArticleForm({ editEvent }: { editEvent?: NostrEvent }) {
   // Teaser-Note State
   const [publishTeaserNote, setPublishTeaserNote] = useState(true);
   const [isPublishingTeaser, setIsPublishingTeaser] = useState(false);
+  // Reiseziel-Hub (Phase 2): t=hub + plan-Tag am Pillar → /reiseziele verlinkt automatisch
+  const [isDestinationHub, setIsDestinationHub] = useState(false);
+  const [hubPlanId, setHubPlanId] = useState('');
 
   // Auto-Übersetzung (DE→EN) State
   const [autoTranslateEn, setAutoTranslateEn] = useState(() => {
@@ -369,6 +373,7 @@ export function ArticleForm({ editEvent }: { editEvent?: NostrEvent }) {
     publishTeaserNote, autoTranslateEn, displayTags,
     lifestyle, articleLength, tripType, tags,
     researchFacts, experienceNotes,
+    isDestinationHub, hubPlanId,
     generatedVideoUrl, slideshowVideoUrl, currentDraftId, currentDraftStatus,
     editEvent,
     // Helfer
@@ -1232,6 +1237,14 @@ Schreibe deinen Artikel hier...
             }}
           />
         </div>
+
+        {/* Reiseziel-Hub (Phase 2): t=hub + plan-Tag am Pillar */}
+        <DestinationHubSection
+          enabled={isDestinationHub}
+          onEnabledChange={setIsDestinationHub}
+          planId={hubPlanId}
+          onPlanIdChange={setHubPlanId}
+        />
 
         {/* Assistent: SEO-Veröffentlichungs-Panel + Entwürfe */}
         <SeoPublishPanel

@@ -7,6 +7,17 @@
  * Region-Reiseführer). `null` = Platzhalter → Badge „bald" statt Link.
  */
 
+// ── Konstanten (geteilt mit Publish-Formular + generate-site-data.js) ───────
+
+/** NIP-78: replaceable App-Data-Event für die Reiseziele-Struktur */
+export const DESTINATIONS_KIND = 30078;
+/** d-Tag des Struktur-Events (Konvention wie About: co.mojobus.app.<kontext>) */
+export const DESTINATIONS_DTAG = 'co.mojobus.app.destinations';
+/** Hashtag-Tag am Pillar-Artikel → Auto-Erkennung durch generate-site-data */
+export const HUB_TAG = 'hub';
+/** Custom-Tag am Pillar-Artikel: Contentplan-ID → Zuordnung zur Destination */
+export const PLAN_TAG = 'plan';
+
 // ── Typen ───────────────────────────────────────────────────────────────────
 
 export interface DestinationEntry {

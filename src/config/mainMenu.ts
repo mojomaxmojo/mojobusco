@@ -149,6 +149,7 @@ export const ACCOUNT_MENU_ITEMS: MainMenuItem[] = [
   { label: 'Pinterest Promotion', path: '/promotion', icon: 'Pin' },
   { label: '🎬 TikTok Promotion', path: '/promotion/tiktok', icon: 'Video' },
   { label: '📝 About verwalten', path: '/admin/about', icon: 'Info' },
+  { label: '🗺️ Reiseziele verwalten', path: '/admin/destinations', icon: 'Map' },
 ];
 
 // ── Hilfsfunktionen ───────────────────────────────────────────────────────

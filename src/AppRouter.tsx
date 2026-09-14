@@ -38,6 +38,7 @@ const NIP19Page = lazy(() => import("./pages/NIP19Page").then(m => ({ default: m
 const BudgetPage = lazy(() => import("./pages/BudgetPage").then(m => ({ default: m.BudgetPage })));
 const VideoPromotion = lazy(() => import("./pages/VideoPromotion").then(m => ({ default: m.VideoPromotion })));
 const AboutAdmin = lazy(() => import("./pages/admin/AboutAdmin").then(m => ({ default: m.AboutAdmin })));
+const DestinationsAdmin = lazy(() => import("./pages/admin/DestinationsAdmin").then(m => ({ default: m.DestinationsAdmin })));
 const Videos = lazy(() => import("./pages/Videos").then(m => ({ default: m.Videos })));
 const VideoDetail = lazy(() => import("./pages/VideoDetail").then(m => ({ default: m.VideoDetail })));
 const NotFound = lazy(() => import("./pages/NotFound").then(m => ({ default: m.default })));
@@ -96,7 +97,8 @@ function App() {
                 <Route key={'en-' + r.path} path={'/en' + (r.path === '/' ? '' : r.path)} element={r.element} />
               ))}
               {/* Interne Redaktions-Tools – bewusst KEIN /en/‑Zugriff */}
-               <Route path="/admin/about" element={<AboutAdmin />} />
+                <Route path="/admin/about" element={<AboutAdmin />} />
+                <Route path="/admin/destinations" element={<DestinationsAdmin />} />
                <Route path="/profile" element={<Profile />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/settings/service-worker" element={<ServiceWorkerSettings />} />

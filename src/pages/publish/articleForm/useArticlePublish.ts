@@ -19,6 +19,7 @@ import { canonicalUrl, articleUrl, canonicalNaddr } from "@/lib/canonicalUrl";
 import { buildAuthorInput, buildSmartSlug } from "@/config/assistant";
 import { nip19 } from "nostr-tools";
 import { AUTOSAVE_KEY } from "./articleFormConfig";
+import { HUB_TAG, PLAN_TAG } from "@/config/destinationsSchema";
 
 /** Gleicher Lifestyle-Typ wie der ArticleForm-State (vgl. useArticleAutosave) */
 type ArticleLifestyle = 'mojobus' | 'wohnmobil' | 'rvlife' | 'vanlife' | 'beachlife' | 'perpetual-travelers';
@@ -67,6 +68,11 @@ interface UseArticlePublishParams {
   tags: string[];
   researchFacts: string;
   experienceNotes: string;
+  // Reiseziel-Hub (Phase 2): t=hub + plan=<planId> am Artikel (siehe
+  // PLAN_DESTINATIONS_ADMIN.md) — generate-site-data erkennt den Pillar
+  // daran und verlinkt ihn auf /reiseziele
+  isDestinationHub: boolean;
+  hubPlanId: string;
   generatedVideoUrl: string | null;
   slideshowVideoUrl: string | null;
   currentDraftId: string | null;
@@ -142,6 +148,8 @@ export function useArticlePublish({
   tags,
   researchFacts,
   experienceNotes,
+  isDestinationHub,
+  hubPlanId,
   generatedVideoUrl,
   slideshowVideoUrl,
   currentDraftId,
@@ -353,6 +361,14 @@ export function useArticlePublish({
     if (selectedCountry) {
       const countryTags = getCountryTag(selectedCountry);
       countryTags.forEach(tag => additionalTags.push(['t', tag]));
+    }
+
+    // Reiseziel-Hub (Phase 2, PLAN_DESTINATIONS_ADMIN.md): t=hub Hashtag +
+    // plan-Tag mit der Contentplan-ID → generate-site-data ordnet den
+    // Artikel der passenden Destination auf /reiseziele zu
+    if (isDestinationHub && hubPlanId.trim()) {
+      additionalTags.push(['t', HUB_TAG]);
+      additionalTags.push([PLAN_TAG, hubPlanId.trim()]);
     }
 
     // Add GPS tags from title image
