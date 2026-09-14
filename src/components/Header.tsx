@@ -189,7 +189,11 @@ export function Header() {
                   <DropdownMenu key={item.label}>
                     <DropdownMenuTrigger asChild>
                       <button className="flex items-center gap-2 text-foreground hover:text-primary px-2 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 hover:bg-primary/10 hover:shadow-md">
-                        <MenuIcon icon={item.icon} emoji={item.emoji} />
+                        {/* Icons nur ab 900px — darunter (768–899px) nur Text,
+                            damit die Nav nicht abgeschnitten wird */}
+                        <span aria-hidden="true" className="hidden min-[900px]:inline-flex">
+                          <MenuIcon icon={item.icon} emoji={item.emoji} />
+                        </span>
                         {itemLabel}
                         <ChevronDown className="h-3 w-3 transition-transform duration-200 group-hover:rotate-180" />
                       </button>
@@ -208,7 +212,15 @@ export function Header() {
                   title={itemLabel}
                   className="flex items-center gap-2 text-foreground hover:text-primary px-2 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 hover:bg-primary/10 hover:shadow-md"
                 >
-                  <MenuIcon icon={item.icon} emoji={item.emoji} />
+                  {/* Icons nur ab 900px — darunter (768–899px) nur Text.
+                      iconOnly-Items: Icon bleibt (ist das Label). */}
+                  {item.iconOnly ? (
+                    <MenuIcon icon={item.icon} emoji={item.emoji} />
+                  ) : (
+                    <span aria-hidden="true" className="hidden min-[900px]:inline-flex">
+                      <MenuIcon icon={item.icon} emoji={item.emoji} />
+                    </span>
+                  )}
                   {!item.iconOnly && itemLabel}
                 </Link>
               );
