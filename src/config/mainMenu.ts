@@ -29,6 +29,8 @@ export interface MainMenuItem {
   pathPrefix?: string;
   /** Trennlinie */
   divider?: true;
+  /** Desktop-Nav: nur Icon statt Icon + Label (Accessibility via aria-label) */
+  iconOnly?: boolean;
 }
 
 // ── Static Sub-Item Listen ─────────────────────────────────────────────────
@@ -128,7 +130,9 @@ export const MAIN_MENU_CONFIG: MainMenuItem[] = [
   },
 
   // ── Videos ─────────────────────────────────────────────────────────────
-  { label: 'Videos', labelKey: 'nav_videos', path: '/videos', icon: 'Film', emoji: '🎬' },
+  // iconOnly: Desktop-Nav zeigt nur das 🎬-Icon (Label bleibt für Mobile +
+  // aria-label erhalten)
+  { label: 'Videos', labelKey: 'nav_videos', path: '/videos', icon: 'Film', emoji: '🎬', iconOnly: true },
 
   // ── About ──────────────────────────────────────────────────────────────
   { label: 'About', labelKey: 'nav_about', path: '/about', icon: 'Info' },

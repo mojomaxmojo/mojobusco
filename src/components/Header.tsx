@@ -182,6 +182,7 @@ export function Header() {
           {/* ═══════ DESKTOP NAVIGATION ═══════ */}
           <nav className="hidden md:flex items-center gap-px flex-1 justify-end">
             {MAIN_MENU_CONFIG.map((item) => {
+              const itemLabel = item.labelKey ? t(item.labelKey) : item.label;
               if (hasChildren(item)) {
                 const children = getChildItems(item);
                 return (
@@ -189,7 +190,7 @@ export function Header() {
                     <DropdownMenuTrigger asChild>
                       <button className="flex items-center gap-2 text-foreground hover:text-primary px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 hover:bg-primary/10 hover:shadow-md">
                         <MenuIcon icon={item.icon} emoji={item.emoji} />
-                        {item.labelKey ? t(item.labelKey) : item.label}
+                        {itemLabel}
                         <ChevronDown className="h-3 w-3 transition-transform duration-200 group-hover:rotate-180" />
                       </button>
                     </DropdownMenuTrigger>
@@ -203,10 +204,12 @@ export function Header() {
                 <Link
                   key={item.label}
                   to={localizePath(item.path!)}
+                  aria-label={itemLabel}
+                  title={itemLabel}
                   className="flex items-center gap-2 text-foreground hover:text-primary px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 hover:bg-primary/10 hover:shadow-md"
                 >
                   <MenuIcon icon={item.icon} emoji={item.emoji} />
-                  {item.labelKey ? t(item.labelKey) : item.label}
+                  {!item.iconOnly && itemLabel}
                 </Link>
               );
             })}
