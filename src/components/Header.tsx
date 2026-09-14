@@ -229,10 +229,15 @@ export function Header() {
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="default" className="hover:bg-primary/10 transition-all duration-300 rounded-xl">
-                    <User className="h-4 w-4 mr-2" />
-                    {t('account_menu')}
-                    <ChevronDown className="h-3 w-3 ml-2 transition-transform duration-200" />
+                  <Button
+                    variant="ghost"
+                    size="default"
+                    className="hover:bg-primary/10 transition-all duration-300 rounded-xl px-2"
+                    aria-label={t('account_menu')}
+                    title={t('account_menu')}
+                  >
+                    <User className="h-4 w-4" />
+                    <ChevronDown className="h-3 w-3 transition-transform duration-200" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="shadow-xl border-primary/20">
