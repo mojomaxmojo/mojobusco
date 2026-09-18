@@ -5,6 +5,26 @@
 
 ---
 
+## Berichte-Formular: KI-Defaults Mojobus + Perspektive Paar (2026-09-14)
+
+**Auslöser**: Standard-Vorbelegung der Box „KI-Artikel generieren" im
+Berichte-Tab soll Lifestyle=Mojobus + Perspektive=Paar sein.
+
+- **Lifestyle**: Default war bereits `mojobus` – unverändert.
+- **Perspektive**: Folgte bisher der Auto-Gender-Erkennung
+  (detectGenderFromPubkey: Mojo→„Männlich (Max)", Susanne→„Weiblich
+  (Susanne)", beide Ich-Form) inkl. Follow-Effect. Jetzt fest:
+  `useState<GenderType>('couple')` = „Paar (Max & Susanne)" = Wir-Form,
+  manuell über PerspectiveSelector übersteuerbar. perspectiveTouched-State
+  und Auto-Follow-Effect entfernt (sonst hätte die Auto-Erkennung das
+  Paar-Default beim Laden sofort wieder überschrieben).
+- Konsistent zum Server: ai-api route content/article.js nutzt
+  `|| 'couple'` als Fallback (Zeile 46) – Frontend war vorher inkonsistent.
+- **Scope**: Nur ArticleForm (Berichte-Tab). NoteForm/PlaceForm/
+  MediaUploadForm/TripPublishForm behalten die Auto-Gender-Erkennung.
+
+---
+
 ## Berichte-Formular: Kategorie-Liste bereinigt, RV Life + Leon ergänzt (2026-09-14)
 
 **Auslöser**: Redundanzen im Kategorie-Dropdown von /veroeffentlichen →

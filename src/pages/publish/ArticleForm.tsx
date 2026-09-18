@@ -124,13 +124,12 @@ export function ArticleForm({ editEvent }: { editEvent?: NostrEvent }) {
     handleImageUpload,
     imageMetaMap, setImageMetaMap,
   } = useArticleImageGps({ toast, uploadFile, selectedCountry, setLocation, setSelectedCountry });
-  const { gender: autoGender, user: currentUser } = useCurrentUser(); // Automatisch erkannte Perspektive (Mojo=male, Susanne=female)
-  const [perspectiveTouched, setPerspectiveTouched] = useState(false);
-  const [perspective, setPerspective] = useState<GenderType>(autoGender);
-  // Solange der User die Perspektive nicht manuell geändert hat, folgt sie der Auto-Erkennung
-  useEffect(() => {
-    if (!perspectiveTouched) setPerspective(autoGender);
-  }, [autoGender, perspectiveTouched]);
+  const { user: currentUser } = useCurrentUser();
+  // Standard-Perspektive: Paar („wir" – Max & Susanne im MojoBus).
+  // Manuell übersteuerbar (Männlich/Weiblich/Neutral) via PerspectiveSelector.
+  // Bewusst KEINE Auto-Gender-Erkennung mehr (Mojo=male/Susanne=female) –
+  // die Formular-Defaults sind Mojobus-Lifestyle + Paar-Perspektive.
+  const [perspective, setPerspective] = useState<GenderType>('couple');
   const gender = perspective;
   const navigate = useNavigate();
   const { translateAndPublish } = useAutoTranslate();
@@ -813,7 +812,7 @@ Schreibe deinen Artikel hier...
           {/* Perspektive (Ich/Wir) */}
           <PerspectiveSelector
             value={perspective}
-            onChange={(v) => { setPerspective(v); setPerspectiveTouched(true); }}
+            onChange={setPerspective}
           />
 
           {/* Art der Reise */}
