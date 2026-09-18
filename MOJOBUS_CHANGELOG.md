@@ -5,6 +5,43 @@
 
 ---
 
+## Berichte-Formular: Kategorie-Liste bereinigt, RV Life + Leon ergänzt (2026-09-14)
+
+**Auslöser**: Redundanzen im Kategorie-Dropdown von /veroeffentlichen →
+Tab „Berichte". Jede Kategorie soll 1:1 auf einen öffentlichen Bereich
+mappen (Menüstruktur Artikel in src/config/mainMenu.ts).
+
+**Neue Dropdown-Liste** (zentral in `ARTICLE_CATEGORY_OPTIONS`,
+src/pages/publish/articleForm/articleFormConfig.ts, mit SelectGroup
+„RV Life"):
+
+- 🗺️ reisen → /artikel
+- 🛠️ diy → /artikel/diy (schluckt Technik)
+- 🚐 rvlife-kueche-essen / rvlife-ausstattung / rvlife-freeliving /
+  rvlife-lifestyle → /artikel/rvlife (NEU – war zuvor im Formular nicht
+  erreichbar, obwohl Config + Seite existierten; RV_LIFE_TAG_OPTIONS-
+  Badges + Auto-Tags greifen jetzt)
+- 🏖️ strand-ort → /artikel/strand-ort
+- 🦁 leon → /artikel/leon (NEU – Auto-Tags leon/lion/dog)
+
+**Entfernt aus dem Dropdown** (bleiben als LEGACY in ARTICLE_CATEGORIES,
+src/config/articles.ts, damit alte Artikel-Edits korrekt aufgelöst werden):
+
+- technik: redundant mit diy (isDIY → #diy), landete ohnehin in
+  /artikel/diy; Unterkategorie „Technik & Elektronik" existiert unter
+  DIY_CATEGORIES.
+- leben: kein Zielbereich (lief nur unter /artikel), thematische Deckung
+  über RV Life → Freeliving/Lifestyle.
+
+**Hinweis Kompatibilität**: Beim Editieren alter Artikel mit
+category=technik/leben zeigt das Select keinen Treffer mehr (neue Kategorie
+wählen) – die t-Tags des Events bleiben beim Republish vollständig erhalten
+(Edit-Flow lädt t-Tags via getTagValues). Kein Artikel geht verloren.
+RV Life: Die Select-Werte müssen die ARTICLE_CATEGORIES-IDs (rvlife-*)
+treffen, damit useArticleTagCategories die Auto-Tags zuordnet.
+
+---
+
 ## Performance-Sprint: PSI Home 72→92, Trips 52→97 (2026-09-11/12)
 
 **Auslöser**: PSI-Reports (mobil, Moto G Power + Slow-4G-Lab). Home 72,

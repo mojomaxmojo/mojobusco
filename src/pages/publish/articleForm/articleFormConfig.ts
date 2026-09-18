@@ -7,6 +7,7 @@
  */
 
 import { Battery, Sun, Wrench, Hammer, Cpu, Waves, Mountain, Eye, Trees, Droplets, Camera } from "@/lib/icons";
+import { RV_LIFE_ARTICLE_CATEGORIES } from "@/config/rvlife";
 
 // ── Nr. 13: Lokaler Autosave (Browser-Crash-Schutz) ─────────────────────
 export const AUTOSAVE_KEY = 'assistant:autosave:article';
@@ -83,4 +84,44 @@ export const STRAND_ORT_TAG_OPTIONS = [
   { id: 'wald', emoji: '🌲', name: 'Wald' },
   { id: 'meer', emoji: '🌊', name: 'Meer' },
   { id: 'ort', emoji: '📍', name: 'Ort' }
+];
+
+// ── Kategorie-Optionen des Berichte-Formulars ────────────────────────────
+/**
+ * Kategorien-Dropdown im Berichte-Tab (/veroeffentlichen → Berichte).
+ * Jede Option mappt 1:1 auf einen öffentlichen Bereich:
+ *   reisen     → /artikel (Catch-all, alle Berichte)
+ *   diy        → /artikel/diy (inkl. Technik & Elektronik als DIY-Unterkategorie)
+ *   rvlife-*   → /artikel/rvlife (Auto-Tags aus config/rvlife.ts, Untertags
+ *                via RV_LIFE_TAG_OPTIONS)
+ *   strand-ort → /artikel/strand-ort (Untertags via STRAND_ORT_TAG_OPTIONS)
+ *   leon       → /artikel/leon (Auto-Tags leon/lion/dog)
+ *
+ * Bewusst NICHT mehr angeboten (Bereinigung 2026-09):
+ *   technik – redundant mit diy (isDIY), landete ohnehin in /artikel/diy;
+ *             bleibt in ARTICLE_CATEGORIES als Legacy für alte Artikel-Edits.
+ *   leben   – kein Zielbereich, thematisch in RV Life Freeliving/Lifestyle
+ *             aufgegangen.
+ * Die Werte müssen die Kategorie-IDs aus ARTICLE_CATEGORIES (src/config/articles.ts)
+ * treffen, damit useArticleTagCategories Auto-Tags korrekt zuordnen kann.
+ */
+export interface ArticleCategoryOption {
+  value: string;
+  emoji: string;
+  label: string;
+  /** Optionale SelectGroup im Dropdown (z.B. „RV Life") */
+  group?: string;
+}
+
+export const ARTICLE_CATEGORY_OPTIONS: ArticleCategoryOption[] = [
+  { value: 'reisen', emoji: '🗺️', label: 'Reisen' },
+  { value: 'diy', emoji: '🛠️', label: 'DIY & Ausbau' },
+  ...RV_LIFE_ARTICLE_CATEGORIES.map(cat => ({
+    value: cat.id,
+    emoji: cat.emoji,
+    label: cat.name,
+    group: 'RV Life' as const,
+  })),
+  { value: 'strand-ort', emoji: '🏖️', label: 'Strand/Ort' },
+  { value: 'leon', emoji: '🦁', label: 'Leon Stories' },
 ];

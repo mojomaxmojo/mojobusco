@@ -28,6 +28,11 @@ export const ARTICLE_CATEGORIES: ArticleCategory[] = [
     priority: 2
   },
   {
+    // LEGACY: wird im Berichte-Formular nicht mehr angeboten (kein eigener
+    // Zielbereich – lief nur unter /artikel). Thematische Deckung jetzt über
+    // RV Life → Freeliving/Lifestyle (config/rvlife.ts). Eintrag bleibt für
+    // alte Artikel-Edits bestehen (s. ARTICLE_CATEGORY_OPTIONS in
+    // src/pages/publish/articleForm/articleFormConfig.ts).
     id: 'leben',
     name: 'Lifestyle',
     description: 'Lebensstil und persönliche Themen',
@@ -65,6 +70,13 @@ export const ARTICLE_CATEGORIES: ArticleCategory[] = [
     priority: 5
   },
   {
+    // LEGACY: wird im Berichte-Formular nicht mehr angeboten (Bereinigung
+    // Kategorie-Liste, s. ARTICLE_CATEGORY_OPTIONS in
+    // src/pages/publish/articleForm/articleFormConfig.ts). Eintrag bleibt
+    // bestehen, damit alte Artikel mit category=technik beim Editieren
+    // weiter korrekt aufgelöst werden (isDIY → #diy wird neu gesetzt).
+    // Redundanz-Grund: landete ohnehin in /artikel/diy, Unterkategorie
+    // „Technik & Elektronik" existiert unter DIY_CATEGORIES.
     id: 'technik',
     name: 'Technik & Solar',
     description: 'Technische Themen und Solar-Energie',

@@ -19,7 +19,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { PerspectiveSelector } from "@/components/PerspectiveSelector";
 import { type GenderType } from "@/config/prompts/lifestyles";
 import { ModelSelect, type TextModelTier } from "@/components/ModelSelect";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { ARTICLE_CATEGORIES, DIY_CATEGORIES, DIY_TAGS, TAG_GROUPS } from "@/config";
 import { TRIP_TYPES, type TripType } from "@/config/tags";
@@ -40,7 +40,7 @@ import { useArticleMediaGenerators } from "./articleForm/useArticleMediaGenerato
 import { useArticlePublish } from "./articleForm/useArticlePublish";
 import { DestinationHubSection } from "./articleForm/DestinationHubSection";
 import { ArticleImageGpsSection } from "./articleForm/ArticleImageGpsSection";
-import { COUNTRY_TAG_LIST, ARTICLE_LENGTH_OPTIONS, getDIYIcon, RV_LIFE_TAG_OPTIONS, STRAND_ORT_TAG_OPTIONS } from "./articleForm/articleFormConfig";
+import { COUNTRY_TAG_LIST, ARTICLE_LENGTH_OPTIONS, ARTICLE_CATEGORY_OPTIONS, getDIYIcon, RV_LIFE_TAG_OPTIONS, STRAND_ORT_TAG_OPTIONS } from "./articleForm/articleFormConfig";
 import { extractImageUrlsFromMarkdown } from "./articleForm/articleFormUtils";
 import { buildAuthorInput } from "@/config/assistant";
 import type { AssistantIdea } from "@/components/assistant/IdeasPanel";
@@ -620,7 +620,10 @@ Schreibe deinen Artikel hier...
            />
          </div>
 
-        {/* Kategorie */}
+        {/* Kategorie — Optionen zentral in articleFormConfig.ts
+            (ARTICLE_CATEGORY_OPTIONS), jede Kategorie mappt 1:1 auf einen
+            öffentlichen Bereich (/artikel, /artikel/diy, /artikel/rvlife,
+            /artikel/strand-ort, /artikel/leon) */}
         <div className="space-y-2">
           <Label htmlFor="article-category">Kategorie</Label>
           <Select value={category} onValueChange={setCategory}>
@@ -628,11 +631,19 @@ Schreibe deinen Artikel hier...
               <SelectValue placeholder="Wähle eine Kategorie" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="reisen">🗺️ Reisen</SelectItem>
-              <SelectItem value="technik">🔧 Technik</SelectItem>
-              <SelectItem value="leben">🏠 Leben</SelectItem>
-              <SelectItem value="diy">🛠️ DIY & Ausbau</SelectItem>
-              <SelectItem value="strand-ort">🏖️ Strand/Ort</SelectItem>
+              {ARTICLE_CATEGORY_OPTIONS.filter(opt => !opt.group).map(opt => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.emoji} {opt.label}
+                </SelectItem>
+              ))}
+              <SelectGroup>
+                <SelectLabel>🚐 RV Life</SelectLabel>
+                {ARTICLE_CATEGORY_OPTIONS.filter(opt => opt.group === 'RV Life').map(opt => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.emoji} {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
             </SelectContent>
           </Select>
         </div>
