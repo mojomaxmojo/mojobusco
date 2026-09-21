@@ -16,6 +16,8 @@ import {
   buildLocalizedUrl,
   findTranslationPair,
   getEventLangFromTags,
+  buildPlanRelatedList,
+  loadDestinationsTitles,
 } from './prerender-helpers.js';
 import {
   buildHead,
@@ -121,11 +123,31 @@ export function renderArticleHtml(event, allEventsOfType = []) {
     alternateLang,
   });
 
+  // ── Plan-Liste „Mehr aus diesem Reiseziel" (WP1b, PLAN_PILLAR_LINKS.md) ──
+  // Statische Sektion für Bots — gleiche Regeln wie PlanRelatedArticles.tsx
+  // (Dedupe gegen Content-Links, Sprache, Cap 12). Guard: articles.json/
+  // destinations.json fehlt → Liste entfällt, Template bricht nicht.
+  const planIdForList = event.tags?.find(t => t[0] === 'plan')?.[1] || '';
+  const planList = buildPlanRelatedList(
+    event,
+    allEventsOfType,
+    loadDestinationsTitles().get(planIdForList) || null
+  );
+  const planListHtml = planList ? `
+  <section class="plan-related">
+    <p><strong>${escapeHtml(planList.heading)}</strong></p>
+    <ul>
+${planList.items.map(i => `      <li><a href="${escapeHtml(i.url)}">${escapeHtml(i.title)}</a></li>`).join('\n')}
+    </ul>
+    <p><a href="${escapeHtml(buildLocalizedUrl('/reiseziele', planList.lang))}">${planList.lang === 'en' ? 'All destinations →' : 'Alle Reiseziele →'}</a></p>
+  </section>` : '';
+
   return `${head}
   <h1>${escapeHtml(title)}</h1>
   <p>${escapeHtml(description)}</p>
   ${imageTag(image, title, { eager: true })}
   <div>${escapeHtml(contentText)}</div>
+  ${planListHtml}
   <p><a href="${escapeHtml(canonicalUrl)}">Weiterlesen auf MojoBus →</a></p>
 </body>
 </html>`;

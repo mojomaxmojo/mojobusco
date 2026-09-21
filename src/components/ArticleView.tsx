@@ -44,6 +44,7 @@ import { PinImageButton } from '@/components/PinImageButton';
 import { getEventLanguage } from '@/lib/translationTags';
 import { useNostr } from '@/hooks/useNostr';
 import { NOSTR_CONFIG } from '@/config/nostr';
+import { PlanRelatedArticles } from '@/components/article/PlanRelatedArticles';
 
 interface ArticleViewProps {
   naddr: AddressPointer;
@@ -875,6 +876,15 @@ export function ArticleView({ naddr }: ArticleViewProps) {
                 ))}
               </div>
             )}
+
+            {/* Mehr aus diesem Reiseziel (WP1, PLAN_PILLAR_LINKS.md):
+                dynamische Plan-Liste mit Content-Dedupe — rendert nur, wenn
+                der Artikel einen plan-Tag trägt (interner Guard) */}
+            <PlanRelatedArticles
+              article={article}
+              selfNaddr={canonicalNaddr(naddr)}
+              lang={lang}
+            />
 
             {/* Divider */}
             <div className="border-t my-12" />

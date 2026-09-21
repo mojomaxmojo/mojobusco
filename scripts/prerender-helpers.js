@@ -584,3 +584,133 @@ export function getArticleYearCounts(articles, lang = null) {
   }
   return counts;
 }
+
+// ── Plan-Liste „Mehr aus diesem Reiseziel" (WP1b, PLAN_PILLAR_LINKS.md) ────
+
+/**
+ * Spiegel von src/components/article/PlanRelatedArticles.tsx — Pipeline-
+ * Scripts importieren kein src/ (Muster isMojobusKind1). Regeln identisch:
+ * plan-Tag-Match, keine Places, nicht der Artikel selbst, Sprache folgt dem
+ * Artikel (l-Tag, Fallback 'de'), neueste zuerst, Cap 12, DEDUPE gegen
+ * alle naddr-Links im Content (Kern-Regel des Users).
+ */
+
+/** Cap der Liste (Entscheidung 2026-09-21) */
+const PLAN_LIST_MAX_ITEMS = 12;
+
+/**
+ * Dedupe-Kern-Regel: Extrahiert alle naddr1…-Strings aus dem Content-
+ * Markdown (prefix-unabhängig: https://mojobus.co/naddr1…, nostr:naddr1…,
+ * bare) und normalisiert jeden Treffer zusätzlich kanonisch
+ * (nip19.decode → naddrEncode), damit auch Relay-Hint-Varianten erkannt
+ * werden. Rückgabe: Set (lowercase) mit kanonischen + Rohtreffern.
+ */
+export function extractLinkedNaddrsFromContent(content) {
+  const linked = new Set();
+  for (const match of (content || '').matchAll(/naddr1[0-9a-z]+/gi)) {
+    const raw = match[0].toLowerCase();
+    linked.add(raw);
+    try {
+      const decoded = nip19.decode(match[0]);
+      if (decoded.type === 'naddr') {
+        const p = decoded.data;
+        linked.add(
+          nip19.naddrEncode({ kind: p.kind, pubkey: p.pubkey, identifier: p.identifier }).toLowerCase()
+        );
+      }
+    } catch {
+      // kein valides naddr — Rohtreffer bleibt trotzdem im Set (konservativ)
+    }
+  }
+  return linked;
+}
+
+/** Cache pro Lauf: planId → Destination-Titel aus destinations.json */
+let destinationsTitlesCache = null;
+
+/**
+ * Liest public/data/destinations.json (falls vorhanden) → Map planId→title.
+ * Guard (WP1b): Datei fehlt/kaputt → leere Map, Template bricht nicht
+ * (Überschrift fällt auf generisch zurück).
+ */
+export function loadDestinationsTitles() {
+  if (destinationsTitlesCache) return destinationsTitlesCache;
+  const map = new Map();
+  try {
+    const raw = JSON.parse(
+      fs.readFileSync(path.join(__dirname, '..', 'public', 'data', 'destinations.json'), 'utf-8')
+    );
+    for (const region of raw?.regions || []) {
+      for (const d of region?.destinations || []) {
+        if (typeof d?.planId === 'string' && typeof d?.title === 'string' && d.planId && d.title) {
+          map.set(d.planId, d.title);
+        }
+      }
+    }
+  } catch {
+    // Datei fehlt/kaputt → leere Map (generische Überschrift)
+  }
+  destinationsTitlesCache = map;
+  return map;
+}
+
+/**
+ * Baut die Plan-Liste für einen Artikel (statische HTML-Sektion für Bots).
+ *
+ * @param {object} event Der gerenderte Artikel (MIT Content — sitemap-events-
+ *        Dump enthält volle Events; Relay-Fallback ebenso)
+ * @param {Array} allArticles Alle Artikel-Events des Batches (renderArticle-
+ *        Html erhält sie bereits als allEventsOfType)
+ * @param {string|null} destinationsTitle Destination-Titel (aus
+ *        loadDestinationsTitles(), planId-Suche macht der Aufrufer) — null
+ *        = generische Überschrift
+ * @returns {{ heading: string, lang: string, items: Array<{title: string, url: string}> } | null}
+ *          null = Artikel ohne plan-Tag oder leere Liste (Sektion entfällt)
+ */
+export function buildPlanRelatedList(event, allArticles, destinationsTitle = null) {
+  const planId = event.tags?.find(t => t[0] === 'plan')?.[1];
+  if (!planId) return null;
+  const lang = getEventLangFromTags(event);
+  const linked = extractLinkedNaddrsFromContent(event.content);
+
+  const items = (Array.isArray(allArticles) ? allArticles : [])
+    // nur Artikel (kind 30023, keine Places — isPlace ist die
+    // Single-Source-of-Truth für SiteData/Prerender/Sitemap)
+    .filter(e => (e.kind || 30023) === 30023)
+    .filter(e => !isPlace(e))
+    .filter(e => (e.tags?.find(t => t[0] === 'type')?.[1] || 'article') === 'article')
+    // gleicher Contentplan
+    .filter(e => e.tags?.some(t => t[0] === 'plan' && t[1] === planId))
+    // nicht der Artikel selbst
+    .filter(e => e.id !== event.id)
+    // Sprache folgt dem geöffneten Artikel (Entscheidung 2026-09-21)
+    .filter(e => getEventLangFromTags(e) === lang)
+    // ── DEDUPE: bereits verlinkte Artikel fliegen raus ──
+    .filter(e => {
+      const naddr = encodeNaddr(e)?.toLowerCase() || '';
+      return naddr && !linked.has(naddr);
+    })
+    // neueste zuerst (published_at, Fallback created_at)
+    .sort((a, b) => {
+      const pa = Number(a.tags?.find(t => t[0] === 'published_at')?.[1]) || a.created_at || 0;
+      const pb = Number(b.tags?.find(t => t[0] === 'published_at')?.[1]) || b.created_at || 0;
+      return pb - pa;
+    })
+    // Cap 12 (Entscheidung 2026-09-21)
+    .slice(0, PLAN_LIST_MAX_ITEMS)
+    .map(e => {
+      const naddr = encodeNaddr(e);
+      return {
+        title: e.tags?.find(t => t[0] === 'title')?.[1]
+          || e.tags?.find(t => t[0] === 'name')?.[1]
+          || 'Artikel',
+        url: buildLocalizedUrl(`/${naddr}`, lang),
+      };
+    });
+
+  if (items.length === 0) return null;
+  const heading = destinationsTitle
+    ? (lang === 'en' ? `More from “${destinationsTitle}”` : `Mehr aus „${destinationsTitle}“`)
+    : (lang === 'en' ? 'More from this destination' : 'Mehr aus diesem Reiseziel');
+  return { heading, lang, items };
+}
