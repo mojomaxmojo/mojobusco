@@ -1,7 +1,7 @@
-# PLAN: Pillar-Verlinkung automatisieren — plan-Tag für alle + dynamische Reiseziel-Liste + Frische-Check
+# PLAN: Pillar-Verlinkung automatisieren — plan-Tag für alle + dynamische Reiseziel-Liste + Frische-Check + vorbereitetes Pillar-Update
 
 > Status: **WARTET AUF FREIGABE** — kein Code ohne OK.
-> Basis: Diskussion 2026-09-21 (Stufen 0–2, siehe Chat). Vorgänger: PLAN_DESTINATIONS_ADMIN.md (umgesetzt).
+> Basis: Diskussion 2026-09-21 (Stufen 0–3, siehe Chat). Vorgänger: PLAN_DESTINATIONS_ADMIN.md (umgesetzt).
 >
 > **Kern-Anforderung des Users (Stufe 1):** Artikel, die im Artikel-Content
 > bereits verlinkt sind, dürfen in der automatischen Liste **nicht** nochmal
@@ -40,11 +40,18 @@ Artikel der folgenden Wochen verlinkt nur, wer von Hand nachpflegt.
 │  Plan-Detail: „Pillar verlinkt 5 von 12 Artikeln" + fehlende Liste        │
 │  Button „Pillar-Update vorbereiten" → Edit-Modus (Signatur bleibt beim    │
 │  Autor, bestehender /veroeffentlichen?edit=-Flow)                         │
+├─ Stufe 3 ─ Vorbereitetes Pillar-Update (Links in den Content) ───────────┤
+│  Aus „vorbereiten" wird wirklich vorbereitet: Formular lädt den Pillar    │
+│  und zeigt pro fehlendem Artikel Vorschlag — Abschnitt/Anker-Satz +       │
+│  Link zum Einfügen. Du prüfst die Änderungen im Formular, editierst       │
+│  frei, republishst („Bericht aktualisieren") — Signatur + Entscheidung    │
+│  bleiben bei dir. Server schreibt niemals selbst.                        │
 └───────────────────────────────────────────────────────────────────────────┘
 ```
 
 **Regel danach:** Pillar „wächst" optisch automatisch (Stufe 1) ohne Republish;
-kontextuelle Links im Fließtext bleiben redaktionell (Stufe 2 hilft beim Nachpflegen).
+kontextuelle Links im Fließtext kommen per Stufe-3-Workflow in 1 Arbeitsgang
+statt Handarbeit — republished wird immer noch bewusst (redaktionelle Kontrolle).
 
 ---
 
@@ -134,19 +141,58 @@ kontextuelle Links im Fließtext bleiben redaktionell (Stufe 2 hilft beim Nachpf
     des naddr, 5 s Timeout, Muster useEditData) → naddr-Extraktion (gleiche
     Regex wie WP1) vs. Liste der Plan-Artikel aus articles.json.
   - Fehlende Artikel als Liste (Titel + Link) angezeigt.
-  - Button „Pillar-Update vorbereiten" → navigiert zu
+  - Button „Pillar-Update öffnen" → navigiert zu
     `/veroeffentlichen?edit=<pillar-naddr>&type=article` (existierender
     Edit-Flow, Signatur beim Autor — KEIN Server-Key, `server/` bleibt Tabu).
+    (Der vorbereitete Diff folgt in WP3/Stufe 3.)
   - Optional später: serverseitige Variante mit Cache — nur auf expliziten
     Auftrag (Tabu `server/`, AGENTS.md).
 
-### WP3 — Doku + Validierung (XS)
+### WP3 — Stufe 3: Vorbereitetes Pillar-Update — Links in den Content (M)
+
+> Ziel: Aus „fehlende Liste" wird ein **vorbereiteter Entwurf** — der Pillar
+> landet mit eingefügten Link-Vorschlägen im Berichte-Formular, der Autor
+> prüft/jeder Anker bleibt frei editierbar, dann „Bericht aktualisieren"
+> (bestehender Edit-Pfad: gleiches Event, gleiche d-Tag, original `published_at`).
+
+- **WP3a — Vorbereitungs-Engine (client-side, ohne AI, ohne server/)**
+  - NEU `src/lib/pillarLinkDraft.ts` (reine Funktion, testbar):
+    - Input: Pillar-Event (Content + Tags) + fehlende Plan-Artikel
+      (WP2 kennt sie bereits)
+    - Anchor-Suche: Plan-Artikel-Titel/Keyword ↔ Pillar-Struktur matchen —
+      Markdown-Headings (## / ###) scannen, Fallback: Absatz, dessen Text
+      das Keyword enthält; letzte Stufe: Anhang unter „## Weiterlesen im
+      Reiseziel" (fester Abschnitt am Artikel-Ende, wird bei Erstnutzung
+      angelegt)
+    - Output: Liste von Insert-Vorschlägen `{ anchorHeading, anchorSentence,
+      markdownLink, position }` — **nichts wird automatisch eingefügt ohne
+      Autor-OK**
+  - **NEU** `src/pages/publish/articleForm/PillarDraftSection.tsx` (klein,
+  Muster DestinationHubSection): erscheint im Berichte-Formular, wenn ein
+  Edit-Event eines `t=hub`-Artikels geladen ist — zeigt die Vorschläge als
+  abhakbare Liste; „Einfügen" schreibt `[Titel](https://mojobus.co/{naddr})`
+  an die Anker-Position (Insert-Muster wie LinkSuggestionsBlock);
+  „Alle einfügen" optional
+- **WP3b — Anbindung**: WP2-Button wird zu „Pillar-Update vorbereiten" →
+  lädt Pillar-Event + fehlende Liste → navigiert in den Edit-Modus mit
+  vorbefülltem Vorschlags-Panel (Query-Param oder SessionStorage-Handover,
+  kein neuer Event-Typ)
+- **Bewusste Grenze (kein WP)**: Vollautomatisches Republish durch
+  Cron/Server — abgelehnt. Grund: Signatur + redaktionelle Entscheidung
+  müssen beim Autor bleiben (Autoren-Keys nie auf den Server, AGENTS.md).
+- **WP3c — optional, nur auf Wunsch: AI-Anker-Vorschläge** (semantisch
+  statt Keyword-Match) — würde einen neuen Assistent-Endpoint brauchen
+  (`server/` = Tabu, separater Deploy-Auftrag). Default: WP3a reicht,
+  WP3c bleibt zurückgestellt.
+
+### WP4 — Doku + Validierung (XS)
 
 - `MOJOBUS_CONTEXT.md`: Reiseziele-Absatz um plan-Tag-Regel + Liste + Dedupe erweitern.
 - `ASSISTENT-CHEATSHEET.md`: 1 Zeile Workflow („Plan-Artikel immer mit Plan-Select publishen").
 - `docs/CONTEXT_DEPLOY.md`: generate-site-data unverändert, aber Prerender-Liste dokumentieren.
 - `PROMPT_REISEZIELE.md` + `PLAN_DESTINATIONS_ADMIN.md`: Verweis auf diesen Plan.
-- `build_project` + tsc-Blick fehlerfrei; **Commits**: (1) WP0, (2) WP1+WP1b, (3) WP2+WP3.
+- `build_project` + tsc-Blick fehlerfrei; **Commits**: (1) WP0, (2) WP1+WP1b,
+  (3) WP2, (4) WP3+WP4.
 
 ---
 
@@ -161,6 +207,12 @@ kontextuelle Links im Fließtext bleiben redaktionell (Stufe 2 hilft beim Nachpf
 - [ ] Überschrift = Destination-Name aus destinations.json; ohne Zuordnung generisch
 - [ ] Prerender-HTML (curl mit Bot-UA) enthält die Liste mit denselben Links
 - [ ] Sheet „Hub-Status": Zähler + fehlende Liste korrekt; Button öffnet Pillar im Edit-Modus
+- [ ] **Stufe 3**: „Pillar-Update vorbereiten" lädt Pillar mit Vorschlags-Panel —
+      pro fehlendem Artikel Abschnitt/Anker + Link-Vorschlag; Einfügen nur per Klick
+- [ ] Stufe 3: eingefügte Links erscheinen korrekt im Fließtext; Dedupe (Stufe 1)
+      blendet sie danach aus — Liste zeigt nur Rest-Fehlende
+- [ ] Stufe 3: „Bericht aktualisieren" republished mit gleichem d-Tag (gleiche URL,
+      original published_at); kein zweiter Artikel entsteht
 - [ ] EN-Artikel (/en/…): Listen-Sprache folgt dem Artikel (oder Entscheidung Risiko 3)
 - [ ] APK-Build: Fetch über `getDataBaseUrl()`, offline/fehlend → kein Crash, kein Block
 - [ ] `build_project` fehlerfrei, Tabus unberührt (`server/`, `src/config/prompts/`)
@@ -191,6 +243,14 @@ kontextuelle Links im Fließtext bleiben redaktionell (Stufe 2 hilft beim Nachpf
    denselben Dump bereits).
 8. **ArticleView-Länge**: Datei ist bereits 912 Zeilen — WP1 fügt nur Mount +
    Import hinzu; Logik lebt komplett in der neuen Komponente.
+9. **Anker-Qualität (WP3a)**: Keyword-Match findet nicht immer den schönsten
+   Absatz (AI wäre besser — siehe WP3c). Gegenmittel: Vorschläge sind
+   abhakbar + Position im Formular frei editierbar; nichts landet ohne
+   Autor-Klick im Content. Schlechter Match = Vorschlag ablehnen.
+10. **Doppel-Einfügen**: Nach „Bericht aktualisieren" enthält der Content die
+    Links → Dedupe blendet sie in der Stufe-1-Liste aus; das Vorschlags-Panel
+    (Edit-Modus) liest den CURRENT Content, zeigt also nur noch Rest-Fehlende —
+    kein Doppel-Link möglich, solange Panel aus Live-Content berechnet.
 
 ---
 
@@ -202,8 +262,9 @@ kontextuelle Links im Fließtext bleiben redaktionell (Stufe 2 hilft beim Nachpf
 | WP1 | 1a | M | PlanRelatedArticles (neu), ArticleView (nur Mount) |
 | WP1b | 1b | S–M | prerender-entity-templates.js, prerender-helpers.js |
 | WP2 | 2 | S–M | ContentPlanSheet (+ kleiner Hook) |
-| WP3 | — | XS | Doku ×4 |
+| WP3 | 3 (a/b; c optional) | M | pillarLinkDraft (neu), PillarDraftSection (neu), ContentPlanSheet-Button |
+| WP4 | — | XS | Doku ×4 |
 
-**Freigabe?** — danach starte ich mit WP0 → WP3, 3 Commits.
-Offene Entscheidungen bis dahin: Risiko 3 (Sprache-Verhalten) und
-Risiko 4 (Cap 12) — Default-Vorschläge stehen, bitte kurz bestätigen oder anpassen.
+**Freigabe?** — danach starte ich mit WP0 → WP4, 4 Commits.
+Offene Entscheidungen bis dahin: Risiko 3 (Sprache-Verhalten), Risiko 4
+(Cap 12) und WP3c (AI-Anker jetzt oder zurückgestellt — Default: zurückgestellt).
