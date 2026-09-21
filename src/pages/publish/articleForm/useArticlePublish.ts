@@ -68,9 +68,9 @@ interface UseArticlePublishParams {
   tags: string[];
   researchFacts: string;
   experienceNotes: string;
-  // Reiseziel-Hub (Phase 2): t=hub + plan=<planId> am Artikel (siehe
-  // PLAN_DESTINATIONS_ADMIN.md) — generate-site-data erkennt den Pillar
-  // daran und verlinkt ihn auf /reiseziele
+  // Reiseziel-Zuordnung (WP0, PLAN_PILLAR_LINKS.md): plan=<planId> für
+  // JEDEN Artikel mit Zuordnung, isDestinationHub → zusätzlich t=hub am
+  // Haupt-Pillar (generate-site-data erkennt ihn → /reiseziele)
   isDestinationHub: boolean;
   hubPlanId: string;
   generatedVideoUrl: string | null;
@@ -363,12 +363,17 @@ export function useArticlePublish({
       countryTags.forEach(tag => additionalTags.push(['t', tag]));
     }
 
-    // Reiseziel-Hub (Phase 2, PLAN_DESTINATIONS_ADMIN.md): t=hub Hashtag +
-    // plan-Tag mit der Contentplan-ID → generate-site-data ordnet den
-    // Artikel der passenden Destination auf /reiseziele zu
+    // Reiseziel-Zuordnung (WP0, PLAN_PILLAR_LINKS.md): plan-Tag für JEDEN
+    // Artikel mit Plan-Zuordnung — Cluster + Pillar sind damit gruppierbar
+    // (dynamische „Mehr aus diesem Reiseziel"-Liste, Frische-Check)
+    if (hubPlanId.trim()) {
+      additionalTags.push([PLAN_TAG, hubPlanId.trim()]);
+    }
+    // Pillar-Zusatz (Phase 2, PLAN_DESTINATIONS_ADMIN.md): t=hub Hashtag nur
+    // am Haupt-Pillar → generate-site-data erkennt ihn als Pillar der
+    // Destination auf /reiseziele
     if (isDestinationHub && hubPlanId.trim()) {
       additionalTags.push(['t', HUB_TAG]);
-      additionalTags.push([PLAN_TAG, hubPlanId.trim()]);
     }
 
     // Add GPS tags from title image

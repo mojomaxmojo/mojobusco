@@ -1,14 +1,15 @@
 /**
- * DestinationHubSection — Reiseziel-Hub-Option im Berichte-Formular
+ * DestinationHubSection — Reiseziel-Zuordnung im Berichte-Formular
  *
- * Setzt beim Publish die Tags `t=hub` + `plan=<planId>` an den Artikel
- * (kind 30023). generate-site-data.js erkennt daran den Pillar automatisch
- * und verlinkt ihn auf /reiseziele (Phase-2-Auto-Erkennung, siehe
- * PLAN_DESTINATIONS_ADMIN.md).
+ * WP0 (PLAN_PILLAR_LINKS.md): Der `plan`-Tag wird für JEDEN Artikel mit
+ * Plan-Zuordnung gesetzt — Cluster-Artikel und Pillar sind damit gruppierbar
+ * (dynamische „Mehr aus diesem Reiseziel"-Liste, Frische-Check im Sheet).
+ * Der Zusatz-Schalter „Pillar (Hub)" setzt zusätzlich `t=hub` — nur am
+ * Haupt-Pillar. generate-site-data.js erkennt daran den Pillar automatisch
+ * und verlinkt ihn auf /reiseziele (Vorgänger: PLAN_DESTINATIONS_ADMIN.md).
  *
  * Pläne-Quelle: public/data/contentplans/index.json (Capacitor-safe via
- * getDataBaseUrl()). Kaputte/fehlende Datei → Hinweis, Checkbox bleibt
- * nutzlos deaktivierbar.
+ * getDataBaseUrl()). Kaputte/fehlende Datei → Hinweis, Select bleibt leer.
  */
 
 import { useEffect, useState } from 'react';
@@ -22,8 +23,10 @@ import { parseContentPlanIndex, type ContentPlanIndex } from '@/config/contentpl
 import { HUB_TAG, PLAN_TAG } from '@/config/destinationsSchema';
 
 interface DestinationHubSectionProps {
+  /** Pillar-(Hub)-Schalter — nur am Haupt-Pillar aktiv */
   enabled: boolean;
   onEnabledChange: (v: boolean) => void;
+  /** plan-Tag (Plan-ID) — für jeden Artikel mit Reiseziel-Zuordnung */
   planId: string;
   onPlanIdChange: (v: string) => void;
 }
@@ -54,47 +57,51 @@ export function DestinationHubSection({
   }, []);
 
   return (
-    <div className="p-3 border rounded-lg bg-muted/30 space-y-2">
+    <div className="p-3 border rounded-lg bg-muted/30 space-y-3">
+      <div className="space-y-0.5">
+        <Label htmlFor="article-hub-plan" className="text-sm font-medium">
+          🗺️ Reiseziel-Zuordnung
+        </Label>
+        <p className="text-xs text-muted-foreground">
+          Setzt den {PLAN_TAG}-Tag — ordnet den Artikel dem Reiseziel zu
+          (Grundlage für die automatische „Mehr aus diesem Reiseziel"-Liste).
+        </p>
+      </div>
+      <Select value={planId} onValueChange={onPlanIdChange}>
+        <SelectTrigger id="article-hub-plan" className="h-8 text-sm">
+          <SelectValue placeholder="Contentplan / Reiseziel wählen…" />
+        </SelectTrigger>
+        <SelectContent>
+          {(plans?.plans ?? []).map((p) => (
+            <SelectItem key={p.id} value={p.id}>
+              {p.title}
+            </SelectItem>
+          ))}
+          {(plans?.plans.length ?? 0) === 0 && (
+            <SelectItem value="_none" disabled>
+              Keine Contentpläne gefunden
+            </SelectItem>
+          )}
+        </SelectContent>
+      </Select>
       <div className="flex items-center justify-between gap-3">
         <div className="space-y-0.5">
           <Label htmlFor="article-hub" className="text-sm font-medium">
-            🗺️ Reiseziel-Hub (Pillar)
+            🏔️ Pillar (Hub) dieses Plans
           </Label>
           <p className="text-xs text-muted-foreground">
-            Setzt #{HUB_TAG} + {PLAN_TAG}-Tag — die Reiseziele-Seite verlinkt
-            diesen Artikel automatisch (live mit dem nächsten Cron-Lauf).
+            Setzt zusätzlich #{HUB_TAG} — die Reiseziele-Seite verlinkt diesen
+            Artikel als Pillar (nur am Haupt-Pillar, live mit dem nächsten
+            Cron-Lauf).
           </p>
         </div>
         <Switch
           id="article-hub"
           checked={enabled}
+          disabled={!planId.trim()}
           onCheckedChange={onEnabledChange}
         />
       </div>
-      {enabled && (
-        <div className="space-y-1 pt-1">
-          <Label htmlFor="article-hub-plan" className="text-xs text-muted-foreground">
-            Zugehöriger Contentplan (Zuordnung zur Destination)
-          </Label>
-          <Select value={planId} onValueChange={onPlanIdChange}>
-            <SelectTrigger id="article-hub-plan" className="h-8 text-sm">
-              <SelectValue placeholder="Plan wählen…" />
-            </SelectTrigger>
-            <SelectContent>
-              {(plans?.plans ?? []).map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.title}
-                </SelectItem>
-              ))}
-              {(plans?.plans.length ?? 0) === 0 && (
-                <SelectItem value="_none" disabled>
-                  Keine Contentpläne gefunden
-                </SelectItem>
-              )}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
     </div>
   );
 }

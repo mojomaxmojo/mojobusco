@@ -1,6 +1,11 @@
 # PLAN: Pillar-Verlinkung automatisieren — plan-Tag für alle + dynamische Reiseziel-Liste + Frische-Check + vorbereitetes Pillar-Update
 
-> Status: **WARTET AUF FREIGABE** — kein Code ohne OK.
+> Status: **FREIGEGEBEN (2026-09-21)** — Umsetzung läuft (WP0 → WP4, 4 Commits).
+> Entscheidungen: Sprache = folgt dem Artikel (l-Tag-Match) · Cap 12 bestätigt ·
+> WP3c (AI-Anker, Modell via Switcher — GLM 5.3 flash = Tier `test`) wird
+> **mitgebaut**. Hinweis: Der `server/`-Endpoint von WP3c wird code-seitig
+> umgesetzt, der Deploy des `ai-api`-Services auf dem VPS bleibt ein separater
+> Schritt — bis dahin greift die WP3a-Fallback-Engine automatisch.
 > Basis: Diskussion 2026-09-21 (Stufen 0–3, siehe Chat). Vorgänger: PLAN_DESTINATIONS_ADMIN.md (umgesetzt).
 >
 > **Kern-Anforderung des Users (Stufe 1):** Artikel, die im Artikel-Content
@@ -273,9 +278,9 @@ statt Handarbeit — republished wird immer noch bewusst (redaktionelle Kontroll
    (Dump-Stand). Unkritisch — beide laden dieselben JSONs aus demselben Cron.
 3. **Sprache**: Default = Liste zeigt Artikel in der Sprache des geöffneten
    Artikels (l-Tag-Match), Fallback alle. Alternative „immer alle" = mehr
-   Links, aber EN-Artikel auf DE-Seiten. **Offen für OK.**
+   Links, aber EN-Artikel auf DE-Seiten. **Entscheidung 2026-09-21: folgt dem Artikel.**
 4. **Cap 12 + „neueste zuerst"**: hält die Seite schnell; ältere Artikel sind
-   über /reiseziele + Kategorie-Seiten erreichbar. **Offen für OK.**
+   über /reiseziele + Kategorie-Seiten erreichbar. **Entscheidung 2026-09-21: Cap 12 bestätigt.**
 5. **Retro-Tagging Bestand**: ~1 min pro Artikel (Edit-Modus, Plan wählen,
    aktualisieren). WP2 macht fehlende sichtbar, Reihenfolge egal.
 6. **Dump-Verzögerung**: Neue Artikel erscheinen in der Liste erst mit dem
@@ -308,9 +313,7 @@ statt Handarbeit — republished wird immer noch bewusst (redaktionelle Kontroll
 | WP3 | 3 (a/b; c optional) | M | pillarLinkDraft (neu), PillarDraftSection (neu), ContentPlanSheet-Button |
 | WP4 | — | XS | Doku ×4 |
 
-**Freigabe?** — danach starte ich mit WP0 → WP4, 4 Commits.
-Offene Entscheidungen bis dahin: Risiko 3 (Sprache-Verhalten) und
-Risiko 4 (Cap 12) — Default-Vorschläge stehen, bitte kurz bestätigen oder
-anpassen. WP3c-Modell: gelöst (Switcher, GLM 5.3 flash via Tier `test`);
-offen bleibt nur, ob WP3c **jetzt** mitgebaut wird oder erst später
-(Default: später — WP3a ist gratis und deckt den Anker-Match).
+**Freigabe erteilt (2026-09-21)** — Umsetzung WP0 → WP4, 4 Commits.
+WP3c wird mitgebaut (Modell via Switcher, GLM 5.3 flash = Tier `test`;
+`ai-api`-Deploy auf dem VPS ist ein separater Schritt — bis dahin greift
+WP3a als Fallback automatisch).

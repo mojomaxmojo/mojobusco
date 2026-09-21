@@ -7,7 +7,8 @@
  *   Detail:  Artikel als abhakbare Checkliste pro Woche + Places/Trips,
  *            Top-Briefs, FAKTEN mit Quellen, SEO-Regeln, Budget.
  *
- * „→ ins Formular“: Titel + Keyword in das Berichte-Formular übernehmen
+ * „→ ins Formular“: Titel + Keyword + Plan-Zuordnung (planId → plan-Tag,
+ * WP0 PLAN_PILLAR_LINKS.md) in das Berichte-Formular übernehmen
  * (Muster onApplyIdea). Progress: localStorage + Server-Sync (Phase 2),
  * siehe useContentPlans.ts. Nur in /veroeffentlichen gemountet → Auth.
  */
@@ -95,8 +96,9 @@ function lengthHint(length: 'K' | 'M' | 'L'): string {
 interface ContentPlanSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Titel + Keyword in das Berichte-Formular übernehmen */
-  onApplyArticle?: (article: ContentPlanArticle) => void;
+  /** Titel + Keyword + Plan-Zuordnung in das Berichte-Formular übernehmen
+   *  (WP0, PLAN_PILLAR_LINKS.md: planId → plan-Tag am Artikel) */
+  onApplyArticle?: (article: ContentPlanArticle, planId: string) => void;
   /** „Nächste Schritte“-Panel: AssistantHelpSheet (ⓘ) öffnen */
   onOpenHelp?: () => void;
 }
@@ -245,7 +247,8 @@ interface PlanDetailProps {
   onOpenHelp?: () => void;
   onBack: () => void;
   onToggle: (itemKey: string) => void;
-  onApplyArticle?: (article: ContentPlanArticle) => void;
+  /** planId des aktiven Plans → plan-Tag am Artikel (WP0, PLAN_PILLAR_LINKS.md) */
+  onApplyArticle?: (article: ContentPlanArticle, planId: string) => void;
   showBriefs: boolean;
   setShowBriefs: (v: boolean) => void;
   copyText: (text: string, label: string) => Promise<void>;
@@ -270,7 +273,7 @@ function PlanDetail(props: PlanDetailProps) {
 
   /** „→ ins Formular": übernehmen + Schritt-für-Schritt-Panel öffnen */
   const handleApply = (a: ContentPlanArticle) => {
-    props.onApplyArticle?.(a);
+    props.onApplyArticle?.(a, plan.id);
     setStepsFor(a.num);
   };
 

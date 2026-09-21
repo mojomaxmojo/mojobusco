@@ -98,7 +98,8 @@ export function ArticleForm({ editEvent }: { editEvent?: NostrEvent }) {
   // Teaser-Note State
   const [publishTeaserNote, setPublishTeaserNote] = useState(true);
   const [isPublishingTeaser, setIsPublishingTeaser] = useState(false);
-  // Reiseziel-Hub (Phase 2): t=hub + plan-Tag am Pillar → /reiseziele verlinkt automatisch
+  // Reiseziel-Zuordnung (WP0, PLAN_PILLAR_LINKS.md): plan-Tag für jeden
+  // Artikel mit Zuordnung; isDestinationHub → zusätzlich t=hub am Haupt-Pillar
   const [isDestinationHub, setIsDestinationHub] = useState(false);
   const [hubPlanId, setHubPlanId] = useState('');
 
@@ -332,6 +333,13 @@ export function ArticleForm({ editEvent }: { editEvent?: NostrEvent }) {
       const eventTags = getTagValues(editEvent, 't');
       setTags(eventTags);
 
+      // Reiseziel-Zuordnung (WP0, PLAN_PILLAR_LINKS.md): plan-Tag + hub-State
+      // aus dem Event laden — ohne dieses Laden würde ein Edit+Republish den
+      // plan-Tag stillschweigend löschen (Muster SEO-Felder oben)
+      const planTag = getTagValue(editEvent, 'plan');
+      if (planTag) setHubPlanId(planTag);
+      setIsDestinationHub(eventTags.includes('hub'));
+
       // Extract country from tags
       const countryTags = COUNTRY_TAG_LIST;
       const foundCountry = eventTags.find(tag => countryTags.includes(tag));
@@ -514,16 +522,15 @@ export function ArticleForm({ editEvent }: { editEvent?: NostrEvent }) {
           open={plansOpen}
           onOpenChange={setPlansOpen}
           onOpenHelp={() => setHelpOpen(true)}
-          onApplyArticle={(article) => {
+          onApplyArticle={(article, planId) => {
             if (article.title) setTitle(article.title);
             if (article.keyword && !tags.includes(article.keyword)) {
               setTags([...tags, article.keyword]);
             }
+            if (planId) setHubPlanId(planId);
             toast({
               title: 'Aus dem Contentplan übernommen',
-              description: article.keyword
-                ? `Titel + Keyword „${article.keyword}" gesetzt — Artikellänge und Input folgen dem Plan.`
-                : 'Titel gesetzt — Artikellänge und Input folgen dem Plan.'
+              description: `Titel + Keyword${article.keyword ? ` „${article.keyword}"` : ''} + Reiseziel-Zuordnung gesetzt — Artikellänge und Input folgen dem Plan.`,
             });
           }}
         />
@@ -1248,7 +1255,7 @@ Schreibe deinen Artikel hier...
           />
         </div>
 
-        {/* Reiseziel-Hub (Phase 2): t=hub + plan-Tag am Pillar */}
+        {/* Reiseziel-Zuordnung (WP0): plan-Tag für jeden Artikel, t=hub nur am Pillar */}
         <DestinationHubSection
           enabled={isDestinationHub}
           onEnabledChange={setIsDestinationHub}
