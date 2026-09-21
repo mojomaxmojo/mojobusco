@@ -184,6 +184,18 @@ statt Handarbeit — republished wird immer noch bewusst (redaktionelle Kontroll
   statt Keyword-Match) — würde einen neuen Assistent-Endpoint brauchen
   (`server/` = Tabu, separater Deploy-Auftrag). Default: WP3a reicht,
   WP3c bleibt zurückgestellt.
+  - **Modell: GLM (`test`-Tier, `z-ai/glm-5.3-flash`)** — User-Präferenz
+    (GLM leistet gute Dienste). Flash-Klasse ≈ ~0,1 Cent/Update, teils
+    nahezu gratis (OpenRouter-Preis kann variieren). Umbenennung des
+    `test`-Tiers bleibt unberührt; alternativ dedizierte Konstante
+    `ANCHORS_MODEL` in ai-models.js, damit spätere A/B-Wechsel des
+    Text-Tiers die Anker-Qualität nicht beeinflussen.
+  - **🛡️ Stil-Garantie (wichtig)**: Der AI-Call ist **read-only** für den
+    Artikel — das LLM liest den Pillar, schreibt aber **niemals** in ihn.
+    Output ist nur JSON (Position/Linktext); eingefügt wird ausschließlich
+    ein Markdown-Link `[Titel](URL)`, kein KI-Text. Foster-Huntington-
+    Prompts (`src/config/prompts/`, Tabu) und der Artikel-Stil bleiben
+    zu 100 % unberührt — WP3c generiert keine Prosa, auch keine Teilsätze.
   - **Funktionsweise**: Neuer Endpoint (Muster `routes/assistant/`,
     NIP-98-Auth + Rate-Limit wie bestehende Assistent-Routen). Input:
     Pillar-Markdown + fehlende Artikel (Titel/Keyword/Kurzinfo). Output:
@@ -234,6 +246,9 @@ statt Handarbeit — republished wird immer noch bewusst (redaktionelle Kontroll
       blendet sie danach aus — Liste zeigt nur Rest-Fehlende
 - [ ] Stufe 3: „Bericht aktualisieren" republished mit gleichem d-Tag (gleiche URL,
       original published_at); kein zweiter Artikel entsteht
+- [ ] **Stil-Garantie (WP3c)**: Diff-Check — Pillar-Text identisch bis auf die
+      eingefügten Markdown-Links; keine KI-Formulierung, kein Satz umgestellt;
+      `src/config/prompts/` unberührt
 - [ ] EN-Artikel (/en/…): Listen-Sprache folgt dem Artikel (oder Entscheidung Risiko 3)
 - [ ] APK-Build: Fetch über `getDataBaseUrl()`, offline/fehlend → kein Crash, kein Block
 - [ ] `build_project` fehlerfrei, Tabus unberührt (`server/`, `src/config/prompts/`)
