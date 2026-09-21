@@ -28,6 +28,7 @@ export const TEXT_MODELS = {
       note: 150,
       place: 300,
       media: 200,
+      anchors: 800,
       default: 1000
     }
   },
@@ -46,6 +47,7 @@ export const TEXT_MODELS = {
       note: 200,
       place: 400,
       media: 250,
+      anchors: 800,
       default: 1000
     }
   },
@@ -64,6 +66,7 @@ export const TEXT_MODELS = {
       note: 200,
       place: 400,
       media: 250,
+      anchors: 800,
       default: 1000
     }
   },
@@ -82,6 +85,7 @@ export const TEXT_MODELS = {
       note: 150,
       place: 300,
       media: 200,
+      anchors: 800,
       default: 1000
     }
   }

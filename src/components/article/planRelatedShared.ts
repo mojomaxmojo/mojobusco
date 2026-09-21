@@ -10,6 +10,7 @@
 import { nip19 } from 'nostr-tools';
 import type { AddressPointer } from 'nostr-tools/nip19';
 import { canonicalNaddr } from '@/lib/canonicalUrl';
+import { getDataBaseUrl } from '@/lib/apiBase';
 
 /** Eintrag aus articles.json (stripArticle, generate-site-data.js) — ohne Content */
 export interface SiteDataArticle {
@@ -53,6 +54,29 @@ export interface PlanRelatedItem {
 /** Kanonischer naddr eines Dump-Eintrags (kind-30023-Artikel) */
 export function canonicalNaddrOf(a: SiteDataArticle): string {
   return canonicalNaddr({ kind: 30023, pubkey: a.pubkey, identifier: tagValue(a.tags, 'd') });
+}
+
+/**
+ * Lädt die Plan-Artikel aus dem Site-Data-Dump (kind 30023, type=article,
+ * plan=<planId>, Sprach-Fallback de) — von Liste (WP1) und Pillar-Panel
+ * (WP3b) genutzt. Wurf bei fehlendem/kaputtem Dump: leere Liste (Caller
+ * behandelt graceful).
+ */
+export async function loadPlanArticles(planId: string, lang: 'de' | 'en' = 'de'): Promise<SiteDataArticle[]> {
+  try {
+    const res = await fetch(`${getDataBaseUrl()}/data/articles.json`);
+    if (!res.ok) return [];
+    const raw: unknown = await res.json();
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .filter(isSiteDataArticle)
+      .filter((a) => a.kind === 30023)
+      .filter((a) => (tagValue(a.tags, 'type') || 'article') === 'article')
+      .filter((a) => tagValue(a.tags, 'plan') === planId)
+      .filter((a) => langOfTags(a.tags) === lang);
+  } catch {
+    return [];
+  }
 }
 
 /**

@@ -35,6 +35,8 @@ export const ASSISTANT_CONFIG = {
     research: '/api/assistant/research',
     continuitySuggestions: '/api/assistant/continuity-suggestions',
     linkSuggestions: '/api/assistant/link-suggestions',
+    /** WP3c (PLAN_PILLAR_LINKS.md): AI-Anker fürs Pillar-Update — JSON-Positionen, kein Text */
+    pillarAnchors: '/api/assistant/pillar-anchors',
     pageMetrics: '/api/assistant/page-metrics',
     weather: '/api/assistant/weather',
     threadsResolve: '/api/assistant/threads/resolve',

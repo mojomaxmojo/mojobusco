@@ -135,6 +135,7 @@ app.use('/api/assistant/page-metrics', rateLimit('pageMetrics'))
 app.use('/api/assistant/weather', rateLimit('light'))
 app.use('/api/assistant/continuity-suggestions', rateLimit('light'))
 app.use('/api/assistant/link-suggestions', rateLimit('light'))
+app.use('/api/assistant/pillar-anchors', rateLimit('light'))
 app.use('/api/assistant/threads/resolve', rateLimit('light'))
 
 // ===== Fix #10: Promotion-Routen drosseln =====

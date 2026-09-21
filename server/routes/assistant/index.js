@@ -24,6 +24,7 @@ import {
   getPagePerformance,
   getTopicSuggestions
 } from '../../services/report-assistant.js'
+import { suggestPillarAnchors } from '../../services/pillar-anchors.js'
 import {
   saveArticle,
   listArticles,
@@ -123,6 +124,20 @@ router.post('/api/assistant/seo-title', async (req, res) => {
   } catch (error) {
     console.error('[Assistant] seo-title fehlgeschlagen:', error.response?.data || error.message)
     res.status(500).json({ error: 'SEO-Titel-Vorschlag fehlgeschlagen', details: error.message })
+  }
+})
+
+// POST /api/assistant/pillar-anchors — AI-Anker-Vorschläge fürs Pillar-Update
+// (WP3c, PLAN_PILLAR_LINKS.md). JSON-Positionen {eventId, heading|sentence},
+// NIE Text — Stil-Garantie. Modell via Switcher-Tier (req.body.model).
+router.post('/api/assistant/pillar-anchors', async (req, res) => {
+  try {
+    const { content, missing, model } = req.body || {}
+    const result = await suggestPillarAnchors({ content, missing, model })
+    res.json(result)
+  } catch (error) {
+    console.error('[Assistant] pillar-anchors fehlgeschlagen:', error.response?.data || error.message)
+    res.status(500).json({ error: 'AI-Anker fehlgeschlagen', details: error.message })
   }
 })
 

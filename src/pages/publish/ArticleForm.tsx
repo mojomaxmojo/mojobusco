@@ -39,6 +39,7 @@ import { useArticleAutosave } from "./articleForm/useArticleAutosave";
 import { useArticleMediaGenerators } from "./articleForm/useArticleMediaGenerators";
 import { useArticlePublish } from "./articleForm/useArticlePublish";
 import { DestinationHubSection } from "./articleForm/DestinationHubSection";
+import { PillarDraftSection } from "./articleForm/PillarDraftSection";
 import { ArticleImageGpsSection } from "./articleForm/ArticleImageGpsSection";
 import { COUNTRY_TAG_LIST, ARTICLE_LENGTH_OPTIONS, ARTICLE_CATEGORY_OPTIONS, getDIYIcon, RV_LIFE_TAG_OPTIONS, STRAND_ORT_TAG_OPTIONS } from "./articleForm/articleFormConfig";
 import { extractImageUrlsFromMarkdown } from "./articleForm/articleFormUtils";
@@ -1261,6 +1262,15 @@ Schreibe deinen Artikel hier...
           onEnabledChange={setIsDestinationHub}
           planId={hubPlanId}
           onPlanIdChange={setHubPlanId}
+        />
+
+        {/* Pillar-Update vorbereiten (WP3, PLAN_PILLAR_LINKS.md): Anker-Vorschläge
+            nur im Edit-Modus eines Hub-Artikels (t=hub + plan-Tag) */}
+        <PillarDraftSection
+          editEvent={editEvent}
+          content={content}
+          setContent={setContent}
+          modelTier={selectedModel}
         />
 
         {/* Assistent: SEO-Veröffentlichungs-Panel + Entwürfe */}
