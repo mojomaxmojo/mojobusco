@@ -184,12 +184,19 @@ statt Handarbeit — republished wird immer noch bewusst (redaktionelle Kontroll
   statt Keyword-Match) — würde einen neuen Assistent-Endpoint brauchen
   (`server/` = Tabu, separater Deploy-Auftrag). Default: WP3a reicht,
   WP3c bleibt zurückgestellt.
-  - **Modell: GLM (`test`-Tier, `z-ai/glm-5.3-flash`)** — User-Präferenz
-    (GLM leistet gute Dienste). Flash-Klasse ≈ ~0,1 Cent/Update, teils
-    nahezu gratis (OpenRouter-Preis kann variieren). Umbenennung des
-    `test`-Tiers bleibt unberührt; alternativ dedizierte Konstante
-    `ANCHORS_MODEL` in ai-models.js, damit spätere A/B-Wechsel des
-    Text-Tiers die Anker-Qualität nicht beeinflussen.
+  - **Modellwahl über den bestehenden Switcher — NICHT hardcodiert**
+    (User-Vorgabe): Der Anker-Endpoint folgt dem bestehenden Muster —
+    Frontend schickt den gewählten Tier mit (Muster `kiGeneration.ts`:
+    `formData.append('model', …)`), Server löst zentral auf
+    (`normalizeTextModel()`/`getTextModel()` aus ai-models.js, Single
+    Source of Truth). Im Berichte-Formular existiert der `ModelSelect`
+    bereits → das Vorschlags-Panel nutzt denselben State; du wählst
+    für Anker z. B. **GLM 5.3 flash** (= Tier `test`). Keine
+    Modell-Konstante im Endpoint; wenn künftig ein fester Default für
+    Anker gewünscht ist, nur als Wert in `ai-models.js` (Config), nie
+    im Code. Neu in `ai-models.js` (beide Kopien — Server + Frontend —
+    synchron, Hinweis steht in der Datei): Token-Budget-Eintrag
+    `anchors` (~800) pro Tier.
   - **🛡️ Stil-Garantie (wichtig)**: Der AI-Call ist **read-only** für den
     Artikel — das LLM liest den Pillar, schreibt aber **niemals** in ihn.
     Output ist nur JSON (Position/Linktext); eingefügt wird ausschließlich
@@ -302,5 +309,8 @@ statt Handarbeit — republished wird immer noch bewusst (redaktionelle Kontroll
 | WP4 | — | XS | Doku ×4 |
 
 **Freigabe?** — danach starte ich mit WP0 → WP4, 4 Commits.
-Offene Entscheidungen bis dahin: Risiko 3 (Sprache-Verhalten), Risiko 4
-(Cap 12) und WP3c (AI-Anker jetzt oder zurückgestellt — Default: zurückgestellt).
+Offene Entscheidungen bis dahin: Risiko 3 (Sprache-Verhalten) und
+Risiko 4 (Cap 12) — Default-Vorschläge stehen, bitte kurz bestätigen oder
+anpassen. WP3c-Modell: gelöst (Switcher, GLM 5.3 flash via Tier `test`);
+offen bleibt nur, ob WP3c **jetzt** mitgebaut wird oder erst später
+(Default: später — WP3a ist gratis und deckt den Anker-Match).
