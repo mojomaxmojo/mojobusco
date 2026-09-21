@@ -23,81 +23,21 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { nip19 } from 'nostr-tools';
-import type { AddressPointer } from 'nostr-tools/nip19';
 import { Skeleton } from '@/components/ui/skeleton';
-import { canonicalNaddr, articleUrl } from '@/lib/canonicalUrl';
+import { articleUrl } from '@/lib/canonicalUrl';
 import { getDataBaseUrl } from '@/lib/apiBase';
-import { parseDestinations } from '@/config/destinationsSchema';
-import { PLAN_TAG } from '@/config/destinationsSchema';
+import { parseDestinations, PLAN_TAG } from '@/config/destinationsSchema';
+import {
+  isSiteDataArticle,
+  langOfTags,
+  tagValue,
+  canonicalNaddrOf,
+  extractLinkedNaddrs,
+} from './planRelatedShared';
+import type { PlanRelatedItem } from './planRelatedShared';
 
 /** Cap der Liste (Risiko 4, PLAN_PILLAR_LINKS.md) */
 const MAX_ITEMS = 12;
-
-/** Eintrag aus articles.json (stripArticle, generate-site-data.js) — ohne Content */
-interface SiteDataArticle {
-  id: string;
-  pubkey: string;
-  kind: number;
-  created_at: number;
-  tags: string[][];
-}
-
-interface PlanRelatedItem {
-  title: string;
-  naddr: string;
-  /** Pfad inkl. Sprache (/… oder /en/…) */
-  path: string;
-}
-
-/** Defensiver Type-Guard für Dump-Einträge (fremde JSON, nie crashen) */
-function isSiteDataArticle(raw: unknown): raw is SiteDataArticle {
-  if (typeof raw !== 'object' || raw === null) return false;
-  const r = raw as Record<string, unknown>;
-  return typeof r.id === 'string'
-    && typeof r.pubkey === 'string'
-    && typeof r.kind === 'number'
-    && typeof r.created_at === 'number'
-    && Array.isArray(r.tags);
-}
-
-/** Sprache aus dem l-Tag (Spiegel von getEventLanguage, lib/translationTags.ts) */
-function langOfTags(tags: string[][]): 'de' | 'en' {
-  const l = tags.find(([name]) => name === 'l')?.[1];
-  return l?.toLowerCase() === 'en' ? 'en' : 'de';
-}
-
-function tagValue(tags: string[][], name: string): string {
-  return tags.find(([n]) => n === name)?.[1] || '';
-}
-
-/**
- * Kern-Regel (User-Anforderung): Extrahiert alle naddr1…-Strings aus dem
- * Content-Markdown — prefix-unabhängig (https://mojobus.co/naddr1…,
- * nostr:naddr1…, bare). Jeder Treffer wird zusätzlich kanonisch
- * normalisiert (nip19.decode → canonicalNaddr), damit auch Relay-Hint-
- * Varianten erkannt werden. Rückgabe: Set der kanonischen naddr-Strings
- * (lowercase) + der Rohtreffer.
- */
-export function extractLinkedNaddrs(content: string): Set<string> {
-  const linked = new Set<string>();
-  for (const match of content.matchAll(/naddr1[0-9a-z]+/gi)) {
-    const raw = match[0].toLowerCase();
-    linked.add(raw);
-    try {
-      const decoded = nip19.decode(match[0]);
-      if (decoded.type === 'naddr') {
-        const p = decoded.data as AddressPointer;
-        linked.add(
-          canonicalNaddr({ kind: p.kind, pubkey: p.pubkey, identifier: p.identifier }).toLowerCase()
-        );
-      }
-    } catch {
-      // kein valides naddr — Rohtreffer bleibt trotzdem im Set (konservativ)
-    }
-  }
-  return linked;
-}
 
 interface PlanRelatedArticlesProps {
   /** kind-30023-Event des geöffneten Artikels (Tags + Content fürs Dedupe) */
@@ -146,19 +86,11 @@ export function PlanRelatedArticles({ article, selfNaddr, lang }: PlanRelatedArt
           // gleicher Contentplan
           .filter((a) => tagValue(a.tags, PLAN_TAG) === planId)
           // nicht der Artikel selbst (canonical Vergleich, SEO-Regel 2)
-          .filter((a) => canonicalNaddr({
-            kind: 30023,
-            pubkey: a.pubkey,
-            identifier: tagValue(a.tags, 'd'),
-          }).toLowerCase() !== selfNaddr.toLowerCase())
+          .filter((a) => canonicalNaddrOf(a).toLowerCase() !== selfNaddr.toLowerCase())
           // Sprache folgt dem geöffneten Artikel (Entscheidung 2026-09-21)
           .filter((a) => langOfTags(a.tags) === lang)
           // ── DEDUPE: bereits verlinkte Artikel fliegen raus ──
-          .filter((a) => !linkedNaddrs.has(canonicalNaddr({
-            kind: 30023,
-            pubkey: a.pubkey,
-            identifier: tagValue(a.tags, 'd'),
-          }).toLowerCase()))
+          .filter((a) => !linkedNaddrs.has(canonicalNaddrOf(a).toLowerCase()))
           // neueste zuerst (published_at, Fallback created_at)
           .sort((a, b) => {
             const pa = parseFloat(tagValue(a.tags, 'published_at')) || a.created_at;
@@ -168,11 +100,7 @@ export function PlanRelatedArticles({ article, selfNaddr, lang }: PlanRelatedArt
           // Cap 12 (Entscheidung 2026-09-21)
           .slice(0, MAX_ITEMS)
           .map<PlanRelatedItem>((a) => {
-            const naddr = canonicalNaddr({
-              kind: 30023,
-              pubkey: a.pubkey,
-              identifier: tagValue(a.tags, 'd'),
-            });
+            const naddr = canonicalNaddrOf(a);
             return {
               naddr,
               title: tagValue(a.tags, 'title') || tagValue(a.tags, 'name') || 'Artikel',

@@ -37,6 +37,7 @@ import {
   type ContentPlanArticle,
   type ContentPlanFile,
 } from '@/config/contentplanSchema';
+import { HubStatusBlock } from '@/components/assistant/HubStatusBlock';
 
 const TYP_LABEL: Record<string, string> = {
   pillar: 'Pillar',
@@ -308,6 +309,9 @@ function PlanDetail(props: PlanDetailProps) {
           {plan.pyramid}
         </p>
       )}
+
+      {/* Hub-Status (WP2, PLAN_PILLAR_LINKS.md): Pillar-Verlinkungs-Check */}
+      <HubStatusBlock planId={plan.id} />
 
       {/* Wochen-Checklisten */}
       {sortedWeeks.map((w) => {
