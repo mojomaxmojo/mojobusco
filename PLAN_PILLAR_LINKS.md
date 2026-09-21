@@ -184,6 +184,27 @@ statt Handarbeit — republished wird immer noch bewusst (redaktionelle Kontroll
   statt Keyword-Match) — würde einen neuen Assistent-Endpoint brauchen
   (`server/` = Tabu, separater Deploy-Auftrag). Default: WP3a reicht,
   WP3c bleibt zurückgestellt.
+  - **Funktionsweise**: Neuer Endpoint (Muster `routes/assistant/`,
+    NIP-98-Auth + Rate-Limit wie bestehende Assistent-Routen). Input:
+    Pillar-Markdown + fehlende Artikel (Titel/Keyword/Kurzinfo). Output:
+    JSON-Anker pro Artikel `{heading, anchorSentence, linkText, reason}`.
+    Frontend validiert (nur Headings, die im Pillar wirklich existieren,
+    sonst WP3a-Fallback) und zeigt sie im selben Vorschlags-Panel (WP3a).
+    Modell über bestehende Stufen wählbar (mini/medium, ai-models.js —
+    neuer useCase `anchors` mit kleinem Token-Budget ~800).
+  - **Kosten pro Update** (Pillar ~3.000 Wörter ≈ 4.500 Tokens In-Content +
+    ~1.000 Prompt/Artikelliste ≈ 5.500 in, ~600 out; OpenRouter-Preise
+    gerundet, Stand 2026-09):
+    | Stufe | Modell-Klasse | Input | Output | gesamt/Update |
+    |-------|---------------|-------|--------|---------------|
+    | mini | DeepSeek ($0,27/M in, $1,10/M out) | ~$0,0015 | ~$0,0007 | **~0,2 Cent** |
+    | medium | Claude Sonnet 5 ($3/M in, $15/M out) | ~$0,017 | ~$0,009 | **~2–3 Cent** |
+    | maxi | Claude Opus 5 ($15/M in, $75/M out) | ~$0,08 | ~$0,045 | **~10–15 Cent** |
+    - Szenario 3 Pläne × 1 Pillar-Update/Woche (~13/Monat): mini ≈ 3 Cent,
+      medium ≈ 35 Cent, maxi ≈ 1,70 € pro Monat. Empfehlung: **mini** —
+      Anker-Matching ist Struktur-Aufgabe, keine Schreibaufgabe.
+    - Optionaler Kostenhebel: Prompt-Caching (Pillar-Body unverändert)
+      senkt Input-Kosten bis ~90 %.
 
 ### WP4 — Doku + Validierung (XS)
 
