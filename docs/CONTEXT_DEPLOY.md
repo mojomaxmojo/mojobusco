@@ -447,6 +447,25 @@ Ebenfalls registriert: `generate-sitemap.js` (statische Pages, Priority 0.9,
 hreflang de↔en) und `robots.txt` (`Allow: /reiseziele`) — bei Cron-Änderungen
 nichts weiter zu tun.
 
+**Plan-Liste in Artikel-Prerenders (2026-09-21, WP1b, PLAN_PILLAR_LINKS.md)**:
+`renderArticleHtml()` (prerender-entity-templates.js) rendert für
+kind-30023-Artikel mit plan-Tag die statische Sektion „Mehr aus diesem
+Reiseziel" (Dedupe gegen naddr-Links im Content, Sprache folgt dem Artikel,
+Cap 12). Logik in `prerender-helpers.js` (`buildPlanRelatedList()`,
+`extractLinkedNaddrsFromContent()`, `loadDestinationsTitles()` — Guard:
+destinations.json fehlt → generische Überschrift). Datengrundlage ist der
+eh geladene Artikel-Batch (sitemap-events-Dump enthält Content). Frontend-
+Gegenstück: `src/components/article/PlanRelatedArticles.tsx`.
+
+**AI-Anker-Endpoint (2026-09-21, WP3c, PLAN_PILLAR_LINKS.md)**:
+`POST /api/assistant/pillar-anchors` (ai-api, Rate-Limit 'light') —
+JSON-Positionen `{eventId, heading|sentence}` für das Pillar-Update-Panel,
+NIE Text (Stil-Garantie). Modell = Switcher-Tier (`req.body.model`),
+Token-Budget `anchors: 800` in `server/config/ai-models.js` **und**
+`src/config/ai-models.js` (beide Kopien synchron halten!). Deploy: normaler
+ai-api-Neustart; bis dahin nutzt das Frontend die deterministische
+WP3a-Engine als Fallback.
+
 **SW v21**: staleWhileRevalidate für `/data/`, Cache-First für `/prerender/`.
 SW-Version wird bei jedem Deploy automatisch erhöht (`bump_sw_version()` in `deploy-main.sh`).
 

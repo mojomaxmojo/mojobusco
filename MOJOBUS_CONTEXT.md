@@ -186,9 +186,28 @@ Mobile), i18n `nav_destinations` (de „Reiseziele" / en „Destinations").
   die Hubs (keine Extra-Relay-Query) und schreibt die naddrs automatisch in
   destinations.json; `pillarNaddr` aus dem Event = Override. Kein Event →
   bestehende Datei bleibt UNVERÄNDERT (Guard). Repo-JSON = Seed/Fallback.
-- **Pflege-Workflow**: Pillar mit hub-Checkbox publishen (Zuordnung zum Plan
-  wählen) → fertig. Neue Regionen/Destinations: im Editor. Live jeweils ≤ 3 h
-  (Cron-Rhythmus).
+- **plan-Tag für alle (WP0, PLAN_PILLAR_LINKS.md, 2026-09-21)**: Der Block
+  heißt jetzt „🗺️ Reiseziel-Zuordnung" — Plan-Select für JEDEN Bericht
+  (plan-Tag), „Pillar (Hub)" nur Zusatz-Schalter am Haupt-Pillar (t=hub).
+  „→ ins Formular" übernimmt Titel + Keyword + planId. Edit-Modus lädt
+  plan-Tag + hub-State aus dem Event (kein Tag-Verlust beim Republish).
+- **Dynamische Liste „Mehr aus diesem Reiseziel" (WP1)**:
+  `PlanRelatedArticles` (ArticleView zwischen Hashtags und Divider) zeigt
+  unter jedem Plan-Artikel die übrigen Artikel desselben plan-Tags —
+  **Content-Dedupe**: verlinkte Artikel werden ausgeblendet. Sprache folgt
+  dem Artikel (l-Tag), Cap 12, neueste zuerst. Prerender-Gegenstück in
+  prerender-entity-templates.js + prerender-helpers.js (WP1b, für Bots).
+- **Frische-Check + Pillar-Update (WP2/WP3)**: ContentPlanSheet zeigt pro
+  Plan „Pillar verlinkt X von Y" (`HubStatusBlock`) + fehlende Liste.
+  „Pillar-Update vorbereiten" öffnet den Pillar im Edit-Flow →
+  `PillarDraftSection`-Panel mit Anker-Vorschlägen
+  (pillarLinkDraft.ts: heading → paragraph → „## Weiterlesen im
+  Reiseziel"). Einfügen NUR per Klick; AI-Anker (WP3c) via
+  POST /api/assistant/pillar-anchors liefert NUR JSON-Positionen
+  (Stil-Garantie), Modell = Switcher-Tier (GLM 5.3 flash = 'test').
+- **Pflege-Workflow**: Pillar mit hub-Schalter publishen, Cluster-Artikel
+  mit Plan-Select → fertig. Neue Regionen/Destinations: im Editor. Live
+  jeweils ≤ 3 h (Cron-Rhythmus).
 
 ---
 

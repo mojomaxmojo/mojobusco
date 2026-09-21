@@ -1,6 +1,9 @@
 # PLAN: Reiseziele-Verwaltung — Editor (A) + Auto-Erkennung (B) in einem Rutsch
 
-> Status: **WARTET AUF FREIGABE** — kein Code ohne OK.
+> Status: **UMGESETZT** (2026-09-13). Weiterentwickelt durch
+> **PLAN_PILLAR_LINKS.md** (2026-09-21): plan-Tag für alle Artikel,
+> dynamische Liste mit Content-Dedupe, Frische-Check + vorbereitetes
+> Pillar-Update (AI-Anker via Switcher).
 > Basis: PROMPT_REISEZIELE.md (Phase 2), Variante-1-Diskussion 2026-09-13.
 
 ---

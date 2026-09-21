@@ -5,6 +5,7 @@
 > Aktiver Contentplan: **CONTENTPLAN_FIGUEIRA_BUDENS.md** (Figueira/Budens/Vila do Bispo, 30 Artikel, 8 Wochen) — in der App abhakbar: **📋-Button im Assistenten-Header**
 > Weitere Pläne: Manta Rota + Armação de Pêra (gleiche Struktur) · Vorlage für neue Orte: **PROMPT_CONTENTPLAN_VORLAGE.md** (Copy-&-Paste-Prompt, auch im ⓘ-Sheet per Button)
 > Reiseziele-Hub ✅ **VOLL-AUTOMATISCH** (2026-09-13): Pillar publishen mit Checkbox **„🗺️ Reiseziel-Hub (Pillar)"** + Plan-Auswahl → `/reiseziele` verlinkt automatisch (Cron ≤ 3 h, kein JSON/Editoren mehr nötig). Regionen editieren: Account-Menü **🗺️ Reiseziele verwalten** (Spec: PLAN_DESTINATIONS_ADMIN.md)
+> Reiseziel-Zuordnung ✅ **für alle** (2026-09-21, PLAN_PILLAR_LINKS.md): JEDER Bericht bekommt im Formular den Plan-Select (plan-Tag) — der Pillar zusätzlich den Hub-Schalter. Unter jedem Plan-Artikel erscheint automatisch die Liste „Mehr aus diesem Reiseziel" (verlinkte Artikel werden ausgeblendet). Sheet zeigt **Hub-Status** (X von Y verlinkt); „Pillar-Update vorbereiten" → Anker-Vorschläge im Formular, Einfügen nur per Klick; **✨ KI-Anker** (Modell via Switcher, GLM 5.3 flash) liefert nur Link-Positionen — der Text bleibt unangetastet.
 > In-App-Anleitung: ⓘ im Assistenten-Header (Sheet mit allen Feldern step by step)
 
 ---

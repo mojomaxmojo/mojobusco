@@ -176,6 +176,9 @@ In `mainMenu.ts` → `MAIN_MENU_CONFIG` **direkt nach Home**:
 > destinations.json (≤ 3 h). Regionen editieren: Account-Menü
 > „🗺️ Reiseziele verwalten" (NIP-78-Event, `/admin/destinations`).
 > Die manuelle Routine unten gilt nur noch als Notfall-Fallback.
+> Weiterentwickelt 2026-09-21 (PLAN_PILLAR_LINKS.md): Plan-Tag für ALLE
+> Plan-Artikel („🗺️ Reiseziel-Zuordnung" im Formular), dynamische Liste
+> unter jedem Artikel, Frische-Check + vorbereitetes Pillar-Update im Sheet.
 
 1. Pillar-Artikel des Plans publishen → naddr aus der URL kopieren
 2. In `public/data/destinations.json` bei der Destination
