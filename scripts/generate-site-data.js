@@ -34,6 +34,7 @@ import {
   isPlace,
   classifyKind1,
   queryRelay,
+  getEventLangFromTags,
 } from './prerender-helpers.js';
 
 // ── Autoren aus zentraler JSON-Config (Single Source of Truth) ────────────
@@ -429,6 +430,12 @@ async function main() {
   // bestehende Datei bleibt UNVERÄNDERT (kein Seed-Rückfall).
   const hubEvents = articleEvents
     .filter(e => (e.tags || []).some(t => t[0] === 't' && t[1] === 'hub'))
+    // EN-Übersetzungen dürfen NICHT als Pillar gewinnen: translateAndPublish
+    // kopiert baseTags (inkl. t=hub + plan) — da neuestes Event gewinnt,
+    // würde sonst /reiseziele die EN-Version verlinken (Fix 2026-09-21,
+    // PLAN_PILLAR_LINKS.md-Anleitung).
+    .filter(e => getEventLangFromTags(e) !== 'en')
+    .filter(e => !((e.tags.find(t => t[0] === 'd') || [])[1] || '').endsWith('-en'))
     .sort((a, b) => b.created_at - a.created_at); // neueste zuerst
   const hubsByPlan = new Map(); // planId → { naddr, title }
   for (const e of hubEvents) {
