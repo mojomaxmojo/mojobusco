@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/useToast';
-import { ArrowLeft, ChevronDown, CloudOff, Copy, ListChecks, MapPin, Route, Star } from 'lucide-react';
+import { ArrowLeft, ChevronDown, CloudOff, Copy, ListChecks, MapPin, Route, Sparkles, Star } from 'lucide-react';
 import { CheckCircle, Info, Loader2, Cloud } from '@/lib/icons';
 import {
   useContentPlans,
@@ -35,6 +35,7 @@ import {
   tripKey,
   planItemCount,
   type ContentPlanArticle,
+  type ContentPlanBrief,
   type ContentPlanFile,
 } from '@/config/contentplanSchema';
 import { HubStatusBlock } from '@/components/assistant/HubStatusBlock';
@@ -100,6 +101,8 @@ interface ContentPlanSheetProps {
   /** Titel + Keyword + Plan-Zuordnung in das Berichte-Formular übernehmen
    *  (WP0, PLAN_PILLAR_LINKS.md: planId → plan-Tag am Artikel) */
   onApplyArticle?: (article: ContentPlanArticle, planId: string) => void;
+  /** WP5: Brief → Roh-Skizze (Editor) + ERLEBNISSE (Szenen) ins Formular */
+  onApplyBrief?: (brief: ContentPlanBrief, planId: string) => void;
   /** „Nächste Schritte“-Panel: AssistantHelpSheet (ⓘ) öffnen */
   onOpenHelp?: () => void;
 }
@@ -180,6 +183,7 @@ export function ContentPlanSheet({ open, onOpenChange, onApplyArticle, onOpenHel
               onBack={closePlan}
               onToggle={(key) => toggleItem(activePlan.id, key)}
               onApplyArticle={onApplyArticle}
+              onApplyBrief={onApplyBrief}
               showBriefs={showBriefs}
               setShowBriefs={setShowBriefs}
               copyText={copyText}
@@ -250,6 +254,8 @@ interface PlanDetailProps {
   onToggle: (itemKey: string) => void;
   /** planId des aktiven Plans → plan-Tag am Artikel (WP0, PLAN_PILLAR_LINKS.md) */
   onApplyArticle?: (article: ContentPlanArticle, planId: string) => void;
+  /** WP5: Brief → Roh-Skizze + ERLEBNISSE ins Formular */
+  onApplyBrief?: (brief: ContentPlanBrief, planId: string) => void;
   showBriefs: boolean;
   setShowBriefs: (v: boolean) => void;
   copyText: (text: string, label: string) => Promise<void>;
@@ -561,6 +567,12 @@ function PlanDetail(props: PlanDetailProps) {
                   )}
                   {b.bildPlan && <p><span className="text-muted-foreground">Bilder:</span> {b.bildPlan}</p>}
                   <div className="flex gap-2 pt-1">
+                    <Button
+                      size="sm" variant="outline" className="h-7 text-xs"
+                      onClick={() => props.onApplyBrief?.(b, plan.id)}
+                    >
+                      <Sparkles className="h-3 w-3 mr-1" /> Brief übernehmen
+                    </Button>
                     <Button
                       size="sm" variant="outline" className="h-7 text-xs"
                       onClick={() => void props.copyText(b.factsSeed, 'FAKTEN-Seed kopiert — in den Recherche-Block einfügen')}

@@ -40,6 +40,7 @@ import { useArticleMediaGenerators } from "./articleForm/useArticleMediaGenerato
 import { useArticlePublish } from "./articleForm/useArticlePublish";
 import { DestinationHubSection } from "./articleForm/DestinationHubSection";
 import { PillarDraftSection } from "./articleForm/PillarDraftSection";
+import { buildBriefSketch, szenenToExperiences } from "@/lib/briefSketch";
 import { ArticleImageGpsSection } from "./articleForm/ArticleImageGpsSection";
 import { COUNTRY_TAG_LIST, ARTICLE_LENGTH_OPTIONS, ARTICLE_CATEGORY_OPTIONS, getDIYIcon, RV_LIFE_TAG_OPTIONS, STRAND_ORT_TAG_OPTIONS } from "./articleForm/articleFormConfig";
 import { extractImageUrlsFromMarkdown } from "./articleForm/articleFormUtils";
@@ -533,6 +534,27 @@ export function ArticleForm({ editEvent }: { editEvent?: NostrEvent }) {
               title: 'Aus dem Contentplan übernommen',
               description: `Titel + Keyword${article.keyword ? ` „${article.keyword}"` : ''} + Reiseziel-Zuordnung gesetzt — Artikellänge und Input folgen dem Plan.`,
             });
+          }}
+          onApplyBrief={(brief, planId) => {
+            // WP5: Brief → Roh-Skizze (Editor) + ERLEBNISSE (Szenen)
+            const sketch = buildBriefSketch(brief);
+            if (content.trim()) {
+              setContent(`${content.trimEnd()}\n\n${sketch}`);
+              toast({
+                title: 'Brief unten angehängt',
+                description: 'Editor war nicht leer — Skizze steht am Ende (vor Publish entfernen oder nutzen).',
+              });
+            } else {
+              setContent(sketch);
+              toast({
+                title: 'Roh-Skizze übernommen',
+                description: 'Struktur-Vorgaben + FAQ-Skelett im Editor — jetzt FAKTEN/Recherche ergänzen und generieren.',
+              });
+            }
+            if (brief.szenen && brief.szenen.length > 0) {
+              setExperienceNotes((prev) => (prev.trim() ? `${prev.trimEnd()}\n${szenenToExperiences(brief.szenen ?? [])}` : szenenToExperiences(brief.szenen ?? [])));
+            }
+            if (planId) setHubPlanId(planId);
           }}
         />
 

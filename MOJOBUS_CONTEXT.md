@@ -333,6 +333,13 @@ Schwelle Forecast/Archiv: 92 Tage; >16 Tage Zukunft → Wetter überspringen
   im Assistenten-Header (AssistantSection, `onOpenPlans`-Prop; nur gemountet in ArticleForm →
   Auth). Pläne = statische JSON-Dumps in `public/data/contentplans/` (index.json + `<id>.json`,
   Schema: `src/config/contentplanSchema.ts`), geladen via getDataBaseUrl() — APK-kompatibel.
+  **„📄 Brief übernehmen" (WP5, 2026-09-21)** im Top-Briefs-Panel: komponiert aus
+  `intent` (inkl. Verwechslungs-Absätzen als Struktur-Anweisung), `paa` (FAQ-Skelett),
+  `verlinkung`/`bildPlan` (Merkzeilen) die **Roh-Skizze** in den Editor
+  (`buildBriefSketch`, src/lib/briefSketch.ts) + `szenen` → ERLEBNISSE-Feld.
+  Skizze = nur Input für die Generierung (buildAuthorInput → editorText), der
+  generierte Artikel ersetzt sie. Editor nicht leer → Skizze wird unten angehängt
+  (Toast-Warnung).
   Detail-Ansicht: 30 Artikel als abhakbare Checkliste pro Woche (aktuelle Woche markiert),
   **je Artikel aufklappbare Work-Card** (Längen-/Bildvorgabe, Formular-Felder Kategorie·TripType·
   Perspektive, Link-Ziele mit „Erlebnisse dürfen 0 Links haben“, Recherche-Seed bzw.
