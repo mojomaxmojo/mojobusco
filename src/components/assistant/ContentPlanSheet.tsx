@@ -107,7 +107,7 @@ interface ContentPlanSheetProps {
   onOpenHelp?: () => void;
 }
 
-export function ContentPlanSheet({ open, onOpenChange, onApplyArticle, onOpenHelp }: ContentPlanSheetProps) {
+export function ContentPlanSheet({ open, onOpenChange, onApplyArticle, onApplyBrief, onOpenHelp }: ContentPlanSheetProps) {
   const {
     index, isLoadingIndex, activePlan, isLoadingPlan, error, syncStatus,
     openPlan, closePlan, progress, toggleItem, activePlanItemCount,
