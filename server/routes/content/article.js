@@ -52,6 +52,8 @@ router.post('/api/generate-article', (req, res, next) => {
   const country = sanitizeInput(req.body.country) || ''
   const articleLength = sanitizeInput(req.body.articleLength) || 'medium'
   const tripType = sanitizeInput(req.body.tripType) || ''
+  // Reiseziel-Hub: Schalter aus dem Formular → eigener Strukturmodus im Prompt
+  const isDestinationHub = !!sanitizeInput(req.body.isDestinationHub || '')
   // Bild-URLs aus dem MilkdownEditor-Markdown (bereits hochgeladen, öffentlich erreichbar)
   const markdownImageUrls = safelyParseJSON(req.body.markdownImageUrls) || []
   // Bild-Metadaten pro Markdown-Bild ({alt, caption, note}), parallel zu markdownImageUrls
@@ -177,6 +179,7 @@ router.post('/api/generate-article', (req, res, next) => {
       articleLength,
       gender,
       tripType,
+      isDestinationHub,
       continuity
     })
 

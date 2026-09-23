@@ -13,6 +13,15 @@
  * Kurze Sätze. Kurze Absätze. Keine Adjektiv-Inflation.
  * Was sich ändert: wie viele Szenen, wie viel Raum für Gedanken,
  * wie tief die Abschweifungen gehen.
+ *
+ * Struktur-Stufen (Zwischenüberschriften):
+ * - short:  nie
+ * - medium: 1-2 H2 erlaubt (lakonisch, Foster-Ton)
+ * - long:   3-5 H2 erlaubt (lakonisch, Foster-Ton)
+ * - Reiseziel-Hub (isDestinationHub): 4-6 H2 + optional 1 Praktisch-Liste
+ *   (SEO-Pillar-Seite /reiseziele – Leser scrollt gezielt)
+ * In ALLEN Modi gilt: H2s klingen wie Foster-Zeilen, nicht wie Blog-H1s.
+ * Keine Nummerierung, keine "Anreise & Ankommen"-Doppelwörter, kein Fazit-Label.
  */
 
 import { fosterHuntingtonStyle, getGenderPromptAddition, buildContinuityContextLine } from './lifestyles.js'
@@ -116,6 +125,7 @@ export const generateArticlePrompt = (params) => {
         articleLength = 'long',
         gender = 'neutral',
         tripType = '',
+        isDestinationHub = false,
         placementZones,
         continuity
     } = params
@@ -156,6 +166,80 @@ export const generateArticlePrompt = (params) => {
 
     // Gender-Prompt-Zusatz holen
     const genderAddition = getGenderPromptAddition(gender)
+
+    // ===== Struktur-Stufen: Zwischenüberschriften konditional =====
+    // Foster pur bei short. Bei medium/long und im Reiseziel-Hub werden
+    // H2s erlaubt – aber im Foster-Ton (lakonisch, keine Blog-H1s).
+    // Reiseziel-Hub = SEO-Pillar auf /reiseziele: eigener Abschnitts-Bogen.
+    let structureHeadlineRule = 'Keine Zwischenüberschriften. Kein Fettdruck. Keine Listen.'
+    let structureBlock = ''
+
+    if (isDestinationHub) {
+        // Reiseziel-Hub: eigener Strukturmodus (gilt für alle Längen ≥ medium)
+        structureHeadlineRule = 'Zwischenüberschriften als ## H2 (siehe Reiseziel-Struktur oben). Kein Fettdruck sonst.'
+        structureBlock = `
+    REISEZIEL-STRUKTUR (das ist ein Reiseziel-Hub – SEO-Landingpage auf /reiseziele):
+    Der Leser scrollt gezielt und will wissen: Was ist der Ort, was gibt es dort, wie plane ich. Gib ihm Ankerpunkte – aber klinge dabei weiterhin wie Foster, nicht wie ein Reiseführer.
+
+    Baue den Text entlang dieses Bogens mit 4-6 Abschnitten als Markdown-H2 (## ...):
+    1. ANKOMMEN – beginne mittendrin in einer Szene (wie immer). Die erste Überschrift kommt erst nach dem Einstieg.
+    2. DER ORT – was dort ist, Atmosphäre, Geräusche, Licht.
+    3. SPOTS / STRÄNDE / UMGEBUNG – die Unterorte aus den Bildern. Pro Unterort ein kurzer Abschnitt oder ein eigener H2.
+    4. PRAKTISCH – Stellplätze, Jahreszeit, Anfahrt, Versorgung. HIER (und nur hier) ist EINE kurze Liste (3-5 Punkte) erlaubt.
+    5. LEISES ENDE – ein Bild, ein Detail, keine Bilanz, kein "Fazit".
+
+    SO KLINGEN FOSTER-ÜBERSCHRIFTEN (H2, 2-6 Wörter, Fragment erlaubt, keine Nummer, kein Ausrufezeichen, keine Frage):
+    ✓ "Wo der Asphalt aufhört"
+    ✓ "Sagres im November"
+    ✓ "Wind, Klippen, kein Empfang"
+    ✓ "Die Bäckerei ist zu"
+    ✓ "Praktisch: Wo der Bus stehen kann"
+    ✗ "1. Die Anreise"           (Nummerierung)
+    ✗ "Anreise & Ankommen"       (Blog-Doppelwort)
+    ✗ "Alles was du wissen musst" (Clickbait)
+    ✗ "Fazit"                    (Labeln)
+
+    Die PRAKTISCH-Liste: einfach 3-5 kurze Zeilen mit "-" davor. Sachlich, konkret, ohne Werbeton:
+    -
+    Beispiel:
+    - Stellplatz hinter der Düne, 5€, Wasser am Hafen
+    - Bäckerei im Dorf nur bis Mittag
+    - Wind kommt nachmittags aus Nord, morgens flach
+    - Schotterstraße die letzten 3km, langsam fahren`
+    } else if (articleLength === 'long') {
+        // Langform: 3-5 H2s als Ankerpunkte, lakonisch
+        structureHeadlineRule = '3-5 Zwischenüberschriften als Markdown-H2 (## ...) erlaubt – siehe Regel unten. Kein Fettdruck, keine Listen.'
+        structureBlock = `
+    ÜBERSCHRIFTEN IM LANGFORM-MODUS:
+    2000+ Wörter brauchen Ankerpunkte. Setze 3-5 Zwischenüberschriften als Markdown-H2 (## ...).
+    Sie sind Wegweiser, keine Kapitel-Türschilder. Sie klingen wie Foster-Zeilen, nicht wie Blog-H1s.
+
+    REGELN:
+    - 2-6 Wörter. Fragment erlaubt. Keine Nummerierung. Kein Ausrufezeichen. Keine Frage.
+    - Ort + Stimmung funktioniert: "Sagres im November"
+    - Lakonische Beobachtung funktioniert: "Wo der Asphalt aufhört", "Die Bäckerei ist zu", "Wind, Klippen, kein Empfang"
+    - Kein "Fazit", kein "Anreise & Ankommen", kein "Alles was du wissen musst"
+    - Die erste Überschrift kommt NICHT an den Anfang – starte mittendrin in einer Szene, die erste Überschrift folgt danach
+    - Keine Überschrift am Ende – das Ende ist ein Bild, kein Label
+
+    SO KLINGEN FOSTER-ÜBERSCHRIFTEN:
+    ✓ "Wo der Asphalt aufhört"
+    ✓ "Sagres im November"
+    ✓ "Wind, Klippen, kein Empfang"
+    ✗ "1. Die Anreise"
+    ✗ "Der Ort und seine Geschichte"
+    ✗ "Fazit"`
+    } else if (articleLength === 'medium') {
+        // Mittel: maximal 1-2 H2s als leise Wegweiser
+        structureHeadlineRule = 'Maximal 1-2 Zwischenüberschriften als Markdown-H2 (## ...) erlaubt – siehe Regel unten. Kein Fettdruck, keine Listen.'
+        structureBlock = `
+    ÜBERSCHRIFTEN IM MITTLEREN MODUS (sparsam):
+    Erlaubt sind 1-2 Zwischenüberschriften als Markdown-H2 (## ...) – nur wenn der Text sie wirklich braucht.
+    Weniger ist mehr. Wenn der Text auch ohne trägt: keine setzen.
+    Gleiche Regeln wie im Langform-Modus: 2-6 Wörter, lakonisch, keine Nummerierung, kein Blog-Ton.
+    ✓ "Wo der Asphalt aufhört"   ✗ "1. Die Anreise"   ✗ "Fazit"`
+    }
+    // short: kein Block, structureHeadlineRule bleibt "Keine Zwischenüberschriften..."
 
     // Längen-Config holen
     const length = lengthConfig[articleLength] || lengthConfig.long
@@ -282,8 +366,11 @@ ${tripTypeBlock}
     - Ratschläge: "Ihr solltet...", "Mein Tipp...", "Ich empfehle..."
     - Übergangssätze: "Doch dann...", "Aber das war noch nicht alles...", "Was dann passierte..."
     - Meta-Kommentare: "Aber dazu später mehr", "Wie ich bereits erwähnte"
-    - Zwischenüberschriften wie in einem Blog: "1. Die Anreise", "2. Der Ort"
-    - Aufzählungen, Bullet-Points, nummerierte Listen im Text
+    ${isDestinationHub
+        ? '- Blog-Ton in Überschriften: "1. Die Anreise", "Anreise & Ankommen", "Alles was du wissen musst", "Fazit"'
+        : '- Zwischenüberschriften wie in einem Blog: "1. Die Anreise", "2. Der Ort"'
+    }
+    - Aufzählungen, Bullet-Points, nummerierte Listen im Text${isDestinationHub ? ' (AUSSER: die eine Praktisch-Liste im Reiseziel-Modus, siehe unten)' : ''}
     - Das Erlebnis labeln: "Das war der Moment wo ich verstand...", "So fühlt sich Freiheit an"
     - Motivations-Sätze: "Manchmal muss man einfach loslassen", "Das Leben beginnt außerhalb der Komfortzone"
     - Ausrufezeichen. Nie. Egal wie lang der Text.
@@ -332,11 +419,14 @@ ${activeZones.length > 0 ? `
     - Wenn der User Stichpunkte gibt: verwebe sie in Szenen. Keine Stichpunkt-Abarbeitung.
 
     STRUKTUR: ${length.structureNote}
+    ${structureBlock ? `
+    ${structureBlock}
+    ` : ''}
 
     FORMATIERUNG:
     - Kurze Absätze. 1-4 Sätze. Auch bei Langform.
     - Weißraum zwischen Absätzen. Atempausen.
-    - Keine Zwischenüberschriften. Kein Fettdruck. Keine Listen.
+    ${structureHeadlineRule}
     - Szenenwechsel: einfach neuer Absatz. Kein "Am nächsten Tag..." nötig.
 
     BEI MEDIUM UND LANGEN TEXTEN – NICHT NUR FLIESSTEXT:
@@ -350,7 +440,7 @@ ${activeZones.length > 0 ? `
       Draußen Nebel.
     - Ein Gedanke der zwischen zwei Absätzen allein steht – als Atempause, nicht als Überschrift.
     - Wechsel zwischen Kompakt-Blöcken und atmendem Fließtext. Kein Gleichmaß.
-    - Nie: Überschriften, Fettdruck, nummerierte Listen. Immer noch Foster. Aber Foster der Raum gibt.
+    - Nie: Überschriften, Fettdruck, nummerierte Listen. Immer noch Foster. Aber Foster der Raum gibt.${isDestinationHub ? ' (Ausnahme: der Reiseziel-Modus oben – dort sind H2s und die Praktisch-Liste erlaubt.)' : ''}
 
     LÄNGE: ${length.words} Wörter.
     ${articleLength === 'short' ? 'Kurz. Jedes Wort muss sitzen.' : ''}${articleLength === 'medium' ? 'Nicht zu kurz, nicht zu lang. Genug Raum für die Geschichte, nicht genug für Füller.' : ''}${articleLength === 'long' ? `Das ist viel. Füll es nicht. Erzähl es.

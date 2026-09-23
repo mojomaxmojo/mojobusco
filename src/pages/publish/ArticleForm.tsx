@@ -224,6 +224,8 @@ export function ArticleForm({ editEvent }: { editEvent?: NostrEvent }) {
       formData.append('articleLength', articleLength);
       formData.append('gender', gender || 'neutral');
       formData.append('tripType', tripType || '');
+      // Reiseziel-Hub-Flag → KI bekommt den eigenen Hub-Strukturmodus
+      formData.append('isDestinationHub', isDestinationHub ? '1' : '');
 
       // Wetter-Kontext: Veröffentlichungsdatum + Titelbild-GPS (GPS schlägt
       // Geocoding — funktioniert auch für Strandnamen, die open-meteo nicht kennt)
