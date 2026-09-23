@@ -285,7 +285,13 @@ function MilkdownEditorInner({
         lastExternalValue.current = content;
       }
     } catch (error) {
-      // Ignore errors during content update
+      // replaceAll kann bei großen Dokumenten / Schema-Problemen werfen.
+      // NICHT stillschweigend ignorieren: Der Editor bliebe sonst leer,
+      // während der State (Zeichenzähler, Publish) den Inhalt hat.
+      console.error('[MilkdownEditor] replaceAll fehlgeschlagen — Editor leer, Content ist aber im State:', error, {
+        contentLength: content?.length,
+        contentStart: content?.slice(0, 120),
+      });
     }
   }, [content, get]);
 

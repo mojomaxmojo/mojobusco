@@ -258,6 +258,7 @@ export function ArticleForm({ editEvent }: { editEvent?: NostrEvent }) {
       });
 
       const data = await response.json();
+      console.log(`[KI] Antwort erhalten: ${data.article?.length ?? 0} Zeichen, Status ${response.status}`);
       if (data.article) {
         // [BILD_N] Platzhalter durch echte Markdown-Bilder ersetzen
         const imageObjects: Array<{ url: string | null; description: string }> =
@@ -267,6 +268,7 @@ export function ArticleForm({ editEvent }: { editEvent?: NostrEvent }) {
           ? resolveBildPlaceholders(data.article, imageObjects)
           : data.article;
 
+        console.log(`[KI] setContent: ${finalContent.length} Zeichen`);
         setContent(finalContent);
 
         // Zusammenfassung automatisch ins Summary-Feld
