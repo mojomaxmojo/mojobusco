@@ -435,56 +435,11 @@ export function ArticleForm({ editEvent }: { editEvent?: NostrEvent }) {
             </div>
           </div>
         )}
-        {/* Artikellänge Auswahl - Über dem Titelbild */}
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Artikellänge:</span>
-            <div className="flex gap-1">
-              {ARTICLE_LENGTH_OPTIONS.map((len) => (
-                <button
-                  key={len.value}
-                  type="button"
-                  onClick={() => setArticleLength(len.value)}
-                  className={`h-5 px-2 text-xs rounded transition-colors ${
-                    articleLength === len.value
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  {articleLength === len.value && '✓ '}{len.label} <span className="opacity-70">({len.words})</span>
-                </button>
-              ))}
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {articleLength === 'short' && '📖 Ein Moment. Vielleicht zwei. Wie ein Tagebucheintrag.'}
-            {articleLength === 'medium' && '📖 Mehrere Momente die zusammengehören. Eine Geschichte mit Raum zum Atmen.'}
-            {articleLength === 'long' && '📖 Langform. Szenen, Abschweifungen, Atmosphäre. Wie ein Kapitel aus einem Buch.'}
-          </p>
-        </div>
 
-        <ArticleImageGpsSection
-          image={image}
-          setImage={setImage}
-          isUploading={isUploading}
-          handleArticleImageUpload={handleArticleImageUpload}
-          imageGps={imageGps}
-          setImageGps={setImageGps}
-          imageGpsStatus={imageGpsStatus}
-          setImageGpsStatus={setImageGpsStatus}
-          editingImageGps={editingImageGps}
-          setEditingImageGps={setEditingImageGps}
-          setShowMediaLibrary={setShowMediaLibrary}
-          location={location}
-          setLocation={setLocation}
-          selectedCountry={selectedCountry}
-          setSelectedCountry={setSelectedCountry}
-          toast={toast}
-        />
-
-
-        {/* Assistent: Ideen, Research, Momente, interne Links (nur Vorschläge) —
-            bewusst NACH Standort/Land, damit die Ideen den Ort aus dem Formular ziehen */}
+        {/* ── 1. PLANEN ────────────────────────────────────────────────
+            Assistent: Ideen, Research, Momente, interne Links (nur Vorschläge).
+            Die Ideen ziehen den Ort aus dem Titelbild-GPS (wird unten gesetzt),
+            daher ggf. erst nach Bild-Upload volle Funktionalität. */}
         <AssistantSection
           title={title}
           location={location}
@@ -561,6 +516,34 @@ export function ArticleForm({ editEvent }: { editEvent?: NostrEvent }) {
             if (planId) setHubPlanId(planId);
           }}
         />
+        {/* Reiseziel-Zuordnung (WP0): plan-Tag für jeden Artikel, t=hub nur am
+            Pillar. Steuert den KI-Strukturmodus (Reiseziel-Hub) — darum im
+            PLANEN-Block, vor Titel/Editor/KI-Generierung. */}
+        <DestinationHubSection
+          enabled={isDestinationHub}
+          onEnabledChange={setIsDestinationHub}
+          planId={hubPlanId}
+          onPlanIdChange={setHubPlanId}
+        />
+        <ArticleImageGpsSection
+          image={image}
+          setImage={setImage}
+          isUploading={isUploading}
+          handleArticleImageUpload={handleArticleImageUpload}
+          imageGps={imageGps}
+          setImageGps={setImageGps}
+          imageGpsStatus={imageGpsStatus}
+          setImageGpsStatus={setImageGpsStatus}
+          editingImageGps={editingImageGps}
+          setEditingImageGps={setEditingImageGps}
+          setShowMediaLibrary={setShowMediaLibrary}
+          location={location}
+          setLocation={setLocation}
+          selectedCountry={selectedCountry}
+          setSelectedCountry={setSelectedCountry}
+          toast={toast}
+        />
+
 
         <div className="space-y-2">
           <Label htmlFor="article-title">Titel</Label>
@@ -598,24 +581,34 @@ export function ArticleForm({ editEvent }: { editEvent?: NostrEvent }) {
           )}
         </div>
 
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="article-summary">Zusammenfassung</Label>
-            {summary && (
-              <span className="text-xs text-muted-foreground">
-                {summary.trim().split(/\s+/).filter(Boolean).length} Wörter
-              </span>
-            )}
+        {/* ── 3. SCHREIBEN ─────────────────────────────────────────────
+            Artikellänge steuert KI-Länge + Struktur (Überschriften-Stufen) */}
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Artikellänge:</span>
+            <div className="flex gap-1">
+              {ARTICLE_LENGTH_OPTIONS.map((len) => (
+                <button
+                  key={len.value}
+                  type="button"
+                  onClick={() => setArticleLength(len.value)}
+                  className={`h-5 px-2 text-xs rounded transition-colors ${
+                    articleLength === len.value
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  {articleLength === len.value && '✓ '}{len.label} <span className="opacity-70">({len.words})</span>
+                </button>
+              ))}
+            </div>
           </div>
-          <Textarea
-            id="article-summary"
-            value={summary}
-            onChange={(e) => setSummary(e.target.value)}
-            placeholder="Kurze Zusammenfassung (wird nach KI-Generierung automatisch befüllt)..."
-            rows={2}
-          />
+          <p className="text-xs text-muted-foreground">
+            {articleLength === 'short' && '📖 Ein Moment. Vielleicht zwei. Wie ein Tagebucheintrag.'}
+            {articleLength === 'medium' && '📖 Mehrere Momente die zusammengehören. Eine Geschichte mit Raum zum Atmen.'}
+            {articleLength === 'long' && '📖 Langform. Szenen, Abschweifungen, Atmosphäre. Wie ein Kapitel aus einem Buch.'}
+          </p>
         </div>
-
          <div className="space-y-2">
            <Label htmlFor="article-content">Inhalt</Label>
           <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
@@ -653,7 +646,174 @@ Schreibe deinen Artikel hier...
            />
          </div>
 
-        {/* Kategorie — Optionen zentral in articleFormConfig.ts
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="article-summary">Zusammenfassung</Label>
+            {summary && (
+              <span className="text-xs text-muted-foreground">
+                {summary.trim().split(/\s+/).filter(Boolean).length} Wörter
+              </span>
+            )}
+          </div>
+          <Textarea
+            id="article-summary"
+            value={summary}
+            onChange={(e) => setSummary(e.target.value)}
+            placeholder="Kurze Zusammenfassung (wird nach KI-Generierung automatisch befüllt)..."
+            rows={2}
+          />
+        </div>
+
+        {/* ── 4. KI-HILFE (Optional) ───────────────────────────────────
+            Generiert in den Editor oben — Lifestyle, Perspektive, Reiseart
+            und Modell steuern Tonalität und Umfang. */}
+        <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="h-5 w-5 text-ocean-500" />
+            <h3 className="font-semibold">KI-Artikel generieren (Optional)</h3>
+          </div>
+
+          {/* Lifestyle Auswahl */}
+          <div className="space-y-2">
+            <Label>Lifestyle</Label>
+            <Select value={lifestyle} onValueChange={(value: string) => setLifestyle(value as typeof lifestyle)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Wähle deinen Lifestyle" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="mojobus">🚌 Mojobus - Max &amp; Susanne, US-Oldtimer</SelectItem>
+                <SelectItem value="vanlife">🚐 Vanlife - Van-Life auf Rädern</SelectItem>
+                <SelectItem value="rvlife">🚗 RVlife - Recreational Vehicle</SelectItem>
+                <SelectItem value="beachlife">🏖️ Beachlife - Strand &amp; Surf Lifestyle</SelectItem>
+                <SelectItem value="wohnmobil">🏠 Wohnmobil - Wohnmobil/Camper</SelectItem>
+                <SelectItem value="perpetual-travelers">🌍 Perpetual Travelers - Permanent Reisende</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Foster Huntington Stil - ehrlich, direkt, authentisch
+            </p>
+          </div>
+
+          {/* Perspektive (Ich/Wir) */}
+          <PerspectiveSelector
+            value={perspective}
+            onChange={setPerspective}
+          />
+
+          {/* Art der Reise */}
+          <div className="space-y-2">
+            <Label>Art der Reise (optional)</Label>
+            <Select value={tripType || 'none'} onValueChange={(value) => setTripType(value === 'none' ? '' : value as TripType)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Keine Angabe" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">— Keine Angabe —</SelectItem>
+                {TRIP_TYPES.map((type) => (
+                  <SelectItem key={type.id} value={type.id}>
+                    <span className="flex items-center gap-2">
+                      <span>{type.icon}</span>
+                      <span>{type.label}</span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Beeinflusst den KI-Text (z.B. Wandern statt Roadtrip)
+            </p>
+          </div>
+
+          {/* KI-Modell Auswahl */}
+          <div className="mt-4 space-y-2">
+            <ModelSelect
+              value={selectedModel}
+              onChange={setSelectedModel}
+            />
+            <p className="text-xs text-muted-foreground">
+              Stufen sind zentral in src/config/ai-models.js konfigurierbar.
+            </p>
+          </div>
+
+          {/* Info-i: Was ruft den Text auf? (Ehrlichkeits-Gate sichtbar machen) */}
+          <div className="mt-2">
+            <button
+              type="button"
+              onClick={() => setShowGenerationInfo(v => !v)}
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              title="Was fließt in die Text-Generierung ein?"
+            >
+              <Info className="h-3.5 w-3.5" />
+              Was fließt in den Text ein?
+            </button>
+            {showGenerationInfo && (
+              <div className="mt-2 rounded-md border bg-muted/40 p-3 space-y-1.5 text-xs text-muted-foreground">
+                <p>
+                  <strong className="text-foreground">FAKTEN</strong> (Recherche-Block im Assistenten):
+                  Belegbares mit Quellen — Zahlen fließen NUR von hier ein.
+                </p>
+                <p>
+                  <strong className="text-foreground">ERLEBNISSE</strong> (Erlebnis-Notizen + Momente aus der Brand DNA):
+                  Was du wirklich erlebt hast — macht den Artikel authentisch.
+                </p>
+                <p>
+                  <strong className="text-foreground">Editor-Text</strong>: Deine Roh-Skizze oder Stimmung —
+                  ein fertiger Artikel ist NICHT nötig.
+                </p>
+                <p>
+                  <strong className="text-foreground">Bilder</strong> (Titelbild + Editor): werden analysiert;
+                  EXIF liefert GPS und Aufnahme-Zeit → echtes Wetter als Kontext.
+                </p>
+                <p>
+                  Die KI schreibt daraus im MojoBus-Stil (1. Person, atmosphärisch) und
+                  erfindet nichts — fehlende Fakten bleiben einfach weg (Ehrlichkeits-Gate).
+                  Ort, Datum, Perspektive, Art der Reise und Länge steuern Tonalität und Umfang.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setHelpOpen(true)}
+                  className="inline-flex items-center gap-1 font-medium text-foreground underline hover:text-ocean-600 dark:hover:text-ocean-400 transition-colors"
+                >
+                  <Info className="h-3.5 w-3.5" />
+                  Ausführliche Anleitung — alle Eingabefelder step by step
+                </button>
+              </div>
+            )}
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={generateArticleWithAI}
+            disabled={isGeneratingArticle || (!imageFile && extractImageUrlsFromMarkdown(content).length === 0)}
+            className="w-full mt-2"
+          >
+            {isGeneratingArticle ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Generiere mit {selectedModel.toUpperCase()} Modell...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4 mr-2" />
+                KI-Artikel generieren ({selectedModel.toUpperCase()} Modell)
+              </>
+            )}
+          </Button>
+          {!imageFile && extractImageUrlsFromMarkdown(content).length === 0 && (
+            <p className="text-xs text-muted-foreground">
+              💡 Lade ein Titelbild hoch oder füge Bilder im Editor ein, um die KI-Generierung zu nutzen.
+            </p>
+          )}
+          {!imageFile && extractImageUrlsFromMarkdown(content).length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              🖼️ {extractImageUrlsFromMarkdown(content).length} Bild(er) im Editor werden analysiert.
+            </p>
+          )}
+        </div>
+
+        {/* ── 5. SORTIEREN: Kategorie + Tags (ein Block) ───────────────
+            Kategorie — Optionen zentral in articleFormConfig.ts
             (ARTICLE_CATEGORY_OPTIONS), jede Kategorie mappt 1:1 auf einen
             öffentlichen Bereich (/artikel, /artikel/diy, /artikel/rvlife,
             /artikel/strand-ort, /artikel/leon) */}
@@ -815,351 +975,7 @@ Schreibe deinen Artikel hier...
           </div>
         )}
 
-        {/* KI-Artikel generieren (Optional) */}
-        <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
-          <div className="flex items-center gap-2 mb-3">
-            <Sparkles className="h-5 w-5 text-ocean-500" />
-            <h3 className="font-semibold">KI-Artikel generieren (Optional)</h3>
-          </div>
-
-          {/* Lifestyle Auswahl */}
-          <div className="space-y-2">
-            <Label>Lifestyle</Label>
-            <Select value={lifestyle} onValueChange={(value: string) => setLifestyle(value as typeof lifestyle)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Wähle deinen Lifestyle" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="mojobus">🚌 Mojobus - Max &amp; Susanne, US-Oldtimer</SelectItem>
-                <SelectItem value="vanlife">🚐 Vanlife - Van-Life auf Rädern</SelectItem>
-                <SelectItem value="rvlife">🚗 RVlife - Recreational Vehicle</SelectItem>
-                <SelectItem value="beachlife">🏖️ Beachlife - Strand &amp; Surf Lifestyle</SelectItem>
-                <SelectItem value="wohnmobil">🏠 Wohnmobil - Wohnmobil/Camper</SelectItem>
-                <SelectItem value="perpetual-travelers">🌍 Perpetual Travelers - Permanent Reisende</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              Foster Huntington Stil - ehrlich, direkt, authentisch
-            </p>
-          </div>
-
-          {/* Perspektive (Ich/Wir) */}
-          <PerspectiveSelector
-            value={perspective}
-            onChange={setPerspective}
-          />
-
-          {/* Art der Reise */}
-          <div className="space-y-2">
-            <Label>Art der Reise (optional)</Label>
-            <Select value={tripType || 'none'} onValueChange={(value) => setTripType(value === 'none' ? '' : value as TripType)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Keine Angabe" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">— Keine Angabe —</SelectItem>
-                {TRIP_TYPES.map((type) => (
-                  <SelectItem key={type.id} value={type.id}>
-                    <span className="flex items-center gap-2">
-                      <span>{type.icon}</span>
-                      <span>{type.label}</span>
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              Beeinflusst den KI-Text (z.B. Wandern statt Roadtrip)
-            </p>
-          </div>
-
-          {/* KI-Modell Auswahl */}
-          <div className="mt-4 space-y-2">
-            <ModelSelect
-              value={selectedModel}
-              onChange={setSelectedModel}
-            />
-            <p className="text-xs text-muted-foreground">
-              Stufen sind zentral in src/config/ai-models.js konfigurierbar.
-            </p>
-          </div>
-
-          {/* Info-i: Was ruft den Text auf? (Ehrlichkeits-Gate sichtbar machen) */}
-          <div className="mt-2">
-            <button
-              type="button"
-              onClick={() => setShowGenerationInfo(v => !v)}
-              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-              title="Was fließt in die Text-Generierung ein?"
-            >
-              <Info className="h-3.5 w-3.5" />
-              Was fließt in den Text ein?
-            </button>
-            {showGenerationInfo && (
-              <div className="mt-2 rounded-md border bg-muted/40 p-3 space-y-1.5 text-xs text-muted-foreground">
-                <p>
-                  <strong className="text-foreground">FAKTEN</strong> (Recherche-Block im Assistenten):
-                  Belegbares mit Quellen — Zahlen fließen NUR von hier ein.
-                </p>
-                <p>
-                  <strong className="text-foreground">ERLEBNISSE</strong> (Erlebnis-Notizen + Momente aus der Brand DNA):
-                  Was du wirklich erlebt hast — macht den Artikel authentisch.
-                </p>
-                <p>
-                  <strong className="text-foreground">Editor-Text</strong>: Deine Roh-Skizze oder Stimmung —
-                  ein fertiger Artikel ist NICHT nötig.
-                </p>
-                <p>
-                  <strong className="text-foreground">Bilder</strong> (Titelbild + Editor): werden analysiert;
-                  EXIF liefert GPS und Aufnahme-Zeit → echtes Wetter als Kontext.
-                </p>
-                <p>
-                  Die KI schreibt daraus im MojoBus-Stil (1. Person, atmosphärisch) und
-                  erfindet nichts — fehlende Fakten bleiben einfach weg (Ehrlichkeits-Gate).
-                  Ort, Datum, Perspektive, Art der Reise und Länge steuern Tonalität und Umfang.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setHelpOpen(true)}
-                  className="inline-flex items-center gap-1 font-medium text-foreground underline hover:text-ocean-600 dark:hover:text-ocean-400 transition-colors"
-                >
-                  <Info className="h-3.5 w-3.5" />
-                  Ausführliche Anleitung — alle Eingabefelder step by step
-                </button>
-              </div>
-            )}
-          </div>
-
-          <Button
-            type="button"
-            variant="outline"
-            onClick={generateArticleWithAI}
-            disabled={isGeneratingArticle || (!imageFile && extractImageUrlsFromMarkdown(content).length === 0)}
-            className="w-full mt-2"
-          >
-            {isGeneratingArticle ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Generiere mit {selectedModel.toUpperCase()} Modell...
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-4 w-4 mr-2" />
-                KI-Artikel generieren ({selectedModel.toUpperCase()} Modell)
-              </>
-            )}
-          </Button>
-          {!imageFile && extractImageUrlsFromMarkdown(content).length === 0 && (
-            <p className="text-xs text-muted-foreground">
-              💡 Lade ein Titelbild hoch oder füge Bilder im Editor ein, um die KI-Generierung zu nutzen.
-            </p>
-          )}
-          {!imageFile && extractImageUrlsFromMarkdown(content).length > 0 && (
-            <p className="text-xs text-muted-foreground">
-              🖼️ {extractImageUrlsFromMarkdown(content).length} Bild(er) im Editor werden analysiert.
-            </p>
-          )}
-        </div>
-
-        {/* ── 🎞️ Slideshow Generator ────────────────────────────────────── */}
-        <SlideshowBlock
-          imageUrls={[...(image ? [image] : []), ...extractImageUrlsFromMarkdown(content)]}
-          lifestyle={lifestyle}
-          title={title || 'bericht'}
-        />
-        {/* ALT — wird nicht mehr angezeigt, ersetzt durch SlideshowBlock */}
-        <div className="hidden">
-          {/* Header mit An/Abwahl Toggle */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Video className="h-5 w-5 text-emerald-500" />
-              <h3 className="font-semibold">🎞️ Slideshow generieren</h3>
-              <span className="text-xs bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full font-medium">
-                ffmpeg · Ken Burns · Deep Pan
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => { setSlideshowEnabled(v => !v); if (slideshowEnabled) { setSlideshowVideoUrl(null); setSlideshowStatus('idle'); } }}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all border ${
-                slideshowEnabled
-                  ? 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700'
-                  : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600 hover:border-emerald-400 hover:text-emerald-600'
-              }`}
-            >
-              {slideshowEnabled
-                ? <><span className="w-2 h-2 rounded-full bg-white inline-block" />Aktiv</>
-                : <><span className="w-2 h-2 rounded-full bg-gray-400 inline-block" />Inaktiv</>
-              }
-            </button>
-          </div>
-
-          {/* Bilder-Vorschau immer sichtbar */}
-          {(() => {
-            const imgs = [...(image ? [image] : []), ...extractImageUrlsFromMarkdown(content)];
-            return (
-              <p className="text-xs text-muted-foreground">
-                {imgs.length > 0
-                  ? <>🖼️ <strong>{imgs.length} Bild{imgs.length !== 1 ? 'er' : ''}</strong> verfügbar · {imgs.length * slideshowImgDuration}s Slideshow · Ken Burns + Deep Pan Effekte</>
-                  : '⚠️ Noch keine Bilder — lade ein Titelbild hoch oder füge Bilder in den Artikel ein.'}
-              </p>
-            );
-          })()}
-
-          {/* Erweiterter Bereich nur wenn aktiviert */}
-          {slideshowEnabled && (
-            <div className="space-y-4 pt-2 border-t border-muted">
-
-               {/* 🎵 Musik: Nur Lokal */}
-              <div className="space-y-2">
-                <Label className="text-xs font-medium">🎵 Musik</Label>
-                <div className="rounded-lg p-3 border bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800">
-                  <div className="font-medium text-sm text-emerald-700 dark:text-emerald-300">🎸 Lokal</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">Fertige Chill-Tracks · Zufällige Auswahl</div>
-                  <div className="text-xs font-medium text-emerald-600 mt-1">$0.00 — kostenlos</div>
-                </div>
-                <p className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-900/20 rounded p-2">
-                  🎸 Zufälliger Chill-Track aus <code>server/music/</code> — lifestyle-passend wenn vorhanden.
-                </p>
-              </div>
-
-              {/* Einstellungen: Format + Bild-Dauer */}
-              <div className="grid grid-cols-2 gap-3">
-                {/* Format */}
-                <div className="space-y-1">
-                  <Label className="text-xs">Format</Label>
-                  <div className="flex gap-1">
-                     {([
-                      { value: '16:9' as const, label: '16:9 Cinema' },
-                      { value: '9:16' as const, label: '9:16 Phone' },
-                      { value: '1:1' as const, label: '1:1 Square' },
-                    ]).map(({ value: a, label }) => (
-                      <button key={a} type="button" onClick={() => setSlideshowAspect(a)}
-                        className={`flex-1 py-1 text-xs rounded border transition-colors ${
-                          slideshowAspect === a
-                            ? 'bg-emerald-600 text-white border-emerald-600'
-                            : 'bg-white dark:bg-gray-900 text-gray-500 border-gray-300 dark:border-gray-600 hover:border-emerald-400'
-                        }`}
-                      >{label}</button>
-                    ))}
-                  </div>
-                </div>
-                {/* Sekunden pro Bild */}
-                <div className="space-y-1">
-                  <Label className="text-xs">Sek. pro Bild</Label>
-                  <div className="flex gap-1">
-                    {([4, 6, 8] as const).map(d => (
-                      <button key={d} type="button" onClick={() => setSlideshowImgDuration(d)}
-                        className={`flex-1 py-1 text-xs rounded border transition-colors ${
-                          slideshowImgDuration === d
-                            ? 'bg-emerald-600 text-white border-emerald-600'
-                            : 'bg-white dark:bg-gray-900 text-gray-500 border-gray-300 dark:border-gray-600 hover:border-emerald-400'
-                        }`}
-                      >{d}s</button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Bilder + Kosten Info */}
-              {(() => {
-                const imgs = [...(image ? [image] : []), ...extractImageUrlsFromMarkdown(content)];
-                const totalSec = imgs.length * slideshowImgDuration;
-                return (
-                  <div className="space-y-1 text-xs bg-gray-50 dark:bg-gray-800/50 rounded p-2">
-                    <div className="flex justify-between">
-                      <span>🖼️ Bilder: <strong>{imgs.length}</strong></span>
-                      <span>⏱️ Länge: <strong>{totalSec}s</strong></span>
-                      <span>💰 Kosten: <strong className="text-emerald-600">${slideshowMusicMode === 'elevenlabs' ? '0.50' : '0.00'}</strong></span>
-                    </div>
-                    <div className="text-muted-foreground">
-                      Effekte: Zoom In · Zoom Out · Pan L→R · Pan R→L · Deep Pan ↑↓ · Diagonal
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* Server Info */}
-              <div className="flex items-center gap-2 text-xs text-muted-foreground bg-blue-50 dark:bg-blue-900/20 rounded p-2">
-                <span>🔒</span>
-                <span>ffmpeg läuft auf dem VPS — kein Upload nötig, direkt zu Blossom.</span>
-              </div>
-
-              {/* Generieren Button */}
-              <Button
-                type="button"
-                onClick={generateSlideshow}
-                disabled={isGeneratingSlideshow || (image ? false : extractImageUrlsFromMarkdown(content).length === 0)}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
-              >
-                {isGeneratingSlideshow ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    {slideshowProgress > 0 ? `${slideshowProgress}% — ` : ''}
-                    {slideshowProgress < 32 ? 'Bilder herunterladen...'
-                      : slideshowProgress < 40 ? (slideshowMusicMode === 'elevenlabs' ? 'KI-Musik generieren...' : 'Musik laden...')
-                      : slideshowProgress < 85 ? 'ffmpeg rendert Slideshow...'
-                      : 'Zu Blossom hochladen...'}
-                  </>
-                ) : (
-                  <>
-                    <Video className="h-4 w-4 mr-2" />
-                    🎞️ Slideshow generieren
-                  </>
-                )}
-              </Button>
-
-              {/* Fortschrittsbalken */}
-              {isGeneratingSlideshow && slideshowProgress > 0 && (
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div
-                    className="bg-emerald-500 h-2 rounded-full transition-all duration-500"
-                    style={{ width: `${slideshowProgress}%` }}
-                  />
-                </div>
-              )}
-
-              {/* Ergebnis */}
-              {slideshowStatus === 'completed' && slideshowVideoUrl && (
-                <div className="space-y-3 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                  <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
-                    <CheckCircle className="h-4 w-4" />
-                    <span className="font-medium text-sm">✅ Slideshow auf Blossom gespeichert!</span>
-                  </div>
-                  <video src={slideshowVideoUrl} controls autoPlay muted loop
-                    className="w-full rounded-lg max-h-56 object-cover" />
-                  <div className="flex gap-2">
-                    <Button type="button" size="sm" onClick={embedSlideshowInArticle}
-                      className="flex-1 bg-green-600 hover:bg-green-700 text-white">
-                      <Video className="h-3 w-3 mr-1" />In Artikel einbetten
-                    </Button>
-                    <Button type="button" size="sm" variant="outline"
-                      onClick={() => window.open(slideshowVideoUrl, '_blank')}>
-                      Öffnen
-                    </Button>
-                    <Button type="button" size="sm" variant="outline"
-                      onClick={() => { setSlideshowVideoUrl(null); setSlideshowStatus('idle'); setSlideshowProgress(0); }}>
-                      Neu
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* Fehler */}
-              {slideshowStatus === 'failed' && (
-                <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 rounded-lg text-sm text-red-700 dark:text-red-300">
-                  ❌ Slideshow fehlgeschlagen. Prüfe ob ffmpeg + Musik-Ordner auf dem VPS vorhanden sind.
-                  <Button type="button" size="sm" variant="outline" className="mt-2 w-full"
-                    onClick={() => setSlideshowStatus('idle')}>
-                    Erneut versuchen
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-        {/* ── Ende Slideshow-Generator (alt, hidden) ───────────────────── */}
-
+        {/* Freie Tags (kategorie-unabhängig) */}
         <div className="space-y-3">
           <Label>Tags</Label>
 
@@ -1240,9 +1056,13 @@ Schreibe deinen Artikel hier...
             </Button>
           </div>
         </div>
-
-
-
+        {/* ── 6. VERÖFFENTLICHEN ─────────────────────────────────────── */}
+        {/* 🎞️ Slideshow Generator */}
+        <SlideshowBlock
+          imageUrls={[...(image ? [image] : []), ...extractImageUrlsFromMarkdown(content)]}
+          lifestyle={lifestyle}
+          title={title || 'bericht'}
+        />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <Label htmlFor="article-date">Veröffentlichungsdatum</Label>
@@ -1254,7 +1074,6 @@ Schreibe deinen Artikel hier...
             />
           </div>
         </div>
-
         <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
           <div className="space-y-0.5">
             <Label htmlFor="article-publish-teaser" className="text-sm font-medium">Teaser-Note veröffentlichen</Label>
@@ -1281,15 +1100,6 @@ Schreibe deinen Artikel hier...
             }}
           />
         </div>
-
-        {/* Reiseziel-Zuordnung (WP0): plan-Tag für jeden Artikel, t=hub nur am Pillar */}
-        <DestinationHubSection
-          enabled={isDestinationHub}
-          onEnabledChange={setIsDestinationHub}
-          planId={hubPlanId}
-          onPlanIdChange={setHubPlanId}
-        />
-
         {/* Pillar-Update vorbereiten (WP3, PLAN_PILLAR_LINKS.md): Anker-Vorschläge
             nur im Edit-Modus eines Hub-Artikels (t=hub + plan-Tag) */}
         <PillarDraftSection
@@ -1323,7 +1133,6 @@ Schreibe deinen Artikel hier...
           }}
           onDraftLoaded={loadDraftIntoForm}
         />
-
         <Button
           onClick={handleSubmit}
           className="w-full"
@@ -1333,7 +1142,6 @@ Schreibe deinen Artikel hier...
           {isPublishingTeaser ? 'Wird veröffentlicht...' : (editEvent ? 'Bericht aktualisieren' : 'Bericht veröffentlichen')}
         </Button>
 
-        {/* Assistent: Media-Library-Dialog (Titelbild wählen / Bild in Editor einfügen) */}
         <Dialog open={showMediaLibrary} onOpenChange={setShowMediaLibrary}>
           <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
