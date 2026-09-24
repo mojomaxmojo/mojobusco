@@ -48,7 +48,14 @@ import { usePlacePublish } from "./placeForm/usePlacePublish";
 import { categories, facilityOptions, bestForOptions } from "./placeForm/placeFormConfig";
 import type { NostrEvent } from '@nostrify/nostrify';
 
-export function PlaceForm({ editEvent }: { editEvent?: NostrEvent }) {
+/** Übernahme aus dem Contentplan (📋 im Berichte-Assistenten) — Publish.tsx reicht sie durch */
+export interface PlaceHandoff {
+  name: string;
+  hint?: string;
+  planId: string;
+}
+
+export function PlaceForm({ editEvent, planHandoff, onHandoffConsumed }: { editEvent?: NostrEvent; planHandoff?: PlaceHandoff; onHandoffConsumed?: () => void }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   // SEO-Felder (Assistent) + Ehrlichkeits-Gate (Standard: bestätigt, abwählbar)
@@ -76,6 +83,8 @@ export function PlaceForm({ editEvent }: { editEvent?: NostrEvent }) {
    const [selectedCountry, setSelectedCountry] = useState<string>('');
    const [isUploading, setIsUploading] = useState(false);
    const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
+   // Plan-Zuordnung aus dem Contentplan (plan-Tag am Place-Event, WP0)
+   const [handoffPlanId, setHandoffPlanId] = useState('');
    const [lifestyle, setLifestyle] = useState<'mojobus' | 'vanlife' | 'rvlife' | 'beachlife' | 'wohnmobil' | 'perpetual-travelers'>('mojobus');
     const [selectedModel, setSelectedModel] = useState<TextModelTier>('medium');
      const [tripType, setTripType] = useState<TripType | ''>('');
@@ -250,11 +259,21 @@ export function PlaceForm({ editEvent }: { editEvent?: NostrEvent }) {
     }
    }, [editEvent]);
 
+  // Contentplan-Übernahme: Name + Hint + planId vorausfüllen, dann Handoff konsumieren
+  useEffect(() => {
+    if (!planHandoff) return;
+    if (!name.trim()) setName(planHandoff.name);
+    if (planHandoff.hint && !description.trim()) setDescription(planHandoff.hint);
+    setHandoffPlanId(planHandoff.planId);
+    onHandoffConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [planHandoff]);
+
   usePlaceGpsAutoFill({ imageGps, selectedCountry, setLocation, setCoordinates, setSelectedCountry });
 
   const { handleImageFile, handleAdditionalImagesUpload } = usePlaceImageUpload({ toast, uploadFile, setImage, setImageFile, setImageGps, setImageGpsStatus, setIsUploading, setAdditionalImages });
 
-  const { handleSubmit } = usePlacePublish({ name, description, location, coordinates, category, rating, facilities, bestFor, price, visitDate, image, additionalImages, manualTags, selectedCountry, seoTitle, seoMetaDescription, seoSlug, publishTeaserNote, autoTranslateEn, imageGps, imageGpsStatus, editEvent, toast, publishEvent, currentUser, translateAndPublish, trackPublishedPost, navigate, setName, setDescription, setLocation, setCoordinates, setCategory, setRating, setFacilities, setBestFor, setPrice, setVisitDate, setImageFile, setImageGps, setImageGpsStatus, setEditingImageGps, setImageMetaMap, setIsPublishingTeaser });
+  const { handleSubmit } = usePlacePublish({ name, description, location, coordinates, category, rating, facilities, bestFor, price, visitDate, image, additionalImages, manualTags, planId: handoffPlanId, selectedCountry, seoTitle, seoMetaDescription, seoSlug, publishTeaserNote, autoTranslateEn, imageGps, imageGpsStatus, editEvent, toast, publishEvent, currentUser, translateAndPublish, trackPublishedPost, navigate, setName, setDescription, setLocation, setCoordinates, setCategory, setRating, setFacilities, setBestFor, setPrice, setVisitDate, setImageFile, setImageGps, setImageGpsStatus, setEditingImageGps, setImageMetaMap, setIsPublishingTeaser });
 
   return (
     <Card>

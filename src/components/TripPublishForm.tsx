@@ -57,7 +57,14 @@ import { useTripUpload } from './tripPublishForm/useTripUpload';
 import { useTripGeneration } from './tripPublishForm/useTripGeneration';
 import { useTripPublish } from './tripPublishForm/useTripPublish';
 
-export function TripPublishForm() {
+/** Übernahme aus dem Contentplan (📋 im Berichte-Assistenten) — Publish.tsx reicht sie durch */
+export interface TripHandoff {
+  name: string;
+  hint?: string;
+  planId: string;
+}
+
+export function TripPublishForm({ planHandoff, onHandoffConsumed }: { planHandoff?: TripHandoff; onHandoffConsumed?: () => void } = {}) {
   // URL params for edit mode
   const [searchParams] = useSearchParams();
   const editNaddr = searchParams.get('edit');
@@ -79,6 +86,22 @@ export function TripPublishForm() {
   const [showMapPicker, setShowMapPicker] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [editDtag, setEditDtag] = useState<string | null>(null); // Store d-tag for updates
+
+  // Plan-Zuordnung aus dem Contentplan (plan-Tag am Trip-Event, WP0)
+  const [handoffPlanId, setHandoffPlanId] = useState('');
+
+  // Contentplan-Übernahme: Titel + Hint vorausfüllen, dann Handoff konsumieren
+  useEffect(() => {
+    if (!planHandoff) return;
+    setTripData(prev => ({
+      ...prev,
+      title: prev.title.trim() || planHandoff.name,
+      summary: prev.summary.trim() || (planHandoff.hint || ''),
+    }));
+    setHandoffPlanId(planHandoff.planId);
+    onHandoffConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [planHandoff]);
 
   // Upload state: siehe ./tripPublishForm/useTripUpload
   // Publish state: siehe ./tripPublishForm/useTripPublish
@@ -222,6 +245,7 @@ export function TripPublishForm() {
     editDtag,
     setEditDtag,
     isEditMode,
+    planId: handoffPlanId,
     slideshowVideoUrl,
     setSlideshowVideoUrl,
     gender,

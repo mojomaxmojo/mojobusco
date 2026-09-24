@@ -37,6 +37,7 @@ import {
   type ContentPlanArticle,
   type ContentPlanBrief,
   type ContentPlanFile,
+  type ContentPlanSimple,
 } from '@/config/contentplanSchema';
 import { HubStatusBlock } from '@/components/assistant/HubStatusBlock';
 
@@ -103,11 +104,15 @@ interface ContentPlanSheetProps {
   onApplyArticle?: (article: ContentPlanArticle, planId: string) => void;
   /** WP5: Brief → Roh-Skizze (Editor) + ERLEBNISSE (Szenen) ins Formular */
   onApplyBrief?: (brief: ContentPlanBrief, planId: string) => void;
+  /** Place → Plätze-Tab übernehmen (Name/Hint/plan-Tag) */
+  onApplyPlace?: (place: ContentPlanSimple, planId: string) => void;
+  /** Trip → Trips-Tab übernehmen (Name/Hint/plan-Tag) */
+  onApplyTrip?: (trip: ContentPlanSimple, planId: string) => void;
   /** „Nächste Schritte“-Panel: AssistantHelpSheet (ⓘ) öffnen */
   onOpenHelp?: () => void;
 }
 
-export function ContentPlanSheet({ open, onOpenChange, onApplyArticle, onApplyBrief, onOpenHelp }: ContentPlanSheetProps) {
+export function ContentPlanSheet({ open, onOpenChange, onApplyArticle, onApplyBrief, onApplyPlace, onApplyTrip, onOpenHelp }: ContentPlanSheetProps) {
   const {
     index, isLoadingIndex, activePlan, isLoadingPlan, error, syncStatus,
     openPlan, closePlan, progress, toggleItem, activePlanItemCount,
@@ -184,6 +189,8 @@ export function ContentPlanSheet({ open, onOpenChange, onApplyArticle, onApplyBr
               onToggle={(key) => toggleItem(activePlan.id, key)}
               onApplyArticle={onApplyArticle}
               onApplyBrief={onApplyBrief}
+              onApplyPlace={onApplyPlace}
+              onApplyTrip={onApplyTrip}
               showBriefs={showBriefs}
               setShowBriefs={setShowBriefs}
               copyText={copyText}
@@ -256,6 +263,10 @@ interface PlanDetailProps {
   onApplyArticle?: (article: ContentPlanArticle, planId: string) => void;
   /** WP5: Brief → Roh-Skizze + ERLEBNISSE ins Formular */
   onApplyBrief?: (brief: ContentPlanBrief, planId: string) => void;
+  /** Place → Plätze-Tab (Name/Hint/plan-Tag vorausfüllen) */
+  onApplyPlace?: (place: ContentPlanSimple, planId: string) => void;
+  /** Trip → Trips-Tab (Name/Hint/plan-Tag vorausfüllen) */
+  onApplyTrip?: (trip: ContentPlanSimple, planId: string) => void;
   showBriefs: boolean;
   setShowBriefs: (v: boolean) => void;
   copyText: (text: string, label: string) => Promise<void>;
@@ -499,10 +510,21 @@ function PlanDetail(props: PlanDetailProps) {
                     onCheckedChange={() => props.onToggle(key)}
                     aria-label={`Place ${p.name} abhaken`}
                   />
-                  <span className={`text-xs ${checked ? 'line-through text-muted-foreground' : ''}`}>
+                  <span className={`text-xs flex-1 ${checked ? 'line-through text-muted-foreground' : ''}`}>
                     {p.name}
                     {p.hint ? <span className="text-muted-foreground"> — {p.hint}</span> : null}
                   </span>
+                  {props.onApplyPlace && (
+                    <button
+                      type="button"
+                      onClick={() => props.onApplyPlace?.(p, plan.id)}
+                      disabled={checked}
+                      className="shrink-0 text-xs px-2 py-1 rounded border border-ocean-200 dark:border-ocean-800 text-ocean-700 dark:text-ocean-300 hover:bg-ocean-50 dark:hover:bg-ocean-950 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      title="Name + Hinweis ins Plätze-Formular übernehmen"
+                    >
+                      → Plätze
+                    </button>
+                  )}
                 </li>
               );
             })}
@@ -527,10 +549,21 @@ function PlanDetail(props: PlanDetailProps) {
                     onCheckedChange={() => props.onToggle(key)}
                     aria-label={`Trip ${t.name} abhaken`}
                   />
-                  <span className={`text-xs ${checked ? 'line-through text-muted-foreground' : ''}`}>
+                  <span className={`text-xs flex-1 ${checked ? 'line-through text-muted-foreground' : ''}`}>
                     {t.name}
                     {t.hint ? <span className="text-muted-foreground"> — {t.hint}</span> : null}
                   </span>
+                  {props.onApplyTrip && (
+                    <button
+                      type="button"
+                      onClick={() => props.onApplyTrip?.(t, plan.id)}
+                      disabled={checked}
+                      className="shrink-0 text-xs px-2 py-1 rounded border border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-950 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      title="Name + Hinweis ins Trips-Formular übernehmen"
+                    >
+                      → Trips
+                    </button>
+                  )}
                 </li>
               );
             })}

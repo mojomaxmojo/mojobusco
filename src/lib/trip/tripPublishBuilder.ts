@@ -1,6 +1,7 @@
 import { calculateDistance } from '@/lib/trip/tripGeoUtils';
 import type { TripStation, TripData } from '@/lib/trip/tripTypes';
 import { getCountryTag } from '@/components/CountrySelector';
+import { PLAN_TAG } from '@/config/destinationsSchema';
 
 // Build waypoint tags (for route visualization)
 // Format: ['waypoint', index, lat, lon, name, date, image, description]
@@ -65,7 +66,8 @@ export function buildTripTags(
   waypointTags: string[][],
   imageTags: string[][],
   totalDistance: number,
-  slideshowVideoUrl: string | null
+  slideshowVideoUrl: string | null,
+  planId?: string
 ): string[][] {
   const tags: string[][] = [
     ['d', dTag],
@@ -77,6 +79,12 @@ export function buildTripTags(
     ...waypointTags,
     ...imageTags,
   ];
+
+  // Reiseziel-Zuordnung (WP0, PLAN_PILLAR_LINKS.md): plan-Tag — Trip ist
+  // damit dem Contentplan/Reiseziel zugeordnet (Gruppierung auf /reiseziele)
+  if (planId && planId.trim()) {
+    tags.push([PLAN_TAG, planId.trim()]);
+  }
 
   // Add distance
   if (totalDistance > 0) {

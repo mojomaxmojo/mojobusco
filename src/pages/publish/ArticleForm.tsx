@@ -93,6 +93,9 @@ export function ArticleForm({ editEvent }: { editEvent?: NostrEvent }) {
   // Contentplan-Verzeichnis (ContentPlanSheet) — 📋 im Assistenten-Header;
   // Abhak-Progress localStorage + Server-Sync, Artikel ins Formular übernehmbar.
   const [plansOpen, setPlansOpen] = useState(false);
+  // Übernahme aus dem Contentplan in die Plätze-/Trips-Tabs (PlanHandoff-Pipe
+  // läuft über Publish.tsx — ArticleForm ist nur der Absender)
+  const [planHandoff, setPlanHandoff] = useState<{ type: 'place' | 'trip'; name: string; hint?: string; planId: string } | null>(null);
   // Aktuell geladener Entwurf (DraftsOverview)
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
   const [currentDraftStatus, setCurrentDraftStatus] = useState<'draft' | 'published' | null>(null);
@@ -514,6 +517,16 @@ export function ArticleForm({ editEvent }: { editEvent?: NostrEvent }) {
               setExperienceNotes((prev) => (prev.trim() ? `${prev.trimEnd()}\n${szenenToExperiences(brief.szenen ?? [])}` : szenenToExperiences(brief.szenen ?? [])));
             }
             if (planId) setHubPlanId(planId);
+          }}
+          onApplyPlace={(place, planId) => {
+            setPlanHandoff({ type: 'place', name: place.name, hint: place.hint, planId });
+            setPlansOpen(false);
+            navigate('/veroeffentlichen?type=place&handoff=1');
+          }}
+          onApplyTrip={(trip, planId) => {
+            setPlanHandoff({ type: 'trip', name: trip.name, hint: trip.hint, planId });
+            setPlansOpen(false);
+            navigate('/veroeffentlichen?type=trip&handoff=1');
           }}
         />
         {/* Reiseziel-Zuordnung (WP0): plan-Tag für jeden Artikel, t=hub nur am

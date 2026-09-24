@@ -9,6 +9,7 @@
 
 import { createRequiredTags } from "@/config/contentCategories";
 import { getCountryTag } from "@/components/CountrySelector";
+import { PLAN_TAG } from "@/config/destinationsSchema";
 import { buildSmartSlug } from "@/config/assistant";
 import { createLongformTeaser } from "@/lib/createLongformTeaser";
 import { getTagValue } from "@/lib/nostrEventUtils";
@@ -53,6 +54,7 @@ interface UsePlacePublishParams {
   imageGps: GpsData | null;
   imageGpsStatus: GpsStatus;
   editEvent?: NostrEvent;
+  planId?: string;
   // Helfer
   toast: ToastFn;
   publishEvent: PublishEventFn;
@@ -94,6 +96,8 @@ export function usePlacePublish({
   image,
   additionalImages,
   manualTags,
+  /** Plan-Zuordnung aus dem Contentplan → plan-Tag (WP0, PLAN_PILLAR_LINKS.md) */
+  planId,
   selectedCountry,
   seoTitle,
   seoMetaDescription,
@@ -220,6 +224,12 @@ export function usePlacePublish({
       ['published_at', visitTimestamp],
       ['visit_date', visitTimestamp],
     ];
+
+    // Reiseziel-Zuordnung (WP0): plan-Tag — Place ist damit dem Contentplan/
+    // Reiseziel zugeordnet (Gruppierung „Mehr aus diesem Reiseziel")
+    if (planId && planId.trim()) {
+      additionalTags.push([PLAN_TAG, planId.trim()]);
+    }
 
     // SEO-Zusatz-Tags (Assistent) — bestehende Tags unverändert
     if (seoTitle.trim()) additionalTags.push(['seo_title', seoTitle.trim()]);

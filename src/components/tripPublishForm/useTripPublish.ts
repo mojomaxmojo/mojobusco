@@ -25,6 +25,8 @@ export function useTripPublish({
   editDtag,
   setEditDtag,
   isEditMode,
+  /** Plan-Zuordnung aus dem Contentplan → plan-Tag (WP0, PLAN_PILLAR_LINKS.md) */
+  planId,
   slideshowVideoUrl,
   setSlideshowVideoUrl,
   gender,
@@ -39,6 +41,7 @@ export function useTripPublish({
   editDtag: string | null
   setEditDtag: (v: string | null) => void
   isEditMode: boolean
+  planId?: string
   slideshowVideoUrl: string | null
   setSlideshowVideoUrl: (v: string | null) => void
   gender: string
@@ -104,7 +107,7 @@ export function useTripPublish({
     console.log('[Trip Publish] Waypoint tags:', waypointTags.length);
     console.log('[Trip Publish] Image tags:', imageTags.length);
 
-    const tags = buildTripTags(dTag, tripData, waypointTags, imageTags, totalDistance, slideshowVideoUrl);
+    const tags = buildTripTags(dTag, tripData, waypointTags, imageTags, totalDistance, slideshowVideoUrl, planId);
 
     // Publish
     setIsPublishing(true);

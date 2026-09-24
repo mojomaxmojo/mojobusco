@@ -28,6 +28,19 @@ const ArticleForm = lazy(() =>
   import('./publish/ArticleForm').then(m => ({ default: m.ArticleForm }))
 );
 
+/**
+ * PlanHandoff — Übernahme aus dem Contentplan (📋 im Berichte-Assistenten)
+ * in die Plätze-/Trips-Formulare. Muster wie onApplyArticle/onApplyBrief:
+ * Name + Hint vorbelegen, planId → plan-Tag (WP0, PLAN_PILLAR_LINKS.md),
+ * dann Tab-Wechsel zum Zielformular.
+ */
+export interface PlanHandoff {
+  type: 'place' | 'trip';
+  name: string;
+  hint?: string;
+  planId: string;
+}
+
 export function Publish() {
   const { user } = useCurrentUser();
   const navigate = useNavigate();
@@ -35,6 +48,8 @@ export function Publish() {
   const editEventId = searchParams.get('edit');
   const editType = searchParams.get('type');
   const [activeTab, setActiveTab] = useState(editType || 'media');
+  // Übernahme aus dem Contentplan (Places/Trips) — siehe PlanHandoff
+  const [planHandoff, setPlanHandoff] = useState<PlanHandoff | null>(null);
   const { data: editEvent } = useEditData(editEventId);
 
   if (!user) {
@@ -128,7 +143,20 @@ export function Publish() {
 
           <TabsContent value="place">
             <Suspense fallback={<PageLoader text="Wird geladen..." />}>
-              <PlaceForm editEvent={editType === 'place' ? (editEvent ?? undefined) : undefined} />
+              <PlaceForm
+                editEvent={editType === 'place' ? (editEvent ?? undefined) : undefined}
+                planHandoff={planHandoff?.type === 'place' ? planHandoff : undefined}
+                onHandoffConsumed={() => setPlanHandoff(null)}
+              />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="trip">
+            <Suspense fallback={<PageLoader text="Wird geladen..." />}>
+              <TripPublishForm
+                planHandoff={planHandoff?.type === 'trip' ? planHandoff : undefined}
+                onHandoffConsumed={() => setPlanHandoff(null)}
+              />
             </Suspense>
           </TabsContent>
 
