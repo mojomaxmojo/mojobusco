@@ -28,6 +28,7 @@ import { createCorrectedPreview, mediaTypes, mainCategories, subCategories, type
 import exifr from "exifr";
 import { natureSubcategories, countryTags } from "./mediaUploadForm/mediaUploadFormConfig";
 import { TagSummarySection } from "./mediaUploadForm/TagSummarySection";
+import { DestinationHubSection } from "./articleForm/DestinationHubSection";
 import { UploadProgressSection } from "./mediaUploadForm/UploadProgressSection";
 import { MediaLocationSection } from "./mediaUploadForm/MediaLocationSection";
 import { useMediaDragSort } from "./mediaUploadForm/useMediaDragSort";
@@ -46,7 +47,10 @@ export function MediaUploadForm({ editEvent }: { editEvent?: NostrEvent }) {
   const [date, setDate] = useState('');
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
-  const [customTags, setCustomTags] = useState('');
+   const [customTags, setCustomTags] = useState('');
+   // Plan-Zuordnung (plan-Tag, WP0 PLAN_PILLAR_LINKS.md): Bilder hängen sich
+   // mit demselben plan-Wert an die Destination wie Artikel/Places/Trips.
+   const [planId, setPlanId] = useState('');
   const [location, setLocation] = useState('');
   const [selectedCountry, setSelectedCountry] = useState<string>('');
   const [detailedTags, setDetailedTags] = useState<string[]>([]);
@@ -532,7 +536,7 @@ export function MediaUploadForm({ editEvent }: { editEvent?: NostrEvent }) {
   // ── Drag-and-Drop Reihenfolge ──────────────────────────────────────────
   const { dragIndex, dragOverIndex, handleDragStart, handleDragOver, handleDragDrop, handleDragEnd, moveFile } = useMediaDragSort({ files, setFiles });
 
-  const { handleSubmit } = useMediaPublish({ files, title, description, customTags, selectedSubTags, detailedTags, selectedCountry, mainCategory, location, date, setFiles, setTitle, setDescription, setMainCategory, setSelectedSubTags, setDetailedTags, setCustomTags, setLocation, setSelectedCountry, setDate, setIsUploading, setUploadProgress });
+  const { handleSubmit } = useMediaPublish({ files, title, description, customTags, selectedSubTags, detailedTags, selectedCountry, mainCategory, location, date, planId, setFiles, setTitle, setDescription, setMainCategory, setSelectedSubTags, setDetailedTags, setCustomTags, setLocation, setSelectedCountry, setDate, setIsUploading, setUploadProgress });
 
   const handleVideoCreated = (mediaFile: MediaFile) => {
     setFiles(prev => [...prev, mediaFile]);
@@ -637,6 +641,17 @@ export function MediaUploadForm({ editEvent }: { editEvent?: NostrEvent }) {
 
         {/* Location */}
         <MediaLocationSection files={files} location={location} setLocation={setLocation} selectedCountry={selectedCountry} setSelectedCountry={setSelectedCountry} />
+
+        {/* Reiseziel-Zuordnung (WP0): plan-Tag — Bilder sind damit demselben
+            Reiseziel zugeordnet wie Pillar/Cluster/Places/Trips. Kein
+            Hub-Schalter: nur der Artikel ist Pillar (t=hub). */}
+        <DestinationHubSection
+          enabled={false}
+          onEnabledChange={() => {}}
+          planId={planId}
+          onPlanIdChange={setPlanId}
+          hubSwitch={false}
+        />
 
        {/* Media Details */}
       <Card>

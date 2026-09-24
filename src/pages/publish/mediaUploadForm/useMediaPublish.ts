@@ -17,12 +17,14 @@ import { useUploadFile } from "@/hooks/useUploadFile";
 import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { useContinuityTracking } from "@/hooks/useContinuityTracking";
 import { getCountryTag } from "@/components/CountrySelector";
+import { PLAN_TAG } from "@/config/destinationsSchema";
 import { countryList, mojobusTag } from "./mediaUploadFormConfig";
 import type { Dispatch, SetStateAction } from "react";
 import type { MediaFile, UploadProgress } from "../publishUtils";
 
 export function useMediaPublish({ files, title, description, customTags,
   selectedSubTags, detailedTags, selectedCountry, mainCategory, location, date,
+  planId,
   setFiles, setTitle, setDescription, setMainCategory, setSelectedSubTags,
   setDetailedTags, setCustomTags, setLocation, setSelectedCountry, setDate,
   setIsUploading, setUploadProgress,
@@ -38,6 +40,8 @@ export function useMediaPublish({ files, title, description, customTags,
   mainCategory: string;
   location: string;
   date: string;
+  /** Plan-Zuordnung aus dem Contentplan → plan-Tag (WP0, PLAN_PILLAR_LINKS.md) */
+  planId?: string;
   // Setter
   setFiles: Dispatch<SetStateAction<MediaFile[]>>;
   setTitle: Dispatch<SetStateAction<string>>;
@@ -172,6 +176,12 @@ export function useMediaPublish({ files, title, description, customTags,
       ];
 
       if (mainCategory) additionalTags.push(['t', mainCategory]);
+
+      // Reiseziel-Zuordnung (WP0): plan-Tag — Bild ist damit demselben
+      // Reiseziel zugeordnet wie Pillar/Cluster/Places/Trips
+      if (planId && planId.trim()) {
+        additionalTags.push([PLAN_TAG, planId.trim()]);
+      }
 
       // Add GPS tags from first image with GPS data
       const firstGpsImage = files.find(f => f.type === 'image' && f.gps);
