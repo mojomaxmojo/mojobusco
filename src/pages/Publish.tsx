@@ -137,12 +137,6 @@ export function Publish() {
             </Suspense>
           </TabsContent>
 
-          <TabsContent value="trip">
-            <Suspense fallback={<PageLoader text="Wird geladen..." />}>
-              <TripPublishForm />
-            </Suspense>
-          </TabsContent>
-
           <TabsContent value="article">
             <Suspense fallback={<PageLoader text="Wird geladen..." />}>
               <ArticleForm
