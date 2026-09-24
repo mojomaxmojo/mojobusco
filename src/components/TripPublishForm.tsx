@@ -103,6 +103,12 @@ export function TripPublishForm({ planHandoff, onHandoffConsumed }: { planHandof
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [planHandoff]);
 
+  // Edit-Modus: bestehende Plan-Zuordnung aus dem plan-Tag laden
+  useEffect(() => {
+    if (!isEditMode || !existingTrip) return;
+    setHandoffPlanId(existingTrip.event?.tags?.find(t => t[0] === 'plan')?.[1] || '');
+  }, [isEditMode, existingTrip]);
+
   // Upload state: siehe ./tripPublishForm/useTripUpload
   // Publish state: siehe ./tripPublishForm/useTripPublish
   // KI-Generierung state: siehe ./tripPublishForm/useTripGeneration
@@ -326,6 +332,8 @@ export function TripPublishForm({ planHandoff, onHandoffConsumed }: { planHandof
       setDraftDescription={setDraftDescription}
       canProceedToPreview={canProceedToPreview}
       setCurrentStep={setCurrentStep}
+      handoffPlanId={handoffPlanId}
+      setHandoffPlanId={setHandoffPlanId}
     />
   );
 

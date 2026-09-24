@@ -57,7 +57,11 @@ import { canonicalUrl, articleUrl, canonicalNaddr } from "@/lib/canonicalUrl";
 import { resolveBildPlaceholders } from "./publishUtils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
-export function ArticleForm({ editEvent }: { editEvent?: NostrEvent }) {
+export function ArticleForm({ editEvent, onSendToTab }: {
+  editEvent?: NostrEvent;
+  /** Contentplan-Take-over für Places/Trips — Publish.tsx hält den Handoff-State + wechselt den Tab */
+  onSendToTab?: (type: 'place' | 'trip', name: string, hint: string | undefined, planId: string) => void;
+}) {
   const [title, setTitle] = useState('');
   const [summary, setSummary] = useState('');
   const [content, setContent] = useState('');
@@ -93,9 +97,6 @@ export function ArticleForm({ editEvent }: { editEvent?: NostrEvent }) {
   // Contentplan-Verzeichnis (ContentPlanSheet) — 📋 im Assistenten-Header;
   // Abhak-Progress localStorage + Server-Sync, Artikel ins Formular übernehmbar.
   const [plansOpen, setPlansOpen] = useState(false);
-  // Übernahme aus dem Contentplan in die Plätze-/Trips-Tabs (PlanHandoff-Pipe
-  // läuft über Publish.tsx — ArticleForm ist nur der Absender)
-  const [planHandoff, setPlanHandoff] = useState<{ type: 'place' | 'trip'; name: string; hint?: string; planId: string } | null>(null);
   // Aktuell geladener Entwurf (DraftsOverview)
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
   const [currentDraftStatus, setCurrentDraftStatus] = useState<'draft' | 'published' | null>(null);
@@ -519,14 +520,12 @@ export function ArticleForm({ editEvent }: { editEvent?: NostrEvent }) {
             if (planId) setHubPlanId(planId);
           }}
           onApplyPlace={(place, planId) => {
-            setPlanHandoff({ type: 'place', name: place.name, hint: place.hint, planId });
             setPlansOpen(false);
-            navigate('/veroeffentlichen?type=place&handoff=1');
+            onSendToTab?.('place', place.name, place.hint, planId);
           }}
           onApplyTrip={(trip, planId) => {
-            setPlanHandoff({ type: 'trip', name: trip.name, hint: trip.hint, planId });
             setPlansOpen(false);
-            navigate('/veroeffentlichen?type=trip&handoff=1');
+            onSendToTab?.('trip', trip.name, trip.hint, planId);
           }}
         />
         {/* Reiseziel-Zuordnung (WP0): plan-Tag für jeden Artikel, t=hub nur am

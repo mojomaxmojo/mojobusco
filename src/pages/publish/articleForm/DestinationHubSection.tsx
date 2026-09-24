@@ -29,6 +29,12 @@ interface DestinationHubSectionProps {
   /** plan-Tag (Plan-ID) — für jeden Artikel mit Reiseziel-Zuordnung */
   planId: string;
   onPlanIdChange: (v: string) => void;
+  /**
+   * Hub-Schalter anzeigen? Default true (Artikel). Bei Places/Trips false —
+   * nur der Artikel ist Pillar (t=hub); Cluster-Inhalte tragen nur den
+   * plan-Tag (WP0, PLAN_PILLAR_LINKS.md).
+   */
+  hubSwitch?: boolean;
 }
 
 export function DestinationHubSection({
@@ -36,6 +42,7 @@ export function DestinationHubSection({
   onEnabledChange,
   planId,
   onPlanIdChange,
+  hubSwitch = true,
 }: DestinationHubSectionProps) {
   const [plans, setPlans] = useState<ContentPlanIndex | null>(null);
 
@@ -63,7 +70,7 @@ export function DestinationHubSection({
           🗺️ Reiseziel-Zuordnung
         </Label>
         <p className="text-xs text-muted-foreground">
-          Setzt den {PLAN_TAG}-Tag — ordnet den Artikel dem Reiseziel zu
+          Setzt den {PLAN_TAG}-Tag — ordnet {hubSwitch ? 'den Artikel' : 'den Place/Trip'} dem Reiseziel zu
           (Grundlage für die automatische „Mehr aus diesem Reiseziel"-Liste).
         </p>
       </div>
@@ -84,6 +91,7 @@ export function DestinationHubSection({
           )}
         </SelectContent>
       </Select>
+      {hubSwitch && (
       <div className="flex items-center justify-between gap-3">
         <div className="space-y-0.5">
           <Label htmlFor="article-hub" className="text-sm font-medium">
@@ -102,6 +110,7 @@ export function DestinationHubSection({
           onCheckedChange={onEnabledChange}
         />
       </div>
+      )}
     </div>
   );
 }

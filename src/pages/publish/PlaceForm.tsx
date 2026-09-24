@@ -45,6 +45,7 @@ import { usePlaceImageUpload } from "./placeForm/usePlaceImageUpload";
 import { usePlaceGpsAutoFill } from "./placeForm/usePlaceGpsAutoFill";
 import { usePlaceAiDescription } from "./placeForm/usePlaceAiDescription";
 import { usePlacePublish } from "./placeForm/usePlacePublish";
+import { DestinationHubSection } from "./articleForm/DestinationHubSection";
 import { categories, facilityOptions, bestForOptions } from "./placeForm/placeFormConfig";
 import type { NostrEvent } from '@nostrify/nostrify';
 
@@ -259,6 +260,12 @@ export function PlaceForm({ editEvent, planHandoff, onHandoffConsumed }: { editE
     }
    }, [editEvent]);
 
+  // Edit-Modus: bestehende Plan-Zuordnung aus dem plan-Tag laden
+  useEffect(() => {
+    if (!editEvent) return;
+    setHandoffPlanId(getTagValue(editEvent, 'plan') || '');
+  }, [editEvent]);
+
   // Contentplan-Übernahme: Name + Hint + planId vorausfüllen, dann Handoff konsumieren
   useEffect(() => {
     if (!planHandoff) return;
@@ -288,6 +295,17 @@ export function PlaceForm({ editEvent, planHandoff, onHandoffConsumed }: { editE
       </CardHeader>
       <CardContent className="space-y-6">
         <PlaceTitleImageSection image={image} isUploading={isUploading} imageGps={imageGps} imageGpsStatus={imageGpsStatus} editingImageGps={editingImageGps} showMapPicker={showMapPicker} setImage={setImage} setImageFile={setImageFile} setImageGps={setImageGps} setImageGpsStatus={setImageGpsStatus} setEditingImageGps={setEditingImageGps} setShowMapPicker={setShowMapPicker} setSelectedCountry={setSelectedCountry} setLocation={setLocation} handleImageFile={handleImageFile} />
+
+        {/* Reiseziel-Zuordnung (WP0): plan-Tag — Place hängt sich mit demselben
+            plan-Wert an die Destination wie der Pillar-Artikel. Kein Hub-Schalter:
+            nur der Artikel ist Pillar (t=hub). */}
+        <DestinationHubSection
+          enabled={false}
+          onEnabledChange={() => {}}
+          planId={handoffPlanId}
+          onPlanIdChange={setHandoffPlanId}
+          hubSwitch={false}
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">

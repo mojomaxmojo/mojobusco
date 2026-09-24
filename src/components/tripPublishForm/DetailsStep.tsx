@@ -20,6 +20,7 @@ import { ChevronLeft, ChevronRight, MapPin } from '@/lib/icons';
 import { Loader2 } from 'lucide-react';
 import { formatCoordinatesSimple } from '@/lib/gpsExtraction';
 import type { TripStation, TripData } from '@/lib/trip/tripTypes';
+import { DestinationHubSection } from '@/pages/publish/articleForm/DestinationHubSection';
 
 type Lifestyle = 'mojobus' | 'vanlife' | 'rvlife' | 'beachlife' | 'wohnmobil' | 'perpetual-travelers';
 
@@ -43,6 +44,7 @@ export function DetailsStep({
   draftDescription, setDraftDescription,
   canProceedToPreview,
   setCurrentStep,
+  handoffPlanId, setHandoffPlanId,
 }: {
   stations: TripStation[]
   tripData: TripData
@@ -72,9 +74,21 @@ export function DetailsStep({
   setDraftDescription: (v: string) => void
   canProceedToPreview: boolean
   setCurrentStep: (v: 'upload' | 'details' | 'preview' | 'publish') => void
+  handoffPlanId: string
+  setHandoffPlanId: (v: string) => void
 }) {
   return (
     <div className="space-y-6">
+      {/* Reiseziel-Zuordnung (WP0): plan-Tag — Trip hängt sich mit demselben
+          plan-Wert an die Destination wie der Pillar-Artikel. Kein Hub-Schalter:
+          nur der Artikel ist Pillar (t=hub). */}
+      <DestinationHubSection
+        enabled={false}
+        onEnabledChange={() => {}}
+        planId={handoffPlanId}
+        onPlanIdChange={setHandoffPlanId}
+        hubSwitch={false}
+      />
       {/* Trip Metadata */}
       <Card>
         <CardHeader>

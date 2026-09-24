@@ -52,6 +52,14 @@ export function Publish() {
   const [planHandoff, setPlanHandoff] = useState<PlanHandoff | null>(null);
   const { data: editEvent } = useEditData(editEventId);
 
+  // Contentplan-Take-over (📋 im Berichte-Assistenten) → Ziel-Formular
+  // öffnen. Direkt über setActiveTab — der navigate()-Trick funktionierte
+  // nicht, weil activeTab nur beim Mount initialisiert wird.
+  const handleSendToTab = (type: 'place' | 'trip', name: string, hint: string | undefined, planId: string) => {
+    setPlanHandoff({ type, name, hint, planId });
+    setActiveTab(type);
+  };
+
   if (!user) {
     return (
       <div className="min-h-screen py-12">
@@ -137,7 +145,10 @@ export function Publish() {
 
           <TabsContent value="article">
             <Suspense fallback={<PageLoader text="Wird geladen..." />}>
-              <ArticleForm editEvent={editType === 'article' ? (editEvent ?? undefined) : undefined} />
+              <ArticleForm
+                editEvent={editType === 'article' ? (editEvent ?? undefined) : undefined}
+                onSendToTab={handleSendToTab}
+              />
             </Suspense>
           </TabsContent>
 
