@@ -92,6 +92,11 @@ const generateWithModel = async (prompt, model = 'medium', lifestyle = 'mojobus'
   // content: null (alles geht fuer Thinking drauf).
   const REASONING_MIN_TOKENS = 1500
 
+  // Hartes Limit fuer Reasoning-Tokens im Fallback: Damit bleibt auch bei
+  // Modellen mit Pflicht-Reasoning garantiert Budget fuer den eigentlichen
+  // Content uebrig.
+  const REASONING_CAP = 512
+
   try {
     if (!process.env.OPENROUTER_API_KEY) {
       throw new Error('OPENROUTER_API_KEY fehlt')
@@ -104,19 +109,57 @@ const generateWithModel = async (prompt, model = 'medium', lifestyle = 'mojobus'
 
     let result = await attempt(effectiveBaseTokens)
 
+    // Hat das Reasoning das komplette Budget verschlungen? Dann hilft eine
+    // Budget-Erhoehung nicht (das Thinking skaliert mit dem Budget) und wir
+    // springen direkt zum gedeckelten Reasoning.
+    const reasoningAteBudget = reasoning &&
+      result.reasoningTokens > 0 &&
+      !result.content &&
+      result.finishReason === 'length'
+
+    if (reasoningAteBudget) {
+      console.warn(`[KI] Reasoning hat komplettes Budget verbraucht (${result.reasoningTokens} Tokens), direkt Retry mit gedeckeltem Reasoning (reasoning.max_tokens: ${REASONING_CAP})...`)
+      try {
+        result = await attempt(effectiveBaseTokens, { max_tokens: REASONING_CAP })
+      } catch (capError) {
+        // Manche Endpoints erlauben kein reasoning.max_tokens -> Versuch mit
+        // komplett deaktiviertem Reasoning. Scheitert auch das (z.B. "Reasoning
+        // is mandatory"), brechen wir sauber mit dem Original-Fehler ab.
+        console.warn(`[KI] reasoning.max_tokens nicht unterstuetzt, Retry mit deaktiviertem Reasoning...`)
+        try {
+          result = await attempt(effectiveBaseTokens, { enabled: false })
+        } catch (disableError) {
+          throw capError
+        }
+      }
+    }
+
     // Auto-Retry: Bei abgeschnittener Antwort ODER leerem Content einmal mit
-    // erhoehtem Budget erneut versuchen.
-    if (result.finishReason === 'length' || !result.content) {
+    // erhoehtem Budget erneut versuchen (ausser Reasoning hat alles gefressen,
+    // dann wurde oben schon mit gedeckeltem Reasoning wiederholt).
+    if ((result.finishReason === 'length' || !result.content) && !reasoningAteBudget) {
       const retryMaxTokens = Math.round(effectiveBaseTokens * MAX_RETRY_MULTIPLIER)
       console.warn(`[KI] Retry mit erhoehtem Token-Budget (maxTokens: ${effectiveBaseTokens} -> ${retryMaxTokens})...`)
       result = await attempt(retryMaxTokens)
     }
 
-    // Letzter Fallback: Bei Reasoning-Modellen mit leerem Content Reasoning
-    // komplett deaktivieren, damit garantiert Text-Tokens uebrig bleiben.
+    // Letzter Fallback (falls der erste Direkt-Fallback nicht griff): Reasoning
+    // hart deckeln, damit garantiert Content-Tokens uebrig bleiben. Grund:
+    // Manche Endpoints (z.B. glm-5.3-flash) haben PFLICHT-Reasoning
+    // ("Reasoning is mandatory") und skalieren das Thinking mit dem Budget -
+    // dort frisst das Reasoning sonst ALLE Tokens.
     if (!result.content && reasoning) {
-      console.warn(`[KI] Retry ohne Reasoning (maxTokens: ${effectiveBaseTokens}), da alle Tokens fuer Reasoning verbraucht wurden...`)
-      result = await attempt(effectiveBaseTokens, { enabled: false })
+      console.warn(`[KI] Finaler Retry mit gedeckeltem Reasoning (maxTokens: ${effectiveBaseTokens}, reasoning.max_tokens: ${REASONING_CAP})...`)
+      try {
+        result = await attempt(effectiveBaseTokens, { max_tokens: REASONING_CAP })
+      } catch (capError) {
+        console.warn(`[KI] reasoning.max_tokens nicht unterstuetzt, Retry mit deaktiviertem Reasoning...`)
+        try {
+          result = await attempt(effectiveBaseTokens, { enabled: false })
+        } catch (disableError) {
+          throw capError
+        }
+      }
     }
 
     if (!result.content) {
