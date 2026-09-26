@@ -93,20 +93,27 @@ export const TEXT_MODELS = {
 
 /** @type {ModelConfig} */
 export const VISION_PRIMARY_MODEL = {
+  id: 'deepseek/deepseek-v4.1-flash',
+  provider: 'openrouter',
+  label: 'DeepSeek V4.1 Flash'
+}
+
+/** @type {ModelConfig | null} */
+export const VISION_FALLBACK_MODEL = {
   id: 'openai/gpt-4o-mini-2024-07-18',
   provider: 'openrouter',
   label: 'GPT-4o mini (2024-07-18)'
 }
 
 /** @type {ModelConfig | null} */
-export const VISION_FALLBACK_MODEL = {
+export const VISION_SECONDARY_FALLBACK_MODEL = {
   id: 'google/gemini-3-flash-preview',
   provider: 'openrouter',
   label: 'Gemini 3 Flash Preview'
 }
 
 /** @type {ModelConfig | null} */
-export const VISION_SECONDARY_FALLBACK_MODEL = {
+export const VISION_TERTIARY_FALLBACK_MODEL = {
   id: 'google/gemini-2.5-flash',
   provider: 'openrouter',
   label: 'Gemini 2.5 Flash'
