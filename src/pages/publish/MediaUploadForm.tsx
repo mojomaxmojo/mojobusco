@@ -129,6 +129,25 @@ export function MediaUploadForm({ editEvent }: { editEvent?: NostrEvent }) {
       // Wetter-Kontext: Aufnahmedatum (Server-Fallback: heute)
       if (date) formData.append('publishedAt', date);
 
+      // Exaktes Wetter zum Aufnahmezeitpunkt: EXIF-GPS + EXIF-Aufnahmezeit
+      // (stundenbasiert) des ersten Bildes mit GPS mitschicken – wie im
+      // Berichte-Tab. Server fragt dann das Wetter für genau diesen Moment ab.
+      const gpsImage = files.find(f => f.type === 'image' && f.gps && f.gpsStatus === 'detected')
+        || files.find(f => f.type === 'image' && f.gps);
+      if (gpsImage?.gps) {
+        formData.append('gps_lat', String(gpsImage.gps.latitude));
+        formData.append('gps_lon', String(gpsImage.gps.longitude));
+        console.log(`[KI] Bild-GPS mitschicken: ${gpsImage.gps.latitude.toFixed(4)}, ${gpsImage.gps.longitude.toFixed(4)}`);
+      }
+      const firstImage = files.find(f => f.type === 'image');
+      if (firstImage?.sortDate) {
+        const capturedAt = new Date(firstImage.sortDate);
+        const pad = (n: number) => String(n).padStart(2, '0');
+        formData.append('captured_date', `${capturedAt.getFullYear()}-${pad(capturedAt.getMonth() + 1)}-${pad(capturedAt.getDate())}`);
+        formData.append('captured_hour', String(capturedAt.getHours()));
+        console.log(`[KI] Bild-Aufnahmezeit mitschicken: ${capturedAt.toLocaleString()}`);
+      }
+
       const response = await authedFetch(`${getApiBaseUrl()}/api/generate-media-article`, {
         method: 'POST',
         body: formData
