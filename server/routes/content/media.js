@@ -116,11 +116,25 @@ router.post('/api/generate-media-article', (req, res, next) => {
 
     console.log(`[KI] ${allDescriptions.length} Medien analysiert (${imageDescriptions.length} Bilder, ${videoDescriptions.length} Videos)`)
 
-    // Wetter-Kontext: Datum (Fallback heute)
-    const weatherDate = typeof req.body.publishedAt === 'string' && req.body.publishedAt.trim()
-      ? req.body.publishedAt.trim()
-      : new Date().toISOString().slice(0, 10)
-    const continuity = await getGenerationContext({ location, country, date: weatherDate })
+    // Wetter-Kontext: EXIF-Aufnahmezeitpunkt + Titelbild-GPS haben Vorrang
+    // (wie im Berichte-Flow, stundenbasiert für den Aufnahme-Moment).
+    // Fallbacks: Formular-Datum (publishedAt) → heute (Tagesaggregat).
+    const weatherDate = typeof req.body.captured_date === 'string' && req.body.captured_date.trim()
+      ? req.body.captured_date.trim()
+      : (typeof req.body.publishedAt === 'string' && req.body.publishedAt.trim()
+        ? req.body.publishedAt.trim()
+        : new Date().toISOString().slice(0, 10))
+    const captureHour = req.body.captured_hour !== undefined && req.body.captured_hour !== ''
+      ? parseInt(req.body.captured_hour, 10)
+      : undefined
+    const continuity = await getGenerationContext({
+      location,
+      country,
+      date: weatherDate,
+      gpsLat: req.body.gps_lat ? parseFloat(req.body.gps_lat) : undefined,
+      gpsLon: req.body.gps_lon ? parseFloat(req.body.gps_lon) : undefined,
+      captureHour: Number.isFinite(captureHour) ? captureHour : undefined
+    })
 
     // ===== FOSTER HUNTINGTON STIL PROMPT =====
     // Generiert mit: generateMediaPrompt() - importiert aus src/config/prompts/media.js

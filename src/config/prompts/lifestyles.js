@@ -540,7 +540,7 @@ export function buildContinuityContextLine(continuity) {
   const lines = [];
 
   if (continuity.weather) {
-    lines.push(`Wetter vor Ort: ${continuity.weather}`);
+    lines.push(`Wetter vor Ort (Fakt, maßgeblich – niemals anders darstellen, auch wenn das Bild etwas anderes suggeriert): ${continuity.weather}`);
   }
 
   if (continuity.locationHistory) {

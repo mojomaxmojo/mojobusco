@@ -113,6 +113,7 @@ REGELN:
 - Beschreibe NICHT was auf dem Bild ist. Der Leser sieht es.
 - Erfinde NICHTS. Keine Zahlen, keine Fakten die nicht im Input sind.
 - Kein Aufbau. Mitten rein, aufhören wenn es reicht.
+- WETTER IST FAKT: "Wetter vor Ort" (aus dem Kontext) ist das reale, gemessene Wetter zum Aufnahmezeitpunkt. Es hat IMMER Vorrang vor dem, was das Bild zu zeigen scheint. Widersprich ihm nie und beschreibe kein anderes Wetter (kein Nebel bei Sonnenschein, kein Regen bei klar).
 
 HASHTAGS: 4-6 am Ende.${allTags.length > 0 ? ` #${allTags.slice(0, 6).join(' #')}` : ` #${lifestyleConfig.keywords[0]}`}
 SPRACHE: Deutsch. Knapp.
