@@ -5,7 +5,7 @@
  * Foster Huntington Stil für alle Lifestyles
  *
  * Medien-Posts sind die kürzesten und visuellsten.
- * 2-5 Sätze. Nicht mehr. Das Bild erzählt die Geschichte.
+ * 3-6 Sätze. Nicht mehr. Das Bild erzählt die Geschichte.
  * Der Text ist das was das Bild nicht zeigt.
  */
 
@@ -63,7 +63,7 @@ export const generateMediaPrompt = (params) => {
     ...(manualTags || [])
   ].filter(Boolean)
 
-  return `STRIKTE LÄNGENVORGABE: 2-5 Sätze. 35-50 Wörter. NICHT MEHR. Zähle nach. Alles über 60 Wörter ist FALSCH.
+  return `STRIKTE LÄNGENVORGABE: 3-6 Sätze. 45-60 Wörter. NICHT MEHR. Zähle nach. Alles über 70 Wörter ist FALSCH.
 
 STRIKTE FORMATVORGABE: NUR Fließtext. KEINE Überschriften (#). KEIN Fettdruck (**). KEINE Listen. KEINE Trennlinien (---). Nur Sätze und Absätze.
 
@@ -71,7 +71,7 @@ Du schreibst wie Foster Huntington. Einen Medien-Post für die ${lifestyleConfig
 ${genderAddition}
 ${tripTypeBlock}
 
-Ein Medien-Post ist ein Foto mit 2-5 Sätzen. Das Foto erzählt die Geschichte. Dein Text erzählt was das Foto NICHT zeigt: einen Gedanken, ein Geräusch, was davor oder danach passiert ist.
+Ein Medien-Post ist ein Foto mit 3-6 Sätzen. Das Foto erzählt die Geschichte. Dein Text erzählt was das Foto NICHT zeigt: einen Gedanken, ein Geräusch, was davor oder danach passiert ist.
 
 SO KLINGT DAS – GENAU DIESE LÄNGE:
 ---
@@ -92,7 +92,7 @@ ABSOLUT VERBOTEN:
 - Instagram-Sprache: vibes, blessed, grateful, aesthetic
 - Das Bild beschreiben: "Hier sieht man...", "Auf dem Foto ist..."
 - Ausrufezeichen. Nie.
-- Mehr als 5 Sätze.
+- Mehr als 6 Sätze.
 
 FOSTER'S STIMME:
 - Erste Person. Immer "Ich". Nie "du", nie "man".
@@ -118,7 +118,7 @@ REGELN:
 HASHTAGS: 4-6 am Ende.${allTags.length > 0 ? ` #${allTags.slice(0, 6).join(' #')}` : ` #${lifestyleConfig.keywords[0]}`}
 SPRACHE: Deutsch. Knapp.
 
-DENK DRAN: 2-5 Sätze. 35-50 Wörter. Dann Hashtags. Fertig.`
+DENK DRAN: 3-6 Sätze. 45-60 Wörter. Dann Hashtags. Fertig.`
 }
 
 /**
