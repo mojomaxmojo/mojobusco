@@ -43,7 +43,9 @@ const generateWithModel = async (prompt, model = 'medium', lifestyle = 'mojobus'
         : undefined)
 
   // Ein einzelner Modell-Aufruf mit einem konkreten Token-Budget.
-  const attempt = async (maxTokens) => {
+  // reasoningOverride: explizite Reasoning-Einstellung fuer diesen Versuch
+  // (z.B. { enabled: false } beim finalen Fallback fuer Reasoning-Modelle).
+  const attempt = async (maxTokens, reasoningOverride) => {
     const requestBody = {
       model: modelConfig.id,
       max_tokens: maxTokens,
@@ -56,8 +58,8 @@ const generateWithModel = async (prompt, model = 'medium', lifestyle = 'mojobus'
         { role: 'user', content: prompt }
       ]
     }
-    if (reasoning) {
-      requestBody.reasoning = reasoning
+    if (reasoningOverride !== undefined ? reasoningOverride : reasoning) {
+      requestBody.reasoning = reasoningOverride !== undefined ? reasoningOverride : reasoning
     }
     // Optionaler Plugins-Passthrough (z.B. [{ id: 'web' }] für :online-Suche)
     if (options.plugins) requestBody.plugins = options.plugins
@@ -80,22 +82,41 @@ const generateWithModel = async (prompt, model = 'medium', lifestyle = 'mojobus'
     } else {
       console.log(`[KI] finish_reason: ${finishReason}, usage: ${JSON.stringify(usage)}`)
     }
-    return { content, finishReason }
+    // Content-Reasoning-Anteil aus dem Usage (wenn vorhanden)
+    const reasoningTokens = response.data.usage?.completion_tokens_details?.reasoning_tokens || 0
+    return { content, finishReason, reasoningTokens }
   }
+
+  // Mindest-Budget fuer Modelle mit aktivem Reasoning: Reasoning verbraucht
+  // Tokens vor dem eigentlichen Content, ein zu kleines max_tokens fuehrt zu
+  // content: null (alles geht fuer Thinking drauf).
+  const REASONING_MIN_TOKENS = 1500
 
   try {
     if (!process.env.OPENROUTER_API_KEY) {
       throw new Error('OPENROUTER_API_KEY fehlt')
     }
 
-    let result = await attempt(baseMaxTokens)
+    // Bei Reasoning-Modellen Budget mindestens auf das Reasoning-Minimum anheben
+    const effectiveBaseTokens = reasoning
+      ? Math.max(baseMaxTokens, REASONING_MIN_TOKENS)
+      : baseMaxTokens
+
+    let result = await attempt(effectiveBaseTokens)
 
     // Auto-Retry: Bei abgeschnittener Antwort ODER leerem Content einmal mit
     // erhoehtem Budget erneut versuchen.
     if (result.finishReason === 'length' || !result.content) {
-      const retryMaxTokens = Math.round(baseMaxTokens * MAX_RETRY_MULTIPLIER)
-      console.warn(`[KI] Retry mit erhoehtem Token-Budget (maxTokens: ${baseMaxTokens} -> ${retryMaxTokens})...`)
+      const retryMaxTokens = Math.round(effectiveBaseTokens * MAX_RETRY_MULTIPLIER)
+      console.warn(`[KI] Retry mit erhoehtem Token-Budget (maxTokens: ${effectiveBaseTokens} -> ${retryMaxTokens})...`)
       result = await attempt(retryMaxTokens)
+    }
+
+    // Letzter Fallback: Bei Reasoning-Modellen mit leerem Content Reasoning
+    // komplett deaktivieren, damit garantiert Text-Tokens uebrig bleiben.
+    if (!result.content && reasoning) {
+      console.warn(`[KI] Retry ohne Reasoning (maxTokens: ${effectiveBaseTokens}), da alle Tokens fuer Reasoning verbraucht wurden...`)
+      result = await attempt(effectiveBaseTokens, { enabled: false })
     }
 
     if (!result.content) {
