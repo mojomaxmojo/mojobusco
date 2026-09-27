@@ -136,6 +136,11 @@ router.post('/api/generate-media-article', (req, res, next) => {
       captureHour: Number.isFinite(captureHour) ? captureHour : undefined
     })
 
+    // Sichtbarkeit im Log: Welcher Wetter-Kontext wurde verwendet?
+    // So laesst sich im VPS-Log direkt pruefen, ob EXIF-GPS/Aufnahmezeit
+    // angekommen sind und welches Wetter die KI bekommt.
+    console.log(`[KI] Wetter-Kontext: ${continuity.weather || 'kein Wetter gefunden'} | Basis: ${req.body.gps_lat ? `GPS(${parseFloat(req.body.gps_lat).toFixed(3)}, ${parseFloat(req.body.gps_lon).toFixed(3)})` : 'Ort'} | Datum: ${weatherDate}${Number.isFinite(captureHour) ? `, Uhrzeit: ${captureHour}:00` : ''}`)
+
     // ===== FOSTER HUNTINGTON STIL PROMPT =====
     // Generiert mit: generateMediaPrompt() - importiert aus src/config/prompts/media.js
     const prompt = generateMediaPrompt({
