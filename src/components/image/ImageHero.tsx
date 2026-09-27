@@ -64,7 +64,7 @@ export function ImageHero({ media, description, hashtags, onOpenFullscreen }: Im
           {/* Hover overlay - nur für Bilder: schlichte +Lupe (transparenter) */}
           {media && !isVideo && (
             <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-              <div className="bg-white/60 rounded-full p-4 shadow-none backdrop-blur-[2px]">
+              <div className="bg-white/40 rounded-full p-4 shadow-none backdrop-blur-[2px]">
                 <ZoomIn className="h-8 w-8 text-gray-700/80" />
               </div>
             </div>
