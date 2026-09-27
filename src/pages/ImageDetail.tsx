@@ -200,20 +200,22 @@ export function ImageDetail() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen">
-        {/* Hero-Skeleton mit fester Aspect-Ratio (wie das echte Hero-Bild) */}
-        <div className="relative w-full aspect-[4/5] sm:aspect-[16/10] lg:aspect-[16/9] bg-muted animate-pulse" />
-        <div className="container mx-auto px-4 max-w-3xl pt-6 space-y-6">
-          <div className="flex items-center gap-3">
-            <Skeleton className="h-11 w-11 rounded-full" />
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-32" />
-              <Skeleton className="h-3 w-24" />
+      <div className="min-h-screen py-8">
+        <div className="container mx-auto px-4 max-w-6xl">
+          <Skeleton className="h-9 w-40 mb-6" />
+          <div className="max-w-4xl mx-auto space-y-6">
+            <Skeleton className="w-full h-[320px] rounded-lg" />
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-11 w-11 rounded-full" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-3 w-24" />
+              </div>
             </div>
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-4/5" />
+            <Skeleton className="h-4 w-3/5" />
           </div>
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-4/5" />
-          <Skeleton className="h-4 w-3/5" />
         </div>
       </div>
     );
@@ -261,25 +263,34 @@ export function ImageDetail() {
   const firstMedia = images[0];
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen py-8">
       <SEOHead
         title="Bild"
         description="Bildergalerie auf MojoBus – Perpetual Travelers"
         type="article"
       />
+      <div className="container mx-auto px-4 max-w-6xl">
+        {/* Back Button */}
+        <Button
+          variant="ghost"
+          onClick={() => navigate('/bilder')}
+          className="mb-6"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Zurück zu Bilder
+        </Button>
 
-      {/* ── Hero: Bild randlos oben, feste Aspect-Ratio (kein CLS) ── */}
-      <ImageHero
-        media={firstMedia}
-        description={events.content}
-        hashtags={tags}
-        onBack={() => navigate('/bilder')}
-        onOpenFullscreen={() => openFullscreen(0)}
-      />
+        <div className="max-w-4xl mx-auto">
+          <div className="space-y-6">
+            {/* Bild oben (klassische Darstellung, ohne Hero-Band) */}
+            <ImageHero
+              media={firstMedia}
+              description={events.content}
+              hashtags={tags}
+              onOpenFullscreen={() => openFullscreen(0)}
+            />
 
-      {/* ── Content unten ── */}
-      <div className="container mx-auto px-4 max-w-3xl pt-6 pb-12">
-        <div className="space-y-6">
+            {/* Content unten */}
           {/* Autor-Zeile kompakt unter dem Bild */}
           <div className="flex items-center gap-3">
             {metadata?.picture ? (
@@ -428,6 +439,7 @@ export function ImageDetail() {
               </div>
             </CardContent>
           </Card>
+          </div>
         </div>
       </div>
 
