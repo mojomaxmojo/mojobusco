@@ -349,12 +349,62 @@ export function ImageDetail() {
             </div>
           </div>
 
-          {/* Beschreibung + SocialBar + Share — eine aufgeräumte Card */}
+          {/* Beschreibung → Weitere Medien → SocialBar + Share — eine aufgeräumte Card */}
           <Card>
             <CardContent className="p-4 sm:p-6 space-y-4">
               <Suspense fallback={<Skeleton className="h-20 w-full" />}>
                 <NoteContent event={events} className="text-base" hideImageLinks={true} />
               </Suspense>
+
+              {/* Galerie-Streifen: direkt unter dem Content, über der SocialBar;
+                  mobil wischbar, Desktop-Grid; Thumbs klein + lazy */}
+              {images.length > 1 && (
+                <section aria-label="Weitere Medien">
+                  <h2 className="text-sm font-semibold text-muted-foreground mb-2">
+                    Weitere Medien ({images.length})
+                  </h2>
+                  <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 md:grid md:grid-cols-4 md:overflow-visible md:pb-0">
+                    {images.map((img, index) => (
+                      <button
+                        key={`${img}-${index}`}
+                        type="button"
+                        className={`relative shrink-0 snap-start w-28 h-28 md:w-auto md:h-auto md:aspect-square rounded-lg overflow-hidden transition-transform hover:scale-[1.03] focus:outline-none focus-visible:ring-2 focus-visible:ring-ocean-500 ${
+                          isVideoUrl(img) ? 'bg-gray-900' : 'bg-muted'
+                        }`}
+                        onClick={() => !isVideoUrl(img) && openFullscreen(index)}
+                        aria-label={isVideoUrl(img) ? `Video ${index + 1}` : `Bild ${index + 1} im Vollbild öffnen`}
+                      >
+                        {isVideoUrl(img) ? (
+                          <video
+                            src={img}
+                            className="w-full h-full object-cover"
+                            preload="metadata"
+                            playsInline
+                            muted
+                          />
+                        ) : (
+                          <>
+                            <img
+                              src={getGalleryThumbnailUrl(img)}
+                              srcSet={generateSrcset(img, 'card')}
+                              sizes={generateSizes('card')}
+                              alt={`Bild ${index + 1}`}
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                              decoding="async"
+                            />
+                            {/* Hover overlay - nur für Bilder */}
+                            <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <ZoomIn className="h-6 w-6 text-white" />
+                            </div>
+                          </>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              )}
+
               <SocialBar event={events} />
               <ShareButtons
                 url={window.location.href}
@@ -364,54 +414,6 @@ export function ImageDetail() {
               />
             </CardContent>
           </Card>
-
-          {/* Galerie-Streifen: mobil wischbar, Desktop-Grid; Thumbs klein + lazy */}
-          {images.length > 1 && (
-            <section aria-label="Weitere Medien">
-              <h2 className="text-sm font-semibold text-muted-foreground mb-2">
-                Weitere Medien ({images.length})
-              </h2>
-              <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 md:grid md:grid-cols-4 md:overflow-visible md:pb-0">
-                {images.map((img, index) => (
-                  <button
-                    key={`${img}-${index}`}
-                    type="button"
-                    className={`relative shrink-0 snap-start w-28 h-28 md:w-auto md:h-auto md:aspect-square rounded-lg overflow-hidden transition-transform hover:scale-[1.03] focus:outline-none focus-visible:ring-2 focus-visible:ring-ocean-500 ${
-                      isVideoUrl(img) ? 'bg-gray-900' : 'bg-muted'
-                    }`}
-                    onClick={() => !isVideoUrl(img) && openFullscreen(index)}
-                    aria-label={isVideoUrl(img) ? `Video ${index + 1}` : `Bild ${index + 1} im Vollbild öffnen`}
-                  >
-                    {isVideoUrl(img) ? (
-                      <video
-                        src={img}
-                        className="w-full h-full object-cover"
-                        preload="metadata"
-                        playsInline
-                        muted
-                      />
-                    ) : (
-                      <>
-                        <img
-                          src={getGalleryThumbnailUrl(img)}
-                          srcSet={generateSrcset(img, 'card')}
-                          sizes={generateSizes('card')}
-                          alt={`Bild ${index + 1}`}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                          decoding="async"
-                        />
-                        {/* Hover overlay - nur für Bilder */}
-                        <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <ZoomIn className="h-6 w-6 text-white" />
-                        </div>
-                      </>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </section>
-          )}
 
           {/* Tags und Kommentare (Kommentare lazy gemountet) */}
           <Card>
