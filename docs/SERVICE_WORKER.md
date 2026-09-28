@@ -1,516 +1,168 @@
 # Service Worker Dokumentation - MojoBus
 
+> **Aktualisiert:** 2026-09-28 — an den aktuellen Service Worker
+> (`public/sw.js`, Version wird beim Deploy **automatisch erhöht** durch
+> `bump_sw_version()` in `deploy-main.sh`) angeglichen.
+
 ## Übersicht
 
-Der Service Worker für MojoBus bietet Offline-Fähigkeit und verbessertes Caching. Er ermöglicht eine schnellere Ladezeit und eine bessere User Experience, besonders für wiederkehrende Besucher.
+Der Service Worker bietet Offline-Fähigkeit und stufenweises Caching:Assets
+sofort aus dem Cache, Cron-Dumps stale-while-revalidate, Nostr immer live.
 
 ---
 
 ## 🚀 Features
 
 ### 1. Offline-Fähigkeit
-- Die App funktioniert auch ohne Internetverbindung
-- Gecachte Inhalte werden offline angezeigt
-- Schützt vor schlechter oder fehlender Verbindung
+- Gecachte Assets, Bilder und `/data/`-Dumps werden offline angezeigt
+- Offline-Fallback: `503`-Antwort „Offline - Keine Verbindung" statt Crash
 
-### 2. Verbessertes Caching
-- Statische Assets werden sofort aus dem Cache geladen
-- Schnellere Ladezeit für wiederkehrende Besucher
-- Intelligente Cache-Strategien für verschiedene Ressourcen
+### 2. Stufenweises Caching
+- Statische Assets/Bilder sofort aus dem Cache (1 Jahr, immutable)
+- JSON-Dumps sofort aus dem Cache + Hintergrund-Update
+- Nostr-Queries immer live (Network-Only)
 
 ### 3. Service Worker Updates
-- Automatische Erkennung von Updates
-- User wird benachrichtigt, wenn ein Update verfügbar ist
-- Einfache Update-Aktivierung mit einem Klick
+- SW-Version wird bei **jedem Deploy automatisch erhöht** (`bump_sw_version()`
+  in `deploy-main.sh`) — keine manuelle Pflege der `CACHE_VERSION` mehr
+- Update wird als **Toast mit Reload-Button** angezeigt
+  (`ServiceWorkerUpdateToast.tsx`) — bewusst KEIN Auto-Reload (Formular-Schutz)
 
 ### 4. Cache Management
-- Manuelles Leeren des Caches
-- Übersicht über Cache-Nutzung
-- Cache-Versionierung für Updates
+- Manuelles Leeren über die App: `/settings/service-worker`
+- Cache-Namen versioniert (`mojobus-v{N}`); beim Aktivieren löscht der SW alle
+  alten Caches
 
 ---
 
-## 📦 Cache-Strategien
+## 🎯 Cache-Strategien (routing im fetch-Handler, `public/sw.js`)
 
-Der Service Worker verwendet verschiedene Cache-Strategien je nach Art der Ressource:
+| # | Anfrage | Strategie | Begründung |
+|---|---------|-----------|------------|
+| 1 | `*.css/js/woff/woff2/ttf/eot/otf`, `/assets/*` | **Cache-First** | Hash-Assets, 1 Jahr (CACHE_TIMES.STATIC_ASSETS: 30 Tage Cache-Objekt-Lebenszeit) |
+| 2 | `/data/*` | **Stale-While-Revalidate** | Cron-Dumps (3 h): sofort liefern, Hintergrund-Update |
+| 3 | `/prerender/*` | **Cache-First** | Statische Bot-/SEO-Seiten aus dem Cron |
+| 4 | `images.weserv.nl`, `blossom.primal.net`, `*.png/jpg/jpeg/gif/webp/avif/svg` | **Cache-First** | Bilder sind immutable (Hash/Blossom-Hash), 1 Jahr (CACHE_TIMES.IMAGES) |
+| 5 | `*.html`, `/` | **Network-First** | Frische HTML-Shell (Server liefert ohnehin `must-revalidate`) |
+| 6 | `/api/*` | **Stale-While-Revalidate** | API-Antworten schnell + Hintergrund-Frische |
+| 7 | `wss:`-WebSockets, `relay.*`-Hosts | **Network-Only** | Nostr immer live, kein Cache |
+| — | Default | **Network-First** | Sicherer Fallback |
 
-### 1. Cache-First Strategie
-**Für:** Assets, CSS, JS, Icons, Fonts, Vendor Chunks
+**Robustheits-Fixes in `staleWhileRevalidate()`:** Hintergrund-Fetch wird nur
+bei `response.ok` gecacht (kein 404/500 im Cache), Fehler werden immer
+abgefangen (kein unhandled rejection), Offline → letzter Cache-Stand oder 503.
 
-```javascript
-async function cacheFirst(request) {
-  const cache = await caches.open(CACHE_NAME);
-  const cachedResponse = await cache.match(request);
-
-  if (cachedResponse) {
-    return cachedResponse; // Sofort aus Cache
-  }
-
-  // Network, dann Cache
-  const networkResponse = await fetch(request);
-  if (networkResponse.ok) {
-    cache.put(request, networkResponse.clone());
-  }
-  return networkResponse;
-}
-```
-
-**Vorteile:**
-- ⚡ Sofortige Ladezeit aus Cache
-- 🔄 Fallback auf Network wenn kein Cache
-- 💾 Assets werden nach dem ersten Besuch gecacht
+**Precache beim Install:** `/icon.png`, `/apple-touch-icon.png`,
+`/mojobuslogo.png`, Favicons + Cache-Version-Eintrag.
 
 ---
 
-### 2. Network-First Strategie
-**Für:** App Code Chunks, API-Requests
-
-```javascript
-async function networkFirst(request) {
-  const cache = await caches.open(CACHE_NAME);
-
-  try {
-    // Network, dann Cache
-    const networkResponse = await fetch(request);
-    if (networkResponse.ok) {
-      cache.put(request, networkResponse.clone());
-    }
-    return networkResponse;
-  } catch (error) {
-    // Network fehlschlägt, versuche Cache
-    const cachedResponse = await cache.match(request);
-    if (cachedResponse) {
-      return cachedResponse;
-    }
-    throw error; // Offline, kein Cache
-  }
-}
-```
-
-**Vorteile:**
-- 🌐 Immer frische Daten aus Network
-- 📦 Fallback auf Cache wenn offline
-- ⚡ Schnellste Antwort möglich
-
----
-
-### 3. Stale-While-Revalidate Strategie
-**Für:** HTML-Seiten
-
-```javascript
-async function staleWhileRevalidate(request) {
-  const cache = await caches.open(CACHE_NAME);
-  const cachedResponse = await cache.match(request);
-
-  // Asynchrones Update im Hintergrund
-  const fetchPromise = fetch(request).then(networkResponse => {
-    if (networkResponse.ok) {
-      cache.put(request, networkResponse.clone());
-    }
-    return networkResponse;
-  });
-
-  // Return sofort den Cache
-  if (cachedResponse) {
-    return cachedResponse;
-  }
-
-  // Warte auf Network wenn kein Cache
-  return fetchPromise;
-}
-```
-
-**Vorteile:**
-- ⚡ Sofortige Ladezeit aus Cache
-- 🔄 Hintergrund-Update für frische Daten
-- 📱 Beste UX für HTML-Seiten
-
----
-
-### 4. Network-Only Strategie
-**Für:** Nostr-Queries, WebSockets
-
-```javascript
-function networkOnly(request) {
-  return fetch(request); // Nur Network, kein Cache
-}
-```
-
-**Vorteile:**
-- 🌐 Immer frische Nostr-Daten
-- ⚡ Keine Cache-Overhead
-- 🔒 Keine veralteten Daten
-
----
-
-## 🎯 Cache-Aufteilung
-
-| Ressource-Typ | Strategie | Cache-Dauer | Beispiel |
-|--------------|-----------|-------------|----------|
-| Vendor Chunks (React, Icons) | Cache-First | 1 Jahr | react-vendor.js |
-| App Code Chunks | Network-First | Nein | hooks.js |
-| CSS/JS Assets | Cache-First | 1 Jahr | index.css |
-| Bilder | Cache-First | 1 Jahr | mojobuslogo.png |
-| HTML-Seiten | Stale-While-Revalidate | Nein | index.html |
-| Nostr-Queries | Network-Only | Nein | wss://nos.lol |
-| API-Requests | Network-First | Nein | /api/* |
-
----
-
-## 🛠️ API
-
-### Registrierung
-
-Der Service Worker wird automatisch beim Laden der App registriert.
-
-```typescript
-import '@/lib/serviceWorker'; // Automatische Registrierung
-```
-
-### Manuelle Kontrolle
+## 🛠️ API (`src/lib/serviceWorker.ts`)
 
 ```typescript
 import {
-  registerServiceWorker,
-  unregisterServiceWorker,
-  isOnline,
-  addOnlineStatusListener,
-  clearCaches,
-  hasUpdate,
-  activateUpdate,
-  isCached,
-  getFromCache,
-  addToCache,
+  registerServiceWorker, unregisterServiceWorker,
+  isOnline, addOnlineStatusListener,
+  clearCaches, hasUpdate, activateUpdate,
+  isCached, getFromCache, addToCache,
 } from '@/lib/serviceWorker';
 
-// Service Worker registrieren
 const registration = await registerServiceWorker();
-
-// Service Worker unregistrieren
-await unregisterServiceWorker();
-
-// Online-Status prüfen
-const online = isOnline();
-
-// Online/Offline Event Listener hinzufügen
-const cleanup = addOnlineStatusListener(
-  () => console.log('Online'),
-  () => console.log('Offline')
-);
-
-// Caches leeren
 await clearCaches();
-
-// Prüfen ob Update verfügbar
 const updateAvailable = await hasUpdate();
-
-// Update aktivieren
 activateUpdate();
-
-// Prüfen ob URL gecacht ist
-const cached = await isCached('/index.html');
-
-// URL aus Cache holen
-const response = await getFromCache('/index.html');
-
-// URL zum Cache hinzufügen
-await addToCache('/index.html');
-
-// Cleanup Event Listener
-cleanup();
 ```
+
+Registrierung erfolgt automatisch beim App-Start (App.tsx →
+`ServiceWorkerStatus`-Komponente).
 
 ---
 
-## 🎨 UI Components
+## 🎨 UI
 
-### ServiceWorkerStatus Component
-
-Zeigt Online-/Offline-Status und Service Worker Updates an.
-
-```tsx
-import { ServiceWorkerStatus } from '@/components/ServiceWorkerStatus';
-
-function App() {
-  return (
-    <div>
-      <ServiceWorkerStatus />
-      {/* ... Rest der App */}
-    </div>
-  );
-}
-```
-
-### OfflineBanner Component
-
-Zeigt ein großes Banner wenn das Gerät offline ist.
-
-```tsx
-import { OfflineBanner } from '@/components/ServiceWorkerStatus';
-
-function App() {
-  return (
-    <div>
-      <OfflineBanner />
-      {/* ... Rest der App */}
-    </div>
-  );
-}
-```
-
-### CacheManager Component
-
-Ermöglicht das Leeren des Caches.
-
-```tsx
-import { CacheManager } from '@/components/ServiceWorkerStatus';
-
-function Settings() {
-  return (
-    <div>
-      <CacheManager />
-      {/* ... Rest der Settings */}
-    </div>
-  );
-}
-```
-
-### ServiceWorkerSettings Page
-
-Vollständige Service Worker Settings Page.
-
-```tsx
-import { ServiceWorkerSettings } from '@/pages/ServiceWorkerSettings';
-
-function App() {
-  return (
-    <Routes>
-      <Route path="/settings/service-worker" element={<ServiceWorkerSettings />} />
-    </Routes>
-  );
-}
-```
+| Komponente | Ort | Zweck |
+|------------|-----|-------|
+| `ServiceWorkerStatus` | `src/components/` | Online/Offline-Status + Update-Check |
+| `OfflineBanner` | `src/components/ServiceWorkerStatus.tsx` | Banner bei Offline |
+| `CacheManager` | `src/components/ServiceWorkerStatus.tsx` | Cache leeren (Settings) |
+| `ServiceWorkerUpdateToast` | `src/components/` | Toast „Neue Version verfügbar" + Reload-Button (Fix #9) |
+| `ServiceWorkerSettings` | `src/pages/` | `/settings/service-worker` — Status, Cache-Verwaltung |
 
 ---
 
 ## 🔧 Debugging
 
-### Service Worker Status prüfen
-
+### Status prüfen
 ```javascript
-// Service Worker Registrierung prüfen
 const registration = await navigator.serviceWorker.getRegistration();
-console.log('Service Worker Status:', registration?.active?.state);
-
-// Cache prüfen
-const cache = await caches.open('mojobus-v1');
-const keys = await cache.keys();
-console.log('Cache Keys:', keys);
-
-// Cache-Größe schätzen
-let totalSize = 0;
-for (const key of keys) {
-  const response = await cache.match(key);
-  if (response) {
-    const blob = await response.blob();
-    totalSize += blob.size;
-  }
-}
-console.log('Cache Size:', formatBytes(totalSize));
+console.log('SW Status:', registration?.active?.state);
+const keys = await (await caches.open('mojobus-v21')).keys();  // Versionsname siehe /settings/service-worker
 ```
 
-### Cache leeren
-
+### Update erzwingen
 ```javascript
-// Alle Caches leeren
-await caches.keys().then((cacheNames) => {
-  return Promise.all(
-    cacheNames.map((cacheName) => caches.delete(cacheName))
-  );
-});
-
-// Spezifischen Cache leeren
-await caches.delete('mojobus-v1');
+const reg = await navigator.serviceWorker.getRegistration();
+await reg?.update();
+reg?.waiting?.postMessage({ type: 'SKIP_WAITING' });
 ```
 
-### Service Worker Updates erzwingen
-
+### Caches leeren
 ```javascript
-// Update suchen
-const registration = await navigator.serviceWorker.getRegistration();
-if (registration) {
-  await registration.update();
-}
-
-// Neuen Service Worker aktivieren
-if (registration?.waiting) {
-  registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-}
+await caches.keys().then(names => Promise.all(names.map(n => caches.delete(n))));
 ```
-
----
-
-## 📊 Performance-Metriken
-
-### Erwartete Verbesserungen
-
-| Metrik | Vorher | Nachher | Verbesserung |
-|--------|--------|---------|-------------|
-| First Contentful Paint (Cache Hit) | 2.5s | 0.5s | **80%** |
-| Time to Interactive (Cache Hit) | 4.0s | 1.5s | **62.5%** |
-| Offline Verfügbarkeit | 0% | 100% | ✅ |
-| Cache Hit Rate (Return Visitors) | 60% | 90% | **+50%** |
-
-### Cache Hit Rate erhöhen
-
-Die Cache Hit Rate ist der Prozentsatz der Requests, die aus dem Cache bedient werden.
-
-- **Neue Besucher:** 0-10% (nur Vendor Chunks gecacht)
-- **Wiederkehrende Besucher:** 80-90% (die meisten Assets gecacht)
-- **Offline-Besucher:** 100% (nur gecachte Inhalte verfügbar)
 
 ---
 
 ## ⚙️ Konfiguration
 
-### Cache-Version ändern
+### Cache-Version
+Wird **automatisch** beim Deploy erhöht (deploy-main.sh: `bump_sw_version()`).
+Manuelle Anpassung der `CACHE_VERSION` in `public/sw.js` ist nur für
+Sonderfälle nötig (z. B. lokaler Test).
 
-Ändere die Cache-Version in `public/sw.js`:
-
+### Cache-Zeiten (`CACHE_TIMES` in sw.js)
 ```javascript
-const CACHE_NAME = 'mojobus-v1'; // Ändere auf v2, v3, etc.
-```
-
-### Cache-Strategie anpassen
-
-Ändere die Strategie in `public/sw.js`:
-
-```javascript
-// Beispiel: Network-First statt Cache-First für Bilder
-if (url.pathname.endsWith('.png') || url.pathname.endsWith('.jpg')) {
-  event.respondWith(networkFirst(request)); // Geändert
-  return;
-}
+STATIC_ASSETS: 30 Tage (Cache-Objekt-Lebenszeit für CSS/JS/Fonts)
+IMAGES:        1 Jahr (immutable URLs)
+API:           5 Minuten
 ```
 
 ### Neue Assets vorab cachen
-
-Füge Assets zur Installation-Phase in `public/sw.js`:
-
-```javascript
-const criticalAssets = [
-  '/',
-  '/index.html',
-  '/mojobuslogo.png',
-  '/neues-asset.css', // Neu
-  '/neues-asset.js', // Neu
-];
-
-const cachePromises = criticalAssets.map(async (asset) => {
-  try {
-    await cache.add(asset);
-    console.log('[Service Worker] Gecacht:', asset);
-  } catch (error) {
-    console.warn('[Service Worker] Konnte nicht cachen:', asset, error);
-  }
-});
-```
+`CRITICAL_ASSETS`-Array im `install`-Handler von `public/sw.js` erweitern.
 
 ---
 
 ## 🔒 Sicherheit
 
-### Kein Caching für sensible Daten
-
-Der Service Worker cached keine sensiblen Daten wie:
-- Nostr-Queries (immer Network-Only)
-- API-Requests mit Authentication (Network-First)
-- WebSocket-Verbindungen (Network-Only)
-
-### Cache-Invalidation
-
-Der Cache wird automatisch invalidiert, wenn:
-- Ein neuer Service Worker aktiviert wird
-- Der Cache manuell geleert wird
-- Die Cache-Version geändert wird
+- **Kein Caching für:** Nostr-WebSockets (Network-Only), Auth-Requests über
+  `Authorization: Nostr …` laufen über `/api/` (SWR, Sensible werden nicht
+  dauerhaft exposiert — Signatur im Header, nicht im Body)
+- Cache-Invalidation automatisch: neuer SW (neue Version) → alte Caches
+  gelöscht; Deploy erhöht die Version zuverlässig
 
 ---
 
 ## 🐛 Troubleshooting
 
-### Problem: Service Worker lädt nicht
-
-**Lösung:**
-1. Prüfe ob Service Worker in Browser-DevTools → Application → Service Workers aktiviert ist
-2. Lösche Caches in Browser-DevTools → Application → Cache Storage
-3. Registriere Service Worker manuell neu: `await unregisterServiceWorker(); await registerServiceWorker();`
-
-### Problem: Cache leeren funktioniert nicht
-
-**Lösung:**
-1. Prüfe Browser-Konsole auf Fehler
-2. Prüfe ob Service Worker aktiviert ist
-3. Lösche Caches manuell in Browser-DevTools
-
-### Problem: Update wird nicht angezeigt
-
-**Lösung:**
-1. Prüfe ob Service Worker auf Update prüft (alle 30 Sekunden)
-2. Prüfe ob `navigator.serviceWorker.controller` aktiviert ist
-3. Erzwinge Update: `registration.update()`
-
-### Problem: Offline zeigt nur weiße Seite
-
-**Lösung:**
-1. Prüfe ob kritische Assets (index.html, CSS, JS) gecacht sind
-2. Prüfe ob Service Worker erfolgreich installiert wurde
-3. Prüfe Cache in Browser-DevTools
-
-### Problem: Cache ist zu groß
-
-**Lösung:**
-1. Cache leeren: `await clearCaches()`
-2. Nicht benötigte Assets entfernen
-3. Cache-Strategie anpassen (z.B. Network-First statt Cache-First für Bilder)
-
----
-
-## 📚 Ressourcen
-
-- [Service Worker API](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API)
-- [Workbox](https://developers.google.com/web/tools/workbox)
-- [Cache API](https://developer.mozilla.org/en-US/docs/Web/API/Cache)
-- [Progressive Web Apps](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps)
+| Problem | Lösung |
+|---------|--------|
+| SW lädt nicht | DevTools → Application → Service Workers prüfen; `unregisterServiceWorker()` + `registerServiceWorker()` |
+| Cache leeren funktioniert nicht | Console-Fehler prüfen; manuell: DevTools → Application → Clear storage |
+| Update wird nicht angezeigt | `registration.update()` erzwingen; prüfen ob deploy-main.sh die Version erhöht hat (`grep CACHE_VERSION public/sw.js`) |
+| Offline nur weiße Seite | Prerender-/Dump-Fallbacks: `/` lädt network-first — ohne Netz die zuletzt gecachten Dumps prüfen (`/data/*.json`) |
+| Alte JSON-Dumps nach Deploy | Hard-Reload (Shift+F5); SWR holt beim nächsten Lauf frisch (bekannte Einschränkung, siehe CONTEXT_DEPLOY) |
 
 ---
 
 ## ✅ Best Practices
 
 ### DO
-- ✅ Service Worker für statische Assets verwenden
-- ✅ Cache-First für Assets die sich selten ändern
-- ✅ Network-First für dynamische Inhalte
-- ✅ Cache-Versionierung verwenden
-- ✅ Offline-Fallback implementieren
-- ✅ Service Worker Updates überwachen
+- ✅ Cache-First für Assets mit Hash/immutable URLs
+- ✅ Stale-While-Revalidate für Cron-Dumps
+- ✅ Versionierung + Auto-Bump beim Deploy
+- ✅ Update-Toast statt Auto-Reload
 
 ### DON'T
-- ❌ Kein Caching für sensible Daten
-- ❌ Kein Caching für Nostr-Queries
-- ❌ Keine sehr kurzen Cache-Zeiten (weniger als 1 Stunde)
-- ❌ Kein Caching ohne Hash-Updates
-- ❌ Kein Caching für WebSocket-Verbindungen
-
----
-
-## 🎉 Fazit
-
-Der Service Worker für MojoBus bietet:
-
-- ✅ **Offline-Fähigkeit** - Die App funktioniert auch ohne Internet
-- ✅ **Verbessertes Caching** - Schnellere Ladezeit für wiederkehrende Besucher
-- ✅ **Einfache Updates** - Automatische Erkennung und Aktualisierung
-- ✅ **Cache Management** - Manuelles Leeren und Status-Übersicht
-- ✅ **Bessere UX** - Sofortige Ladezeit aus Cache
-
-**Das Projekt ist jetzt eine Progressive Web App (PWA) mit Offline-Fähigkeit!** 🚀
+- ❌ Kein Caching für WebSockets/Nostr-Queries
+- ❌ Keine 404/500-Antworten in den Cache (Fix ist eingebaut)
+- ❌ Kein Auto-Reload der App (kann Formulareingaben zerstören)

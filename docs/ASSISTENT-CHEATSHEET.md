@@ -1,9 +1,9 @@
 # ASSISTENT-CHEATSHEET.md — Bedienungs-Kurzreferenz (am Strand lesbar)
 
-> Berichte-Assistent (/veroeffentlichen, Berichte-Tab). Stand: 2026-09-02.
-> Ausführlich: FEATURE-BAND-SCHAETZUNG-PLAN.md · RECOVERY.md
-> Aktiver Contentplan: **CONTENTPLAN_FIGUEIRA_BUDENS.md** (Figueira/Budens/Vila do Bispo, 30 Artikel, 8 Wochen) — in der App abhakbar: **📋-Button im Assistenten-Header**
-> Weitere Pläne: Manta Rota + Armação de Pêra (gleiche Struktur) · Vorlage für neue Orte: **PROMPT_CONTENTPLAN_VORLAGE.md** (Copy-&-Paste-Prompt, auch im ⓘ-Sheet per Button)
+> Berichte-Assistent (/veroeffentlichen, Berichte-Tab). Stand: 2026-09-28.
+> Ausführlich: `MOJOBUS_CONTEXT.md` (Abschnitt „Kontinuitäts-Gedächtnis + Wetter-Kontext") · `docs/CONTEXT_DEPLOY.md` (Debug/VPS)
+> Aktiver Contentplan: **figueira-budens** (Figueira/Budens/Vila do Bispo, 30 Artikel, 8 Wochen) — Daten: `public/data/contentplans/figueira-budens.json` · in der App abhakbar: **📋-Button im Assistenten-Header**
+> Weitere Pläne: Manta Rota + Armação de Pêra (gleiche Struktur, gleicher Ordner) · Vorlage für neue Orte: **PROMPT_CONTENTPLAN_VORLAGE.md** (Copy-&-Paste-Prompt, auch im ⓘ-Sheet per Button)
 > 📄 **Brief übernehmen** (2026-09-21): ⭐-Top-Briefs im 📋-Sheet → 1 Klick = Roh-Skizze (inkl. Verwechslungs-Absätze) + FAQ-Skelett (PAA) im Editor + Szenen → ERLEBNISSE. Skizze wird beim Generieren vom Artikel ersetzt.
 > Reiseziele-Hub ✅ **VOLL-AUTOMATISCH** (2026-09-13): Pillar publishen mit Checkbox **„🗺️ Reiseziel-Hub (Pillar)"** + Plan-Auswahl → `/reiseziele` verlinkt automatisch (Cron ≤ 3 h, kein JSON/Editoren mehr nötig). Regionen editieren: Account-Menü **🗺️ Reiseziele verwalten** (Spec: PLAN_DESTINATIONS_ADMIN.md)
 > Reiseziel-Zuordnung ✅ **für alle** (2026-09-21, PLAN_PILLAR_LINKS.md): JEDER Bericht bekommt im Formular den Plan-Select (plan-Tag) — der Pillar zusätzlich den Hub-Schalter. Unter jedem Plan-Artikel erscheint automatisch die Liste „Mehr aus diesem Reiseziel" (verlinkte Artikel werden ausgeblendet). Sheet zeigt **Hub-Status** (X von Y verlinkt); „Pillar-Update vorbereiten" → Anker-Vorschläge im Formular, Einfügen nur per Klick; **✨ KI-Anker** (Modell via Switcher, GLM 5.3 flash) liefert nur Link-Positionen — der Text bleibt unangetastet.
@@ -86,7 +86,7 @@
 
 ## Artikel-Typen-Mapping für den Figueira/Budens-Contentplan
 
-Siehe `CONTENTPLAN_FIGUEIRA_BUDENS.md` (§1 Flow, §2 Top-SEO-Briefs, §3 30-Artikel-Roadmap).
+Siehe `public/data/contentplans/figueira-budens.json` (Flow, Top-SEO-Briefs, 30-Artikel-Roadmap; Verzeichnis: `public/data/contentplans/index.json`).
 Das alte Armação-Mapping bleibt als Vorlage gültig:
 
 | Contentplan-Typ | MojoBus-Formular | Länge | Timing |
@@ -110,4 +110,4 @@ systemctl status ai-api --no-pager | head -3 # Crash-Loop?
 cd /home/nginx/domains/mojobus.co/public
 node -e "import('./server/services/report-assistant.js').then(()=>{console.log('LINK OK');process.exit(0)}).catch(e=>{console.error('LINK FAIL:',e.message);process.exit(1)})"
 ```
-Fehlerklassen + Prozesse: RECOVERY.md §4.
+Weitere Fehlerklassen + Prozesse: `docs/CONTEXT_DEPLOY.md` (Debug-Kommandos, Bekannte Einschränkungen).

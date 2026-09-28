@@ -1,7 +1,7 @@
 # 🏷️ MojoBus Hashtag-Übersicht mit Menü-Zuordnung
 
 > Vollständige Übersicht aller Hashtags und ihre Zuordnung zu den verschiedenen Menüs im MojoBus Projekt
-> Letzte Aktualisierung: December 2024
+> Letzte Aktualisierung: 2026-09-28 (Config-Datei-Referenzen + Tippfehler korrigiert)
 
 ---
 
@@ -64,12 +64,12 @@
 ## 🏖️ **Natur-Tags** (Hauptmenü → Bilder → Natur)
 
 ### 🦁 **Tiere** → `/bilder/natur/tiere`
-- **Primär-Tags**: `#natur`, `#tiere`, `#wildtiere`, `#wildlife`, `#vögel`, `#birds`, `#insekten`, `#butterflies`, `#schmetterlinge`, `#rehwildtiere`, `#wildfotografie`
-- **Sekundär-Tags**: `#wildschwein`, `#rehwildtier`, `#storch`, `#adler`, `#falke`, `#eule`, `#bienen`, `#hummelnbien`, `#schmetterling`, `#libelle`, `#vogelbeobachtung`
+- **Primär-Tags**: `#natur`, `#tiere`, `#wildtiere`, `#wildlife`, `#vögel`, `#birds`, `#insekten`, `#schmetterlinge`, `#wildfotografie`
+- **Sekundär-Tags**: `#wildschwein`, `#rehwild`, `#storch`, `#adler`, `#falke`, `#eule`, `#bienen`, `#hummeln`, `#schmetterling`, `#libelle`, `#vogelbeobachtung`
 
 ### 🌻 **Blumen** → `/bilder/natur/blumen`
 - **Primär-Tags**: `#natur`, `#wiesen`, `#alpenwiesen`, `#blumenwiesen`, `#sommerblumen`, `#wildblumen`, `#blüten`
-- **Sekundär-Tags**: `#sommerblume`, `#kastanie`, `#margarite`, `#klee`, `#schlafblume`, `#rose`, `#lavendel`, `#wiesenblume`, `#gentian`, `#enkelkorn`
+- **Sekundär-Tags**: `#sommerblume`, `#kastanie`, `#margarite`, `#klee`, `#schlüsselblume`, `#rose`, `#lavendel`, `#wiesenblume`, `#enzian`
 
 ### 🏖️ **Strand/Beach** → `/bilder/natur/strand`
 - **Primär-Tags**: `#natur`, `#strand`, `#meer`, `#küste`
@@ -80,27 +80,27 @@
 - **Sekundär-Tags**: `#hochgebirge`, `#gipfelwanderung`, `#alpenpanorama`, `#wanderwege`, `#felsschutz`, `#gipfelrestaurant`, `#alpenblühen`, `#bergsee`, `#kulisse`, `#massiv`
 
 ### 🌲 **Wald** → `/bilder/natur/wald`
-- **Primär-Tags**: `#natur`, `#wald`, `#bäume`, `#forst`, `#baimgipfel`, `#naturschutz`, `#waldweg`, `#wildnis`, `#naturpark`, `#jagd`, `#pilze`
-- **Sekundär-Tags**: `#laub`, `#moos`, `#farn`, `#holzwurzel`, `#buche`, `#tannen`, `#eichenbaum`, `#waldstrand`, `#naturbadestellen`, `#wildblumen`, `#pilze`
+- **Primär-Tags**: `#natur`, `#wald`, `#bäume`, `#forst`, `#naturschutz`, `#waldweg`, `#wildnis`, `#naturpark`, `#pilze`
+- **Sekundär-Tags**: `#laub`, `#moos`, `#farn`, `#buche`, `#tannen`, `#eichen`, `#naturbadestelle`
 
 ### 🌊 **Meer/Ocean** → `/bilder/natur/meer`
 - **Primär-Tags**: `#natur`, `#meer`, `#ocean`, `#panorama`, `#aussichtspunkt`, `#sunset`, `#sonnenuntergang`, `#sonnenaufgang`, `#wetter`, `#luft`, `#horizont`, `#wolken`
-- **Sekundär-Tags**: `#panoramapunkt`, `#auslugspunkt`, `#wettererscheinung`, `#nachthimmel`, `#wolkenformation`, `#lichtstrahl`, `#regenbogen`, `#farbe`, `#sonnenstrahl`
+- **Sekundär-Tags**: `#panoramapunkt`, `#nachthimmel`, `#wolkenformation`, `#regenbogen`, `#farbe`, `#sonnenstrahl`
 
 ### 💧 **Wasserfälle** → `/bilder/natur/wasserfall`
-- **Primär-Tags**: `#natur`, `#wasserfall`, `#fluss`, `#wasser`, `#bach`, `#wildwasser`, `#stromschnell`
-- **Sekundär-Tags**: `#regenwald`, `#bergbach`, `#kaskade`, `#stromschnelle`, `#quelle`, `#alpenthal`, `#flussauen`, `#naturpark`, `#wasserkraft`
+- **Primär-Tags**: `#natur`, `#wasserfall`, `#fluss`, `#wasser`, `#bach`, `#wildwasser`, `#stromschnelle`
+- **Sekundär-Tags**: `#bergbach`, `#kaskade`, `#quelle`, `#alpental`, `#flussauen`, `#naturpark`
 
 ### 🌻 **Wiesen** → `/bilder/natur/wiese`
-- **Primär-Tags**: `#natur`, `#wiesen`, `#alm`, `#alpenwiesen`, `#blumenwiesen`, `#sommerwiesen`, `#bauernwiesen`, `#heuernten`
-- **Sekundär-Tags**: `#sommerblume`, `#kastanie`, `#margarite`, `#klee`, `#schlafblume`, `#rose`, `#lavendel`, `#wiesenblume`, `#gentian`, `#enkelkorn`
+- **Primär-Tags**: `#natur`, `#wiesen`, `#alm`, `#alpenwiesen`, `#blumenwiesen`, `#sommerwiesen`, `#bauernwiesen`, `#heuernte`
+- **Sekundär-Tags**: `#sommerblume`, `#kastanie`, `#margarite`, `#klee`, `#schlüsselblume`, `#rose`, `#lavendel`, `#wiesenblume`, `#enzian`
 
 ---
 
 ## 🏕️ **Vanlife-Tags** (Generell für alle Inhalte)
 
 ### Camping & Plätze
-- **Primär-Tags**: `#camping`, `#wildcamping`, `#stellplatz`, `#4x4`, `#digital-nomade`, `#vanlife`, `#wohn mobil`, `#zelt`
+- **Primär-Tags**: `#camping`, `#wildcamping`, `#stellplatz`, `#4x4`, `#digital-nomade`, `#vanlife`, `#wohnmobil`, `#zelt`
 
 ### Vanlife Lifestyle
 - **Primär-Tags**: `#vanlife`, `#offgrid`, `#beachlife`, `#sunset`, `#freedom`, `#minimalismus`, `#community`, `#bitcoin`
@@ -200,13 +200,19 @@
 
 ## 📂 **Konfigurationsdateien**
 
-- `src/config/menu.ts` - Hauptmenü-Konfiguration
-- `src/config/tags.ts` - Hashtag-Gruppen
+- `src/config/mainMenu.ts` - Hauptmenü-Konfiguration
+- `src/config/tags.ts` - Tag-Gruppen (`TAG_GROUPS`, `ALL_TAGS`, `TRIP_TYPES`)
+- `src/config/countries.ts` - Länder-Kategorien
 - `src/config/diy.ts` - DIY-Kategorien
 - `src/config/leon.ts` - Leon-Kategorien
-- `src/config/nature.ts` - Natur-Kategorien
-- `src/config/contentCategories.ts` - Content-Typen
+- `src/config/rvlife.ts` - RV-Life-Kategorien (`getRVLifeAutoTags()` …)
+- `src/config/strandort.ts` - Strand/Ort-Kategorien
+- `src/config/contentCategories.ts` - Content-Typen + Required-Tags
 - `src/config/index.ts` - Zentrale Exporte
+
+> Hinweis: Eine eigene `nature.ts` existiert nicht (mehr) — die Natur-Kategorien
+> (`/bilder/natur/:category`) werden über die Route + Tags aus `tags.ts`
+> (Gruppe „Natur & Umwelt") und clientseitige Filterung in `Images.tsx` bedient.
 
 ---
 

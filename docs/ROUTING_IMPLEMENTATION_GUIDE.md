@@ -1,5 +1,17 @@
 # 🚀 Routing und Pages Implementierung für RV Life
 
+> ✅ **STATUS: ABGESCHLOSSEN (historisch)** — Die RV-Life-Routen und -Pages
+> sind längst implementiert und live:
+> - Routen: `/artikel/rvlife` + `/artikel/rvlife/:category` (in
+>   `src/AppRouter.tsx`/`src/config/routes.ts`, Komponente `RVLife.tsx`)
+> - Menü: über `src/config/mainMenu.ts` (nicht mehr `extendedMenu.ts`)
+> - Tag-Config: `src/config/rvlife.ts` (`RV_LIFE_CONFIG`, `createRVLifeTags()` …)
+> - Prerender: Unterkategorie-Seiten via `scripts/prerender-subcategory-templates.js`
+>
+> **Der untenstehende Code stammt aus der damaligen Planung und ist NICHT die
+> Referenz** (veraltete Pfade wie `/rv-life`, `extendedMenu.ts`, `Publish.tsx`-
+> Tabs). Bei Änderungen an RV Life immer am aktuellen Code orientieren.
+
 ## 📋 Übersicht
 
 Dies ist eine **manuelle Anleitung** mit Code-Schnipseln, da die Build-Tools derzeit Probleme machen.

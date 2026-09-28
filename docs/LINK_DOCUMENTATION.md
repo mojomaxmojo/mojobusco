@@ -1,5 +1,7 @@
 # Link-Konvertierungs-Funktionen
 
+> **Aktualisiert:** 2026-09-28 (tote `/demo/links`-Route entfernt — existiert nicht mehr)
+
 Dieses Projekt enthält mehrere Funktionen zur automatischen Konvertierung von Text in klickbare Links.
 
 ## Funktionen
@@ -20,9 +22,9 @@ Konvertiert alle URLs im Text in klickbare Links mit HTML `<a>` Tags.
 ```typescript
 import { convertTextLinks } from '@/lib/utils';
 
-const text = "Besuche https://mojobus.cc oder kontaktiere uns@mojobus.cc";
+const text = "Besuche https://mojobus.co oder kontaktiere uns@mojobus.co";
 const html = convertTextLinks(text);
-// Resultat: "Besuche <a href=\"https://mojobus.cc\" ...>https://mojobus.cc</a> oder kontaktiere <a href=\"mailto:uns@mojobus.cc\" ...>uns@mojobus.cc</a>"
+// Resultat: "Besuche <a href=\"https://mojobus.co\" ...>https://mojobus.co</a> oder kontaktiere <a href=\"mailto:uns@mojobus.co\" ...>uns@mojobus.co</a>"
 ```
 
 ### 2. `TextWithLinks` Komponente - `src/components/TextWithLinks.tsx`
@@ -41,7 +43,7 @@ import { TextWithLinks } from '@/components/TextWithLinks';
 function MyComponent() {
   return (
     <TextWithLinks 
-      text="Besuche https://mojobus.cc und folge npub1..." 
+      text="Besuche https://mojobus.co und folge npub1..." 
       className="text-sm"
     />
   );
@@ -82,9 +84,9 @@ import { TextWithLinks } from '@/components/TextWithLinks';
 <TextWithWebLinks text={simpleText} />
 ```
 
-## Demo
-
-Besuche `/demo/links` um alle Funktionen in Aktion zu sehen.
+> Hinweis: Die frühere Demo-Route `/demo/links` existiert nicht mehr —
+> die Funktionen lassen sich am einfachsten in einer echten Note/Artikel-
+> Vorschau prüfen.
 
 ## Sicherheit
 

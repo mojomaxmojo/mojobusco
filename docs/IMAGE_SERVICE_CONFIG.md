@@ -1,6 +1,10 @@
 # Bild-Optimierung Konfiguration
 
-Die MojoBus App verwendet jetzt einen externen Bild-Optimierungs-Service für bessere Performance.
+> **Aktualisiert:** 2026-09-28 — Env-Variablen korrigiert: Vite nutzt das
+> **`VITE_`-Prefix** (nicht `NEXT_PUBLIC_`, das war ein Next.js-Fehler), und
+> die Beispiel-Bild-URLs zeigen auf `relay.mojobus.co`.
+
+Die MojoBus App verwendet einen externen Bild-Optimierungs-Service für bessere Performance.
 
 ## 📦 Standard-Konfiguration
 
@@ -23,24 +27,24 @@ Die MojoBus App verwendet jetzt einen externen Bild-Optimierungs-Service für be
 
 ### Option 1: Environment Variables (EMPFOHLEN)
 
-Erstelle eine `.env` Datei im Projekt-Verzeichnis:
+Erstelle eine `.env`/`.env.production` Datei im Projekt-Verzeichnis:
 
 ```bash
-# .env
+# .env (Vite-Prefix!)
 # Image Service URL
-NEXT_PUBLIC_IMAGE_SERVICE_URL=https://images.weserv.nl
+VITE_IMAGE_SERVICE_URL=https://images.weserv.nl
 
 # Service Typ: weserv, imgproxy, oder cloudflare
-NEXT_PUBLIC_IMAGE_SERVICE_TYPE=west
+VITE_IMAGE_SERVICE_TYPE=weserv
 
 # Image Service aktivieren (true oder false)
-NEXT_PUBLIC_ENABLE_IMAGE_SERVICE=true
+VITE_ENABLE_IMAGE_SERVICE=true
 
 # Standard-Qualität (1-100)
-NEXT_PUBLIC_DEFAULT_IMAGE_QUALITY=85
+VITE_DEFAULT_IMAGE_QUALITY=85
 
 # Standard-Format: webp, avif, auto, jpeg, png
-NEXT_PUBLIC_DEFAULT_IMAGE_FORMAT=webp
+VITE_DEFAULT_IMAGE_FORMAT=webp
 ```
 
 ### Option 2: Direkt in der Konfigurationsdatei
@@ -136,7 +140,7 @@ Warum?
 
 ```bash
 # Teste Standard-Konfiguration (images.weserv.nl)
-curl -I "https://images.weserv.nl/?url=https://relays.mojobus.co/8dcf2adab38d5d4ce8ac057f2e25c30b9f7e7fcf8515e69c438ef048a52aeddb.jpg&w=200&h=200&q=80" | grep -i content-length
+curl -I "https://images.weserv.nl/?url=https://relay.mojobus.co/8dcf2adab38d5d4ce8ac057f2e25c30b9f7e7fcf8515e69c438ef048a52aeddb.jpg&w=200&h=200&q=80" | grep -i content-length
 
 # Sollte ~15360 Bytes (15 KB) sein statt 2.4 MB!
 ```
@@ -153,7 +157,7 @@ curl -I "https://images.weserv.nl/?url=https://relays.mojobus.co/8dcf2adab38d5d4
 ✅ https://images.weserv.nl/?url=...&w=200&h=200&q=80
                                               ↑ Optimiert!
 
-❌ https://relays.mojobus.co/.../bild.jpg
+❌ https://relay.mojobus.co/.../bild.jpg
                         ↑ Nicht optimiert (Original)
 ```
 
@@ -181,8 +185,8 @@ Wenn du den Service wechseln möchtest:
 1. **Environment Variable ändern:**
    ```bash
    # .env
-   NEXT_PUBLIC_IMAGE_SERVICE_URL=https://dein-neuer-service.com
-   NEXT_PUBLIC_IMAGE_SERVICE_TYPE=imgproxy
+   VITE_IMAGE_SERVICE_URL=https://dein-neuer-service.com
+   VITE_IMAGE_SERVICE_TYPE=imgproxy
    ```
 
 2. **Oder Konfigurationsdatei bearbeiten:**
@@ -195,19 +199,18 @@ Wenn du den Service wechseln möchtest:
 3. **Neu bauen und deployen:**
    ```bash
    npm run build
-   ./deploy-test.sh --force
+   # VPS (Standard):
+   bash deploy-main.sh --force
    ```
 
 ---
 
-## 🚀 Deploy auf test.mojobus.co
+## 🚀 Deploy
 
 ```bash
-# Auf deiner VPS im test-Verzeichnis
-git fetch origin
-git checkout test
-git pull origin test
-./deploy-test.sh --force
+# Produktiv (Standard):
+cd /root/deploy-git/mojobusco
+bash deploy-main.sh --force
 ```
 
 ---
@@ -228,7 +231,7 @@ Wenn du einen externen Service nutzt, ist es ratsam, einen Backup-Plan zu haben:
 
 1. **Second Service konfigurieren:** Erstelle eine `.env.local` Datei mit einem alternativen Service
 2. **Monitor Service-Watchdog:** Prüfe periodisch, ob der Service verfügbar ist
-3. **Fallback aktivieren:** Setze `NEXT_PUBLIC_ENABLE_IMAGE_SERVICE=false` bei Problemen
+3. **Fallback aktivieren:** Setze `VITE_ENABLE_IMAGE_SERVICE=false` bei Problemen
 
 ### Quality vs. File Size
 

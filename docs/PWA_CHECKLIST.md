@@ -1,5 +1,8 @@
 # PWA Checklist für MojoBus
 
+> **Aktualisiert:** 2026-09-28 (SW-Strategien + Manifest-Icons an aktuellen
+> Stand angeglichen — Details: `docs/SERVICE_WORKER.md`)
+
 ## ✅ PWA Requirements - Status: READY
 
 ### 📱 Installable App
@@ -7,10 +10,10 @@
 | Requirement | Status | Details |
 |-------------|--------|---------|
 | **manifest.webmanifest** | ✅ READY | Alle Felder ausgefüllt |
-| **192x192 Icon** | ✅ READY | icon.png (75KB) |
-| **512x512 Icon** | ✅ READY | icon.png (75KB) |
-| **Maskable Icon** | ✅ READY | icon.png (purpose: maskable) |
-| **Apple Touch Icon** | ✅ READY | apple-touch-icon.png (75KB) |
+| **192x192 Icon** | ✅ READY | icon-192x192.png (+ weitere Größen 48–512) |
+| **512x512 Icon** | ✅ READY | icon-512x512.png |
+| **Maskable Icons** | ✅ READY | 192/256/384/512 mit `purpose: maskable` |
+| **Apple Touch Icon** | ✅ READY | apple-touch-icon.png |
 | **Favicons** | ✅ READY | 16x16, 32x32 |
 | **start_url** | ✅ READY | `/` |
 | **display mode** | ✅ READY | `standalone` |
@@ -23,11 +26,14 @@
 
 | Requirement | Status | Details |
 |-------------|--------|---------|
-| **Service Worker** | ✅ READY | sw.js registriert |
-| **Cache-First (Bilder)** | ✅ READY | 1 Jahr Cache |
-| **Cache-First (Assets)** | ✅ READY | 30 Tage Cache |
-| **Network-First (HTML)** | ✅ READY | Immer frische Inhalte |
-| **Precaching** | ✅ READY | Kritische Assets |
+| **Service Worker** | ✅ READY | sw.js registriert; Version wird beim Deploy auto-erhöht |
+| **Cache-First (Bilder)** | ✅ READY | 1 Jahr Cache (immutable URLs) |
+| **Cache-First (Assets)** | ✅ READY | Hash-Assets (`/assets/*`, CSS/JS/Fonts) |
+| **Stale-While-Revalidate (/data/)** | ✅ READY | Cron-Dumps: sofort + Hintergrund-Update |
+| **Cache-First (/prerender/)** | ✅ READY | Statische SEO-Seiten |
+| **Network-First (HTML)** | ✅ READY | Frische App-Shell |
+| **Network-Only (Nostr/WS)** | ✅ READY | Immer frische Relay-Daten |
+| **Update-Toast** | ✅ READY | Reload-Button statt Auto-Reload |
 | **HTTPS** | ✅ READY | Bereitgestellt |
 
 ### 📋 Lighthouse PWA Audit
@@ -104,7 +110,7 @@
 
 ---
 
-## 📝 Manifest Details
+## 📝 Manifest Details (Auszug — vollständig: `public/manifest.webmanifest`)
 
 ```json
 {
@@ -118,35 +124,21 @@
   "orientation": "portrait-primary",
   "scope": "/",
   "icons": [
-    {
-      "src": "/icon.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icon.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icon.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "/apple-touch-icon.png",
-      "sizes": "180x180",
-      "type": "image/png",
-      "purpose": "any"
-    }
+    { "src": "/icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icon-384x384.png", "sizes": "384x384", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" },
+    { "src": "/favicon-32x32.png", "sizes": "32x32", "type": "image/png" }
   ],
   "categories": ["lifestyle", "travel", "blog"],
-  "shortcuts": [...]
+  "screenshots": [{ "src": "/mojobuslogo.png", "sizes": "1920x1080", "type": "image/png" }],
+  "shortcuts": [ /* Artikel / Plätze / Bilder */ ]
 }
 ```
+
+Icons werden generiert mit `npm run icons:generate` (`scripts/generate-icons.js`).
 
 ---
 

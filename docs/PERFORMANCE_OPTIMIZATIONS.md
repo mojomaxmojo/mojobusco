@@ -1,5 +1,10 @@
 # Performance-Optimierungen Zusammenfassung
 
+> **Status:** Historische Zusammenfassung der umgesetzten Optimierungen.
+> **Aktualisiert:** 2026-09-28 — SW-Strategie-Zeilen und Dokument-Referenzen an
+> den aktuellen Stand angeglichen (SW-Version wird beim Deploy auto-erhöht;
+> Details: `docs/SERVICE_WORKER.md`, `docs/VENDOR_CHUNK_OPTIMIZATION.md`).
+
 ## Übersicht
 
 Dieses Dokument fasst alle Performance-Optimierungen zusammen, die für MojoBus implementiert wurden, um die Ladezeit und das Caching zu verbessern.
@@ -121,30 +126,35 @@ Dieses Dokument fasst alle Performance-Optimierungen zusammen, die für MojoBus 
 
 ### 5. Service Worker (Offline-Fähigkeit & verbessertes Caching)
 
-**Status:** ✅ Umgesetzt
+**Status:** ✅ Umgesetzt (seither weiterentwickelt — aktueller Stand: `docs/SERVICE_WORKER.md`)
 
 **Was wurde gemacht:**
-- Vollständiger Service Worker mit 4 Cache-Strategien
-- Cache-First: Assets, CSS, JS, Icons, Fonts (1 Jahr Cache)
-- Network-First: App Code, API-Requests (frische Daten)
-- Stale-While-Revalidate: HTML-Seiten (schnelles Laden + Hintergrund-Update)
+- Service Worker mit stufenweisen Cache-Strategien
+- Cache-First: Assets, CSS, JS, Icons, Fonts, Bilder (1 Jahr, immutable)
+- Stale-While-Revalidate: `/data/`-JSON-Dumps + `/api/`
+- Cache-First: `/prerender/` (statische Bot-HTML-Seiten)
+- Network-First: HTML-Seiten (mit `must-revalidate`-Headern serverseitig)
 - Network-Only: Nostr-Queries, WebSockets (immer frische Daten)
 - Automatische Service Worker Registration
+- SW-Update-Toast mit Reload-Button (`ServiceWorkerUpdateToast.tsx`) statt
+  Auto-Reload (Formular-Schutz)
+- **Version wird bei jedem Deploy automatisch erhöht** (`bump_sw_version()`
+  in `deploy-main.sh`) — keine manuelle Pflege mehr
 - UI Components: ServiceWorkerStatus, OfflineBanner, CacheManager
-- Service Worker Settings Page
+- Service Worker Settings Page (`/settings/service-worker`)
 
 **Performance-Gewinn:**
-- 🎯 80% schnelleres Laden (Cache Hit: 0.5s statt 2.5s)
-- 🎯 100% Offline-Fähigkeit
-- 🎯 90% Cache Hit Rate für wiederkehrende Besucher
-- 🎯 Automatische Updates mit Benachrichtigung
+- 🎯 Deutlich schnelleres Laden für Wiederholbesucher (Cache Hit)
+- 🎯 Offline-Fähigkeit für gecachte Inhalte/Dumps
+- 🎯 Hohe Cache Hit Rate für wiederkehrende Besucher
+- 🎯 Update-Benachrichtigung ohne Datenverlust
 
 **Dateien:**
 - `public/sw.js` (Service Worker)
 - `src/lib/serviceWorker.ts` (Registration & Management)
 - `src/components/ServiceWorkerStatus.tsx` (UI Components)
 - `src/pages/ServiceWorkerSettings.tsx` (Settings Page)
-- `SERVICE_WORKER.md` (Vollständige Dokumentation)
+- `docs/SERVICE_WORKER.md` (Vollständige Dokumentation)
 
 ---
 
@@ -169,10 +179,11 @@ Dieses Dokument fasst alle Performance-Optimierungen zusammen, die für MojoBus 
 
 Wenn noch mehr Performance benötigt wird:
 
-1. **Prefetching & Preloading** - Noch schnellere Navigation
-2. **Image Optimization** - WebP/AVIF Konvertierung
-3. **HTTP/2 Server Push** - Preload kritische Assets
-4. **Asset Compression** - Brotli/Gzip für Text-Assets
+1. **Prefetching & Preloading** - Noch schnellere Navigation (eager Vendor-
+   modulepreload ist umgesetzt, siehe `vite.config.ts`)
+2. ~~Image Optimization~~ — ✅ umgesetzt (images.weserv.nl, `src/config/imageService.ts`)
+3. ~~HTTP/2 Server Push~~ — ersetzt durch modulepreload-Injektion
+4. ~~Asset Compression~~ — ✅ Brotli/Gzip via CentminMod-Nginx aktiv
 
 ---
 
@@ -183,10 +194,7 @@ Wenn noch mehr Performance benötigt wird:
 Führe die Bundle-Analyse aus, um die Chunk-Größen zu überprüfen:
 
 ```bash
-# Build und Analyse
-npm run build:analyze
-
-# Oder nur Analyse (nachdem bereits gebuildet wurde)
+# Bundle-Analyse
 npm run analyze
 ```
 
@@ -217,6 +225,7 @@ import { DeinNeuesIcon } from '@/lib/icons';
 
 - `ICON_LIBRARY.md` - Icon-Bibliothek Dokumentation
 - `VENDOR_CHUNK_OPTIMIZATION.md` - Vendor-Chunk Optimierung Details
+- `SERVICE_WORKER.md` - Service Worker Details
 - `src/hooks/useContent.ts` - Kombinierte Content Queries
 
 ---

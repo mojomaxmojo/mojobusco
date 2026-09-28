@@ -130,14 +130,6 @@ git push origin main --force
 
 ---
 
-## 📝 Zusammenfassung aller Commits im test Branch:
-
-Letzte Commits:
-- e97d153: Bugfix: articlesMetadata Prop zu ArticleCard hinzugefügt
-- 346c9cf: Dynamische Relay-Konfiguration - Autor-spezifische Relays
-- 61c5b10: Relay-Optimierung: Eigene Relays statt relay.nostr.band
-- 9611bb3: PWA Ready - Alle Icons installiert, manifest aktualisiert
-- 15f9418: Cache-Zeit für Bilder auf 1 Jahr erhöht (immutable assets)
-- 3d9b637: Performance-Optimierungen für 1000+ Artikel
-
-Alle diese Änderungen werden in main gemerged! 🚀
+> **Hinweis:** Die meisten Deploy-Änderungen laufen heute direkt über `main`
+> (`deploy-main.sh` auf dem VPS). Dieser Guide bleibt für den Fall, dass ein
+> `test`-Branch genutzt wird.

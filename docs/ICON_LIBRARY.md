@@ -1,5 +1,8 @@
 # Icon-Bibliothek für MojoBus
 
+> **Aktualisiert:** 2026-09-28 (Chunk-Liste an `vite.config.ts` angeglichen)
+
+
 ## Übersicht
 
 Die Icon-Bibliothek in `src/lib/icons.ts` bietet eine zentrale Verwaltung aller Lucide Icons, die im Projekt verwendet werden.
@@ -90,30 +93,29 @@ function Header() {
 
 ## Performance-Details
 
-### Chunk-Aufbau
+### Chunk-Aufbau (aktueller Stand, `vite.config.ts`)
 
-Die Vite-Konfiguration erstellt folgende optimierte Chunks:
+Lucide Icons haben **keinen eigenen manuellen Chunk mehr** — Rollup teilt sie
+automatisch auf (Icon-Imports aus `@/lib/icons` sind trotzdem die Pflicht,
+weil sie Tree-Shaking und eine zentrale Übersicht ermöglichen).
+
+Manuelle Vendor-Chunks im Build:
 
 - `react-vendor.js`: React & React DOM
-- `icons-vendor.js`: Lucide Icons (klein, selten ändert sich)
-- `nostr-vendor.js`: Nostr-Bibliotheken
-- `query-vendor.js`: TanStack Query
-- `radix-vendor.js`: Radix UI
-- `tiptap-vendor.js`: Tiptap Editor (nur wenn benötigt)
-- `pages.js`: Lazy-loaded Pages
-- `app-components.js`: Anwendungsspezifische Komponenten
-- `ui-components.js`: UI-Komponenten
-- `hooks.js`: React Hooks
-- `utils.js`: Hilfsfunktionen
+- `nostr-vendor.js`: Nostr-Bibliotheken (nostr-tools, @nostrify, @noble, @scure)
+- `react-query-vendor.js`: TanStack Query
+- `router-vendor.js`: React Router
+- `milkdown-vendor.js`: Milkdown/ProseMirror (nur Editor-Seiten)
+- `qrcode-vendor.js`: QR-Code (nur Zap-Dialog)
+- `map-vendor.js`: Leaflet (nur `/map`)
+- Radix UI: kein manueller Chunk — Rollup splittet automatisch pro Route
 
 ### Caching-Strategie
 
-Da Icons in einem separaten Chunk sind, werden sie nur neu geladen, wenn:
-- Das Icon selbst geändert wird
-- Ein neues Icon zur Bibliothek hinzugefügt wird
-- Die Vite-Konfiguration geändert wird
-
-Das bedeutet, dass Icons **nicht bei jedem Build** neu heruntergeladen werden, was die Ladezeit für wiederkehrende Besucher erheblich verbessert.
+Da alle Build-Assets Hash-Dateinamen haben, werden sie 1 Jahr immutable
+gecached und nur bei tatsächlicher Änderung neu geladen. Icons werden also
+**nicht bei jedem Build** neu heruntergeladen, was die Ladezeit für
+wiederkehrende Besucher erheblich verbessert.
 
 ## Häufige Fragen
 
@@ -123,7 +125,7 @@ Direkte Imports funktionieren zwar, aber durch die zentrale Bibliothek:
 - Werden alle Imports optimiert vom Bundler verarbeitet
 - Haben wir einen klaren Überblick über verwendete Icons
 - Können wir Icons leichter austauschen oder aktualisieren
-- Wird das Caching verbessert (separater Chunk)
+- Wird das Tree-Shaking konsistent unterstützt
 
 ### Was, wenn ein Icon fehlt?
 
@@ -167,9 +169,6 @@ import { Home, User } from '@/lib/icons';
 
 ## Performance-Verlauf
 
-Durch die Icon-Bibliothek haben wir folgende Verbesserungen erreicht:
-
-- **15-25% kleinere Icon-Chunks**: Durch besseres Tree-Shaking
-- **Besseres Caching**: Separater Icon-Chunk wird seltener invalidiert
-- **Schnelleres Laden**: Optimierter Chunk-Aufbau
-- **Bessere Wartbarkeit**: Zentrale Icon-Verwaltung
+Durch die zentrale Icon-Bibliothek (in Kombination mit Lazy Loading und
+Hash-Assets) bleiben die Icon-Imports konsistent baum-shakebar und die
+Chunks klein — Details zur Chunk-Strategie: `docs/VENDOR_CHUNK_OPTIMIZATION.md`.

@@ -1,5 +1,9 @@
 # 🏷️ Tag-Konfigurationsübersicht für MojoBus
 
+> **Aktualisiert:** 2026-09-28 — Referenzen auf die nicht mehr existierende
+> `tagConfigs.ts` entfernt; Gruppenstruktur an `src/config/tags.ts` angeglichen
+> (12 Gruppen inkl. Trip-Typen).
+
 Diese Übersicht zeigt, welche Tags für welche Untermenüpunkte zuständig sind und wie die Tags organisiert sind.
 
 ---
@@ -155,73 +159,29 @@ Diese Übersicht zeigt, welche Tags für welche Untermenüpunkte zuständig sind
 
 ## 🏷️ Tag-Gruppenstruktur
 
-Die Tags sind in 11 Hauptgruppen organisiert:
+Die Tags sind in **12 Hauptgruppen** organisiert (`TAG_GROUPS` in
+`src/config/tags.ts` — maßgeblich ist immer die Datei):
 
-### 0. 🚐 RV Life
-- **Gruppen-ID**: `TAG_GROUPS[1]`
-- **Zweck**: Wohnmobil-Leben spezifische Tags
-- **Anzahl Tags**: 4
-- **Beispiel-Tags**: `rvlife`, `rv-life`, `wohnmobil`, `camper`
+| # | Gruppe | Beispiel-Tags |
+|---|--------|---------------|
+| 1 | 🌍 Länder | `portugal`, `spanien`, `italien`, `deutschland` |
+| 2 | 🚐 RV Life | `rvlife`, `rv-life`, `wohnmobil`, `camper` |
+| 3 | 🍳 Küche & Essen | `kueche`, `essen`, `kochen`, `backen`, `rezepte` |
+| 4 | 🏠 Ausstattung | `ausstattung`, `equipment`, `storage`, `stauraum`, `moebel` |
+| 5 | 🕊️ Freeliving | `freeliving`, `nomad`, `freedom`, `digital-nomad` |
+| 6 | 🚐 Vanlife | `camping`, `wildcamping`, `stellplatz`, `vanlife` |
+| 7 | ⚡ Technik | `solarenergie`, `batterie`, `strom`, `internet` |
+| 8 | 🧘 Lifestyle | `kochen`, `fitness`, `freedom`, `minimalismus` |
+| 9 | 🌲 Natur & Umwelt | `strand`, `berg`, `natur`, `offgrid` |
+| 10 | 🏸️ Aktivitäten | `wandern`, `surfen`, `klettern`, `fotografie` |
+| 11 | 🐾 Pets | `leon`, `hund`, `camper-hund` |
+| 12 | 🚏 Trip-Typen | Typen für Trips (GPS-Tracks, kind 30025) |
 
-### 1. 🍳 Küche & Essen
-- **Gruppen-ID**: `TAG_GROUPS[2]`
-- **Zweck**: Kochen, Backen und Essen
-- **Anzahl Tags**: 12
-- **Beispiel-Tags**: `kueche`, `essen`, `kochen`, `backen`, `rezepte`
-
-### 2. 🏠 Ausstattung
-- **Gruppen-ID**: `TAG_GROUPS[3]`
-- **Zweck**: Wohnen, Küche, Bad und Storage
-- **Anzahl Tags**: 14
-- **Beispiel-Tags**: `ausstattung`, `equipment`, `storage`, `stauraum`, `moebel`
-
-### 3. 🕊️ Freeliving
-- **Gruppen-ID**: `TAG_GROUPS[4]`
-- **Zweck**: Nomadenleben und Freiheit
-- **Anzahl Tags**: 13
-- **Beispiel-Tags**: `freeliving`, `nomad`, `freedom`, `digital-nomad`, `minimalismus`
-
-### 4. 🌍 Länder (Countries)
-- **Gruppen-ID**: `TAG_GROUPS[0]`
-- **Zweck**: Geografische Kategorisierung
-- **Anzahl Tags**: 12
-- **Beispiel-Tags**: `portugal`, `spanien`, `italien`, `deutschland`
-
-### 5. 🚐 Vanlife
-- **Gruppen-ID**: `TAG_GROUPS[5]`
-- **Zweck**: Wohnform- und Reiseart
-- **Anzahl Tags**: 8
-- **Beispiel-Tags**: `camping`, `wildcamping`, `stellplatz`, `vanlife`
-
-### 6. ⚡ Technik
-- **Gruppen-ID**: `TAG_GROUPS[6]`
-- **Zweck**: Technische Ausrüstung und Systeme
-- **Anzahl Tags**: 8
-- **Beispiel-Tags**: `solarenergie`, `batterie`, `strom`, `internet`
-
-### 7. 🧘 Lifestyle
-- **Gruppen-ID**: `TAG_GROUPS[7]`
-- **Zweck**: Lebensstil und Interessen
-- **Anzahl Tags**: 8
-- **Beispiel-Tags**: `kochen`, `fitness`, `freedom`, `minimalismus`
-
-### 8. 🌲 Natur & Umwelt
-- **Gruppen-ID**: `TAG_GROUPS[8]`
-- **Zweck**: Naturlandschaften und Aktivitäten
-- **Anzahl Tags**: 10
-- **Beispiel-Tags**: `strand`, `berg`, `natur`, `offgrid`
-
-### 9. 🏸️ Aktivitäten
-- **Gruppen-ID**: `TAG_GROUPS[9]`
-- **Zweck**: Freizeitaktivitäten und Hobbys
-- **Anzahl Tags**: 8
-- **Beispiel-Tags**: `wandern`, `surfen`, `klettern`, `fotografie`
-
-### 10. 🐾 Pets
-- **Gruppen-ID**: `TAG_GROUPS[10]`
-- **Zweck**: Haustiere und Reisebegleiter
-- **Anzahl Tags**: 6
-- **Beispiel-Tags**: `leon`, `hund`, `camper-hund`
+Daneben existieren kategorie-spezifische Configs mit Auto-Tags:
+`rvlife.ts` (`getRVLifeAutoTags()`, `createRVLifeTags()`), `strandort.ts`
+(`STRANDORT_CONFIG`), `diy.ts`, `leon.ts`, `countries.ts` — die
+Auto-Tags-Listen im Publish-Formular kommen aus `useArticleTagCategories.ts`
+(`updateTagsWithAuto()`).
 
 ---
 
@@ -489,64 +449,28 @@ Alle Tags werden in der Form `#tagname` ohne Leerzeichen gespeichert.
 
 ## 📊 Zusammenfassung der Tag-Organisation
 
-### Alle Tag-Gruppen: 11
-### Alle Tags gesamt: ~100
-### Untermenüpunkte: 4 (DIY, Leon, RV Life, Nature)
-### Haupt-Tabs: 4 (Artikel, Plätze, Bilder, Notes)
+### Tag-Gruppen: 12 (inkl. Trip-Typen) · Untermenü: DIY, Leon, RV Life, Strand/Ort · Haupt-Tabs: Bilder, Plätze, Trips, Berichte, Note (Publish-Formular)
 
 ### Tag-Hierarchie
 
 ```
 Tag-System
-├── RV Life Tags (4) - Wohnmobil-Leben
-│   ├── rvlife, rv-life, wohnmobil, camper
-│   ├── Küche & Essen (12)
-│   │   ├── Küche, Essen, Kochen, Food
-│   │   ├── Backen, Rezepte, Kochgeräte
-│   │   └── Küchenausstattung
-│   ├── Ausstattung (14)
-│   │   ├── Ausstattung, Equipment, Ausrüstung
-│   │   ├── Storage, Stauraum
-│   │   ├── Möbel, Interieur, Innenausbau
-│   │   └── Wohnzimmer, Schlafbereich
-│   └── Freeliving (13)
-│       ├── Freeliving, Nomad, Freedom
-│       ├── Digital Nomad, Ortsunabhängig
-│       ├── Minimalismus, Community
-│       └── Unabhängigkeit
-│
-├── Länder-Tags (12) - Geografisch
-│   ├── Portugal
-│   ├── Spanien
-│   ├── Italien
-│   ├── Frankreich
-│   ├── Deutschland
-│   └── ...
-│
-├── Untermenü-Tags (4) - Navigation
-│   ├── DIY
-│   ├── Leon
-│   ├── RV Life
-│   └── Nature
-│
-├── Inhaltstyp-Tags (4) - Klassifikation
-│   #artikel, #place, #medien, #note
-│
-└── Themen-Tags (~60) - Inhalt
-    ├── Vanlife (8)
-    ├── Technik (8)
-    ├── Lifestyle (8)
-    ├── Natur (10)
-    ├── Aktivitäten (8)
-    └── Pets (6)
+├── Länder-Tags - Geografisch (portugal, spanien, …)
+├── RV Life Tags - Wohnmobil-Leben (+ Küche, Ausstattung, Freeliving)
+├── Untermenü-Tags - DIY, Leon, RV Life, Strand/Ort
+├── Inhaltstyp-Tags - artikel/artikel, location/places, media/bilder, notes/note
+└── Themen-Tags - Vanlife, Technik, Lifestyle, Natur, Aktivitäten, Pets
 ```
+
+**Pflicht-Tags pro Typ** werden zentral in
+`src/config/contentCategories.ts` (`tags.required`) definiert und im
+Publish-Flow via `createRequiredTags()` gesetzt — `#mojobus` ist immer dabei.
 
 ### Verwendung im Code
 
-```javascript
+```typescript
 // Tag-Konfiguration importieren
-import { TAG_GROUPS } from '@/config/tags';
-import { getTabCategories } from '@/config/tagConfigs';
+import { TAG_GROUPS, ALL_TAGS } from '@/config/tags';
 import {
   RV_LIFE_CONFIG,
   getRVLifeAutoTags,
@@ -554,26 +478,23 @@ import {
   createRVLifeTags
 } from '@/config/rvlife';
 
-// Alle verfügbaren Tags für einen Tab
-const availableTags = getTabCategories('article');
+// Alle verfügbaren Tags (flache Liste)
+const allTags = ALL_TAGS;
 
 // RV Life Tags
-const autoTags = getRVLifeAutoTags(); // ['rv-life', 'wohnmobil', 'rvlife', 'camper']
+const autoTags = getRVLifeAutoTags(); // Auto-Tags für RV-Life-Inhalte
 const categoryTags = getRVLifeCategoryTags('kueche-essen');
 const completeTags = createRVLifeTags('kueche-essen', ['portugal']);
-// Result: ['rv-life', 'wohnmobil', 'rvlife', 'camper', 'kueche-essen', 'kueche', 'essen', 'kochen', 'portugal']
 
-// Tags validieren
-import { validateTabTags } from '@/config/tagConfigs';
-const result = validateTabTags(['#rvlife', '#kochen', '#portugal'], 'article');
-// Returns: { isValid: true, errors: [], warnings: [] }
-
-// Tags gruppieren für UI
-const groupedTags = TAG_GROUPS.reduce((acc, group) => {
-  acc[group.name] = group.tags;
-  return acc;
-}, {});
+// Tags für das Berichte-Formular (Auto-Tags je Kategorie)
+// → src/pages/publish/articleForm/useArticleTagCategories.ts
+//   (updateTagsWithAuto, displayTags, handleTagToggle)
 ```
+
+> ⚠️ Frühere Versionen dieses Docs referenzierten eine `tagConfigs.ts`
+> (`getTabCategories`, `validateTabTags`) — diese Datei existiert nicht (mehr).
+> Verfügbare Tag-Helfer: `src/config/tags.ts`, `rvlife.ts`, `strandort.ts`,
+> `contentCategories.ts` (`createRequiredTags`).
 
 ### Best Practices
 
@@ -597,4 +518,4 @@ const groupedTags = TAG_GROUPS.reduce((acc, group) => {
 
 ---
 
-*Diese Übersicht basiert auf der aktuellen Tag-Konfiguration in `/src/config/tags.ts`, `/src/config/tagConfigs.ts` und `/src/config/contentCategories.ts`*
+*Diese Übersicht basiert auf der aktuellen Tag-Konfiguration in `src/config/tags.ts`, `src/config/rvlife.ts`, `src/config/strandort.ts` und `src/config/contentCategories.ts`*

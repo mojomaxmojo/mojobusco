@@ -1,9 +1,19 @@
 # MojoBus – Edge TTS Integration & Roadmap
 
-## Kontext
-MojoBus ist eine Nostr-basierte Vanlife-Plattform. Es gibt ein TikTok Promotion Dashboard unter `/promotion/tiktok`, das aus Blog-Artikeln TikTok-Videos generiert (Remotion auf VPS). Voiceover läuft aktuell mit **Piper TTS** (klingt roboterhaft).
+> ✅ **STATUS: ABGESCHLOSSEN (historisch)** — Die Piper→Edge-Migration ist
+> längst umgesetzt: Edge TTS ist primär (Standard: Seraphina ⭐, Fallback
+> Piper), Architektur + Stimmenliste aktuell in **`docs/CONTEXT_REMOTION.md`**.
+> Die Render-Logik liegt inzwischen im Modul `server/remotion/render/`
+> (nicht mehr im Monolithen `render.js`).
+>
+> **Warum dieses Dokument bleibt:** Die „Wichtigen Constraints" unten
+> (dynamischer `import()`, MP3 vs. WAV, keine TypeScript-Syntax in `.js`)
+> sind weiterhin gültige Regeln für serverseitige TTS-Änderungen.
 
-**Ziel**: Piper TTS durch **Microsoft Edge TTS** ersetzen – viel natürlichere Stimmen, kostenlos, kein API-Key.
+## Kontext
+MojoBus ist eine Nostr-basierte Vanlife-Plattform. Es gab ein TikTok Promotion Dashboard (`/promotion/tiktok`), das aus Blog-Artikeln TikTok-Videos generiert (Remotion auf VPS). Voiceover lief ursprünglich mit **Piper TTS** (klingt roboterhaft).
+
+**Ziel (damals):** Piper TTS durch **Microsoft Edge TTS** ersetzen – viel natürlichere Stimmen, kostenlos, kein API-Key. **→ Erledigt.**
 
 ## ⚠️ Wichtig – Letzter Fehler (nicht wiederholen!)
 
