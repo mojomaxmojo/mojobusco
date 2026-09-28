@@ -202,7 +202,6 @@ export function ImageDetail() {
     return (
       <div className="min-h-screen py-8">
         <div className="container mx-auto px-4 max-w-6xl">
-          <Skeleton className="h-9 w-40 mb-6" />
           <div className="max-w-4xl mx-auto space-y-6">
             <Skeleton className="w-full h-[320px] rounded-lg" />
             <div className="flex items-center gap-3">
@@ -270,23 +269,15 @@ export function ImageDetail() {
         type="article"
       />
       <div className="container mx-auto px-4 max-w-6xl">
-        {/* Back Button */}
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/bilder')}
-          className="mb-6"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Zurück zu Bilder
-        </Button>
-
         <div className="max-w-4xl mx-auto">
           <div className="space-y-6">
-            {/* Bild oben (klassische Darstellung, ohne Hero-Band) */}
+            {/* Bild oben (klassische Darstellung) — Zurück als schwebender
+                Overlay-Button auf dem Bild, Bild beginnt ganz oben */}
             <ImageHero
               media={firstMedia}
               description={events.content}
               hashtags={tags}
+              onBack={() => navigate('/bilder')}
               onOpenFullscreen={() => openFullscreen(0)}
             />
 

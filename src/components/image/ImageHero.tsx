@@ -10,7 +10,8 @@
  */
 
 import { Card, CardContent } from '@/components/ui/card';
-import { ZoomIn, Camera } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ZoomIn, Camera, ArrowLeft } from 'lucide-react';
 import { PinImageButton } from '@/components/PinImageButton';
 import { isVideoUrl } from './ImageViewer';
 import { generateSrcset, generateSizes, getArticleHeaderUrl } from '@/lib/imageUtils';
@@ -21,10 +22,12 @@ interface ImageHeroProps {
   /** Event-Content (für PinImageButton-Beschreibung) */
   description: string;
   hashtags: string[];
+  /** Schwebender Zurück-Button (Variante A): Bild beginnt ganz oben */
+  onBack: () => void;
   onOpenFullscreen: () => void;
 }
 
-export function ImageHero({ media, description, hashtags, onOpenFullscreen }: ImageHeroProps) {
+export function ImageHero({ media, description, hashtags, onBack, onOpenFullscreen }: ImageHeroProps) {
   const isVideo = isVideoUrl(media);
 
   return (
@@ -35,6 +38,21 @@ export function ImageHero({ media, description, hashtags, onOpenFullscreen }: Im
           className={`relative group ${media && isVideo ? 'cursor-default' : 'cursor-pointer'}`}
           onClick={() => media && !isVideo && onOpenFullscreen()}
         >
+          {/* Schwebender Zurück-Button (Variante A) — Overlay oben links,
+              halbtransparent wie die Pfeile im Vollbild-Viewer */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-4 left-4 z-20 rounded-full bg-black/40 backdrop-blur-[2px] text-white hover:bg-black/60 hover:text-white transition-colors"
+            onClick={(e) => {
+              e.stopPropagation(); // nicht das Vollbild auslösen
+              onBack();
+            }}
+            aria-label="Zurück zu Bilder"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+
           {media && isVideo ? (
             <video
               src={media}
