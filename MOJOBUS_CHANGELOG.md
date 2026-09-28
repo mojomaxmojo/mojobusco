@@ -5,6 +5,28 @@
 
 ---
 
+## Repository-Optimierung Stufe 2: Backup-Branches gelöscht (2026-09-28)
+
+**Auslöser**: 18 lokale + 19 Remote-Branches (14× backup-N, app, test,
+backup-gps, caption-improvements-v2, caption-improvements, Backup-1)
+blockierten Clone/Fetch und verstopften die Branch-Liste.
+
+- **Sicherheitsprüfung vorab**: für jeden Branch `git log --oneline
+  main..branch` → **0 eindeutige Commits überall**. Jeder Branch war nur
+  ein Zeiger auf einen älteren main-Stand (Snapshot-Sicherung), kein
+  Commit ging verloren.
+- **Gelöscht lokal (18)**: app, test, backup-gps, caption-improvements-v2,
+  backup-1…backup-14.
+- **Gelöscht remote auf GitHub (19)**: zusätzlich Backup-1 (Duplikat)
+  und caption-improvements (Remote-Only) via `git push origin --delete`.
+  Zwischendurch GitHub-Rate-Limit 429 → Retry nach Wartezeit erfolgreich.
+- **Ergebnis**: nur noch `main` (lokal + remote). Remote-Tracking-Refs
+  aufgeräumt (origin/HEAD, origin/main).
+- Kein Code-Change; reine Ref-Pflege (deshalb kein diff in diesem Commit
+  außer diesem Changelog-Eintrag).
+
+---
+
 ## Repository-Optimierung Stufe 1: Root aufgeräumt (2026-09-28)
 
 **Auslöser**: Root-Verzeichnis war mit 55 Markdown-Dateien (alte Pläne,
