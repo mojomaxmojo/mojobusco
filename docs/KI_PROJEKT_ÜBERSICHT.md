@@ -1,71 +1,91 @@
 # KI-Projektübersicht: MojoBus.co
 
+> **Aktualisiert:** 2026-09-28
+> Kurz-Übersicht für AI-Sessions. Ausführlich: `MOJOBUS_CONTEXT.md` (Projekt-Fakten)
+> · `AGENTS.md` (Regeln & Tabus + Modulindex) · `docs/DOKUMENTATION.md` (Technik).
+
 ## Projekt-Struktur und Architektur
 
 ### Übersicht
-MojoBus.co ist eine Nostr-basierte React-Anwendung für einen Reiseblog mit Fokus auf Vanlife, DIY-Projekte und nachhaltiges Reisen. Die Seite nutzt Nostr als dezentrales Protokoll für Inhaltsverwaltung und -verteilung.
+
+MojoBus.co ist eine Nostr-basierte React-Anwendung für eine Vanlife/Travel-
+Plattform (Artikel, Orte, Trips, Videos, Bilder, Haushaltsbuch). Die Inhalte
+liegen als Nostr-Events auf einem eigenen Relay (Haven, `relay.mojobus.co`) +
+Primal; das Backend (`ai-api` auf dem VPS) übernimmt KI-Generierung,
+Video-Rendering (Remotion), Prerender-Pipeline und Assistent-Funktionen.
 
 ### Kern-Funktionen
-1. **Nostr-Integration**: Vollständige Nostr-Integration für Inhaltsverwaltung
-2. **Authentifizierung**: Login mit Nostr-Identitäten (NIP-07/NIP-46)
-3. **Inhaltsverwaltung**: Artikel, Notizen, Bilder, Orte veröffentlichen
-4. **Media-Hosting**: Integrierte Blossom-Unterstützung für Bild-Uploads
-5. **Kartenintegration**: Leaflet-basierte Karten für Orte und Reiserouten
-6. **Zap-Unterstützung**: Lightning-Zaps für Inhaltsunterstützung
-7. **NIP-94-Unterstützung**: Datei-Uploads und Medienverwaltung
+
+1. **Nostr-Integration**: Publishing + Lesen über @nostrify (eigener Relay + Primal)
+2. **Authentifizierung**: Login mit NIP-07 / NIP-46-Bunker / nsec (mit Warnhinweis)
+3. **Content-Typen**: Artikel (30023), Notizen (1), Places (30023 `type=place`), Media (1), Trips (30025), Videos (34235/34236 NIP-71)
+4. **Berichte-Assistent** (`/veroeffentlichen`): KI-Texte, SEO-Panel, Entwürfe, Contentpläne (📋), Brand-DNA/Kontinuität + Wetter, GSC-/DataForSEO-Themen mit Nachfrage
+5. **Video-Generator** (`/promotion/tiktok`): Remotion-Render (Shorts 9:16 / Longform 16:9), Edge-TTS-Voiceover, Foster-Huntington-Prompts
+6. **Reiseziele-Hub** (`/reiseziele` + `/admin/destinations`): NIP-78-Struktur, Pillar-Auto-Erkennung via `t=hub` + `plan`-Tag
+7. **Media-Hosting**: Blossom-Uploads (`relay.mojobus.co`), Bild-Optimierung via images.weserv.nl
+8. **Kartenintegration**: Leaflet-Karte (`/map`) mit GPS-Markern (`gps_lat`/`gps_lon`)
+9. **Haushaltsbuch** (`/budget`): privates Budget-Tracking (kinds 39041/9042/9043/39044) mit NIP-42 AUTH
+10. **Zap-Unterstützung**: Lightning-Zaps via NWC (`useNWC`, lazy @getalby/sdk)
 
 ### Technologie-Stack
-- **Frontend**: React 18 mit TypeScript
-- **Build-Tool**: Vite
-- **Styling**: TailwindCSS
-- **UI-Komponenten**: Radix UI, Shadcn UI, Lucide Icons
-- **State-Management**: React Query (TanStack Query)
-- **Routing**: React Router DOM
-- **Karten**: Leaflet mit React-Leaflet
-- **Markdown-Editor**: Milkdown
-- **Nostr-Bibliotheken**: @nostrify/nostrify, nostr-tools
-- **Lightning**: @getalby/sdk für NWC
+
+- **Frontend**: React 19 (19.2.8) mit TypeScript 5.5
+- **Build-Tool**: Vite 6 (`tsc --noEmit` im Build; `any` verboten)
+- **Styling**: TailwindCSS 3, shadcn/ui, Radix UI, Lucide Icons (zentral `@/lib/icons`)
+- **State-Management**: React Query (TanStack Query v5)
+- **Routing**: React Router DOM 6
+- **Karten**: Leaflet mit React-Leaflet (`map-vendor`-Chunk)
+- **Markdown-Editor**: Milkdown (`milkdown-vendor`-Chunk)
+- **Nostr-Bibliotheken**: @nostrify/nostrify + @nostrify/react (JSR), nostr-tools
+- **SEO**: @unhead/react
+- **Mobile**: Capacitor 8 (`co.mojobus.app`) — fetch-URLs immer mit `getApiBaseUrl()`/`getDataBaseUrl()`
+- **Backend**: Node.js/Express (`server/`, systemd `ai-api`, Port 3002), Remotion v4, Edge TTS, FFmpeg (`/usr/local/bin/`)
 
 ### Projektstruktur
+
 ```
 /projects/mojobusco/
 ├── src/
-│   ├── components/          # UI-Komponenten
+│   ├── components/          # UI-Komponenten (ui/, assistant/, article/, auth/ …)
 │   ├── contexts/            # React Contexts (AppContext, NWCContext)
-│   ├── hooks/              # Custom Hooks (~30+ Hooks für Nostr, Auth, etc.)
-│   ├── lib/                # Utility-Funktionen
-│   ├── pages/              # Route-Komponenten
-│   ├── services/           # Services (NostrBroadcastService, ContentManagerService)
-│   └── config/            # Konfigurationsdateien
-├── public/                 # Statische Assets
-├── dist/                  # Build-Ausgabe
-├── package.json           # Abhängigkeiten und Scripts
-└── vite.config.ts         # Vite-Konfiguration
+│   ├── hooks/               # ~45 Custom Hooks (Nostr, Auth, Feeds, Budget …)
+│   ├── lib/                 # Utilities (canonicalUrl, apiBase, apiAuth, gps …)
+│   ├── pages/               # Route-Komponenten (+ publish/, admin/, promotion/)
+│   ├── services/            # NostrBroadcastService, ContentManagerService
+│   ├── types/               # TypeScript-Typen
+│   └── config/              # ⭐ ALLE Konfigurationen
+├── public/                  # Statische Assets + Cron-Dumps (data/, prerender/)
+├── server/                  # ⛔ ai-api Backend (nur mit Auftrag ändern)
+├── scripts/                 # Cron-Pipeline: site-data → prerender → sitemap → feed
+├── deploy-main.sh           # VPS-Deploy
+└── docs/                    # Kontext-Doku (siehe AGENTS-Modulindex)
 ```
 
 ### Wichtige Konfigurationsdateien
 
-#### `src/config/relays.ts`
-Definiert alle Relays und Autoren-Konfigurationen:
-- **AUTHORS**: Mojo und Susanne mit ihren Nostr-Identitäten
-- **RELAYS**: Öffentliche und private Relays (inkl. `wss://relay.mojobus.co`)
-- **RELAY_PRESETS**: Vorkonfigurierte Relay-Sets für verschiedene Anwendungsfälle
-- **AUTHOR_RELAY_CONFIG**: Autor-spezifische Relay-Konfigurationen
+#### `src/config/authors.json` (+ `relays.ts`)
+- **Single Source of Truth** für Autoren: pubkey, npub, nip05, Anzeige-Name
+  (Mojo→„Max", Susanne)
+- `relays.ts`: RELAYS (Kategorien), RELAY_PRESETS, DEFAULT_APP_CONFIG (read/write)
 
 #### `src/config/types.ts`
-Zentrale Typdefinitionen für:
-- MenuItem, Country, DIYCategory, ArticleCategory, Author, RelayConfig
-- Content-Kategorien und Tag-Strukturen
+Zentrale Typdefinitionen (MenuItem, Country, DIYCategory, ArticleCategory,
+Author, RelayConfig, Route …).
 
 #### `src/config/nostr.ts`
-Legacy-Konfiguration für Nostr-Funktionalität:
-- Event-Kinds (1: notes, 30023: longform, 0: metadata)
-- Cache-Einstellungen
+Legacy-Basis-Konstanten (kinds 1/30023/0, Cache-Defaults); aktive Kinds siehe
+Tabelle unten.
+
+#### Weitere
+`contentCategories.ts` (Tag-Regeln), `routes.ts` + `mainMenu.ts`, `app.ts`
+(SITE_URL), `years.ts`, `ai-models.js` (KI-Tier, Sync-Kopie in
+`server/config/`), `api-auth.js` (NIP-98-Prefixe), `performance.ts` +
+`performance.config.ts`, `prompts/` (⛔ Tabu; Ausnahme `tiktok.js`).
 
 ### Autoren- und Relay-Konfiguration
 
 #### Autoren
-1. **Mojo**:
+1. **Max („Mojo")**:
    - NPUB: `npub1f4vym2mu3q9fsz08muz8d469hl568l5358qx90qlaspyuz67ru0sfxvupf`
    - Pubkey: `4d584dab7c880a9809e7df0476d745bfe9a3fe91a1c062bc1fec024e0b5e1f1f`
    - NIP-05: `mojo@mojobus.co`
@@ -75,151 +95,122 @@ Legacy-Konfiguration für Nostr-Funktionalität:
    - Pubkey: `94ebd1c0940881de438b7f3c532b73e0d4d6c6b0160d3fe0b8a55fe49d477bd4`
    - NIP-05: `susanne@mojobus.co`
 
-#### Private Relay-Konfiguration
-- **URL**: `wss://relay.mojobus.co`
-- **Beschreibung**: "Privates Relay - nur mit Mojo/Susanne npub schreibbar"
-- **Kategorie**: `stable`
-- **Lesen/Schreiben**: Beide aktiviert
-- **Suche**: Deaktiviert
+#### Relay-Konfiguration (Details: `docs/KONFIGURATION.md`)
+- **Read (Standard)**: `relay.mojobus.co` + `relay.primal.net`, 2 Relays, 3000ms
+- **Write (aktiv)**: `relay.mojobus.co`
+- **Blossom-Uploads**: `relay.mojobus.co`
+- **Haushaltsbuch**: `relay.mojobus.co/private` mit NIP-42 AUTH, 10s-Timeout
+- Alle Presets/URLs zentral in `relays.ts` (kein Hardcoding)
 
 ### Hooks und Services
 
-#### Wichtige Hooks
-- `useNostr.ts`: Zentrale Nostr-Verbindungsverwaltung
+#### Wichtige Hooks (Auswahl — 45+ in `src/hooks/`)
+- `useNostr.ts`: Nostr-Verbindung (Re-Export @nostrify/react)
 - `useNostrPublish.ts`: Event-Veröffentlichung
-- `useAuthors.ts`: Autoren-Management
-- `useAuthorRelays.ts`: Autor-spezifische Relay-Konfiguration
-- `useContent.ts`: Inhaltsverwaltung
-- `useLongformArticles.ts`: Artikel-Verwaltung
-- `useNotes.ts`: Notizen-Verwaltung
-- `useNWC.ts`: Lightning-Wallet-Connect
+- `useCurrentUser.ts`: Login-State
+- `usePreloadedData.ts`: Hybrid JSON-Dump + Live-Relay
+- `useContent.ts` / `useLongformArticles.ts` / `useNotes.ts` / `useVideos.ts` / `useTrips.ts`: Feeds
+- `useBatchedSocialCounts.tsx`: Social-Counts-Batching (Feeds)
+- `useBudget.ts` + `useBudgetRelay.ts`: Haushaltsbuch (NIP-42)
+- `useNWC.ts` / `useWallet.ts`: Lightning (lazy SDK-Load)
+- `useUploadFile.ts`: Blossom-Upload
+- `useAuthors.ts` / `useAuthorRelays.ts`: Autoren/Relay-Management
 
 #### Services
 - `NostrBroadcastService.ts`: Event-Broadcasting mit Retry-Logik
 - `ContentManagerService.ts`: Inhaltsverwaltung und -validierung
 
-### Seitenstruktur
-- `Home.tsx`: Hauptseite mit Blog-Inhalten
-- `Articles.tsx`: Artikel-Übersicht
-- `Notes.tsx`: Notizen-Übersicht
-- `Images.tsx`: Bildergalerie
-- `Places.tsx`: Orte-Karte und Liste
-- `MapPage.tsx`: Interaktive Karte
-- `DIY.tsx`: DIY-Projekte
-- `RVLife.tsx`: Vanlife-Inhalte
-- `Profile.tsx`: Nutzerprofil
-- `Settings.tsx`: Einstellungen
-- `Publish.tsx`: Inhaltserstellung
-- `ContentManagementPage.tsx`: Inhaltsverwaltung
+### Seitenstruktur (Auswahl)
+`Home` · `Articles` (+ `ArticlesYear` Jahresarchiv, DIY/Leon/RVLife/StrandOrt-
+Unterkategorien) · `Notes` · `Images` (+ Natur) · `Places` · `MapPage` ·
+`TripsPage`/`TripDetail` · `Videos`/`VideoDetail` · `DestinationsPage`
+(`/reiseziele`) · `Publish` (`/veroeffentlichen`, 5 Tabs) ·
+`PromotionDashboard` (`/promotion`) · `VideoPromotion` (`/promotion/tiktok`) ·
+`BudgetPage` · `About` · `admin/AboutAdmin` + `admin/DestinationsAdmin` ·
+`Settings` · `ServiceWorkerSettings` · `Profile` · `NotFound`
 
 ### Nostr-Integration
 
-#### Event-Kinds
-- `0`: Profil-Metadaten
-- `1`: Kurznotizen
-- `30023`: Long-form Artikel (NIP-23)
-- `30024`: Gated Content (NIP-24)
-- `1063`: Datei-Metadaten (NIP-94)
-- `9735`: Zaps (NIP-57)
-- `1984`: Reporting (NIP-56)
-- `1985`: Label (NIP-32)
-- `9041`: Haushaltsbuch (Custom)
+#### Event-Kinds (aktiv im Projekt)
+
+| Kind | Zweck |
+|------|-------|
+| 0 | Profil-Metadaten |
+| 1 | Kurznotizen / Media-Posts / Teaser-Notes |
+| 1111 | Kommentare (NIP-22) |
+| 27235 | NIP-98-HTTP-Auth (KI-/Assistent-Routen) |
+| 30023 | Artikel + Places (`type=place`, NIP-23) |
+| 30025 | Trips (GPS-Tracks) |
+| 30078 | NIP-78 App-Data (About, Destinations-Struktur, Contentplan-Historie) |
+| 34235/34236 | Videos (NIP-71) |
+| 39041 | Budget-Einträge (addressable) |
+| 9042/9043 | Budget-Kategorien/-Settings |
+| 39044 | AFA-Einträge |
+| 9041/9044 | Legacy-Budget (nur Migration) |
 
 #### Tag-Strukturen
-- `d`: Identifier für replaceable events
-- `t`: Themen-Tags
-- `g`: Geohash-Tags
-- `r`: Referenz-Tags
-- `e`: Event-Referenzen
-- `p`: Pubkey-Referenzen
+- `d`: Identifier (replaceable/addressable) · `t`: Themen-Tags ·
+  `type`: article|place|media|trip · `l`: Sprache (de/en) ·
+  `plan`/`t=hub`: Reiseziel-Zuordnung (Contentplan/Pillar) ·
+  `g`: Geohash · `gps_lat`/`gps_lon`: Koordinaten · `e`/`p`: Referenzen ·
+  `published_at`: Original-Datum (bei Edits unverändert!)
 
 ### Deployment und Build
 
 #### Build-System
-- **Build-Script**: `npm run build` (nutzt `build-intelligent.js`)
-- **Dev-Server**: `npm run dev`
-- **Testing**: `npm run test` mit Vitest
-- **Analyze**: `npm run analyze` für Bundle-Analyse
+- **Build**: `npm run build` (= `tsc --noEmit` + `build-intelligent.js` mit Cache)
+- **Dev-Server**: `npm run dev` (Port 8080)
+- **Analyse**: `npm run analyze` (Bundle-Analyse)
+- **Tests**: `npm run test` (Vitest) — **nur auf explizite Anforderung** (AGENTS-Regel 7)
 
-#### Deployment-Optionen
-1. **Cloudflare Workers**: `workers/index.js`
-2. **Vercel**: `vercel.json`
-3. **Netlify**: `_redirects` und `netlify.toml`
+#### Deployment (Standard: eigener VPS)
+1. **VPS (produktiv)**: `deploy-main.sh --force` auf
+   `/root/deploy-git/mojobusco` → Webroot
+   `/home/nginx/domains/mojobus.co/public` + ai-api-Neustart.
+   Details: `docs/CONTEXT_DEPLOY.md`, `docs/VPS_DEPLOY_GUIDE.md`
+2. Cron-Pipeline auf dem VPS (alle 3 h): site-data → prerender → sitemap → feed
+3. `netlify.toml` / `vercel.json` / `deno.json` = **inaktive Fallback-Configs**
 
 ### Security und Zugriffskontrolle
 
 #### Autorisierung
-- Nur Mojo und Susanne können auf private Relays schreiben
-- Authentifizierung über NIP-07/NIP-46
-- Blossom-Uploads erfordern Autor-Identität
+- KI-/Render-/Assistent-Routen: **NIP-98-Auth** (kind 27235), Allowlist =
+  `src/config/authors.json`, `AI_AUTH_REQUIRED=1` in `ai-api.env`
+- Frontend signiert via `authedFetch` (`src/lib/apiAuth.ts`, `ApiAuthBridge`)
+- nsec-Login nur mit Warnhinweis (Extension/Bunker bevorzugt)
 
-#### Privates Relay (`relay.mojobus.co`)
-- **Read**: Öffentlich
-- **Write**: Nur für autorisierte Autoren (Mojo, Susanne)
-- **Authentifizierung**: NIP-42/NIP-01
+#### Private Relays
+- `relay.mojobus.co` (stable): Schreiben nur für die Autoren
+- `relay.mojobus.co/private` (Budget): NIP-42 AUTH, lesen+schreiben nur Autoren
 
-### Datenmodell
+### Sicherheits-Hardening (umgesetzt, Juni 2026)
 
-#### Inhalts-Typen
-1. **Artikel** (Kind 30023):
-   - Titel, Inhalt, Tags, Kategorien
-   - Autoren-Referenz, Timestamp
-   - Geotagging für Orte
+Alle 10 Items aus `docs/PLAN_SICHERHEIT_SEO_OPTIMIERUNG.md` sind umgesetzt
+(XSS-Fix in `convertTextLinks`, AI_AUTH_REQUIRED=1, Health/Bot-Cache-Token,
+CORS-Allowlist, Security-Header via `security-headers.conf` (CSP Report-Only),
+nsec-Warnung, Prerender-Unterkategorien + hreflang, HTML must-revalidate +
+SW-Update-Toast, ESLint `no-explicit-any` + `npm run audit` + Promotion-Rate-Limits).
 
-2. **Notizen** (Kind 1):
-   - Kurznotizen, Gedanken
-   - Reply-Ketten, Mentions
+### Erweiterungshinweise
 
-3. **Bilder** (Kind 1063):
-   - Bild-Metadaten
-   - Blossom-URLs
-   - EXIF-Daten (GPS, Datum)
-
-4. **Orte** (Custom Kind):
-   - Koordinaten, Adressen
-   - Bewertungen, Einrichtungen
-   - Kategorien (Camping, Stellplatz, etc.)
-
-### Erweiterungsmöglichkeiten
-
-#### Bestehende Hooks nutzen
-- `useNostrPublish.ts` für Event-Veröffentlichung
-- `useAuthors.ts` für Autoren-Authentifizierung
-- `useAuthorRelays.ts` für Relay-Zugriffskontrolle
-
-#### Neue Content-Types
-- Benutzerdefinierte Event-Kinds (z.B. 9041 für Haushaltsbuch)
-- Spezielle Tag-Strukturen für Datenorganisation
-- Autorisierung über vorhandene Author-Konfiguration
-
-#### Sicherheitskonzepte
-- Private Relay nur für autorisierte Autoren
-- NIP-42 Authentifizierung für Write-Zugriff
-- Verschlüsselte Inhalte für private Daten möglich
-
-### Performance-Optimierungen
-- **Relay-Timeout**: 3000ms für schnelle Ladezeiten
-- **Deduplizierung**: Aktiviert für reduzierte Netzwerklast
-- **Caching**: React Query für effiziente Datenverwaltung
-- **Bundle-Optimierung**: Code-Splitting und Tree-Shaking
-
-### Entwicklungshinweise
-1. **Relay-Konfiguration**: Änderungen in `src/config/relays.ts`
-2. **Autoren-Verwaltung**: Über `AUTHORS` Array
-3. **Event-Kinds**: In `src/config/nostr.ts` definieren
-4. **Hook-Nutzung**: Bestehende Hooks für neue Features verwenden
-5. **TypeScript**: Typen aus `src/config/types.ts` nutzen
+1. **Relay-Konfiguration**: `src/config/relays.ts` (nie hartcodieren)
+2. **Autoren-Verwaltung**: `src/config/authors.json` (Single Source of Truth)
+3. **Neue Content-Typen**: `src/config/contentCategories.ts` + passender Hook
+4. **Neue KI-Endpunkte**: Prefix in `src/config/api-auth.js` ergänzen (NIP-98!)
+5. **TypeScript**: Typen aus `src/config/types.ts`, **kein `any`** (ESLint error)
+6. **Neue fetch-URLs**: immer `getApiBaseUrl()`/`getDataBaseUrl()` (Capacitor)
 
 ### Bekannte Einschränkungen
-1. **Private Relay**: Nur für Mojo und Susanne schreibbar
-2. **Blossom-Uploads**: Benötigen Authentifizierung
-3. **Offline-First**: Teilweise Funktionalität ohne Internet
-4. **Browser-Support**: Moderne Browser erforderlich
+1. Primal-Relay flakt gelegentlich (0 Events bei Timeout) — produktive Quelle ist relay.mojobus.co
+2. SW-Cache: nach Deploy + Cron ggf. Hard-Reload nötig (Update-Toast vorhanden)
+3. Offline-First teilweise (SW cached Dumps/Assets, Nostr-Queries immer live)
+4. GLIBC-Besonderheit: Remotion-Compositor läuft auf AlmaLinux 9.8 im
+   Software-Fallback (~4 FPS) — Details `docs/CONTEXT_REMOTION.md`
 
 ---
 
-**Letzte Aktualisierung**: {{ date }}
-**Projektstatus**: Produktiv
-**Nostr-Integration**: Vollständig
-**Autoren**: Mojo, Susanne
-**Private Relay**: `wss://relay.mojobus.co`
+**Letzte Aktualisierung**: 2026-09-28
+**Projektstatus**: Produktiv (mojobus.co)
+**Nostr-Integration**: Vollständig (eigener Haven-Relay + Primal)
+**Autoren**: Max („Mojo"), Susanne
+**Backend**: ai-api auf VPS (CentminMod, AlmaLinux 9.8, Port 3002)

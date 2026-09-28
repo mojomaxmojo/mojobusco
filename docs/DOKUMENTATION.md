@@ -1,5 +1,10 @@
 # MojoBus - Technische Dokumentation
 
+> **Aktualisiert:** 2026-09-28 (React 19, Cache-Werte, Event-Kinds, Routen,
+> Deployment auf VPS-Realität korrigiert)
+> Modul-Index & Regeln: `AGENTS.md` · Projekt-Fakten: `MOJOBUS_CONTEXT.md` ·
+> Nostr-Patterns: `AGENTS_NOSTR_REF.md`
+
 ## Inhaltsverzeichnis
 
 1. [Projektübersicht](#projektübersicht)
@@ -19,17 +24,23 @@
 
 ## Projektübersicht
 
-**MojoBus** ist ein dezentraler Blog für Perpetual Travelers, basierend auf dem Nostr-Protokoll. Die Website ermöglicht es den Autoren Mojo und Susanne, Inhalte (Artikel, Notizen, Plätze, Bilder) zu veröffentlichen, die auf Nostr-Relays gespeichert werden.
+**MojoBus** ist eine dezentrale Vanlife/Travel-Plattform für Perpetual Travelers,
+basierend auf dem Nostr-Protokoll. Die Autoren Max („Mojo") und Susanne
+veröffentlichen Artikel, Notizen, Orte, Bilder, Trips und Videos als
+Nostr-Events; die Website liest sie von den Relays und wird für Bots per
+Prerender statisch ausgeliefert.
 
 ### Hauptfeatures
 
-- **Decentrales Publishing**: Alle Inhalte werden als Nostr-Events auf Relays gespeichert
-- **Mehrere Content-Typen**: Artikel, Notizen, Plätze (Campingplätze), Bilder, DIY-Guides
-- **Karten-Integration**: Leaflet-basierte Karte für geografische Inhalte
-- **Haushaltsbuch**: Privates Budget-Tracking mit NIP-42 AUTH
-- **Service Worker**: Offline-Fähigkeit und Caching
-- **Bilder-Optimierung**: Automatische Kompression und WebP-Konvertierung
-- **Lightning-Zaps**: Bitcoin-Zahlungen via NWC (Nostr Wallet Connect)
+- **Dezentrales Publishing**: Inhalte als Nostr-Events auf Relays (eigener Haven-Relay `relay.mojobus.co` + Primal)
+- **Content-Typen**: Artikel (30023), Notizen (1), Orte/Places (30023 + `type=place`), Bilder/Media (1), Trips (30025, GPS-Tracks), Videos (34235/34236, NIP-71)
+- **Berichte-Assistent** (`/veroeffentlichen`): KI-Generierung, SEO-Panel, Entwürfe, Contentpläne, Brand-DNA/Kontinuität
+- **Reiseziele-Hub** (`/reiseziele`): Destinations-Hub über Contentpläne (`plan`-Tag + NIP-78-Struktur)
+- **Video-Pipeline**: Remotion-Rendering auf dem VPS (ai-api), TikTok/Reels/YouTube-Formate
+- **Karten-Integration**: Leaflet-Karte (`/map`) mit GPS-Markern
+- **Haushaltsbuch** (`/budget`): privates Budget-Tracking auf eigenem Relay-Path mit NIP-42 AUTH
+- **PWA + Android-APK**: Service Worker, Capacitor 8 (`co.mojobus.app`)
+- **Prerender/SEO**: statische Bot-HTML-Seiten (3-h-Cron), Sitemaps, RSS-Feeds, hreflang de/en
 
 ---
 
@@ -43,17 +54,13 @@
 ├─────────────────────────────────────────────────────────────┤
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
 │  │   Pages     │  │  Components │  │       Hooks         │  │
-│  │             │  │             │  │                     │  │
-│  │  Home.tsx   │  │  Header.tsx │  │  useContent.ts      │  │
-│  │  Publish.tsx│  │  NoteView   │  │  useNostrPublish.ts │  │
-│  │  MapPage.tsx│  │  VideoEmbed │  │  useCurrentUser.ts  │  │
+│  │  (lazy)     │  │  (shadcn/ui)│  │  (45+ Custom Hooks) │  │
 │  └─────────────┘  └─────────────┘  └─────────────────────┘  │
 ├─────────────────────────────────────────────────────────────┤
-│                    Nostrify React Layer                       │
-│         (NostrProvider, NostrLoginProvider)                  │
+│                Nostrify React Layer (@nostrify/react)       │
+│         (NostrProvider, NostrLoginProvider, ApiAuthBridge)  │
 ├─────────────────────────────────────────────────────────────┤
-│                React Query (TanStack Query)                   │
-│              Caching, Pagination, State Sync                 │
+│              React Query (TanStack Query v5)                 │
 ├─────────────────────────────────────────────────────────────┤
 │                     Nostr Protocol                           │
 │              WebSocket → Nostr Relays                        │
@@ -62,41 +69,44 @@
 
 ### Datenfluss
 
-1. **Lesen**: React Query cached Nostr-Events für 24h (staleTime)
-2. **Schreiben**: useNostrPublish Hook signiert Events mit User-Signer
-3. **Sync**: Events werden zu konfigurierten Relays gepusht
-4. **Cache**: Lokaler Cache für Offline-Nutzung (Service Worker)
+1. **Lesen**: React Query cached Relay-Queries (staleTime 10 min, siehe `src/config/performance.ts`); Feeds nutzen den **Hybrid-Hook** `usePreloadedData` (JSON-Dump sofort + Live-Relay im Hintergrund)
+2. **Schreiben**: `useNostrPublish` signiert Events mit dem User-Signer (NIP-07/nsec/Bunker)
+3. **KI-/Assistent-Routen**: `authedFetch` (`src/lib/apiAuth.ts`) signiert NIP-98-Auth-Events (kind 27235) gegen die ai-API
+4. **Bots**: Nginx liefert statisches Prerender-HTML aus (`/prerender/`, 3-h-Cron auf dem VPS)
+5. **Offline**: Service Worker (`public/sw.js`) cached Assets/Dumps
 
 ---
 
 ## Technologie-Stack
 
 ### Core Framework
-- **React 18.3.1** - UI Framework
-- **TypeScript 5.5.3** - Type Safety
-- **Vite 6.3.5** - Build Tool (mit SWC für schnelle Builds)
+- **React 19.2.8** - UI Framework
+- **TypeScript 5.5.3** - Type Safety (`tsc --noEmit` im Build, `any` verboten)
+- **Vite 6.3.5** - Build Tool (SWC-Plugin)
 
 ### State Management & Data Fetching
-- **TanStack Query (React Query) 5.56.2** - Server State Management
-- **@nostrify/react 0.2.8** - Nostr React Integration
-- **@nostrify/nostrify 0.46.4** - Nostr Protocol Implementation
+- **TanStack Query (React Query) 5.x** - Server State Management
+- **@nostrify/react 0.2.8** - Nostr React Integration (via JSR)
+- **@nostrify/nostrify 0.46.4** - Nostr Protocol Implementation (via JSR)
 
 ### UI Components
-- **Radix UI** - Headless UI primitives (Dialog, Tabs, Dropdown, etc.)
+- **Radix UI** - Headless UI primitives (pro Route gesplittet, kein monolithischer Chunk mehr)
 - **Tailwind CSS 3.4.11** - Utility-first CSS
 - **shadcn/ui** - Komponenten-Design-System
-- **Lucide React** - Icons
-- **Leaflet + React-Leaflet** - Karten-Integration
+- **Lucide React** - Icons (zentral: `src/lib/icons.ts`)
+- **Leaflet + React-Leaflet** - Karten (eigener `map-vendor`-Chunk)
+- **Milkdown** - Markdown-Editor im Berichte-Formular (eigener `milkdown-vendor`-Chunk)
 
 ### Nostr-spezifisch
-- **nostr-tools 2.7.1** - Nostr Utility Functions
-- **nostrify** - React-Nostr Bridge
-- **@getalby/sdk 5.1.1** - Lightning/NWC Integration
+- **nostr-tools 2.x** - Nostr Utility Functions (NIP-19-Encoding, NIP-98-Verify auf dem Server)
+- **@getalby/sdk 5.1.1** - Lightning/NWC (lazy via `await import()` in `useNWC.ts`)
+
+### Mobile
+- **Capacitor 8** (`co.mojobus.app`) + Geolocation/File-Picker/EXIF-Plugins — alle fetch-URLs brauchen `getApiBaseUrl()`/`getDataBaseUrl()` (AGENTS-Regel 3)
 
 ### Build & Deploy
-- **esbuild-wasm** - Browser-basiertes Bundling
-- **GitHub/GitLab** - Version Control
-- **Cloudflare/VPS** - Deployment-Ziele
+- **VPS**: CentminMod, AlmaLinux 9.8, Nginx, `deploy-main.sh`
+- **Backend**: Express (`server/`, systemd `ai-api`, Port 3002) — Remotion v4, Edge TTS, FFmpeg
 
 ---
 
@@ -104,125 +114,125 @@
 
 ```
 /projects/mojobusco/
-├── public/                      # Statische Assets
-│   ├── images/                  # Bilder-Assets
+├── public/                      # Statische Assets + Cron-Dumps
+│   ├── data/                    # JSON-Dumps (articles/places/destinations/contentplans …)
+│   ├── sw.js                    # Service Worker (Version wird beim Deploy auto-erhöht)
 │   └── ...
 │
 ├── src/
 │   ├── components/              # React Components
 │   │   ├── ui/                  # shadcn/ui Components
-│   │   │   ├── button.tsx
-│   │   │   ├── card.tsx
-│   │   │   └── ...
-│   │   ├── Header.tsx           # Top Navigation
-│   │   ├── Footer.tsx           # Footer
-│   │   ├── NoteView.tsx         # Nostr Event Display
-│   │   ├── VideoEmbed.tsx       # Video Player
-│   │   ├── LocationPicker.tsx   # GPS/Map Picker
+│   │   ├── assistant/           # Berichte-Assistent (ContentPlanSheet, DraftsOverview …)
+│   │   ├── article/             # ArticleView-Teile (PlanRelatedArticles …)
+│   │   ├── auth/                # Login (NIP-07/nsec/Bunker)
+│   │   ├── Header.tsx, Footer.tsx, SiteSearch.tsx
 │   │   └── ...
 │   │
-│   ├── pages/                   # Route Pages
-│   │   ├── Home.tsx             # Startseite
-│   │   ├── Articles.tsx         # Artikel-Übersicht
-│   │   ├── Publish.tsx          # Veröffentlichen-Formular
-│   │   ├── MapPage.tsx          # Karten-Ansicht
-│   │   ├── BudgetPage.tsx       # Haushaltsbuch
+│   ├── pages/                   # Route Pages (lazy)
+│   │   ├── Home.tsx, Articles.tsx, ArticlesYear.tsx, Notes.tsx, Images.tsx
+│   │   ├── Places.tsx, DestinationsPage.tsx, Videos.tsx, VideoDetail.tsx
+│   │   ├── MapPage.tsx, TripDetail.tsx, About.tsx
+│   │   ├── Publish.tsx + publish/  (ArticleForm + 8 Module unter articleForm/)
+│   │   ├── PromotionDashboard.tsx, VideoPromotion.tsx (TikTok/Video-Generator)
+│   │   ├── admin/               # AboutAdmin, DestinationsAdmin
+│   │   └── BudgetPage.tsx, Settings.tsx, ServiceWorkerSettings.tsx …
+│   │
+│   ├── hooks/                   # ~45 Custom Hooks
+│   │   ├── useNostr.ts, useNostrPublish.ts, useCurrentUser.ts
+│   │   ├── usePreloadedData.ts  # Hybrid: JSON-Dump + Live-Relay
+│   │   ├── useContent.ts, useLongformArticles.ts, useNotes.ts, useVideos.ts, useTrips.ts
+│   │   ├── useBatchedSocialCounts.tsx  # Social-Counts-Batching
 │   │   └── ...
 │   │
-│   ├── hooks/                   # Custom React Hooks
-│   │   ├── useNostr.ts          # Nostr Connection (re-export)
-│   │   ├── useNostrPublish.ts   # Publish Events
-│   │   ├── useContent.ts        # Load Content (Articles/Notes)
-│   │   ├── useCurrentUser.ts    # Current User State
-│   │   ├── useBudget.ts         # Budget Data
-│   │   └── ...
-│   │
-│   ├── config/                  # Configuration
-│   │   ├── index.ts             # Central exports
-│   │   ├── relays.ts            # Relay Configuration
-│   │   ├── contentCategories.ts # Content Types
-│   │   ├── app.ts               # App Settings
-│   │   ├── nostr.ts             # Nostr Constants
-│   │   └── ...
+│   ├── config/                  # ⭐ ALLE Konfigurationen (AGENTS-Regel 1)
+│   │   ├── authors.json         # Single Source of Truth: Autoren-Stammdaten
+│   │   ├── relays.ts            # Relays, Presets, DEFAULT_APP_CONFIG
+│   │   ├── contentCategories.ts # Content-Typen + Tag-Regeln
+│   │   ├── routes.ts, mainMenu.ts, app.ts, years.ts
+│   │   ├── performance.ts / performance.config.ts
+│   │   ├── ai-models.js         # KI-Modell-Tier (Sync-Kopie in server/config/)
+│   │   ├── api-auth.js          # NIP-98-Route-Prefixe (Server liest mit)
+│   │   └── prompts/             # ⛔ KI-Prompts (TABU; Ausnahme: tiktok.js)
 │   │
 │   ├── lib/                     # Utilities
-│   │   ├── utils.ts             # Helper functions
-│   │   ├── icons.ts             # Icon exports
-│   │   ├── authors.ts           # Author Management
-│   │   ├── imageUtils.ts        # Image Optimization
+│   │   ├── canonicalUrl.ts      # ⭐ Canonical URLs (AGENTS-Regel 2)
+│   │   ├── apiBase.ts           # getApiBaseUrl()/getDataBaseUrl() (Capacitor)
+│   │   ├── apiAuth.ts           # NIP-98-Signierung (authedFetch)
+│   │   ├── icons.ts, imageUtils.ts, gpsExtraction.ts, jsonld.ts
 │   │   └── ...
 │   │
-│   ├── services/                # Business Logic
-│   │   ├── NostrBroadcastService.ts
-│   │   └── ContentManagerService.ts
-│   │
+│   ├── services/                # NostrBroadcastService, ContentManagerService
+│   ├── contexts/                # AppContext, NWCContext
 │   ├── types/                   # TypeScript Types
-│   │   └── budget.ts
-│   │
-│   ├── App.tsx                  # Root Component
-│   ├── AppRouter.tsx            # Routes Definition
-│   └── main.tsx                 # Entry Point
+│   └── App.tsx, AppRouter.tsx, main.tsx
 │
-├── index.html                   # HTML Template
-├── package.json                 # Dependencies
-├── vite.config.ts              # Vite Configuration
-├── tailwind.config.ts          # Tailwind Config
-└── tsconfig.json               # TypeScript Config
+├── server/                      # ⛔ ai-api Backend (nur mit Auftrag ändern)
+│   ├── server.js                # Express, Port 3002 (127.0.0.1)
+│   ├── routes/, services/, middleware/, config/
+│   ├── remotion/                # Render-Engine (render/ core.js …, flows/, components/)
+│   └── data/                    # continuity.db, assistant.db (Deploy-sicher gesichert)
+│
+├── scripts/                     # Cron-Pipeline (VPS): generate-site-data.js,
+│                                # prerender-static.js, generate-sitemap.js,
+│                                # generate-feed.js, prerender-helpers.js …
+├── deploy-main.sh               # VPS-Deploy-Skript
+├── mojobus.co.ssl.conf          # Nginx-Vhost-Vorlage
+└── docs/, MOJOBUS_CONTEXT.md, AGENTS.md
 ```
 
 ---
 
 ## Konfigurationssystem
 
-### Relay-Konfiguration (`src/config/relays.ts`)
+### Autoren (`src/config/authors.json` — Single Source of Truth)
 
-#### Autoren-Konfiguration
-```typescript
-export const AUTHORS = [
-  {
-    id: 'mojo',
-    name: 'Mojo',
-    npub: 'npub1f4vym2mu3q9fsz08muz8d469hl568l5358qx90qlaspyuz67ru0sfxvupf',
-    pubkey: '4d584dab7c880a9809e7df0476d745bfe9a3fe91a1c062bc1fec024e0b5e1f1f',
-    nip05: 'mojo@mojobus.co',
-  },
-  {
-    id: 'susanne',
-    name: 'Susanne',
-    npub: 'npub1jn4arsy5pzqausut0u79x2mnur2dd34szcxnlc9c5407f828002qdls5wz',
-    pubkey: '94ebd1c0940881de438b7f3c532b73e0d4d6c6b0160d3fe0b8a55fe49d477bd4',
-    nip05: 'susanne@mojobus.co',
-  },
-] as const;
+```json
+{
+  "authors": [
+    {
+      "id": "mojo", "name": "Max",
+      "npub": "npub1f4vym2mu3q9fsz08muz8d469hl568l5358qx90qlaspyuz67ru0sfxvupf",
+      "pubkey": "4d584dab7c880a9809e7df0476d745bfe9a3fe91a1c062bc1fec024e0b5e1f1f",
+      "nip05": "mojo@mojobus.co"
+    },
+    {
+      "id": "susanne", "name": "Susanne",
+      "npub": "npub1jn4arsy5pzqausut0u79x2mnur2dd34szcxnlc9c5407f828002qdls5wz",
+      "pubkey": "94ebd1c0940881de438b7f3c532b73e0d4d6c6b0160d3fe0b8a55fe49d477bd4",
+      "nip05": "susanne@mojobus.co"
+    }
+  ]
+}
 ```
 
-#### Relay-Kategorien
-- **fast**: Damus, Strfry (niedrige Latenz)
-- **reliable**: Primal (hohe Verfügbarkeit)
-- **search**: Bitcoiner.social (Suchfunktion)
-- **stable**: MojoBus Private Relay
+`src/config/relays.ts` re-exportiert `AUTHORS` (mit Anzeige-Name „Max" für id
+`mojo`). Alle Cron-Skripte (`scripts/*.js`) lesen **authors.json**; TypeScript-
+Komponenten importieren aus relays.ts. **Niemals** Pubkeys duplizieren.
 
-#### Presets
+### Relay-Konfiguration (`src/config/relays.ts`)
+
+**Relay-Kategorien**: `fast` (Damus, Strfry) · `reliable` (Primal) ·
+`search` (Bitcoiner.social) · `stable` (MojoBus Private, MojoBus Budget) · `nip11`
+
+**Presets** (`RELAY_PRESETS`):
+
 | Preset | Relays | Timeout | Verwendung |
 |--------|--------|---------|------------|
-| mojobus | relay.mojobus.co, primal | 3000ms | Standard Lesen/Schreiben |
-| fast | relay.mojobus.co, primal | 4000ms | Maximale Performance |
-| budget | relay.mojobus.co/private | 10000ms | Haushaltsbuch (NIP-42) |
-| mojo_publish | relay.mojobus.co | 3000ms | Mojo spezifisch |
+| mojobus | relay.mojobus.co + relay.primal.net | 3000ms | Standard Lesen/Schreiben |
+| fast | relay.mojobus.co + relay.primal.net | 4000ms | Performance |
+| balanced | + nos.lol | 5000ms | Zuverlässigkeit |
+| mojo_publish / susanne_publish | relay.mojobus.co | 3000ms | Autor-Publish |
+| mojo_blossom / susanne_blossom | relay.mojobus.co (Blossom) | — | Datei-Uploads |
+| budget | relay.mojobus.co/private | 10000ms | Haushaltsbuch (NIP-42 AUTH) |
 
-#### READ vs WRITE Konfiguration
+**DEFAULT_APP_CONFIG** (Read/Write getrennt):
+
 ```typescript
 export const DEFAULT_APP_CONFIG = {
-  read: {
-    relayUrls: ['wss://relay.mojobus.co', 'wss://relay.primal.net'],
-    maxRelays: 2,
-    queryTimeout: 3000,
-  },
-  write: {
-    relayUrls: ['wss://relay.mojobus.co'],
-    maxRelays: 1,
-    activeRelay: 'wss://relay.mojobus.co',
-  },
+  read:  { relayUrls: ['wss://relay.mojobus.co', 'wss://relay.primal.net'],
+           maxRelays: 2, queryTimeout: 3000 },
+  write: { relayUrls: ['wss://relay.mojobus.co', 'wss://relay.primal.net'],
+           maxRelays: 2, activeRelay: 'wss://relay.mojobus.co' },
   enableDeduplication: true,
 };
 ```
@@ -231,27 +241,39 @@ export const DEFAULT_APP_CONFIG = {
 
 ## Nostr-Integration
 
-### Event Kinds
+### Event Kinds (im Projekt aktiv)
 
 | Kind | Name | Verwendung |
 |------|------|------------|
 | 0 | Metadata | Profil-Daten (Name, Bild, NIP-05) |
-| 1 | Short Text Note | Kurze Notizen |
-| 30023 | Long-form Content | Artikel (NIP-23) |
-| 30000 | Replaceable | Aktualisierbare Events |
-| 30001 | Parameterized | Kategorisierte Events |
+| 1 | Short Text Note | Notizen, Media-Posts (Bilder), Teaser-Notes |
 | 1111 | Comment | Kommentare (NIP-22) |
+| 27235 | HTTP Auth | NIP-98-Auth für ai-api-Routen (KI/Render/Assistent) |
+| 30023 | Long-form Content | Artikel **und** Places (`type=place`), NIP-23 |
+| 30025 | Trip | GPS-Tracks (kind-Adressable, `encodeTripNaddr()`) |
+| 30078 | App Data (NIP-78) | About-Seite, Reiseziel-Struktur (`d=co.mojobus.app.destinations`), Contentplan-Historie |
+| 34235 / 34236 | Video (NIP-71) | Video-Events (`/videos`) |
+| 39041 | Budget-Eintrag | Haushaltsbuch (addressable, d-Tag `budget…`) |
+| 9042 / 9043 | Budget-Kategorie/Settings | Haushaltsbuch (replaceable) |
+| 39044 | AFA-Eintrag | Haushaltsbuch (addressable) |
+| 9041 / 9044 | Legacy | Alte reguläre Budget-Events (nur Migration) |
 
-### Nostr-Provider Hierarchy
+### Nostr-Provider Hierarchy (`src/App.tsx`)
 
 ```tsx
-<UnheadProvider head={head}>        {/* SEO/Meta Tags */}
-  <AppProvider>                      {/* App Config Context */}
+<UnheadProvider head={head}>        {/* SEO/Meta (with InferSeoMetaPlugin) */}
+  <AppProvider>                     {/* App Config Context */}
     <QueryClientProvider>           {/* React Query */}
-      <NostrLoginProvider>           {/* Login State */}
-        <NostrProvider>              {/* Nostr Connection */}
-          <NWCProvider>              {/* Lightning Wallet */}
-            <AppRouter />            {/* Routes */}
+      <NostrLoginProvider>          {/* Login State */}
+        <NostrProvider>             {/* Nostr Connection */}
+          <NWCProvider>             {/* Lightning Wallet */}
+            <TooltipProvider>
+              <ApiAuthBridge />     {/* NIP-98: meldet Signer an authedFetch an */}
+              <Toaster />
+              <ServiceWorkerStatus />
+              <ServiceWorkerUpdateToast />
+              <AppRouter />
+            </TooltipProvider>
           </NWCProvider>
         </NostrProvider>
       </NostrLoginProvider>
@@ -267,28 +289,27 @@ Veröffentlicht signierte Events zu Relays:
 
 ```typescript
 const publish = useNostrPublish();
-
-const handlePublish = async () => {
-  await publish.mutateAsync({
-    kind: 30023,           // Long-form article
-    content: markdownContent,
-    tags: [
-      ['d', 'article-id'],  // Required for kind 30023
-      ['title', 'My Article'],
-      ['t', 'artikel'],     // Content category
-      ['t', 'mojobus'],     // Always included
-    ],
-  });
-};
+await publish.mutateAsync({
+  kind: 30023,
+  content: markdownContent,
+  tags: [
+    ['d', 'article-id'],
+    ['title', 'My Article'],
+    ['type', 'article'],
+    ['t', 'artikel'],
+    ['t', 'mojobus'],     // immer enthalten
+  ],
+});
 ```
 
-#### useContent
-Lädt Content von Nostr mit Caching:
+Tag-Aufbau zentral in `createRequiredTags()` (`src/config/contentCategories.ts`);
+Publish-Flow im Berichte-Formular: `src/pages/publish/articleForm/useArticlePublish.ts`.
 
-```typescript
-const { data, fetchNextPage, hasNextPage } = useContent();
-// Returns: { notes: NostrEvent[], articles: NostrEvent[], allEvents: NostrEvent[] }
-```
+#### Query-Timeouts (AGENTS_NOSTR_REF.md)
+
+Queries immer mit Timeout:
+`AbortSignal.any([c.signal, AbortSignal.timeout(1500)])` — Werte je Hook
+(3 s im mojobus-Preset, 10 s für Budget/AUTH).
 
 ---
 
@@ -298,97 +319,38 @@ const { data, fetchNextPage, hasNextPage } = useContent();
 
 ```typescript
 export const CONTENT_CATEGORIES = {
-  notes: {           // Kurze Notizen
-    kind: 1,
-    requiredTags: ['notes', 'mojobus'],
-  },
-  articles: {        // Ausführliche Artikel
-    kind: 30023,
-    requiredTags: ['artikel', 'mojobus'],
-  },
-  places: {          // Campingplätze/Orte
-    kind: 30023,
-    requiredTags: ['location', 'places', 'mojobus'],
-    type: 'place',   // type=place für Orte
-  },
-  rvlife: {          // RV Life Guides
-    kind: 30023,
-    requiredTags: ['rvlife', 'artikel', 'mojobus'],
-  },
-  leon: {            // Hundegeschichten
-    kind: 30023,
-    requiredTags: ['leon', 'hund', 'dog', 'mojobus'],
-  },
-  media: {           // Bilder/Videos
-    kind: 1,
-    requiredTags: ['bilder', 'images', 'mojobus'],
-  },
+  notes:    { kind: 1,     tags: { required: ['notes', 'note', 'mojobus'], … } },
+  places:   { kind: 30023, tags: { required: ['location', 'places', 'mojobus'], … } },  // type=place
+  articles: { kind: 30023, tags: { required: ['artikel', 'mojobus'], … } },               // type=article
+  // Weitere Kategorien/Gruppen: src/config/tags.ts (TAG_GROUPS),
+  // rvlife.ts, strandort.ts, diy.ts, leon.ts, countries.ts
 };
 ```
 
 ### Tag-Validierung
 
-Jeder Content-Typ wird durch Tags validiert:
+Artikel: `d`-Tag + `title` + (`type=article` **oder** `t=artikel`).
+Places: `type=place`. Media: kind 1 mit Bild-URLs (`t=media`/`bilder`).
+Prerender-/Pipeline-Skripte filtern kind:1-Fremd-Content zusätzlich über
+`isMojobusKind1()` (`scripts/prerender-helpers.js`) — AGENTS-Regel 15.
 
-```typescript
-function validateLongformArticle(event: NostrEvent): boolean {
-  // Required: d-tag (identifier)
-  const d = event.tags.find(([name]) => name === 'd')?.[1];
-  if (!d) return false;
+### Veröffentlichen (`/veroeffentlichen` — 5 Tabs)
 
-  // Required: title-tag
-  const title = event.tags.find(([name]) => name === 'title')?.[1];
-  if (!title) return false;
+1. **Bilder/Media** (kind 1) — Bild-Upload, EXIF/GPS, Reiseziel-Zuordnung
+2. **Trips** (kind 30025) — GPS-Track, `TripPublishForm.tsx`
+3. **Berichte** (kind 30023) — Milkdown-Editor, KI-Generierung, SEO-Panel, Entwürfe
+4. **Plätze** (kind 30023 + `type=place`) — GPS, Rating, Facilities
+5. **Note** (kind 1) — kurze Texte
 
-  // Required: type=article OR #t artikel
-  const typeTag = event.tags.find(([name]) => name === 'type')?.[1];
-  const articleTag = event.tags.some(([name, value]) => 
-    name === 't' && value === 'artikel'
-  );
-
-  return typeTag === 'article' || articleTag;
-}
-```
-
-### Veröffentlichen-Formular (`src/pages/Publish.tsx`)
-
-Das Publish-Formular unterstützt mehrere Tabs:
-1. **Notizen** (Kind 1) - Kurze Texte
-2. **Artikel** (Kind 30023) - Markdown-Artikel mit Milkdown Editor
-3. **Plätze** (Kind 30023 + type=place) - Mit GPS-Koordinaten
-4. **Bilder** (Kind 1) - Mit Bild-Upload
-
-#### Tag-Generierung
-```typescript
-// Immer enthaltene Tags (für alle Content-Typen):
-const baseTags = [['t', 'mojobus']];
-
-// Artikel-spezifisch:
-const articleTags = [
-  ['d', identifier],           // Eindeutige ID
-  ['title', title],               // Titel
-  ['type', 'article'],           // Artikel-Typ
-  ['t', 'artikel'],              // Kategorie
-  ['published_at', timestamp],   // Veröffentlichungsdatum
-];
-
-// Platz-spezifisch:
-const placeTags = [
-  ['d', 'place-location-name'],
-  ['title', title],
-  ['type', 'place'],             // Unterscheidet Platz von Artikel
-  ['t', 'location'],
-  ['t', 'places'],
-  ['g', geohash],              // Geo-Hash für Suche
-  ['location', lat, lng],      // GPS Koordinaten
-];
-```
+Canonical URLs (AGENTS-Regel 2): Artikel/Orte `https://mojobus.co/{naddr}` ·
+Trips `/trip/{naddr}` · Media `/bild/{note}` · Profile `/{npub}`
+(`src/lib/canonicalUrl.ts`).
 
 ---
 
 ## Hooks und State Management
 
-### React Query Konfiguration
+### React Query Konfiguration (`src/App.tsx` + `src/config/performance.ts`)
 
 ```typescript
 const queryClient = new QueryClient({
@@ -396,10 +358,10 @@ const queryClient = new QueryClient({
     queries: {
       refetchOnWindowFocus: false,
       refetchOnMount: false,
-      staleTime: 24 * 60 * 60 * 1000,     // 24 Stunden
-      gcTime: 3 * 24 * 60 * 60 * 1000,    // 3 Tage
-      retry: 3,
-      retryDelay: (attempt) => Math.min(1000 * (2 ** attempt), 10000),
+      staleTime: DEFAULT_PERFORMANCE_CONFIG.cache.staleTime,  // 10 Minuten
+      gcTime: DEFAULT_PERFORMANCE_CONFIG.cache.gcTime,        // 1 Stunde
+      retry: DEFAULT_PERFORMANCE_CONFIG.relay.retry.attempts, // 1
+      retryDelay: exponential backoff (500ms → max 3s),
     },
   },
 });
@@ -407,308 +369,131 @@ const queryClient = new QueryClient({
 
 ### Wichtige Hooks
 
-#### useContent
-Lädt kombinierte Content-Typen (Notes + Articles) in einem Query:
-
-```typescript
-export function useContent() {
-  return useInfiniteQuery({
-    queryKey: ['content-combined', authorPubkeys],
-    queryFn: async ({ pageParam }) => {
-      const filter = {
-        kinds: [1, 30023],              // Notes + Articles
-        authors: authorPubkeys,          // Nur Mojo/Susanne
-        limit: 50,
-        until: pageParam,               // Pagination
-      };
-      
-      const events = await nostr.query([filter]);
-      
-      // Trenne und validiere Events
-      const notes = events.filter(e => e.kind === 1 && isNoteEvent(e));
-      const articles = events.filter(e => e.kind === 30023 && validateLongformArticle(e));
-      
-      return { notes, articles, allEvents: [...notes, ...articles] };
-    },
-    getNextPageParam: (lastPage) => {
-      // Timestamp-basierte Pagination
-      const lastEvent = lastPage.allEvents[lastPage.allEvents.length - 1];
-      return lastEvent ? lastEvent.created_at - 1 : undefined;
-    },
-  });
-}
-```
-
-#### useNostr
-Re-export aus @nostrify/react:
-
-```typescript
-export { useNostr } from "@nostrify/react";
-// Verwendung:
-const { nostr, relay } = useNostr();
-// nostr.query() - Events laden
-// nostr.event() - Events veröffentlichen
-```
-
-#### useCurrentUser
-Verwaltet eingeloggten User:
-
-```typescript
-export function useCurrentUser() {
-  // Verwendet NostrLoginProvider context
-  const user = /* ... */;
-  
-  return {
-    user,           // { npub, pubkey, signer, ... }
-    isLoggedIn: !!user,
-    logout: () => { /* ... */ },
-  };
-}
-```
-
-#### useBudget
-Haushaltsbuch-Hook:
-
-```typescript
-export function useBudget() {
-  const { data, isLoading } = useQuery({
-    queryKey: ['budget-entries'],
-    queryFn: async () => {
-      // Lädt von privatem Relay mit AUTH
-      const events = await nostr.query([{ 
-        kinds: [30000], 
-        authors: [pubkey],
-        '#d': ['budget'],
-      }]);
-      return events.map(parseBudgetEntry);
-    },
-  });
-  
-  return { entries: data, isLoading };
-}
-```
+| Hook | Zweck |
+|------|-------|
+| `usePreloadedData` | Hybrid: JSON-Dump sofort rendern + Live-Relay progressiv |
+| `useContent` | Kombinierte kind 1+30023-Query (Feeds) |
+| `useLongformArticles` / `useNotes` / `useVideos` / `useTrips` | Typ-Feeds |
+| `useBatchedSocialCounts` | Alle Like/Repost/Kommentar-Counts im Batch (1–2 Queries statt 50–500 Subscriptions) |
+| `useCurrentUser` / `useNostrPublish` / `useNostr` | Basis (siehe AGENTS_NOSTR_REF.md) |
+| `useBudget` | Haushaltsbuch (privates Relay, NIP-42 AUTH, 5 s Timeout) |
+| `useUploadFile` | Blossom-Upload |
 
 ---
 
 ## Routing
 
-### Route-Definitionen (`src/AppRouter.tsx`)
+### Route-Definitionen (`src/AppRouter.tsx` + `src/config/routes.ts`)
+
+Öffentliche Seiten sind in `PUBLIC_ROUTE_DEFINITIONS` gesammelt und werden
+zweimal gemappt (ohne und **mit `/en/`-Präfix**); Admin-/Auth-Seiten separat:
 
 ```typescript
-<Routes>
-  {/* Home */}
-  <Route path="/" element={<Home />} />
-  
-  {/* Content Pages */}
-  <Route path="/artikel" element={<Articles />} />
-  <Route path="/artikel/:country" element={<Articles />} />
-  <Route path="/artikel/diy" element={<DIY />} />
-  <Route path="/artikel/diy/:category" element={<DIY />} />
-  <Route path="/artikel/leon" element={<Leon />} />
-  <Route path="/artikel/rvlife" element={<RVLife />} />
-  <Route path="/artikel/rvlife/:category" element={<RVLife />} />
-  
-  {/* Places */}
-  <Route path="/plaetze" element={<Places />} />
-  <Route path="/plaetze/:country" element={<Places />} />
-  
-  {/* Map & Trips */}
-  <Route path="/map" element={<MapPage />} />
-  <Route path="/map/trips" element={<TripsPage />} />
-  <Route path="/trip/:naddr" element={<TripDetail />} />
-  
-  {/* Media */}
-  <Route path="/bilder" element={<Images />} />
-  <Route path="/bilder/:country" element={<Images />} />
-  <Route path="/bilder/natur/:category" element={<Images />} />
-  <Route path="/bild/:nip19" element={<ImageDetail />} />
-  
-  {/* Other */}
-  <Route path="/notes" element={<Notes />} />
-  <Route path="/notes/:country" element={<Notes />} />
-  <Route path="/notes/:geohash" element={<Notes />} />
-  
-  {/* Publishing */}
-  <Route path="/veroeffentlichen" element={<Publish />} />
-  
-  {/* User */}
-  <Route path="/profile" element={<Profile />} />
-  <Route path="/settings" element={<Settings />} />
-  <Route path="/budget" element={<BudgetPage />} />
-  
-  {/* NIP-19 Resolver */}
-  <Route path="/:nip19" element={<NIP19Page />} />
-  
-  {/* Catch-all */}
-  <Route path="*" element={<NotFound />} />
-</Routes>
+// Öffentlich (je auch unter /en/…):
+"/", "/artikel", "/artikel/:country",
+"/artikel/jahre", "/artikel/jahr/:year",
+"/artikel/diy[/:category]", "/artikel/leon[/:category]",
+"/artikel/rvlife[/:category]", "/artikel/strand-ort[/:category]",
+"/plaetze[/:country]", "/map", "/map/trips", "/trip/:naddr",
+"/bilder[/:country]", "/bilder/natur/:category", "/bild/:nip19",
+"/notes[/:country]", "/artikel/notes[/:country]",
+"/videos", "/video/:naddr", "/reiseziele", "/about",
+"/:nip19"
+
+// Auth/Admin (KEIN /en/-Zugriff):
+"/admin/about", "/admin/destinations", "/profile", "/settings",
+"/settings/service-worker", "/settings/nostr-handler", "/budget",
+"/veroeffentlichen", "/promotion", "/promotion/tiktok"
+
+// Catch-all:
+"*" → NotFound
 ```
 
 ### NIP-19 Deep Linking
 
-Die `NIP19Page` dekodiert NIP-19 IDs (npub, note, nprofile, nevent, naddr) und leitet weiter:
-
-```typescript
-// /note1xxx → zeigt Notiz an
-// /npub1xxx → zeigt Profil an  
-// /naddr1xxx → zeigt Artikel an (long-form)
-```
+Die `/:nip19`-Route (`NIP19Page`) fängt `/naddr1…`, `/note1…`, `/npub1…` ab
+und leitet auf die passende Ansicht weiter (Canonical je Typ: AGENTS-Regel 2).
 
 ---
 
 ## Performance-Optimierungen
 
+Details/Historie: `docs/PERFORMANCE_OPTIMIZATIONS.md`, `docs/VENDOR_CHUNK_OPTIMIZATION.md`.
+
 ### 1. Lazy Loading
+Alle Pages werden per `React.lazy()` geladen; Home ist bewusst eager (LCP).
 
-Alle Pages werden lazy-loaded:
+### 2. Hybrid-Daten laden
+`usePreloadedData`: JSON-Dump aus `/data/` (Cron, alle 3 h) rendert sofort,
+Live-Relay lädt progressiv nach (2 s Fast-Timeout, dann voll —
+`FIRST_PAINT_CONFIG` in `src/config/performance.ts`).
 
-```typescript
-const Home = lazy(() => import("./pages/Home").then(m => ({ default: m.Home })));
-const Articles = lazy(() => import("./pages/Articles").then(m => ({ default: m.default })));
-// ... etc
-```
+### 3. Social-Counts-Batching
+Feed-Seiten laden alle Counts in 1–2 Relay-Queries (`useBatchedSocialCounts`) —
+vorher 50–500 Subscriptions pro Seitenaufruf.
 
-### 2. Query-Kombination (74% Reduktion)
+### 4. Vendor-Chunks (`vite.config.ts` — aktueller Stand)
 
-VORHER (ineffizient):
-```typescript
-// Separate Queries = mehrere Requests
-const { data: notes } = useNotes();
-const { data: articles } = useLongformArticles();
-const { data: places } = usePlaces();
-// 230 Events geladen, obwohl nur 6 angezeigt werden
-```
+| Chunk | Inhalt |
+|-------|--------|
+| `react-vendor` | react, react-dom, scheduler |
+| `milkdown-vendor` | Milkdown + ProseMirror (nur Editor) |
+| `nostr-vendor` | nostr-tools, @nostrify, @noble, @scure |
+| `react-query-vendor` | @tanstack/react-query |
+| `router-vendor` | react-router(-dom) |
+| `qrcode-vendor` | qrcode (nur Zap-Dialog) |
+| `map-vendor` | leaflet, react-leaflet (nur `/map`) |
 
-NACHHER (kombiniert):
-```typescript
-// EINE Query für alles
-const { data } = useContent();
-// ~60 Events (15 Artikel + 15 Plätze + 15 Notes + 15 Bilder)
-```
+Radix UI wird **nicht** mehr in einem manuellen Chunk gebündelt (Rollup
+splittet automatisch pro Route). `@getalby/sdk`/`webln` werden lazy geladen.
+Alle Assets haben Hash-Dateinamen → 1 Jahr immutable cachebar.
 
-### 3. Limit-Optimierung (Home-Seite)
+### 5. Service Worker (`public/sw.js`)
+Cache-First für Assets/Bilder (1 Jahr), stale-while-revalidate für `/data/`-Dumps,
+Cache-First für `/prerender/`-Bot-HTML, Network-Only für Nostr-WebSockets.
+Update-Toast statt Auto-Reload (`ServiceWorkerUpdateToast.tsx`). **Die Version
+wird bei jedem Deploy automatisch erhöht** (`bump_sw_version()` in deploy-main.sh).
 
-```typescript
-// Home.tsx
-const { data: articles } = useLongformArticles({
-  limit: 15,    // Statt 50
-});
-const { data: places } = usePlaces({
-  limit: 15,    // Statt 50
-});
-const { data: notes } = useNotes({
-  limit: 15,    // Statt 20
-});
-```
-
-### 4. Cache-Strategie
-
-```typescript
-// React Query Caching
-staleTime: 24 * 60 * 60 * 1000,   // 24 Stunden
-geTime: 3 * 24 * 60 * 60 * 1000,  // 3 Tage
-
-// Service Worker für offline Assets
-```
-
-### 5. Bilder-Optimierung
-
-```typescript
-// Automatische Format-Konvertierung
-const getOptimizedImageUrl = (url: string) => {
-  // Konvertiert zu WebP
-  // Erzeugt srcset für verschiedene Größen
-  return optimizedUrl;
-};
-```
-
-### 6. Bundle-Optimierung
-
-```typescript
-// vite.config.ts
-build: {
-  rollupOptions: {
-    output: {
-      manualChunks: {
-        // Vendor in separate Chunks
-        'react-vendor': ['react', 'react-dom'],
-        'nostr-vendor': ['@nostrify/react', '@nostrify/nostrify'],
-        'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-tabs'],
-      },
-    },
-  },
-}
-```
+### 6. Prerender (SEO)
+`scripts/prerender-static.js` generiert pro Event eine statische HTML-Datei
+(NIP-19-Dateiname) inkl. Meta-Tags + JSON-LD; Nginx liefert sie Bots unter
+Status 200. Sitemap/RSS ebenfalls aus dem Cron.
 
 ---
 
 ## Deployment
 
-### Deployment-Skripte
+**Standard:** eigener VPS (CentminMod, AlmaLinux 9.8). Vollständige Anleitung:
+`docs/CONTEXT_DEPLOY.md` + `docs/VPS_DEPLOY_GUIDE.md`.
 
-#### deploy-main.sh (VPS Deployment)
 ```bash
-#!/bin/bash
-# Build
-npm run build
-
-# Sync zu VPS (rsync)
-rsync -avz --delete dist/ user@vps:/var/www/mojobus/
-
-# nginx reload
-ssh user@vps "sudo systemctl reload nginx"
+ssh root@server
+cd /root/deploy-git/mojobusco
+bash deploy-main.sh --force
+systemctl restart ai-api   # nur bei server/-Änderungen
 ```
 
-#### deploy-test.sh (Test-Environment)
-```bash
-#!/bin/bash
-# Build mit Test-Konfiguration
-NODE_ENV=test npm run build
+| Komponente | Pfad auf dem VPS |
+|------------|------------------|
+| Webroot | `/home/nginx/domains/mojobus.co/public` |
+| Nginx-Vhost | `/usr/local/nginx/conf/conf.d/mojobus.co.ssl.conf` |
+| Backend | systemd `ai-api`, Port 3002 (127.0.0.1), WorkingDirectory `…/public/server` |
+| Backend-Env | `/etc/systemd/system/ai-api.env` (EnvironmentFile) |
+| Cron-Pipeline | site-data → prerender → sitemap → feed (alle 3 h via node.sh) |
 
-# Deploy zu Test-Server
-rsync -avz dist/ user@test-server:/var/www/test-mojobus/
-```
+`deploy-main.sh` sichert persistente Daten (`server/data/`, `images/articles/`),
+kopiert `src/config/api-auth.js` + `authors.json` extra für den Server und
+erhöht die SW-Version automatisch.
 
-### VPS Konfiguration (nginx)
-
-```nginx
-# /etc/nginx/conf.d/mojobus.conf
-server {
-    listen 443 ssl http2;
-    server_name mojobus.co www.mojobus.co;
-    
-    root /var/www/mojobus;
-    index index.html;
-    
-    # Security Headers
-    add_header X-Frame-Options "SAMEORIGIN";
-    add_header X-Content-Type-Options "nosniff";
-    
-    # Cache static assets
-    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-    
-    # SPA routing
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-    
-    # gzip compression
-    gzip on;
-    gzip_types text/plain text/css application/json application/javascript;
-}
-```
+Die Dateien `netlify.toml`, `vercel.json`, `deno.json` sind **inaktive
+Fallback-Configs** (siehe `docs/DEPLOYMENT.md`).
 
 ### Environment-Variablen
 
-```
-# .env.production
-VITE_NOSTR_RELAY_URL=wss://relay.mojobus.co
-VITE_BLOSSOM_SERVER=https://relay.mojobus.co
-VITE_APP_URL=https://mojobus.co
-```
+- **Build-seitig (Frontend)**: `.env.production` (git-ignored, nur auf dem
+  VPS-Checkout) — z. B. `VITE_USE_REAL_MAP=true`. VITE_*-Variablen landen im Bundle.
+- **Backend**: ausschließlich `/etc/systemd/system/ai-api.env` (KI-Keys,
+  `AI_AUTH_REQUIRED=1`, GSC/DFS, `MEDIA_DIR`, `FFMPEG_PATH`, …).
 
 ---
 
@@ -717,149 +502,79 @@ VITE_APP_URL=https://mojobus.co
 ### Scripts (package.json)
 
 ```bash
-# Entwicklung
-npm run dev              # Startet Vite Dev Server
-
-# Build
-npm run build            # Produktions-Build mit intelligentem Caching
-npm run build:force      # Force Rebuild (Cache ignorieren)
-npm run build:optimize   # Mit zusätzlichen Optimierungen
-
-# Analyse
-npm run analyze          # Bundle-Analyse
-
-# Test
-npm run test             # Build + Tests
-
-# Deploy
-npm run deploy           # Build + nostr-deploy-cli
-```
-
-### Build-Intelligenz (build-intelligent.js)
-
-Der Build-Trackt Änderungen über `.build-cache.json`:
-
-```typescript
-// Pseudocode:
-if (sourceFilesUnchanged && dependenciesUnchanged) {
-  console.log('✅ No changes detected, skipping build');
-  process.exit(0);
-} else {
-  // Führe Vite Build aus
-  await $`vite build`;
-  
-  // Speichere Cache-Hash
-  saveBuildCache();
-}
+npm run dev           # Vite Dev Server (Port 8080)
+npm run check         # tsc --noEmit (Typ-Check)
+npm run build         # check + intelligenter Build (build-intelligent.js)
+npm run build:force   # Build ohne Cache
+npm run analyze       # Bundle-Analyse
+npm run audit         # npm audit (Frontend + server/)
+npm run test          # Build + Vitest (nur auf explizite Anforderung, AGENTS-Regel 7)
+npm run apk           # Capacitor Android-APK bauen
+npm run deploy        # nsite-Deploy (nostr-deploy-cli) — NICHT der VPS-Weg
 ```
 
 ### Git-Workflow
 
 ```bash
-# Änderungen stagen
-npm run build        # Test-Build
-npm run test         # Tests ausführen
+# AGENTS-Regel 8+9: build_project grün, dann committen
+git add . && git commit -m "feat: …" && git push origin main
 
-git add .
-git commit -m "feat: neue Funktion"
-git push origin main
-
-# Deployment
-npm run deploy
-# Oder: ./deploy-main.sh
+# Deployment siehe oben (VPS).
 ```
 
 ---
 
 ## Troubleshooting
 
-### Häufige Probleme
-
-#### 1. Build schlägt fehl - "Cannot find module"
+### 1. Build schlägt fehl — "Cannot find module"
 ```bash
-# Lösche node_modules und cache
 rm -rf node_modules dist .build-cache.json .assets-cache.json
-npm install
+npm install   # bei JSR-Fehlern: .npmrc beachten (@jsr-Registry, allow-remote)
 npm run build
 ```
+Details: `docs/CONTEXT_DEPLOY.md` → „.npmrc – JSR-Scope".
 
-#### 2. Events werden nicht geladen
-- Prüfe Relay-Verbindung in Settings
-- Prüfe Browser Console für CORS-Fehler
-- Stelle sicher, dass Relays online sind
+### 2. Events werden nicht geladen
+- Relay-Status prüfen (Relay-Selector); relay.mojobus.co erreichbar?
+- Browser Console auf WebSocket/CORS-Fehler prüfen
+- `isMojobusKind1`-Filter: eigene Posts brauchen die MojoBus-Tags
 
-#### 3. Bilder-Upload funktioniert nicht
-- Stelle sicher, dass Blossom-Server erreichbar ist
-- Prüfe Dateigrößen-Limit (default: 10MB)
-- Prüfe Bild-Format (JPEG, PNG, WebP)
+### 3. Bilder-Upload funktioniert nicht
+- Blossom-Server erreichbar? (`src/config/blossom.ts`)
+- Dateigröße (Multer-Limit 20 MB/Datei auf ai-api)
+- Autoren-Login nötig (NIP-98 für geschützte Routen)
 
-#### 4. Service Worker nicht aktualisiert
+### 4. Service Worker nicht aktualisiert
 ```javascript
-// In Browser Console:
-navigator.serviceWorker.getRegistrations().then(registrations => {
-  for (let registration of registrations) {
-    registration.unregister();
-  }
-});
-// Dann Seite neu laden
+navigator.serviceWorker.getRegistrations().then(rs =>
+  rs.forEach(r => r.unregister()));
+// Seite neu laden
 ```
 
 ---
 
-## API-Referenz
+## API-Referenz (Auszug)
 
 ### Nostrify Methoden
 
 ```typescript
-// Query Events
+// Query Events (immer mit Timeout!)
 const events = await nostr.query([
   { kinds: [1, 30023], authors: [pubkey], limit: 50 }
-], { signal: AbortSignal.timeout(5000) });
+], { signal: AbortSignal.any([c.signal, AbortSignal.timeout(3000)]) });
 
 // Publish Event
 await nostr.event(signedEvent, { signal: AbortSignal.timeout(15000) });
-
-// Subscribe (Realtime)
-const sub = nostr.subscribe([
-  { kinds: [1], authors: [pubkey] }
-], {
-  onEvent: (event) => console.log('New event:', event),
-});
-sub.close(); // Unsubscribe
 ```
 
-### React Query Pattern
+### ai-api (Port 3002 — Auszug, Details in CONTEXT_DEPLOY/CONTEXT_TIKTOK)
 
-```typescript
-// Query mit Polling
-const { data, isLoading, error, refetch } = useQuery({
-  queryKey: ['events', kind],
-  queryFn: fetchEvents,
-  refetchInterval: 60000, // Polling alle 60s
-});
+KI-/Render-/Assistent-Routen sind **NIP-98-geschützt** (`AI_AUTH_REQUIRED=1`,
+Allowlist = authors.json). Öffentlich: `/api/health` (Token-geschützt),
+`/api/prerender-resolve`, `/api/music/*`, Download/Thumbnail-Capability-URLs.
 
-// Infinite Query (Pagination)
-const { data, fetchNextPage, hasNextPage } = useInfiniteQuery({
-  queryKey: ['content'],
-  queryFn: fetchContent,
-  getNextPageParam: (lastPage) => lastPage.nextCursor,
-});
-
-// Mutation mit Optimistic Update
-const mutation = useMutation({
-  mutationFn: publishEvent,
-  onMutate: async (newEvent) => {
-    // Optimistisch zu Cache hinzufügen
-    await queryClient.cancelQueries({ queryKey: ['events'] });
-    const previous = queryClient.getQueryData(['events']);
-    queryClient.setQueryData(['events'], (old) => [...old, newEvent]);
-    return { previous };
-  },
-  onError: (err, newEvent, context) => {
-    // Rollback bei Fehler
-    queryClient.setQueryData(['events'], context.previous);
-  },
-});
+```bash
+curl https://mojobus.co/api/generate-note -X POST   # → 401 ohne Autoren-Signatur
 ```
 
 ---
@@ -869,29 +584,26 @@ const mutation = useMutation({
 | Begriff | Bedeutung |
 |---------|-----------|
 | **Nostr** | Notes and Other Stuff Transmitted by Relays - Dezentrales Protokoll |
-| **npub** | Öffentlicher Schlüssel in Bech32-Format |
-| **nsec** | Privater Schlüssel (geheim) |
-| **nip19** | NIP-19 Kodierung für Nostr-Entitäten |
-| **Relay** | Nostr-Server der Events speichert und weiterleitet |
-| **Blossom** | Nostr-kompatibler Datei-Hosting-Service |
+| **npub/nsec** | Öffentlicher/privater Schlüssel (Bech32, NIP-19) |
+| **naddr** | Addressable-Event-Referenz (kind + pubkey + d-Tag) |
+| **Relay** | Nostr-Server (hier: eigener Haven `relay.mojobus.co`) |
+| **Blossom** | Nostr-kompatibler Datei-Hosting-Service (Uploads) |
 | **NWC** | Nostr Wallet Connect - Lightning-Verbindung |
-| **Event** | Daten-Einheit in Nostr (Kind, Content, Tags, Signatur) |
-| **DVM** | Data Vending Machine - Nostr Dienst-Anbieter |
+| **NIP-98** | HTTP-Auth via signiertem Nostr-Event (kind 27235) |
+| **ai-api** | Express-Backend auf dem VPS (Port 3002, systemd) |
+| **Prerender** | Statische Bot-HTML-Seiten aus dem 3-h-Cron |
 | **Geohash** | Geografische Koordinaten-Kodierung |
 
 ---
 
 ## Zusammenfassung
 
-MojoBus ist eine vollständig dezentrale Blog-Plattform, die Nostr als Backend nutzt. Die Architektur ist modern (React 18, Vite, TypeScript) und optimiert für Performance durch:
-
-1. **Kombinierte Queries** - 74% weniger Requests
-2. **Aggressives Caching** - 24h staleTime, 3 Tage gcTime
-3. **Lazy Loading** - Code-Splitting auf Route-Ebene
-4. **Service Worker** - Offline-Fähigkeit
-
-Die Content-Verwaltung erfolgt über ein zentrales Kategorien-System, das verschiedene Content-Typen (Artikel, Notizen, Plätze, Bilder) über Nostr-Event-Tags unterscheidet. Alle Daten werden auf privaten Relays gespeichert, das Haushaltsbuch nutzt zusätzlich NIP-42 AUTH für Zugriffsschutz.
+MojoBus ist eine vollständig dezentrale Vanlife-Plattform auf Nostr-Basis mit
+eigenem Backend (ai-api) für KI/Rendering/Prerender. Moderne Architektur
+(React 19, Vite 6, TypeScript) optimiert für Performance durch Hybrid-Daten
+(Dump + Relay), Batching, Lazy Loading und aggressive Caching-Strategien —
+plus PWA/APK-Unterstützung für unterwegs.
 
 ---
 
-*Dokumentation erstellt für MojoBus v1.0*
+*Dokumentation aktualisiert für MojoBus (Stand 2026-09-28)*
