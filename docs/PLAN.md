@@ -1,5 +1,11 @@
 # PLAN.md — Refactor: ArticleForm.tsx in 8 Module aufteilen
 
+> **Status: ✅ ABGESCHLOSSEN** — Alle 8 Schritte umgesetzt (Checkliste unten,
+> Commits `9f439ed`…`7435a1d`). Ergebnis: ArticleForm.tsx **2259 → 1264 Zeilen**,
+> 8 Module unter `src/pages/publish/articleForm/`, alle < 500 Zeilen.
+> Dieses Dokument ist jetzt **Historie** — der aktuelle Code
+> (`src/pages/publish/articleForm/`) ist die Referenz.
+
 > **Ziel:** `src/pages/publish/ArticleForm.tsx` (aktuell **2259 Zeilen**, 58 useState)
 > in 8 kleinere, wartbare Module aufteilen. Zielgröße je Modul < 500 Zeilen
 > (AGENTS.md Regel 11); ArticleForm.tsx bleibt als Orchestrator zurück.

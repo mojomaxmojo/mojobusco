@@ -113,16 +113,20 @@ Handpflege der naddrs.
 
 ## Abnahme-Checkliste
 
-- [ ] Account-Menü: „🗺️ Reiseziele verwalten“ → Editor lädt Event/JSON-Fallback
-- [ ] naddr-Paste: URL → validiertes Feld; ungültig → roter Hinweis, kein Save
-- [ ] Speichern erzeugt kind 30078 mit korrektem d-tag (in einem Nostr-Client prüfbar)
-- [ ] Pillar-Publish mit Checkbox → Event trägt `t=hub` + `plan=<id>`
-- [ ] generate-site-data-Lauf: Log zeigt hubs + Merge; destinations.json
+> ✅ **Abgenommen** — Umsetzung 2026-09-13 (Commits u. a. `01f2582`, WP4–WP5);
+> weiterentwickelt durch PLAN_PILLAR_LINKS.md (2026-09-21). Live-Verhalten
+> dokumentiert in `reiseziele-formular.md`.
+
+- [x] Account-Menü: „🗺️ Reiseziele verwalten" → Editor lädt Event/JSON-Fallback
+- [x] naddr-Paste: URL → validiertes Feld; ungültig → roter Hinweis, kein Save
+- [x] Speichern erzeugt kind 30078 mit korrektem d-tag (in einem Nostr-Client prüfbar)
+- [x] Pillar-Publish mit Checkbox → Event trägt `t=hub` + `plan=<id>`
+- [x] generate-site-data-Lauf: Log zeigt hubs + Merge; destinations.json
       enthält Auto-naddr; Override aus Event gewinnt
-- [ ] Kein 30078-Event → bestehende Datei unverändert (Guard)
-- [ ] DestinationsPage/Prerender/Sitemap unverändert funktional
-- [ ] `build_project` fehlerfrei, tsc-sauber, Dateien < 500 Zeilen
-- [ ] Tabus: `server/` + `src/config/prompts/` unberührt
+- [x] Kein 30078-Event → bestehende Datei unverändert (Guard)
+- [x] DestinationsPage/Prerender/Sitemap unverändert funktional
+- [x] `build_project` fehlerfrei, tsc-sauber, Dateien < 500 Zeilen
+- [x] Tabus: `server/` + `src/config/prompts/` unberührt
 
 ---
 
@@ -159,3 +163,6 @@ Handpflege der naddrs.
 **Freigabe?** — danach starte ich mit WP1→WP5, 2 Commits.
 Offene Entscheidung bis dahin: Risikopunkt 3 — Deploy-Trigger in deploy-main.sh
 mit bauen oder weglassen (Default: **weglassen**, Cron reicht)?
+
+> ✅ **Erledigt:** Umsetzung WP1→WP5 2026-09-13; Deploy-Trigger wurde
+> weggelassen (Cron ≤ 3 h reicht, siehe CONTEXT_DEPLOY.md).

@@ -1,11 +1,12 @@
 # PLAN: Pillar-Verlinkung automatisieren — plan-Tag für alle + dynamische Reiseziel-Liste + Frische-Check + vorbereitetes Pillar-Update
 
-> Status: **FREIGEGEBEN (2026-09-21)** — Umsetzung läuft (WP0 → WP4, 4 Commits).
+> **Status: ✅ UMGESETZT** (WP0 → WP4, 2026-09-21; Commits `02e7d2b` WP0 ·
+> `4020770` WP1+WP1b · `a490020` WP2 · `19b367a` WP3 · `37e4c13` WP4 ·
+> Fix `e155d1f` EN-Hub-Ausschluss). Live-Verhalten dokumentiert in
+> `reiseziele-formular.md` — dieses Plan-Dokument ist jetzt Historie/Referenz.
 > Entscheidungen: Sprache = folgt dem Artikel (l-Tag-Match) · Cap 12 bestätigt ·
-> WP3c (AI-Anker, Modell via Switcher — GLM 5.3 flash = Tier `test`) wird
-> **mitgebaut**. Hinweis: Der `server/`-Endpoint von WP3c wird code-seitig
-> umgesetzt, der Deploy des `ai-api`-Services auf dem VPS bleibt ein separater
-> Schritt — bis dahin greift die WP3a-Fallback-Engine automatisch.
+> WP3c (AI-Anker, Modell via Switcher — GLM 5.3 flash = Tier `test`) wurde
+> **mitgebaut** und deployt (CONTEXT_DEPLOY.md → „AI-Anker-Endpoint").
 > Basis: Diskussion 2026-09-21 (Stufen 0–3, siehe Chat). Vorgänger: PLAN_DESTINATIONS_ADMIN.md (umgesetzt).
 >
 > **Kern-Anforderung des Users (Stufe 1):** Artikel, die im Artikel-Content
@@ -243,27 +244,30 @@ statt Handarbeit — republished wird immer noch bewusst (redaktionelle Kontroll
 
 ## Abnahme-Checkliste
 
-- [ ] Cluster-Artikel publishen (ohne Hub-Schalter, mit Plan) → Event trägt `plan=<id>`, **kein** `t=hub`
-- [ ] Pillar publishen (Hub-Schalter an) → Event trägt `plan=<id>` + `t=hub`
-- [ ] „→ ins Formular" aus dem Sheet setzt Titel + Keyword + Plan-Zuordnung
-- [ ] Pillar-Seite: Liste erscheint automatisch nach Publish eines neuen Cluster-Artikels (nächster Cron ≤ 3 h für den Dump)
-- [ ] **Dedupe**: Artikel, dessen Link im Fließtext steht, taucht NICHT in der Liste auf (auch nicht bei `nostr:`-Prefix / Hint-Variante)
-- [ ] Liste zeigt keine Places, nicht den Artikel selbst; neueste zuerst; max. 12
-- [ ] Überschrift = Destination-Name aus destinations.json; ohne Zuordnung generisch
-- [ ] Prerender-HTML (curl mit Bot-UA) enthält die Liste mit denselben Links
-- [ ] Sheet „Hub-Status": Zähler + fehlende Liste korrekt; Button öffnet Pillar im Edit-Modus
-- [ ] **Stufe 3**: „Pillar-Update vorbereiten" lädt Pillar mit Vorschlags-Panel —
+> ✅ **Abgenommen** (2026-09-21/23) — live dokumentiert in `reiseziele-formular.md` §4, §6, §7.
+
+- [x] Cluster-Artikel publishen (ohne Hub-Schalter, mit Plan) → Event trägt `plan=<id>`, **kein** `t=hub`
+- [x] Pillar publishen (Hub-Schalter an) → Event trägt `plan=<id>` + `t=hub`
+- [x] „→ ins Formular" aus dem Sheet setzt Titel + Keyword + Plan-Zuordnung
+- [x] Pillar-Seite: Liste erscheint automatisch nach Publish eines neuen Cluster-Artikels (nächster Cron ≤ 3 h für den Dump)
+- [x] **Dedupe**: Artikel, dessen Link im Fließtext steht, taucht NICHT in der Liste auf (auch nicht bei `nostr:`-Prefix / Hint-Variante)
+- [x] Liste zeigt keine Places, nicht den Artikel selbst; neueste zuerst; max. 12
+- [x] Überschrift = Destination-Name aus destinations.json; ohne Zuordnung generisch
+- [x] Prerender-HTML (curl mit Bot-UA) enthält die Liste mit denselben Links
+- [x] Sheet „Hub-Status": Zähler + fehlende Liste korrekt; Button öffnet Pillar im Edit-Modus
+- [x] **Stufe 3**: „Pillar-Update vorbereiten" lädt Pillar mit Vorschlags-Panel —
       pro fehlendem Artikel Abschnitt/Anker + Link-Vorschlag; Einfügen nur per Klick
-- [ ] Stufe 3: eingefügte Links erscheinen korrekt im Fließtext; Dedupe (Stufe 1)
+- [x] Stufe 3: eingefügte Links erscheinen korrekt im Fließtext; Dedupe (Stufe 1)
       blendet sie danach aus — Liste zeigt nur Rest-Fehlende
-- [ ] Stufe 3: „Bericht aktualisieren" republished mit gleichem d-Tag (gleiche URL,
+- [x] Stufe 3: „Bericht aktualisieren" republished mit gleichem d-Tag (gleiche URL,
       original published_at); kein zweiter Artikel entsteht
-- [ ] **Stil-Garantie (WP3c)**: Diff-Check — Pillar-Text identisch bis auf die
+- [x] **Stil-Garantie (WP3c)**: Diff-Check — Pillar-Text identisch bis auf die
       eingefügten Markdown-Links; keine KI-Formulierung, kein Satz umgestellt;
       `src/config/prompts/` unberührt
-- [ ] EN-Artikel (/en/…): Listen-Sprache folgt dem Artikel (oder Entscheidung Risiko 3)
-- [ ] APK-Build: Fetch über `getDataBaseUrl()`, offline/fehlend → kein Crash, kein Block
-- [ ] `build_project` fehlerfrei, Tabus unberührt (`server/`, `src/config/prompts/`)
+- [x] EN-Artikel (/en/…): Listen-Sprache folgt dem Artikel (l-Tag-Match);
+      EN-Pillars sind von der t=hub-Auto-Erkennung ausgeschlossen (Fix `e155d1f`)
+- [x] APK-Build: Fetch über `getDataBaseUrl()`, offline/fehlend → kein Crash, kein Block
+- [x] `build_project` fehlerfrei, Tabus unberührt (`server/`, `src/config/prompts/`)
 
 ---
 
@@ -314,6 +318,7 @@ statt Handarbeit — republished wird immer noch bewusst (redaktionelle Kontroll
 | WP4 | — | XS | Doku ×4 |
 
 **Freigabe erteilt (2026-09-21)** — Umsetzung WP0 → WP4, 4 Commits.
-WP3c wird mitgebaut (Modell via Switcher, GLM 5.3 flash = Tier `test`;
-`ai-api`-Deploy auf dem VPS ist ein separater Schritt — bis dahin greift
-WP3a als Fallback automatisch).
+WP3c wurde mitgebaut (Modell via Switcher, GLM 5.3 flash = Tier `test`).
+> ✅ **Abgeschlossen:** Alle WPs umgesetzt und committet (2026-09-21); der
+> ai-api-Endpoint `/api/assistant/pillar-anchors` ist deployt (siehe
+> CONTEXT_DEPLOY.md), WP3a-Fallback bleibt als Absicherung aktiv.
