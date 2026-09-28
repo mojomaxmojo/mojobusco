@@ -1,37 +1,42 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
+# ==== Dependencies ====
+node_modules/
 
-node_modules
-dist
-dist-ssr
-*.local
-.ai/
+# ==== Build-Ausgabe ====
+dist/
+.build-cache.json
+.assets-cache.json
 
-# Editor directories and files
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-# Vercel
-.vercel
-
-# Secrets
+# ==== Umgebungsvariablen (NIE committen!) ====
+# .env.example bleibt als Vorlage getrackt
 .env
 .env.*
 !.env.example
-id_ed25519-git.pub*
 
-# Capacitor / Android (generiert von npx cap add android)
-android/
-*.apk
-*.aab
+# ==== Logs ====
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# ==== Editor / OS ====
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# ==== Capacitor / Android Build-Artefakte ====
+android/app/build/
+android/build/
+android/.gradle/
+android/local.properties
+android/app/src/main/assets/public/
+android/capacitor-cordova-android-plugins/
+
+# ==== Lokale Backups (nicht ins Repo) ====
+backup-old-template/
+
+# ==== Temporäre Dateien ====
+*.tmp
+*.bak
+*~

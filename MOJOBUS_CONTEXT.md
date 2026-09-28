@@ -62,7 +62,7 @@ Autoren prüfen: `cat src/config/authors.json | jq '.authors[] | {name, pubkey, 
 
 ---
 
-## Sicherheits-Hardening (Juni 2026 – PLAN_SICHERHEIT_SEO_OPTIMIERUNG.md)
+## Sicherheits-Hardening (Juni 2026 – docs/PLAN_SICHERHEIT_SEO_OPTIMIERUNG.md)
 
 Alle 10 Punkte umgesetzt (Commits `17da704`…`45bc5c4`):
 
@@ -105,7 +105,7 @@ diesem Filter versehen.**
 
 **Trip-Verarbeitung (kind:30025)**: `prerender-static.js`,
 `generate-sitemap.js` und `generate-site-data.js` verarbeiten Trips
-seit der kind:30025-Migration (`FEATURE-XXX-PLAN.md`, alle 7 Schritte
+seit der kind:30025-Migration (Feature-Plan, in Git-History; alle 7 Schritte
 umgesetzt) über die echten **kind:30025**-Trip-Events
 (`TripPublishForm.tsx`), nicht mehr über kind:1-Teaser-Notes.
 naddr-Encoding läuft über `encodeTripNaddr()` (kein
@@ -173,7 +173,7 @@ Mobile), i18n `nav_destinations` (de „Reiseziele" / en „Destinations").
   in `mojobus.co.ssl.conf` vorhanden) — gleiche Datenquelle/Links
 - **SEO-Registry**: `generate-sitemap.js` (statische Pages, Priority 0.9,
   hreflang de↔en via `/en/reiseziele`) + `robots.txt` (`Allow: /reiseziele`)
-- **Verwaltung (seit 2026-09-13, PLAN_DESTINATIONS_ADMIN.md)**: Editor
+- **Verwaltung (seit 2026-09-13, docs/PLAN_DESTINATIONS_ADMIN.md)**: Editor
   `/admin/destinations` (Account-Menü „🗺️ Reiseziele verwalten", nur Autoren,
   Muster AboutAdmin) — Struktur wird als **NIP-78-Event** gespeichert
   (kind 30078, `d=co.mojobus.app.destinations`, Muster: About-Seite).
@@ -186,7 +186,7 @@ Mobile), i18n `nav_destinations` (de „Reiseziele" / en „Destinations").
   die Hubs (keine Extra-Relay-Query) und schreibt die naddrs automatisch in
   destinations.json; `pillarNaddr` aus dem Event = Override. Kein Event →
   bestehende Datei bleibt UNVERÄNDERT (Guard). Repo-JSON = Seed/Fallback.
-- **plan-Tag für alle (WP0, PLAN_PILLAR_LINKS.md, 2026-09-21)**: Der Block
+- **plan-Tag für alle (WP0, docs/PLAN_PILLAR_LINKS.md, 2026-09-21)**: Der Block
   heißt jetzt „🗺️ Reiseziel-Zuordnung" — Plan-Select für JEDEN Bericht
   (plan-Tag), „Pillar (Hub)" nur Zusatz-Schalter am Haupt-Pillar (t=hub).
   „→ ins Formular" übernimmt Titel + Keyword + planId. Edit-Modus lädt
@@ -250,7 +250,7 @@ lieferte Bots Homepage-Metas unter Status 200).
 | `useNotes()` | `/data/notes.json` + Relay | Notes + Infinite Scroll |
 | Images.tsx | `/data/bilder.json` + Relay | Bilder-Feed |
 | `useVideos()` | `/data/videos.json` + Relay | Video-Feed (kind 34236) |
-| `useTrips()` | nur Relay, zweistufig | Trips (kind 30025): 2s Fast (limit 15) + 10s Full (limit 100) im Hintergrund. Beide Queries filtern nach `authors: NOSTR_CONFIG.authorPubkeys` (Fix `FEATURE-XXX-PLAN.md` Schritt 6). |
+| `useTrips()` | nur Relay, zweistufig | Trips (kind 30025): 2s Fast (limit 15) + 10s Full (limit 100) im Hintergrund. Beide Queries filtern nach `authors: NOSTR_CONFIG.authorPubkeys` (Fix im Feature-Plan, Git-History, Schritt 6). |
 | `useLongformArticle()` | nur Relay | Detailseiten (voller content) |
 | `useContinuityTracking()` | `/api/continuity/track` | Meldet nach Publish Artikel/Platz/Note/Media/Trip an die Kontinuitäts-DB (nicht-blockierend, Capacitor-kompatibel) |
 | `useBatchedSocialCounts()` | 1–2 Relay-Batch-Queries pro Feed | **Social-Counts-Batch**: SocialBatchProvider um Feed-Grids (Home, Notes, Articles, Places, Images) lädt Likes/Reposts/Comments/Zaps für ALLE Cards in einer Query (`['social-counts','batch',…]` + `['zaps','batch',…]`). SocialBar liest im Batch-Scope aus dem Context statt pro Card eigene Queries zu starten (vorher 50–500 Subscriptions pro Feed-Aufruf). Invalidation-Flows unverändert: Like/Repost → `['social-counts']`-Prefix, Zap → `['zaps']`-Prefix. 60s-Zap-Polling nur noch auf Detailseiten (`useZaps(..., { poll })`). `useAuthor` ohne Retry, 7d-Cache, statischer Fallback aus `AUTHORS` (`relays.ts`) bei fehlendem kind:0-Profil. |
@@ -353,13 +353,13 @@ Schwelle Forecast/Archiv: 92 Tage; >16 Tage Zukunft → Wetter überspringen
   eigene SQLite `server/data/contentplan-progress.db`, Blob-Store, Merge per Item-Timestamp
   im Client, NIP-98 via /api/assistant-Prefix). Route fehlt/404 → graceful rein lokal.
   Deploy: Server-Neustart nötig (`systemctl restart ai-api`), DB entsteht automatisch.
-  Quell-Doku: PROMPT_CONTENTPLAN_VORLAGE.md + CONTENTPLAN_FIGUEIRA_BUDENS.md.
+  Quell-Doku: docs/PROMPT_CONTENTPLAN_VORLAGE.md (+ Contentplan in Git-History).
 - **Assistenten-Hilfe (AssistantHelpSheet):** ⓘ im Assistenten-Header (AssistantSection,
   optionaler Prop `onOpenHelp`) + Link im „Was fließt in den Text ein?"-Popover (ArticleForm)
   öffnen ein Sheet mit 10 Nutzungsschritten aller Eingabefelder, 7 häufigsten Fehlern und dem
   Contentplan-Prompt zum Kopieren. Inhalte als Daten in `src/config/assistantHelp.ts`, Prompt
   als Laufzeit-Kopie in `src/config/contentplanPromptTemplate.ts` (Referenz:
-  PROMPT_CONTENTPLAN_VORLAGE.md). Nur in /veroeffentlichen gemountet → automatisch hinter Auth.
+  docs/PROMPT_CONTENTPLAN_VORLAGE.md). Nur in /veroeffentlichen gemountet → automatisch hinter Auth.
 - **Nr. 5** `ExistingContentHint` (AssistantSection, über Ideen): ab
   Ort-Eingabe automatischer Continuity-Abfrage (debounced) → Warn-Banner
   „X frühere Posts am Ort — Freshness-Update statt neu".

@@ -5,6 +5,41 @@
 
 ---
 
+## Repository-Optimierung Stufe 1: Root aufgeräumt (2026-09-28)
+
+**Auslöser**: Root-Verzeichnis war mit 55 Markdown-Dateien (alte Pläne,
+Prompts, datierte Changelogs) überladen; `.gitignore` war leer.
+
+- **29 Dateien nach `docs/` verschoben**: technische Doku (DEPLOYMENT,
+  DOKUMENTATION, STRUKTUR, KONFIGURATION, PERFORMANCE, SERVICE_WORKER,
+  PWA_CHECKLIST, ICON_LIBRARY, IMAGE_SERVICE_CONFIG, LINK_DOCUMENTATION,
+  MERGE_GUIDE, ROUTING_IMPLEMENTATION_GUIDE, STRATEGY-CACHING,
+  TAG_KONFIGURATION, HASHTAG_ÜBERSICHT, KI_PROJEKT_ÜBERSICHT,
+  ASSISTENT-CHEATSHEET, GIT_DEPLOY_ANDROID, VPS_DEPLOY_GUIDE,
+  REMOTION_VPS_SETUP, VENDOR_CHUNK_OPTIMIZATION, PERFORMANCE_OPTIMIZATIONS)
+  + aktive Pläne/Vorlagen/Manuals (reiseziele-formular.md, PLAN_PILLAR_LINKS,
+  PLAN_DESTINATIONS_ADMIN, PLAN_SICHERHEIT_SEO_OPTIMIERUNG,
+  PROMPT_CONTENTPLAN_VORLAGE, PROMPT_REISEZIELE, EDGE_TTS_PROMPT).
+- **22 veraltete Dateien gelöscht** (in Git-History wiederherstellbar):
+  PLAN.md–PLAN6.md, 5× FEATURE-*-PLAN.md, CHANGELOG_2026-06-06/12,
+  NEXT_SESSION.md, RECOVERY.md, prompt.md, PROMPT-Altversionen,
+  CONTENTPLAN_ARMACAO_DE_PERA.md, CONTENTPLAN_FIGUEIRA_BUDENS.md,
+  voiceover-plan.md, voiceover2-plan.md, HAUSHALTSBUCH_UI_UX_KONZEPT.md
+  (fremdes Projekt), performance-optimierungsplan.html.
+- **Root behält nur 5 Kern-Dateien**: README.md (neu gefüllt, war leer),
+  AGENTS.md, AGENTS_NOSTR_REF.md, MOJOBUS_CONTEXT.md, MOJOBUS_CHANGELOG.md.
+- **`.gitignore` gefüllt** (war komplett leer): node_modules, dist, .env*
+  (außer .env.example), Logs, Editor-Dateien, Android-Build-Artfakte,
+  backup-old-template/.
+- **backup-old-template/ (3 alte TSX) aus Git-Tracking entfernt** – Dateien
+  bleiben lokal, Historie behält sie.
+- **MOJOBUS_CONTEXT.md**: Pfad-Referenzen auf verschobene Dateien auf
+  `docs/...` aktualisiert; Verweise auf gelöschte Feature-Pläne →
+  „in Git-History".
+- **vps-backup/** bleibt getrackt (aktive haven/rclone-Backup-Scripts).
+
+---
+
 ## Berichte-Formular: KI-Defaults Mojobus + Perspektive Paar (2026-09-14)
 
 **Auslöser**: Standard-Vorbelegung der Box „KI-Artikel generieren" im
