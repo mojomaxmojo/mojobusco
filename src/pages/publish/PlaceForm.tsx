@@ -280,7 +280,7 @@ export function PlaceForm({ editEvent, planHandoff, onHandoffConsumed }: { editE
 
   const { handleImageFile, handleAdditionalImagesUpload } = usePlaceImageUpload({ toast, uploadFile, setImage, setImageFile, setImageGps, setImageGpsStatus, setIsUploading, setAdditionalImages });
 
-  const { handleSubmit } = usePlacePublish({ name, description, location, coordinates, category, rating, facilities, bestFor, price, visitDate, image, additionalImages, manualTags, planId: handoffPlanId, selectedCountry, seoTitle, seoMetaDescription, seoSlug, publishTeaserNote, autoTranslateEn, imageGps, imageGpsStatus, editEvent, toast, publishEvent, currentUser, translateAndPublish, trackPublishedPost, navigate, setName, setDescription, setLocation, setCoordinates, setCategory, setRating, setFacilities, setBestFor, setPrice, setVisitDate, setImageFile, setImageGps, setImageGpsStatus, setEditingImageGps, setImageMetaMap, setIsPublishingTeaser });
+  const { handleSubmit, isPublishing } = usePlacePublish({ name, description, location, coordinates, category, rating, facilities, bestFor, price, visitDate, image, additionalImages, manualTags, planId: handoffPlanId, selectedCountry, seoTitle, seoMetaDescription, seoSlug, publishTeaserNote, autoTranslateEn, imageGps, imageGpsStatus, editEvent, toast, publishEvent, currentUser, translateAndPublish, trackPublishedPost, navigate, setName, setDescription, setLocation, setCoordinates, setCategory, setRating, setFacilities, setBestFor, setPrice, setVisitDate, setImageFile, setImageGps, setImageGpsStatus, setEditingImageGps, setImageMetaMap, setIsPublishingTeaser });
 
   return (
     <Card>
@@ -685,9 +685,12 @@ Beschreibe hier den Ort, was macht ihn besonders...
           onExperiencesConfirmedChange={setExperiencesConfirmed}
         />
 
-        <Button onClick={handleSubmit} className="w-full" disabled={!name.trim() || isPublishingTeaser || !experiencesConfirmed}>
+        {/* Doppel-Publish-Guard (Fix #3-Parallele aus ArticleForm): Button
+            bleibt ab handleSubmit bis Flow-Ende disabled — sonst erzeugte ein
+            Doppelklick während des 30023-Publishes zwei place-${Date.now()}-Orte */}
+        <Button onClick={handleSubmit} className="w-full" disabled={!name.trim() || isUploading || isPublishing || isPublishingTeaser || !experiencesConfirmed}>
           <Map className="h-4 w-4 mr-2" />
-          {isPublishingTeaser ? 'Wird veröffentlicht...' : 'Ort speichern'}
+          {(isPublishing || isPublishingTeaser) ? 'Wird veröffentlicht...' : 'Ort speichern'}
         </Button>
       </CardContent>
     </Card>

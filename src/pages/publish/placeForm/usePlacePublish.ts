@@ -14,6 +14,7 @@ import { buildSmartSlug } from "@/config/assistant";
 import { createLongformTeaser } from "@/lib/createLongformTeaser";
 import { getTagValue } from "@/lib/nostrEventUtils";
 import { getErrorMessage } from "@/lib/utils";
+import { useState } from "react";
 import type { GpsData, GpsStatus } from "@/lib/gpsExtraction";
 import type { NostrEvent } from "@nostrify/nostrify";
 import { placeUrl, canonicalUrl, canonicalNaddr } from "@/lib/canonicalUrl";
@@ -130,12 +131,30 @@ export function usePlacePublish({
   setImageMetaMap,
   setIsPublishingTeaser,
 }: UsePlacePublishParams) {
+  // Doppel-Publish-Guard (Fix #3-Parallele aus ArticleForm): disabled den
+  // Submit-Button während des gesamten Publish-Flows — der 30023-Publish
+  // kann bis 15s dauern (Signatur + Relays). Ohne Guard war ein Doppelklick
+  // möglich → zwei Orte mit verschiedenen place-${Date.now()}-d-Tags.
+  const [isPublishing, setIsPublishing] = useState(false);
+
   const handleSubmit = () => {
     if (!name.trim()) {
       toast({
         title: 'Fehler',
         description: 'Bitte gib einen Namen fuer den Ort ein.',
         variant: 'destructive'
+      });
+      return;
+    }
+
+    // blob:-Guard (Fix #5-Parallele aus ArticleForm): blob:-URLs sind lokale
+    // Previews eines laufenden oder fehlgeschlagenen Titelbild-Uploads — als
+    // image-Tag wären sie für alle anderen Nostr-Clients und im Web tot.
+    if (image.trim().startsWith('blob:')) {
+      toast({
+        title: 'Titelbild-Upload unvollständig',
+        description: 'Das Titelbild wurde nicht hochgeladen. Bitte erneut hochladen oder entfernen.',
+        variant: 'destructive',
       });
       return;
     }
@@ -286,12 +305,26 @@ export function usePlacePublish({
     }
 
     const handlePublishPlace = async () => {
+      // Guard aktivieren — bleibt über den GESAMTEN Flow an (inkl. Teaser,
+      // der zusätzlich isPublishingTeaser setzt), finally gibt immer frei.
+      setIsPublishing(true);
       try {
-        await publishEvent({
-          kind: 30023, // Long-form event for places
-          content,
-          tags
-        });
+        try {
+          await publishEvent({
+            kind: 30023, // Long-form event for places
+            content,
+            tags
+          });
+        } catch (publishErr) {
+          // Early return: kein Tracking/Pipeline/Teaser/Reset — der User
+          // kann direkt erneut senden (Guard wird im finally freigegeben).
+          toast({
+            title: 'Fehler',
+            description: getErrorMessage(publishErr) || 'Ort konnte nicht gespeichert werden.',
+            variant: 'destructive',
+          });
+          return;
+        }
 
         toast({
           title: 'Erfolg!',
@@ -393,17 +426,15 @@ export function usePlacePublish({
         setTimeout(() => {
           navigate('/plaetze');
         }, 1000);
-      } catch (err) {
-        toast({
-          title: 'Fehler',
-          description: getErrorMessage(err) || 'Ort konnte nicht gespeichert werden.',
-          variant: 'destructive',
-        });
+      } finally {
+        // Guard freigeben — egal ob Erfolg, Publish-Fehler (Early Return
+        // oben) oder ein unerwarteter Fehler irgendwo im Flow
+        setIsPublishing(false);
       }
     };
 
     handlePublishPlace();
   };
 
-  return { handleSubmit };
+  return { handleSubmit, isPublishing };
 }
