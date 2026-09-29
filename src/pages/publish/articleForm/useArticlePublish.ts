@@ -393,12 +393,26 @@ export function useArticlePublish({
     ];
 
     // Schritt 1: Kind 30023 publizieren (NIP-23 Long-form)
-    const pubkey = finalTags.find(t => t[0] === 'p')?.[1] || '';
-    await publishEvent({
-      kind: 30023,
-      content: content.trim(),
-      tags: finalTags,
-    });
+    // Ohne try/catch endete ein Relay-/Signer-Fehler (z. B. 15s-Timeout,
+    // NIP-07-Ablehnung) als unbehandelte Exception — kein Toast, kein
+    // Hinweis, der User wusste nicht, ob gepostet wurde.
+    try {
+      await publishEvent({
+        kind: 30023,
+        content: content.trim(),
+        tags: finalTags,
+      });
+    } catch (err) {
+      console.error('[Article] Publish (kind 30023) fehlgeschlagen:', err);
+      toast({
+        title: 'Fehler',
+        description: 'Bericht konnte nicht veröffentlicht werden (Relay oder Signer). Bitte erneut versuchen.',
+        variant: 'destructive',
+      });
+      // Early return: kein Assistent-Notify, kein Autosave-Clear, kein
+      // Formular-Reset — der User kann den Inhalt direkt erneut senden.
+      return;
+    }
 
     // Assistent: Pipeline + IndexNow nach JEDEM Bericht-Publish (non-blocking)
     notifyAssistantPublished(dTag);
