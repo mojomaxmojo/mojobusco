@@ -37,6 +37,7 @@ import { Progress } from "@/components/ui/progress";
 import { Upload, UploadCloud, ImageIcon, Video, Music, File as FileIcon, Camera, Calendar, Tag, Battery, Sun, Wrench, Hammer, Cpu, Mountain, Lightbulb, Dog, Trees, Droplets, Waves, Eye, Loader2, CheckCircle, Route, Sparkles, FileText, MessageSquare, Map } from "@/lib/icons";
 import { type GpsData, type GpsStatus, type LocationData } from "@/lib/gpsExtraction";
 import { getTagValue, getTagValues, getEventGpsTags } from "@/lib/nostrEventUtils";
+import { PUBLISH_COUNTRY_TAGS } from "@/config/countries";
 import { getCurrentPosition, positionToGpsData, isCapacitorNative } from "@/lib/capacitorGps";
 import { extractPlaceImageUrls } from "./placeForm/placeFormUtils";
 import { usePlaceFormHandlers } from "./placeForm/usePlaceFormHandlers";
@@ -237,9 +238,8 @@ export function PlaceForm({ editEvent, planHandoff, onHandoffConsumed }: { editE
       const manualTagsOnly = allTags.filter(tag => !excludedTags.includes(tag));
       setManualTags(manualTagsOnly);
 
-      // Extract country from tags
-      const countryTags = ['portugal', 'spanien', 'frankreich', 'belgien', 'deutschland', 'luxemburg'];
-      const foundCountry = allTags.find(tag => countryTags.includes(tag));
+      // Extract country from tags (Single Source: src/config/countries.ts)
+      const foundCountry = allTags.find(tag => PUBLISH_COUNTRY_TAGS.includes(tag));
       if (foundCountry) {
         setSelectedCountry(foundCountry);
       }

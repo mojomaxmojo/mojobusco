@@ -140,3 +140,18 @@ export const COUNTRIES: Record<string, Country> = {
 };
 
 export default COUNTRIES;
+
+/**
+ * Länder-Tags der /veroeffentlichen-Formulare (AGENTS.md Regel 1: keine
+ * hartcodierten Werte im Quellcode). Single Source — abgeleitet aus den
+ * COUNTRIES-Keys. Konsumenten re-exportieren statt eigene Kopien zu pflegen:
+ *   - articleFormConfig.ts  → COUNTRY_TAG_LIST (Berichte-Formular)
+ *   - noteFormConstants.ts  → NOTE_COUNTRY_TAGS (Note-Formular)
+ *   - usePlacePublish.ts    → Ort-Formular handleSubmit
+ *   - PlaceForm.tsx         → Edit-Modus (Land aus t-Tags extrahieren)
+ *
+ * BEI ÄNDERUNGEN: generate-site-data.js (COUNTRIES-Objekt) spiegelt die
+ * Länder-Erkennung serverseitig — Node kann die TS-Configs nicht
+ * importieren, dort doppelt pflegen!
+ */
+export const PUBLISH_COUNTRY_TAGS = Object.keys(COUNTRIES);

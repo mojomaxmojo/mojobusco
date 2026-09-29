@@ -19,6 +19,7 @@ import type { GpsData, GpsStatus } from "@/lib/gpsExtraction";
 import type { NostrEvent } from "@nostrify/nostrify";
 import { placeUrl, canonicalUrl, canonicalNaddr } from "@/lib/canonicalUrl";
 import { notifyPublishedPipeline } from "@/lib/publishNotify";
+import { PUBLISH_COUNTRY_TAGS } from "@/config/countries";
 import type { useToast } from "@/hooks/useToast";
 import type { useNostrPublish } from "@/hooks/useNostrPublish";
 import type { useAutoTranslate } from "@/hooks/useAutoTranslate";
@@ -196,18 +197,32 @@ export function usePlacePublish({
     // Das verhindert Duplikate beim Bearbeiten.
 
     // Entferne Country-Tags aus manualTags, um Duplikate zu vermeiden
-    const countryList = ['portugal', 'spanien', 'frankreich', 'belgien', 'deutschland', 'luxemburg'];
+    // (Single Source: src/config/countries.ts)
     const manualTagsWithoutCountry = manualTags.filter(tag =>
-      !countryList.includes(tag.toLowerCase()) && !tag.startsWith('#') && !countryList.includes(tag.replace('#', '').toLowerCase())
+      !PUBLISH_COUNTRY_TAGS.includes(tag.toLowerCase()) && !tag.startsWith('#') && !PUBLISH_COUNTRY_TAGS.includes(tag.replace('#', '').toLowerCase())
     );
 
     // Erstelle summary für Vorschau auf Startseite
     let placeSummary = '';
-    if (description.trim()) {
+    // Fix: HTML aus der Beschreibung strippen, bevor sie als summary-Tag
+    // (und meta_description-Fallback) gesetzt wird — Orte haben HTML-Content
+    // (type=place), das rohe <p>/<strong>-Markup würde sonst in Event-Tag
+    // und Meta-Daten landen (extractArticleMetadata stript beim LESEN, das
+    // Event-Tag selbst blieb roh). Führt das Stripping zu LEER → Fallbacks
+    // unten greifen (location/kategorie), statt ein leeres summary-Tag.
+    const descriptionPlain = description
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (descriptionPlain) {
       // Verwende die Beschreibung als summary, gekürzt auf 200 Zeichen
-      placeSummary = description.trim().length > 200
-        ? description.trim().substring(0, 197) + '...'
-        : description.trim();
+      placeSummary = descriptionPlain.length > 200
+        ? descriptionPlain.substring(0, 197) + '...'
+        : descriptionPlain;
     } else if (location.trim()) {
       // Fallback: Verwende Standort als summary
       placeSummary = `Ort in ${location.trim()}`;

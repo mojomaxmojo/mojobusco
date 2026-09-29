@@ -61,8 +61,9 @@ export const getNatureIcon = (iconName: string) => {
   }
 };
 
-// ── Länder-Tags (bisher 2× inline: Edit-Effect + handleSubmit) ──────────
-export const COUNTRY_TAG_LIST = ['portugal', 'spanien', 'frankreich', 'belgien', 'deutschland', 'luxemburg'];
+// ── Länder-Tags (Single Source: src/config/countries.ts) ────────────────
+import { PUBLISH_COUNTRY_TAGS } from "@/config/countries";
+export const COUNTRY_TAG_LIST = PUBLISH_COUNTRY_TAGS;
 
 // ── Artikellänge-Optionen (bisher inline im JSX) ────────────────────────
 export const ARTICLE_LENGTH_OPTIONS = [
