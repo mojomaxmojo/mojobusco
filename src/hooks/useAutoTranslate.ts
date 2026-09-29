@@ -71,8 +71,16 @@ function buildEnContentEvent(input: TranslateAndPublishInput, translated: { titl
       relays: [DEFAULT_TEASER_RELAY],
     });
 
-    // Original-Tags übernehmen, außer d/title/summary (werden durch übersetzte Werte ersetzt)
-    const base = input.baseTags.filter(([name]) => name !== 'd' && name !== 'title' && name !== 'summary');
+    // Original-Tags übernehmen, außer d/title/summary (werden durch übersetzte
+    // Werte ersetzt) und der sprachgebundenen SEO-Tags (Fix #8): seo_title/
+    // meta_description/slug sind DE-Texte — ein EN-Event mit geerbten
+    // deutschen SEO-Tags erzeugt deutsche Meta-Daten auf /en/-Seiten
+    // (ArticleView useHead + prerender-entity-templates lesen
+    // meta_description direkt aus dem Event).
+    const base = input.baseTags.filter(([name]) =>
+      name !== 'd' && name !== 'title' && name !== 'summary'
+      && name !== 'seo_title' && name !== 'meta_description' && name !== 'slug'
+    );
 
     const tags: string[][] = [
       ...base,
@@ -81,6 +89,11 @@ function buildEnContentEvent(input: TranslateAndPublishInput, translated: { titl
 
     if (translated.title.trim()) tags.push(['title', translated.title.trim()]);
     if (translated.summary.trim()) tags.push(['summary', translated.summary.trim()]);
+    // meta_description in EN (statt geerbtem DE-Tag): die übersetzte Summary —
+    // genau dieses Tag lesen ArticleView/Prerender für die Meta-Description.
+    // (Kein seo_title: die Übersetzungs-API liefert keinen EN-SEO-Titel,
+    // Fallback ist der übersetzte Artikel-Titel.)
+    if (translated.summary.trim()) tags.push(['meta_description', translated.summary.trim()]);
 
     tags.push(...buildLanguageTags('en'));
     tags.push(buildTranslationRefTag('en', naddr));

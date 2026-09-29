@@ -524,6 +524,11 @@ export function useArticlePublish({
           type: 'article', kind: 30023, originalDTag: dTag,
           pubkey: currentUser.pubkey, title, summary, content,
           baseTags: finalTags, publishTeaser: publishTeaserNote,
+          // Fix #8: EN-Teaser mit Titelbild + Land — vorher hatte der
+          // EN-Teaser nie ein Bild und keine Land-Tags (inkonsistent zum
+          // DE-Teaser, der beides mitbringt)
+          teaserImageUrl: image || undefined,
+          teaserCountry: selectedCountry || undefined,
         });
       }
 
