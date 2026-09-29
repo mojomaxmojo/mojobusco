@@ -144,7 +144,11 @@ sitemap (bestehende sitemap.xml-Vergleich, Notaus
 (site-data → prerender → sitemap → feed, je 60 s Pause) kollaps-sicher.
 
 **Wichtig**: `useLongformArticle()`, `useNote()` → **nur Relay** (Detailseiten brauchen vollen content).
-Nach Deploy ausführen: `node scripts/generate-site-data.js`
+Deploy regeneriert Artefakte SELBST: `deploy-main.sh` wipt den Webroot und
+führt seit 2026-09 über `run_seo_pipeline()` site-data → prerender →
+sitemap → feed aus den Webroot-Skripten nach (`--skip-seo` zum Überspringen).
+Die alten `public/sitemap*.xml` im Repo sind ENTFERNT — sie dürfen die
+live-generierten Sitemaps nie wieder überschreiben.
 
 **Feeds (`/feed.xml` + `/feed-en.xml`)**: RSS 2.0, getrennt nach `l`-Tag
 (DE/EN) statt einem gemischtsprachigen Feed. Nur kind-30023-Artikel ohne

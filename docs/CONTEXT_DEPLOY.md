@@ -82,6 +82,14 @@
   (`location ^~ ... return 404`) — filesystem-Ausführung ist davon
   unberührt, es geht nur um HTTP-Schutz (Muster wie /server/ + /src/).
   Alle Pipeline-Skripte schreiben mit absoluten Pfaden (cwd-unabhängig).
+- **SEO-Pipeline nach Deploy (2026-09)**: `deploy_files()` wipt den Webroot
+  (`rm -rf $DEPLOY_DIR/*`) — damit gingen data-Dumps, prerender/, Sitemaps
+  und Feeds bis zum nächsten Cron verloren (Bots → 404 via
+  @prerender_resolve). Seit `run_seo_pipeline()` am Ende von deploy-main.sh
+  werden alle vier Skripte direkt nach dem Deploy aus dem Webroot ausgeführt
+  (Skip: `--skip-seo`, Permissions werden nachgezogen). Die veralteten
+  `public/sitemap*.xml` im Repo sind entfernt — kein Deploy überschreibt
+  mehr die live-generierten Sitemaps mit dem alten Format.
 
 ---
 
