@@ -46,9 +46,14 @@ export function Publish() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const editEventId = searchParams.get('edit');
+  // Edit-Referenz: ?type= — nur ?edit=URLs aktivieren das Edit-Loading.
+  // Fix: ?tab= wird als TAB-Fallback gelesen (z. B. „Zurück zu den Plätzen"
+  // verlinkt /veroeffentlichen?tab=place) — vorher wurde tab ignoriert und
+  // der User landete immer im Bilder-Default-Tab.
   const editType = searchParams.get('type');
-  const [activeTab, setActiveTab] = useState(editType || 'media');
-  // Übernahme aus dem Contentplan (Places/Trips) — siehe PlanHandoff
+  const initialTab = editType || searchParams.get('tab') || 'media';
+  const [activeTab, setActiveTab] = useState(initialTab);
+  // Übernahme aus dem Contentplan (Places/Trips) — Publish.tsx hält den Handoff-State + wechselt den Tab
   const [planHandoff, setPlanHandoff] = useState<PlanHandoff | null>(null);
   const { data: editEvent } = useEditData(editEventId);
 
