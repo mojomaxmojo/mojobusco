@@ -14,7 +14,16 @@ export const MAX_TEASER_SUMMARY_LENGTH = 150 as const;
 /** Maximale Anzahl thematischer `t`-Tags pro Teaser. */
 export const MAX_TEASER_TAGS = 8 as const;
 
-/** Tags, die in Teasern nicht verwendet werden sollen (zu generisch/eigenbezogen). */
+/**
+ * Tags, die in Teasern nicht verwendet werden sollen (zu generisch/eigenbezogen).
+ *
+ * Fix: 'trip' und 'reisen' sind bewusst NICHT gesperrt — sie sind die
+ * Typ-Tags der Trip-Teaser (useTripPublish: ['trip', 'reisen', tripType?])
+ * und wurden vorher von dieser Liste trotzdem herausgefiltert, sodass nur
+ * 'vanlife' + Land übrig blieben. 'mojobus' bleibt gesperrt: Teaser-Notes
+ * tragen bewusst KEIN mojobus-Tag (isTeaserNote erkennt sie über den
+ * a-Tag, siehe scripts/prerender-helpers.js).
+ */
 export const BANNED_TEASER_TAGS = new Set([
   'artikel',
   'article',
@@ -28,8 +37,6 @@ export const BANNED_TEASER_TAGS = new Set([
   'location',
   'places',
   'place',
-  'trip',
-  'reisen',
   'bericht',
 ]);
 
