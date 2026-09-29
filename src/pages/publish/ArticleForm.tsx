@@ -42,7 +42,7 @@ import { PillarDraftSection } from "./articleForm/PillarDraftSection";
 import { buildBriefSketch, szenenToExperiences } from "@/lib/briefSketch";
 import { ArticleImageGpsSection } from "./articleForm/ArticleImageGpsSection";
 import { COUNTRY_TAG_LIST, ARTICLE_LENGTH_OPTIONS, ARTICLE_CATEGORY_OPTIONS, getDIYIcon, RV_LIFE_TAG_OPTIONS, STRAND_ORT_TAG_OPTIONS } from "./articleForm/articleFormConfig";
-import { extractImageUrlsFromMarkdown } from "./articleForm/articleFormUtils";
+import { extractImageUrlsFromMarkdown, parseFreeTags } from "./articleForm/articleFormUtils";
 import { buildAuthorInput } from "@/config/assistant";
 import type { AssistantIdea } from "@/components/assistant/IdeasPanel";
 import { useAssistantApi } from "@/components/assistant/useAssistantApi";
@@ -1056,8 +1056,10 @@ Schreibe deinen Artikel hier...
                 if (e.key === 'Enter') {
                   e.preventDefault();
                   const value = e.currentTarget.value;
-                  const newTags = value.split(/[\s,]+/).filter(Boolean);
-                  setTags(prev => [...prev, ...newTags]);
+                  // Hygiene: Normalisierung (lowercase, ohne '#') + Dedupe —
+                  // keine Duplikate mehr in den Badge-Listen
+                  const newTags = parseFreeTags(value).filter(t => !tags.includes(t));
+                  if (newTags.length) setTags(prev => [...prev, ...newTags]);
                   e.currentTarget.value = '';
                 }
               }}
@@ -1068,8 +1070,9 @@ Schreibe deinen Artikel hier...
               onClick={(e) => {
                 const input = e.currentTarget.previousElementSibling as HTMLInputElement;
                 const value = input.value;
-                const newTags = value.split(/[\s,]+/).filter(Boolean);
-                setTags(prev => [...prev, ...newTags]);
+                // Hygiene: identische Normalisierung + Dedupe wie beim Enter-Handler
+                const newTags = parseFreeTags(value).filter(t => !tags.includes(t));
+                if (newTags.length) setTags(prev => [...prev, ...newTags]);
                 input.value = '';
               }}
             >

@@ -35,3 +35,18 @@ export const splitAuthorInput = (input: string): { facts: string; experiences: s
   }
   return { facts, experiences };
 };
+
+/**
+ * Freitext-Tags parsen (Hygiene-Fix): trim → führendes '#' entfernen →
+ * lowercase → Leer-/Doppeltreffer aussortieren. Sonst landeten „Strand",
+ * "#strand" und „STRAND" als drei verschiedene t-Tags im Event und
+ * splitteten die Tag-Filterung der /artikel-Unterseiten. Dedupe gegen die
+ * bestehenden Tags macht der Caller im setTags-Setter.
+ */
+export const parseFreeTags = (value: string): string[] => {
+  const parsed = (value || '')
+    .split(/[\s,]+/)
+    .map((t) => t.trim().replace(/^#/, '').toLowerCase())
+    .filter(Boolean);
+  return Array.from(new Set(parsed));
+};
