@@ -367,7 +367,9 @@ Schwelle Forecast/Archiv: 92 Tage; >16 Tage Zukunft → Wetter überspringen
   max 20, bleibt über Cache/Reloads) + ✕ verwerfen
   (`assistant:ideas:dismissed`, max 250, clientseitiger Filter).
 - **Nr. 13** Lokaler Autosave: ArticleForm speichert debounced (1,5 s)
-  alle Formularfelder in `assistant:autosave:article`; Banner mit
+  alle Formularfelder + Titelbild-URL (nie `blob:`-Previews — verfallen
+  beim Reload und triggern sonst den Publish-Blob-Guard) in
+  `assistant:autosave:article`; Banner mit
   „Wiederherstellen/Verwerfen" nur bei leerem Formular ohne Entwurf/Edit;
   Clear nach Publish. Server-Sync bleibt manuell.
 - **Topics-Cache 90 Tage (2026-09-11):** Single Source

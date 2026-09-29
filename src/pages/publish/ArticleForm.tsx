@@ -158,11 +158,11 @@ export function ArticleForm({ editEvent, onSendToTab }: {
     currentDraftId,
     toast,
     values: {
-      title, summary, content, location, selectedCountry, category, tags,
+      title, summary, content, image, location, selectedCountry, category, tags,
       articleLength, tripType, lifestyle, seoTitle, seoMetaDescription, seoSlug,
       researchFacts, experienceNotes, publishedAt,
     },
-    setTitle, setSummary, setContent, setLocation, setSelectedCountry,
+    setTitle, setSummary, setContent, setImage, setLocation, setSelectedCountry,
     setCategory, setTags, setArticleLength, setTripType, setLifestyle,
     setSeoTitle, setSeoMetaDescription, setSeoSlug, setResearchFacts,
     setExperienceNotes, setPublishedAt,

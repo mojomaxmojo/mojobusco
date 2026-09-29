@@ -18,6 +18,8 @@ export interface AutosaveData {
   title?: string;
   summary?: string;
   content?: string;
+  /** Titelbild-URL (Fix #12) — nur echte URLs, nie blob:-Previews */
+  image?: string;
   location?: string;
   selectedCountry?: string;
   category?: string;

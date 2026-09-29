@@ -25,6 +25,8 @@ interface UseArticleAutosaveValues {
   title: string;
   summary: string;
   content: string;
+  /** Titelbild-URL (Fix #12) — blob:-Previews werden nicht persistiert */
+  image: string;
   location: string;
   selectedCountry: string;
   category: string;
@@ -50,6 +52,7 @@ interface UseArticleAutosaveParams {
   setTitle: (v: string) => void;
   setSummary: (v: string) => void;
   setContent: (v: string) => void;
+  setImage: (v: string) => void;
   setLocation: (v: string) => void;
   setSelectedCountry: (v: string) => void;
   setCategory: (v: string) => void;
@@ -73,6 +76,7 @@ export function useArticleAutosave({
   setTitle,
   setSummary,
   setContent,
+  setImage,
   setLocation,
   setSelectedCountry,
   setCategory,
@@ -88,7 +92,7 @@ export function useArticleAutosave({
   setPublishedAt,
 }: UseArticleAutosaveParams) {
   const {
-    title, summary, content, location, selectedCountry, category, tags,
+    title, summary, content, image, location, selectedCountry, category, tags,
     articleLength, tripType, lifestyle, seoTitle, seoMetaDescription, seoSlug,
     researchFacts, experienceNotes, publishedAt,
   } = values;
@@ -106,13 +110,17 @@ export function useArticleAutosave({
           articleLength, tripType, lifestyle,
           seoTitle, seoMetaDescription, seoSlug,
           researchFacts, experienceNotes, publishedAt,
+          // Fix #12: Titelbild mitsichern — aber NUR echte URLs. blob:-
+          // Previews (läuft/gescheiterter Upload) verfallen beim Reload
+          // und würden nach Restore den Publish-Blob-Guard triggern.
+          image: image && !image.startsWith('blob:') ? image : undefined,
         };
         localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(data));
       } catch { /* Quota/Privatmodus — Autosave ist best-effort */ }
     }, 1500);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, summary, content, location, selectedCountry, category, tags, articleLength, tripType, lifestyle, seoTitle, seoMetaDescription, seoSlug, researchFacts, experienceNotes, publishedAt]);
+  }, [title, summary, content, image, location, selectedCountry, category, tags, articleLength, tripType, lifestyle, seoTitle, seoMetaDescription, seoSlug, researchFacts, experienceNotes, publishedAt]);
 
   // Kandidat einmalig beim Mount prüfen — Banner nur, wenn Formular leer
   // ist und kein Entwurf/Edit geladen wurde (bewusst geladener Inhalt hat
@@ -139,6 +147,7 @@ export function useArticleAutosave({
     if (d.title !== undefined) setTitle(d.title);
     if (d.summary !== undefined) setSummary(d.summary);
     if (d.content !== undefined) setContent(d.content);
+    if (d.image) setImage(d.image);
     if (d.location !== undefined) setLocation(d.location);
     if (d.selectedCountry) setSelectedCountry(d.selectedCountry);
     if (d.category !== undefined) setCategory(d.category);
