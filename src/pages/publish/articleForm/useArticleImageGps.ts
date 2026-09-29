@@ -30,6 +30,14 @@ interface UseArticleImageGpsParams {
   selectedCountry: string;
   setLocation: (v: string) => void;
   setSelectedCountry: (v: string) => void;
+  /**
+   * Fix #4: Ref-Flag — wenn true, unterdrückt der Reverse-Geocode-Effect
+   * das Auto-Fill des Standort-Felds. Im Edit-Modus gesetzt (geladener
+   * location-Tag hat Vorrang), damit GPS-Laden aus dem Event die
+   * Original-Location nicht überschreibt. Ein neuer Bild-Upload resettet
+   * das Flag (Upload → Auto-Fill wie beim neuen Artikel).
+   */
+  skipAutoFillRef?: { current: boolean };
 }
 
 export function useArticleImageGps({
@@ -38,6 +46,7 @@ export function useArticleImageGps({
   selectedCountry,
   setLocation,
   setSelectedCountry,
+  skipAutoFillRef,
 }: UseArticleImageGpsParams) {
   const [image, setImage] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -52,6 +61,8 @@ export function useArticleImageGps({
 
   // GPS Handler for Article Form (Title Image Only)
   const handleArticleImageUpload = async (file: File) => {
+    // Neuer Bild-Upload → Auto-Fill für das neue GPS wieder erlauben
+    if (skipAutoFillRef) skipAutoFillRef.current = false;
     setImageFile(file);
     setIsUploading(true);
 
@@ -145,6 +156,13 @@ export function useArticleImageGps({
    useEffect(() => {
      const autoFillLocation = async () => {
        if (imageGps) {
+         // Fix #4: Im Edit-Modus (location aus Event geladen) das Standort-
+         // Feld NICHT überschreiben — sonst geht der Original-standort beim
+         // Republish verloren (ersetzt durch frisches Reverse-Geocoding).
+         if (skipAutoFillRef?.current) {
+           console.log('[Article GPS] Auto-Fill übersprungen (Edit: geladener Standort hat Vorrang)');
+           return;
+         }
          console.log('[Article GPS] GPS detected, reverse geocoding...');
          const locationData = await reverseGeocode(imageGps.latitude, imageGps.longitude);
          if (locationData) {

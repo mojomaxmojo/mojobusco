@@ -81,6 +81,9 @@ export function ArticleForm({ editEvent, onSendToTab }: {
   const [experienceNotes, setExperienceNotes] = useState('');
   // Ref-API des MilkdownEditors: Markdown an Cursorposition einfügen (Assistent-Links)
   const editorInsertRef = useRef<((markdown: string) => void) | null>(null);
+  // Fix #4: Edit-Modus-Suppression für den GPS-Auto-Fill (useArticleImageGps) —
+  // geladener location-Tag hat Vorrang vor frischem Reverse-Geocoding
+  const skipLocationAutoFillRef = useRef(false);
   // SEO-Panel (Assistent): seo_title / meta_description / slug + Erlebnisse-Pflicht
   const [seoTitle, setSeoTitle] = useState('');
   const [seoMetaDescription, setSeoMetaDescription] = useState('');
@@ -133,7 +136,7 @@ export function ArticleForm({ editEvent, onSendToTab }: {
     handleArticleImageUpload,
     handleImageUpload,
     imageMetaMap, setImageMetaMap,
-  } = useArticleImageGps({ toast, uploadFile, selectedCountry, setLocation, setSelectedCountry });
+  } = useArticleImageGps({ toast, uploadFile, selectedCountry, setLocation, setSelectedCountry, skipAutoFillRef: skipLocationAutoFillRef });
   const { user: currentUser } = useCurrentUser();
   // Standard-Perspektive: Paar („wir" – Max & Susanne im MojoBus).
   // Manuell übersteuerbar (Männlich/Weiblich/Neutral) via PerspectiveSelector.
@@ -363,6 +366,13 @@ export function ArticleForm({ editEvent, onSendToTab }: {
       // Load GPS data from tags
       const { gpsLat, gpsLon, gpsAlt, gpsPrecision, gpsSource } = getEventGpsTags(editEvent);
 
+      // Fix #4: Standort aus dem Event laden — ohne dieses Laden würde ein
+      // Edit+Republish den location-Tag stillschweigend löschen (Muster
+      // SEO-Felder/plan-Tag). Auto-Fill aus GPS unterdrücken, damit der
+      // geladene Standort nicht durch frisches Reverse-Geocoding ersetzt wird.
+      skipLocationAutoFillRef.current = true;
+      setLocation(getTagValue(editEvent, 'location') || '');
+
       if (gpsLat && gpsLon) {
         setImageGps({
           latitude: parseFloat(gpsLat),
@@ -376,6 +386,9 @@ export function ArticleForm({ editEvent, onSendToTab }: {
     } else {
       // Bei neuen Beiträgen: aktuelles Datum setzen
       setPublishedAt(new Date().toISOString().split('T')[0]);
+      // Fix #4: Wechsel Edit → Neu (editEvent wurde geleert) — Auto-Fill
+      // wieder erlauben, sonst bliebe die Suppression aus dem Edit-Modus aktiv
+      skipLocationAutoFillRef.current = false;
     }
   }, [editEvent]);
 
