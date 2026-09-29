@@ -111,25 +111,53 @@ export async function pingIndexNow(urls) {
 /**
  * Führt die komplette Publish-Pipeline aus und pingt IndexNow mit der
  * veröffentlichten URL.
+ *
+ * Queue/Serialize (Fix): Zwei Publishes in kurzer Folge starteten ZWEI
+ * parallele Pipeline-Läufe, die dieselben Artefakte schrieben (site-data/
+ * prerender/sitemap/feed) — Race-Risiko auf halbe Dateien + doppelte
+ * Relay-Last. Jetzt läuft jeder Lauf in einer Promise-Kette SEQUENZIELL;
+ * weitere Publishes während eines Laufs werden hinten angehängt (der
+ * Kollaps-Schutz der Skripte greift unverändert pro Lauf).
+ *
  * @param {{ dTag?: string, url?: string }} params
  */
-export async function runPublishPipeline({ dTag, url } = {}) {
+// Läuft-gerade / Warteschlange: Kette aller Pipeline-Läufe
+let pipelineChain = Promise.resolve();
+let pipelineRunning = false;
+
+export function runPublishPipeline({ dTag, url } = {}) {
+  const run = pipelineChain.then(() => runPipelineSteps({ dTag, url }));
+  // Kette darf nie im rejected-State hängen bleiben
+  pipelineChain = run.catch(() => { /* Fehler schon in runPipelineSteps geloggt */ });
+  return run;
+}
+
+async function runPipelineSteps({ dTag, url }) {
+  if (pipelineRunning) {
+    console.log(`[Pipeline] ⏳ Läuft bereits — Lauf queued (dTag: ${dTag || '-'}, URL: ${url || '-'})`)
+  }
+  pipelineRunning = true
+
   console.log(`[Pipeline] Start (dTag: ${dTag || '-'}, URL: ${url || '-'})`)
 
-  for (const script of PIPELINE_STEPS) {
-    const ok = await runStep(script)
-    if (!ok) {
-      console.warn(`[Pipeline] Fahre mit nächstem Schritt fort trotz Fehler bei ${script}`)
+  try {
+    for (const script of PIPELINE_STEPS) {
+      const ok = await runStep(script)
+      if (!ok) {
+        console.warn(`[Pipeline] Fahre mit nächstem Schritt fort trotz Fehler bei ${script}`)
+      }
     }
+
+    console.log('[Pipeline] Alle Generierungsschritte durchlaufen')
+
+    if (url) {
+      await pingIndexNow([url])
+    } else {
+      console.warn('[Pipeline] Keine URL angegeben — IndexNow-Ping übersprungen')
+    }
+
+    console.log('[Pipeline] Fertig')
+  } finally {
+    pipelineRunning = false
   }
-
-  console.log('[Pipeline] Alle Generierungsschritte durchlaufen')
-
-  if (url) {
-    await pingIndexNow([url])
-  } else {
-    console.warn('[Pipeline] Keine URL angegeben — IndexNow-Ping übersprungen')
-  }
-
-  console.log('[Pipeline] Fertig')
 }
