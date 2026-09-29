@@ -373,7 +373,11 @@ export function ArticleView({ naddr }: ArticleViewProps) {
     );
     const keywords = [...new Set([...baseKeywords, ...seoTags])];
     
-    const canonicalHref = getCanonicalUrl(articleUrl(canonicalNaddr(naddr)));
+    // Fix (SEO): Canonical SPRACHBEWUSST — EN-Artikel (l-Tag en) müssen auf
+    // /en/{naddr} zeigen, identisch zu Sitemap (buildLocalizedUrl) und
+    // Prerender (renderArticleHtml). Vorher zeigte die SPA-Canonical der
+    // EN-Version auf die DE-URL → widersprüchliche Signale für Google.
+    const canonicalHref = getCanonicalUrl(articleUrl(canonicalNaddr(naddr), lang));
     const pubDate = new Date(metadata.publishedAt * 1000).toISOString();
     const modifiedDate = new Date(article.created_at * 1000).toISOString();
     
@@ -498,7 +502,9 @@ export function ArticleView({ naddr }: ArticleViewProps) {
       { property: 'og:type', content: isPlaceInHead ? 'place' : 'article' },
       { property: 'og:url', content: canonicalHref },
       { property: 'og:site_name', content: 'MojoBus Perpetual Travelers' },
-      { property: 'og:locale', content: 'de_DE' },
+      // Fix: og:locale muss zur tatsächlichen Sprache passen (Prerender wurde
+      // bereits gefixt — SPA zog vorher hartcodiert de_DE unter /en/ durch)
+      { property: 'og:locale', content: lang === 'en' ? 'en_US' : 'de_DE' },
       { property: 'og:image', content: metadata.image || ogImageUrl() },
       { property: 'og:image:alt', content: title },
       ...(metadata.image ? [
@@ -517,7 +523,7 @@ export function ArticleView({ naddr }: ArticleViewProps) {
       { name: 'twitter:image', content: metadata.image || ogImageUrl() },
       { name: 'twitter:image:alt', content: title },
       { name: 'robots', content: 'index, follow, max-image-preview:large' },
-      { name: 'language', content: 'German' },
+      { name: 'language', content: lang === 'en' ? 'English' : 'German' },
     ];
 
     return {
@@ -732,7 +738,7 @@ export function ArticleView({ naddr }: ArticleViewProps) {
                 { label: metadata.title },
               ]} />
               <ShareButtons
-                url={getCanonicalUrl(articleUrl(canonicalNaddr(naddr)))}
+                url={getCanonicalUrl(articleUrl(canonicalNaddr(naddr), lang))}
                 title={metadata.title}
                 description={metadata.summary}
                 image={metadata.image || ogImageUrl()}
@@ -816,7 +822,7 @@ export function ArticleView({ naddr }: ArticleViewProps) {
                 />
                 <PinImageButton
                   imageUrl={metadata.image}
-                  pageUrl={getCanonicalUrl(articleUrl(canonicalNaddr(naddr)))}
+                  pageUrl={getCanonicalUrl(articleUrl(canonicalNaddr(naddr), lang))}
                   title={metadata.title}
                   description={metadata.summary}
                   hashtags={metadata.tags}
@@ -827,7 +833,7 @@ export function ArticleView({ naddr }: ArticleViewProps) {
             {/* Article Body */}
             <MarkdownWithLinks
               content={displayContent + (isPlace ? `\n\n${generateStructuredDataMarkdown(article, metadata)}` : '')}
-              pageUrl={getCanonicalUrl(articleUrl(canonicalNaddr(naddr)))}
+              pageUrl={getCanonicalUrl(articleUrl(canonicalNaddr(naddr), lang))}
               pageTitle={metadata.title}
               pageDescription={metadata.summary}
               pageHashtags={metadata.tags}

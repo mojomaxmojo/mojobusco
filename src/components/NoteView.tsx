@@ -17,6 +17,7 @@ const NoteContent = lazy(() => import('@/components/NoteContent'));
 import { SocialBar } from '@/components/SocialBar';
 import { extractNoteTags, extractNoteImages } from '@/hooks/useNotes';
 import { canonicalUrl as getCanonicalUrl, noteUrl, profileUrl, ogImageUrl } from '@/lib/canonicalUrl';
+import { getEventLanguage } from '@/lib/translationTags';
 import { Calendar, ArrowLeft, Hash, Edit, Trash2, MapPin, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import NotFound from '@/pages/NotFound';
@@ -115,6 +116,10 @@ export function NoteView({ eventId }: NoteViewProps) {
 
   const authorName = author.data?.metadata?.name || author.data?.metadata?.display_name || genUserName(note?.pubkey || '');
 
+  // Fix (SEO): Sprachbewusste Canonical/Share-URLs — EN-Notes (l-Tag en)
+  // zeigen auf /en/{note}, identisch zur Sitemap (buildLocalizedUrl).
+  const noteLang: 'de' | 'en' = note && getEventLanguage(note) === 'en' ? 'en' : 'de';
+
   // Dynamic SEO Meta Tags mit JSON-LD
   // (IIFE-Objekt statt Getter-Funktion – @unhead/react v2 akzeptiert kein
   // Callback-Input; die Funktion würde still ignoriert und kein Meta gesetzt)
@@ -129,7 +134,9 @@ export function NoteView({ eventId }: NoteViewProps) {
       'offgrid', 'camper', 'reiseblog', 'microblog', ...tags.slice(0, 10)
     ];
     
-    const canonicalHref = getCanonicalUrl(noteUrl(nip19.noteEncode(eventId)));
+    // Fix (SEO): Canonical SPRACHBEWUSST — EN-Notes (l-Tag en) zeigen auf
+    // /en/{note}, identisch zur Sitemap (buildLocalizedUrl mit l-Tag).
+    const canonicalHref = getCanonicalUrl(noteUrl(nip19.noteEncode(eventId), noteLang));
     const pubDate = new Date(note.created_at * 1000).toISOString();
     const authorNpub = nip19.npubEncode(note.pubkey);
     const authorProfileUrl = getCanonicalUrl(profileUrl(authorNpub));
@@ -186,7 +193,7 @@ export function NoteView({ eventId }: NoteViewProps) {
         { property: 'og:type', content: 'article' },
         { property: 'og:url', content: canonicalHref },
         { property: 'og:site_name', content: 'MojoBus Perpetual Travelers' },
-        { property: 'og:locale', content: 'de_DE' },
+        { property: 'og:locale', content: noteLang === 'en' ? 'en_US' : 'de_DE' },
         { property: 'og:image', content: ogImage },
         { property: 'og:image:alt', content: `Note von ${authorName}` },
         { property: 'article:author', content: authorName },
@@ -197,7 +204,7 @@ export function NoteView({ eventId }: NoteViewProps) {
         { name: 'twitter:card', content: images.length > 0 ? 'summary_large_image' : 'summary' },
         { name: 'twitter:image', content: ogImage },
         { name: 'robots', content: 'index, follow' },
-        { name: 'language', content: 'de-DE' },
+        { name: 'language', content: noteLang === 'en' ? 'en-US' : 'de-DE' },
       ],
       link: [
         { rel: 'canonical', href: canonicalHref },
@@ -310,7 +317,7 @@ export function NoteView({ eventId }: NoteViewProps) {
           ]} />
 
           <ShareButtons
-            url={getCanonicalUrl(noteUrl(nip19.noteEncode(eventId)))}
+            url={getCanonicalUrl(noteUrl(nip19.noteEncode(eventId), noteLang))}
             title={`Note von ${authorName}`}
             description={note.content.substring(0, 160)}
             image={extractNoteImages(note)[0] || ogImageUrl()}
@@ -390,7 +397,7 @@ export function NoteView({ eventId }: NoteViewProps) {
                       />
                       <PinImageButton
                         imageUrl={url}
-                        pageUrl={getCanonicalUrl(noteUrl(nip19.noteEncode(eventId)))}
+                        pageUrl={getCanonicalUrl(noteUrl(nip19.noteEncode(eventId), noteLang))}
                         title={`Note von ${authorName}`}
                         description={note.content.substring(0, 160)}
                         hashtags={extractNoteTags(note)}
