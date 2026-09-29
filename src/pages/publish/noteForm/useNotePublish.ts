@@ -128,14 +128,12 @@ export function useNotePublish({
       ...additionalTags
     ];
 
-    // Create content with images
-    let articleContent = content.trim();
-    if (imageFiles.length > 0) {
-      articleContent += '\n\n'; // Add spacing before images
-      imageFiles.forEach((file, index) => {
-        articleContent += `\n![Titelbild ${index + 1}](${URL.createObjectURL(file)})`;
-      });
-    }
+    // Content: reiner Text. Der frühere Anhang von blob:-URLs für
+    // hochgeladene Bilder war TOTER CODE — der „Bilder zuerst hochladen"-
+    // Guard oben erzwingt imageFiles.length === 0 vor dieser Stelle. Falls
+    // der Guard je geändert wird: blob:-URLs gehören NIEMALS in den Content
+    // (Fix #5-Parallele, siehe useArticlePublish/usePlacePublish).
+    const articleContent = content.trim();
 
     publishEvent({
       kind: 1, // Note
