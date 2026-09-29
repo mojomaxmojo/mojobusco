@@ -13,7 +13,7 @@
   separate Relays mit eigenen DBs. `DB_ENGINE="badger"` → siehe Abschnitt
   „Relay-Queries & Paginierung" (Quarter-Cap).
 - **Repo**: https://github.com/mojomaxmojo/mojobusco
-- **Server**: AlmaLinux 9.7 CentminMod (yum), Nginx, Node.js, Brotli
+- **Server**: AlmaLinux 9.8 CentminMod (yum), Nginx, Node.js, Brotli
 - **AI-API**: Systemd-Service `ai-api`, Port 3002 (`server/`)
 - **Cron**: node.sh-Pipeline (site-data → prerender → sitemap → feed) läuft
   **alle 3 h** (`0 */3` – 6:00, 9:00, 12:00, …), RSS-Feeds alle 6h
