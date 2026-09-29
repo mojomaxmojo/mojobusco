@@ -398,12 +398,14 @@ export function useArticlePublish({
       if (hubPlanId.trim()) {
         additionalTags.push([PLAN_TAG, hubPlanId.trim()]);
       }
-      // Pillar-Zusatz (Phase 2, PLAN_DESTINATIONS_ADMIN.md): t=hub Hashtag nur
-      // am Haupt-Pillar → generate-site-data erkennt ihn als Pillar der
-      // Destination auf /reiseziele
-      if (isDestinationHub && hubPlanId.trim()) {
-        additionalTags.push(['t', HUB_TAG]);
-      }
+// Pillar-Zusatz (Phase 2, PLAN_DESTINATIONS_ADMIN.md): t=hub Hashtag nur
+        // am Haupt-Pillar → generate-site-data erkennt ihn als Pillar der
+        // Destination auf /reiseziele
+        // Fix #7: kein doppeltes t=hub — beim Edit sind die Event-t-Tags
+        // (inkl. hub) bereits über displayTags → baseTags geladen
+        if (isDestinationHub && hubPlanId.trim() && !displayTags.includes(HUB_TAG)) {
+          additionalTags.push(['t', HUB_TAG]);
+        }
 
       // Add GPS tags from title image
       if (imageGps) {
