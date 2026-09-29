@@ -197,7 +197,20 @@ export function useMediaPublish({ files, title, description, customTags,
 
       // Add location and date tags
       if (location) additionalTags.push(['location', location]);
-      if (date) additionalTags.push(['published_at', date]);
+
+      // Fix: published_at als UNIX-TIMESTAMP (Sekunden) — konsistent zu
+      // ArticleForm/PlaceForm. Vorher landete der rohe Datums-String des
+      // <input type="date"> („2026-09-29") im Tag; Number()-Konsumenten
+      // (z. B. Sortierung via Number(published_at) in prerender-helpers)
+      // mussten auf created_at zurückfallen.
+      let publishedAtTimestamp: string | null = null;
+      if (date) {
+        const ms = new Date(date).getTime();
+        if (Number.isFinite(ms)) {
+          publishedAtTimestamp = Math.floor(ms / 1000).toString();
+        }
+      }
+      if (publishedAtTimestamp) additionalTags.push(['published_at', publishedAtTimestamp]);
 
       // Final tag array - includes #mojobus
       const tags = [
@@ -233,7 +246,7 @@ export function useMediaPublish({ files, title, description, customTags,
           kind: 1,
           location,
           country: selectedCountry,
-          publishedAt: date,
+          publishedAt: publishedAtTimestamp ?? undefined,
           content,
           url: publishedEvent.id ? canonicalUrl(imageUrl(nip19.noteEncode(publishedEvent.id))) : undefined,
         });

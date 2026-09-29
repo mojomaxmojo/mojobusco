@@ -284,8 +284,13 @@ export function MediaUploadForm({ editEvent }: { editEvent?: NostrEvent }) {
         setSelectedCountry(foundCountry);
       }
     } else {
-      // Bei neuen Beiträgen: aktuelles Datum setzen
-      setDate(''); // Wird im useEffect neu auf aktuelles Datum gesetzt
+      // Bei neuen Beiträgen: aktuelles Datum setzen (Fix — der frühere
+      // Kommentar „Wird im useEffect neu gesetzt" beschrieb einen nicht
+      // existierenden Effect; ohne Datum bekamen Media-Posts GAR KEIN
+      // published_at-Tag). Lokales Datum passend zum <input type="date">.
+      const now = new Date();
+      const pad = (n: number) => String(n).padStart(2, '0');
+      setDate(`${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`);
     }
   }, [editEvent]);
 
