@@ -307,6 +307,19 @@ export function useArticlePublish({
       return;
     }
 
+    // Fix #5: blob:-URLs (laufender oder fehlgeschlagener Titelbild-Upload)
+    // niemals veröffentlichen — das Bild wäre für alle anderen Nostr-Clients
+    // und im Web tot. handleArticleImageUpload setzt vor dem Blossom-Upload
+    // eine lokale blob:-Preview; der echte Upload kann daran scheitern.
+    if (image.trim().startsWith('blob:')) {
+      toast({
+        title: 'Titelbild-Upload unvollständig',
+        description: 'Das Titelbild wurde nicht hochgeladen. Bitte erneut hochladen oder entfernen.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     // Doppel-Publish-Guard (Fix #3): Der Button ist ab jetzt disabled.
     // Ohne Guard war ein Doppelklick während des 30023-Publish (bis 15s)
     // möglich → zwei Artikel mit verschiedenen Date.now()-d-Tags.

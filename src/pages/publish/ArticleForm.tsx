@@ -1087,9 +1087,10 @@ Schreibe deinen Artikel hier...
           </div>
         </div>
         {/* ── 6. VERÖFFENTLICHEN ─────────────────────────────────────── */}
-        {/* 🎞️ Slideshow Generator */}
+        {/* 🎞️ Slideshow Generator — Fix #5: blob:-Preview-URLs filtern, sonst
+            schlägt der Server-Fetch der Slideshow fehl (blob: existiert nur lokal) */}
         <SlideshowBlock
-          imageUrls={[...(image ? [image] : []), ...extractImageUrlsFromMarkdown(content)]}
+          imageUrls={[...(image && !image.startsWith('blob:') ? [image] : []), ...extractImageUrlsFromMarkdown(content)]}
           lifestyle={lifestyle}
           title={title || 'bericht'}
         />
@@ -1166,10 +1167,10 @@ Schreibe deinen Artikel hier...
         <Button
           onClick={handleSubmit}
           className="w-full"
-          disabled={!title.trim() || !content.trim() || isPublishing || isPublishingTeaser || !experiencesConfirmed}
+          disabled={!title.trim() || !content.trim() || isUploading || isPublishing || isPublishingTeaser || !experiencesConfirmed}
         >
           <FileText className="h-4 w-4 mr-2" />
-          {(isPublishing || isPublishingTeaser) ? 'Wird veröffentlicht...' : (editEvent ? 'Bericht aktualisieren' : 'Bericht veröffentlichen')}
+          {isUploading ? 'Bild wird hochgeladen...' : (isPublishing || isPublishingTeaser) ? 'Wird veröffentlicht...' : (editEvent ? 'Bericht aktualisieren' : 'Bericht veröffentlichen')}
         </Button>
 
         <Dialog open={showMediaLibrary} onOpenChange={setShowMediaLibrary}>
