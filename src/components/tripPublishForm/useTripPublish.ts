@@ -10,6 +10,7 @@ import { buildWaypointTags, buildImageTags, calculateTotalDistance, buildTripCon
 import { canonicalUrl, tripUrl, canonicalNaddr } from '@/lib/canonicalUrl'
 import { createLongformTeaser } from '@/lib/createLongformTeaser'
 import { notifyPublishedPipeline } from '@/lib/publishNotify'
+import { getErrorMessage } from '@/lib/utils'
 import { AUTO_TRANSLATE_STORAGE_KEY } from '@/config/translation'
 import { useToast } from '@/hooks/useToast'
 import { useNostrPublish } from '@/hooks/useNostrPublish'
@@ -160,7 +161,7 @@ export function useTripPublish({
         }
 
         return true;
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('[Trip Publish] Error:', error);
 
         // Retry up to 3 times
@@ -176,7 +177,7 @@ export function useTripPublish({
 
         toast({
           title: 'Fehler beim Veröffentlichen',
-          description: `Der Trip konnte nicht veröffentlicht werden: ${error?.message || 'Unbekannter Fehler'}. Bitte versuche es später erneut.`,
+          description: `Der Trip konnte nicht veröffentlicht werden: ${getErrorMessage(error) || 'Unbekannter Fehler'}. Bitte versuche es später erneut.`,
           variant: 'destructive',
         });
         return false;
@@ -244,9 +245,9 @@ export function useTripPublish({
           title: '✅ Teaser-Note veröffentlicht!',
           description: 'Erscheint im Nostr-Feed bei Primal, Amethyst & Damus',
         });
-      } catch (teaserErr: any) {
-        const errorMessage = teaserErr?.message || 'Unbekannter Fehler';
-        const errorStack = teaserErr?.stack || '';
+      } catch (teaserErr: unknown) {
+        const errorMessage = getErrorMessage(teaserErr) || 'Unbekannter Fehler';
+        const errorStack = teaserErr instanceof Error ? teaserErr.stack || '' : '';
         console.error(`${teaserLoggerPrefix} Teaser-Post fehlgeschlagen:`, teaserErr);
         console.error(`${teaserLoggerPrefix} Details:`, {
           message: errorMessage,

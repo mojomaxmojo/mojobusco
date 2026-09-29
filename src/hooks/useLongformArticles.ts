@@ -5,7 +5,7 @@ import { usePreloadedData } from '@/hooks/usePreloadedData';
 import { NOSTR_CONFIG } from '@/config/nostr';
 import { DEFAULT_CACHE_CONFIG } from '@/config/cache';
 import { DEFAULT_PERFORMANCE_CONFIG, FIRST_PAINT_CONFIG } from '@/config/performance';
-import type { NostrEvent } from '@nostrify/nostrify';
+import type { NostrEvent, NostrFilter } from '@nostrify/nostrify';
 
 /**
  * Validiert ein Longform Artikel Event (NIP-23) oder Platz Event.
@@ -185,7 +185,7 @@ export function useLongformArticles(options?: {
       // = FIRST_PAINT_CONFIG.progressiveTimeout.
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(FIRST_PAINT_CONFIG.progressiveTimeout)]);
 
-      const filter: any = {
+      const filter: NostrFilter = {
         kinds: options?.kinds || [NOSTR_CONFIG.kinds.longform],
         authors: options?.authors || NOSTR_CONFIG.authorPubkeys,
         limit: options?.limit || 100,
@@ -227,7 +227,7 @@ export function useLongformArticles(options?: {
 export function useInfiniteLongformArticles(options?: {
   kinds?: number[];
   '#t'?: string[];
-  authors?: number[];
+  authors?: string[];
 }) {
   const { nostr } = useNostr();
 
@@ -238,7 +238,7 @@ export function useInfiniteLongformArticles(options?: {
       // Config-Ausmistung undefined (AbortSignal.timeout(NaN) = sofortiger Abbruch).
       const abortSignal = AbortSignal.any([signal!, AbortSignal.timeout(FIRST_PAINT_CONFIG.progressiveTimeout)]);
 
-      const filter: any = {
+      const filter: NostrFilter = {
         kinds: options?.kinds || [NOSTR_CONFIG.kinds.longform],
         authors: options?.authors || NOSTR_CONFIG.authorPubkeys,
         limit: DEFAULT_PERFORMANCE_CONFIG.infiniteScroll.itemsPerPage * 2, // 30 Events statt 15
