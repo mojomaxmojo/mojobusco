@@ -4,8 +4,10 @@
  * WP2 (PLAN_PILLAR_LINKS.md): Zeigt pro Plan, wie viele Plan-Artikel der
  * Pillar bereits im Fließtext verlinkt — „Pillar verlinkt X von Y" + die
  * fehlende Liste. Button „Pillar-Update vorbereiten" öffnet den Pillar im
- * bestehenden Edit-Flow (/veroeffentlichen?edit=<event-id>&type=article);
- * WP3 übergibt dort das Vorschlags-Panel (SessionStorage-Handover).
+ * bestehenden Edit-Flow (/veroeffentlichen?edit=<naddr>&type=article —
+ * canonical naddr, damit stets die aktuelle Version des Replaceable Events
+ * geladen wird); WP3 übergibt dort das Vorschlags-Panel (SessionStorage-
+ * Handover).
  *
  * Daten:
  *  - Plan-Artikel + Pillar: /data/articles.json (Artikel mit plan=<planId>;
@@ -165,7 +167,11 @@ export function HubStatusBlock({ planId }: HubStatusBlockProps) {
       <Button
         size="sm"
         variant="outline"
-        onClick={() => navigate(`/veroeffentlichen?edit=${status.pillar?.id}&type=article`)}
+        // Edit als Replaceable Content: canonical naddr statt hex Event-ID —
+        // der Edit-Flow lädt immer die aktuelle Version des Pillar (kind 30023)
+        onClick={() => {
+          if (status.pillar) navigate(`/veroeffentlichen?edit=${canonicalNaddrOf(status.pillar)}&type=article`);
+        }}
       >
         Pillar-Update vorbereiten
       </Button>

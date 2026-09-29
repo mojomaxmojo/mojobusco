@@ -638,6 +638,17 @@ export function ArticleView({ naddr }: ArticleViewProps) {
   const authorName = author.data?.metadata?.name || genUserName(article.pubkey);
   const authorAvatar = author.data?.metadata?.picture;
 
+  // Edit-Referenz als canonical naddr (Replaceable Content): lädt immer die
+  // AKTUELLE Version des addressable Events (kind 30023). Die bisherige hex-
+  // Event-ID veraltet bei jedem Republish (neue Event-ID) → der Edit-Link
+  // würde die veraltete Vorversion ins Formular laden. useEditData löst
+  // naddr per authors + kinds + #d auf und bekommt so stets den Live-Stand.
+  const editNaddr = canonicalNaddr({
+    kind: article.kind,
+    pubkey: article.pubkey,
+    identifier: article.tags.find(([name]) => name === 'd')?.[1] || '',
+  });
+
   // Extract location and type from article
   const locationTag = article?.tags.find(([name]) => name === 'location');
   const typeTag = article?.tags.find(([name]) => name === 'type');
@@ -680,7 +691,7 @@ export function ArticleView({ naddr }: ArticleViewProps) {
               {isAuthor && (
                 <div className="flex gap-2 mb-4">
                   <Button asChild variant="outline" size="sm">
-                    <Link to={`/veroeffentlichen?edit=${article.id}&type=${isPlace ? 'place' : 'article'}`}>
+                    <Link to={`/veroeffentlichen?edit=${editNaddr}&type=${isPlace ? 'place' : 'article'}`}>
                       <Edit className="h-4 w-4 mr-2" />
                       Bearbeiten
                     </Link>
