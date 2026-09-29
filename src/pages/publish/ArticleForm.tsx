@@ -168,27 +168,12 @@ export function ArticleForm({ editEvent, onSendToTab }: {
   });
 
   const {
-    videoEnabled, setVideoEnabled,
-    isGeneratingVideo, setIsGeneratingVideo,
-    generatedVideoUrl, setGeneratedVideoUrl,
-    videoJobId, setVideoJobId,
-    videoProgress, setVideoProgress,
-    videoDuration, setVideoDuration,
-    videoAspect, setVideoAspect,
-    videoMode, setVideoMode,
-    generateVideoWithRunway,
-    embedVideoInArticle,
-    slideshowEnabled, setSlideshowEnabled,
-    slideshowMusicMode, setSlideshowMusicMode,
-    slideshowAspect, setSlideshowAspect,
-    slideshowImgDuration, setSlideshowImgDuration,
-    isGeneratingSlideshow, setIsGeneratingSlideshow,
-    slideshowJobId, setSlideshowJobId,
-    slideshowProgress, setSlideshowProgress,
-    slideshowStatus, setSlideshowStatus,
-    slideshowVideoUrl, setSlideshowVideoUrl,
-    generateSlideshow,
-    embedSlideshowInArticle,
+    // Nur die Werte, die der Berichte-Flow tatsächlich nutzt (Teaser-Video-
+    // URLs an useArticlePublish). Der Grok-Video-Generator im Hook hat
+    // laut PLAN.md bewusst kein UI — sein State bleibt im Hook (1:1-
+    // Mitführung), wird hier aber nicht mehr destrukturiert.
+    generatedVideoUrl,
+    slideshowVideoUrl,
   } = useArticleMediaGenerators({
     image, content, title, summary, location, selectedCountry, lifestyle, tags,
     toast, uploadFile, setContent,
