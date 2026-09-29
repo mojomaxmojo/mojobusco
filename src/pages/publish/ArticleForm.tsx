@@ -319,6 +319,11 @@ export function ArticleForm({ editEvent, onSendToTab }: {
   useEffect(() => {
     if (editEvent) {
       // Bei bearbeiteten Beiträgen: Daten aus dem Event laden
+      // Fix #9: Beim Edit keinen Teaser automatisch posten — sonst floodet
+      // jeder Republish den Feed mit identischen kind-1-Teasern (Notes sind
+      // nicht addressable → kein Dedupe möglich). Bewusst einschaltbar
+      // über den Switch oberhalb des Publish-Buttons.
+      setPublishTeaserNote(false);
       setTitle(getTagValue(editEvent, 'title') || '');
       setSummary(getTagValue(editEvent, 'summary') || '');
 
@@ -389,6 +394,8 @@ export function ArticleForm({ editEvent, onSendToTab }: {
       // Fix #4: Wechsel Edit → Neu (editEvent wurde geleert) — Auto-Fill
       // wieder erlauben, sonst bliebe die Suppression aus dem Edit-Modus aktiv
       skipLocationAutoFillRef.current = false;
+      // Fix #9: Teaser-Default für neue Beiträge wieder aktiv
+      setPublishTeaserNote(true);
     }
   }, [editEvent]);
 
