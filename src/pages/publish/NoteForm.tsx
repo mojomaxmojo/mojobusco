@@ -45,7 +45,6 @@ export function NoteForm({ editEvent }: { editEvent?: NostrEvent }) {
   const [tags, setTags] = useState<string[]>([]);
   const [location, setLocation] = useState('');
   const [selectedCountry, setSelectedCountry] = useState<string>('');
-  const [isPublic, setIsPublic] = useState(true);
   const {
     imageGpsData, imageGpsStatuses, setImageGpsData, setImageGpsStatuses,
     editingGpsImage, showMapPicker, setShowMapPicker,
@@ -395,21 +394,14 @@ export function NoteForm({ editEvent }: { editEvent?: NostrEvent }) {
           />
         </div>
 
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="note-public"
-              checked={isPublic}
-              onCheckedChange={setIsPublic}
-            />
-            <Label htmlFor="note-public">Öffentlich sichtbar</Label>
-          </div>
-
-          <ExperiencesConfirm
-            checked={experiencesConfirmed}
-            onChange={setExperiencesConfirmed}
-          />
-        </div>
+        {/* Ehrlichkeits-Gate (Pflicht-Checkbox, Publish-Button ohne Haken
+            gesperrt). Das frühere „Öffentlich sichtbar"-Toggle war entfernt
+            worden: der isPublic-State wurde nirgends im Publish verwendet —
+            alle /veroeffentlichen-Posts sind öffentlich (Nostr + Website). */}
+        <ExperiencesConfirm
+          checked={experiencesConfirmed}
+          onChange={setExperiencesConfirmed}
+        />
 
           <Button onClick={handleSubmit} disabled={!content || isPublishing || isUploadingImages || !experiencesConfirmed}>
             {isPublishing ? (
