@@ -136,9 +136,11 @@ export function SeoPublishPanel({
         />
       </div>
 
-      {/* Slug (auto aus Titel, editierbar) */}
+      {/* Slug — bewusst als DOKUMENTATION gekennzeichnet: Der slug-Tag wird
+          beim Publish gesetzt, beeinflusst aber KEINE URLs (die Seite nutzt
+          naddr-basierte canonical URLs, kein Consumer liest den Slug). */}
       <div className="space-y-1">
-        <Label htmlFor="seo-slug" className="text-xs">Slug</Label>
+        <Label htmlFor="seo-slug" className="text-xs">Slug (nur Dokumentation)</Label>
         <Input
           id="seo-slug"
           value={slug}
@@ -146,6 +148,10 @@ export function SeoPublishPanel({
           placeholder={autoSlug || 'slug-aus-titel'}
           className="text-sm"
         />
+        <p className="text-[11px] text-muted-foreground">
+          Wird als slug-Tag gespeichert, hat aber keine Auswirkung auf die URL —
+          Artikel-URLs sind naddr-basiert (mojobus.co/&#123;naddr&#125;).
+        </p>
       </div>
 
       {/* Erlebnisse-Pflicht-Checkbox */}

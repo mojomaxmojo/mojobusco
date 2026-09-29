@@ -90,16 +90,15 @@ export function computeSeoChecks(input: SeoChecklistInput): CheckItem[] {
   }
 
   // ── Slug ───────────────────────────────────────────────
+  // Bewusst KEINE Bewertung: Der slug-Tag ist reine Dokumentation/Metadaten —
+  // die URLs der Seite sind naddr-basiert (/{naddr}), kein Consumer liest den
+  // Slug (Stand 2026-09). Der Eintrag dokumentiert nur den gesetzten Wert.
   const slug = effectiveSlug.trim();
   if (!slug) {
-    checks.push({ label: 'Slug', status: 'neutral', detail: 'Nicht gesetzt' });
+    checks.push({ label: 'Slug (Doku)', status: 'neutral', detail: 'Nicht gesetzt — bleibt leer, keine Auswirkung' });
   } else {
     const words = slug.split('-').filter(Boolean).length;
-    if (words > 6 || slug.length > 80) {
-      checks.push({ label: 'Slug', status: 'warn', detail: `${words} Wörter · ${slug.length} Zeichen — kürzen empfohlen` });
-    } else {
-      checks.push({ label: 'Slug', status: 'ok', detail: `${words} Wörter · ${slug.length} Zeichen` });
-    }
+    checks.push({ label: 'Slug (Doku)', status: 'neutral', detail: `${words} Wörter · ${slug.length} Zeichen — nur Metadatum, URLs sind naddr-basiert` });
   }
 
   // ── Interne Links ──────────────────────────────────────
