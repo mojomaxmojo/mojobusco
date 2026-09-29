@@ -65,6 +65,10 @@ function typeEmoji(type: LongformTeaserType): string {
 function buildSummary(body: string, explicitSummary?: string): string {
   const base = (explicitSummary ?? body)
     .replace(/!\[.*?\]\(.*?\)/g, '')
+    // Markdown-Links → nur der Link-Text. Ohne diesen Schritt landeten bei
+    // Artikeln ohne Summary-Feld URL-Reste wie „Anleitung (https://…)" in
+    // der 150-Zeichen-Teaser-Summary und fraßen das Zeichenbudget auf.
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
     .replace(/^#{1,6}\s+/gm, '')
     .replace(/\*\*|__|\*|_|~~|`/g, '')
     .replace(/<[^>]+>/g, '')
