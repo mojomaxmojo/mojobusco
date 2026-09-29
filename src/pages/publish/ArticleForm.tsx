@@ -27,7 +27,6 @@ import { RV_LIFE_CONFIG } from "@/config/rvlife";
 import { STRANDORT_CONFIG } from "@/config/strandort";
 import { AUTO_TRANSLATE_STORAGE_KEY } from "@/config/translation";
 import { MilkdownEditor } from "@/components/MilkdownEditor";
-import { RemotionVideoBlock } from "@/components/RemotionVideoBlock";
 import { SlideshowBlock } from "@/components/SlideshowBlock";
 import { Progress } from "@/components/ui/progress";
 import { Upload, UploadCloud, Video, Music, File as FileIcon, Camera, Calendar, Tag, Battery, Sun, Wrench, Hammer, Cpu, Mountain, Lightbulb, Dog, Trees, Droplets, Waves, Eye, Loader2, CheckCircle, Route, Sparkles, FileText, MessageSquare, Map, Info } from "@/lib/icons";
