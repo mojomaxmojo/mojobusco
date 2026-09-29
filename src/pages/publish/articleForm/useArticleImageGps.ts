@@ -14,7 +14,7 @@
  * EXIF-rotierte Vorschau funktioniert damit erstmals wirklich.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import exifr from "exifr";
 import { extractGpsFromImage, extractCaptureTime, reverseGeocode, mapCountryCode, type GpsData, type GpsStatus } from "@/lib/gpsExtraction";
 import { createCorrectedPreview } from "../publishUtils";
@@ -58,6 +58,15 @@ export function useArticleImageGps({
   const [isUploading, setIsUploading] = useState(false);
   // Bild-Metadaten (Alt-Text/Caption/Freitext) aus dem MilkdownEditor, keyed by Bild-URL
   const [imageMetaMap, setImageMetaMap] = useState<Record<string, { alt?: string; caption?: string; note?: string }>>({});
+
+  // Fix #10: aktueller selectedCountry per Ref — der Auto-Fill-Effect lauscht
+  // nur auf imageGps/imageGpsStatus; die Closure darin hielt sonst einen
+  // veralteten selectedCountry und konnte eine inzwischen manuell gewählte
+  // Landes-Auswahl überschreiben
+  const selectedCountryRef = useRef(selectedCountry);
+  useEffect(() => {
+    selectedCountryRef.current = selectedCountry;
+  }, [selectedCountry]);
 
   // GPS Handler for Article Form (Title Image Only)
   const handleArticleImageUpload = async (file: File) => {
@@ -154,6 +163,10 @@ export function useArticleImageGps({
 
    // Auto-fill location from GPS data
    useEffect(() => {
+     // Fix #10: Race-Guard — läuft der User zwischen Effect-Start und
+     // Geocoding-Antwort manuell ins GPS/Standort-Feld, wird das veraltete
+     // Ergebnis verworfen (Cleanup bei Dep-Änderung setzt cancelled)
+     let cancelled = false;
      const autoFillLocation = async () => {
        if (imageGps) {
          // Fix #4: Im Edit-Modus (location aus Event geladen) das Standort-
@@ -163,8 +176,17 @@ export function useArticleImageGps({
            console.log('[Article GPS] Auto-Fill übersprungen (Edit: geladener Standort hat Vorrang)');
            return;
          }
+         // Fix #10: Manuelles GPS (GpsEditor, Status 'manual') ist User-
+         // Kontrolle — das Standort-Feld wird nicht mehr automatisch mit
+         // frischem Reverse-Geocoding überschrieben (auch nicht eine manuell
+         // eingetragene Location).
+         if (imageGpsStatus === 'manual') {
+           console.log('[Article GPS] Auto-Fill übersprungen (manuelles GPS — Standort-Feld bleibt)');
+           return;
+         }
          console.log('[Article GPS] GPS detected, reverse geocoding...');
          const locationData = await reverseGeocode(imageGps.latitude, imageGps.longitude);
+         if (cancelled) return;
          if (locationData) {
            // Set location to city + neighbourhood/suburb (no postcode)
            const locationParts = [
@@ -177,8 +199,9 @@ export function useArticleImageGps({
            console.log('[Article GPS] Location found:', loc);
 
            // Auto-fill country if detected
+           // Fix #10: Ref statt stale Closure (siehe selectedCountryRef oben)
            const country = mapCountryCode(locationData);
-           if (country && !selectedCountry) {
+           if (country && !selectedCountryRef.current) {
              setSelectedCountry(country);
              console.log('[Article GPS] Country auto-filled:', country);
            }
@@ -187,7 +210,8 @@ export function useArticleImageGps({
      };
 
      autoFillLocation();
-   }, [imageGps]);
+     return () => { cancelled = true; };
+   }, [imageGps, imageGpsStatus]);
 
   const handleImageUpload = async (file: File) => {
     setIsUploading(true);
