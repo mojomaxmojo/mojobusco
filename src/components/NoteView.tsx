@@ -18,7 +18,7 @@ import { SocialBar } from '@/components/SocialBar';
 import { extractNoteTags, extractNoteImages } from '@/hooks/useNotes';
 import { canonicalUrl as getCanonicalUrl, noteUrl, profileUrl, ogImageUrl } from '@/lib/canonicalUrl';
 import { getEventLanguage } from '@/lib/translationTags';
-import { Calendar, ArrowLeft, Hash, Edit, Trash2, MapPin, ExternalLink } from 'lucide-react';
+import { Calendar, ArrowLeft, Hash, Trash2, MapPin, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import NotFound from '@/pages/NotFound';
 import {
@@ -362,11 +362,10 @@ export function NoteView({ eventId }: NoteViewProps) {
                 </div>
                 {isAuthor && (
                   <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link to={`/note/${eventId}/edit`}>
-                        <Edit className="h-4 w-4" />
-                      </Link>
-                    </Button>
+                    {/* Bewusst KEIN Bearbeiten-Button: Notes sind kind 1 (nicht
+                        replaceable) — ein „Edit" würde ein NEUES Event publishen
+                        und das Original als Duplikat zurücklassen. Löschen
+                        (kind 5) ist der einzige Weg, eine Note zu entfernen. */}
                     <Button
                       variant="ghost"
                       size="sm"
