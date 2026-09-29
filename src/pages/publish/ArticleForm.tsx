@@ -427,7 +427,7 @@ export function ArticleForm({ editEvent, onSendToTab }: {
     setImageGps, setImageCapturedAt, setImageGpsStatus, setEditingImageGps,
     setImageMetaMap,
     setArticleLength, setTripType, setLifestyle, setResearchFacts,
-    setExperienceNotes,
+    setExperienceNotes, setIsDestinationHub, setHubPlanId,
     // Teaser-Indikator
     setIsPublishingTeaser,
     // Publish-Guard (Fix #3)

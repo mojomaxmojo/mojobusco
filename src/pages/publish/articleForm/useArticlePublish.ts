@@ -113,6 +113,11 @@ interface UseArticlePublishParams {
   setLifestyle: Dispatch<SetStateAction<ArticleLifestyle>>;
   setResearchFacts: (v: string) => void;
   setExperienceNotes: (v: string) => void;
+  // Fix #11: Reset der Reiseziel-Zuordnung — ohne Setter bliebe der plan-Tag
+  // und das Hub-Flag im nächsten Artikel erhalten (geerbter Slug/plan-Tag
+  // → Duplicate-Content, falsche Zuordnung)
+  setIsDestinationHub: (v: boolean) => void;
+  setHubPlanId: (v: string) => void;
   // Teaser-Publish-Indikator (State bleibt in ArticleForm, Setter wird weitergereicht)
   setIsPublishingTeaser: (v: boolean) => void;
   // Publish-Guard (Fix #3): ab Validierung bis Flow-Ende true → Button disabled,
@@ -187,6 +192,8 @@ export function useArticlePublish({
   setLifestyle,
   setResearchFacts,
   setExperienceNotes,
+  setIsDestinationHub,
+  setHubPlanId,
   setIsPublishingTeaser,
   setIsPublishing,
   navigate,
@@ -548,6 +555,20 @@ export function useArticlePublish({
       setImageGpsStatus('not_found');
       setEditingImageGps(false);
       setImageMetaMap({});
+
+      // Fix #11: Kompletter Reset — SEO-Felder, Assistent-Inputs (FAKTEN/
+      // ERLEBNISSE) und die Reiseziel-Zuordnung werden sonst in den
+      // nächsten Artikel vererbt (geerbter Slug → Duplicate-Content,
+      // geerbte plan-Zuordnung/Hub-Flag → falsche Kategorisierung). Der
+      // 1s-Redirect maskierte das meist — der Code ist jetzt auch dann
+      // korrekt, wenn die Navigation nicht sofort erfolgt.
+      setSeoTitle('');
+      setSeoMetaDescription('');
+      setSeoSlug('');
+      setResearchFacts('');
+      setExperienceNotes('');
+      setIsDestinationHub(false);
+      setHubPlanId('');
 
       setTimeout(() => {
         navigate('/artikel');
