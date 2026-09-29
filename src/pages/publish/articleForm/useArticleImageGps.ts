@@ -123,6 +123,13 @@ export function useArticleImageGps({
       if (uploadedUrl) {
         setImage(uploadedUrl); // Überschreibt blob:// mit der echten URL
         console.log(`[Article Upload] Titelbild hochgeladen: ${uploadedUrl}`);
+        // Hygiene: Die blob:-Preview wird nach ihrer Ablösung durch die
+        // echte URL freigegeben — ohne revoke hielt der Browser das volle
+        // Bild (mehrere MB bei Handyfotos) bis zum Seiten-Ende im Speicher,
+        // obwohl es nirgends mehr angezeigt wird.
+        if (correctedPreviewUrl?.startsWith('blob:')) {
+          URL.revokeObjectURL(correctedPreviewUrl);
+        }
       }
 
       // Extract GPS from title image
