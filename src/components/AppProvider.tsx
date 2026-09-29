@@ -2,7 +2,7 @@ import { ReactNode, useEffect } from 'react';
 import { z } from 'zod';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { AppContext, type AppConfig, type AppContextType, type Theme } from '@/contexts/AppContext';
-import { RELAYS, type RelayConfig } from '@/config/relays';
+import { APP_CONFIG_VERSION, RELAYS, type RelayConfig } from '@/config/relays';
 
 interface AppProviderProps {
   children: ReactNode;
@@ -32,6 +32,9 @@ const AppConfigSchema: z.ZodType<AppConfig, z.ZodTypeDef, unknown> = z.object({
 
   // Shared Configuration
   enableDeduplication: z.boolean(),
+
+  // Config-Format-Version (Migration-Trigger, siehe APP_CONFIG_VERSION)
+  cfgVer: z.number().int().optional(),
 
   // LEGACY fields (for backward compatibility)
   relayUrls: z.array(z.string().url()).min(1).optional(),
@@ -93,6 +96,22 @@ export function AppProvider(props: AppProviderProps) {
                 write: parsed.write,
               },
             });
+          }
+
+          // ── CONFIG-MIGRATION (cfgVer) ─────────────────────────────────────
+          // Änderungen an den Standard-Read-Relays erreichen Bestandsbesucher
+          // sonst nie: Ihre Config klebt im localStorage und der alte Default
+          // wird nicht mehr angefasst. Bei cfgVer < APP_CONFIG_VERSION wird
+          // read EINMALIG auf den neuen Default gesetzt (v2: primal.net aus
+          // dem Read-Pool, Begründung in src/config/relays.ts). Danach gilt
+          // die gespeicherte Config wieder unverändert — auch ein im Settings-
+          // UI manuell gewähltes Preset bleibt erhalten (cfgVer wird
+          // mitgespeichert). Läuft idempotent durch, bis ein setValue die
+          // migrierte Version zurückschreibt.
+          if (!parsed.cfgVer || parsed.cfgVer < APP_CONFIG_VERSION) {
+            console.log(`[AppProvider] Config-Migration: v${parsed.cfgVer ?? 0} → v${APP_CONFIG_VERSION} (read-Relays auf neuen Default gesetzt)`);
+            parsed.read = defaultConfig.read;
+            parsed.cfgVer = APP_CONFIG_VERSION;
           }
 
           return AppConfigSchema.parse(parsed);

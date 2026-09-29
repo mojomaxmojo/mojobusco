@@ -17,9 +17,10 @@
 - **AI-API**: Systemd-Service `ai-api`, Port 3002 (`server/`)
 - **Cron**: node.sh-Pipeline (site-data → prerender → sitemap → feed) läuft
   **alle 3 h** (`0 */3` – 6:00, 9:00, 12:00, …), RSS-Feeds alle 6h
-- **Sitemaps**: `sitemap.xml` (Haupt) + `sitemap-videos.xml` (Video). Das Repo
-  enthält statische Fallback-Versionen in `public/` – jeder Deploy liefert
-  also valides XML; der Cron überschreibt mit den dynamischen Vollversionen.
+- **Sitemaps**: `sitemap.xml` (Haupt) + `sitemap-videos.xml` (Video). Statische
+  Fallback-Versionen sind aus dem Repo entfernt (2026-09-29) — valides XML
+  entsteht nach jedem Deploy durch `run_seo_pipeline()` (siehe unten), der
+  Cron überschreibt danach mit den dynamischen Vollversionen.
   Die Video-Sitemap enthält immer mind. einen `<url>`-Eintrag (`/videos`),
   weil Google eine leere `urlset` als Fehler („Fehlendes XML-Tag") meldet.
   `lastmod` ist bei ALLEN statischen Seiten gesetzt (Freshness-Signal).
@@ -90,6 +91,18 @@
   (Skip: `--skip-seo`, Permissions werden nachgezogen). Die veralteten
   `public/sitemap*.xml` im Repo sind entfernt — kein Deploy überschreibt
   mehr die live-generierten Sitemaps mit dem alten Format.
+- **Relay-Ausfälle & Dead-Relay-Cache (2026-09-29)**: relay.primal.net
+  connected zeitweise, beantwortet Queries aber stumm GAR NICHT (WS öffnet,
+  weder EVENT noch EOSE — statt sauber zu failen). `queryRelay()`
+  (`prerender-helpers.js`) markiert ein solches Relay nach dem ersten
+  Connect-/EOSE-Timeout für 15 Min (Dead-Cache, gilt pro Skript-Prozess) und
+  überspringt weitere Queries sofort — vorher verbrannte ein site-data-Lauf
+  6 × 20 s = 120 s allein auf primal (121,3s gesamt statt ~15s). Passend
+  dazu nutzt der SPA-Read-Pool primal nicht mehr (Migration v2, siehe
+  `APP_CONFIG_VERSION` in `src/config/relays.ts`): Alle Live-Queries der
+  Website (Detail-Volltext, Likes/Zaps/Kommentare) laufen nur noch gegen
+  relay.mojobus.co. Kein Inhaltsverlust — mojobus.co ist das einzige
+  Write-Target der Autoren.
 
 ---
 
@@ -413,7 +426,7 @@ neu generieren.
 ## Prerender + SW Cache-System
 
 **Ablauf**:
-1. Cron alle 3h :00 → `generate-site-data.js` → JSON-Dumps `/data/` (inkl. `sitemap-events.json`, Laufzeit ~5–20 s, paginiert)
+1. Cron alle 3h :00 → `generate-site-data.js` → JSON-Dumps `/data/` (inkl. `sitemap-events.json`, Laufzeit ~5–20 s healthy, ~25–30 s wenn ein Relay im Dead-Cache landet, paginiert)
 2. Cron alle 3h :05 → `prerender-static.js` → HTML mit NIP-19 Dateinamen (Laufzeit wächst mit Seitenzahl, paginierte Voll-Abfrage)
 3. Cron alle 3h :10 → `generate-sitemap.js` → `sitemap.xml`/`sitemap-videos.xml`
 4. Cron alle 3h :15 → `generate-feed.js` → `feed.xml` (DE) + `feed-en.xml` (EN)

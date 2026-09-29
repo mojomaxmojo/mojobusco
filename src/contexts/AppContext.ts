@@ -40,6 +40,14 @@ export interface AppConfig {
   /** Enable event deduplication */
   enableDeduplication: boolean;
 
+  /**
+   * Config-Format-Version (Migration-Trigger).
+   * Ältere localStorage-Configs werden in AppProvider (deserialize) einmalig
+   * auf die aktuelle Version migriert — z. B. v2: primal.net aus dem
+   * Read-Pool (Single Source: APP_CONFIG_VERSION in src/config/relays.ts).
+   */
+  cfgVer?: number;
+
   /** ============================================================================
    * LEGACY FIELDS (for backward compatibility)
    * ============================================================================

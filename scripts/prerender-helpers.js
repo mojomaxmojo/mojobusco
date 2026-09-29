@@ -32,6 +32,18 @@ export const PAGE_SIZE = (() => {
 })();
 const MAX_PAGES_PER_QUERY = 200; // Schutz gegen Endlos-Walks (200 × 500 = 100k Events)
 
+// ── Dead-Relay-Cache (pro Skript-Lauf, siehe queryRelay unten) ─────────────
+// Ein Relay, das gerade connectet aber Queries nicht beantwortet (beobachtet
+// an relay.primal.net, 2026-09-29: WS öffnet, REQ bekommt weder EVENT noch
+// EOSE), würde sonst JEDE Query einzeln in ihr Timeout laufen lassen —
+// generate-site-data.js verbrannte so 6 × 20s = 120s pro Lauf (121,3s statt
+// ~15s). Der Cache markiert ein Relay nach dem ersten Connect- oder EOSE-
+// Timeout für DEAD_RELAY_TTL_MS und queryRelay() überspringt es dann sofort.
+// Wichtig: Nur TIMEOUTS markieren — ein lebendes Relay mit 0 Treffern
+// (EOSE + leere Seite) wird NICHT markiert.
+const DEAD_RELAY_TTL_MS = 15 * 60 * 1000;
+const deadRelays = new Map(); // relayUrl → Unix-ms, bis wann übersprungen wird
+
 export const DEFAULT_IMAGE = `${BASE_URL}/og-image.jpg`;
 export const SITE_NAME = 'MojoBus – Perpetual Travelers';
 export const FEED_URL = `${BASE_URL}/feed.xml`;
@@ -205,20 +217,35 @@ export function isMojobusKind1(event) {
 // lmdb: 375), ohne dass ein Relay-Update nötig ist.
 //
 // opts:
-//   singlePage     – nur die ERSTE Seite holen (z. B. Feed: neueste N Items);
-//                    der `limit`-Wert im Filter wird dann respektiert
-//   timeoutMs      – Timeout pro Seite/Verbindungsaufbau (Default 20000)
-//   totalTimeoutMs – hartes Gesamtlimit pro Query (Default 120000); liefert
-//                    dann die bis dahin gesammelten Events (mit Warnung)
-//   label          – Log-Präfix (Default: relayUrl)
+//   singlePage       – nur die ERSTE Seite holen (z. B. Feed: neueste N Items);
+//                      der `limit`-Wert im Filter wird dann respektiert
+//   timeoutMs        – Timeout pro Seite (Default 20000)
+//   connectTimeoutMs – Timeout nur für den WS-Handshake (Default
+//                      min(timeoutMs, 10000)); ein toter Relay muss den Walk
+//                      nicht volle 20s blockieren
+//   totalTimeoutMs   – hartes Gesamtlimit pro Query (Default 120000); liefert
+//                      dann die bis dahin gesammelten Events (mit Warnung)
+//   label            – Log-Präfix (Default: relayUrl)
+// Dead-Relay-Cache: Relays, die gerade weder verbinden noch EOSE liefern,
+// werden für DEAD_RELAY_TTL_MS übersprungen (siehe Konstante oben) — alle
+// weiteren queryRelay-Aufrufe im selben Skript-Lauf resolven sofort [].
 // Filter mit length !== 1 laufen automatisch im singlePage-Modus (Until-
 // Paginierung ist pro Filter definiert; alle aktuellen Aufrufer übergeben
 // genau einen Filter).
 export async function queryRelay(relayUrl, filters, opts = {}) {
   const timeoutMs = opts.timeoutMs ?? 20000;
+  const connectTimeoutMs = opts.connectTimeoutMs ?? Math.min(timeoutMs, 10000);
   const totalTimeoutMs = opts.totalTimeoutMs ?? 120000;
   const label = opts.label ?? relayUrl;
   const singlePage = opts.singlePage === true || filters.length !== 1;
+
+  // Dead-Cache: kürzlich ausgefallenes Relay sofort überspringen
+  const deadUntil = deadRelays.get(relayUrl);
+  if (deadUntil && deadUntil > Date.now()) {
+    const restS = Math.ceil((deadUntil - Date.now()) / 1000);
+    console.warn(`[queryRelay] ${label}: übersprungen (Dead-Cache — letzter Lauf connected/antwortete nicht, ${restS}s Rest-TTL)`);
+    return [];
+  }
 
   return new Promise((resolve) => {
     let ws;
@@ -258,7 +285,7 @@ export async function queryRelay(relayUrl, filters, opts = {}) {
     };
 
     const openSocket = () => new Promise((res) => {
-      const t = setTimeout(() => res(false), timeoutMs);
+      const t = setTimeout(() => res(false), connectTimeoutMs);
       ws.onopen = () => { clearTimeout(t); res(true); };
       ws.onerror = () => { clearTimeout(t); res(false); };
     });
@@ -268,30 +295,36 @@ export async function queryRelay(relayUrl, filters, opts = {}) {
     // WICHTIG: Das Promise muss die Seite (pageBuf-Snapshot) als Wert
     // auflösen — sonst ist `page` in der Walk-Schleife undefined und der
     // stille Catch liefert 0 Events (Bug 2026-09-08, VPS-Lauf).
+    // Rückgabe: { events, eosed } — `eosed=false` bedeutet, der Watchdog
+    // hat gefeuert (Relay connected, aber beantwortet die Query nicht):
+    // Signal für den Dead-Relay-Cache, siehe Walk-Schleife unten.
     const fetchPage = (filter, subId) => new Promise((res) => {
       pageBuf = [];
       activeSub = subId;
       const watchdog = setTimeout(() => {
         pageResolver = null;
-        res(pageBuf.slice()); // Snapshot: pageBuf wird pro Seite neu gesetzt
+        res({ events: pageBuf.slice(), eosed: false }); // Snapshot: pageBuf wird pro Seite neu gesetzt
       }, timeoutMs);
-      pageResolver = () => { clearTimeout(watchdog); res(pageBuf.slice()); };
+      pageResolver = () => { clearTimeout(watchdog); res({ events: pageBuf.slice(), eosed: true }); };
       try {
         ws.send(JSON.stringify(['REQ', subId, filter]));
       } catch {
         clearTimeout(watchdog);
         pageResolver = null;
-        res(pageBuf.slice());
+        res({ events: pageBuf.slice(), eosed: false });
       }
     });
 
     (async () => {
       const opened = await openSocket();
       if (!opened) {
-        console.warn(`[queryRelay] ${label}: Verbindung fehlgeschlagen/Timeout — 0 Events`);
+        deadRelays.set(relayUrl, Date.now() + DEAD_RELAY_TTL_MS);
+        console.warn(`[queryRelay] ${label}: Verbindung fehlgeschlagen/Timeout — 0 Events (für ${DEAD_RELAY_TTL_MS / 60000} Min. im Dead-Cache markiert)`);
         finish();
         return;
       }
+      // Verbindung steht → Relay lebt: evtl. alten Dead-Eintrag löschen
+      deadRelays.delete(relayUrl);
 
       // Nach erfolgreichem Open: Verbindungsabbruch/Fehler beendet den
       // laufenden Seiten-Fetch sofort (Watchdog bleibt als Fallback).
@@ -315,8 +348,18 @@ export async function queryRelay(relayUrl, filters, opts = {}) {
           since: base.since ?? 0,
           until,
         };
-        const page = await fetchPage(filter, `pg${pageIdx}`);
+        const { events: page, eosed } = await fetchPage(filter, `pg${pageIdx}`);
         pagesFetched++;
+
+        // Watchdog statt EOSE: Relay verbindet, antwortet aber nicht
+        // (primal.net 2026-09-29) → Dead-Cache markieren und Walk beenden.
+        // Ein teilweise gefülltes pageBuf geht trotzdem noch in die
+        // Dedup-Verarbeitung unten, damit nichts verloren geht.
+        if (!eosed) {
+          deadRelays.set(relayUrl, Date.now() + DEAD_RELAY_TTL_MS);
+          console.warn(`[queryRelay] ${label}: kein EOSE nach ${timeoutMs / 1000}s — Relay antwortet nicht (für ${DEAD_RELAY_TTL_MS / 60000} Min. im Dead-Cache markiert)`);
+        }
+
         if (page.length === 0) break;
         widest = Math.max(widest, page.length);
 
@@ -335,6 +378,10 @@ export async function queryRelay(relayUrl, filters, opts = {}) {
           events.push(e);
         }
         boundaryIds = nextBoundary;
+
+        // Nach EOSE-Timeout nicht weiterwalken (Dead-Cache ist gesetzt,
+        // Teilergebnisse sind oben bereits übernommen)
+        if (!eosed) break;
 
         if (singlePage) break;
         if (fresh === 0 && page.length < widest) break;    // Ende: kurze Seite ohne Neues

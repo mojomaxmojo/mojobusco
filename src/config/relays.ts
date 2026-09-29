@@ -161,7 +161,10 @@ export const RELAYS: RelayConfig[] = [
 
 export const RELAY_PRESETS: Record<RelayPresetType, RelayPreset> = {
   // MojoBus Preset - Hauptkonfiguration für MojoBus Blog
-  // Erstbesucher: 2 Relays parallel (relay.mojobus.co + primal) für Zuverlässigkeit.
+  // relayUrls = Write-Ziele (Autoren-Publish läuft über AUTHOR_RELAY_CONFIG =
+  // mojobus only; primal hier als Mirror für eingeloggte Nicht-Autoren).
+  // READ nutzt NICHT mehr diese Liste — siehe DEFAULT_APP_CONFIG.read +
+  // APP_CONFIG_VERSION v2 (primal hängt Queries zeitweise stumm aus).
   mojobus: {
     name: 'MojoBus',
     description: 'MojoBus Relay (relay.mojobus.co)',
@@ -289,6 +292,25 @@ export const getSearchRelays = (): RelayConfig[] => {
 };
 
 // ============================================================================
+// APP-CONFIG-VERSION (Migration für localStorage-Configs)
+// ============================================================================
+// Die App-Config liegt pro Browser im localStorage (Key: nostr:app-config) —
+// Änderungen an den Standard-Relays erreichen Bestandsbesucher sonst NIE.
+// APP_CONFIG_VERSION + Migration in AppProvider.tsx (deserialize) setzen die
+// Read-Konfiguration bei älterer Version EINMALIG auf den neuen Default.
+//
+// v2 (2026-09-29): relay.primal.net aus dem Standard-READ-Pool entfernt.
+// Grund: primal nimmt WS-Verbindungen an, beantwortet Queries aber teils
+// stumm GAR NICHT (beobachtet 2026-09-29, siehe MOJOBUS_CHANGELOG.md). Der
+// nostrify NPool wartet auf EOSE ALLER Read-Relays → jede Live-Query
+// (Detailseiten-Volltext, Likes/Zaps/Kommentare, Profile, JSON-Fallback)
+// lief in das volle Timeout (3–7,5s), obwohl relay.mojobus.co in ~100ms
+// antwortet. Alle Website-Inhalte liegen auf relay.mojobus.co (das einzige
+// Write-Target der Autoren). primal bleibt im Relay-Katalog (RELAYS), als
+// Write-Mirror und im balanced-Preset für die manuelle Auswahl.
+export const APP_CONFIG_VERSION = 2;
+
+// ============================================================================
 // DEFAULT APP-KONFIGURATION (Relay-spezifisch)
 // ============================================================================
 
@@ -297,8 +319,9 @@ export const getSearchRelays = (): RelayConfig[] => {
  * Kann durch localStorage überschrieben werden
  *
  * KONFIGURATION:
- * - READ (Abrufen/Queries): MOJOBUS Preset - privates Relay mit 3s Timeout
- * - WRITE (Veröffentlichen): MOJOBUS Preset - privates Relay
+ * - READ (Abrufen/Queries): NUR relay.mojobus.co (v2: primal raus — siehe
+ *   APP_CONFIG_VERSION oben; primal per balanced-Preset manuell opt-in)
+ * - WRITE (Veröffentlichen): MOJOBUS Preset (mojobus + primal-Mirror)
  *
  * PERFORMANCE-OPTIMIERUNG:
  * Home-Seite lädt nur ~60 Events statt 230 Events (74% weniger)
@@ -313,12 +336,17 @@ export const getSearchRelays = (): RelayConfig[] => {
  * - activeRelay: Relay für das aktive Publishing (aus writeRelayUrls)
  */
 export const DEFAULT_APP_CONFIG = {
+  // Config-Format-Version — von AppProvider-Migration gelesen (siehe oben)
+  cfgVer: APP_CONFIG_VERSION,
+
   // ============================================================================
   // READ KONFIGURATION (Abrufen/Queries) - MOJOBUS Preset
   // ============================================================================
   read: {
-    relayUrls: RELAY_PRESETS.mojobus.relayUrls ?? [], // relay.mojobus.co
-    maxRelays: RELAY_PRESETS.mojobus.maxRelays ?? 2, // 2 Relays
+    // primal.net bewusst NICHT im Read-Pool (Begründung: APP_CONFIG_VERSION v2
+    // oben). Write-Mirror + manuelle Presets bleiben unverändert.
+    relayUrls: ['wss://relay.mojobus.co'],
+    maxRelays: 1, // 1 Relay (mojobus) — primal per balanced-Preset opt-in
     queryTimeout: RELAY_PRESETS.mojobus.queryTimeout ?? 3000, // 3000ms - Ausreichend nach Optimierung
   },
 

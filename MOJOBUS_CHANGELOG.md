@@ -5,6 +5,59 @@
 
 ---
 
+## Performance: primal.net-Stillstand entschärft — SPA-Read-Pool + Pipeline-Dead-Cache (2026-09-29)
+
+**Auslöser**: Website wirkte plötzlich überall langsam; Deploy-/node.sh-Log
+zeigte SiteData-Laufzeiten von 121,3s. Ursachenanalyse:
+
+- relay.primal.net nimmt WebSocket-Verbindungen an, beantwortet Queries
+  aber stumm GAR NICHT (per Node-Test verifiziert: `onopen` ✅, kein EVENT,
+  kein EOSE, kein NOTICE/CLOSED). Kein sauberer Verbindungsfehler — worst
+  case für Timeouts.
+- **Pipeline**: `generate-site-data.js` fragt pro Relay 6 Queries sequenziell
+  ab (je 20s Timeout) → 6 × 20s = 120s allein auf primal (Feed nochmal
+  ~20–40s). relay.mojobus.co liefert alles in Sekunden.
+- **SPA**: Standard-Read-Pool enthielt primal. Der nostrify NPool wartet auf
+  EOSE ALLER Read-Relays → jede Live-Query lief ins volle Timeout (3s
+  Standard, Detailseiten bis 7,5s): Artikel-Volltext (JSON-Dumps sind
+  bewusst slim ohne Content), Likes/Zaps/Kommentare, Profile,
+  JSON-Fallback nach Deploy-Wipe.
+
+**Fix 1 — SPA (src/config/relays.ts, src/contexts/AppContext.ts,
+src/components/AppProvider.tsx)**:
+- `DEFAULT_APP_CONFIG.read.relayUrls` = nur noch `wss://relay.mojobus.co`
+  (maxRelays 1). Write (Mirror) + Presets unverändert; primal bleibt im
+  Katalog und als balanced-Preset (manuelles Opt-in).
+- Neue `APP_CONFIG_VERSION = 2` + `cfgVer`-Feld am AppConfig (Zod-Schema
+  erweitert). Migration in AppProvider.deserialize: `cfgVer < 2` → read wird
+  EINMALIG auf den neuen Default gesetzt. Nötig, weil die Config im
+  localStorage klebt (Key `nostr:app-config`) — ohne Migration würde die
+  Default-Änderung Bestandsbesucher nie erreichen. Danach bleibt eine
+  manuell gewählte Config unangetastet (idempotent, bis setValue die
+  migrierte Version zurückschreibt).
+
+**Fix 2 — Pipeline (scripts/prerender-helpers.js, queryRelay)**:
+- Dead-Relay-Cache (TTL 15 Min, pro Skript-Prozess): Relay, das gerade
+  weder connectet noch EOSE liefert, wird nach dem ersten Timeout markiert;
+  weitere queryRelay-Aufrufe resolven sofort [] (Log: „übersprungen").
+  Markiert wird NUR bei Connect-Timeout und bei fehlendem EOSE (Watchdog) —
+  ein lebendes Relay mit 0 Treffern (EOSE + leere Seite) bleibt unmarkiert.
+- Connect-Timeout vom Seiten-Timeout getrennt: `connectTimeoutMs`
+  (Default min(timeoutMs, 10000)) — ein toter Relay blockiert den Walk
+  nicht mehr volle 20s.
+- `fetchPage` liefert jetzt `{ events, eosed }`; bei Watchdog-Auflösung
+  bricht der Seiten-Walk nach der Teilergebnis-Übernahme ab (kein
+  Weiterwalken gegen ein stummes Relay).
+- Effekt: SiteData 121,3s → ~25–30s (solange primal hängt), Feed ebenso;
+  Deploy-Fenster ohne data/*.json schrumpft entsprechend.
+
+**Bewusst NICHT geändert**: primal bleibt Write-Mirror (Publish-Verhalten
+unverändert), Dumps/Prerender/Sitemap-Logik unberührt, Kollaps-Guards
+greifen weiter (Dead-Cache liefert [] wie ein stummes Relay — der
+„ALLE Relays 0 Events"-Schutz in generate-site-data.js bleibt wirksam).
+
+---
+
 ## Repository-Optimierung Stufe 2: Backup-Branches gelöscht (2026-09-28)
 
 **Auslöser**: 18 lokale + 19 Remote-Branches (14× backup-N, app, test,
