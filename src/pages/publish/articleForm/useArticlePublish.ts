@@ -351,10 +351,16 @@ export function useArticlePublish({
       const dTag = originalDTag || `article-${Date.now()}`;
 
       // published_at: Beim Edit ORIGINALES Datum behalten, bei Neuem aktuelles Datum setzen
+      // Fix #6: publishedAt kann leer sein (Formular-Reset, Autosave ohne
+      // Datum) → new Date('') = Invalid Date → getTime() = NaN → auf den
+      // Relays landete wörtlich „published_at: NaN". Fallback: jetzt.
       const existingPublishedAt = getTagValue(editEvent, 'published_at');
+      const publishedAtMs = new Date(publishedAt).getTime();
       const publishedAtTimestamp = editEvent && existingPublishedAt
         ? existingPublishedAt
-        : Math.floor(new Date(publishedAt).getTime() / 1000).toString();
+        : Number.isFinite(publishedAtMs)
+          ? Math.floor(publishedAtMs / 1000).toString()
+          : Math.floor(Date.now() / 1000).toString();
 
       const additionalTags = [
         ['d', dTag],
