@@ -506,6 +506,58 @@ restart_server() {
 }
 
 # ============================================
+# SEO-Pipeline nach Deploy (Fix: Deploy wipt Webroot)
+# ============================================
+# deploy_files() löscht den kompletten Webroot (rm -rf $DEPLOY_DIR/*) — damit
+# gehen die live-generierten Artefakte verloren:
+#   - data/*.json (JSON-Dumps: articles, notes, bilder, sitemap.json …)
+#   - prerender/*.html (Bot-HTML — ohne Regeneration 404 via @prerender_resolve!)
+#   - sitemap.xml + sitemap-videos.xml + sitemap-images.xml
+#   - feed.xml + feed-en.xml
+# Die alten public/sitemap*.xml im Repo sind entfernt (Git), sie dürfen die
+# live-generierten Versionen nie mehr überschreiben. Diese Funktion regeneriert
+# ALLE Artefakte direkt nach dem Deploy — identisch zur Publish-Pipeline
+# (publish-pipeline.js) und zum 3-h-Cron. Fehler einzelner Schritte sind
+# NICHT fatal (Kollaps-Guards der Skripte schützen den Bestand).
+# Skip: ./deploy-main.sh --skip-seo
+run_seo_pipeline() {
+    if [ "$1" == "--skip-seo" ] || [ "$2" == "--skip-seo" ]; then
+        warn_msg "SEO-Pipeline übersprungen (--skip-seo) — Artefakte erst beim nächsten Cron/Publish wieder da!"
+        return 0
+    fi
+
+    if [ ! -d "$DEPLOY_DIR/scripts" ] || [ ! -f "$DEPLOY_DIR/scripts/generate-site-data.js" ]; then
+        warn_msg "⚠ Webroot-Skripte fehlen — SEO-Pipeline kann nicht laufen (manuell: node $DEPLOY_DIR/scripts/generate-site-data.js …)"
+        return 0
+    fi
+
+    info_msg "Starte SEO-Pipeline (site-data → prerender → sitemap → feed) ..."
+
+    cd "$DEPLOY_DIR" || return 0
+    # nostr-tools-Resolution der Skripte läuft über den Ancestor-Pfad:
+    # $DEPLOY_DIR/node_modules → server/node_modules (Symlink aus deploy_files)
+    for SCRIPT in generate-site-data.js prerender-static.js generate-sitemap.js generate-feed.js; do
+        local step_start=$(date +%s)
+        if node "$DEPLOY_DIR/scripts/$SCRIPT" >> "$LOG_FILE" 2>&1; then
+            local step_end=$(date +%s)
+            success_msg "✓ $SCRIPT abgeschlossen ($((step_end - step_start))s)"
+        else
+            warn_msg "⚠ $SCRIPT fehlgeschlagen (Details im Log) — fahre fort (Kollaps-Guards schützen den Bestand)"
+        fi
+    done
+
+    # Permissions der neu generierten Dateien korrigieren (deploy_files chown
+    # lief VOR der Pipeline)
+    chown -R nginx:nginx "$DEPLOY_DIR/data" "$DEPLOY_DIR/prerender" \
+        "$DEPLOY_DIR/sitemap.xml" "$DEPLOY_DIR/sitemap-videos.xml" \
+        "$DEPLOY_DIR/sitemap-images.xml" "$DEPLOY_DIR/feed.xml" \
+        "$DEPLOY_DIR/feed-en.xml" 2>/dev/null
+    find "$DEPLOY_DIR/prerender" -type f -exec chmod 644 {} \; 2>/dev/null
+
+    info_msg "SEO-Pipeline abgeschlossen — Sitemap/Prerender/Feed/Dumps sind aktuell."
+}
+
+# ============================================
 # Summary
 summary() {
     echo ""
@@ -553,6 +605,7 @@ main() {
     restore_dev_config
     verify_deployment
     restart_server
+    run_seo_pipeline "$@"
     summary
 }
 
