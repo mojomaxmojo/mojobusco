@@ -86,13 +86,19 @@ function buildSummary(body: string, explicitSummary?: string): string {
 
 /**
  * Erzeugt ein NIP-19 naddr aus den Original-Event-Daten.
+ *
+ * Fix (SEO, AGENTS Regel 2): OHNE Relay-Hints kodiert — das naddr landet in
+ * der `r`-Tag-URL, die die kanonische Seiten-URL sein muss (identisch zu
+ * Sitemap + Prerender-Datei). Hinted-naddrs ändern den kompletten Bech32-
+ * String und würden Duplicate-URLs erzeugen (der Server müsste sie erst per
+ * 301 auflösen). Der Relay-Hint bleibt bewusst im `a`-Tag (3. Wert) — dort
+ * ist er Standard und beeinflusst keine URL.
  */
 function buildNaddr(kind: number, pubkey: string, dTag: string): string {
   return nip19.naddrEncode({
     kind,
     pubkey,
     identifier: dTag,
-    relays: [DEFAULT_TEASER_RELAY],
   });
 }
 
