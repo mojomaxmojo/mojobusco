@@ -104,6 +104,9 @@ export function ArticleForm({ editEvent, onSendToTab }: {
   // Teaser-Note State
   const [publishTeaserNote, setPublishTeaserNote] = useState(true);
   const [isPublishingTeaser, setIsPublishingTeaser] = useState(false);
+  // Publish-Guard (Fix #3): disabled den Submit-Button während des gesamten
+  // Publish-Flows (30023-Publish kann bis 15s dauern) → kein Doppelklick-Duplikat
+  const [isPublishing, setIsPublishing] = useState(false);
   // Reiseziel-Zuordnung (WP0, PLAN_PILLAR_LINKS.md): plan-Tag für jeden
   // Artikel mit Zuordnung; isDestinationHub → zusätzlich t=hub am Haupt-Pillar
   const [isDestinationHub, setIsDestinationHub] = useState(false);
@@ -407,6 +410,8 @@ export function ArticleForm({ editEvent, onSendToTab }: {
     setExperienceNotes,
     // Teaser-Indikator
     setIsPublishingTeaser,
+    // Publish-Guard (Fix #3)
+    setIsPublishing,
     // Route
     navigate,
     // Entwurf
@@ -1148,10 +1153,10 @@ Schreibe deinen Artikel hier...
         <Button
           onClick={handleSubmit}
           className="w-full"
-          disabled={!title.trim() || !content.trim() || isPublishingTeaser || !experiencesConfirmed}
+          disabled={!title.trim() || !content.trim() || isPublishing || isPublishingTeaser || !experiencesConfirmed}
         >
           <FileText className="h-4 w-4 mr-2" />
-          {isPublishingTeaser ? 'Wird veröffentlicht...' : (editEvent ? 'Bericht aktualisieren' : 'Bericht veröffentlichen')}
+          {(isPublishing || isPublishingTeaser) ? 'Wird veröffentlicht...' : (editEvent ? 'Bericht aktualisieren' : 'Bericht veröffentlichen')}
         </Button>
 
         <Dialog open={showMediaLibrary} onOpenChange={setShowMediaLibrary}>

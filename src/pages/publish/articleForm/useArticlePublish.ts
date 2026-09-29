@@ -115,6 +115,9 @@ interface UseArticlePublishParams {
   setExperienceNotes: (v: string) => void;
   // Teaser-Publish-Indikator (State bleibt in ArticleForm, Setter wird weitergereicht)
   setIsPublishingTeaser: (v: boolean) => void;
+  // Publish-Guard (Fix #3): ab Validierung bis Flow-Ende true → Button disabled,
+  // verhindert Doppelklick-Duplikate während des 30023-Publish (bis 15s)
+  setIsPublishing: (v: boolean) => void;
   // Route (navigate aus useNavigate in ArticleForm)
   navigate: (path: string) => void;
   // Entwurf
@@ -185,6 +188,7 @@ export function useArticlePublish({
   setResearchFacts,
   setExperienceNotes,
   setIsPublishingTeaser,
+  setIsPublishing,
   navigate,
   setCurrentDraftId,
   setCurrentDraftStatus,
@@ -303,219 +307,230 @@ export function useArticlePublish({
       return;
     }
 
-    // Create article metadata
-    const articleData = {
-      title: title.trim(),
-      summary: summary.trim(),
-      image,
-      published_at: publishedAt,
-      author: 'MojoBus Team'
-    };
+    // Doppel-Publish-Guard (Fix #3): Der Button ist ab jetzt disabled.
+    // Ohne Guard war ein Doppelklick während des 30023-Publish (bis 15s)
+    // möglich → zwei Artikel mit verschiedenen Date.now()-d-Tags.
+    setIsPublishing(true);
 
-    // Entferne Country-Tags aus displayTags, um Duplikate zu vermeiden
-    const countryList = COUNTRY_TAG_LIST;
-    const displayTagsWithoutCountry = displayTags.filter(tag =>
-      !countryList.includes(tag.toLowerCase()) &&
-      !tag.startsWith('#') &&
-      !countryList.includes(tag.replace('#', '').toLowerCase())
-    );
-
-    // Create tags from config (mit allen Tags inkl. automatischen!)
-    const baseTags = createRequiredTags('articles', displayTagsWithoutCountry);
-
-    // Get the original d-tag for edit, or create new one
-    const originalDTag = getTagValue(editEvent, 'd');
-    const dTag = originalDTag || `article-${Date.now()}`;
-
-    // published_at: Beim Edit ORIGINALES Datum behalten, bei Neuem aktuelles Datum setzen
-    const existingPublishedAt = getTagValue(editEvent, 'published_at');
-    const publishedAtTimestamp = editEvent && existingPublishedAt
-      ? existingPublishedAt
-      : Math.floor(new Date(publishedAt).getTime() / 1000).toString();
-
-    const additionalTags = [
-      ['d', dTag],
-      ['type', 'article'],
-      ['title', title.trim()],
-      ['summary', summary.trim()],
-      ['published_at', publishedAtTimestamp],
-    ];
-
-    // SEO-Zusatz-Tags (Assistent) — bestehende Tags unverändert
-    if (seoTitle.trim()) additionalTags.push(['seo_title', seoTitle.trim()]);
-    const effectiveMetaDescription = seoMetaDescription.trim() || summary.trim();
-    if (effectiveMetaDescription) additionalTags.push(['meta_description', effectiveMetaDescription]);
-    const effectiveSlug = (seoSlug.trim() || buildSmartSlug(title)).trim();
-    if (effectiveSlug) additionalTags.push(['slug', effectiveSlug]);
-
-    // Add location tag if set
-    if (location.trim()) {
-      additionalTags.push(['location', location.trim()]);
-    }
-
-    // Add category and image tags if present
-    if (category) additionalTags.push(['category', category]);
-    if (image) additionalTags.push(['image', image]);
-
-    // Add country tags (nur wenn selectedCountry gewählt wurde)
-    if (selectedCountry) {
-      const countryTags = getCountryTag(selectedCountry);
-      countryTags.forEach(tag => additionalTags.push(['t', tag]));
-    }
-
-    // Reiseziel-Zuordnung (WP0, PLAN_PILLAR_LINKS.md): plan-Tag für JEDEN
-    // Artikel mit Plan-Zuordnung — Cluster + Pillar sind damit gruppierbar
-    // (dynamische „Mehr aus diesem Reiseziel"-Liste, Frische-Check)
-    if (hubPlanId.trim()) {
-      additionalTags.push([PLAN_TAG, hubPlanId.trim()]);
-    }
-    // Pillar-Zusatz (Phase 2, PLAN_DESTINATIONS_ADMIN.md): t=hub Hashtag nur
-    // am Haupt-Pillar → generate-site-data erkennt ihn als Pillar der
-    // Destination auf /reiseziele
-    if (isDestinationHub && hubPlanId.trim()) {
-      additionalTags.push(['t', HUB_TAG]);
-    }
-
-    // Add GPS tags from title image
-    if (imageGps) {
-      additionalTags.push(['gps_lat', imageGps.latitude.toString()]);
-      additionalTags.push(['gps_lon', imageGps.longitude.toString()]);
-      if (imageGps.altitude) {
-        additionalTags.push(['gps_alt', imageGps.altitude.toString()]);
-      }
-      additionalTags.push(['gps_precision', imageGps.precision]);
-      additionalTags.push(['gps_source', imageGpsStatus]);
-    }
-
-    const finalTags = [
-      ...baseTags,
-      ...additionalTags
-    ];
-
-    // Schritt 1: Kind 30023 publizieren (NIP-23 Long-form)
-    // Ohne try/catch endete ein Relay-/Signer-Fehler (z. B. 15s-Timeout,
-    // NIP-07-Ablehnung) als unbehandelte Exception — kein Toast, kein
-    // Hinweis, der User wusste nicht, ob gepostet wurde.
     try {
-      await publishEvent({
-        kind: 30023,
-        content: content.trim(),
-        tags: finalTags,
-      });
-    } catch (err) {
-      console.error('[Article] Publish (kind 30023) fehlgeschlagen:', err);
-      toast({
-        title: 'Fehler',
-        description: 'Bericht konnte nicht veröffentlicht werden (Relay oder Signer). Bitte erneut versuchen.',
-        variant: 'destructive',
-      });
-      // Early return: kein Assistent-Notify, kein Autosave-Clear, kein
-      // Formular-Reset — der User kann den Inhalt direkt erneut senden.
-      return;
-    }
+      // Create article metadata
+      const articleData = {
+        title: title.trim(),
+        summary: summary.trim(),
+        image,
+        published_at: publishedAt,
+        author: 'MojoBus Team'
+      };
 
-    // Assistent: Pipeline + IndexNow nach JEDEM Bericht-Publish (non-blocking)
-    notifyAssistantPublished(dTag);
+      // Entferne Country-Tags aus displayTags, um Duplikate zu vermeiden
+      const countryList = COUNTRY_TAG_LIST;
+      const displayTagsWithoutCountry = displayTags.filter(tag =>
+        !countryList.includes(tag.toLowerCase()) &&
+        !tag.startsWith('#') &&
+        !countryList.includes(tag.replace('#', '').toLowerCase())
+      );
 
-    // Nr. 13: Autosave leeren — der veröffentlichte Inhalt ist gesichert
-    localStorage.removeItem(AUTOSAVE_KEY);
+      // Create tags from config (mit allen Tags inkl. automatischen!)
+      const baseTags = createRequiredTags('articles', displayTagsWithoutCountry);
 
-    // Schritt 2: Teaser-Note (Kind 1) automatisch ins Nostr-Netzwerk posten
-    if (publishTeaserNote && currentUser?.pubkey) {
-      setIsPublishingTeaser(true);
+      // Get the original d-tag for edit, or create new one
+      const originalDTag = getTagValue(editEvent, 'd');
+      const dTag = originalDTag || `article-${Date.now()}`;
+
+      // published_at: Beim Edit ORIGINALES Datum behalten, bei Neuem aktuelles Datum setzen
+      const existingPublishedAt = getTagValue(editEvent, 'published_at');
+      const publishedAtTimestamp = editEvent && existingPublishedAt
+        ? existingPublishedAt
+        : Math.floor(new Date(publishedAt).getTime() / 1000).toString();
+
+      const additionalTags = [
+        ['d', dTag],
+        ['type', 'article'],
+        ['title', title.trim()],
+        ['summary', summary.trim()],
+        ['published_at', publishedAtTimestamp],
+      ];
+
+      // SEO-Zusatz-Tags (Assistent) — bestehende Tags unverändert
+      if (seoTitle.trim()) additionalTags.push(['seo_title', seoTitle.trim()]);
+      const effectiveMetaDescription = seoMetaDescription.trim() || summary.trim();
+      if (effectiveMetaDescription) additionalTags.push(['meta_description', effectiveMetaDescription]);
+      const effectiveSlug = (seoSlug.trim() || buildSmartSlug(title)).trim();
+      if (effectiveSlug) additionalTags.push(['slug', effectiveSlug]);
+
+      // Add location tag if set
+      if (location.trim()) {
+        additionalTags.push(['location', location.trim()]);
+      }
+
+      // Add category and image tags if present
+      if (category) additionalTags.push(['category', category]);
+      if (image) additionalTags.push(['image', image]);
+
+      // Add country tags (nur wenn selectedCountry gewählt wurde)
+      if (selectedCountry) {
+        const countryTags = getCountryTag(selectedCountry);
+        countryTags.forEach(tag => additionalTags.push(['t', tag]));
+      }
+
+      // Reiseziel-Zuordnung (WP0, PLAN_PILLAR_LINKS.md): plan-Tag für JEDEN
+      // Artikel mit Plan-Zuordnung — Cluster + Pillar sind damit gruppierbar
+      // (dynamische „Mehr aus diesem Reiseziel"-Liste, Frische-Check)
+      if (hubPlanId.trim()) {
+        additionalTags.push([PLAN_TAG, hubPlanId.trim()]);
+      }
+      // Pillar-Zusatz (Phase 2, PLAN_DESTINATIONS_ADMIN.md): t=hub Hashtag nur
+      // am Haupt-Pillar → generate-site-data erkennt ihn als Pillar der
+      // Destination auf /reiseziele
+      if (isDestinationHub && hubPlanId.trim()) {
+        additionalTags.push(['t', HUB_TAG]);
+      }
+
+      // Add GPS tags from title image
+      if (imageGps) {
+        additionalTags.push(['gps_lat', imageGps.latitude.toString()]);
+        additionalTags.push(['gps_lon', imageGps.longitude.toString()]);
+        if (imageGps.altitude) {
+          additionalTags.push(['gps_alt', imageGps.altitude.toString()]);
+        }
+        additionalTags.push(['gps_precision', imageGps.precision]);
+        additionalTags.push(['gps_source', imageGpsStatus]);
+      }
+
+      const finalTags = [
+        ...baseTags,
+        ...additionalTags
+      ];
+
+      // Schritt 1: Kind 30023 publizieren (NIP-23 Long-form)
+      // Ohne try/catch endete ein Relay-/Signer-Fehler (z. B. 15s-Timeout,
+      // NIP-07-Ablehnung) als unbehandelte Exception — kein Toast, kein
+      // Hinweis, der User wusste nicht, ob gepostet wurde.
       try {
-        const videoMatch = content.match(
-          /(https?:\/\/[^\s)]+\.mp4[^\s)]*|https?:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+|https?:\/\/youtu\.be\/[\w-]+|https?:\/\/[^\s)]+\.m3u8[^\s)]*)/i
-        );
-        const videoUrl = generatedVideoUrl || slideshowVideoUrl || videoMatch?.[1] || null;
-
-        const teaser = createLongformTeaser({
-          type: 'article',
-          title: title.trim(),
-          body: content.trim(),
-          summary: summary.trim(),
-          pubkey: currentUser.pubkey,
-          dTag,
-          kind: 30023,
-          imageUrl: image,
-          videoUrl,
-          tags: displayTagsWithoutCountry,
-          country: selectedCountry,
-        });
-
         await publishEvent({
-          kind: 1,
-          content: teaser.content,
-          tags: teaser.tags,
+          kind: 30023,
+          content: content.trim(),
+          tags: finalTags,
         });
-
+      } catch (err) {
+        console.error('[Article] Publish (kind 30023) fehlgeschlagen:', err);
         toast({
-          title: '✅ Teaser-Note veröffentlicht!',
-          description: 'Erscheint im Nostr-Feed bei Primal, Amethyst & Damus',
-        });
-      } catch (teaserErr) {
-        console.warn('[Article] Teaser-Post fehlgeschlagen:', teaserErr);
-        toast({
-          title: '⚠️ Bericht gespeichert',
-          description: 'Teaser-Note konnte nicht gepostet werden.',
+          title: 'Fehler',
+          description: 'Bericht konnte nicht veröffentlicht werden (Relay oder Signer). Bitte erneut versuchen.',
           variant: 'destructive',
         });
-      } finally {
-        setIsPublishingTeaser(false);
+        // Early return: kein Assistent-Notify, kein Autosave-Clear, kein
+        // Formular-Reset — der User kann den Inhalt direkt erneut senden.
+        return;
       }
-    }
 
-    toast({
-      title: 'Erfolg!',
-      description: editEvent
-        ? 'Bericht erfolgreich aktualisiert.'
-        : 'Bericht veröffentlicht!'
-    });
+      // Assistent: Pipeline + IndexNow nach JEDEM Bericht-Publish (non-blocking)
+      notifyAssistantPublished(dTag);
 
-    // Kontinuitäts-Tracking: Motive/Entitäten/Stimmung/offene Fäden erfassen
-    trackPublishedPost({
-      id: dTag,
-      type: 'article',
-      kind: 30023,
-      title: title.trim(),
-      location: location.trim(),
-      country: selectedCountry,
-      publishedAt: publishedAtTimestamp,
-      content: content.trim(),
-      url: currentUser?.pubkey
-        ? canonicalUrl(articleUrl(canonicalNaddr({ kind: 30023, pubkey: currentUser.pubkey, identifier: dTag })))
-        : undefined,
-    });
+      // Nr. 13: Autosave leeren — der veröffentlichte Inhalt ist gesichert
+      localStorage.removeItem(AUTOSAVE_KEY);
 
-    // Auto-Übersetzung (DE→EN): EN-Version im Hintergrund veröffentlichen
-    if (autoTranslateEn && currentUser?.pubkey) {
-      translateAndPublish({
-        type: 'article', kind: 30023, originalDTag: dTag,
-        pubkey: currentUser.pubkey, title, summary, content,
-        baseTags: finalTags, publishTeaser: publishTeaserNote,
+      // Schritt 2: Teaser-Note (Kind 1) automatisch ins Nostr-Netzwerk posten
+      if (publishTeaserNote && currentUser?.pubkey) {
+        setIsPublishingTeaser(true);
+        try {
+          const videoMatch = content.match(
+            /(https?:\/\/[^\s)]+\.mp4[^\s)]*|https?:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+|https?:\/\/youtu\.be\/[\w-]+|https?:\/\/[^\s)]+\.m3u8[^\s)]*)/i
+          );
+          const videoUrl = generatedVideoUrl || slideshowVideoUrl || videoMatch?.[1] || null;
+
+          const teaser = createLongformTeaser({
+            type: 'article',
+            title: title.trim(),
+            body: content.trim(),
+            summary: summary.trim(),
+            pubkey: currentUser.pubkey,
+            dTag,
+            kind: 30023,
+            imageUrl: image,
+            videoUrl,
+            tags: displayTagsWithoutCountry,
+            country: selectedCountry,
+          });
+
+          await publishEvent({
+            kind: 1,
+            content: teaser.content,
+            tags: teaser.tags,
+          });
+
+          toast({
+            title: '✅ Teaser-Note veröffentlicht!',
+            description: 'Erscheint im Nostr-Feed bei Primal, Amethyst & Damus',
+          });
+        } catch (teaserErr) {
+          console.warn('[Article] Teaser-Post fehlgeschlagen:', teaserErr);
+          toast({
+            title: '⚠️ Bericht gespeichert',
+            description: 'Teaser-Note konnte nicht gepostet werden.',
+            variant: 'destructive',
+          });
+        } finally {
+          setIsPublishingTeaser(false);
+        }
+      }
+
+      toast({
+        title: 'Erfolg!',
+        description: editEvent
+          ? 'Bericht erfolgreich aktualisiert.'
+          : 'Bericht veröffentlicht!'
       });
+
+      // Kontinuitäts-Tracking: Motive/Entitäten/Stimmung/offene Fäden erfassen
+      trackPublishedPost({
+        id: dTag,
+        type: 'article',
+        kind: 30023,
+        title: title.trim(),
+        location: location.trim(),
+        country: selectedCountry,
+        publishedAt: publishedAtTimestamp,
+        content: content.trim(),
+        url: currentUser?.pubkey
+          ? canonicalUrl(articleUrl(canonicalNaddr({ kind: 30023, pubkey: currentUser.pubkey, identifier: dTag })))
+          : undefined,
+      });
+
+      // Auto-Übersetzung (DE→EN): EN-Version im Hintergrund veröffentlichen
+      if (autoTranslateEn && currentUser?.pubkey) {
+        translateAndPublish({
+          type: 'article', kind: 30023, originalDTag: dTag,
+          pubkey: currentUser.pubkey, title, summary, content,
+          baseTags: finalTags, publishTeaser: publishTeaserNote,
+        });
+      }
+
+      // Reset + Redirect
+      setTitle('');
+      setSummary('');
+      setContent('');
+      setImage('');
+      setCategory('');
+      setTags([]);
+      setLocation('');
+      setSelectedCountry('');
+      setPublishedAt('');
+      setImageFile(null);
+      setImageGps(null);
+      setImageCapturedAt(null);
+      setImageGpsStatus('not_found');
+      setEditingImageGps(false);
+      setImageMetaMap({});
+
+      setTimeout(() => {
+        navigate('/artikel');
+      }, 1000);
+    } finally {
+      // Guard freigeben — egal ob Erfolg, Publish-Fehler (Early Return
+      // oben) oder ein unerwarteter Fehler irgendwo im Flow
+      setIsPublishing(false);
     }
-
-    // Reset + Redirect
-    setTitle('');
-    setSummary('');
-    setContent('');
-    setImage('');
-    setCategory('');
-    setTags([]);
-    setLocation('');
-    setSelectedCountry('');
-    setPublishedAt('');
-    setImageFile(null);
-    setImageGps(null);
-    setImageCapturedAt(null);
-    setImageGpsStatus('not_found');
-    setEditingImageGps(false);
-    setImageMetaMap({});
-
-    setTimeout(() => {
-      navigate('/artikel');
-    }, 1000);
   };
 
   return {
