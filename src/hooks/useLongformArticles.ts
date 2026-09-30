@@ -2,9 +2,11 @@ import { useMemo } from 'react';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { useNostr } from '@/hooks/useNostr';
 import { usePreloadedData } from '@/hooks/usePreloadedData';
+import { nip19 } from 'nostr-tools';
 import { NOSTR_CONFIG } from '@/config/nostr';
 import { DEFAULT_CACHE_CONFIG } from '@/config/cache';
 import { DEFAULT_PERFORMANCE_CONFIG, FIRST_PAINT_CONFIG } from '@/config/performance';
+import { fetchStaticEvent } from '@/lib/staticEvent';
 import type { NostrEvent, NostrFilter } from '@nostrify/nostrify';
 
 /**
@@ -342,7 +344,13 @@ export function usePlaces(_options?: { limit?: number }) {
 }
 
 /**
- * Hook zum Laden eines einzelnen Longform Artikels
+ * Hook zum Laden eines einzelnen Longform Artikels (oder Ortes)
+ *
+ * Stufe 3: Statisch zuerst — die Detail-Inhalte liegen als Per-Event-Datei
+ * data/e/<naddr>.json vor (generate-site-data.js, Dateiname = Lookup-
+ * Schlüssel mit kind 30023). Nur wenn die Datei fehlt/ungültig ist
+ * (404, Timeout, Format), fällt der Hook auf die bisherige Relay-Query
+ * zurück. Relay-Ausfälle bremsen Detailseiten damit nicht mehr.
  */
 export function useLongformArticle(identifier: string, authorPubkey: string) {
   const { nostr } = useNostr();
@@ -350,6 +358,30 @@ export function useLongformArticle(identifier: string, authorPubkey: string) {
   return useQuery({
     queryKey: ['longform-article', identifier, authorPubkey],
     queryFn: async (c) => {
+      // ── Statisch zuerst (Stufe 3) ────────────────────────────────────────
+      // naddr client-seitig kodieren — identisch zu generate-site-data.js
+      // (naddrEncode kind 30023 + pubkey + d). Kodier-/Fetch-Fehler sind
+      // kein Fehlerzustand: statisch = null → Relay-Fallback unten.
+      let staticEvent: NostrEvent | null = null;
+      try {
+        const naddr = nip19.naddrEncode({
+          kind: NOSTR_CONFIG.kinds.longform,
+          pubkey: authorPubkey,
+          identifier,
+        });
+        staticEvent = await fetchStaticEvent(naddr);
+        if (staticEvent && validateLongformArticle(staticEvent)) {
+          return staticEvent;
+        }
+        if (staticEvent) {
+          console.warn('[Article] Statische Datei enthält ungültiges Event — Relay-Fallback:', naddr);
+          staticEvent = null;
+        }
+      } catch (e) {
+        console.warn('[Article] Statischer Fetch fehlgeschlagen — Relay-Fallback:', e instanceof Error ? e.message : e);
+      }
+
+      // ── Relay-Fallback (bisheriger Weg, unverändert) ─────────────────────
       // FIX: siehe useLongformArticles – queryTimeout-Reference war nach der
       // Config-Ausmistung undefined (AbortSignal.timeout(NaN) = sofortiger Abbruch).
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(FIRST_PAINT_CONFIG.progressiveTimeout)]);
