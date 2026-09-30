@@ -58,6 +58,58 @@ greifen weiter (Dead-Cache liefert [] wie ein stummes Relay — der
 
 ---
 
+## Stufe 2: Pipeline relay-freier, Relay-Config zentral, Deploy-Fenster zu (2026-09-29)
+
+Drei Schritte, je eigener Commit (build+commit pro Schritt). Ziel: Nur noch
+`generate-site-data.js` berührt die Relays; Deploy verliert nie Artefakte.
+
+### Schritt 1 — Feed liest Dump (`2dd1fbb`, scripts/generate-feed.js)
+
+- `loadArticles()` mit Dump-first (loadSiteDataEventsDump, < 2 h, Env
+  `SITEMAP_EVENTS_DUMP_MAX_AGE_H`), Relay-Abfrage nur noch als Fallback.
+  Im Pipeline-Lauf ist der Feed damit komplett relay-frei.
+- Neu: `dedupeReplaceables()` — der Dump dedupliziert nur per Event-ID;
+  kind 30023 ist Replaceable (pubkey+kind+d), Edits erzeugen neue IDs und
+  der Dump sammelt von 2 Relays → alte Versionen (z. B. noch auf primal)
+  wären sonst eigene Feed-Items. Neuestes created_at gewinnt je (pubkey,d).
+- Nebeneffekt (positiv): Sprach-Feeds bekommen jetzt JEWEILS die 50
+  neuesten DE/EN-Artikel aus dem Vollbestand — vorher nur die ~50 neuesten
+  gemischten (EN-Feed hatte oft < 5 Items).
+- ⚠️ Bekannt (offen): prerender-static.js/generate-sitemap.js deduplizieren
+  Replaceables aus dem Dump ebenfalls nicht — bei einem Artikel-Edit, dessen
+  alte Version noch auf primal liegt, kann der Prerender die ALTE Version
+  rendern (Reihenfolge im Dump entscheidet). Kandidat für Stufe 2.5.
+
+### Schritt 2 — Relay-Liste zentral (`cf61bb9`)
+
+- `prerender-helpers.js`: RELAYS = Single Source of Truth mit Env-Override
+  `PIPELINE_RELAYS` (kommasepariert; Default mojobus+primal). Die 3 lokalen
+  Kopien in generate-site-data.js/generate-sitemap.js/generate-feed.js
+  entfernt (Import stattdessen; prerender-static/backfill taten es schon).
+- Nutzen: primal temporär aus der Pipeline ohne Code-Änderung →
+  `PIPELINE_RELAYS=wss://relay.mojobus.co` im node.sh/Cron-Env.
+- Betrifft NUR die VPS-Pipeline; Browser-Relays: src/config/relays.ts.
+
+### Schritt 3 — Deploy-Fenster geschlossen (`7b4e064`, deploy-main.sh)
+
+- deploy_files(): vor dem Webroot-Wipe data/ + prerender/ + die 5 Dateien
+  (sitemap*.xml, feed*.xml) in Temp-Dirs sichern, nach dem dist-Copy (vor
+  chown) zurückkopieren — gleiche Technik wie die vorhandenen Backup-Blöcke
+  (Musik/DB/Media).
+- Effekt: Bots und SPA haben DURING des Deploys durchgehend gültige
+  Artefakte; run_seo_pipeline() überschreibt mit frischen. Bei --skip-seo
+  bleiben die alten Artefakte online statt zu fehlen (vorher: 404 für
+  Prerender-URLs, Dump-404 → SPA-Fallback auf Relay).
+
+**Netto-Effekt der Stufe 2:** Pro Pipeline-Lauf genau EIN Relay-Kontakt
+(site-data, mit Dead-Cache ~15–30 s statt 121 s); Prerender, Sitemap,
+Feed, Deploy — alles läuft aus dem Dump bzw. ohne Artefakt-Verlust.
+Nächster Ausbauschritt (Stufe 3): statische Detail-Inhalte
+(data/e/<naddr>.json) → Detailseiten ohne Relay; danach inkrementelles
+SiteData.
+
+---
+
 ## Repository-Optimierung Stufe 2: Backup-Branches gelöscht (2026-09-28)
 
 **Auslöser**: 18 lokale + 19 Remote-Branches (14× backup-N, app, test,

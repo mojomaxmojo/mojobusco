@@ -91,6 +91,12 @@
   (Skip: `--skip-seo`, Permissions werden nachgezogen). Die veralteten
   `public/sitemap*.xml` im Repo sind entfernt — kein Deploy überschreibt
   mehr die live-generierten Sitemaps mit dem alten Format.
+- **Kein SEO-Artefakt-Fenster mehr (2026-09-29)**: `deploy_files()` sichert
+  vor dem Webroot-Wipe `data/`, `prerender/` und die 5 generierten Dateien
+  (sitemap*.xml, feed*.xml) in Temp-Dirs und stellt sie nach dem dist-Copy
+  wieder her. Bots/SPA haben DURING des Deploys durchgehend gültige
+  Artefakte (alte Version); `run_seo_pipeline()` überschreibt direkt mit
+  frischen, bei `--skip-seo` bleiben die alten online statt zu fehlen.
 - **Relay-Ausfälle & Dead-Relay-Cache (2026-09-29)**: relay.primal.net
   connected zeitweise, beantwortet Queries aber stumm GAR NICHT (WS öffnet,
   weder EVENT noch EOSE — statt sauber zu failen). `queryRelay()`
@@ -436,12 +442,14 @@ neu generieren.
 1. Cron alle 3h :00 → `generate-site-data.js` → JSON-Dumps `/data/` (inkl. `sitemap-events.json`, Laufzeit ~5–20 s healthy, ~25–30 s wenn ein Relay im Dead-Cache landet, paginiert)
 2. Cron alle 3h :05 → `prerender-static.js` → HTML mit NIP-19 Dateinamen (Laufzeit wächst mit Seitenzahl, paginierte Voll-Abfrage)
 3. Cron alle 3h :10 → `generate-sitemap.js` → `sitemap.xml`/`sitemap-videos.xml`
-4. Cron alle 3h :15 → `generate-feed.js` → `feed.xml` (DE) + `feed-en.xml` (EN)
+4. Cron alle 3h :15 → `generate-feed.js` → `feed.xml` (DE) + `feed-en.xml` (EN) — liest seit 2026-09-29 ebenfalls den `sitemap-events.json`-Dump (Frische-Check wie Prerender/Sitemap); nur bei veraltetem Dump greift der Relay-Fallback. Im Dump-Modus werden Replaceable-Versionen dedupliziert (neueste je pubkey+d), und jeder Sprach-Feed bekommt seine eigenen 50 neuesten Artikel (vorher nur ~50 gemischt → EN-Feed hatte oft < 5 Items)
 
-**Event-Dump als gemeinsame Quelle (Fix 5, 2026-09-08):** `generate-site-data.js`
+**Event-Dump als gemeinsame Quelle (Fix 5, 2026-09-08; Feed seit 2026-09-29):**
+`generate-site-data.js`
 schreibt `data/sitemap-events.json` mit ALLEN Content-Events — inkl. Content
 (Artikel-Bodies etc., nötig weil der Prerender Bot-HTML daraus rendert) und
-Profilen (kind 0). Sowohl `generate-sitemap.js` als auch `prerender-static.js`
+Profilen (kind 0). `generate-sitemap.js`, `prerender-static.js` UND
+`generate-feed.js`
 lesen diesen Dump als bevorzugte Quelle (Frische-Prüfung < 2 h, Env:
 `SITEMAP_EVENTS_DUMP_MAX_AGE_H`) — im node.sh-Lauf (site-data → prerender →
 sitemap, je 60 s Pause) greift sie immer: Dumps, Prerender und Sitemap zeigen
