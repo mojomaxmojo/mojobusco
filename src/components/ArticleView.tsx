@@ -39,6 +39,7 @@ import type { AddressPointer } from 'nostr-tools/nip19';
 import { canonicalUrl as getCanonicalUrl, articleUrl, profileUrl, ogImageUrl, canonicalNaddr } from '@/lib/canonicalUrl';
 import { getArticleHeaderUrl, generateSrcset, generateSizes, getResponsiveImageUrl } from '@/lib/imageUtils';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
+import { PinImageButton } from '@/components/PinImageButton';
 import { ZapButton } from '@/components/ZapButton';
 import { getEventLanguage } from '@/lib/translationTags';
 import { useNostr } from '@/hooks/useNostr';
