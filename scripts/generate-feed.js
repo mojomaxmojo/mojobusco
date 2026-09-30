@@ -5,6 +5,14 @@
 // Generiert einen RSS 2.0 Feed (feed.xml) aus Nostr-Artikeln (kind 30023).
 // Für Blog-Verzeichnisse, Feed-Reader und Newsletter-Tools.
 //
+// Event-Quelle (identisches Muster zu prerender-static.js):
+//   1. data/sitemap-events.json, wenn frisch (< 2 h, Env:
+//      SITEMAP_EVENTS_DUMP_MAX_AGE_H) → komplett relay-frei
+//   2. Fallback: direkte Relay-Abfrage (singlePage, neueste MAX_ITEMS)
+// Im Dump-Modus werden Replaceable-Versionen dedupliziert (neueste gewinnt
+// je pubkey+d) — der Dump kann alte Versionen editsierter Artikel von
+// anderen Relays noch enthalten (Live-Queries bekommen nur die neueste).
+//
 // Ausgabe: /home/nginx/domains/mojobus.co/public/feed.xml
 //
 // Setup cron (alle 6h, da Feed-Reader cachen):
@@ -16,7 +24,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { nip19 } from 'nostr-tools';
-import { getEventLangFromTags, isPlace, queryRelay } from './prerender-helpers.js';
+import { getEventLangFromTags, isPlace, queryRelay, loadSiteDataEventsDump } from './prerender-helpers.js';
 
 // ── Autoren aus zentraler JSON-Config (Single Source of Truth) ────────────
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -200,10 +208,46 @@ async function generateFeedXml(articles, lang = 'de') {
   return xml;
 }
 
-// ── Main ─────────────────────────────────────────────────────────────────
-async function main() {
-  console.log('[Feed] Generiere RSS-Feed...');
+// ── Replaceable-Dedup für den Dump ────────────────────────────────────────
+// Der sitemap-events.json-Dump dedupliziert nur nach Event-ID. kind 30023
+// ist aber REPLACEABLE (pubkey + kind + d): Ein Artikel-Edit erzeugt eine
+// NEUE Event-ID — und der Dump sammelt von BEIDEN Relays, wobei primal
+// u. U. noch die alte Version hält (mojobus die neue). Ohne Dedup könnten
+// alte Artikel-Versionen als eigene Feed-Items auftauchen. Live-Queries
+// haben das Problem nicht (Relays halten je Replaceable nur die neueste
+// Version) — deshalb wird NUR im Dump-Modus dedupliziert: neuestes
+// created_at gewinnt je (pubkey, d).
+function dedupeReplaceables(events) {
+  const latest = new Map(); // `${pubkey}:${d}` → Event
+  for (const e of events) {
+    const d = e.tags?.find(t => t[0] === 'd')?.[1] || '';
+    const key = `${e.pubkey}:${d}`;
+    const prev = latest.get(key);
+    if (!prev || (e.created_at || 0) > (prev.created_at || 0)) {
+      latest.set(key, e);
+    }
+  }
+  return [...latest.values()];
+}
 
+// ── Artikel laden: Dump bevorzugt, Relay-Fallback ────────────────────────
+// Identisches Muster wie prerender-static.js/generate-sitemap.js: Im
+// Pipeline-Lauf (site-data → … → feed) ist der Dump frisch → feed generiert
+// komplett relay-frei. Nur bei fehlendem/veraltetem Dump (manueller
+// Einzellauf > 2 h nach dem letzten site-data) greift die bisherige
+// Relay-Abfrage (singlePage, neueste MAX_ITEMS).
+async function loadArticles() {
+  const dumpEvents = loadSiteDataEventsDump('[Feed]');
+  if (dumpEvents) {
+    const articles = dedupeReplaceables(
+      dumpEvents.filter(e => e.kind === 30023 && !isPlace(e))
+    );
+    articles.sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+    console.log(`[Feed]  → ${articles.length} Artikel aus dem Dump (Replaceables dedupliziert, Orte ausgefiltert)`);
+    return articles;
+  }
+
+  // ── Relay-Fallback (bisheriger Weg) ──────────────────────────────────────
   const seenIds = new Set();
   const allArticles = [];
 
@@ -228,8 +272,17 @@ async function main() {
     }
   }
 
+  return allArticles;
+}
+
+// ── Main ─────────────────────────────────────────────────────────────────
+async function main() {
+  console.log('[Feed] Generiere RSS-Feed...');
+
+  const allArticles = await loadArticles();
+
   // Sortieren: neueste zuerst
-  allArticles.sort((a, b) => b.created_at - a.created_at);
+  allArticles.sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
 
   // Nach Sprache trennen (l-Tag), damit jeder Feed ein konsistentes
   // <language>-Signal hat und keine fremdsprachigen Items enthält.
@@ -238,8 +291,9 @@ async function main() {
 
   console.log(`[Feed] ${deArticles.length} DE-Artikel, ${enArticles.length} EN-Artikel für Feeds (nach Dedup + Sort)`);
 
-  // ── Kollaps-Schutz: queryRelay() resolviert bei Relay-Timeout still [] —
-  // ein Lauf mit 0 Artikeln darf die bestehenden Feeds nicht mit leeren
+  // ── Kollaps-Schutz: queryRelay() resolviert bei Relay-Timeout still [],
+  // und auch ein leerer/kaputter Dump würde hier 0 Artikel liefern — ein
+  // Lauf mit 0 Artikeln darf die bestehenden Feeds nicht mit leeren
   // überschreiben (passiert: Deploy 2026-09-01, beide Relays 0 Artikel →
   // 0.8-kB-Leerfeed online). Notaus: FEED_SKIP_COLLAPSE_GUARD=1.
   let oldItemCount = 0;
