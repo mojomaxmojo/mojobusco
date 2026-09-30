@@ -35,6 +35,7 @@ import {
   classifyKind1,
   queryRelay,
   getEventLangFromTags,
+  RELAYS,
 } from './prerender-helpers.js';
 
 // ── Autoren aus zentraler JSON-Config (Single Source of Truth) ────────────
@@ -49,7 +50,7 @@ const AUTHOR_PUBKEYS = AUTHORS.map(a => a.pubkey);
 
 const DATA_DIR = '/home/nginx/domains/mojobus.co/public/data';
 const BASE_URL = 'https://mojobus.co';
-const RELAYS = ['wss://relay.mojobus.co', 'wss://relay.primal.net'];
+// RELAYS kommt zentral aus prerender-helpers.js (PIPELINE_RELAYS-Override möglich)
 const QUERY_TIMEOUT = 20000; // pro Seite / Verbindungsaufbau
 // Paginierung: queryRelay() aus prerender-helpers.js holt ALLE passenden
 // Events seitenweise (PAGE_SIZE, env RELAY_PAGE_SIZE, Default 500). Grund:

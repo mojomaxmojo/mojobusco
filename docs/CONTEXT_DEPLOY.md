@@ -383,6 +383,13 @@ Verbindung pro Query, mehrere REQs darauf (schont Havens Connection-Limiter).
 - `PAGE_SIZE` env-steuerbar: `RELAY_PAGE_SIZE` (Default 500 — safe auf badger
   UND lmdb; auf lmdb darf 1000–1500 gesetzt werden → halbiert die Roundtrips).
   Setzen in `node.sh`/Cron-Env, NICHT in der Haven-.env.
+- **Relay-Liste env-steuerbar (2026-09-29)**: `PIPELINE_RELAYS`
+  (kommasepariert, Default `wss://relay.mojobus.co,wss://relay.primal.net`).
+  Single Source of Truth in `prerender-helpers.js` — vorher stand die Liste
+  4× hardcodiert in den Einzelskripten. Beispiel: primal temporär ausnehmen
+  ohne Code-Änderung → `PIPELINE_RELAYS=wss://relay.mojobus.co` im
+  node.sh/Cron-Env. Betrifft NUR die VPS-Pipeline — die Browser-Relays der
+  SPA leben separat in `src/config/relays.ts` (DEFAULT_APP_CONFIG).
 - `generate-feed.js` + `backfill-continuity.js` laufen bewusst im
   `singlePage`-Modus (Feed braucht nur die 50 neuesten; Backfill-KI-Kosten).
 - Klassifizierung kind:1 über `classifyKind1()` (Ort > Media > Note) aus

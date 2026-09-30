@@ -24,7 +24,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { nip19 } from 'nostr-tools';
-import { buildLocalizedUrl, findTranslationPair, getEventLangFromTags, isMojobusKind1, isPlace, isMedia, encodeTripNaddr, queryRelay, loadSiteDataEventsDump, YEAR_ARCHIVE_START, getArticleYearCounts } from './prerender-helpers.js';
+import { buildLocalizedUrl, findTranslationPair, getEventLangFromTags, isMojobusKind1, isPlace, isMedia, encodeTripNaddr, queryRelay, loadSiteDataEventsDump, RELAYS, YEAR_ARCHIVE_START, getArticleYearCounts } from './prerender-helpers.js';
 
 // ── Autoren aus zentraler JSON-Config (Single Source of Truth) ────────────
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -45,10 +45,7 @@ const FAR_FUTURE = Math.floor(Date.now() / 1000) + 3600 * 24 * 365;
 // 10 Bilder einer Galerie/eines Trips völlig; hält die Datei schlank).
 const MAX_IMAGES_PER_PAGE = 10;
 
-const RELAYS = [
-  'wss://relay.mojobus.co',
-  'wss://relay.primal.net',
-];
+// RELAYS kommt zentral aus prerender-helpers.js (PIPELINE_RELAYS-Override möglich)
 
 const QUERY_TIMEOUT = 20000;
 

@@ -24,7 +24,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { nip19 } from 'nostr-tools';
-import { getEventLangFromTags, isPlace, queryRelay, loadSiteDataEventsDump } from './prerender-helpers.js';
+import { getEventLangFromTags, isPlace, queryRelay, loadSiteDataEventsDump, RELAYS } from './prerender-helpers.js';
 
 // ── Autoren aus zentraler JSON-Config (Single Source of Truth) ────────────
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -37,7 +37,7 @@ const AUTHOR_PUBKEYS = AUTHORS.map(a => a.pubkey);
 const FEED_PATH = '/home/nginx/domains/mojobus.co/public/feed.xml';
 const FEED_EN_PATH = '/home/nginx/domains/mojobus.co/public/feed-en.xml';
 const BASE_URL = 'https://mojobus.co';
-const RELAYS = ['wss://relay.mojobus.co', 'wss://relay.primal.net'];
+// RELAYS kommt zentral aus prerender-helpers.js (PIPELINE_RELAYS-Override möglich)
 
 // Autoren-Metadaten für RSS-Feed (emails aus Stammdaten)
 const AUTHORS_META = AUTHORS.map(a => ({

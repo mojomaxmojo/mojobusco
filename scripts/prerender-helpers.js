@@ -12,7 +12,21 @@ export const AUTHORS = authorsData.authors;
 export const AUTHOR_PUBKEYS = AUTHORS.map(a => a.pubkey);
 
 export const BASE_URL = 'https://mojobus.co';
-export const RELAYS = ['wss://relay.mojobus.co', 'wss://relay.primal.net'];
+
+// ── Pipeline-Relays (Single Source of Truth) ────────────────────────────────
+// Zentrale Relay-Liste für ALLE Pipeline-Skripte (site-data, prerender,
+// sitemap, feed, backfill). Vorher stand dieselbe Liste 4× hardcodiert in
+// den Einzelskripten — bei Relay-Änderungen musste man alle Stellen pflegen.
+// Override per Env (kommasepariert), z. B. primal temporär ausnehmen ohne
+// Code-Änderung:
+//   PIPELINE_RELAYS=wss://relay.mojobus.co node scripts/generate-site-data.js
+// HINWEIS: Das betrifft nur die VPS-Pipeline. Die Browser-Relays der SPA
+// leben separat in src/config/relays.ts (DEFAULT_APP_CONFIG).
+export const RELAYS = (process.env.PIPELINE_RELAYS
+  ?? 'wss://relay.mojobus.co,wss://relay.primal.net')
+  .split(',')
+  .map(url => url.trim())
+  .filter(Boolean);
 
 // ── Seitengröße für Relay-Queries (Paginierung) ────────────────────────────
 // Haven nutzt eventstore/badger bzw. lmdb als Event-Backend (DB_ENGINE).
