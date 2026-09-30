@@ -507,6 +507,48 @@ SW-Version wird bei jedem Deploy automatisch erhöht (`bump_sw_version()` in `de
 
 ---
 
+## Statische Detail-Inhalte `/data/e/` (Stufe 3, 2026-09-29)
+
+**Was**: `generate-site-data.js` schreibt nach jedem Lauf zusätzlich `data/e/`
+— pro Event EINE JSON-Datei mit vollem Content (minimalEvent ohne `sig`):
+
+| Kind | Dateiname | Detailseite (SPA) |
+|------|-----------|-------------------|
+| 30023 Artikel/Orte | `<naddr>.json` | `useLongformArticle` (ArticleView/Orte) |
+| 30025 Trips | `<naddr>.json` | `useTrip` (TripDetail) |
+| 34235/34236 Videos | `<naddr>.json` | VideoDetail (statisch-first) |
+| 1 Notes/Bilder/kind1-Orte | `<hex-event-id>.json` | NoteView + ImageDetail |
+
+**Wer liest**: Die SPA über `fetchStaticEvent()` (`src/lib/staticEvent.ts`)
+— statisch ZUERST mit `?v=<index.generatedAtUnix>`-Cache-Buster (einmal pro
+Session aus index.json), Relay nur bei 404/4s-Timeout/Formatfehler. Die
+statischen Events durchlaufen dieselbe Validierung/Parsing wie
+Relay-Antworten. Verzeichnis wird JEDEM Lauf komplett neu geschrieben
+(gelöschte Events verschwinden sofort).
+
+**Nginx**: `location ^~ /data/e/` — 10 min Cache + gzip/brotli
+(`application/json` ist in gzip_types/brotli_types). Config nach Deploy in
+`/usr/local/nginx/conf/conf.d/` syncen + `nginx -t && nginx -s reload`.
+
+**Verifikation nach Deploy**:
+1. SiteData-Log: `[SiteData]  ✅ data/e/ (N Event-Dateien, X KB)` — N ~ 1000 erwartet (Artikel+Orte+Notes+Bilder+Trips+Videos)
+2. `curl -s https://mojobus.co/data/index.json | grep -o '"eventFiles":[0-9]*'` → gleiche N
+3. Beispiel-Datei (naddr aus `data/sitemap.json`): `curl -sI "https://mojobus.co/data/e/<naddr>.json"` → HTTP 200 + `Cache-Control: public, max-age=600`
+4. SPA: DevTools → Console (Debug-Filter aktivieren) → Detailseite öffnen → `[StaticEvent] ✅ statisch geladen (kind 30023): naddr1…`
+5. Fallback-Simulation: `mv /home/nginx/domains/mojobus.co/public/data/e/<naddr>.json /tmp/` → Detailseite lädt trotzdem (Relay-Fallback, Console-Debug „404 … Relay-Fallback") → `mv` zurück
+6. Guard: `„0 Event-Dateien geschrieben, obwohl Artikel existieren"` im SiteData-Log = Quelle leer → alle Detailseiten auf Relay-Fallback
+
+**Deploy**: `data/e/` reitet automatisch im Stufe-2-Artefakt-Backup mit
+(deploy_files sichert `data/` komplett) — kein Extra-Block nötig.
+
+**Bekannte Grenze**: Edits aus FREMD-Clients (nicht über die eigene
+Publish-Pipeline) sind bis zum nächsten site-data-Lauf (max. 3 h) in der
+statischen Datei veraltet; die Relay-Fallback-Query deckt das nicht ab
+(sie greift nur bei 404). Für über die eigene Site gepostete/Editsierte
+Inhalte irrelevant (Publish-Pipeline regeneriert sofort).
+
+---
+
 ## Debug-Kommandos
 
 ```bash
