@@ -45,6 +45,7 @@ import { PinImageButton } from '@/components/PinImageButton';
 import { generateImageUrl } from '@/config/imageService';
 import { canonicalUrl, tripUrl } from '@/lib/canonicalUrl';
 import { breadcrumbJsonLd } from '@/lib/jsonld';
+import { ZapButton } from '@/components/ZapButton';
 import { 
   ArrowLeft, MapPin, Camera, Calendar, Navigation, Pencil, Trash2
 } from '@/lib/icons';
@@ -341,7 +342,7 @@ export default function TripDetail() {
                   {displayName[0]?.toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <h1 className="text-3xl md:text-4xl font-bold mb-2">{trip.title}</h1>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
                   <span className="font-medium">{displayName}</span>
@@ -351,11 +352,11 @@ export default function TripDetail() {
                     {formatDistanceToNow(new Date(trip.createdAt * 1000), { addSuffix: true })}
                   </span>
                 </div>
-                
+
                 {/* Badges */}
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Badge 
-                    variant="outline" 
+                  <Badge
+                    variant="outline"
                     className="bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300"
                   >
                     {trip.categoryEmoji} {trip.category ? trip.category.charAt(0).toUpperCase() + trip.category.slice(1) : ''}
@@ -378,6 +379,17 @@ export default function TripDetail() {
                   )}
                 </div>
               </div>
+              {/* „Tip Autor" — Parität zu ArticleView/ImageDetail/NoteView.
+                  ZapButton rendert sich selbst nicht, wenn der Autor kein
+                  Lightning-Address-Tag hat oder man selbst Autor ist. */}
+              {trip.event && (
+                <ZapButton
+                  target={trip.event}
+                  className="text-xs flex-shrink-0"
+                  showCount={false}
+                  label="Tip Autor"
+                />
+              )}
             </div>
             
           </div>

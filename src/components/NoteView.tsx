@@ -41,6 +41,7 @@ import { fetchStaticEvent } from '@/lib/staticEvent';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { ShareButtons } from '@/components/ShareButtons';
 import { PinImageButton } from '@/components/PinImageButton';
+import { ZapButton } from '@/components/ZapButton';
 
 interface NoteViewProps {
   eventId: string;
@@ -370,7 +371,7 @@ export function NoteView({ eventId }: NoteViewProps) {
                     })}
                   </div>
                 </div>
-                {isAuthor && (
+                {isAuthor ? (
                   <div className="flex gap-2">
                     {/* Bewusst KEIN Bearbeiten-Button: Notes sind kind 1 (nicht
                         replaceable) — ein „Edit" würde ein NEUES Event publishen
@@ -385,6 +386,16 @@ export function NoteView({ eventId }: NoteViewProps) {
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
+                ) : (
+                  // „Tip Autor" wie auf den anderen Detailseiten (Parität zu
+                  // ImageDetail): ZapButton rendert sich selbst nicht, wenn der
+                  // Autor kein Lightning-Address-Tag hat oder man selbst Autor ist.
+                  <ZapButton
+                    target={note}
+                    className="text-xs"
+                    showCount={false}
+                    label="Tip Autor"
+                  />
                 )}
               </div>
 

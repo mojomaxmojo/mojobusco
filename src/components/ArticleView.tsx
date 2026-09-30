@@ -41,6 +41,7 @@ import { getArticleHeaderUrl, generateSrcset, generateSizes, getResponsiveImageU
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { ShareButtons } from '@/components/ShareButtons';
 import { PinImageButton } from '@/components/PinImageButton';
+import { ZapButton } from '@/components/ZapButton';
 import { getEventLanguage } from '@/lib/translationTags';
 import { useNostr } from '@/hooks/useNostr';
 import { NOSTR_CONFIG } from '@/config/nostr';
@@ -766,34 +767,45 @@ export function ArticleView({ naddr }: ArticleViewProps) {
             )}
 
             {/* Author Info */}
-            <Link to={`/${nip19.npubEncode(article.pubkey)}`} className="flex items-center gap-3 pt-2 hover:bg-muted/50 rounded-lg p-2 transition-colors">
-              <Avatar className="h-12 w-12">
-                {authorAvatar && <AvatarImage src={authorAvatar} alt={authorName} />}
-                <AvatarFallback>{authorName.slice(0, 2).toUpperCase()}</AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <div className="flex items-center gap-1 font-semibold">
-                    <User className="h-3 w-3" />
-                    <span>{authorName}</span>
+            <div className="flex items-center gap-3 pt-2">
+              <Link to={`/${nip19.npubEncode(article.pubkey)}`} className="flex items-center gap-3 flex-1 hover:bg-muted/50 rounded-lg p-2 transition-colors min-w-0">
+                <Avatar className="h-12 w-12">
+                  {authorAvatar && <AvatarImage src={authorAvatar} alt={authorName} />}
+                  <AvatarFallback>{authorName.slice(0, 2).toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-1 font-semibold">
+                      <User className="h-3 w-3" />
+                      <span>{authorName}</span>
+                    </div>
+                    <span className="text-muted-foreground">•</span>
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <Calendar className="h-3 w-3" />
+                      <time>
+                        {new Date(metadata.publishedAt * 1000).toLocaleDateString('de-DE', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })}
+                      </time>
+                    </div>
                   </div>
-                  <span className="text-muted-foreground">•</span>
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <Calendar className="h-3 w-3" />
-                    <time>
-                      {new Date(metadata.publishedAt * 1000).toLocaleDateString('de-DE', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })}
-                    </time>
-                  </div>
+                  {author.data?.metadata?.nip05 && (
+                    <p className="text-xs text-muted-foreground">✓ {author.data.metadata.nip05}</p>
+                  )}
                 </div>
-                {author.data?.metadata?.nip05 && (
-                  <p className="text-xs text-muted-foreground">✓ {author.data.metadata.nip05}</p>
-                )}
-              </div>
-            </Link>
+              </Link>
+              {/* „Tip Autor" — Parität zu ImageDetail/NoteView. ZapButton rendert
+                  sich selbst nicht, wenn der Autor kein Lightning-Address-Tag hat
+                  oder man selbst Autor ist. */}
+              <ZapButton
+                target={article}
+                className="text-xs flex-shrink-0"
+                showCount={false}
+                label="Tip Autor"
+              />
+            </div>
 
 
           </div>
