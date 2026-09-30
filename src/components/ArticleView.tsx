@@ -682,9 +682,9 @@ export function ArticleView({ naddr }: ArticleViewProps) {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <div className="bg-muted/30 py-12 md:py-5">
+      <div className="bg-muted/30 py-4 md:py-6">
         <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto space-y-6">
+          <div className="max-w-4xl mx-auto space-y-3 md:space-y-4">
             {/* Sprachlink zur Übersetzung (Schritt 8) */}
             {pairNaddr && (
               <div className="mb-4">
@@ -694,6 +694,35 @@ export function ArticleView({ naddr }: ArticleViewProps) {
                 >
                   {lang === 'de' ? '🇬🇧 English version' : '🇩🇪 Deutsche Version'}
                 </Link>
+              </div>
+            )}
+
+            {/* Featured Image (Hero-First) — DAS visuelle Hook-Element direkt
+                sichtbar, statt unten im Content. aspectRatio reserviert die
+                Höhe vor dem Laden → kein Layout-Shift (CLS); fetchPriority
+                macht es zum priorisierten LCP-Load. */}
+            {metadata.image && (
+              <div
+                className="relative rounded-xl overflow-hidden shadow-lg bg-muted"
+                style={{ aspectRatio: '16 / 9' }}
+              >
+                <img
+                  src={getArticleHeaderUrl(metadata.image)}
+                  srcSet={generateSrcset(metadata.image)}
+                  sizes={generateSizes('header')}
+                  alt={metadata.title}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  loading="eager"
+                  fetchPriority="high"
+                  decoding="async"
+                />
+                <PinImageButton
+                  imageUrl={metadata.image}
+                  pageUrl={getCanonicalUrl(articleUrl(canonicalNaddr(naddr), lang))}
+                  title={metadata.title}
+                  description={metadata.summary}
+                  hashtags={metadata.tags}
+                />
               </div>
             )}
 
@@ -745,7 +774,7 @@ export function ArticleView({ naddr }: ArticleViewProps) {
 
             {/* Title */}
             <div className="flex items-center gap-3">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight">
                 {metadata.title}
               </h1>
               {isPlace && (
@@ -757,13 +786,13 @@ export function ArticleView({ naddr }: ArticleViewProps) {
 
             {/* Summary */}
             {metadata.summary && (
-              <p className="text-xl text-muted-foreground leading-relaxed">
+              <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
                 {metadata.summary}
               </p>
             )}
 
             {/* Author Info */}
-            <div className="flex items-center gap-3 pt-2">
+            <div className="flex items-center gap-3">
               <Link to={`/${nip19.npubEncode(article.pubkey)}`} className="flex items-center gap-3 flex-1 hover:bg-muted/50 rounded-lg p-2 transition-colors min-w-0">
                 <Avatar className="h-12 w-12">
                   {authorAvatar && <AvatarImage src={authorAvatar} alt={authorName} />}
@@ -804,43 +833,19 @@ export function ArticleView({ naddr }: ArticleViewProps) {
             </div>
 
             {/* SocialBar direkt unter dem Autor (Reply/Repost/Quote/Zap/Share) —
-                ersetzt den separaten ShareButtons-Block in der Breadcrumb-Zeile */}
-            <SocialBar event={article} />
+                ersetzt den separaten ShareButtons-Block in der Breadcrumb-Zeile.
+                className kompakt (px/py schmaler als die SocialBar-Defaults),
+                greift nur hier — NoteView/ImageDetail bleiben unangetastet. */}
+            <SocialBar event={article} className="px-2 py-1.5" />
 
           </div>
         </div>
       </div>
 
       {/* Article Content */}
-      <div className="py-12">
+      <div className="py-6 md:py-8">
         <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto space-y-12">
-            {/* Featured Image — aspectRatio reserviert die Höhe vor dem
-                Laden → kein Layout-Shift (CLS), unabhängig vom Seitenverhältnis */}
-            {metadata.image && (
-              <div
-                className="relative rounded-xl overflow-hidden shadow-lg bg-muted"
-                style={{ aspectRatio: '16 / 9' }}
-              >
-                <img
-                  src={getArticleHeaderUrl(metadata.image)}
-                  srcSet={generateSrcset(metadata.image)}
-                  sizes={generateSizes('header')}
-                  alt={metadata.title}
-                  className="absolute inset-0 w-full h-full object-cover"
-                  loading="eager"
-                  decoding="sync"
-                />
-                <PinImageButton
-                  imageUrl={metadata.image}
-                  pageUrl={getCanonicalUrl(articleUrl(canonicalNaddr(naddr), lang))}
-                  title={metadata.title}
-                  description={metadata.summary}
-                  hashtags={metadata.tags}
-                />
-              </div>
-            )}
-
+          <div className="max-w-4xl mx-auto space-y-6 md:space-y-8">
             {/* Article Body */}
             <MarkdownWithLinks
               content={displayContent + (isPlace ? `\n\n${generateStructuredDataMarkdown(article, metadata)}` : '')}
