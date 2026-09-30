@@ -37,6 +37,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
 import { nip19 } from 'nostr-tools';
+import { fetchStaticEvent } from '@/lib/staticEvent';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { ShareButtons } from '@/components/ShareButtons';
 import { PinImageButton } from '@/components/PinImageButton';
@@ -88,6 +89,15 @@ export function NoteView({ eventId }: NoteViewProps) {
   const { data: note, isLoading } = useQuery({
     queryKey: ['note', eventId],
     queryFn: async ({ signal }) => {
+      // ── Statisch zuerst (Stufe 3): data/e/<hex-id>.json ──────────────────
+      // kind 1 (Notes/Bilder/kind1-Orte) ist nicht addressable → Dateiname
+      // = Hex-Event-ID, identisch zu generate-site-data.js. Null bei
+      // 404/Timeout → Relay-Fallback.
+      const staticEvent = await fetchStaticEvent(eventId);
+      if (staticEvent && staticEvent.kind === 1) {
+        return staticEvent;
+      }
+
       const events = await nostr.query(
         [
           {

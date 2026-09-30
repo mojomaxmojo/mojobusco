@@ -36,6 +36,7 @@ import { useNostrDelete } from '@/hooks/useNostrDelete'
 import { useToast } from '@/hooks/useToast'
 import { canonicalUrl, videoUrl, ogImageUrl } from '@/lib/canonicalUrl'
 import { breadcrumbJsonLd } from '@/lib/jsonld'
+import { fetchStaticEvent } from '@/lib/staticEvent'
 import { AUTHORS } from '@/config/nostr'
 
 const AUTHOR_PUBKEYS = AUTHORS.map((a) => a.pubkey)
@@ -115,12 +116,30 @@ export function VideoDetail() {
     }) ?? null
   }, [cachedVideos, decoded])
 
-  // Einzelnes Event vom Relay laden (nur wenn nicht im Cache)
+  // Einzelnes Event: statisch zuerst (data/e/, Stufe 3), dann Cache, dann Relay
   const { data: event, isLoading, error } = useQuery({
     queryKey: ['video-detail', naddr],
     queryFn: async ({ signal }) => {
       if (!decoded) return null
       if (cachedVideo) return cachedVideo.event
+
+      // ── Statisch zuerst (Stufe 3) ────────────────────────────────────────
+      // Dateiname = KANONISCHER naddr (ohne Relay-Hints) aus den dekodierten
+      // Daten — identisch zu generate-site-data.js. fetchStaticEvent liefert
+      // null bei 404/Timeout → Relay-Fallback.
+      try {
+        const canonical = nip19.naddrEncode({
+          kind: decoded.kind,
+          pubkey: decoded.pubkey,
+          identifier: decoded.identifier,
+        })
+        const staticEvent = await fetchStaticEvent(canonical)
+        if (staticEvent && staticEvent.kind === decoded.kind) {
+          return staticEvent
+        }
+      } catch {
+        /* statisch nicht verfügbar → Relay-Fallback */
+      }
 
       const abortSignal = AbortSignal.any([signal, AbortSignal.timeout(5000)])
       const events = await nostr.query([

@@ -12,6 +12,7 @@ import { nip19 } from 'nostr-tools';
 import { DEFAULT_CACHE_CONFIG } from '@/config/cache';
 import { FIRST_PAINT_CONFIG } from '@/config/performance';
 import { NOSTR_CONFIG } from '@/config/nostr';
+import { fetchStaticEvent } from '@/lib/staticEvent';
 import type { NostrEvent } from '@nostrify/nostrify';
 
 /**
@@ -341,6 +342,10 @@ export function useTrips() {
 
 /**
  * Hook to load a single Trip by naddr
+ *
+ * Stufe 3: statisch zuerst — data/e/<naddr>.json (kanonischer naddr, ohne
+ * Relay-Hints, identisch zu generate-site-data.js). Nur bei fehlender
+ * Datei/Timeout fällt der Hook auf die Relay-Query zurück.
  */
 export function useTrip(naddr: string) {
   const { nostr } = useNostr();
@@ -350,17 +355,28 @@ export function useTrip(naddr: string) {
     queryFn: async (c) => {
       if (!naddr) return null;
 
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(10000)]);
-
       try {
-        // Decode naddr
+        // Decode naddr (einmal für statisch UND Relay)
         const decoded = nip19.decode(naddr);
-        
+
         if (decoded.type !== 'naddr') {
           throw new Error('Invalid naddr');
         }
 
         const { kind, pubkey, identifier } = decoded.data;
+
+        // ── Statisch zuerst (Stufe 3) ────────────────────────────────────
+        // Dateiname = KANONISCHER naddr aus den dekodierten Daten (URL-naddr
+        // mit Relay-Hints wird neu kodiert) — Dateiname = Lookup-Schlüssel
+        // wie im Writer. fetchStaticEvent liefert null bei 404/Timeout.
+        const canonical = nip19.naddrEncode({ kind, pubkey, identifier });
+        const staticEvent = await fetchStaticEvent(canonical);
+        if (staticEvent && staticEvent.kind === kind && validateTripEvent(staticEvent)) {
+          return parseTripEvent(staticEvent);
+        }
+
+        // ── Relay-Fallback (bisheriger Weg) ──────────────────────────────
+        const signal = AbortSignal.any([c.signal, AbortSignal.timeout(10000)]);
 
         // Query for the specific trip
         const events = await nostr.query(
@@ -378,9 +394,9 @@ export function useTrip(naddr: string) {
         if (events.length === 0) return null;
 
         const event = events[0];
-        
+
         if (!validateTripEvent(event)) return null;
-        
+
         return parseTripEvent(event);
       } catch (error) {
         console.error('[Trip] Error fetching trip:', error);

@@ -27,6 +27,7 @@ import { nip19 } from 'nostr-tools';
 import { generateSrcset, generateSizes, getGalleryThumbnailUrl } from '@/lib/imageUtils';
 import { breadcrumbJsonLd } from '@/lib/jsonld';
 import { canonicalUrl, imageUrl } from '@/lib/canonicalUrl';
+import { fetchStaticEvent } from '@/lib/staticEvent';
 
 interface ImageEvent {
   id: string;
@@ -65,6 +66,14 @@ export function ImageDetail() {
     queryKey: ['image-detail', eventId],
     queryFn: async ({ signal }) => {
       if (!eventId) return null;
+
+      // ── Statisch zuerst (Stufe 3): data/e/<hex-id>.json ──────────────────
+      // kind 1 (Bilder) ist nicht addressable → Dateiname = Hex-Event-ID,
+      // identisch zu generate-site-data.js. Null bei 404/Timeout → Relay.
+      const staticEvent = await fetchStaticEvent(eventId);
+      if (staticEvent && staticEvent.kind === 1) {
+        return staticEvent;
+      }
 
       const abortSignal = AbortSignal.any([signal, AbortSignal.timeout(3000)]);
 
