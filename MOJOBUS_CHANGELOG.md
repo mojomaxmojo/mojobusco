@@ -110,6 +110,57 @@ SiteData.
 
 ---
 
+## Stufe 3: Statische Detail-Inhalte data/e/ — Detailseiten ohne Relay (2026-09-29)
+
+10 Schritte, je eigener Commit (build+commit). Ziel: ALLE Content-
+Detailseiten (Artikel, Orte, Notes, Bilder, Trips, Videos) laden ihr
+Event aus statischen JSON-Dateien statt live vom Relay. Relay bleibt nur
+Fallback. Die Website ist damit — bis auf Social-Interaktionen (Likes/
+Zaps/Kommentare), Publishing und Hintergrund-Live-Updates — komplett
+von Nginx bedient.
+
+| # | Commit | Inhalt |
+|---|--------|--------|
+| 1 | `b95f5d3` | Stufe 2.5: dedupeReplaceables() zentral (helpers) — Prerender/Sitemap deterministisch, Relay-Fallback als gemergter Batch, Feed nutzt zentrale Funktion |
+| 2 | `5853a6d` | Per-Event-Writer data/e/ in generate-site-data.js (naddr für addressable Kinds, Hex-ID für kind 1; Verzeichnis komplett neu je Lauf) |
+| 3 | `74d9de7` | Nginx: location ^~ /data/e/ (10 min Cache, nosniff, Vary) |
+| 4 | `7bc102e` | src/lib/staticEvent.ts (neu) + useLongformArticle statisch-first |
+| 5 | `426995f` | useTrip, VideoDetail, NoteView, ImageDetail statisch-first |
+| 6 | `33b7d6a` | Cache-Busting ?v=<index.generatedAtUnix> (einmal pro Session) |
+| 7 | `ffeb0a1` | Monitoring: counts.eventFiles in index.json, Guard „0 Dateien", SPA-Debug-Logs |
+| 8 | `bf9108c` | Deploy-Backup deckt data/e/ ab (Kommentar, kein Code-Change) |
+| 9 | `154e1f8` | Verifikations-Anleitung (CONTEXT_DEPLOY.md, Sektion /data/e/) |
+| 10 | (dieser Commit) | Changelog-Eintrag |
+
+**Dateinamen-Schema** (Dateiname = Lookup-Schlüssel, Parität Writer ↔ SPA):
+- kind 30023/30025/34235/34236 (addressable) → `<naddr>.json`
+- kind 1 (nicht addressable) → `<hex-event-id>.json`
+
+**SPA-Strategie (fetchStaticEvent)**: statisch zuerst mit 4s-Timeout und
+Cache-Buster; null bei 404/Netzwerkfehler → unveränderter Relay-Pfad.
+Statische Events durchlaufen dieselbe Validierung (validateLongformArticle,
+validateTripEvent, parseVideoEvent) wie Relay-Antworten — UI-trotz
+Quellwechsel kein Verhaltensunterschied.
+
+**Korrektheit vor Performance**: Schritt 1 (Stufe 2.5) war bewusst VOR dem
+Writer — ohne Replaceable-Dedup könnte eine alte Event-Version aus dem
+Dump in eine data/e/-Datei rutschen (Dump sammelt von 2 Relays; primal
+hält alte Versionen länger).
+
+**Bekannte Grenzen**:
+- Edits aus Fremd-Clients (nicht über die eigene Publish-Pipeline) sind in
+  data/e/ bis zum nächsten site-data-Lauf (max. 3 h) veraltet — Relay-
+  Fallback deckt das nicht ab (greift nur bei 404).
+- Relays bleiben für: Publishen, Likes/Zaps/Kommentare, Live-Updates
+  (usePreloadedData), Fallback.
+- SW v21 cached /data/ per staleWhileRevalidate — data/e/ profitiert
+  (offline + schnell), Cache-Busting via ?v= bricht alte Einträge.
+
+**Nächster Ausbauschritt (Stufe 4, optional)**: inkrementelles site-data
+(since-basiert, 1× täglich Full-Sync) → Cron-Läufe ~2 s statt ~15 s.
+
+---
+
 ## Repository-Optimierung Stufe 2: Backup-Branches gelöscht (2026-09-28)
 
 **Auslöser**: 18 lokale + 19 Remote-Branches (14× backup-N, app, test,
