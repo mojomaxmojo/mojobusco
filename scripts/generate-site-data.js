@@ -386,6 +386,18 @@ async function main() {
     };
   };
 
+  // Minimal-Event (ohne sig): gemeinsame Shape für sitemap-events.json UND
+  // die Per-Event-Dateien data/e/ (Stufe 3) — beide werden von consumer-
+  // Seite als NostrEvent gelesen, sig braucht es dort nicht.
+  const minimalSitemapEvent = (e) => ({
+    id: e.id,
+    pubkey: e.pubkey,
+    kind: e.kind,
+    created_at: e.created_at,
+    tags: e.tags || [],
+    content: e.content || '',
+  });
+
   const writeJSON = (name, data) => {
     const p = path.join(DATA_DIR, name);
     const json = JSON.stringify(data);
@@ -422,6 +434,65 @@ async function main() {
   // Videos: kind 34236 + 34235 (NIP-71), nach Datum sortiert
   const videosSorted = allVideoEvents.sort((a, b) => b.created_at - a.created_at);
   writeJSON('videos.json', videosSorted.map(stripVideo));
+
+  // ── Per-Event-Dateien: data/e/ (Statische Detail-Inhalte, Stufe 3) ──────
+  // Detailseiten der SPA laden ihren Volltext aus diesen Dateien statt live
+  // vom Relay (Relay nur noch Fallback). Pro Event EINE Datei:
+  //   kind 30023 (Artikel/Orte)  → <naddr>.json   (naddrEncode 30023+pubkey+d)
+  //   kind 30025 (Trips)         → <naddr>.json   (naddrEncode 30025+pubkey+d)
+  //   kind 34235/34236 (Videos)  → <naddr>.json   (naddrEncode kind+pubkey+d)
+  //   kind 1 (Notes/Bilder/kind1-Orte) → <hex-event-id>.json (NICHT addressable!)
+  // Die SPA kodiert dieselben naddr/IDs — Dateiname = Lookup-Schlüssel.
+  // Dateinamen-Parität mit dem Prerender (encodeNaddr/encodeTripNaddr).
+  // WICHTIG: Verzeichnis wird JEDEM Lauf KOMPLETT neu geschrieben (erst
+  // leeren) — gelöschte/ersetzte Events verschwinden als Datei sofort,
+  // kein Dateimüll, kein stale Content.
+  const EVENT_DIR = path.join(DATA_DIR, 'e');
+  try {
+    fs.rmSync(EVENT_DIR, { recursive: true, force: true });
+    fs.mkdirSync(EVENT_DIR, { recursive: true });
+  } catch (err) {
+    console.warn(`[SiteData] ⚠️ data/e/ konnte nicht vorbereitet werden: ${err.message}`);
+  }
+
+  const eventFileName = (e) => {
+    if (e.kind === 30023 || e.kind === 30025 || e.kind === 34235 || e.kind === 34236) {
+      const d = (e.tags || []).find(t => t[0] === 'd')?.[1] || e.id;
+      return nip19.naddrEncode({ kind: e.kind, pubkey: e.pubkey, identifier: d });
+    }
+    return e.id; // kind 1 → Hex-Event-ID (nicht addressable)
+  };
+
+  // Dedup per ID (Orte tauchen in placeEvents UND kind:1-Liste auf) +
+  // kind:1-Fremd-Posts raus (AGENTS Regel 15)
+  const seenEventFileIds = new Set();
+  const eventFileEvents = [];
+  for (const e of [
+    ...articleEvents,             // kind 30023 ohne type=place
+    ...placeEvents.filter(pe => pe.kind === 30023), // Orte als 30023
+    ...allTripEvents,             // kind 30025
+    ...allVideoEvents,            // kind 34235/34236
+    ...allEvents.filter(ev => ev.kind === 1 && isMojobusKind1(ev)), // Notes/Bilder/kind1-Orte
+  ]) {
+    if (!seenEventFileIds.has(e.id)) {
+      seenEventFileIds.add(e.id);
+      eventFileEvents.push(e);
+    }
+  }
+
+  let eventFileCount = 0;
+  let eventFileBytes = 0;
+  for (const e of eventFileEvents) {
+    try {
+      const json = JSON.stringify(minimalSitemapEvent(e));
+      fs.writeFileSync(path.join(EVENT_DIR, `${eventFileName(e)}.json`), json, 'utf-8');
+      eventFileCount++;
+      eventFileBytes += Buffer.byteLength(json, 'utf-8');
+    } catch (err) {
+      console.warn(`[SiteData] ⚠️ Event-Datei übersprungen (kind ${e.kind}): ${err.message}`);
+    }
+  }
+  console.log(`[SiteData]  ✅ data/e/ (${eventFileCount} Event-Dateien, ${(eventFileBytes / 1024).toFixed(1)} KB)`);
 
   // ── destinations.json: Reiseziele-Hub (/reiseziele) ─────────────────────
   // Struktur kommt aus dem NIP-78-Event (Reiseziele-Admin /admin/destinations),
@@ -508,14 +579,8 @@ async function main() {
   // Trip-Beschreibungen, Profil-JSON) — deshalb enthält der Dump jetzt den
   // Content ALLER Events (vorher: nur Videos). Datei wächst dadurch in den
   // MB-Bereich, enthält aber ausschließlich öffentlichen Content.
-  const minimalSitemapEvent = (e) => ({
-    id: e.id,
-    pubkey: e.pubkey,
-    kind: e.kind,
-    created_at: e.created_at,
-    tags: e.tags || [],
-    content: e.content || '',
-  });
+  // (minimalSitemapEvent ist oben bei den strip*-Funktionen definiert —
+  // dieselbe Shape wie die Per-Event-Dateien data/e/.)
   writeJSON('sitemap-events.json', [
     ...allEvents.map(minimalSitemapEvent),
     ...allVideoEvents.map(minimalSitemapEvent),
