@@ -791,6 +791,9 @@ export function ArticleView({ naddr }: ArticleViewProps) {
               </p>
             )}
 
+            {/* Byline + SocialBar als Gruppe — SocialBar sitzt dicht unter dem
+                Autor (eigenes engeres space-y statt dem Hero-Standard). */}
+            <div className="space-y-1">
             {/* Author Info */}
             <div className="flex items-center gap-3">
               <Link to={`/${nip19.npubEncode(article.pubkey)}`} className="flex items-center gap-3 flex-1 hover:bg-muted/50 rounded-lg p-2 transition-colors min-w-0">
@@ -832,11 +835,11 @@ export function ArticleView({ naddr }: ArticleViewProps) {
               />
             </div>
 
-            {/* SocialBar direkt unter dem Autor (Reply/Repost/Quote/Zap/Share) —
-                ersetzt den separaten ShareButtons-Block in der Breadcrumb-Zeile.
-                className kompakt (px/py schmaler als die SocialBar-Defaults),
-                greift nur hier — NoteView/ImageDetail bleiben unangetastet. */}
-            <SocialBar event={article} className="px-2 py-1.5" />
+            {/* SocialBar direkt unter dem Autor — Linie oben (border-t der
+                SocialBar-Basis) via border-0 entfernt; className kompakt.
+                Greift nur hier — NoteView/ImageDetail bleiben unangetastet. */}
+            <SocialBar event={article} className="px-2 py-1.5 border-0" />
+            </div>
 
           </div>
         </div>
