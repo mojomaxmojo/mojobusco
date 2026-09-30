@@ -43,10 +43,17 @@ export async function fetchStaticEvent(
     const res = await fetch(`${getDataBaseUrl()}/data/e/${identifier}.json${v}`, {
       signal: AbortSignal.timeout(STATIC_FETCH_TIMEOUT_MS),
     });
-    if (!res.ok) return null; // 404 = Event (noch) nicht im Dump → Relay-Fallback
+    if (!res.ok) {
+      // 404 = Event (noch) nicht im Dump → Relay-Fallback. Debug statt warn:
+      // Normalfall ist "Datei existiert"; 404 taucht nur bei neuen Events
+      // vor dem nächsten Cron oder nach Deploy-Verlust auf.
+      console.debug(`[StaticEvent] ${res.status} für data/e/${identifier}.json — Relay-Fallback`);
+      return null;
+    }
     const event = await res.json();
     // Minimale Plausibilität: Es muss wie ein NostrEvent aussehen
     if (event && typeof event.id === 'string' && typeof event.kind === 'number') {
+      console.debug(`[StaticEvent] ✅ statisch geladen (kind ${event.kind}): ${identifier}`);
       return event as NostrEvent;
     }
     console.warn('[StaticEvent] Unerwartetes Format in data/e/ — Relay-Fallback:', identifier);

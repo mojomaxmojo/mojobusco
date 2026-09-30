@@ -494,6 +494,14 @@ async function main() {
   }
   console.log(`[SiteData]  ✅ data/e/ (${eventFileCount} Event-Dateien, ${(eventFileBytes / 1024).toFixed(1)} KB)`);
 
+  // Guard: Wenn Events vorhanden sind, aber KEINE Datei geschrieben wurde
+  // (z. B. alle naddrEncode-Encodings fehlschlugen), ist die SPA-Quelle für
+  // Detailseiten leer → alles fällt auf Relay zurück. Warnung statt exit,
+  // da die Relay-Fallbacks die Lücke auffangen — aber sichtbar machen.
+  if (eventFileCount === 0 && articleEvents.length > 0) {
+    console.warn('[SiteData] ⚠️ 0 Event-Dateien geschrieben, obwohl Artikel existieren — Detailseiten laufen auf Relay-Fallback (statisch-first-Quelle leer).');
+  }
+
   // ── destinations.json: Reiseziele-Hub (/reiseziele) ─────────────────────
   // Struktur kommt aus dem NIP-78-Event (Reiseziele-Admin /admin/destinations),
   // Pillar-naddr werden zusätzlich AUTO erkannt: Artikel (kind 30023) mit
@@ -601,6 +609,9 @@ async function main() {
       notes: metaNotes.length,
       videos: videosSorted.length,
       sitemap: sitemap.length,
+      // Statische Detail-Inhalte (Stufe 3) — Monitoring: SPA-Console-Fallbacks
+      // korrelieren mit 0/abnehmenden Werten hier.
+      eventFiles: eventFileCount,
     },
     duration: `${((Date.now() - startTime) / 1000).toFixed(1)}s`,
   };
