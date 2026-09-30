@@ -246,13 +246,14 @@ deploy_files() {
     fi
 
     # ── SEO-Artefakte VOR dem Löschen sichern (Deploy-Fenster schließen) ────
-    # data/ (JSON-Dumps) + prerender/ (Bot-HTML) + Sitemaps + Feeds sind live-
-    # generiert und würden vom Wipe gelöscht. Ohne Backup fehlen Bots/SPA die
-    # Daten, bis run_seo_pipeline() fertig ist (Dumps-404 → SPA fällt auf
-    # Relay-Queries zurück, Prerender-URLs → 404). Mit Backup bleiben die
-    # ALTEN Artefakte durchgehend erreichbar; die Pipeline überschreibt sie
-    # direkt danach mit frischen Versionen. Gleiche Technik wie die Backup-
-    # Blöcke oben (Musik, DBs, Media-Library).
+    # data/ (inkl. data/e/ — statische Detail-Inhalte für die SPA, Stufe 3)
+    # + prerender/ (Bot-HTML) + Sitemaps + Feeds sind live-generiert und
+    # würden vom Wipe gelöscht. Ohne Backup fehlen Bots/SPA die Daten, bis
+    # run_seo_pipeline() fertig ist (Dumps-404 → SPA fällt auf Relay-Queries
+    # zurück, Prerender-URLs → 404). Mit Backup bleiben die ALTEN Artefakte
+    # durchgehend erreichbar; die Pipeline überschreibt sie direkt danach
+    # mit frischen Versionen. Gleiche Technik wie die Backup-Blöcke oben
+    # (Musik, DBs, Media-Library).
     SEO_DIR_BACKUP=""
     for SEO_DIR in data prerender; do
         if [ -d "$DEPLOY_DIR/$SEO_DIR" ] && [ "$(ls -A "$DEPLOY_DIR/$SEO_DIR" 2>/dev/null)" ]; then
