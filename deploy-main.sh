@@ -245,6 +245,33 @@ deploy_files() {
         info_msg "✓ Media-Library gesichert ($(ls "$MEDIA_BACKUP_DIR" | wc -l) Dateien)"
     fi
 
+    # ── SEO-Artefakte VOR dem Löschen sichern (Deploy-Fenster schließen) ────
+    # data/ (JSON-Dumps) + prerender/ (Bot-HTML) + Sitemaps + Feeds sind live-
+    # generiert und würden vom Wipe gelöscht. Ohne Backup fehlen Bots/SPA die
+    # Daten, bis run_seo_pipeline() fertig ist (Dumps-404 → SPA fällt auf
+    # Relay-Queries zurück, Prerender-URLs → 404). Mit Backup bleiben die
+    # ALTEN Artefakte durchgehend erreichbar; die Pipeline überschreibt sie
+    # direkt danach mit frischen Versionen. Gleiche Technik wie die Backup-
+    # Blöcke oben (Musik, DBs, Media-Library).
+    SEO_DIR_BACKUP=""
+    for SEO_DIR in data prerender; do
+        if [ -d "$DEPLOY_DIR/$SEO_DIR" ] && [ "$(ls -A "$DEPLOY_DIR/$SEO_DIR" 2>/dev/null)" ]; then
+            SEO_DIR_BACKUP="${SEO_DIR_BACKUP:-$(mktemp -d)}"
+            mkdir -p "$SEO_DIR_BACKUP/$SEO_DIR"
+            cp -r "$DEPLOY_DIR/$SEO_DIR/." "$SEO_DIR_BACKUP/$SEO_DIR/"
+        fi
+    done
+    SEO_FILE_BACKUP=""
+    for SEO_FILE in sitemap.xml sitemap-videos.xml sitemap-images.xml feed.xml feed-en.xml; do
+        if [ -f "$DEPLOY_DIR/$SEO_FILE" ]; then
+            SEO_FILE_BACKUP="${SEO_FILE_BACKUP:-$(mktemp -d)}"
+            cp "$DEPLOY_DIR/$SEO_FILE" "$SEO_FILE_BACKUP/"
+        fi
+    done
+    if [ -n "$SEO_DIR_BACKUP" ] || [ -n "$SEO_FILE_BACKUP" ]; then
+        info_msg "✓ SEO-Artefakte gesichert (data/, prerender/, Sitemaps, Feeds)"
+    fi
+
     # Zielverzeichnis leeren
     rm -rf "$DEPLOY_DIR"/*
 
@@ -408,6 +435,32 @@ deploy_files() {
         cp -r "$MEDIA_BACKUP_DIR/." "$DEPLOY_DIR/images/articles/"
         rm -rf "$MEDIA_BACKUP_DIR"
         success_msg "✓ Media-Library wiederhergestellt ($(ls "$DEPLOY_DIR/images/articles" | wc -l) Dateien)"
+    fi
+
+    # ── SEO-Artefakte wiederherstellen (Lücke schließen) ─────────────────────
+    # Die gesicherten ALTEN Artefakte sofort zurück ins Webroot: Bots bekommen
+    # Prerender-HTML/Sitemaps, die SPA die JSON-Dumps — durchgehend, ohne
+    # Fenster. run_seo_pipeline() überschreibt gleich mit frischen Versionen
+    # (bzw. bei --skip-seo bleiben die alten Artefakte bis zum nächsten
+    # Cron/Publish online statt zu fehlen).
+    if [ -n "$SEO_DIR_BACKUP" ]; then
+        for SEO_DIR in data prerender; do
+            if [ -d "$SEO_DIR_BACKUP/$SEO_DIR" ]; then
+                mkdir -p "$DEPLOY_DIR/$SEO_DIR"
+                cp -r "$SEO_DIR_BACKUP/$SEO_DIR/." "$DEPLOY_DIR/$SEO_DIR/"
+            fi
+        done
+        rm -rf "$SEO_DIR_BACKUP"
+        success_msg "✓ SEO-Artefakte data/ + prerender/ wiederhergestellt (keine Lücke bis zur Pipeline)"
+    fi
+    if [ -n "$SEO_FILE_BACKUP" ]; then
+        for SEO_FILE in sitemap.xml sitemap-videos.xml sitemap-images.xml feed.xml feed-en.xml; do
+            if [ -f "$SEO_FILE_BACKUP/$SEO_FILE" ]; then
+                cp "$SEO_FILE_BACKUP/$SEO_FILE" "$DEPLOY_DIR/$SEO_FILE"
+            fi
+        done
+        rm -rf "$SEO_FILE_BACKUP"
+        success_msg "✓ Sitemaps + Feeds wiederhergestellt (letzte Live-Version)"
     fi
 
     # Prüfe ob assets Ordner existiert
