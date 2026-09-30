@@ -39,8 +39,6 @@ import type { AddressPointer } from 'nostr-tools/nip19';
 import { canonicalUrl as getCanonicalUrl, articleUrl, profileUrl, ogImageUrl, canonicalNaddr } from '@/lib/canonicalUrl';
 import { getArticleHeaderUrl, generateSrcset, generateSizes, getResponsiveImageUrl } from '@/lib/imageUtils';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
-import { ShareButtons } from '@/components/ShareButtons';
-import { PinImageButton } from '@/components/PinImageButton';
 import { ZapButton } from '@/components/ZapButton';
 import { getEventLanguage } from '@/lib/translationTags';
 import { useNostr } from '@/hooks/useNostr';
@@ -686,17 +684,46 @@ export function ArticleView({ naddr }: ArticleViewProps) {
       <div className="bg-muted/30 py-12 md:py-5">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto space-y-6">
-            <div className="flex items-center justify-between">
-              <Button asChild variant="ghost" size="sm" className="mb-4">
-                <Link to={isPlace ? "/veroeffentlichen?tab=place" : "/artikel"}>
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  {isPlace ? "Zurück zu den Plätzen" : "Zurück zu den Artikeln"}
+            {/* Sprachlink zur Übersetzung (Schritt 8) */}
+            {pairNaddr && (
+              <div className="mb-4">
+                <Link
+                  to={lang === 'de' ? `/en/${pairNaddr}` : `/${pairNaddr}`}
+                  className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                >
+                  {lang === 'de' ? '🇬🇧 English version' : '🇩🇪 Deutsche Version'}
                 </Link>
-              </Button>
+              </div>
+            )}
 
-              {/* Edit/Delete buttons for authors */}
+            {/* Breadcrumb-Zeile: runder Zurück-Kreis (direkt vor Home) +
+                Breadcrumbs — rechts Edit/Delete (nur Autor). Kein separater
+                Share-Button mehr: Teilen steckt in der SocialBar unter der
+                Byline. */}
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                <Button
+                  asChild
+                  variant="outline"
+                  size="icon"
+                  className="rounded-full flex-shrink-0"
+                  aria-label={isPlace ? "Zurück zu den Plätzen" : "Zurück zu den Artikeln"}
+                >
+                  {/* Fix: Orte führen zur Liste (/plaetze) — vorher zeigte der
+                      Link auf /veroeffentlichen?tab=place (Publish-Formular). */}
+                  <Link to={isPlace ? "/plaetze" : "/artikel"}>
+                    <ArrowLeft className="h-4 w-4" />
+                  </Link>
+                </Button>
+                <Breadcrumbs items={[
+                  { label: 'Home', href: '/' },
+                  { label: isPlace ? 'Plätze' : 'Artikel', href: isPlace ? '/plaetze' : '/artikel' },
+                  { label: metadata.title },
+                ]} />
+              </div>
+              {/* Edit/Delete buttons for authors (Platz der früheren ShareButtons) */}
               {isAuthor && (
-                <div className="flex gap-2 mb-4">
+                <div className="flex gap-2">
                   <Button asChild variant="outline" size="sm">
                     <Link to={`/veroeffentlichen?edit=${editNaddr}&type=${isPlace ? 'place' : 'article'}`}>
                       <Edit className="h-4 w-4 mr-2" />
@@ -711,40 +738,8 @@ export function ArticleView({ naddr }: ArticleViewProps) {
                     <Trash2 className="h-4 w-4 mr-2" />
                     Löschen
                   </Button>
-               </div>
-             )}
-
-             <SocialBar event={article} />
-
-             {/* Divider */}
-            </div>
-
-            {/* Sprachlink zur Übersetzung (Schritt 8) */}
-            {pairNaddr && (
-              <div className="mb-4">
-                <Link
-                  to={lang === 'de' ? `/en/${pairNaddr}` : `/${pairNaddr}`}
-                  className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-                >
-                  {lang === 'de' ? '🇬🇧 English version' : '🇩🇪 Deutsche Version'}
-                </Link>
-              </div>
-            )}
-
-            {/* Breadcrumbs + Share-Button in einer Zeile (Share rechts) */}
-            <div className="flex items-center justify-between gap-3 flex-wrap">
-              <Breadcrumbs items={[
-                { label: 'Home', href: '/' },
-                { label: isPlace ? 'Plätze' : 'Artikel', href: isPlace ? '/plaetze' : '/artikel' },
-                { label: metadata.title },
-              ]} />
-              <ShareButtons
-                url={getCanonicalUrl(articleUrl(canonicalNaddr(naddr), lang))}
-                title={metadata.title}
-                description={metadata.summary}
-                image={metadata.image || ogImageUrl()}
-                compact
-              />
+                </div>
+              )}
             </div>
 
             {/* Title */}
@@ -807,6 +802,9 @@ export function ArticleView({ naddr }: ArticleViewProps) {
               />
             </div>
 
+            {/* SocialBar direkt unter dem Autor (Reply/Repost/Quote/Zap/Share) —
+                ersetzt den separaten ShareButtons-Block in der Breadcrumb-Zeile */}
+            <SocialBar event={article} />
 
           </div>
         </div>
