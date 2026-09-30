@@ -35,6 +35,7 @@ import {
   classifyKind1,
   queryRelay,
   getEventLangFromTags,
+  dedupeReplaceables,
   RELAYS,
 } from './prerender-helpers.js';
 
@@ -267,6 +268,21 @@ async function main() {
 
   console.log(`[SiteData]  → ${allEvents.length} unique Events total`);
 
+  // ── Replaceable-Dedup (Stufe 2.5, dedupeReplaceables) ───────────────────
+  // Der 2-Relay-Merge kann mehrere Versionen desselben addressable Events
+  // enthalten (Edit → neue Event-ID; das zweite Relay hält u. U. noch die
+  // alte Version). Ohne Dedup landen BEIDE Versionen in articles.json/
+  // places.json/sitemap-events.json → doppelte Cards in den SPA-Listen
+  // (beobachtet 2026-09-30: „Praia dos Tomates" 2× mit altem + neuem Datum)
+  // und nondeterministische data/e/-Dateien (gleicher naddr-Dateiname,
+  // last-writer-wins). dedupeReplaceables() (prerender-helpers.js, Stufe 2.5)
+  // lässt die neueste Version gewinnen (created_at); kind 1 bleibt
+  // unangetastet (nicht addressable — niemals per pubkey:d kollabieren).
+  const dedupedEvents = dedupeReplaceables(allEvents);
+  if (dedupedEvents.length < allEvents.length) {
+    console.log(`[SiteData]  → ${allEvents.length - dedupedEvents.length} Replaceable-Duplikate entfernt (${dedupedEvents.length} unique Events)`);
+  }
+
   // ── Total-Ausfall-Schutz: 0 Events über ALLE Relays ist nie ein legitimer
   // Zustand dieser Pipeline (Haven hat Content). Ohne diesen Guard schrieben
   // z. B. deploy-geleerte Dumps + Relay-Störung leere articles.json etc.
@@ -294,10 +310,10 @@ async function main() {
   // Bucket zu: Ort > Media > Note (identisch zu Prerender + Sitemap).
   // kind:30023 (Artikel/Plätze) ist nicht betroffen: nur über
   // ArticleForm/PlaceForm erzeugt, kein "Fremd-Client"-Fall.
-  const articleEvents = allEvents.filter(e => e.kind === 30023 && !isPlace(e));
-  const placeEvents = allEvents.filter(e => isPlace(e) && (e.kind === 30023 || (e.kind === 1 && isMojobusKind1(e))));
-  const bildEvents = allEvents.filter(e => e.kind === 1 && isMojobusKind1(e) && classifyKind1(e) === 'media');
-  const noteEvents = allEvents.filter(e => e.kind === 1 && isMojobusKind1(e) && classifyKind1(e) === 'note');
+  const articleEvents = dedupedEvents.filter(e => e.kind === 30023 && !isPlace(e));
+  const placeEvents = dedupedEvents.filter(e => isPlace(e) && (e.kind === 30023 || (e.kind === 1 && isMojobusKind1(e))));
+  const bildEvents = dedupedEvents.filter(e => e.kind === 1 && isMojobusKind1(e) && classifyKind1(e) === 'media');
+  const noteEvents = dedupedEvents.filter(e => e.kind === 1 && isMojobusKind1(e) && classifyKind1(e) === 'note');
 
   const metaArticles = articleEvents.map(extractMeta);
   const metaPlaces = placeEvents.map(extractMeta);
@@ -472,7 +488,7 @@ async function main() {
     ...placeEvents.filter(pe => pe.kind === 30023), // Orte als 30023
     ...allTripEvents,             // kind 30025
     ...allVideoEvents,            // kind 34235/34236
-    ...allEvents.filter(ev => ev.kind === 1 && isMojobusKind1(ev)), // Notes/Bilder/kind1-Orte
+    ...dedupedEvents.filter(ev => ev.kind === 1 && isMojobusKind1(ev)), // Notes/Bilder/kind1-Orte
   ]) {
     if (!seenEventFileIds.has(e.id)) {
       seenEventFileIds.add(e.id);
@@ -590,7 +606,7 @@ async function main() {
   // (minimalSitemapEvent ist oben bei den strip*-Funktionen definiert —
   // dieselbe Shape wie die Per-Event-Dateien data/e/.)
   writeJSON('sitemap-events.json', [
-    ...allEvents.map(minimalSitemapEvent),
+    ...dedupedEvents.map(minimalSitemapEvent),
     ...allVideoEvents.map(minimalSitemapEvent),
     ...allTripEvents.map(minimalSitemapEvent),
     ...allProfileEvents.map(minimalSitemapEvent),
