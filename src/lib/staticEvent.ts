@@ -11,9 +11,10 @@
  * (404), Netzwerkfehler oder Timeout liefern wir null und der Hook fällt
  * sauber auf seine bisherige Relay-Query zurück.
  *
- * Frische: nginx cacht /data/e/ 10 min; zusätzlich hängt der Aufrufer
- * ?v=<index.generatedAtUnix> an (getStaticVersion()), damit der Browser-
- * Cache bei jedem site-data-Lauf (3h-Cron, Publish-Pipeline) sofort bricht.
+ * Frische: nginx cacht /data/e/ 10 min; fetchStaticEvent hängt automatisch
+ * ?v=<index.generatedAtUnix> an (getStaticVersion(), einmal pro Session),
+ * damit der Browser-Cache bei jedem site-data-Lauf (3h-Cron, Publish-
+ * Pipeline) sofort bricht.
  */
 
 import type { NostrEvent } from '@nostrify/nostrify';
@@ -25,16 +26,19 @@ const STATIC_FETCH_TIMEOUT_MS = 4000;
 
 /**
  * Lädt ein Event aus data/e/<identifier>.json.
+ * Hängt automatisch ?v=<index.generatedAtUnix> an (einmal pro Session aus
+ * index.json gecacht) — der Browser-Cache bricht damit bei jedem
+ * site-data-Lauf (3h-Cron, Publish-Pipeline) sofort. Ohne index.json wird
+ * ohne ?v= gearbeitet (nginx cacht /data/e/ 10 min).
  * @param identifier naddr (addressable Kinds) oder Hex-Event-ID (kind 1)
- * @param version optional: Cache-Buster (index.generatedAtUnix)
  * @returns NostrEvent oder null (Datei fehlt/ungültig → Relay-Fallback)
  */
 export async function fetchStaticEvent(
-  identifier: string,
-  version?: number
+  identifier: string
 ): Promise<NostrEvent | null> {
   if (!identifier) return null;
   try {
+    const version = await getStaticVersion();
     const v = version ? `?v=${version}` : '';
     const res = await fetch(`${getDataBaseUrl()}/data/e/${identifier}.json${v}`, {
       signal: AbortSignal.timeout(STATIC_FETCH_TIMEOUT_MS),
