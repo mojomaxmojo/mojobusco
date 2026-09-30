@@ -24,7 +24,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { nip19 } from 'nostr-tools';
-import { getEventLangFromTags, isPlace, queryRelay, loadSiteDataEventsDump, RELAYS } from './prerender-helpers.js';
+import { getEventLangFromTags, isPlace, queryRelay, loadSiteDataEventsDump, dedupeReplaceables, RELAYS } from './prerender-helpers.js';
 
 // ── Autoren aus zentraler JSON-Config (Single Source of Truth) ────────────
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -208,27 +208,9 @@ async function generateFeedXml(articles, lang = 'de') {
   return xml;
 }
 
-// ── Replaceable-Dedup für den Dump ────────────────────────────────────────
-// Der sitemap-events.json-Dump dedupliziert nur nach Event-ID. kind 30023
-// ist aber REPLACEABLE (pubkey + kind + d): Ein Artikel-Edit erzeugt eine
-// NEUE Event-ID — und der Dump sammelt von BEIDEN Relays, wobei primal
-// u. U. noch die alte Version hält (mojobus die neue). Ohne Dedup könnten
-// alte Artikel-Versionen als eigene Feed-Items auftauchen. Live-Queries
-// haben das Problem nicht (Relays halten je Replaceable nur die neueste
-// Version) — deshalb wird NUR im Dump-Modus dedupliziert: neuestes
-// created_at gewinnt je (pubkey, d).
-function dedupeReplaceables(events) {
-  const latest = new Map(); // `${pubkey}:${d}` → Event
-  for (const e of events) {
-    const d = e.tags?.find(t => t[0] === 'd')?.[1] || '';
-    const key = `${e.pubkey}:${d}`;
-    const prev = latest.get(key);
-    if (!prev || (e.created_at || 0) > (prev.created_at || 0)) {
-      latest.set(key, e);
-    }
-  }
-  return [...latest.values()];
-}
+// Replaceable-Dedup: dedupeReplaceables() kommt zentral aus
+// prerender-helpers.js (kind-bewusst: 0/30023/30025/34235/34236, neueste
+// Version gewinnt; kind 1 bleibt unangetastet). Details siehe dort.
 
 // ── Artikel laden: Dump bevorzugt, Relay-Fallback ────────────────────────
 // Identisches Muster wie prerender-static.js/generate-sitemap.js: Im

@@ -12,6 +12,7 @@ import {
   isMojobusKind1,
   classifyKind1,
   loadSiteDataEventsDump,
+  dedupeReplaceables,
   YEAR_ARCHIVE_START,
   getArticleYearCounts,
 } from './prerender-helpers.js';
@@ -60,36 +61,52 @@ const writtenFiles = new Set();
 // exakt die Events, die in den Dumps landen (kein Lauf-zu-Lauf-Drift mehr,
 // z. B. vorher 732 vs. 738 kind:30023). relayHint = eigenes Relay, da der
 // Dump die Herkunfts-Relays nicht mitführt (kanonischer Hint für nevent).
-function buildBatchFromDump(events) {
+function buildBatchFromDump(events, label = 'data/sitemap-events.json', relayHint = RELAYS[0]) {
+  // Replaceable-Dedup ZUERST: Der Dump kann mehrere Versionen eines
+  // Replaceable-Events enthalten (Edit → neue Event-ID; Dump sammelt von
+  // 2 Relays, alte Version evtl. noch auf primal). Der seen-by-id-Loop in
+  // main() würde beide rendern — die letzte gewinnt, und das war je
+  // Relay-Reihenfolge die ALTE. dedupeReplaceables() (prerender-helpers.js)
+  // lässt deterministisch die neueste Version gewinnen.
+  const deduped = dedupeReplaceables(events);
   return {
-    label: 'data/sitemap-events.json',
-    relayHint: RELAYS[0],
-    longform: events.filter(e => e.kind === 30023),
-    kind1: events.filter(e => e.kind === 1),
-    trips: events.filter(e => e.kind === 30025),
-    videos: events.filter(e => e.kind === 34236 || e.kind === 34235),
-    profiles: events.filter(e => e.kind === 0),
+    label,
+    relayHint,
+    longform: deduped.filter(e => e.kind === 30023),
+    kind1: deduped.filter(e => e.kind === 1),
+    trips: deduped.filter(e => e.kind === 30025),
+    videos: deduped.filter(e => e.kind === 34236 || e.kind === 34235),
+    profiles: deduped.filter(e => e.kind === 0),
   };
 }
 
 // Fallback, wenn kein frischer Dump vorliegt (manueller Einzellauf > 2 h
-// nach dem letzten site-data): direkte Relay-Abfragen wie bisher.
+// nach dem letzten site-data): direkte Relay-Abfragen wie bisher — aber als
+// EIN gemergter Batch (vorher: ein Batch pro Relay, wodurch bei
+// Replaceable-Konflikten das ZULETZT abgefragte Relay gewann, auch wenn das
+// die alte Version hielt).
 async function collectRelayBatches() {
   console.log('[Prerender] Kein frischer Dump — Relay-Abfrage (Fallback).');
-  const batches = [];
+  const allEvents = [];
+  const seenIds = new Set();
   for (const relay of RELAYS) {
     console.log(`[Prerender] Frage ab: ${relay}`);
-    batches.push({
-      label: relay,
-      relayHint: relay,
-      longform: await queryRelay(relay, [{ kinds: [30023], authors: AUTHOR_PUBKEYS, since: 0, until: FAR_FUTURE }], { label: `${relay} kind:30023` }),
-      kind1: await queryRelay(relay, [{ kinds: [1], authors: AUTHOR_PUBKEYS, since: 0, until: FAR_FUTURE }], { label: `${relay} kind:1` }),
-      trips: await queryRelay(relay, [{ kinds: [30025], authors: AUTHOR_PUBKEYS, since: 0, until: FAR_FUTURE }], { label: `${relay} kind:30025` }),
-      videos: await queryRelay(relay, [{ kinds: [34236, 34235], authors: AUTHOR_PUBKEYS, since: 0, until: FAR_FUTURE }], { label: `${relay} videos` }),
-      profiles: await queryRelay(relay, [{ kinds: [0], authors: AUTHOR_PUBKEYS, limit: 10, since: 0, until: FAR_FUTURE }], { label: `${relay} profiles` }),
-    });
+    const relayEvents = [
+      ...(await queryRelay(relay, [{ kinds: [30023], authors: AUTHOR_PUBKEYS, since: 0, until: FAR_FUTURE }], { label: `${relay} kind:30023` })),
+      ...(await queryRelay(relay, [{ kinds: [1], authors: AUTHOR_PUBKEYS, since: 0, until: FAR_FUTURE }], { label: `${relay} kind:1` })),
+      ...(await queryRelay(relay, [{ kinds: [30025], authors: AUTHOR_PUBKEYS, since: 0, until: FAR_FUTURE }], { label: `${relay} kind:30025` })),
+      ...(await queryRelay(relay, [{ kinds: [34236, 34235], authors: AUTHOR_PUBKEYS, since: 0, until: FAR_FUTURE }], { label: `${relay} videos` })),
+      ...(await queryRelay(relay, [{ kinds: [0], authors: AUTHOR_PUBKEYS, limit: 10, since: 0, until: FAR_FUTURE }], { label: `${relay} profiles` })),
+    ];
+    for (const e of relayEvents) {
+      if (!seenIds.has(e.id)) {
+        seenIds.add(e.id);
+        allEvents.push(e);
+      }
+    }
   }
-  return batches;
+  // Dedup + Partitionierung identisch zum Dump-Pfad
+  return [buildBatchFromDump(allEvents, 'Relay-Abfrage (gemerged, Replaceables dedupliziert)', RELAYS[0])];
 }
 
 async function main() {

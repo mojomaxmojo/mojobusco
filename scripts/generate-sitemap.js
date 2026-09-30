@@ -24,7 +24,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { nip19 } from 'nostr-tools';
-import { buildLocalizedUrl, findTranslationPair, getEventLangFromTags, isMojobusKind1, isPlace, isMedia, encodeTripNaddr, queryRelay, loadSiteDataEventsDump, RELAYS, YEAR_ARCHIVE_START, getArticleYearCounts } from './prerender-helpers.js';
+import { buildLocalizedUrl, findTranslationPair, getEventLangFromTags, isMojobusKind1, isPlace, isMedia, encodeTripNaddr, queryRelay, loadSiteDataEventsDump, dedupeReplaceables, RELAYS, YEAR_ARCHIVE_START, getArticleYearCounts } from './prerender-helpers.js';
 
 // ── Autoren aus zentraler JSON-Config (Single Source of Truth) ────────────
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -357,30 +357,52 @@ async function main() {
   const yearArticleEvents = []; // Deduplizierte Artikel fürs Jahr-Archiv (unten)
 
   // ── Event-Quelle: Dump (bevorzugt) oder Relay-Abfrage ─────────────────
-  // Jeder Batch = ein Satz per-Typ-Arrays; die Verarbeitung darunter ist
-  // für beide Quellen identisch.
+  // Replaceable-Dedup (dedupeReplaceables, prerender-helpers.js): Der Dump
+  // bzw. der 2-Relay-Merge kann mehrere Versionen je (pubkey, d) enthalten
+  // (Edit → neue Event-ID, alte Version evtl. noch auf primal). Ohne Dedup
+  // würde die Sitemap dieselbe naddr-URL doppelt listen. Beide Quellen
+  // werden vor der Partitionierung dedupliziert; der Relay-Fallback merged
+  // alle Relays in EINEN Batch (vorher: Batch pro Relay → letztes Relay
+  // gewann Replaceable-Konflikte, auch mit der alten Version).
   const dumpEvents = loadSiteDataEventsDump('[Sitemap]');
 
   const batches = [];
   if (dumpEvents) {
+    const deduped = dedupeReplaceables(dumpEvents);
     batches.push({
       label: 'data/sitemap-events.json',
-      articles: dumpEvents.filter(e => e.kind === 30023),
-      videoEvents: dumpEvents.filter(e => e.kind === 34235 || e.kind === 34236),
-      tripEvents: dumpEvents.filter(e => e.kind === 30025),
-      notes: dumpEvents.filter(e => e.kind === 1),
+      articles: deduped.filter(e => e.kind === 30023),
+      videoEvents: deduped.filter(e => e.kind === 34235 || e.kind === 34236),
+      tripEvents: deduped.filter(e => e.kind === 30025),
+      notes: deduped.filter(e => e.kind === 1),
     });
   } else {
+    console.log('[Sitemap] Kein frischer Dump — Relay-Abfrage (Fallback).');
+    const allEvents = [];
+    const seenIds = new Set();
     for (const relay of RELAYS) {
       console.log(`[Sitemap] Frage ab: ${relay}`);
-      batches.push({
-        label: relay,
-        articles: await queryRelay(relay, [{ kinds: [30023], authors: AUTHOR_PUBKEYS, since: 0, until: FAR_FUTURE }], { timeoutMs: QUERY_TIMEOUT, label: `${relay} kind:30023` }),
-        videoEvents: await queryRelay(relay, [{ kinds: [34235, 34236], authors: AUTHOR_PUBKEYS, since: 0, until: FAR_FUTURE }], { timeoutMs: QUERY_TIMEOUT, label: `${relay} videos` }),
-        tripEvents: await queryRelay(relay, [{ kinds: [30025], authors: AUTHOR_PUBKEYS, since: 0, until: FAR_FUTURE }], { timeoutMs: QUERY_TIMEOUT, label: `${relay} kind:30025` }),
-        notes: await queryRelay(relay, [{ kinds: [1], authors: AUTHOR_PUBKEYS, since: 0, until: FAR_FUTURE }], { timeoutMs: QUERY_TIMEOUT, label: `${relay} kind:1` }),
-      });
+      const relayEvents = [
+        ...(await queryRelay(relay, [{ kinds: [30023], authors: AUTHOR_PUBKEYS, since: 0, until: FAR_FUTURE }], { timeoutMs: QUERY_TIMEOUT, label: `${relay} kind:30023` })),
+        ...(await queryRelay(relay, [{ kinds: [34235, 34236], authors: AUTHOR_PUBKEYS, since: 0, until: FAR_FUTURE }], { timeoutMs: QUERY_TIMEOUT, label: `${relay} videos` })),
+        ...(await queryRelay(relay, [{ kinds: [30025], authors: AUTHOR_PUBKEYS, since: 0, until: FAR_FUTURE }], { timeoutMs: QUERY_TIMEOUT, label: `${relay} kind:30025` })),
+        ...(await queryRelay(relay, [{ kinds: [1], authors: AUTHOR_PUBKEYS, since: 0, until: FAR_FUTURE }], { timeoutMs: QUERY_TIMEOUT, label: `${relay} kind:1` })),
+      ];
+      for (const e of relayEvents) {
+        if (!seenIds.has(e.id)) {
+          seenIds.add(e.id);
+          allEvents.push(e);
+        }
+      }
     }
+    const deduped = dedupeReplaceables(allEvents);
+    batches.push({
+      label: 'Relay-Abfrage (gemerged, Replaceables dedupliziert)',
+      articles: deduped.filter(e => e.kind === 30023),
+      videoEvents: deduped.filter(e => e.kind === 34235 || e.kind === 34236),
+      tripEvents: deduped.filter(e => e.kind === 30025),
+      notes: deduped.filter(e => e.kind === 1),
+    });
   }
 
   for (const batch of batches) {

@@ -576,6 +576,53 @@ export function loadSiteDataEventsDump(label = '[Pipeline]') {
   return null;
 }
 
+// ── Replaceable-Dedup (Dump & Relay-Merge) ───────────────────────────────────
+// Der sitemap-events.json-Dump dedupliziert nur per Event-ID — Replaceable-
+// Events können je Schlüssel aber MEHRERE Versionen enthalten: Ein Edit
+// erzeugt eine NEUE Event-ID, und der Dump sammelt von 2 Relays, wobei
+// primal u. U. noch die alte Version hält (mojobus die neue). Konsumenten,
+// die nur per seen-by-id filtern, rendern/listen dann BEIDE Versionen — die
+// letzte gewinnt, und das ist je Relay-Reihenfolge die ALTE.
+//
+// dedupeReplaceables() lässt je Replaceable-Schlüssel die NEUESTE Version
+// gewinnen (created_at; Gleichstand → deterministisch die größere Event-ID):
+//   - kind 0 (Profil, NIP-01-replaceable): Schlüssel = pubkey (kein d-Tag)
+//   - NIP-33 addressable (d-Tag-Pflicht): 30023 (Artikel/Orte),
+//     30025 (Trips), 34235/34236 (Videos NIP-71)
+// NICHT-Replaceable-Kinds (z. B. kind 1) bleiben unangetastet — sie dürfen
+// niemals per pubkey:d kollabieren (kind 1 hat meist gar kein d-Tag; ein
+// falscher Merge würde fast alle Notes eines Autors auf eine reduzieren).
+// Live-Queries brauchen das Dedup streng genommen nicht (Relays halten je
+// Replaceable nur die neueste Version), aber beim Merge von ZWEI Relays
+// entstehen auch dort Konflikte — deshalb wird es einheitlich angewendet.
+export function dedupeReplaceables(events) {
+  const REPLACEABLE_D_TAG = new Set([30023, 30025, 34235, 34236]);
+  const latest = new Map(); // Replaceable-Schlüssel → neueste Version
+  const passthrough = [];   // nicht-Replaceable-Kinds (Original-Reihenfolge)
+
+  const keep = (key, e) => {
+    const prev = latest.get(key);
+    if (!prev) { latest.set(key, e); return; }
+    const eAt = e.created_at || 0;
+    const pAt = prev.created_at || 0;
+    if (eAt > pAt || (eAt === pAt && String(e.id || '') > String(prev.id || ''))) {
+      latest.set(key, e);
+    }
+  };
+
+  for (const e of events) {
+    if (e.kind === 0) {
+      keep(`0:${e.pubkey}`, e);
+    } else if (REPLACEABLE_D_TAG.has(e.kind)) {
+      const d = e.tags?.find(t => t[0] === 'd')?.[1] || '';
+      keep(`${e.kind}:${e.pubkey}:${d}`, e);
+    } else {
+      passthrough.push(e);
+    }
+  }
+  return [...passthrough, ...latest.values()];
+}
+
 /**
  * Ermittelt die Distanz eines Trips in km.
  * Liest zuerst `distance`/`distance_unit`-Tags, fällt sonst auf eine
