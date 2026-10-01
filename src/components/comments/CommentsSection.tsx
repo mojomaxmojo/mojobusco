@@ -29,7 +29,7 @@ export function CommentsSection({
 
   if (error) {
     return (
-      <Card className="rounded-none sm:rounded-lg mx-0 sm:mx-0">
+      <Card id="comments" className="rounded-none sm:rounded-lg mx-0 sm:mx-0 scroll-mt-24">
         <CardContent className="px-2 py-6 sm:p-6">
           <div className="text-center text-muted-foreground">
             <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -41,7 +41,7 @@ export function CommentsSection({
   }
 
   return (
-    <Card className={cn("rounded-none sm:rounded-lg mx-0 sm:mx-0", className)}>
+    <Card id="comments" className={cn("rounded-none sm:rounded-lg mx-0 sm:mx-0 scroll-mt-24", className)}>
       <CardHeader className="px-2 pt-6 pb-4 sm:p-6">
         <CardTitle className="flex items-center space-x-2">
           <MessageSquare className="h-5 w-5" />
