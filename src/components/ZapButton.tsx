@@ -6,6 +6,7 @@ import { useAuthor } from '@/hooks/useAuthor';
 import { Zap } from 'lucide-react';
 import type { Event } from 'nostr-tools';
 import type { ReactNode } from 'react';
+import { cn } from '@/lib/utils';
 
 interface ZapButtonProps {
   target: Event;
@@ -71,11 +72,20 @@ export function ZapButton({
     }
   };
 
+  // Wrapper via cn() (tailwind-merge) — className-Aufrufer können damit
+  // sauber stylen (z. B. SocialBar-Zap-Pill: border-0 rounded-full p-0
+  // + eigene Orange-Optik). active:scale als Touch-Feedback (mobil gibt
+  // es kein hover).
+  const wrapper = cn(
+    'flex items-center gap-1 group border border-orange-500 rounded px-2 py-1 hover:bg-orange-500/5 cursor-pointer active:scale-95 transition-all',
+    className
+  );
+
   // Für nicht-eingeloggte Nutzer: direkte UI ohne ZapDialog (vermeidet Strukturwechsel beim Logout)
   if (!user) {
     return (
       <div
-        className={`flex items-center gap-1 group border border-orange-500 rounded px-2 py-1 hover:bg-orange-500/5 cursor-pointer ${className}`}
+        className={wrapper}
         onClick={handleZapClick}
       >
         {children ?? (
@@ -99,9 +109,7 @@ export function ZapButton({
   return (
     <ZapDialog target={target} poll={poll}>
       {children ?? (
-        <div
-          className={`flex items-center gap-1 group border border-orange-500 rounded px-2 py-1 hover:bg-orange-500/5 cursor-pointer ${className}`}
-        >
+        <div className={wrapper}>
           <Zap className="h-4 w-4 text-orange-500 group-hover:fill-orange-500 transition-all group-hover:scale-125" />
           <span className="text-xs group-hover:text-orange-500 transition-colors">
             {showLoading ? (

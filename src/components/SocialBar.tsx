@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ZapButton } from '@/components/ZapButton';
 import { MessageSquare, Repeat2, Heart, Share2, Zap as ZapIcon } from 'lucide-react';
@@ -12,6 +12,16 @@ import { useSocialBatchItem, useInSocialBatchScope } from '@/hooks/useBatchedSoc
 import type { NostrEvent } from '@nostrify/nostrify';
 import { cn } from '@/lib/utils';
 import { nip19 } from 'nostr-tools';
+
+// ── Social-Proof-Zahlen kompakt (1,2k statt 1200) ──────────────────────────
+// Kleine text-xs-Zahlen verkaufen Social Proof schlecht; 1,2k/47k liest
+// sich auf einen Blick.
+function formatCount(n: number): string {
+  if (!Number.isFinite(n) || n <= 0) return '0';
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '').replace('.', ',')}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, '').replace('.', ',')}k`;
+  return String(n);
+}
 
 interface SocialBarProps {
   /** The target event to interact with */
@@ -31,8 +41,8 @@ interface SocialBarProps {
  */
 export function SocialBar({ event, compact = false, className }: SocialBarProps) {
   const { user } = useCurrentUser();
-  const { like } = useLikeActions();
-  const { repost } = useRepostActions();
+  const { like, hasLiked } = useLikeActions();
+  const { repost, hasReposted } = useRepostActions();
   const { webln, activeNWC } = useWallet();
 
   // ── PERFORMANCE: Batch-Scope (Feed-Seiten mit SocialBatchProvider) ────────
@@ -70,6 +80,24 @@ export function SocialBar({ event, compact = false, className }: SocialBarProps)
   // Local state for like and repost interactions (optimistic UI)
   const [isLiking, setIsLiking] = useState(false);
   const [isReposting, setIsReposting] = useState(false);
+
+  // ── Aktiv-Zustände (Variante A): dauerhaft sichtbar, auch mobil ───────────
+  // geliked = Herz gefüllt + pink, reposted = grün — ohne Hover (Touch-
+  // Besucher sehen sonst NIE eine Farbrückmeldung). Initialer Zustand nur
+  // auf Detailseiten (Full): je Event EINE kleine Relay-Query (kind 7/6,
+  // authors = eigener pubkey, 2s Timeout). Cards/Batch-Scope bekommen KEINE
+  // Extra-Queries (dort würden N Cards = N Queries) — nur optimistisches
+  // Feedback nach eigener Aktion.
+  const [liked, setLiked] = useState(false);
+  const [reposted, setReposted] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (compact || batched || !user || !event?.id) return;
+    hasLiked(event).then(v => { if (!cancelled) setLiked(v); }).catch(() => { /* still */ });
+    hasReposted(event).then(v => { if (!cancelled) setReposted(v); }).catch(() => { /* still */ });
+    return () => { cancelled = true; };
+  }, [event?.id, user, compact, batched, hasLiked, hasReposted]);
 
   // Don't render if event is missing
   if (!event) {
@@ -156,6 +184,7 @@ export function SocialBar({ event, compact = false, className }: SocialBarProps)
     }
     if (isLiking) return;
     setIsLiking(true);
+    setLiked(true); // optimistisch — like() zeigt bei Fehlern einen Toast
     await like(event);
     setIsLiking(false);
   };
@@ -168,40 +197,45 @@ export function SocialBar({ event, compact = false, className }: SocialBarProps)
     }
     if (isReposting) return;
     setIsReposting(true);
+    setReposted(true); // optimistisch — repost() zeigt bei Fehlern einen Toast
     await repost(event);
     setIsReposting(false);
   };
 
   if (compact) {
-    // Compact version for card views
+    // Compact version for card views — schlank bleiben (text-xs), aber mit
+    // Touch-Feedback (active:scale) + Aktiv-Zuständen (auch mobil sichtbar)
     return (
       <div className={cn("flex items-center gap-1 px-4 py-2 border-t w-full overflow-visible", className)}>
         {/* Comments */}
         <Button
           variant="ghost"
           size="sm"
-          className="flex-1 gap-1 h-8 text-muted-foreground hover:bg-transparent hover:text-gray-700 min-w-0 transition-colors"
+          className="flex-1 gap-1 h-8 text-muted-foreground hover:bg-transparent hover:text-gray-700 min-w-0 transition-all active:scale-95"
           asChild
         >
           <a href={`/${getCommentHref(event)}`} className="group">
-            <MessageSquare className="h-4 w-4 flex-shrink-0 group-hover:fill-gray-300 transition-all group-hover:scale-125" />
-            <span className="text-xs truncate group-hover:text-gray-700">
-              {effectiveLoading ? '...' : commentCount}
+            <MessageSquare className="h-4 w-4 flex-shrink-0 group-hover:scale-125 transition-all" />
+            <span className="text-xs tabular-nums truncate">
+              {effectiveLoading ? '...' : formatCount(commentCount)}
             </span>
           </a>
         </Button>
 
-        {/* Reposts */}
+        {/* Reposts — Aktiv-Zustand dauerhaft grün */}
         <Button
           variant="ghost"
           size="sm"
-          className="flex-1 gap-1 h-8 text-muted-foreground hover:bg-transparent hover:text-green-600 min-w-0 transition-colors group"
+          className={cn(
+            "flex-1 gap-1 h-8 min-w-0 transition-all active:scale-95 hover:bg-transparent group",
+            reposted ? "text-green-600" : "text-muted-foreground hover:text-green-600"
+          )}
           onClick={handleRepost}
           disabled={isReposting}
         >
-          <Repeat2 className={cn("h-4 w-4 flex-shrink-0 group-hover:fill-green-400 transition-all group-hover:scale-125", isReposting && "animate-pulse")} />
-          <span className="text-xs truncate group-hover:text-green-600">
-            {isReposting ? '...' : (effectiveLoading ? '...' : effectiveCounts?.reposts ?? 0)}
+          <Repeat2 className={cn("h-4 w-4 flex-shrink-0 transition-all group-hover:scale-125", isReposting && "animate-pulse")} />
+          <span className="text-xs tabular-nums truncate">
+            {isReposting ? '...' : (effectiveLoading ? '...' : formatCount(effectiveCounts?.reposts ?? 0))}
           </span>
         </Button>
 
@@ -214,23 +248,26 @@ export function SocialBar({ event, compact = false, className }: SocialBarProps)
         >
           <div className="flex items-center gap-1 text-xs text-muted-foreground group min-w-0">
             <ZapIcon className="h-4 w-4 flex-shrink-0 text-muted-foreground group-hover:fill-yellow-500 group-hover:text-yellow-500 transition-all group-hover:scale-125" />
-            <span className="truncate group-hover:text-yellow-500 transition-colors">
-              {effectiveLoading ? '...' : effectiveZapCount}
+            <span className="truncate group-hover:text-yellow-500 transition-colors tabular-nums">
+              {effectiveLoading ? '...' : formatCount(effectiveZapCount)}
             </span>
           </div>
         </ZapButton>
 
-        {/* Likes */}
+        {/* Likes — Aktiv-Zustand dauerhaft pink + gefülltes Herz */}
         <Button
           variant="ghost"
           size="sm"
-          className="flex-1 gap-1 h-8 text-muted-foreground hover:bg-transparent hover:text-[hsl(313,100%,49%)] min-w-0 transition-colors group"
+          className={cn(
+            "flex-1 gap-1 h-8 min-w-0 transition-all active:scale-95 hover:bg-transparent group",
+            liked ? "text-[hsl(313,100%,49%)]" : "text-muted-foreground hover:text-[hsl(313,100%,49%)]"
+          )}
           onClick={handleLike}
           disabled={isLiking}
         >
-          <Heart className={cn("h-4 w-4 flex-shrink-0 group-hover:fill-[hsl(313,100%,49%)] transition-all group-hover:scale-125", isLiking && "animate-pulse")} />
-          <span className="text-xs truncate group-hover:text-[hsl(313,100%,49%)]">
-            {isLiking ? '...' : (effectiveLoading ? '...' : effectiveCounts?.likes ?? 0)}
+          <Heart className={cn("h-4 w-4 flex-shrink-0 transition-all group-hover:scale-125", liked && "fill-[hsl(313,100%,49%)]", isLiking && "animate-pulse")} />
+          <span className="text-xs tabular-nums truncate">
+            {isLiking ? '...' : (effectiveLoading ? '...' : formatCount(effectiveCounts?.likes ?? 0))}
           </span>
         </Button>
 
@@ -238,7 +275,7 @@ export function SocialBar({ event, compact = false, className }: SocialBarProps)
         <Button
           variant="ghost"
           size="sm"
-          className="flex-1 gap-1 h-8 text-muted-foreground hover:bg-transparent hover:text-blue-600 min-w-0 transition-colors group"
+          className="flex-1 gap-1 h-8 text-muted-foreground hover:bg-transparent hover:text-blue-600 min-w-0 transition-all active:scale-95 group"
           onClick={handleShare}
         >
           <Share2 className="h-4 w-4 flex-shrink-0 group-hover:fill-blue-400 transition-all group-hover:scale-125" />
@@ -247,73 +284,85 @@ export function SocialBar({ event, compact = false, className }: SocialBarProps)
     );
   }
 
-  // Full version for detail views
+  // Full version for detail views — Variante A „Zap als Anker":
+  // Der Zap ist die EINZIGE gefüllte Pill (Bitcoin-Orange, Label + Count,
+  // immer sichtbar — mobil gibt es kein Hover, also nicht auf Hover
+  // verlassen). Like/Repost mit dauerhaften Aktiv-Zuständen, Counts größer
+  // (text-sm, Social Proof), active:scale als Touch-Feedback.
   return (
-    <div className={cn("flex items-center gap-1 px-4 py-2 border-t w-full overflow-visible", className)}>
+    <div className={cn("flex items-center gap-1.5 px-4 py-2 border-t w-full overflow-visible", className)}>
       {/* Comments */}
       <Button
         variant="ghost"
         size="sm"
-        className="flex-1 gap-1 h-8 text-muted-foreground hover:bg-transparent hover:text-gray-700 min-w-0 transition-colors"
+        className="flex-1 gap-1.5 h-9 text-muted-foreground hover:bg-transparent hover:text-gray-700 min-w-0 transition-all active:scale-95 group"
         asChild
       >
-        <a href="#comments" className="group">
-          <MessageSquare className="h-4 w-4 flex-shrink-0 group-hover:fill-gray-300 transition-all group-hover:scale-125" />
-          <span className="text-xs truncate group-hover:text-gray-700">
-            {effectiveLoading ? '...' : commentCount}
+        <a href="#comments">
+          <MessageSquare className="h-4 w-4 flex-shrink-0 transition-all group-hover:scale-110" />
+          <span className="text-sm tabular-nums truncate">
+            {effectiveLoading ? '...' : formatCount(commentCount)}
           </span>
         </a>
       </Button>
 
-      {/* Reposts */}
+      {/* Reposts — Aktiv-Zustand dauerhaft grün */}
       <Button
         variant="ghost"
         size="sm"
-        className="flex-1 gap-1 h-8 text-muted-foreground hover:bg-transparent hover:text-green-600 min-w-0 transition-colors group"
+        className={cn(
+          "flex-1 gap-1.5 h-9 min-w-0 transition-all active:scale-95 hover:bg-transparent group",
+          reposted ? "text-green-600" : "text-muted-foreground hover:text-green-600"
+        )}
         onClick={handleRepost}
         disabled={isReposting}
       >
-        <Repeat2 className={cn("h-4 w-4 flex-shrink-0 group-hover:fill-green-400 transition-all group-hover:scale-125", isReposting && "animate-pulse")} />
-        <span className="text-xs truncate group-hover:text-green-600">
-          {isReposting ? '...' : (effectiveLoading ? '...' : effectiveCounts?.reposts ?? 0)}
+        <Repeat2 className={cn("h-4 w-4 flex-shrink-0 transition-all group-hover:scale-110", isReposting && "animate-pulse")} />
+        <span className="text-sm tabular-nums truncate">
+          {isReposting ? '...' : (effectiveLoading ? '...' : formatCount(effectiveCounts?.reposts ?? 0))}
         </span>
       </Button>
 
-      {/* Zaps - Custom with yellow lightning on hover */}
-      <ZapButton
-        target={event}
-        showCount={false}
-      >
-        <div className="flex items-center gap-1 text-xs text-muted-foreground group min-w-0">
-          <ZapIcon className="h-4 w-4 flex-shrink-0 text-muted-foreground group-hover:fill-yellow-500 group-hover:text-yellow-500 transition-all group-hover:scale-125" />
-          <span className="truncate group-hover:text-yellow-500 transition-colors">
-            {effectiveLoading ? '...' : effectiveZapCount}
-          </span>
-        </div>
-      </ZapButton>
-
-      {/* Likes */}
+      {/* Likes — Aktiv-Zustand dauerhaft pink + gefülltes Herz */}
       <Button
         variant="ghost"
         size="sm"
-        className="flex-1 gap-1 h-8 text-muted-foreground hover:bg-transparent hover:text-[hsl(313,100%,49%)] min-w-0 transition-colors group"
+        className={cn(
+          "flex-1 gap-1.5 h-9 min-w-0 transition-all active:scale-95 hover:bg-transparent group",
+          liked ? "text-[hsl(313,100%,49%)]" : "text-muted-foreground hover:text-[hsl(313,100%,49%)]"
+        )}
         onClick={handleLike}
         disabled={isLiking}
       >
-        <Heart className={cn("h-4 w-4 flex-shrink-0 group-hover:fill-[hsl(313,100%,49%)] transition-all group-hover:scale-125", isLiking && "animate-pulse")} />
-        <span className="text-xs truncate group-hover:text-[hsl(313,100%,49%)]">
-          {isLiking ? '...' : (effectiveLoading ? '...' : effectiveCounts?.likes ?? 0)}
+        <Heart className={cn("h-4 w-4 flex-shrink-0 transition-all group-hover:scale-110", liked && "fill-[hsl(313,100%,49%)]", isLiking && "animate-pulse")} />
+        <span className="text-sm tabular-nums truncate">
+          {isLiking ? '...' : (effectiveLoading ? '...' : formatCount(effectiveCounts?.likes ?? 0))}
         </span>
       </Button>
 
-      {/* Share */}
+      {/* ZAP — der visuelle Anker: einzige gefüllte Pill (Bitcoin-Orange).
+          Die Orange-Optik lebt im children (ZapButton-Wrapper via border-0
+          neutralisiert) — ZapDialog/Publish-Logik bleibt unverändert. */}
+      <ZapButton target={event} showCount={false} className="border-0 rounded-full p-0">
+        <div className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-full px-4 py-1.5 shadow-sm active:scale-95 transition-all">
+          <ZapIcon className="h-4 w-4 fill-white" />
+          <span className="font-semibold text-sm">Zap</span>
+          {effectiveZapCount > 0 && (
+            <span className="text-xs opacity-90 tabular-nums">
+              {effectiveLoading ? '...' : formatCount(effectiveZapCount)}
+            </span>
+          )}
+        </div>
+      </ZapButton>
+
+      {/* Share — bewusst klein/sekundär */}
       <Button
         variant="ghost"
         size="sm"
-        className="flex-1 gap-1 h-8 text-muted-foreground hover:bg-transparent hover:text-blue-600 min-w-0 flex justify-center transition-colors group"
+        className="gap-1.5 h-9 px-2.5 text-muted-foreground hover:bg-transparent hover:text-blue-600 transition-all active:scale-95 group"
         onClick={handleShare}
       >
-        <Share2 className="h-4 w-4 flex-shrink-0 group-hover:fill-blue-400 transition-all group-hover:scale-125" />
+        <Share2 className="h-4 w-4 flex-shrink-0 transition-all group-hover:scale-110" />
       </Button>
     </div>
   );
