@@ -17,6 +17,38 @@ const STATIC_AUTHOR_METADATA = new Map<string, { name: string; nip05: string }>(
   AUTHORS.map((a) => [a.pubkey, { name: a.name, nip05: a.nip05 }]),
 );
 
+// ── Lern-Cache für Lightning-Addresses (lud16/lud06) ───────────────────────
+// Der ZapButton/ZapDialog blendet sich aus, wenn kein lud16/lud06 vorhanden
+// ist — und der statische Fallback hier enthielt nur name/nip05. Folge: Ein
+// einziger fehlgeschlagener Profil-Load (1,5s-Timeout, relay:0-Flakiness)
+// ließ den Zap-Button für die GESAMTE Session verschwinden (der Fallback
+// wird als erfolgreiche Query mit 7d-staleTime gecacht!).
+// Lösung: Jeder erfolgreiche Profil-Load mit Address lernt sie hier
+// (localStorage, pro Browser) — der statische Fallback hängt sie wieder an.
+// Kein hartkodieren nötig, die Werte kommen aus den echten Profilen.
+const LUD_CACHE_KEY = 'mojobus:author-lud16';
+
+function loadLudCache(): Map<string, string> {
+  try {
+    const raw = typeof window !== 'undefined' ? window.localStorage.getItem(LUD_CACHE_KEY) : null;
+    if (!raw) return new Map();
+    return new Map(Object.entries(JSON.parse(raw) as Record<string, string>));
+  } catch {
+    return new Map();
+  }
+}
+
+function rememberLud(pubkey: string, lud: string): void {
+  try {
+    const cache = loadLudCache();
+    if (cache.get(pubkey) === lud) return;
+    cache.set(pubkey, lud);
+    window.localStorage.setItem(LUD_CACHE_KEY, JSON.stringify(Object.fromEntries(cache)));
+  } catch {
+    /* localStorage nicht verfügbar/gesperrt → Fallback bleibt ohne lud */
+  }
+}
+
 export function useAuthor(pubkey: string | undefined) {
   const { nostr } = useNostr();
 
@@ -36,6 +68,10 @@ export function useAuthor(pubkey: string | undefined) {
         if (event) {
           try {
             const metadata = n.json().pipe(n.metadata()).parse(event.content);
+            // Address lernen (für den statischen Fallback bei künftigen
+            // fehlgeschlagenen Loads — siehe Lern-Cache oben)
+            const lud = metadata.lud16 || metadata.lud06;
+            if (typeof lud === 'string' && lud) rememberLud(pubkey, lud);
             return { metadata, event };
           } catch {
             return { event };
@@ -49,7 +85,16 @@ export function useAuthor(pubkey: string | undefined) {
       // (statt zu werfen: ein Throw würde Error-State + evtl. Retry auslösen).
       const staticAuthor = STATIC_AUTHOR_METADATA.get(pubkey!);
       if (staticAuthor) {
-        return { metadata: staticAuthor as unknown as NostrMetadata };
+        // Gelernte Lightning-Address anhängen — sonst verschwindet der
+        // Zap-Button/ZapDialog, bis das Profil mal wieder live lädt
+        const learnedLud = loadLudCache().get(pubkey!);
+        return {
+          metadata: (
+            learnedLud
+              ? { ...staticAuthor, lud16: learnedLud }
+              : staticAuthor
+          ) as unknown as NostrMetadata,
+        };
       }
 
       throw new Error('No event found');
