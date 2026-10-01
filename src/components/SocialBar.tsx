@@ -212,30 +212,30 @@ export function SocialBar({ event, compact = false, className }: SocialBarProps)
         <Button
           variant="ghost"
           size="sm"
-          className="flex-1 gap-1 h-8 rounded-lg text-muted-foreground shadow-none hover:shadow-none hover:bg-transparent hover:text-gray-700 min-w-0 transition-all active:scale-95"
+          className="flex-1 gap-1 h-8 rounded-lg text-muted-foreground shadow-none hover:shadow-none hover:bg-transparent min-w-0 transition-all active:scale-95 group"
           asChild
         >
-          <a href={`/${getCommentHref(event)}`} className="group">
-            <MessageSquare className="h-4 w-4 flex-shrink-0 group-hover:scale-125 transition-all" />
-            <span className="text-xs tabular-nums truncate">
+          <a href={`/${getCommentHref(event)}`}>
+            <MessageSquare strokeWidth={2.5} className="h-4 w-4 flex-shrink-0 text-sky-600/75 dark:text-sky-400/75 transition-all group-hover:text-sky-600 dark:group-hover:text-sky-400 group-hover:scale-125" />
+            <span className="text-xs font-medium tabular-nums truncate">
               {effectiveLoading ? '...' : formatCount(commentCount)}
             </span>
           </a>
         </Button>
 
-        {/* Reposts — Aktiv-Zustand dauerhaft grün */}
+        {/* Reposts — leicht grün getönt, Aktiv-Zustand voll grün */}
         <Button
           variant="ghost"
           size="sm"
-          className={cn(
-            "flex-1 gap-1 h-8 rounded-lg min-w-0 shadow-none hover:shadow-none transition-all active:scale-95 hover:bg-transparent group",
-            reposted ? "text-green-600" : "text-muted-foreground hover:text-green-600"
-          )}
+          className="flex-1 gap-1 h-8 rounded-lg min-w-0 shadow-none hover:shadow-none transition-all active:scale-95 hover:bg-transparent group"
           onClick={handleRepost}
           disabled={isReposting}
         >
-          <Repeat2 className={cn("h-4 w-4 flex-shrink-0 transition-all group-hover:scale-125", isReposting && "animate-pulse")} />
-          <span className="text-xs tabular-nums truncate">
+          <Repeat2 strokeWidth={2.5} className={cn(
+            "h-4 w-4 flex-shrink-0 transition-all group-hover:scale-125",
+            reposted || isReposting ? "text-green-600 dark:text-green-400" : "text-green-600/75 dark:text-green-400/75 group-hover:text-green-600 dark:group-hover:text-green-400"
+          )} />
+          <span className={cn("text-xs font-medium tabular-nums truncate", reposted && "text-green-600 dark:text-green-400")}>
             {isReposting ? '...' : (effectiveLoading ? '...' : formatCount(effectiveCounts?.reposts ?? 0))}
           </span>
         </Button>
@@ -248,26 +248,27 @@ export function SocialBar({ event, compact = false, className }: SocialBarProps)
           zapData={batchItem ? { count: effectiveZapCount, totalSats: 0, isLoading: effectiveLoading } : undefined}
         >
           <div className="flex items-center gap-1 text-xs text-muted-foreground group min-w-0">
-            <ZapIcon className="h-4 w-4 flex-shrink-0 text-muted-foreground group-hover:fill-yellow-500 group-hover:text-yellow-500 transition-all group-hover:scale-125" />
-            <span className="truncate group-hover:text-yellow-500 transition-colors tabular-nums">
+            <ZapIcon strokeWidth={2.5} className="h-4 w-4 flex-shrink-0 text-orange-500/75 group-hover:fill-orange-500 group-hover:text-orange-500 transition-all group-hover:scale-125" />
+            <span className="truncate group-hover:text-orange-500 transition-colors tabular-nums font-medium">
               {effectiveLoading ? '...' : formatCount(effectiveZapCount)}
             </span>
           </div>
         </ZapButton>
 
-        {/* Likes — Aktiv-Zustand dauerhaft pink + gefülltes Herz */}
+        {/* Likes — leicht pink getönt, Aktiv-Zustand voll pink + gefüllt */}
         <Button
           variant="ghost"
           size="sm"
-          className={cn(
-            "flex-1 gap-1 h-8 rounded-lg min-w-0 shadow-none hover:shadow-none transition-all active:scale-95 hover:bg-transparent group",
-            liked ? "text-[hsl(313,100%,49%)]" : "text-muted-foreground hover:text-[hsl(313,100%,49%)]"
-          )}
+          className="flex-1 gap-1 h-8 rounded-lg min-w-0 shadow-none hover:shadow-none transition-all active:scale-95 hover:bg-transparent group"
           onClick={handleLike}
           disabled={isLiking}
         >
-          <Heart className={cn("h-4 w-4 flex-shrink-0 transition-all group-hover:scale-125", liked && "fill-[hsl(313,100%,49%)]", isLiking && "animate-pulse")} />
-          <span className="text-xs tabular-nums truncate">
+          <Heart strokeWidth={2.5} className={cn(
+            "h-4 w-4 flex-shrink-0 transition-all group-hover:scale-125",
+            liked ? "text-rose-500 fill-rose-500" : "text-rose-500/75 dark:text-rose-400/75 group-hover:text-rose-500 dark:group-hover:text-rose-400",
+            isLiking && "animate-pulse"
+          )} />
+          <span className={cn("text-xs font-medium tabular-nums truncate", liked && "text-rose-500")}>
             {isLiking ? '...' : (effectiveLoading ? '...' : formatCount(effectiveCounts?.likes ?? 0))}
           </span>
         </Button>
@@ -279,7 +280,7 @@ export function SocialBar({ event, compact = false, className }: SocialBarProps)
           className="flex-1 gap-1 h-8 rounded-lg text-muted-foreground shadow-none hover:shadow-none hover:bg-transparent hover:text-blue-600 min-w-0 transition-all active:scale-95 group"
           onClick={handleShare}
         >
-          <Share2 className="h-4 w-4 flex-shrink-0 group-hover:fill-blue-400 transition-all group-hover:scale-125" />
+          <Share2 strokeWidth={2.5} className="h-4 w-4 flex-shrink-0 group-hover:fill-blue-400 transition-all group-hover:scale-125" />
         </Button>
       </div>
     );
@@ -288,8 +289,10 @@ export function SocialBar({ event, compact = false, className }: SocialBarProps)
   // Full version for detail views — Variante A „Zap als Anker":
   // Der Zap ist die EINZIGE gefüllte Pill (Bitcoin-Orange, Label + Count,
   // immer sichtbar — mobil gibt es kein Hover, also nicht auf Hover
-  // verlassen). Like/Repost mit dauerhaften Aktiv-Zuständen, Counts größer
-  // (text-sm, Social Proof), active:scale als Touch-Feedback.
+  // verlassen). Like/Repost mit dauerhaften Aktiv-Zuständen.
+  // Die übrigen Icons: bewusst KEINE Hintergründe — nur leicht in ihrer
+  // Aktionsfarbe getönt (75% Opacity) + kräftigerer Strich (strokeWidth 2.5),
+  // Hover bringt die volle Farbe. Counts font-medium für etwas mehr Gewicht.
   // shadow-none überall: die buttonVariants-Basis bringt shadow-md/rounded-xl
   // auf JEDEM Button — ohne Override wirken die Buttons wie Karten-Kästen.
   return (
@@ -298,47 +301,48 @@ export function SocialBar({ event, compact = false, className }: SocialBarProps)
       <Button
         variant="ghost"
         size="sm"
-        className="flex-1 gap-1.5 h-9 rounded-xl text-muted-foreground shadow-none hover:shadow-none hover:bg-transparent hover:text-gray-700 min-w-0 transition-all active:scale-95 group"
+        className="flex-1 gap-1.5 h-9 rounded-xl text-muted-foreground shadow-none hover:shadow-none hover:bg-transparent min-w-0 transition-all active:scale-95 group"
         asChild
       >
         <a href="#comments">
-          <MessageSquare className="h-4 w-4 flex-shrink-0 transition-all group-hover:scale-110" />
-          <span className="text-sm tabular-nums truncate">
+          <MessageSquare strokeWidth={2.5} className="h-4 w-4 flex-shrink-0 text-sky-600/75 dark:text-sky-400/75 transition-all group-hover:text-sky-600 dark:group-hover:text-sky-400 group-hover:scale-110" />
+          <span className="text-sm font-medium tabular-nums truncate">
             {effectiveLoading ? '...' : formatCount(commentCount)}
           </span>
         </a>
       </Button>
 
-      {/* Reposts — Aktiv-Zustand dauerhaft grün */}
+      {/* Reposts — leicht grün getönt, Aktiv-Zustand voll grün */}
       <Button
         variant="ghost"
         size="sm"
-        className={cn(
-          "flex-1 gap-1.5 h-9 rounded-xl min-w-0 shadow-none hover:shadow-none transition-all active:scale-95 hover:bg-transparent group",
-          reposted ? "text-green-600" : "text-muted-foreground hover:text-green-600"
-        )}
+        className="flex-1 gap-1.5 h-9 rounded-xl min-w-0 shadow-none hover:shadow-none transition-all active:scale-95 hover:bg-transparent group"
         onClick={handleRepost}
         disabled={isReposting}
       >
-        <Repeat2 className={cn("h-4 w-4 flex-shrink-0 transition-all group-hover:scale-110", isReposting && "animate-pulse")} />
-        <span className="text-sm tabular-nums truncate">
+        <Repeat2 strokeWidth={2.5} className={cn(
+          "h-4 w-4 flex-shrink-0 transition-all group-hover:scale-110",
+          reposted || isReposting ? "text-green-600 dark:text-green-400" : "text-green-600/75 dark:text-green-400/75 group-hover:text-green-600 dark:group-hover:text-green-400"
+        )} />
+        <span className={cn("text-sm font-medium tabular-nums truncate", reposted && "text-green-600 dark:text-green-400")}>
           {isReposting ? '...' : (effectiveLoading ? '...' : formatCount(effectiveCounts?.reposts ?? 0))}
         </span>
       </Button>
 
-      {/* Likes — Aktiv-Zustand dauerhaft pink + gefülltes Herz */}
+      {/* Likes — leicht pink getönt, Aktiv-Zustand voll pink + gefüllt */}
       <Button
         variant="ghost"
         size="sm"
-        className={cn(
-          "flex-1 gap-1.5 h-9 rounded-xl min-w-0 shadow-none hover:shadow-none transition-all active:scale-95 hover:bg-transparent group",
-          liked ? "text-[hsl(313,100%,49%)]" : "text-muted-foreground hover:text-[hsl(313,100%,49%)]"
-        )}
+        className="flex-1 gap-1.5 h-9 rounded-xl min-w-0 shadow-none hover:shadow-none transition-all active:scale-95 hover:bg-transparent group"
         onClick={handleLike}
         disabled={isLiking}
       >
-        <Heart className={cn("h-4 w-4 flex-shrink-0 transition-all group-hover:scale-110", liked && "fill-[hsl(313,100%,49%)]", isLiking && "animate-pulse")} />
-        <span className="text-sm tabular-nums truncate">
+        <Heart strokeWidth={2.5} className={cn(
+          "h-4 w-4 flex-shrink-0 transition-all group-hover:scale-110",
+          liked ? "text-rose-500 fill-rose-500" : "text-rose-500/75 dark:text-rose-400/75 group-hover:text-rose-500 dark:group-hover:text-rose-400",
+          isLiking && "animate-pulse"
+        )} />
+        <span className={cn("text-sm font-medium tabular-nums truncate", liked && "text-rose-500")}>
           {isLiking ? '...' : (effectiveLoading ? '...' : formatCount(effectiveCounts?.likes ?? 0))}
         </span>
       </Button>
@@ -358,14 +362,14 @@ export function SocialBar({ event, compact = false, className }: SocialBarProps)
         </div>
       </ZapButton>
 
-      {/* Share — bewusst klein/sekundär */}
+      {/* Share — bewusst klein/sekundär, neutral grau */}
       <Button
         variant="ghost"
         size="sm"
-        className="gap-1.5 h-9 px-2.5 rounded-xl text-muted-foreground shadow-none hover:shadow-none hover:bg-transparent hover:text-blue-600 transition-all active:scale-95 group"
+        className="gap-1.5 h-9 px-2.5 rounded-xl text-muted-foreground shadow-none hover:shadow-none hover:bg-transparent transition-all active:scale-95 group"
         onClick={handleShare}
       >
-        <Share2 className="h-4 w-4 flex-shrink-0 transition-all group-hover:scale-110" />
+        <Share2 strokeWidth={2.5} className="h-4 w-4 flex-shrink-0 transition-all group-hover:text-blue-600 group-hover:scale-110" />
       </Button>
     </div>
   );
