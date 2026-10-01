@@ -838,8 +838,14 @@ export function ArticleView({ naddr }: ArticleViewProps) {
             {/* SocialBar (Inline-Variante) — nur Desktop. Mobil: Sticky-Leiste
                 unten (siehe ganz unten) — dort ist die Inline-Bar redundant
                 und nimmt Platz. Dichter am Autor (space-y-1-Gruppe), Linie
-                via border-0 entfernt. */}
-            <SocialBar event={article} className="px-2 py-1.5 border-0 hidden md:block" />
+                via border-0 entfernt.
+                WICHTIG: hidden md:block auf einem WRAPPER, nicht auf der
+                SocialBar selbst — deren Root ist der Flex-Container; ein
+                md:block dort würde display:flex überschreiben und die
+                Buttons vertikal stapeln (Bug 2026-10-01). */}
+            <div className="hidden md:block">
+              <SocialBar event={article} className="px-2 py-1.5 border-0" />
+            </div>
             </div>
 
           </div>
