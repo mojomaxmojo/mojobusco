@@ -204,14 +204,15 @@ export function SocialBar({ event, compact = false, className }: SocialBarProps)
 
   if (compact) {
     // Compact version for card views — schlank bleiben (text-xs), aber mit
-    // Touch-Feedback (active:scale) + Aktiv-Zuständen (auch mobil sichtbar)
+    // Touch-Feedback (active:scale) + Aktiv-Zuständen (auch mobil sichtbar).
+    // shadow-none: Button-Basis bringt shadow-md mit → sonst Karten-Kästen.
     return (
       <div className={cn("flex items-center gap-1 px-4 py-2 border-t w-full overflow-visible", className)}>
         {/* Comments */}
         <Button
           variant="ghost"
           size="sm"
-          className="flex-1 gap-1 h-8 text-muted-foreground hover:bg-transparent hover:text-gray-700 min-w-0 transition-all active:scale-95"
+          className="flex-1 gap-1 h-8 rounded-lg text-muted-foreground shadow-none hover:shadow-none hover:bg-transparent hover:text-gray-700 min-w-0 transition-all active:scale-95"
           asChild
         >
           <a href={`/${getCommentHref(event)}`} className="group">
@@ -227,7 +228,7 @@ export function SocialBar({ event, compact = false, className }: SocialBarProps)
           variant="ghost"
           size="sm"
           className={cn(
-            "flex-1 gap-1 h-8 min-w-0 transition-all active:scale-95 hover:bg-transparent group",
+            "flex-1 gap-1 h-8 rounded-lg min-w-0 shadow-none hover:shadow-none transition-all active:scale-95 hover:bg-transparent group",
             reposted ? "text-green-600" : "text-muted-foreground hover:text-green-600"
           )}
           onClick={handleRepost}
@@ -259,7 +260,7 @@ export function SocialBar({ event, compact = false, className }: SocialBarProps)
           variant="ghost"
           size="sm"
           className={cn(
-            "flex-1 gap-1 h-8 min-w-0 transition-all active:scale-95 hover:bg-transparent group",
+            "flex-1 gap-1 h-8 rounded-lg min-w-0 shadow-none hover:shadow-none transition-all active:scale-95 hover:bg-transparent group",
             liked ? "text-[hsl(313,100%,49%)]" : "text-muted-foreground hover:text-[hsl(313,100%,49%)]"
           )}
           onClick={handleLike}
@@ -275,7 +276,7 @@ export function SocialBar({ event, compact = false, className }: SocialBarProps)
         <Button
           variant="ghost"
           size="sm"
-          className="flex-1 gap-1 h-8 text-muted-foreground hover:bg-transparent hover:text-blue-600 min-w-0 transition-all active:scale-95 group"
+          className="flex-1 gap-1 h-8 rounded-lg text-muted-foreground shadow-none hover:shadow-none hover:bg-transparent hover:text-blue-600 min-w-0 transition-all active:scale-95 group"
           onClick={handleShare}
         >
           <Share2 className="h-4 w-4 flex-shrink-0 group-hover:fill-blue-400 transition-all group-hover:scale-125" />
@@ -289,13 +290,15 @@ export function SocialBar({ event, compact = false, className }: SocialBarProps)
   // immer sichtbar — mobil gibt es kein Hover, also nicht auf Hover
   // verlassen). Like/Repost mit dauerhaften Aktiv-Zuständen, Counts größer
   // (text-sm, Social Proof), active:scale als Touch-Feedback.
+  // shadow-none überall: die buttonVariants-Basis bringt shadow-md/rounded-xl
+  // auf JEDEM Button — ohne Override wirken die Buttons wie Karten-Kästen.
   return (
-    <div className={cn("flex items-center gap-1.5 px-4 py-2 border-t w-full overflow-visible", className)}>
+    <div className={cn("flex items-center gap-1.5 px-4 py-2 border-t w-full overflow-visible shadow-none", className)}>
       {/* Comments */}
       <Button
         variant="ghost"
         size="sm"
-        className="flex-1 gap-1.5 h-9 text-muted-foreground hover:bg-transparent hover:text-gray-700 min-w-0 transition-all active:scale-95 group"
+        className="flex-1 gap-1.5 h-9 rounded-xl text-muted-foreground shadow-none hover:shadow-none hover:bg-transparent hover:text-gray-700 min-w-0 transition-all active:scale-95 group"
         asChild
       >
         <a href="#comments">
@@ -311,7 +314,7 @@ export function SocialBar({ event, compact = false, className }: SocialBarProps)
         variant="ghost"
         size="sm"
         className={cn(
-          "flex-1 gap-1.5 h-9 min-w-0 transition-all active:scale-95 hover:bg-transparent group",
+          "flex-1 gap-1.5 h-9 rounded-xl min-w-0 shadow-none hover:shadow-none transition-all active:scale-95 hover:bg-transparent group",
           reposted ? "text-green-600" : "text-muted-foreground hover:text-green-600"
         )}
         onClick={handleRepost}
@@ -328,7 +331,7 @@ export function SocialBar({ event, compact = false, className }: SocialBarProps)
         variant="ghost"
         size="sm"
         className={cn(
-          "flex-1 gap-1.5 h-9 min-w-0 transition-all active:scale-95 hover:bg-transparent group",
+          "flex-1 gap-1.5 h-9 rounded-xl min-w-0 shadow-none hover:shadow-none transition-all active:scale-95 hover:bg-transparent group",
           liked ? "text-[hsl(313,100%,49%)]" : "text-muted-foreground hover:text-[hsl(313,100%,49%)]"
         )}
         onClick={handleLike}
@@ -359,7 +362,7 @@ export function SocialBar({ event, compact = false, className }: SocialBarProps)
       <Button
         variant="ghost"
         size="sm"
-        className="gap-1.5 h-9 px-2.5 text-muted-foreground hover:bg-transparent hover:text-blue-600 transition-all active:scale-95 group"
+        className="gap-1.5 h-9 px-2.5 rounded-xl text-muted-foreground shadow-none hover:shadow-none hover:bg-transparent hover:text-blue-600 transition-all active:scale-95 group"
         onClick={handleShare}
       >
         <Share2 className="h-4 w-4 flex-shrink-0 transition-all group-hover:scale-110" />
