@@ -2,7 +2,7 @@
 // It is important that all functionality in this file is preserved, and should only be modified if explicitly requested.
 
 import { useState, useEffect, lazy, Suspense } from 'react';
-import { User, UserPlus } from '@/lib/icons';
+import { User } from '@/lib/icons';
 import { Button } from '@/components/ui/button.tsx';
 import { useLoggedInAccounts } from '@/hooks/useLoggedInAccounts';
 import { AccountSwitcher } from './AccountSwitcher';
@@ -59,22 +59,17 @@ export function LoginArea({ className }: LoginAreaProps) {
       {currentUser ? (
         <AccountSwitcher onAddAccountClick={openLoginDialog} />
       ) : (
-        <div className="flex gap-3 justify-center">
-          <Button
-            onClick={openLoginDialog}
-            className='flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-primary-foreground w-full font-medium transition-all hover:bg-primary/90 animate-scale-in'
-          >
-            <User className='w-4 h-4' />
-            <span className='truncate'>Log in</span>
-          </Button><Button
-            onClick={openSignupDialog}
-            variant="outline"
-            className="flex items-center gap-2 px-4 py-2 rounded-full font-medium transition-all"
-          >
-            <UserPlus className="w-4 h-4" />
-            <span>Sign Up</span>
-          </Button>
-        </div>
+        // EIN Button statt zwei (User-Wunsch 2026-10-01): „Log in" öffnet den
+        // LoginDialog — der enthält bereits die prominente Sign-Up-Sektion,
+        // über die der SignupDialog (onSignup-Flow) erreicht wird. Der
+        // separate Header-Sign-Up-Button war redundant.
+        <Button
+          onClick={openLoginDialog}
+          className='flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-primary-foreground font-medium transition-all hover:bg-primary/90 animate-scale-in'
+        >
+          <User className='w-4 h-4' />
+          <span>Log in</span>
+        </Button>
       )}
 
       {loginMounted && (
