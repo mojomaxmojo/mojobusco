@@ -40,6 +40,7 @@ import { getTagValue, getTagValues, getEventGpsTags } from "@/lib/nostrEventUtil
 import { PUBLISH_COUNTRY_TAGS } from "@/config/countries";
 import { getCurrentPosition, positionToGpsData, isCapacitorNative } from "@/lib/capacitorGps";
 import { extractPlaceImageUrls } from "./placeForm/placeFormUtils";
+import { stripTitleHeadings } from "@/lib/stripTitleHeadings";
 import { usePlaceFormHandlers } from "./placeForm/usePlaceFormHandlers";
 import { PlaceTitleImageSection } from "./placeForm/PlaceTitleImageSection";
 import { usePlaceImageUpload } from "./placeForm/usePlaceImageUpload";
@@ -122,7 +123,8 @@ export function PlaceForm({ editEvent, planHandoff, onHandoffConsumed }: { editE
    // Load edit data
   useEffect(() => {
     if (editEvent) {
-      setName(getTagValue(editEvent, 'name') || '');
+      const placeName = getTagValue(editEvent, 'name') || '';
+      setName(placeName);
 
       // Bestimme das Event-Format basierend auf dem type-Tag
       // Neue Plätze haben type=place und HTML-Content
@@ -139,6 +141,14 @@ export function PlaceForm({ editEvent, planHandoff, onHandoffConsumed }: { editE
 
         // Remove h1 title (wird aus name-Tag geholt)
         cleanContent = cleanContent.replace(/^<h1[^>]*>.*?<\/h1>\s*/gi, '');
+
+        // Fix 2026-10-01 (Überschrift-Dedup): usePlacePublish baut den
+        // Content mit MARKDOWN-Heading (`# Name`), dieser Zweig erwartete
+        // aber HTML (`<h1>`) → das Markdown-Heading wurde nie gestrippt und
+        // jeder Edit hängte eine Überschrift mehr an. stripTitleHeadings()
+        // entfernt ALLE führenden Titel-Headings (Markdown + HTML, auch
+        // mehrfache Legacy-Reste) → Editor startet mit reiner Beschreibung.
+        cleanContent = stripTitleHeadings(cleanContent, placeName);
 
         // Remove structured sections (alles was in Tags steht, nicht im Content!)
         // Bilder-Sektion

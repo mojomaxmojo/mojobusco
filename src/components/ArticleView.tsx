@@ -51,14 +51,31 @@ interface ArticleViewProps {
 }
 
 /**
- * Entfernt die erste Zeile mit # Titel aus dem Content
+ * Entfernt ALLE führenden Titel-Überschriften (# Zeilen) aus dem Content.
+ * Loop statt nur die erste Zeile: Legacy-Content kann durch den
+ * Edit-Überschrift-Bug (2026-10-01) MEHRERE `# Titel`-Headings enthalten —
+ * mit dem alten Einmal-Strip blieb bei 2+ Headings immer eines sichtbar.
+ * Leerzeilen am Anfang werden mit übersprungen.
  */
 function removeTitleFromContent(content: string): string {
   const lines = content.split('\n');
-  if (lines[0]?.trim().startsWith('# ')) {
-    return lines.slice(1).join('\n').trim();
+  let start = 0;
+  let guard = 0;
+  while (start < lines.length && guard < 20) {
+    guard++;
+    const line = lines[start]?.trim() ?? '';
+    if (line === '') {
+      start++;
+      continue;
+    }
+    if (line.startsWith('# ')) {
+      start++;
+      continue;
+    }
+    break;
   }
-  return content;
+  if (start === 0) return content;
+  return lines.slice(start).join('\n').trim();
 }
 
 /**

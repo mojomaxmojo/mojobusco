@@ -12,6 +12,7 @@ import { getCountryTag } from "@/components/CountrySelector";
 import { PLAN_TAG } from "@/config/destinationsSchema";
 import { buildSmartSlug } from "@/config/assistant";
 import { createLongformTeaser } from "@/lib/createLongformTeaser";
+import { stripTitleHeadings } from "@/lib/stripTitleHeadings";
 import { getTagValue } from "@/lib/nostrEventUtils";
 import { getErrorMessage } from "@/lib/utils";
 import { useState } from "react";
@@ -164,12 +165,20 @@ export function usePlacePublish({
     // WICHTIG: Strukturierte Daten werden NUR als Tags gespeichert, nicht im Content!
     // - Content: Nur Titel und Beschreibung
     // - Tags: Alle strukturierten Daten
+    //
+    // Fix 2026-10-01 (Überschrift-Dedup): Jeder Edit→Publish-Zyklus hängte
+    // sonst eine `# {name}`-Überschrift mehr an — der Editor-Content
+    // enthielt sie vom letzten Publish schon. ALLE führenden Titel-Headings
+    // (auch Legacy-Mehrfache) strippen, dann GENAU EINMAL voranstellen.
+    // Nur Titel-matching Headings werden entfernt — user-eigene Headings
+    // (## Bilder etc.) bleiben.
+    const normalizedDescription = stripTitleHeadings(description, name.trim());
     let content = `# ${name.trim()}\n\n`;
 
     // Konvertiere HTML zu Markdown für Nostr und füge BESCHREIBUNG hinzu
     // Bereinige die Beschreibung, falls sie strukturierte Daten enthält
-    if (description.trim()) {
-      const cleanDescription = description.trim()
+    if (normalizedDescription.trim()) {
+      const cleanDescription = normalizedDescription.trim()
         .replace(/<p><strong>Kategorie:<\/strong>.*?<\/p>/gis, '')
         .replace(/<p><strong>Bewertung:<\/strong>.*?<\/p>/gis, '')
         .replace(/<p><strong>Standort:<\/strong>.*?<\/p>/gis, '')
