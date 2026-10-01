@@ -229,11 +229,12 @@ export function Header() {
 
           <Link
             to={otherLangPath}
-            className="hidden md:flex items-center gap-2 text-foreground hover:text-primary px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 hover:bg-primary/10 mr-2"
+            className="hidden md:flex items-center text-foreground hover:text-primary px-2 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 hover:bg-primary/10 mr-2"
             title={t('lang_switch_to')}
+            aria-label={t('lang_switch_to')}
           >
+            {/* Icon-only (User-Wunsch): nur die Flagge, kein Text-Label */}
             <span className="text-lg">{switchFlag}</span>
-            <span className="hidden lg:inline">{t('lang_switch_to')}</span>
           </Link>
 
           {/* ═══════ DESKTOP USER ═══════ */}
