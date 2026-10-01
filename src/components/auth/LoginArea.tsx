@@ -2,7 +2,6 @@
 // It is important that all functionality in this file is preserved, and should only be modified if explicitly requested.
 
 import { useState, useEffect, lazy, Suspense } from 'react';
-import { User } from '@/lib/icons';
 import { Button } from '@/components/ui/button.tsx';
 import { useLoggedInAccounts } from '@/hooks/useLoggedInAccounts';
 import { AccountSwitcher } from './AccountSwitcher';
@@ -65,9 +64,8 @@ export function LoginArea({ className }: LoginAreaProps) {
         // separate Header-Sign-Up-Button war redundant.
         <Button
           onClick={openLoginDialog}
-          className='flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-primary text-primary-foreground text-sm font-medium transition-all hover:bg-primary/90 active:scale-95 animate-scale-in'
+          className='h-9 px-3 rounded-full bg-primary text-primary-foreground text-sm font-medium transition-all hover:bg-primary/90 active:scale-95 animate-scale-in'
         >
-          <User className='w-4 h-4' />
           <span>Log in</span>
         </Button>
       )}
