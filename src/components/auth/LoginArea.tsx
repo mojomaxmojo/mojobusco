@@ -65,7 +65,7 @@ export function LoginArea({ className }: LoginAreaProps) {
         // separate Header-Sign-Up-Button war redundant.
         <Button
           onClick={openLoginDialog}
-          className='flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-primary-foreground font-medium transition-all hover:bg-primary/90 animate-scale-in'
+          className='flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-primary text-primary-foreground text-sm font-medium transition-all hover:bg-primary/90 active:scale-95 animate-scale-in'
         >
           <User className='w-4 h-4' />
           <span>Log in</span>
