@@ -65,6 +65,7 @@ Verzeichniss /projects/mojobusco/
 | TikTok-Prompts / KI-Texte / API-Endpunkte / Roadmap | `docs/CONTEXT_TIKTOK.md` |
 | Deploy / VPS / Nginx / Cron / Debug / bekannte Einschränkungen | `docs/CONTEXT_DEPLOY.md` |
 | WP-Migration mojobus.org (301-Maps, Resolver, Regenerieren) | `docs/MIGRATION_WP_MOJOBUS_ORG.md` |
+| GSC/Indexierungs-Fragen (150/912-Analyse, Crawl-Rate, Beweiskette, Sandbox-Fallen) | `docs/ANALYSIS_GSC_INDEXING.md` |
 | Nostr-Framework: Hooks, NIPs, Query-Patterns, UI-Patterns | `AGENTS_NOSTR_REF.md` |
 | Änderungshistorie / Debugging vergangener Fixes | `MOJOBUS_CHANGELOG.md` |
 
