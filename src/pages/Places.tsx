@@ -19,6 +19,7 @@ import { getEventLanguage } from '@/lib/translationTags';
 import { useLanguage } from '@/hooks/useLanguage';
 
 import type { NostrEvent } from '@nostrify/nostrify';
+import { nip19 } from 'nostr-tools';
 import { MAIN_MENU } from '@/config/menu';
 import { SocialBar } from '@/components/SocialBar';
 import { SocialBatchProvider } from '@/hooks/useBatchedSocialCounts';
@@ -261,6 +262,15 @@ const PlaceCard = memo(function PlaceCard({ place }: { place: NostrEvent }) {
     identifier: metadata.identifier,
   });
 
+  // Fix 2026-10 („nie wieder kaputte Ort-Karten"): kind-1-Events (Ort-Note)
+  // bekommen eine note1-URL (event-id-basiert). Ein naddr mit leerem d-Tag
+  // (kind 1 hat keinen) ist nicht auflösbar → Detailseite lädt nie, der
+  // Lösch-Dialog ist nie erreichbar. Beweiskette:
+  // docs/ANALYSIS_GSC_INDEXING.md. kind 30023 bleibt beim naddr.
+  const detailPath = place.kind === 1
+    ? nip19.noteEncode(place.id)
+    : naddr;
+
   // Optimized thumbnail URL (200px, quality 80) with srcset
   const thumbnailUrl = metadata.image ? getListThumbnailUrl(metadata.image) : null;
   const srcset = metadata.image ? generateSrcset(metadata.image) : undefined;
@@ -269,7 +279,7 @@ const PlaceCard = memo(function PlaceCard({ place }: { place: NostrEvent }) {
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow flex flex-col h-full">
-      <Link to={`/${naddr}`} className="flex flex-col h-full">
+      <Link to={`/${detailPath}`} className="flex flex-col h-full">
         {thumbnailUrl ? (
           <div
             className="aspect-video overflow-hidden bg-muted"

@@ -35,6 +35,14 @@
   nutzen ihre Pubkeys auch in anderen Nostr-Clients für Posts, die nichts
   mit mojobus.co zu tun haben. Bei neuen kind:1-Queries in diesen
   Skripten immer diesen Filter mit einbauen.
+  **Announce-Note-Regel (Fix 2026-10-02)**: Die Publish-Kette schickt beim
+  Ort-Veröffentlichen begleitende kind:1-Teaser-Notes (a-Tag auf den
+  kind-30023-Artikel). `isAnnounceNote()` (prerender-helpers.js) erkennt sie;
+  `isPlace()`/`classifyKind1()` (→ `null` = keine Website-Kategorie) und
+  `buildNoteEntry()` (Sitemap) schließen sie aus — sie leben nur auf Nostr
+  und in `data/e/`. Beweiskette + Umsetzung: `docs/ANALYSIS_GSC_INDEXING.md`
+  (Abschnitt 6). Grund der Kollision war: allein der #camping-Hashtag
+  reichte für die Ort-Klassifizierung.
 - **Trips (kind:30025)**: Alle 3 Skripte verarbeiten Trips über die
   echten kind:30025-Events (`TripPublishForm.tsx`), nicht mehr über
   kind:1-Teaser-Notes. naddr über `encodeTripNaddr()`

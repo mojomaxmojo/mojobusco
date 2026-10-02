@@ -121,11 +121,35 @@ export function getAuthorUrl(pubkey) {
   return `${BASE_URL}/${author.npub}`;
 }
 
+/**
+ * Announce-Note (Ort-Teaser der Publish-Kette): kind:1-Event, dessen a-Tag
+ * auf einen kind-30023-Artikel/Ort verweist („30023:<pubkey>:<d>").
+ * Die Publish-Kette schickt beim Ort-Veröffentlichen begleitende Teaser-Notes
+ * (DE/EN, teils mit Bild, client-Tag mojobus.co) — sie tragen die Ort-
+ * Hashtags (#camping …) und wurden deshalb fälschlich als "Ort" gelistet
+ * (Symptom: „Ohne Titel"-Karten unter /plaetze mit kaputter naddr-URL,
+ * Fix 2026-10, Beweiskette: docs/ANALYSIS_GSC_INDEXING.md).
+ * Announce-Notes leben auf Nostr (Follower-Teaser) und in data/e/ für direkte
+ * URL-Aufrufe — bewusst in KEINER Website-Liste und nicht in der Sitemap.
+ */
+export function isAnnounceNote(event) {
+  if (event.kind !== 1) return false;
+  const aTag = (event.tags || []).find(t => t[0] === 'a')?.[1] || '';
+  return aTag.startsWith('30023:');
+}
+
 export function isPlace(event) {
   const tags = event.tags || [];
   const tTags = new Set(tags.filter(t => t[0] === 't').map(t => (t[1] || '').toLowerCase()));
   const typeTag = (tags.find(t => t[0] === 'type')?.[1] || '').toLowerCase();
   const dTag = tags.find(t => t[0] === 'd')?.[1] || '';
+  // Fix 2026-10 („nie wieder Ohne-Titel-Orte"): kind:1-Ausschlüsse VOR den
+  // Hashtag-Kriterien. classifyKind1() (Ort > Media > Note) sortierte sonst
+  // 1) Announce-Notes (a-Tag auf kind 30023) und 2) Media-Notes (type:media
+  // mit #camping) fälschlich als "Ort" ein — allein der #camping-Hashtag
+  // reichte für die Ort-Klassifizierung.
+  if (event.kind === 1 && isAnnounceNote(event)) return false;
+  if (event.kind === 1 && typeTag === 'media') return false;
   // Vereinheitlicht (Diskrepanz-Fix 2026-09): Kriterien aus der alten
   // generate-site-data.js-Kopie (d-Präfix 'place-') + der alten
   // prerender-helpers-Version (camping/stellplatz/places). Diese Funktion ist
@@ -134,6 +158,16 @@ export function isPlace(event) {
     || tTags.has('place') || tTags.has('places')
     || tTags.has('camping') || tTags.has('stellplatz')
     || dTag.startsWith('place-');
+}
+export function classifyKind1(event) {
+  if (event.kind !== 1) return null;
+  // Announce-Notes: in KEINER Website-Kategorie (weder Ort, Media noch Note).
+  // Sie erscheinen dann weder in /plaetze, /notes noch /bilder und nicht in
+  // der Sitemap — genau die "genau 1 Note"-Erwartung aus der Analyse.
+  if (isAnnounceNote(event)) return null;
+  if (isPlace(event)) return 'place';
+  if (isMedia(event)) return 'media';
+  return 'note';
 }
 
 /**

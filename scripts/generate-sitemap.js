@@ -24,7 +24,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { nip19 } from 'nostr-tools';
-import { buildLocalizedUrl, findTranslationPair, getEventLangFromTags, isMojobusKind1, isPlace, isMedia, encodeTripNaddr, queryRelay, loadSiteDataEventsDump, dedupeReplaceables, RELAYS, YEAR_ARCHIVE_START, getArticleYearCounts } from './prerender-helpers.js';
+import { buildLocalizedUrl, findTranslationPair, getEventLangFromTags, isMojobusKind1, isAnnounceNote, isPlace, isMedia, encodeTripNaddr, queryRelay, loadSiteDataEventsDump, dedupeReplaceables, RELAYS, YEAR_ARCHIVE_START, getArticleYearCounts } from './prerender-helpers.js';
 
 // ── Autoren aus zentraler JSON-Config (Single Source of Truth) ────────────
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -254,6 +254,13 @@ function extractNoteImageUrls(event) {
 // d-Präfix-Check → Events landeten in anderen Buckets als in den Dumps.
 function buildNoteEntry(event) {
   if (!isMojobusKind1(event)) return null;
+
+  // Fix 2026-10: Announce-Notes (Ort-Teaser, a-Tag auf kind 30023) NICHT in
+  // die Sitemap — sie sind Thin-Duplicates des Ort-Artikels. Wichtig gerade
+  // hier, weil isPlace() für sie false liefert und die DE-Variante (mit
+  // imeta-Bild) sonst als /bild/{note} in Sitemap + Image-Sitemap landen
+  // würde. Kontext: docs/ANALYSIS_GSC_INDEXING.md.
+  if (isAnnounceNote(event)) return null;
 
   // Orte → /{naddr} (wenn kind 30023) oder /{note}
   if (isPlace(event)) {

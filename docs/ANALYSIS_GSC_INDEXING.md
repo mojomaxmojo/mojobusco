@@ -148,7 +148,48 @@ sollte schrumpfen (Wanderung: „Gefunden" → „Gecrawlt" → „Im Index").
 
 ---
 
-## 6. Lektionen für künftige Debugging-Sessions
+## 6. Umsetzung „Nie wieder"-Fixes (2026-10-02, Freigabe Max)
+
+**Auslöser**: ~10 „Ohne Titel"-Karten unter /plaetze (Screenshot 2026-10-02) mit
+kaputter URL `/{naddr-mit-leerem-d}` (kind 1!), nicht öffnen/not löschen.
+Beweiskette: Publish-Kette schickt beim Ort-Veröffentlichen begleitende
+**Announce-Notes** (kind 1, a-Tag auf den Ort-Artikel, r-Tag auf die Ort-URL,
+client-Tag mojobus.co, Autor mojo; 4 Stück am 1.10. zum Ort „Praia dos
+Tomates" DE+EN). `isPlace()` reichte für die Ort-Klassifizierung auf den
+#camping-Hashtag → Announce- + Media-Notes fälschlich als „Orte". Das Grid
+verlinkte sie per `canonicalNaddr()` (Places.tsx PlaceCard) → naddr mit
+leerem d-Tag → nicht auflösbar → Detail lädt nie → Lösch-Dialog nie erreichbar.
+Lösch-Handler (ArticleView/NoteView, kind 5 + e-Tag) sind korrekt — der
+Fehler war reiner Folgebug der URL.
+
+**Umgesetzt**:
+
+| Fix | Datei | Änderung |
+|-----|-------|----------|
+| 1a+1b | `scripts/prerender-helpers.js` | Neue `isAnnounceNote()` (kind 1 + a-Tag `30023:`); `isPlace()`: Announce-Notes + kind:1-`type:media` ausgeschlossen (Ausschlüsse VOR den Hashtag-Kriterien); `classifyKind1()`: Announce → `null` → in keinem Bucket (place/media/note) |
+| 1b | `scripts/generate-sitemap.js` | `buildNoteEntry()`: `isAnnounceNote()` → `null` (Announces raus aus Sitemap; wichtig: DE-Announce mit imeta wäre sonst als `/bild/{note}` in Sitemap+Image-Sitemap gelandet) |
+| 2 | `src/pages/Places.tsx` | PlaceCard: `detailPath = kind===1 ? nip19.noteEncode(place.id) : naddr` → Karten öffnen wieder |
+| 3 | — | kein Code nötig: Delete-Handler waren bereits korrekt (e-Tag); funktioniert nach Fix 2 |
+
+**Verifikation nach Deploy + nächstem 3h-Cron** (`run_seo_pipeline()` bzw.
+Cron: site-data → prerender → sitemap):
+1. `data/places.json`: 16 echte Orte, die 6 kaputten kind:1-Einträge weg
+2. `/plaetze`: keine „Ohne Titel"-Karten (Bot-HTML + SPA)
+3. `/notes`: weiterhin genau 1 legitime Note; `/bilder`: +2 Susanne-Bild-Notes
+   (jetzt korrekt einsortiert)
+4. Sitemap: die ~10 thin note1-URLs der Announces weg
+5. Eine verbleibende Ort-Note (falls künftig im Grid) öffnet + ist löschbar
+   (note1-URL → Detail lädt → Delete-Dialog funktioniert)
+6. Nostr-Feeds (Primal/Amethyst): Announces unverändert sichtbar (ihr Zweck)
+
+**Nicht umgesetzt (bewusst, Freigabe ausstehend)**: Teaser-Erzeugung selbst
+entschärfen (ohne #camping-Hashtags / abschalten) — die Erzeugungs-Stelle ist
+im Repo-Hauptstand nicht greppbar (vermutlich APK-/VPS-Stand); Symptom ist
+durch Fix 1a/1b vollständig abgedichtet.
+
+---
+
+## 7. Lektionen für künftige Debugging-Sessions
 
 1. **Shakespeare-Sandbox ersetzt den User-Agent** (`uag=Shakespeare Proxy` im
    `cdn-cgi/trace`) und läuft über einen Header-Stripping-Proxy (kein `cf-ray`,
