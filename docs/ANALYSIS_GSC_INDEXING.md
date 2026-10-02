@@ -187,6 +187,21 @@ entschärfen (ohne #camping-Hashtags / abschalten) — die Erzeugungs-Stelle ist
 im Repo-Hauptstand nicht greppbar (vermutlich APK-/VPS-Stand); Symptom ist
 durch Fix 1a/1b vollständig abgedichtet.
 
+**Nachtrag (Deploy 2026-10-02 23:00, Pipeline-Crash)**: Der erste Deploy des
+Fixes ließ `generate-site-data/prerender-static/generate-sitemap/
+generate-feed` sofort crashen — Ursache: durch den Fix-Edit stand
+`classifyKind1` doppelt in `scripts/prerender-helpers.js` (ESM = SyntaxError
+bei jedem Import → alle vier Skripte betroffen). Bereinigt: genau eine
+Definition (die ausführliche Version, um den `isAnnounceNote()`-Null-Check
+erweitert). Merksatz: Node-Skripte vom `build_project` NICHT abgedeckt —
+nach Änderungen in `scripts/` immer `node scripts/<name>.js` lokal
+ausprobieren, bevor deployt wird. Erzeugungs-Stelle des Teasers gefunden:
+`src/pages/publish/placeForm/usePlacePublish.ts` (Flag `publishTeaserNote`
+→ `createLongformTeaser()` → `publishEvent({ kind: 1, … })`) — der Teaser-
+Code IST im Repo-Hauptstand; mein „nicht greppbar"-Befund war ein
+Sandbox-Grep-Problem (`\|`-Multi-Pattern-Greps schlagen in dieser Shell
+stumm fehl).
+
 ---
 
 ## 7. Lektionen für künftige Debugging-Sessions

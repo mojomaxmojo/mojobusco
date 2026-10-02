@@ -159,16 +159,6 @@ export function isPlace(event) {
     || tTags.has('camping') || tTags.has('stellplatz')
     || dTag.startsWith('place-');
 }
-export function classifyKind1(event) {
-  if (event.kind !== 1) return null;
-  // Announce-Notes: in KEINER Website-Kategorie (weder Ort, Media noch Note).
-  // Sie erscheinen dann weder in /plaetze, /notes noch /bilder und nicht in
-  // der Sitemap — genau die "genau 1 Note"-Erwartung aus der Analyse.
-  if (isAnnounceNote(event)) return null;
-  if (isPlace(event)) return 'place';
-  if (isMedia(event)) return 'media';
-  return 'note';
-}
 
 /**
  * Reine kind:1-Note: weder Ort noch Media.
@@ -223,6 +213,11 @@ export function isMedia(event) {
  */
 export function classifyKind1(event) {
   if (event.kind !== 1) return null;
+  // Fix 2026-10: Announce-Notes (Ort-Teaser der Publish-Kette, a-Tag auf
+  // kind 30023) in KEINER Website-Kategorie — weder /plaetze, /notes noch
+  // /bilder und nicht in der Sitemap; sie leben nur auf Nostr (Follower-
+  // Teaser) und in data/e/. Beweiskette: docs/ANALYSIS_GSC_INDEXING.md.
+  if (isAnnounceNote(event)) return null;
   if (isPlace(event)) return 'place';
   if (isMedia(event)) return 'media';
   return 'note';
