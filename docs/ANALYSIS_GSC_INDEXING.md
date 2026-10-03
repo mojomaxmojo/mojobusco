@@ -263,3 +263,35 @@ Ggf. ergänzbar: `~*googleother`.
 Erwartung realistisch: Zitierungen zuerst bei Nischen-Queries (Ortsnamen,
 Algarve-Vanlife-Fakten aus dem WP-Archiv), Wochen–Monate Horizont;
 generische Keywords gegen PiNCAMP/ADAC/camping.info unrealistisch kurzfristig.
+
+**Final-Status (2026-10-03) – GEO-Stack komplett umgesetzt und verifiziert:**
+
+| Stufe | Status | Beweis |
+|---|---|---|
+| SEO-Fixes (Abschnitt 6) | ✅ live | Pipeline: places 22→16, bilder 47→49, notes 29→15, sitemap 912→894 — die 18 = `classifyKind1 → null` (4 Ort-Announce-Notes + 14 Artikel-Teaser-Notes, das Announce-Prinzip galt bereits für Artikel-Publishes) |
+| 1 Bing Webmaster Tools | ✅ | Konto + Sitemaps |
+| 1b GSC „Indexierung beantragen" | ✅ | läuft (12/Tag, Jahr-Archive zuerst) |
+| 1c Change of Address (.org → .co) | ✅ | gesetzt — größter Autoritäts-Hebel |
+| 2 KI-Bot-Test | ✅ | 13/13 PRERENDER (vorher 4 blind: CCBot/omgili/Amazonbot/YouBot) |
+| 3 Nginx-map erweitern | ✅ | VPS + Repo (`cc66c47`), byte-identisch |
+| 5 llms.txt-Generator | ✅ live | `generate-llms.js` (207ef8c) + Pipeline-Schritt 5 + Artefakt-Sicherung in deploy-main.sh (63130f4) + crontab `20 */3` · Live: 200/83.885 B + 200/1.618.936 B |
+| 6 FAQPage-Schema | ✅ live wirkend | 5+ Artikel-Prerender mit `"@type":"FAQPage"` (grep-Beweis) — Heuristik griff sofort (b2a80d5) |
+| 7a Redaktions-Checkliste | ✅ | `docs/REDAKTIONS_KI_CHECKLISTE.md` (rollenspezifisch: Berichte = Foster pur, Orte/Pillars = voll) |
+| 7b Fakten-Anker (Option B) | ✅ | articles.js medium/long (e424e0a) — nur wenn echte Fakten im Kontext, Foster bleibt Foster |
+| 9a MCP-MVP (read-only) | ⬜ | Plan steht (10 Stufen, ~1 Tag), wartet auf Freigabe |
+| 9b MCP-Schreib-Tools | ❌ **ENTFALLEN** | architektonisch fragwürdig: NIP-98 braucht den Autoren-Key beim Anfragenden — `/veroeffentlichen` (NIP-07) bleibt der saubere Schreib-Weg; ROI für 2 Autoren ~null |
+| 8 E-E-A-T / 10 Monitoring | ⬜ | optional, laufend |
+
+**Verifikations-Lauf (2026-10-03, nach allen Fixes)**: site-data 3s ·
+prerender 942 Seiten (755 Artikel, 16 Orte, 15 Notes, 49 Bilder, 10 Trips,
+4 Videos, Jahr-Archiv 14 DE-Jahre) · sitemap 894 URLs · feed 50 DE + 4 EN ·
+data/e 867 Dateien · llms.txt 83 KB + llms-full.txt 1,6 MB · KI-Bot-Test
+13/13 PRERENDER.
+
+**Session-Commits (Reihenfolge)**: 9f179c5 (Announce-Fix 1a/1b/2) →
+b80ce85 (classifyKind1-Doppel-Dekl bereinigt — ESM-SyntaxError der
+Pipeline-Skripte) → cc66c47 (GEO Stufe 3: KI-Crawler in Nginx-map) →
+207ef8c (GEO Stufe 5: llms-Generator) → b2a80d5 (GEO Stufe 6: FAQPage) →
+e424e0a (GEO 7b: Fakten-Anker) → 63130f4 (llms in deploy-Pipeline +
+Sicherung) → 80c210a (Cron-Doku korrigiert: direkte Crontab-Einträge, kein
+node.sh-Auto-Run) → bcfdb67 (GEO 7a: Redaktions-Checkliste).
