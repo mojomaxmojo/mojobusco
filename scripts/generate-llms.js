@@ -298,6 +298,9 @@ async function main() {
   shortLines.push(entryLine(`${BASE_URL}/sitemap-videos.xml`, 'Video-Sitemap', 'Video-URLs mit Video-Metadaten'));
   shortLines.push(entryLine(`${BASE_URL}/llms-full.txt`, 'llms-full.txt', 'Vollfassung: alle Einträge mit Content-Auszug'));
   shortLines.push('');
+  shortLines.push('## MCP-Server (für KI-Agenten)');
+  shortLines.push(entryLine(`${BASE_URL}/mcp`, 'MCP-Server (read-only)', 'Model Context Protocol: search_articles, search_places, get_place, get_article, list_trips, latest_feed, get_site_overview, search_all — für Claude Desktop, Cursor und andere MCP-Clients. Streamable HTTP, read-only.'));
+  shortLines.push('');
 
   // ── llms-full.txt (Vollfassung) ───────────────────────────────────────
   const fullLines = [];

@@ -581,6 +581,37 @@ Inhalte irrelevant (Publish-Pipeline regeneriert sofort).
 
 ---
 
+## MCP-Server (read-only, GEO Stufe 9a, 2026-10-03)
+
+Read-only MCP-Server für KI-Clients (Claude Desktop/Cursor/ChatGPT-
+Connectors): 8 Tools über die öffentlichen Dumps. Kein Auth/Keys/DB/Cron
+nötig (Dumps laufen im 3h-Cron; Server liest von der Platte).
+
+| Baustein | Ort |
+|----------|-----|
+| Server (Streamable HTTP, stateless, ~470 Zeilen, 8 Tools) | `mcp/server.js` (Repo, AUSSERHALB des Webroots!) |
+| Deps | `mcp/package.json` (@modelcontextprotocol/sdk, nostr-tools ^2.23.3, zod) |
+| Port | 127.0.0.1:3003 (`PORT` in mcp.env) |
+| Nginx | `location /mcp` (proxy_buffering off, read_timeout 300s) |
+| systemd | `mcp.service` (EnvironmentFile `/etc/systemd/system/mcp.env`: PORT, DUMPS_DIR, SITE_URL) |
+
+**VPS-Setup (einmalig)**: `git pull` → `cd mcp && npm install` → Unit +
+mcp.env anlegen (`daemon-reload && enable --now mcp`) → Nginx-Config syncen
+(`nginx -t` + reload) → Tests: `curl -s http://127.0.0.1:3003/` (Health) +
+MCP-Inspector (`npx @modelcontextprotocol/inspector`) → Remote-URL
+`https://mojobus.co/mcp` im Client eintragen.
+
+**Verifikation**: `curl -s https://mojobus.co/mcp` (Health, 200) ·
+`grep -l FAQPage` (Stufe 6) · Claude-Web: „Stellplatz bei Praia dos
+Tomates Preis?" → Antwort mit mojobus.co-Quelle.
+
+**Anti-Halluzination**: Dump fehlt/leer → Tool antwortet „Daten aktuell
+nicht verfügbar". Schreib-Tools: bewusst ENTFALLEN (NIP-98 braucht den
+Autoren-Key beim Anfragenden — `/veroeffentlichen`/NIP-07 bleibt der
+saubere Schreib-Weg).
+
+---
+
 ## Debug-Kommandos
 
 ```bash
