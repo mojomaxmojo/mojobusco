@@ -100,16 +100,18 @@
   (`rm -rf $DEPLOY_DIR/*`) — damit gingen data-Dumps, prerender/, Sitemaps
   und Feeds bis zum nächsten Cron verloren (Bots → 404 via
   @prerender_resolve). Seit `run_seo_pipeline()` am Ende von deploy-main.sh
-  werden alle vier Skripte direkt nach dem Deploy aus dem Webroot ausgeführt
-  (Skip: `--skip-seo`, Permissions werden nachgezogen). Die veralteten
+  werden alle fünf Skripte direkt nach dem Deploy aus dem Webroot ausgeführt
+  (site-data → prerender → sitemap → feed → **llms**, GEO Stufe 5; Skip:
+  `--skip-seo`, Permissions werden nachgezogen). Die veralteten
   `public/sitemap*.xml` im Repo sind entfernt — kein Deploy überschreibt
   mehr die live-generierten Sitemaps mit dem alten Format.
 - **Kein SEO-Artefakt-Fenster mehr (2026-09-29)**: `deploy_files()` sichert
-  vor dem Webroot-Wipe `data/`, `prerender/` und die 5 generierten Dateien
-  (sitemap*.xml, feed*.xml) in Temp-Dirs und stellt sie nach dem dist-Copy
-  wieder her. Bots/SPA haben DURING des Deploys durchgehend gültige
-  Artefakte (alte Version); `run_seo_pipeline()` überschreibt direkt mit
-  frischen, bei `--skip-seo` bleiben die alten online statt zu fehlen.
+  vor dem Webroot-Wipe `data/`, `prerender/` und die 7 generierten Dateien
+  (sitemap*.xml, feed*.xml, **llms.txt, llms-full.txt** — seit 2026-10-02)
+  in Temp-Dirs und stellt sie nach dem dist-Copy wieder her. Bots/SPA haben
+  DURING des Deploys durchgehend gültige Artefakte (alte Version);
+  `run_seo_pipeline()` überschreibt direkt mit frischen, bei `--skip-seo`
+  bleiben die alten online statt zu fehlen.
 - **Relay-Ausfälle & Dead-Relay-Cache (2026-09-29)**: relay.primal.net
   connected zeitweise, beantwortet Queries aber stumm GAR NICHT (WS öffnet,
   weder EVENT noch EOSE — statt sauber zu failen). `queryRelay()`

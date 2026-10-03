@@ -263,14 +263,14 @@ deploy_files() {
         fi
     done
     SEO_FILE_BACKUP=""
-    for SEO_FILE in sitemap.xml sitemap-videos.xml sitemap-images.xml feed.xml feed-en.xml; do
+    for SEO_FILE in sitemap.xml sitemap-videos.xml sitemap-images.xml feed.xml feed-en.xml llms.txt llms-full.txt; do
         if [ -f "$DEPLOY_DIR/$SEO_FILE" ]; then
             SEO_FILE_BACKUP="${SEO_FILE_BACKUP:-$(mktemp -d)}"
             cp "$DEPLOY_DIR/$SEO_FILE" "$SEO_FILE_BACKUP/"
         fi
     done
     if [ -n "$SEO_DIR_BACKUP" ] || [ -n "$SEO_FILE_BACKUP" ]; then
-        info_msg "✓ SEO-Artefakte gesichert (data/, prerender/, Sitemaps, Feeds)"
+        info_msg "✓ SEO-Artefakte gesichert (data/, prerender/, Sitemaps, Feeds, llms)"
     fi
 
     # Zielverzeichnis leeren
@@ -455,13 +455,13 @@ deploy_files() {
         success_msg "✓ SEO-Artefakte data/ + prerender/ wiederhergestellt (keine Lücke bis zur Pipeline)"
     fi
     if [ -n "$SEO_FILE_BACKUP" ]; then
-        for SEO_FILE in sitemap.xml sitemap-videos.xml sitemap-images.xml feed.xml feed-en.xml; do
+        for SEO_FILE in sitemap.xml sitemap-videos.xml sitemap-images.xml feed.xml feed-en.xml llms.txt llms-full.txt; do
             if [ -f "$SEO_FILE_BACKUP/$SEO_FILE" ]; then
                 cp "$SEO_FILE_BACKUP/$SEO_FILE" "$DEPLOY_DIR/$SEO_FILE"
             fi
         done
         rm -rf "$SEO_FILE_BACKUP"
-        success_msg "✓ Sitemaps + Feeds wiederhergestellt (letzte Live-Version)"
+        success_msg "✓ Sitemaps + Feeds + llms wiederhergestellt (letzte Live-Version)"
     fi
 
     # Prüfe ob assets Ordner existiert
@@ -568,6 +568,7 @@ restart_server() {
 #   - prerender/*.html (Bot-HTML — ohne Regeneration 404 via @prerender_resolve!)
 #   - sitemap.xml + sitemap-videos.xml + sitemap-images.xml
 #   - feed.xml + feed-en.xml
+#   - llms.txt + llms-full.txt (GEO Stufe 5, 2026-10-02)
 # Die alten public/sitemap*.xml im Repo sind entfernt (Git), sie dürfen die
 # live-generierten Versionen nie mehr überschreiben. Diese Funktion regeneriert
 # ALLE Artefakte direkt nach dem Deploy — identisch zur Publish-Pipeline
@@ -585,12 +586,12 @@ run_seo_pipeline() {
         return 0
     fi
 
-    info_msg "Starte SEO-Pipeline (site-data → prerender → sitemap → feed) ..."
+    info_msg "Starte SEO-Pipeline (site-data → prerender → sitemap → feed → llms) ..."
 
     cd "$DEPLOY_DIR" || return 0
     # nostr-tools-Resolution der Skripte läuft über den Ancestor-Pfad:
     # $DEPLOY_DIR/node_modules → server/node_modules (Symlink aus deploy_files)
-    for SCRIPT in generate-site-data.js prerender-static.js generate-sitemap.js generate-feed.js; do
+    for SCRIPT in generate-site-data.js prerender-static.js generate-sitemap.js generate-feed.js generate-llms.js; do
         local step_start=$(date +%s)
         if node "$DEPLOY_DIR/scripts/$SCRIPT" >> "$LOG_FILE" 2>&1; then
             local step_end=$(date +%s)
@@ -605,10 +606,11 @@ run_seo_pipeline() {
     chown -R nginx:nginx "$DEPLOY_DIR/data" "$DEPLOY_DIR/prerender" \
         "$DEPLOY_DIR/sitemap.xml" "$DEPLOY_DIR/sitemap-videos.xml" \
         "$DEPLOY_DIR/sitemap-images.xml" "$DEPLOY_DIR/feed.xml" \
-        "$DEPLOY_DIR/feed-en.xml" 2>/dev/null
+        "$DEPLOY_DIR/feed-en.xml" "$DEPLOY_DIR/llms.txt" \
+        "$DEPLOY_DIR/llms-full.txt" 2>/dev/null
     find "$DEPLOY_DIR/prerender" -type f -exec chmod 644 {} \; 2>/dev/null
 
-    info_msg "SEO-Pipeline abgeschlossen — Sitemap/Prerender/Feed/Dumps sind aktuell."
+    info_msg "SEO-Pipeline abgeschlossen — Sitemap/Prerender/Feed/llms/Dumps sind aktuell."
 }
 
 # ============================================
