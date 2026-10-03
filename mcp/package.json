@@ -1,0 +1,1 @@
+{"name":"mojobus-mcp","version":"1.0.0","description":"MojoBus MCP Server (read-only) - Reiseberichte, Orte, Trips von Max & Susanne (mojobus.co)","type":"module","main":"server.js","engines":{"node":">=18"},"dependencies":{"@modelcontextprotocol/sdk":"^1.12.0","nostr-tools":"^2.23.3","zod":"^3.24.0"}}
