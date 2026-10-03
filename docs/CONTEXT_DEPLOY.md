@@ -117,6 +117,14 @@
   Website (Detail-Volltext, Likes/Zaps/Kommentare) laufen nur noch gegen
   relay.mojobus.co. Kein Inhaltsverlust — mojobus.co ist das einzige
   Write-Target der Autoren.
+- **GEO/KI-Bot-Prerender (2026-10-02)**: Die Nginx-map `$is_bot` erkennt
+  neben Such-/Social-Bots auch die KI-Crawler (GPTBot, ChatGPT-User,
+  OAI-SearchBot, ClaudeBot, PerplexityBot/User, MistralAI, HuggingFace,
+  Bytespider, Applebot) — sie bekommen Prerender-HTML. Neu ergänzt (Stufe 3
+  des GEO-Plans): `~*ccbot`, `~*omgili`, `~*amazonbot`, `~*youbot` — davor
+  „blind“ (bekamen die SPA-Shell statt Bot-HTML, per Origin-Test mit
+  Bot-UAs bewiesen, `docs/ANALYSIS_GSC_INDEXING.md`). Offen (Stufen 4/5):
+  `llms.txt`/`llms-full.txt` (manuell bzw. Generator analog Sitemap).
 
 ---
 

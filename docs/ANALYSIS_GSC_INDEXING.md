@@ -224,3 +224,42 @@ stumm fehl).
    Canonical-Problem, „Gecrawlt – nicht indexiert" = Qualitäts-/Thin-Content.
 5. Cloudflare (`cdn-cgi/trace`) zeigt live UA (`uag=`), Colocation und
    TLS-Status – erste Anlaufstelle, um „was sieht der Edge?" zu beantworten.
+
+---
+
+## 8. GEO-Stufenplan (KI-Agenten-Fit) – Stand 2026-10-02
+
+**Ziel**: Sichtbarkeit in KI-Antworten (AI Overviews, Perplexity, Copilot,
+ChatGPT-Suche). Grundvoraussetzung ist die klassische Indexierung (Abschnitt 5)
+– AI Overviews zitieren aus dem Google-Index, Copilot/Perplexity aus Bing
+(+ eigenem Crawling).
+
+**KI-Bot-Prerender-Test (Origin bypass CF, /artikel, 2026-10-02):**
+
+| Ergebnis | Bots |
+|----------|------|
+| ✅ PRERENDER (68.105 B, „Artikel — MojoBus") | Googlebot (Referenz), GPTBot, OAI-SearchBot, ChatGPT-User, ClaudeBot, PerplexityBot, Perplexity-User, Bytespider, Applebot |
+| ❌ SPA-SHELL (5.355 B, Homepage-Shell, canonical `/`) | **CCBot, omgili, Amazonbot, YouBot** (fehlten in der Nginx-map) |
+
+**Stufe 3 umgesetzt (2026-10-02)**: map `$is_bot` in `mojobus.co.ssl.conf`
+um `~*ccbot`, `~*omgili`, `~*amazonbot`, `~*youbot` erweitert (VPS + Repo
+gleichzeitig; Re-Test mit dem Bot-Script bestätigt alle vier auf PRERENDER).
+Ggf. ergänzbar: `~*googleother`.
+
+**Stufen-Roadmap (Kurzfassung)**:
+1. Bing Webmaster Tools: Sitemap(s) + RSS einreichen (Copilot-Basis) — kein Code
+2. KI-Bot-Test: ✅ erledigt (siehe oben)
+3. Nginx-map erweitern: ✅ erledigt (dieser Abschnitt)
+4. `llms.txt` manuell ins Webroot — kein Code, 30–60 Min
+5. `llms.txt`-Generator-Skript (sitemap-events-Dump, 3h-Cron) — Code, mittel
+6. FAQPage-Schema im Prerender — Code, mittel
+7. Redaktions-Guideline „KI-zitierfähig" (TL;DR, Zahlen, Tabellen, Q&A) — kein Code
+8. Autoritäts-Signale (Autoren-Bios, Impressum-Verweise) — kein Code
+9. MCP-Server für KI-Agenten (searchArticles/searchPlaces/getTrip; NIP-98
+   als Auth-Basis) — Code, groß, visionär
+10. Monitoring: Referrer `perplexity.ai`/`copilot`/`chatgpt` in Umami +
+    GSC-Zitierungsquellen — laufend, klein
+
+Erwartung realistisch: Zitierungen zuerst bei Nischen-Queries (Ortsnamen,
+Algarve-Vanlife-Fakten aus dem WP-Archiv), Wochen–Monate Horizont;
+generische Keywords gegen PiNCAMP/ADAC/camping.info unrealistisch kurzfristig.
