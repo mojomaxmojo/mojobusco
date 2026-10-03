@@ -228,7 +228,21 @@ export const generateArticlePrompt = (params) => {
     ✓ "Wind, Klippen, kein Empfang"
     ✗ "1. Die Anreise"
     ✗ "Der Ort und seine Geschichte"
-    ✗ "Fazit"`
+    ✗ "Fazit"
+
+    FAKTEN-ANKER (nur wenn harte Fakten aus dem Kontext vorhanden sind – sonst weglassen):
+    Nach den Szenen, vor dem leisen Ende, EINE unbeschriftete Markdown-Liste
+    (3-5 Zeilen, "-" davor). Harte Fakten aus dem Erlebnis: Ort/Spot, Preis,
+    Koordinaten oder Zufahrt, Saison/Wetter, Regel/Kontrolle, Stand (Monat/Jahr).
+    Sachlich. Keine Stimmungswörter. Keine Emojis. Keine Bewertung.
+    Erfinde nichts – die "Erfinde KEINE Infos"-Regel gilt weiter.
+    Diese Liste ist die EINZIGE erlaubte Ausnahme zur Keine-Listen-Regel.
+    Beispiel:
+    - Stellplatz hinter der Düne, 5€/Nacht, Wasser + Entsorgung am Hafen
+    - 37.0891, -8.1287, letzte 3 km Schotter, langsam fahren
+    - GNR-Kontrollen möglich, nachmittags konsequent (Stand: Januar 2026)
+    Die Liste ist kein Fazit und keine Überschrift – danach kommt das leise
+    Bild-Ende wie gehabt.`
     } else if (articleLength === 'medium') {
         // Mittel: maximal 1-2 H2s als leise Wegweiser
         structureHeadlineRule = 'Maximal 1-2 Zwischenüberschriften als Markdown-H2 (## ...) erlaubt – siehe Regel unten. Kein Fettdruck, keine Listen.'
@@ -237,7 +251,21 @@ export const generateArticlePrompt = (params) => {
     Erlaubt sind 1-2 Zwischenüberschriften als Markdown-H2 (## ...) – nur wenn der Text sie wirklich braucht.
     Weniger ist mehr. Wenn der Text auch ohne trägt: keine setzen.
     Gleiche Regeln wie im Langform-Modus: 2-6 Wörter, lakonisch, keine Nummerierung, kein Blog-Ton.
-    ✓ "Wo der Asphalt aufhört"   ✗ "1. Die Anreise"   ✗ "Fazit"`
+    ✓ "Wo der Asphalt aufhört"   ✗ "1. Die Anreise"   ✗ "Fazit"
+
+    FAKTEN-ANKER (nur wenn harte Fakten aus dem Kontext vorhanden sind – sonst weglassen):
+    Nach den Szenen, vor dem leisen Ende, EINE unbeschriftete Markdown-Liste
+    (3-5 Zeilen, "-" davor). Harte Fakten aus dem Erlebnis: Ort/Spot, Preis,
+    Koordinaten oder Zufahrt, Saison/Wetter, Regel/Kontrolle, Stand (Monat/Jahr).
+    Sachlich. Keine Stimmungswörter. Keine Emojis. Keine Bewertung.
+    Erfinde nichts – die "Erfinde KEINE Infos"-Regel gilt weiter.
+    Diese Liste ist die EINZIGE erlaubte Ausnahme zur Keine-Listen-Regel.
+    Beispiel:
+    - Stellplatz hinter der Düne, 5€/Nacht, Wasser + Entsorgung am Hafen
+    - 37.0891, -8.1287, letzte 3 km Schotter, langsam fahren
+    - GNR-Kontrollen möglich, nachmittags konsequent (Stand: Januar 2026)
+    Die Liste ist kein Fazit und keine Überschrift – danach kommt das leise
+    Bild-Ende wie gehabt.`
     }
     // short: kein Block, structureHeadlineRule bleibt "Keine Zwischenüberschriften..."
 
