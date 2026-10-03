@@ -15,8 +15,13 @@
 - **Repo**: https://github.com/mojomaxmojo/mojobusco
 - **Server**: AlmaLinux 9.8 CentminMod (yum), Nginx, Node.js, Brotli
 - **AI-API**: Systemd-Service `ai-api`, Port 3002 (`server/`)
-- **Cron**: node.sh-Pipeline (site-data → prerender → sitemap → feed) läuft
-  **alle 3 h** (`0 */3` – 6:00, 9:00, 12:00, …), RSS-Feeds alle 6h
+- **Cron**: Direkte Crontab-Einträge — `node.sh` wird NICHT automatisch
+  ausgeführt (nur manuelles Ausführungsskript für Gesamtläufe). 3h-Takt:
+  :00 `generate-site-data.js` · :05 `prerender-static.js` ·
+  :10 `generate-sitemap.js` · :15 `generate-feed.js` ·
+  :20 `generate-llms.js` (GEO Stufe 5, 2026-10-02). Neue Pipeline-Schritte
+  werden als eigene crontab-Zeile ergänzt (Stil der bestehenden Einträge
+  spiegeln, absolute Pfade).
 - **Sitemaps**: `sitemap.xml` (Haupt) + `sitemap-videos.xml` (Video). Statische
   Fallback-Versionen sind aus dem Repo entfernt (2026-09-29) — valides XML
   entsteht nach jedem Deploy durch `run_seo_pipeline()` (siehe unten), der
