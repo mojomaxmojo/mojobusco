@@ -459,6 +459,11 @@ neu generieren.
 2. Cron alle 3h :05 → `prerender-static.js` → HTML mit NIP-19 Dateinamen (Laufzeit wächst mit Seitenzahl, paginierte Voll-Abfrage)
 3. Cron alle 3h :10 → `generate-sitemap.js` → `sitemap.xml`/`sitemap-videos.xml`
 4. Cron alle 3h :15 → `generate-feed.js` → `feed.xml` (DE) + `feed-en.xml` (EN) — liest seit 2026-09-29 ebenfalls den `sitemap-events.json`-Dump (Frische-Check wie Prerender/Sitemap); nur bei veraltetem Dump greift der Relay-Fallback. Im Dump-Modus werden Replaceable-Versionen dedupliziert (neueste je pubkey+d), und jeder Sprach-Feed bekommt seine eigenen 50 neuesten Artikel (vorher nur ~50 gemischt → EN-Feed hatte oft < 5 Items)
+5. Cron alle 3h :20 → `generate-llms.js` → `llms.txt` + `llms-full.txt` (GEO
+   Stufe 5, 2026-10-02) — liest denselben sitemap-events-Dump; Kollaps-Schutz
+   (Dump zu alt/leer/zu klein → EXIT 1 ohne Schreiben, alte Dateien bleiben
+   online). Nginx braucht KEINE Anpassung (try_files liefert die Dateien).
+   Test ohne Cron: `LLMS_OUTPUT_DIR=/tmp node scripts/generate-llms.js`
 
 **Event-Dump als gemeinsame Quelle (Fix 5, 2026-09-08; Feed seit 2026-09-29):**
 `generate-site-data.js`
