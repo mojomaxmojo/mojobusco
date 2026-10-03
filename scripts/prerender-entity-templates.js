@@ -27,6 +27,7 @@ import {
   buildVideoLd,
   buildImageLd,
 } from './prerender-meta.js';
+import { withFaqLd } from './prerender-faq.js';
 
 /**
  * Optimiertes <img> für Prerender-HTML.
@@ -92,7 +93,7 @@ export function renderArticleHtml(event, allEventsOfType = []) {
   const datePublished = formatDate(publishedAtSeconds);
   const dateModified = formatDate(event.created_at);
 
-  const jsonLd = buildArticleLd({
+  const jsonLd = withFaqLd(buildArticleLd({
     headline: headTitle,
     description,
     image,
@@ -103,7 +104,7 @@ export function renderArticleHtml(event, allEventsOfType = []) {
     authorUrl: getAuthorUrl(event.pubkey),
     keywords: [...new Set(['vanlife', 'wohnmobil', 'reisen', 'camping', ...tags])],
     inLanguage: lang,
-  });
+  }), event.content, canonicalUrl);
 
   const head = buildHead({
     title: `${headTitle} — MojoBus`,
@@ -299,7 +300,7 @@ export function renderPlaceHtml(event, allEventsOfType = []) {
   }
   const alternateLang = pairLang;
 
-  const jsonLd = buildPlaceLd({
+  const jsonLd = withFaqLd(buildPlaceLd({
     name: headTitle,
     description,
     image,
@@ -307,7 +308,7 @@ export function renderPlaceHtml(event, allEventsOfType = []) {
     lat,
     lon,
     inLanguage: lang,
-  });
+  }), event.content, canonicalUrl);
 
   const head = buildHead({
     title: `${headTitle} — MojoBus`,
@@ -355,7 +356,7 @@ export function renderTripHtml(event, allEventsOfType = []) {
   const photos = extractTripPhotos(event);
   const { distance, distanceUnit } = extractTripDistance(event);
 
-  const jsonLd = buildArticleLd({
+  const jsonLd = withFaqLd(buildArticleLd({
     headline: title,
     description: cleanDesc.substring(0, 200),
     image,
@@ -363,7 +364,7 @@ export function renderTripHtml(event, allEventsOfType = []) {
     datePublished,
     dateModified: datePublished,
     inLanguage: lang,
-  });
+  }), event.content, canonicalUrl);
 
   const head = buildHead({
     title: `${title} — MojoBus Reisen`,

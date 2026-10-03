@@ -483,8 +483,12 @@ greift der Relay-Fallback (paginiert). Der Dump enthält ausschließlich
 
 **Gemeinsame Basis**: `prerender-helpers.js` (Filter/Encoder/i18n-Helfer),
 `prerender-meta.js` (SEO-Head + JSON-LD), `prerender-entity-templates.js`
-(Detail-HTML je Typ), `prerender-category-templates.js` (Listen-HTML).
-Änderungen an gemeinsamer Logik (z. B. `isMojobusKind1()`) wirken sich
+(Detail-HTML je Typ), `prerender-category-templates.js` (Listen-HTML),
+`prerender-faq.js` (FAQPage-JSON-LD, GEO Stufe 6, 2026-10-02: extrahiert
+Frage-Antwort-Paare aus dem Content — HTML-Header/Markdown-##/**fett**,
+Frage endet auf „?", Antwort 20–2000 Zeichen — und wickelt bei ≥ 2 Paaren
+die JSON-LD-Struktur der Renderer Artikel/Place/Trip in ein FAQPage-Objekt;
+Notes ausgenommen). Änderungen an gemeinsamer Logik (z. B. `isMojobusKind1()`) wirken sich
 auf alle 3 Cron-Skripte aus – bei Tests immer alle 3 neu laufen lassen.
 
 **Reiseziele-Hub (2026-09-13)**: `category-reiseziele.html` (+ `-en`) wird
