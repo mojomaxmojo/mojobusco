@@ -278,7 +278,7 @@ generische Keywords gegen PiNCAMP/ADAC/camping.info unrealistisch kurzfristig.
 | 6 FAQPage-Schema | ✅ live wirkend | 5+ Artikel-Prerender mit `"@type":"FAQPage"` (grep-Beweis) — Heuristik griff sofort (b2a80d5) |
 | 7a Redaktions-Checkliste | ✅ | `docs/REDAKTIONS_KI_CHECKLISTE.md` (rollenspezifisch: Berichte = Foster pur, Orte/Pillars = voll) |
 | 7b Fakten-Anker (Option B) | ✅ | articles.js medium/long (e424e0a) — nur wenn echte Fakten im Kontext, Foster bleibt Foster |
-| 9a MCP-MVP (read-only) | ✅ **live verifiziert** | mcp.service active (Node 24) · 8 Tools · curl-End-to-End: initialize (mojobus-mcp 1.0.0) → tools/list (vollständige Schemata) → tools/call search_places (2 echte Treffer EN+DE mit URLs) → search_all „Algarve" (10 Treffer Fuzzy). Code: mcp/ (2f4b395) + Nginx /mcp + llms.txt-Verweis (3147c9d) · Inspector überflüssig (curl-Beweis reicht) |
+| 9a MCP-MVP (read-only) | ✅ **live verifiziert + Registry-Registrierung abgeschlossen** | mcp.service active (Node 24) · 8 Tools · curl-End-to-End: initialize (mojobus-mcp 1.0.0) → tools/list (vollständige Schemata) → tools/call search_places (2 echte Treffer EN+DE mit URLs) → search_all „Algarve" (10 Treffer Fuzzy). Code: mcp/ (2f4b395) + Nginx /mcp + llms.txt-Verweis (3147c9d) · Registry: io.github.mojomaxmojo/mojobus published via mcp-publisher (GitHub-Device-Auth, becff53) · Merk: Registry-description ≤ 100 Zeichen, Registry-JWT kurzlebig (re-login vor jedem publish) |
 | 9b MCP-Schreib-Tools | ❌ **ENTFALLEN** | architektonisch fragwürdig: NIP-98 braucht den Autoren-Key beim Anfragenden — `/veroeffentlichen` (NIP-07) bleibt der saubere Schreib-Weg; ROI für 2 Autoren ~null |
 | 8 E-E-A-T / 10 Monitoring | ⬜ | optional, laufend |
 
