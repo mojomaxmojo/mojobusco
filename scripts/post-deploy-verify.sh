@@ -1,0 +1,245 @@
+#!/usr/bin/env bash
+# ============================================================================
+# post-deploy-verify.sh — Abnahme-Kit nach dem SEO-Fix-Deploy (TB, 2026-10)
+#
+# Läuft AUSSCHLIESSLICH auf dem VPS (CentminMod; braucht curl/node/grep/sed).
+# Nicht abbrechen: Jede Prüfung endet mit PASS/FAIL-Zeile, Gesamtbilanz am
+# Ende, Exit 1 wenn mindestens eine Prüfung FAIL.
+#
+# Aufruf:
+#   bash scripts/post-deploy-verify.sh <naddr-rezent>
+#   bash scripts/post-deploy-verify.sh            # naddr-Fallback: frischeste
+#                                                 # Sitemap (data/sitemap.json)
+# Optional:
+#   CF_API_TOKEN=… CF_ZONE_ID=… bash scripts/post-deploy-verify.sh …
+#     → Cloudflare Purge-All per API (sonst klarer Manuell-Hinweis)
+#   REPO_DIR=… PRERENDER_DIR=… DATA_DIR=… (Defaults siehe unten)
+#
+# Prüfungen:
+#   [V1] Shell-Canonical weg (T1)          — UA Mozilla/5.0, count canonical == 0
+#   [V2] Punct-URL → 301 auf clean (T2)    — reale Googlebot-Klammer-URL,
+#                                            Location == clean, kein Hop auf /
+#   [V3] clean-URL × 3 UAs → 200 + self-canonical (T2/T1; UAs wie nginx-Map:
+#                                            Googlebot/bingbot/OAI-SearchBot)
+#   [V4] /artikel/diy als Googlebot → 200, self-canonical, Wortsanität > 1000
+#   [V5] publish-healthcheck (T5) → grün
+#   [V6] Prerender-Output frei von mojobus.org (T3), abzüglich Unmapped-Report
+#   [V7] botcheck.sh (T4) läuft, Exit 0
+#   [V8] feed.xml frei von mojobus.org (TA), abzüglich Unmapped (Feed+Prerender)
+#   [V9] llms.txt frei von mojobus.org (TA), abzüglich Unmapped (LLMS+Prerender)
+# ============================================================================
+
+NADDR_ARG="${1:-}"
+REPO_DIR="${REPO_DIR:-/root/deploy-git/mojobusco}"
+DEPLOY_DIR="${DEPLOY_DIR:-/home/nginx/domains/mojobus.co/public}"
+PRERENDER_DIR="${PRERENDER_DIR:-$DEPLOY_DIR/prerender}"
+DATA_DIR="${DATA_DIR:-$DEPLOY_DIR/data}"
+BASE="https://mojobus.co"
+
+UA_BROWSER="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36"
+UA_GOOGLEBOT="Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
+UA_BINGBOT="Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)"
+UA_OAI="Mozilla/5.0 (compatible; OAI-SearchBot/1.0; +https://openai.com/searchbot)"
+
+PASS=0; FAIL=0; SKIP=0
+RESULT_FILE="/tmp/postdeploy-verify-results.$$"
+trap 'rm -f "$RESULT_FILE" "$UNMAPPED_TMP" "$UNMAPPED_FEED_TMP" "$UNMAPPED_LLMS_TMP" 2>/dev/null' EXIT
+
+check_pass() { PASS=$((PASS+1)); printf '  ✅ PASS  [%s] %s\n' "$1" "$2"; echo "PASS $1" >> "$RESULT_FILE"; }
+check_fail() { FAIL=$((FAIL+1)); printf '  ❌ FAIL  [%s] %s\n' "$1" "$2"; echo "FAIL $1" >> "$RESULT_FILE"; }
+check_skip() { SKIP=$((SKIP+1)); printf '  ⚠️ SKIP  [%s] %s\n' "$1" "$2"; echo "SKIP $1" >> "$RESULT_FILE"; }
+
+line()  { printf '%s\n' "────────────────────────────────────────────────────────────"; }
+
+# curl-Basis (optionaler CF-Origin-Bypass: CURL_RESOLVE="mojobus.co:443:127.0.0.1")
+curl_base() { curl -sk ${CURL_RESOLVE:+--resolve "$CURL_RESOLVE"} "$@"; }
+
+# Status-Code eines URL-Fetches (UA als $1)
+http_code() { curl_base -o /dev/null -w '%{http_code}' -A "$1" "$2"; }
+
+# -v-Filter, der bei LEERER Pattern-Datei sauber durchreicht
+# (GNU grep meckert sonst teils über leere Pattern-Dateien)
+filter_out_unmapped() {
+  if [ -s "$1" ]; then grep -vFf "$1"; else cat; fi
+}
+
+# Canonical aus HTML extrahieren (erster <link rel="canonical">)
+extract_canonical() {
+  # $1 = HTML-String über stdin
+  grep -oi '<link[^>]*rel="canonical"[^>]*>' \
+    | grep -oi 'href="[^"]*"' \
+    | head -1 \
+    | sed -E 's/^href="(.*)"$/\1/I'
+}
+
+# Unmapped-URLs aus Report-JSON (jq bevorzugt, node-Fallback, grep letzter Versuch)
+unmapped_urls() {
+  local file="$1"
+  [ -f "$file" ] || { echo ""; return 0; }
+  if command -v jq >/dev/null 2>&1; then
+    jq -r '.unmapped[].url' "$file" 2>/dev/null
+  elif command -v node >/dev/null 2>&1; then
+    node -e 'try{const j=require(process.argv[1]);for(const u of (j.unmapped||[]))console.log(u.url)}catch(e){}' "$file" 2>/dev/null
+  else
+    grep -o '"url": *"[^"]*"' "$file" 2>/dev/null | sed -E 's/^"url": *"(.*)"$/\1/'
+  fi
+}
+
+line
+printf ' 🚦 post-deploy-verify.sh  %s\n' "$(date '+%Y-%m-%d %H:%M %Z')"
+line
+
+# ── Vorbereitung: NADDR (Parameter oder frischeste Sitemap) ────────────────
+NADDR="$NADDR_ARG"
+if [ -z "$NADDR" ]; then
+  NADDR=$(node -e '
+    const fs = require("fs");
+    try {
+      const list = JSON.parse(fs.readFileSync(process.argv[1], "utf-8"));
+      const newest = [...list].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0];
+      if (newest && newest.naddr) console.log(newest.naddr);
+    } catch (e) { /* Feld bleibt leer */ }
+  ' "$DATA_DIR/sitemap.json" 2>/dev/null)
+  if [ -n "$NADDR" ]; then
+    printf 'NADDR (Fallback aus frischester data/sitemap.json): %s\n' "$NADDR"
+  fi
+fi
+if [ -z "$NADDR" ]; then
+  printf '❌ Kein naddr (Parameter $1 fehlt und data/sitemap.json nicht lesbar)\n'
+  exit 1
+fi
+printf 'Ziel-Naddr: %s\n' "$NADDR"
+printf 'Clean-URL:  %s/%s\n' "$BASE" "$NADDR"
+line
+
+# ── [V1] Shell-Canonical weg (T1) ───────────────────────────────────────────
+printf '[V1] Shell-Canonical weg (T1) — UA Mozilla/5.0\n'
+canon_count=$(curl_base -A "$UA_BROWSER" "$BASE/$NADDR" | grep -ci canonical || true)
+if [ "${canon_count:-1}" -eq 0 ]; then
+  check_pass "V1" "0 canonical-Tags in der Shell-Auslieferung für /$NADDR (Vorher: 1 × canonical=/)"
+else
+  check_fail "V1" "canonical-Tags gefunden ($canon_count) — T1 nicht aktiv oder CF-Cache"
+fi
+
+# ── [V2] Punct-URL → 301 auf clean (T2) ─────────────────────────────────────
+printf '[V2] Punct-URL → 301 auf clean (T2)\n'
+v2_code=$(http_code "$UA_BROWSER" "$BASE/${NADDR})")
+v2_location=$(curl_base -I "$BASE/${NADDR})" | grep -i '^location:' | head -1 | sed -E 's/^[Ll]ocation: *//' | tr -d '\r')
+v2_expected="$BASE/$NADDR"
+if [ "$v2_code" = "301" ] && [ "$v2_location" = "$v2_expected" ]; then
+  check_pass "V2" "301 → $v2_location (exakt clean, kein Hop auf /)"
+elif [ "$v2_code" = "301" ] && [ "$v2_location" = "$BASE/" ]; then
+  check_fail "V2" "301, ABER Location = Startseite (Catch-all!) — Edge-If falsch"
+else
+  check_fail "V2" "Status=$v2_code Location='$v2_location' (erwartet: 301 → $v2_expected)"
+fi
+
+# ── [V3] clean-URL × 3 UAs → 200 + self-canonical ───────────────────────────
+printf '[V3] clean-URL → 200 + self-canonical (Googlebot / bingbot / OAI-SearchBot)\n'
+v3_expected="$BASE/$NADDR"
+for ua_name in GOOGLEBOT BINGBOT OAI; do
+  ua_var="UA_$ua_name"
+  ua="${!ua_var}"
+  v3_code=$(http_code "$ua" "$BASE/$NADDR")
+  v3_canon=$(curl_base -A "$ua" "$BASE/$NADDR" | extract_canonical)
+  if [ "$v3_code" = "200" ] && [ "$v3_canon" = "$v3_expected" ]; then
+    check_pass "V3" "$ua_name: 200 + self-canonical"
+  else
+    check_fail "V3" "$ua_name: Status=$v3_code canonical='$v3_canon' (erwartet $v3_expected)"
+  fi
+done
+
+# ── [V4] /artikel/diy als Googlebot ─────────────────────────────────────────
+printf '[V4] /artikel/diy als Googlebot → 200, self-canonical, Wortsanität > 1000\n'
+v4_code=$(http_code "$UA_GOOGLEBOT" "$BASE/artikel/diy")
+v4_canon=$(curl_base -A "$UA_GOOGLEBOT" "$BASE/artikel/diy" | extract_canonical)
+v4_words=$(curl_base -A "$UA_GOOGLEBOT" "$BASE/artikel/diy" | sed -E 's/<[^>]*>/ /g' | wc -w | tr -d ' ')
+if [ "$v4_code" = "200" ] && [ "$v4_canon" = "$BASE/artikel/diy" ] && [ "${v4_words:-0}" -gt 1000 ]; then
+  check_pass "V4" "200 + self-canonical + $v4_words Wörter"
+else
+  check_fail "V4" "Status=$v4_code canonical='$v4_canon' Wörter=$v4_words"
+fi
+
+# ── [V5] publish-healthcheck (T5) ───────────────────────────────────────────
+printf '[V5] node scripts/publish-healthcheck.js → grün (T5)\n'
+if command -v node >/dev/null 2>&1; then
+  if (cd "$REPO_DIR" && node scripts/publish-healthcheck.js "$BASE/$NADDR"); then
+    check_pass "V5" "Healthcheck grün für /$NADDR"
+  else
+    check_fail "V5" "Healthcheck FAILED (Exit ≠ 0) für /$NADDR"
+  fi
+else
+  check_fail "V5" "node nicht gefunden — manuell: cd $REPO_DIR && node scripts/publish-healthcheck.js $BASE/$NADDR"
+fi
+
+# ── [V6] Prerender-Output frei von mojobus.org (T3) ─────────────────────────
+printf '[V6] grep -R mojobus.org im Prerender-Output, abzüglich Unmapped (T3)\n'
+UNMAPPED_TMP="/tmp/postdeploy-unmapped-prerender.$$"
+unmapped_urls "$REPO_DIR/redirects/unmapped-org-links.json" > "$UNMAPPED_TMP" 2>/dev/null || true
+v6_hits=$(grep -R "mojobus.org" "$PRERENDER_DIR" 2>/dev/null | filter_out_unmapped "$UNMAPPED_TMP" | wc -l | tr -d ' ')
+v6_total=$(grep -R "mojobus.org" "$PRERENDER_DIR" 2>/dev/null | wc -l | tr -d ' ')
+if [ "${v6_hits:-1}" -eq 0 ]; then
+  check_pass "V6" "0 verbleibende .org-Treffer (roh: ${v6_total:-0}, alles Unmapped-dokumentiert oder leer)"
+else
+  check_fail "V6" "$v6_hits verbleibende .org-Treffer (roh: ${v6_total:-0}) — Unmapped-Report prüfen"
+fi
+
+# ── [V7] botcheck.sh (T4) ────────────────────────────────────────────────────
+printf '[V7] bash scripts/botcheck.sh → Exit 0 (T4)\n'
+if bash "$REPO_DIR/scripts/botcheck.sh" >/tmp/postdeploy-botcheck.$$.log 2>&1; then
+  check_pass "V7" "botcheck.sh lief fehlerfrei (Log: /tmp/postdeploy-botcheck.$$.log)"
+else
+  check_fail "V7" "botcheck.sh Exit ≠ 0 (Log: /tmp/postdeploy-botcheck.$$.log)"
+fi
+
+# ── [V8] feed.xml frei von mojobus.org (TA) ────────────────────────────────
+printf '[V8] feed.xml → mojobus.org-Count, abzüglich Unmapped (TA)\n'
+UNMAPPED_FEED_TMP="/tmp/postdeploy-unmapped-feed.$$"
+{ unmapped_urls "$REPO_DIR/redirects/unmapped-org-links.feed.json"; unmapped_urls "$REPO_DIR/redirects/unmapped-org-links.json"; } > "$UNMAPPED_FEED_TMP" 2>/dev/null || true
+v8_total=$(curl_base "$BASE/feed.xml" | grep -o 'https\?://[a-z.]*mojobus\.org[^"<]*' | wc -l | tr -d ' ')
+v8_hits=$(curl_base "$BASE/feed.xml" | grep -o 'https\?://[a-z.]*mojobus\.org[^"<]*' | filter_out_unmapped "$UNMAPPED_FEED_TMP" | wc -l | tr -d ' ')
+if [ "${v8_hits:-1}" -eq 0 ]; then
+  check_pass "V8" "0 verbleibende .org-Links im Feed (roh: ${v8_total:-0} — Unmapped oder leer)"
+else
+  check_fail "V8" "$v8_hits verbleibende .org-Links im Feed (roh: ${v8_total:-0})"
+fi
+
+# ── [V9] llms.txt frei von mojobus.org (TA) ─────────────────────────────────
+printf '[V9] llms.txt → mojobus.org-Count, abzüglich Unmapped (TA)\n'
+UNMAPPED_LLMS_TMP="/tmp/postdeploy-unmapped-llms.$$"
+{ unmapped_urls "$REPO_DIR/redirects/unmapped-org-links.llms.json"; unmapped_urls "$REPO_DIR/redirects/unmapped-org-links.json"; } > "$UNMAPPED_LLMS_TMP" 2>/dev/null || true
+v9_total=$(curl_base "$BASE/llms.txt" | grep -o 'https\?://[a-z.]*mojobus\.org[^) "<]*' | wc -l | tr -d ' ')
+v9_hits=$(curl_base "$BASE/llms.txt" | grep -o 'https\?://[a-z.]*mojobus\.org[^) "<]*' | filter_out_unmapped "$UNMAPPED_LLMS_TMP" | wc -l | tr -d ' ')
+if [ "${v9_hits:-1}" -eq 0 ]; then
+  check_pass "V9" "0 verbleibende .org-Links in llms.txt (roh: ${v9_total:-0} — Unmapped oder leer)"
+else
+  check_fail "V9" "$v9_hits verbleibende .org-Links in llms.txt (roh: ${v9_total:-0})"
+fi
+
+# ── Cloudflare Purge (optional) ──────────────────────────────────────────────
+line
+printf 'Cloudflare-Purge\n'
+if [ -n "${CF_API_TOKEN:-}" ] && [ -n "${CF_ZONE_ID:-}" ]; then
+  cf_res=$(curl_base -X POST "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/purge_cache" \
+    -H "Authorization: Bearer $CF_API_TOKEN" -H "Content-Type: application/json" \
+    --data '{"purge_everything":true}')
+  if echo "$cf_res" | grep -q '"success":true'; then
+    printf '  ✅ Purge-All erfolgreich (Cloudflare API v4)\n'
+  else
+    printf '  ⚠️ Purge-Antwort: %s\n' "$(echo "$cf_res" | head -c 300)"
+  fi
+else
+  printf '  ⚠️ CF_API_TOKEN/CF_ZONE_ID nicht gesetzt — PURGE MANUELL im Cloudflare-Dashboard\n'
+  printf '     (Caching → Purge → Everything). Ohne Purge können Bots ALT-HTML sehen!\n'
+fi
+
+# ── Gesamtbilanz ─────────────────────────────────────────────────────────────
+line
+printf 'GESAMTBILANZ: %s PASS · %s FAIL · %s SKIP\n' "$PASS" "$FAIL" "$SKIP"
+if [ "$FAIL" -gt 0 ]; then
+  grep '^FAIL' "$RESULT_FILE" | sed 's/^/    /'
+  printf 'Exit 1 — FAILs zuerst klären (V1–V3 = T1/T2-Signatur, V6 = T3, V8/V9 = TA)\n'
+  exit 1
+fi
+printf 'Alle Prüfungen grün — SEO-Fixes live bestätigt.\n'
+exit 0
