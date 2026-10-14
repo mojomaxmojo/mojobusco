@@ -72,6 +72,7 @@ const ORG_URL_RE = /https?:\/\/(?:www\.)?mojobus\.org(?:\/[^)\]}\s<>"']*)?/gi;
 const state = {
   mapCache: { mtimeMs: -1, mapFile: null, byPath: new Map() },
   replacedOccurrences: 0, // ersetzte .org-Links (Summe über alle Aufrufe)
+  wpMediaReplaced: 0,     // R4/F5: ersetzte wp-content-Medien (Flag-gated)
   unmapped: new Map(),    // .org-URL → {url, occurrences}
 };
 
@@ -149,8 +150,27 @@ function lookupTarget(byPath, key) {
 }
 
 /**
+ * R4/F5: ZWEITE, separat flag-gesteuerte Regel — wp-content-MEDIEN.
+ * https://mojobus.org/wp-content/… → https://mojobus.co/wp-content/…
+ *
+ * Flag-Default OFF (env MOJOBUS_REWRITE_WP_MEDIA=1 zum Freischalten).
+ * WICHTIG: Regel erst aktivieren, NACHDEM scripts/copy-wp-media.sh --apply
+ * gelaufen ist (sonst zeigt der Rewrite auf 404er auf .co). Diese Regel
+ * BYPASST bewusst die Map (wp-content ist bewusst NICHT in der Redirect-Map
+ * — dort gibt es nur den 301-Catch-All auf /). Unmapped-Report zählt
+ * wp-content-URLs NICHT, wenn das Flag aktiv ist (Rewrite hat sie ja
+ * behandelt).
+ */
+const WP_MEDIA_RE = /https?:\/\/(?:www\.)?mojobus\.org\/wp-content\/[^\s)<>"']*/gi;
+function wpMediaEnabled() {
+  return process.env.MOJOBUS_REWRITE_WP_MEDIA === '1';
+}
+
+/**
  * Ersetzt alle gemappten mojobus.org-Links im Text/HTML. Unmapped-Links
  * bleiben unverändert und werden für den Report gesammelt (dedupliziert).
+ * Flag MOJOBUS_REWRITE_WP_MEDIA=1: wp-content-Medien werden zusätzlich
+ * .org→.co umgeschrieben (Default OFF — erst nach copy-wp-media.sh --apply).
  * @param {string} text HTML- oder Text-Fragment (auch JSON-LD)
  * @returns {string}
  */
@@ -158,19 +178,31 @@ export function rewriteOrgLinks(text) {
   const source = String(text ?? '');
   if (!source.includes('mojobus.org')) return source;
 
+  // R4/F5: wp-content-Medien-Regel (flag-gated, läuft VOR der Map-Logik —
+  // wp-content-URLs sind nicht in der Map und würden sonst als unmapped
+  // landen, solange das Flag OFF ist; genau das ist das gewünschte
+  // Default-Verhalten: sie bleiben sichtbar im Unmapped-Report).
+  let working = source;
+  if (wpMediaEnabled()) {
+    working = working.replace(WP_MEDIA_RE, (raw) => {
+      state.wpMediaReplaced++;
+      return raw.replace(/^https?:\/\/(?:www\.)?mojobus\.org/i, 'https://mojobus.co');
+    });
+  }
+
   const cache = loadOrgRedirectMap();
   const byPath = cache.byPath;
   if (byPath.size === 0) {
     // Ohne Map: nichts ersetzen, aber Vorkommen für den Report sammeln
-    for (const m of source.matchAll(ORG_URL_RE)) {
+    for (const m of working.matchAll(ORG_URL_RE)) {
       const url = m[0];
       if (!state.unmapped.has(url)) state.unmapped.set(url, { url, occurrences: 0 });
       state.unmapped.get(url).occurrences++;
     }
-    return source;
+    return working;
   }
 
-  return source.replace(ORG_URL_RE, (raw) => {
+  return working.replace(ORG_URL_RE, (raw) => {
     let lookup;
     try {
       const u = new URL(raw);
@@ -191,7 +223,11 @@ export function rewriteOrgLinks(text) {
 
 /** Summe der in diesem Lauf ersetzten .org-Vorkommen. */
 export function getOrgRewriteStats() {
-  return { replaced: state.replacedOccurrences, unmapped: state.unmapped.size };
+  return {
+    replaced: state.replacedOccurrences,
+    wpMediaReplaced: state.wpMediaReplaced,
+    unmapped: state.unmapped.size,
+  };
 }
 
 /** Report-Verzeichnis-Basis: default neben der Map (redirects/), env
@@ -234,6 +270,8 @@ export function writeUnmappedOrgLinksReport(scope = '') {
     scope: cleanScope || 'prerender',
     mapFile: cache.mapFile,
     replacedOccurrences: state.replacedOccurrences,
+    wpMediaReplaced: state.wpMediaReplaced, // R4/F5 (0 solange Flag OFF)
+    wpMediaFlag: wpMediaEnabled(),          // R4/F5: Flag-Status dokumentieren
     unmappedCount: entries.length,
     // Task: unmapped NICHT raten — hier steht nur, was übrig blieb (Review-Liste)
     unmapped: entries,
