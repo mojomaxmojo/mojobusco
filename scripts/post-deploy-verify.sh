@@ -27,9 +27,11 @@
 #                                            Googlebot/bingbot/OAI-SearchBot)
 #   [V4] /artikel/diy als Googlebot → 200, self-canonical, Wortsanität > 1000
 #   [V5] publish-healthcheck (T5) → grün
-#   [V6] Prerender .org-Reste — NUR echte Page-Pfade zählen (R4.1): Teaser-
-#        Cut-Fragmente (F3-Altlasten), wp-content-Medien (F5-Phase B) und
-#        escaped JSON-LD-Formen werden als Artefakte separiert
+#   [V6] Prerender .org-Reste — NUR echte crawlbare URLs zählen (R4.2):
+#        grep -oE 'https://(www.)?mojobus.org/<pfad>' nach Dedup; ausgeschlossen
+#        sind wp-content-Medien (F5-Phase B). E-Mails (@mojobus.org), Prose-
+#        Mentions ohne Pfad und weserv-Proxy-Fragmente matchen das Muster
+#        nicht bzw. fallen unter die Ausnahmen.
 #   [V7] botcheck.sh (T4) läuft, Exit 0
 #   [V8] feed.xml frei von mojobus.org (TA), abzüglich Unmapped (Feed+Prerender)
 #   [V9] llms.txt frei von mojobus.org (TA), abzüglich Unmapped (LLMS+Prerender)
@@ -276,24 +278,23 @@ if [ -s "$UNMAPPED_TMP" ]; then
 fi
 v6_all=$(grep -R "mojobus.org" "$PRERENDER_DIR" 2>/dev/null || true)
 v6_total=$(printf '%s\n' "$v6_all" | grep -c . || true)
-# NON-ISSUE-Filter (sed/grep-only, keine Deps):
-v6_real=$(printf '%s\n' "$v6_all" \
-  | filter_out_unmapped "$UNMAPPED_TMP" \
+# R4.2: V6 zählt nur ECHTE CRAWLBARE URLs (https://(www.)mojobus.org/<pfad>)
+# statt Zeilen — Live-Beweis 23:20: die „11 echten Reste" waren sämtlich
+# Artefakte (weserv-Proxy mit URL-ENCODED %2Fwp-content, E-Mail julia@…,
+# Fließtext-Mentions ohne Pfad, Markdown-Rest „[mojobus.org](" ohne URL).
+# Diese Formen matchen auf mojobus.org/<pfad> NICHT bzw. werden explizit
+# ausgeschlossen (wp-content = F5-Phase B, dokumentiert).
+v6_real_urls=$(printf '%s\n' "$v6_all" \
+  | grep -oE 'https://(www\.)?mojobus\.org/[^"'"'"' <>)&]+' 2>/dev/null \
   | grep -v '/wp-content/' \
-  | grep -vE '\.\.\.?( |$|<|"|'"'"')' \
-  | grep -vE '\.\.\.[0-9a-zA-Z-]*("|<|$)' \
-  | grep -c . || true)
+  | sort -u || true)
+v6_real=$(printf '%s\n' "$v6_real_urls" | grep -c . || true)
 v6_artifacts=$(( v6_total - v6_real ))
 if [ "${v6_real:-1}" -eq 0 ]; then
-  check_pass "V6" "0 echte .org-Reste (roh: ${v6_total:-0}, davon ${v6_artifacts:-0} Artefakte: Teaser-Fragmente/wp-content/escaped)"
+  check_pass "V6" "0 echte crawlbare .org-URLs (rohe Treffer-Zeilen: ${v6_total:-0}, darunter Prose-Mentions/E-Mails/weserv-encoded/wp-content = Artefakte bzw. F5-Phase B)"
 else
-  check_fail "V6" "$v6_real ECHTE .org-Reste (roh: ${v6_total:-0}, ${v6_artifacts:-0} Artefakte gefiltert) — Liste:"
-  printf '%s\n' "$v6_all" \
-    | filter_out_unmapped "$UNMAPPED_TMP" \
-    | grep -v '/wp-content/' \
-    | grep -vE '\.\.\.?( |$|<|"|'"'"')' \
-    | grep -vE '\.\.\.[0-9a-zA-Z-]*("|<|$)' \
-    | head -n 12 | sed 's/^/       /'
+  check_fail "V6" "$v6_real ECHTE crawlbare .org-URLs (rohe Zeilen: ${v6_total:-0}) — Liste:"
+  printf '%s\n' "$v6_real_urls" | head -n 12 | sed 's/^/       /'
 fi
 
 # ── [V7] botcheck.sh (T4) ────────────────────────────────────────────────────
