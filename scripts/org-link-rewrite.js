@@ -189,7 +189,9 @@ export function getOrgRewriteStats() {
   return { replaced: state.replacedOccurrences, unmapped: state.unmapped.size };
 }
 
-/** Report-Pfad: default neben der Map (redirects/), env überschreibbar. */
+/** Report-Verzeichnis-Basis: default neben der Map (redirects/), env
+ *  ORG_LINK_REPORT_FILE überschreibt (dessen VERZEICHNIS gilt als Basis —
+ *  die Dateinamen je Scope setzt writeUnmappedOrgLinksReport()). */
 function reportFilePath() {
   if (process.env.ORG_LINK_REPORT_FILE) return process.env.ORG_LINK_REPORT_FILE;
   const cache = loadOrgRedirectMap();
@@ -200,23 +202,37 @@ function reportFilePath() {
 }
 
 /**
- * Schreibt unmapped-org-links.json (überschreibt pro Lauf). Datei landet
+ * Schreibt den Unmapped-Report (überschreibt pro Lauf). Datei landet
  * bewusst NICHT im Prerender-Output-Dir, damit der Abnahme-grep
  * (`grep -R "mojobus.org" <prerender-dir>`) ausschließlich echte HTML-Fälle
- * sieht. Rückgabe: Pfad oder null (nichts zu berichten).
+ * sieht. Rückgabe: Pfad oder null (nicht schreibbar).
+ *
+ * scope (SEO-Nachlauf TA, 2026-10): leer = Prerender (T3, Bestandsdatei
+ * unmapped-org-links.json). 'feed' / 'llms' → unmapped-org-links.<scope>.json
+ * (Task-Nomenklatur) — JEDES Pipeline-Skript läuft in eigenem Prozess und
+ * schreibt sein EIGENES Report-File (kein Überschreiben zwischen Cron-
+ * Schritten; identisches Schema, Feld `scope` unterscheidet die Quelle).
+ * @param {string} scope '' | 'feed' | 'llms'
  */
-export function writeUnmappedOrgLinksReport() {
+export function writeUnmappedOrgLinksReport(scope = '') {
   const cache = loadOrgRedirectMap();
   const entries = [...state.unmapped.values()].sort((a, b) => b.occurrences - a.occurrences);
+  const cleanScope = /^[a-z0-9-]{1,32}$/.test(String(scope || '').trim())
+    ? String(scope).trim()
+    : '';
+  const file = path.join(
+    path.dirname(reportFilePath()),
+    cleanScope ? `unmapped-org-links.${cleanScope}.json` : 'unmapped-org-links.json'
+  );
   const payload = {
     generatedAt: new Date().toISOString(),
+    scope: cleanScope || 'prerender',
     mapFile: cache.mapFile,
     replacedOccurrences: state.replacedOccurrences,
     unmappedCount: entries.length,
     // Task: unmapped NICHT raten — hier steht nur, was übrig blieb (Review-Liste)
     unmapped: entries,
   };
-  const file = reportFilePath();
   try {
     fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.writeFileSync(file, JSON.stringify(payload, null, 2), 'utf-8');

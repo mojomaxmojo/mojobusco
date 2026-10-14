@@ -25,6 +25,12 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { nip19 } from 'nostr-tools';
 import { getEventLangFromTags, isPlace, queryRelay, loadSiteDataEventsDump, dedupeReplaceables, RELAYS } from './prerender-helpers.js';
+// SEO-Nachlauf TA (2026-10): mojobus.org-Links in Event-Texten beim
+// Feed-Rendern auf die .co-Pendants umschreiben — dieselbe Rewrite-Logik wie
+// Prerender/Bot-HTML (Single Source: org-link-rewrite.js, NIE kopieren).
+// Anwendung VOR escapeXml/CDATA-Wrapping; Unmapped → unverändert +
+// eigenes Report unmapped-org-links.feed.json (Schema wie T3, Feld scope).
+import { rewriteOrgLinks, getOrgRewriteStats, writeUnmappedOrgLinksReport } from './org-link-rewrite.js';
 
 // ── Autoren aus zentraler JSON-Config (Single Source of Truth) ────────────
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -171,11 +177,16 @@ async function generateFeedXml(articles, lang = 'de') {
       url = `${BASE_URL}/artikel#${event.id}`;
       naddrFailed = true;
     }
-    const description = escapeXml(summary || cleanContent(event.content).substring(0, 200));
-    const content = escapeXml(cleanContent(event.content));
+    // TA: Rewrite VOR escapeXml/CDATA — title/description/content stammen
+    // (teils) aus Event-Content und können .org-Links tragen; <link>/<guid>/
+    // <enclosure> sind bewusst NICHT Teil des Rewrites (Image-/Upload-URLs
+    // sind nicht Teil der Migration-Map).
+    const itemTitle = rewriteOrgLinks(title);
+    const description = escapeXml(rewriteOrgLinks(summary || cleanContent(event.content).substring(0, 200)));
+    const content = escapeXml(rewriteOrgLinks(cleanContent(event.content)));
 
     xml += `    <item>\n`;
-    xml += `      <title>${escapeXml(title)}</title>\n`;
+    xml += `      <title>${escapeXml(itemTitle)}</title>\n`;
     xml += `      <link>${url}</link>\n`;
     xml += `      <guid isPermaLink="${naddrFailed ? 'false' : 'true'}">${url}</guid>\n`;
     xml += `      <description>${description}</description>\n`;
@@ -308,6 +319,13 @@ async function main() {
     console.error(`[Feed] ❌ Fehler beim Schreiben: ${err.message}`);
     process.exit(1);
   }
+
+  // ── TA: org→co-Bilanz + Unmapped-Report (eigenes Scope-File) ───────────
+  // Abnahme: curl -s https://mojobus.co/feed.xml | grep -c "mojobus.org" → 0
+  // (abzüglich der dokumentierten Unmapped-Cases im Report).
+  const reportFile = writeUnmappedOrgLinksReport('feed');
+  const orgStats = getOrgRewriteStats();
+  console.log(`[Feed] org→co Links: ${orgStats.replaced} ersetzt, ${orgStats.unmapped} unmapped${reportFile ? ` (→ ${reportFile})` : ''}`);
 }
 
 main().catch(err => {

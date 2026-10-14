@@ -38,6 +38,12 @@ import {
   loadSiteDataEventsDump,
   BASE_URL,
 } from './prerender-helpers.js';
+// SEO-Nachlauf TA (2026-10): mojobus.org-Links aus Event-Texten auch aus
+// llms.txt/llms-full.txt fernhalten — dieselbe Rewrite-Logik wie
+// Prerender/Feed (Single Source: org-link-rewrite.js, NIE kopieren).
+// Anwendung am Write-Point (Plain-Text, kein Escaping nötig); Unmapped →
+// unverändert + eigenes Report unmapped-org-links.llms.json (Schema wie T3).
+import { rewriteOrgLinks, getOrgRewriteStats, writeUnmappedOrgLinksReport } from './org-link-rewrite.js';
 
 // ── Pfade ────────────────────────────────────────────────────────────────
 const LLMS_PATH = '/home/nginx/domains/mojobus.co/public/llms.txt';
@@ -357,16 +363,27 @@ async function main() {
   fullLines.push('');
 
   // ── Schreiben ─────────────────────────────────────────────────────────
+  // TA: Rewrite am Write-Point (deckt title/summary/body ALLER Einträge ab —
+  // stripMarkup entfernt Markdown-Link-URLs, Bare-URLs im Text bleiben).
+  const shortText = rewriteOrgLinks(shortLines.join('\n'));
+  const fullText = rewriteOrgLinks(fullLines.join('\n'));
   try {
-    fs.writeFileSync(outPath(LLMS_PATH), shortLines.join('\n'), 'utf-8');
-    console.log(`[LLMS] ✅ Geschrieben: ${outPath(LLMS_PATH)} (${shortLines.join('\n').length} Bytes)`);
-    fs.writeFileSync(outPath(LLMS_FULL_PATH), fullLines.join('\n'), 'utf-8');
-    console.log(`[LLMS] ✅ Geschrieben: ${outPath(LLMS_FULL_PATH)} (${fullLines.join('\n').length} Bytes)`);
+    fs.writeFileSync(outPath(LLMS_PATH), shortText, 'utf-8');
+    console.log(`[LLMS] ✅ Geschrieben: ${outPath(LLMS_PATH)} (${shortText.length} Bytes)`);
+    fs.writeFileSync(outPath(LLMS_FULL_PATH), fullText, 'utf-8');
+    console.log(`[LLMS] ✅ Geschrieben: ${outPath(LLMS_FULL_PATH)} (${fullText.length} Bytes)`);
     console.log(`[LLMS]   ${articleEntries.length} Artikel · ${placeEntries.length} Orte · ${tripEntries.length} Trips · ${videoEntries.length} Videos`);
   } catch (err) {
     console.error(`[LLMS] ❌ Fehler beim Schreiben: ${err.message}`);
     process.exit(1);
   }
+
+  // ── TA: org→co-Bilanz + Unmapped-Report (eigenes Scope-File) ──────────
+  // Abnahme: curl -s https://mojobus.co/llms.txt | grep -c "mojobus.org" → 0
+  // (abzüglich der dokumentierten Unmapped-Cases im Report).
+  const reportFile = writeUnmappedOrgLinksReport('llms');
+  const orgStats = getOrgRewriteStats();
+  console.log(`[LLMS] org→co Links: ${orgStats.replaced} ersetzt, ${orgStats.unmapped} unmapped${reportFile ? ` (→ ${reportFile})` : ''}`);
 }
 
 main().catch(err => {
