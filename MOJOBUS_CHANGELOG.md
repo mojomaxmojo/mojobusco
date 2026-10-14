@@ -5,6 +5,78 @@
 
 ---
 
+## SEO-Indexierungs-Fixes T1–T5: Shell-Canonical, Trailing-Punct-Redirects, .org-Link-Rewrite, Botcheck, Publish-Healthcheck (2026-10-14)
+
+**Auslöser**: Verifizierte Befunde (curl + access.log, Stand 14.10.2026):
+App-Shell hatte hardcodiert `canonical=https://mojobus.co/` (Artikel sahen
+für nicht-gemappte Crawler wie die Startseite aus); Googlebot-404s durch
+URL-Extraktion aus Klammern im Fließtext (114× = 26 % aller Googlebot-Hits,
+Muster `/naddr1…)`) statt `/naddr1…`); Prerender-HTMLs enthielten
+mojobus.org-Links aus Nostr-Event-Texten (Kategorie-DIY 74×, LiFePO4-Artikel
+6×) → Redirect-Ketten .co→.org→301→.co.
+
+**T1 — Shell-Canonical entfernt** (index.html): `<link rel="canonical"
+href="https://mojobus.co/" />` gelöscht; @unhead/react (useHead) setzt
+routenabhängige Canonicals unverändert weiter. Verifikation:
+`grep -c canonical dist/index.html` → 0.
+
+**T2 — Trailing-Punctuation → 301**:
+- `server/routes/prerender-fallback.js`: `TRAILING_PUNCT_RE` normalisiert
+  den Pfad VOR dem bech32-Decode (Zeichenklasse `) ] } . , ; ' " ! ?`,
+  case-insensitive, alle Präfixe `/en/ /trip/ /video/ /bild/`, Token-Typen
+  naddr/nevent/note/npub/nprofile). Match → 1:1-301 auf die clean-URL
+  (Query erhalten), KEIN Catch-all auf `/`. Danach läuft der Follow-up-
+  Request normal (Prerender bzw. Resolver-404, wenn es den Artikel wirklich
+  nicht gibt).
+- `mojobus.co.ssl.conf`: Server-Level-`if` in allen 3 Blöcken (HTTP:80,
+  www:443, Haupt-443):
+  `if ($request_uri ~* "^(/[^?]+?)[)\]}\.,;'!?]+(\?.*)?$") { return 301
+  https://mojobus.co$1$2; }` — Belt & Braces am Edge; `"` bewusst außen
+  (Nginx-Quoting), deckt der Resolver. HTTP-Block: http→https + Clean-URL
+  in EINEM Hop.
+- Deploy: Nginx-Config syncen (`nginx -t && systemctl reload nginx`,
+  ggf. Cloudflare-Cache purgen) + `deploy --force && systemctl restart ai-api`.
+
+**T3 — mojobus.org→mojobus.co beim Rendern**: Neu `scripts/org-link-rewrite.js`
+(selbst-enthaltend, damit auch der ai-api-Bot-HTML-Bau es importiert). Liest
+die generierte Migrations-Tabelle (redirects/wp-redirects.map — ALLE
+Varianten source/sourceNoSlash/sourceIdOnly/„/?p=“ — + wp-redirects.json als
+Merge; Kandidatenpfade: env WP_REDIRECTS_FILE → <repo>/redirects/ →
+/root/deploy-git/mojobusco/redirects/). Eintrag → 1:1 ersetzt; kein Eintrag
+→ Link UNVERÄNDERT + Report. Choke-Point: `writePrerenderFile()` in
+prerender-static.js (deckt Artikel-Bodies, Teaser, Plan-Listen, FAQ-JSON-LD
+ab); server/bot/html.js rewritet title/description/image/url/keywords vor
+dem Escaping. Report: `unmapped-org-links.json` (default neben der Map im
+redirects/-Dir, bewusst NICHT im prerender-Output). Abnahme nach Deploy:
+`grep -R "mojobus.org" /home/nginx/domains/mojobus.co/public/prerender`
+→ 0 Treffer außer den dokumentierten Unmapped-Cases; Bilanz-Logzeile
+`[Prerender] org→co Links: N ersetzt, M unmapped`.
+
+**T4 — scripts/botcheck.sh (neu)**: Bot-Monitoring über CentminMod-Access-
+Logs (aktuell + rotierte .gz via gzip -dc). Feld-Indices der combined-Zeile
+(awk-Zählweise: $4-Tag, $7-Pfad, $9-Status; TZ „+0000" ist eigenes Feld),
+implementiert awk-frei (sed/cut/sort/uniq). Sektionen: [1] Hits pro Bot,
+[2] Googlebot/Tag (letzte 14, ISO), [3] Statuscodes, [4] Googlebot-404er
+auf Content-Pfaden (Junk-Filter, Status-404-FILTER VOR Pfad-Extraktion),
+[5] mojobus.org 301-vs-404 (bei ≥ 20 % 404-Anteil Top-10-Liste). Env:
+LOG_DIR_CO/LOG_DIR_ORG/DAYS_WINDOW/TOP_N_404. Exit 0.
+
+**T5 — Publish-Healthcheck**: Neu scripts/publish-healthcheck.js
+(npm run healthcheck:publish -- <url>) + Hook in
+server/services/publish-pipeline.js: nach den Generierungs-Schritten wird
+die veröffentlichte URL mit Googlebot-UA gefetcht — erwartet 200
+(Prerender oder Resolver-301→200). FAIL (Exit 1 + greppbare Logzeile
+`[PublishHealthcheck] ❌ FAIL`) bei: Status ≠ 200, Redirect auf Startseite,
+SPA-Shell (id="root") auf Nicht-Home-Seiten, canonical=/ auf Nicht-Home
+(Sekundärsignal). Keine neuen Dependencies (Node-18+-fetch); Fehler brechen
+die Pipeline nicht (nur Log).
+
+**Verifikation**: Browser-Selftests (Regex/Entscheidungs-Logik exakt gespiegelt):
+T2A 18/18 · T2B 16/16 · T3 13/13 (Map-Parsing 7/7) · T5 12/12 grün;
+botcheck-Pipelines gegen synthetische CentminMod-Logs verifiziert.
+
+---
+
 ## Performance: primal.net-Stillstand entschärft — SPA-Read-Pool + Pipeline-Dead-Cache (2026-09-29)
 
 **Auslöser**: Website wirkte plötzlich überall langsam; Deploy-/node.sh-Log

@@ -54,6 +54,8 @@ Besucher/Googlebot → https://mojobus.org/98632/oldtimer-reparatur-…/
 | `redirects/wp-redirects.map` | generiert (VPS) | nginx-Map (include im Vhost) |
 | `redirects/wp-redirects.json` | generiert (VPS) | strukturierte Tabelle (Resolver liest sie) |
 | `redirects/report.json` | generiert (VPS) | Trefferquoten + Review-/Unmatch-Liste |
+| `redirects/unmapped-org-links.json` | generiert (VPS) | SEO-Fix T3 (2026-10): .org-Links in Event-Texten, die KEINEN Map-Eintrag haben (Prerender-Rewrite-Report, Link bleibt unverändert) |
+| `scripts/org-link-rewrite.js` | Repo | SEO-Fix T3 (2026-10): liest wp-redirects.map + .json (nur lesen!) und ersetzt beim Prerender-Rendern gemappte mojobus.org-Links 1:1 durch die .co-Ziele; Prerender-Output → 0 .org-Treffer außer den dokumentierten Unmapped-Cases |
 | `server/routes/wp-redirect.js` | Repo (ai-api) | Resolver-Endpoint `GET /api/wp-redirect` |
 | `server/server.js` | Repo (ai-api) | Import + `app.use(wpRedirectRouter)` — **die einzigen 2 geänderten Zeilen im server/** |
 | `mojobus.org.ssl.conf` | Repo | Vhost-Vorlage (map + Proxy + Systempfade) |

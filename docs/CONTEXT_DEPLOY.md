@@ -161,8 +161,9 @@ node scripts/generate-site-data.js
 | Nur `tiktok.js` | `deploy --force` + `systemctl restart ai-api` |
 | `server/server.js` | `deploy --force` + `systemctl restart ai-api` |
 | `server/routes/prerender-fallback.js` | `deploy --force` + `systemctl restart ai-api` |
-| `server/remotion/` | `deploy --force` + `restart ai-api` + **Bundle-Invalidate** |
-| Nginx-Config | Backup + `cp mojobus.co.ssl.conf /usr/local/nginx/conf/conf.d/` + `nginx -t && systemctl reload nginx` |
+| `server/bot/html.js` (T3 org→co-Rewrite) | `deploy --force` + `systemctl restart ai-api` (Bot-Cache wird mit geleert) |
+| `scripts/` (Pipeline/Prerender/botcheck/healthcheck) | `deploy-main.sh --force` (kopiert scripts/ in den Webroot) |
+| Nginx-Config | Backup + `cp mojobus.co.ssl.conf /usr/local/nginx/conf/conf.d/` + `nginx -t && systemctl reload nginx` (T2-Edge-If; ggf. Cloudflare-Cache purgen) |
 | HTML-Caching (Fix #9) | HTML-Location liefert `Cache-Control: public, max-age=0, must-revalidate` (vorher: expires 5m + no-cache-Widerspruch). Assets bleiben 1y immutable (content-hash). `public/_redirects` (Netlify-Fallback) ebenso angepasst. SW-Update zeigt Toast mit Reload-Button (`ServiceWorkerUpdateToast.tsx`), Auto-Reload bewusst vermieden (Formular-Schutz). |
 | Security-Header (Fix #5) | Repo: `security-headers.conf` → `cp security-headers.conf /usr/local/nginx/conf/security-headers.conf`. Wird inkludiert in `location ~* \.(html|htm)$` + `location @prerender_resolve` (nginx-Gotcha: Locations mit eigenen add_header verlieren Server-Level-Header). CSP aktuell **Report-Only** (Phase 1) – nach 1-2 Wochen Log-Analyse auf erzwingendes `Content-Security-Policy` umstellen. |
 | `prerender-fallback.js` **+** Nginx-Config | beide Zeilen zusammen (Resolver-Endpunkt + `@prerender_resolve` gehören zusammen) |
@@ -195,6 +196,52 @@ curl -sk -A "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.
   --resolve mojobus.co:443:127.0.0.1 "https://mojobus.co/{naddr-mit-hint}" -o /dev/null -w "%{http_code} %{redirect_url}\n"
 # Erwartung: 301 + kanonische (hint-freie) URL
 ```
+
+**Trailing-Punctuation-Normalisierung (SEO-Fix 2026-10, T2)**: Google
+extrahiert URLs aus Klammern im Fließtext → Anfragen wie `/naddr1…qhfd)`
+(114× Googlebot-404, 26 % aller Googlebot-Hits, Stand 2026-10). ZWEI Schichten:
+1. `mojobus.co.ssl.conf`, Server-Level-if (alle 3 Blöcke: :80, www:443, Haupt-443):
+   `if ($request_uri ~* "^(/[^?]+?)[)\]}\.,;'!?]+(\?.*)?$") { return 301 https://mojobus.co$1$2; }`
+   — 1:1 auf die clean-URL, Query erhalten, http→https+Clean in EINEM Hop.
+2. `server/routes/prerender-fallback.js` (`TRAILING_PUNCT_RE`, voller
+   Zeichenklasse inkl. `"`): VOR dem bech32-Decode → 301 auf die clean-URL.
+   NIEMALS Catch-all auf `/`. Verifikation:
+
+```bash
+curl -skI --resolve mojobus.co:443:127.0.0.1 "https://mojobus.co/{naddr})" | head -3
+# Erwartung: 301 + Location: https://mojobus.co/{naddr} (ohne Klammer)
+curl -skI -A "Mozilla/5.0 (compatible; Googlebot/2.1)" \
+  --resolve mojobus.co:443:127.0.0.1 "https://mojobus.co/{naddr}" -o /dev/null -w "%{http_code}\n"
+# Erwartung: 200 (Prerender)
+```
+
+**Shell-Canonical (SEO-Fix 2026-10, T1)**: `index.html` enthält KEIN
+hardcodiertes `<link rel="canonical">` mehr — die App-Shell sprach sonst
+Artikel-URLs als Startseite aus (Crawler ohne JS). Routenabhängige
+Canonicals via @unhead/react unverändert. Verifikation:
+`curl -sk -A "Mozilla/5.0" --resolve mojobus.co:443:127.0.0.1 https://mojobus.co/{naddr} | grep -c canonical` → 0.
+
+**org→co-Rewrite in der Prerender-Pipeline (SEO-Fix 2026-10, T3)**:
+`scripts/org-link-rewrite.js` ersetzt in generierten Prerender-HTMLs alle
+gemappten mojobus.org-Links 1:1 durch die .co-Pendants (Quelle:
+redirects/wp-redirects.map + .json — dieselbe Tabelle wie die .org-Redirects;
+Kandidatenpfade: env `WP_REDIRECTS_FILE` → `<repo>/redirects/` →
+`/root/deploy-git/mojobusco/redirects/`). Unmapped → Link UNVERÄNDERT +
+Report `unmapped-org-links.json` (default neben der Map; bewusst NICHT im
+prerender-Dir). Einbindung: `writePrerenderFile()` (prerender-static.js)
++ `server/bot/html.js` (Meta-Felder). Bilanz-Log:
+`[Prerender] org→co Links: N ersetzt, M unmapped (→ …/unmapped-org-links.json)`.
+Abnahme: `grep -R "mojobus.org" /home/nginx/domains/mojobus.co/public/prerender` → 0
+Treffer außer den dokumentierten Unmapped-Cases.
+
+**Bot-Monitoring + Publish-Healthcheck (SEO-Fix 2026-10, T4/T5)**:
+- `bash scripts/botcheck.sh` — Hits pro Bot, Googlebot/Tag, Statuscodes,
+  404er-Content-URLs (Junk-gefiltert), .org 301-vs-404-Monitor. Env:
+  `LOG_DIR_CO`, `LOG_DIR_ORG`, `DAYS_WINDOW`, `TOP_N_404`.
+- Publish-Pipeline (ai-api) fragt nach jedem Publish die neue URL mit
+  Googlebot-UA (`scripts/publish-healthcheck.js`, Exit 1 + Logzeile
+  `[PublishHealthcheck] ❌ FAIL` bei 404/Shell/Redirect-auf-/).
+  Manuell: `node scripts/publish-healthcheck.js https://mojobus.co/<naddr>`.
 
 Wichtig: Nach Nginx-Änderungen ggf. **Cloudflare-Cache purgen** — die Edge
 kann alte Homepage-Shells für Bot-UA-Anfragen zwischengespeichert haben.
