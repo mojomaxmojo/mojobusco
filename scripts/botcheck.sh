@@ -47,27 +47,6 @@ line()  { printf '%s\n' "══════════════════�
 hr()    { printf '%s\n' "────────────────────────────────────────────────────────────"; }
 warn()  { printf '  ⚠ %s\n' "$*"; }
 
-# ── Extraktions-Selftest (R4/F1) ───────────────────────────────────────────
-# Reale CentminMod-Zeile (Fixtur; TZ „+0100" ist EIGENES Feld, $4=[12/Oct…,
-# $7=Pfad, $9=Status). Läuft bei jedem Start (awk: `$9`/`$7`-Pfad, sonst
-# sed-Fallback) — bricht mit Exit 2, wenn die Extraktion versagt, statt
-# still LEERE Sektionen [3]/[4]/[5] zu produzieren (F1-Symptom).
-SELFTEST_LINE='104.22.14.130 - - [12/Oct/2026:23:59:53 +0100] "GET /artikel HTTP/2.0" 200 10253 "-" "Mozilla/5.0 (compatible; bingbot/2.0)"'
-selftest_fail() {
-  printf '❌ botcheck.sh Selbsttest FEHLGESCHLAGEN: %s\n' "$*" >&2
-  printf '   Extraktion verträgt die reale Log-Zeilenform nicht — bitte Fixtur\n' >&2
-  printf '   in diesem Skript gegen die aktuellen Logs abgleichen.\n' >&2
-  exit 2
-}
-printf '%s\n' "$SELFTEST_LINE" | field_status | head -1 | grep -q '^200$' \
-  || selftest_fail "Status ≠ 200"
-printf '%s\n' "$SELFTEST_LINE" | field_path | head -1 | grep -q '^/artikel$' \
-  || selftest_fail "Pfad ≠ /artikel"
-printf '%s\n' "$SELFTEST_LINE" | field_status_path | head -1 | grep -q '^200 /artikel$' \
-  || selftest_fail "Status+Pfad-Paar ≠ '200 /artikel'"
-printf '%s\n' "$SELFTEST_LINE" | field_date | iso_date | head -1 | grep -q '^2026-10-12$' \
-  || selftest_fail "ISO-Datum ≠ 2026-10-12"
-
 # ── Logs einsammeln (aktuell + rotiert) ────────────────────────────────────
 collect_logs() {
   # $1 = Verzeichnis, $2 = Ausgabedatei; Return 1 = keine lesbaren Logs
@@ -140,6 +119,28 @@ iso_date() {
     -e 's#^([0-9]{2})/Nov/([0-9]{4})$#\2-11-\1#' \
     -e 's#^([0-9]{2})/Dec/([0-9]{4})$#\2-12-\1#'
 }
+
+# ── Extraktions-Selftest (R4/F1) — NACH iso_date-Definition ────────────────
+# Reale CentminMod-Zeile (Fixtur; TZ „+0100" ist EIGENES Feld, $4=[12/Oct…,
+# $7=Pfad, $9=Status). Läuft bei jedem Start — bricht mit Exit 2, wenn die
+# Extraktion versagt, statt still LEERE Sektionen [3]/[4]/[5] zu produzieren
+# (F1-Symptom). BUGFIX R4.1: Selftest stand vor der iso_date()-Definition →
+# „iso_date: command not found" → Exit 2 → V7 FAIL im Live-Deploy 23:10.
+SELFTEST_LINE='104.22.14.130 - - [12/Oct/2026:23:59:53 +0100] "GET /artikel HTTP/2.0" 200 10253 "-" "Mozilla/5.0 (compatible; bingbot/2.0)"'
+selftest_fail() {
+  printf '❌ botcheck.sh Selbsttest FEHLGESCHLAGEN: %s\n' "$*" >&2
+  printf '   Extraktion verträgt die reale Log-Zeilenform nicht — bitte Fixtur\n' >&2
+  printf '   in diesem Skript gegen die aktuellen Logs abgleichen.\n' >&2
+  exit 2
+}
+printf '%s\n' "$SELFTEST_LINE" | field_status | head -1 | grep -q '^200$' \
+  || selftest_fail "Status ≠ 200"
+printf '%s\n' "$SELFTEST_LINE" | field_path | head -1 | grep -q '^/artikel$' \
+  || selftest_fail "Pfad ≠ /artikel"
+printf '%s\n' "$SELFTEST_LINE" | field_status_path | head -1 | grep -q '^200 /artikel$' \
+  || selftest_fail "Status+Pfad-Paar ≠ '200 /artikel'"
+printf '%s\n' "$SELFTEST_LINE" | field_date | iso_date | head -1 | grep -q '^2026-10-12$' \
+  || selftest_fail "ISO-Datum ≠ 2026-10-12"
 
 # Scanner-Junk (reduziert [4] auf echte Content-URLs)
 JUNK_RE='(\.php|\.asp|\.cgi|\.env|\.sql|\.zip|\.tar|\.gz|\.xml|\.txt|\.bak|\.conf|\.ini|\.yml|\.json|\.git|wp-content|wp-admin|wp-includes|wp-login|wp-cron|xmlrpc|well-known|DS_Store|\.ico|\.png|\.jpe?g|\.webp|\.gif|\.css|\.js$|\.js\?|\.map|\.woff|/feed|/sitemap|/robots|/sw\.js|/manifest|/fonts|/assets/|/images/|/data/|/server/|/scripts/|/node_modules|/api/|/prerender/|/mcp|//|%00|\?\?)'

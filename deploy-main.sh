@@ -186,14 +186,14 @@ build_project() {
         error_exit "index.html nicht in dist/ gefunden!"
     fi
 
-    # Prüfe ob devlop im Build enthalten ist
-    BUILD_JS=$(find "$PROJECT_DIR/dist" -name "*.js" -type f | head -1)
-    if [ -n "$BUILD_JS" ]; then
-        if grep -q "devlop" "$BUILD_JS"; then
-            info_msg "✓ devlop im Build gefunden"
-        else
-            warn_msg "⚠ devlop NICHT im Build gefunden - möglicherweise Build-Fehler"
-        fi
+    # Prüfe ob devlop im Build enthalten ist (R4-Fix: über ALLE dist-JS
+    # greppen — „find | head -1" griff eine zufällige Chunk-Datei und
+    # produzierte die falsche WARN, obwohl devlop@1.1.0 (micromark-Dep)
+    # im Main-Bundle enthalten ist)
+    if grep -rq "devlop" "$PROJECT_DIR/dist" --include="*.js" 2>/dev/null; then
+        info_msg "✓ devlop im Build gefunden"
+    else
+        warn_msg "⚠ devlop NICHT im Build gefunden - möglicherweise Build-Fehler"
     fi
 
     success_msg "Build erfolgreich"

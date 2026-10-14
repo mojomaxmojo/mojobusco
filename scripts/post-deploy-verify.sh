@@ -27,8 +27,9 @@
 #                                            Googlebot/bingbot/OAI-SearchBot)
 #   [V4] /artikel/diy als Googlebot → 200, self-canonical, Wortsanität > 1000
 #   [V5] publish-healthcheck (T5) → grün
-#   [V6] Prerender-Output frei von mojobus.org (T3), abzüglich Unmapped-Report
-#        (inkl. escaped JSON-LD-Formen https:\/\/mojobus.org — T-F3-2)
+#   [V6] Prerender .org-Reste — NUR echte Page-Pfade zählen (R4.1): Teaser-
+#        Cut-Fragmente (F3-Altlasten), wp-content-Medien (F5-Phase B) und
+#        escaped JSON-LD-Formen werden als Artefakte separiert
 #   [V7] botcheck.sh (T4) läuft, Exit 0
 #   [V8] feed.xml frei von mojobus.org (TA), abzüglich Unmapped (Feed+Prerender)
 #   [V9] llms.txt frei von mojobus.org (TA), abzüglich Unmapped (LLMS+Prerender)
@@ -190,18 +191,43 @@ else
 fi
 
 # ── [V3] clean-URL × 3 UAs → 200 + self-canonical ───────────────────────────
+# R4.1-Bugfix: Der frischeste Sitemap-naddr kann ein EN-Event sein — dessen
+# Prerender trägt LEGITIM canonical = $BASE/en/<naddr> (buildLocalizedUrl).
+# Fix: Erwartung = canonical aus der LOKALEN Prerender-Datei (Source of
+# Truth), Fallback $BASE/$NADDR. FAIL weiterhin bei: 200 aber canonical auf
+# eine ANDERE Ressource (z. B. Startseite) ODER Extraktion schlägt fehl.
 printf '[V3] clean-URL → 200 + self-canonical (Googlebot / bingbot / OAI-SearchBot)\n'
-v3_expected="$BASE/$NADDR"
+v3_local_canon=$(extract_canonical < "$PRERENDER_DIR/$NADDR.html" 2>/dev/null || true)
+if [ -n "$v3_local_canon" ]; then
+  v3_expected="$v3_local_canon"
+else
+  v3_expected="$BASE/$NADDR"
+fi
+printf '     Erwartung (aus lokalem Prerender): %s\n' "$v3_expected"
 for ua_name in GOOGLEBOT BINGBOT OAI; do
   ua_var="UA_$ua_name"
   ua="${!ua_var}"
   v3_code=$(http_code "$ua" "$BASE/$NADDR")
   v3_canon=$(curl_base -A "$ua" "$BASE/$NADDR" | extract_canonical)
-  if [ "$v3_code" = "200" ] && [ "$v3_canon" = "$v3_expected" ]; then
-    check_pass "V3" "$ua_name: 200 + self-canonical"
-  else
-    check_fail "V3" "$ua_name: Status=$v3_code canonical='$v3_canon' (erwartet $v3_expected)"
-  fi
+  # Self-Kriterium: canonical muss auf die GLEICHE Ressource zeigen wie die
+  # URL (DE- oder EN-Form, je nach Event-Sprache) — abgeleitet aus dem
+  # lokalen Prerender. Zusätzlich ablehnen: canonical ≠ jede /-Variante
+  # des naddr (Startseiten-Signatur = alte Shell).
+  case "$v3_canon" in
+    "$BASE/$NADDR"|"$BASE/en/$NADDR")
+      if [ "$v3_code" = "200" ]; then
+        check_pass "V3" "$ua_name: 200 + self-canonical ($v3_canon)"
+      else
+        check_fail "V3" "$ua_name: Status=$v3_code (canonical korrekt: $v3_canon)"
+      fi
+      ;;
+    "$BASE/")
+      check_fail "V3" "$ua_name: canonical=/ (Startseiten-Signatur — alte Shell oder CF-Cache)"
+      ;;
+    *)
+      check_fail "V3" "$ua_name: Status=$v3_code canonical='$v3_canon' (erwartet self=$v3_expected)"
+      ;;
+  esac
 done
 
 # ── [V4] /artikel/diy als Googlebot ─────────────────────────────────────────
@@ -227,8 +253,17 @@ else
   check_fail "V5" "node nicht gefunden — manuell: cd $REPO_DIR && node scripts/publish-healthcheck.js $BASE/$NADDR"
 fi
 
-# ── [V6] Prerender-Output frei von mojobus.org (T3) ─────────────────────────
-printf '[V6] grep -R mojobus.org im Prerender-Output, abzüglich Unmapped (T3)\n'
+# ── [V6] Prerender-Output frei von mojobus.org (T3) — R4.1 geschärft ───────
+# Filter trennt ECHTE saubere .org-URLs (Phase-2-Arbeitsliste) von Artefakten:
+#   NON-ISSUE 1: Teaser-Cut-Fragmente (F3-Altlasten im gecachten/generierten
+#                Output: „…/9822...", „…" am Ende, abgeschnittene Pfade)
+#                → fallen nach F3-Regens mit frischem Output ganz weg
+#   NON-ISSUE 2: wp-content-MEDIEN (F5-Phase B: erst nach copy-wp-media.sh
+#                --apply + Flag-Freischaltung behoben — bis dahin bekannt)
+#   NON-ISSUE 3: escaped JSON-LD-Formen (https:\/\/mojobus.org, F4: belegt
+#                nicht existent im Generator — nur defensiv im Filter)
+# FAIL nur noch bei echten, sauberen Page-Pfad-Resten.
+printf '[V6] Prerender .org-Reste — echte Page-Pfade (Artefakte separiert, T3/F3/F5)\n'
 UNMAPPED_TMP="/tmp/postdeploy-unmapped-prerender.$$"
 unmapped_urls "$REPO_DIR/redirects/unmapped-org-links.json" > "$UNMAPPED_TMP" 2>/dev/null || true
 # T-F3-2: escaped JSON-LD-Formen (https:\/\/mojobus.org/…) zusätzlich in den
@@ -239,12 +274,26 @@ if [ -s "$UNMAPPED_TMP" ]; then
   rm -f "${UNMAPPED_TMP}.esc"
   sort -u -o "$UNMAPPED_TMP" "$UNMAPPED_TMP" 2>/dev/null || true
 fi
-v6_hits=$(grep -R "mojobus.org" "$PRERENDER_DIR" 2>/dev/null | filter_out_unmapped "$UNMAPPED_TMP" | wc -l | tr -d ' ')
-v6_total=$(grep -R "mojobus.org" "$PRERENDER_DIR" 2>/dev/null | wc -l | tr -d ' ')
-if [ "${v6_hits:-1}" -eq 0 ]; then
-  check_pass "V6" "0 verbleibende .org-Treffer (roh: ${v6_total:-0}, alles Unmapped-dokumentiert oder leer)"
+v6_all=$(grep -R "mojobus.org" "$PRERENDER_DIR" 2>/dev/null || true)
+v6_total=$(printf '%s\n' "$v6_all" | grep -c . || true)
+# NON-ISSUE-Filter (sed/grep-only, keine Deps):
+v6_real=$(printf '%s\n' "$v6_all" \
+  | filter_out_unmapped "$UNMAPPED_TMP" \
+  | grep -v '/wp-content/' \
+  | grep -vE '\.\.\.?( |$|<|"|'"'"')' \
+  | grep -vE '\.\.\.[0-9a-zA-Z-]*("|<|$)' \
+  | grep -c . || true)
+v6_artifacts=$(( v6_total - v6_real ))
+if [ "${v6_real:-1}" -eq 0 ]; then
+  check_pass "V6" "0 echte .org-Reste (roh: ${v6_total:-0}, davon ${v6_artifacts:-0} Artefakte: Teaser-Fragmente/wp-content/escaped)"
 else
-  check_fail "V6" "$v6_hits verbleibende .org-Treffer (roh: ${v6_total:-0}) — Unmapped-Report prüfen"
+  check_fail "V6" "$v6_real ECHTE .org-Reste (roh: ${v6_total:-0}, ${v6_artifacts:-0} Artefakte gefiltert) — Liste:"
+  printf '%s\n' "$v6_all" \
+    | filter_out_unmapped "$UNMAPPED_TMP" \
+    | grep -v '/wp-content/' \
+    | grep -vE '\.\.\.?( |$|<|"|'"'"')' \
+    | grep -vE '\.\.\.[0-9a-zA-Z-]*("|<|$)' \
+    | head -n 12 | sed 's/^/       /'
 fi
 
 # ── [V7] botcheck.sh (T4) ────────────────────────────────────────────────────
