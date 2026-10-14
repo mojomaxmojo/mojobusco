@@ -298,3 +298,32 @@ curl -sI "https://mojobus.org/?p=98632" | head -3 # Stage-1-Check: 301 → naddr
 ```
 
 ---
+
+## Phase 2-Ergebnis (R4, 2026-10-15 00:06) — verifiziert live
+
+**Kanonischer Merge-Pfad (WP-lose Welt):**
+```bash
+node scripts/generate-wp-redirects.js --apply-decisions redirects/unmapped-decisions.csv  # CSV human_decision=map → manual-entries.json
+node scripts/generate-wp-redirects.js --from-map   # MERGE-Modus: Original-Map 1:1 + neue Keys anhängen
+bash scripts/sync-maps.sh                          # Backup → Verlust-Diff → nginx -t && reload
+```
+
+**Verifizierte Zahlen (Endstand):**
+- Map: 1863 → **1943 Keys** (+80 = 40 human-decided Sources × 2 Varianten), Verlust-Diff 0
+- Prerender: 1908 ersetzt / **235 unmapped** (war 267) · Feed 89/11 · LLMS 100/41
+- Resolver: 40× 301 + 361× 410 LIVE (curl-Checks: /pakete-posta-restante-portugal/ → 301, /kaufen-2trashed/lifepo4/ → 410)
+- post-deploy-verify: **11/11 PASS** (V6-Filter: 257 Unmapped aus conf.d-Reports)
+
+**⚠ KRITISCHE LEHRE (Fix2-Fehler, 00:02–00:04):** `--from-map` darf die Map
+NIEMALS aus den Basis-Sources NEU bauen — die Basis-Normalisierung verwirft
+die Varianten-Zeilen (/<id>/, /?p=, NoSlash) und kostete 621 Keys
+(unmapped stiegen 267→297). Der MERGE-Modus (8d26b26) ist der EINZIGE
+sichere Weg: Original-Zeilen 1:1 übernehmen, nur human-decided Keys
+anhängen. Der sync-maps-Verlust-Diff hat das verhindert — IMMER vorher
+laufen lassen, niemals mit `|| true` umgehen.
+
+**Rest:** 247 gone-Kandidaten in der CSV unentschieden (kein Risiko —
+werden nicht angewendet); wp-content-Medien: copy-wp-media.sh (DRY-RUN)
++ Flag MOJOBUS_REWRITE_WP_MEDIA=1 NACH --apply.
+
+---
