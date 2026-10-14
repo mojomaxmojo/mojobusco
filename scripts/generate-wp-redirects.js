@@ -440,6 +440,43 @@ function runFromMap(mapPath) {
     count: entries.length,
     entries,
   }, null, 2), 'utf-8');
+  // R4-Fix (Live-Beweis 23:57): --from-map schrieb bisher NUR die .json —
+  // die nginx-Map (Redirect-Source für org-link-rewrite beim Render) blieb
+  // auf dem alten Stand → 40 human-decided Sources wirkten am Resolver,
+  // aber NICHT im Prerender (Reports blieben 267/12/44). Jetzt wird die
+  // .map AUCH aus den gemergten Entries neu geschrieben (mit Backup),
+  // damit Repo-.map → sync-maps.sh → conf.d-Map → Render-Zeit-Rewrites
+  // die Entscheindungen sehen. NIEMALS destruktiv: Backup + Verlust-Diff
+  // bleiben in sync-maps.sh; hier zusätzlich Backup der Repo-.map.
+  if (addedManual > 0) {
+    const mapOutPath = path.join(OUT_DIR, 'wp-redirects.map');
+    try {
+      if (fs.existsSync(mapOutPath)) {
+        const mapBak = `${mapOutPath}.bak-${new Date().toISOString().replace(/[:.]/g, '-')}`;
+        fs.copyFileSync(mapOutPath, mapBak);
+        console.log(`[WP-Redirect] Map-Backup: ${mapBak}`);
+      }
+    } catch { /* Backup best-effort */ }
+    // KEYS = ALLE Varianten (source + sourceNoSlash), wie im Vollslauf —
+    // aus der Map-Zeilen-Restrukturierung kennen wir nur die Base-Forms;
+    // die No-Slash-Variante je Entry ergänzen (nginx-Map braucht beide).
+    const mapLines = [
+      `# ${BASE_URL} WP-Migration — generiert von scripts/generate-wp-redirects.js --from-map (+manual-entries)`,
+      `# Stand: ${new Date().toISOString()} | Basis: ${source} | ${entries.length} Basis-Sources (inkl. ${addedManual} human-decided)`,
+      `# Include in mojobus.org.ssl.conf (map $request_uri $mojobus_wp_redirect)`,
+    ];
+    for (const e of entries) {
+      mapLines.push(`"${e.source}" ${e.target};`);
+      if (!e.source.endsWith('/') && !e.source.startsWith('/?')) {
+        mapLines.push(`"${e.source}/" ${e.target};`);
+      } else if (e.source.endsWith('/') && e.source !== '/') {
+        mapLines.push(`"${e.source.replace(/\/$/, '')}" ${e.target};`);
+      }
+    }
+    mapLines.push('');
+    fs.writeFileSync(mapOutPath, mapLines.join('\n'), 'utf-8');
+    console.log(`[WP-Redirect] ✅ Map neu geschrieben: ${mapOutPath} (${mapLines.length - 4} Keys) — Installation via sync-maps.sh`);
+  }
   console.log(`[WP-Redirect] ✅ ${entries.length} Basis-Sources aus ${rows.length} Map-Zeilen → ${outPath}`);
   console.log('[WP-Redirect]    Runtime Stage 1 (wp-redirect.js) liest wp-redirects.json wieder; ai-api braucht KEINEN Neustart (mtime-Cache).');
   process.exit(0);
