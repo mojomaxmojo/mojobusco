@@ -28,6 +28,11 @@ import {
   buildImageLd,
 } from './prerender-meta.js';
 import { withFaqLd } from './prerender-faq.js';
+// SEO-Runde 3 (T-B3): Rich-Text-Pfad — Event-Content wird zu Bot-HTML mit
+// internen Anchors (rohe URLs linkified inkl. Trailing-Punct-Trennung,
+// Markdown-Links erhalten, externe URLs bleiben Text). Single Source für
+// org→co-Rewrite bleibt org-link-rewrite.js (in renderRichText vorgeschaltet).
+import { renderRichText } from './prerender-content.js';
 
 /**
  * Optimiertes <img> für Prerender-HTML.
@@ -89,7 +94,6 @@ export function renderArticleHtml(event, allEventsOfType = []) {
   const authorName = event.tags?.find(t => t[0] === 'author')?.[1] || getAuthorName(event.pubkey);
   const description = seoDescriptionTag || stripMarkdown(summary, 160) || stripMarkdown(event.content, 160);
   const headTitle = seoTitleTag || title;
-  const contentText = stripMarkdown(event.content, 500);
   const datePublished = formatDate(publishedAtSeconds);
   const dateModified = formatDate(event.created_at);
 
@@ -147,7 +151,9 @@ ${planList.items.map(i => `      <li><a href="${escapeHtml(i.url)}">${escapeHtml
   <h1>${escapeHtml(title)}</h1>
   <p>${escapeHtml(description)}</p>
   ${imageTag(image, title, { eager: true })}
-  <div>${escapeHtml(contentText)}</div>
+  <!-- T-B3: Body über renderRichText (interne URLs → Anchors, trailing
+       punct abgetrennt; Cap hier Teaser-Niveau, Volltext folgt in T-A3) -->
+  ${renderRichText(event.content, { maxChars: 600 })}
   ${planListHtml}
   <p><a href="${escapeHtml(canonicalUrl)}">Weiterlesen auf MojoBus →</a></p>
 </body>
@@ -211,6 +217,7 @@ export function renderNoteHtml(event, allEventsOfType = []) {
   <h1>${escapeHtml(title)}</h1>
   <p>${escapeHtml(description)}</p>
   ${images.slice(0, 1).map(url => imageTag(url, title, { eager: true })).join('')}
+  ${renderRichText(event.content, { maxChars: 800 })}
   <p><a href="${escapeHtml(canonicalUrl)}">Auf MojoBus ansehen →</a></p>
 </body>
 </html>`;
@@ -328,7 +335,7 @@ export function renderPlaceHtml(event, allEventsOfType = []) {
   return `${head}
   <h1>${escapeHtml(name)}</h1>
   ${location ? `<p>📍 ${escapeHtml(location)}</p>` : ''}
-  <p>${escapeHtml(cleanDesc)}</p>
+  ${renderRichText(desc, { maxChars: 600 })}
   ${imageTag(image, name, { eager: true })}
   <p><a href="${escapeHtml(canonicalUrl)}">Auf MojoBus ansehen →</a></p>
 </body>
@@ -452,7 +459,7 @@ export function renderVideoHtml(event) {
 
   return `${head}
   <h1>${escapeHtml(title)}</h1>
-  <p>${escapeHtml(cleanDesc.substring(0, 160))}</p>
+  ${renderRichText(description, { maxChars: 400 })}
   ${thumbnailUrl !== DEFAULT_IMAGE ? imageTag(thumbnailUrl, title, { eager: true }) : ''}
   ${videoUrl ? `<video src="${escapeHtml(videoUrl)}" poster="${escapeHtml(thumbnailUrl)}" controls style="max-width:400px"></video>` : ''}
   <p><a href="${escapeHtml(videosListUrl)}">Alle Videos auf MojoBus ansehen →</a></p>
