@@ -41,13 +41,23 @@ import {
   renderArtikelSubcategory,
   renderHomePage,
 } from './prerender-subcategory-templates.js';
+// T3 (SEO-Fix 2026-10): mojobus.org-Links in Event-Texten beim Rendern auf
+// die .co-Pendants umschreiben (Mapping-Tabelle der WP-Migration). Unmapped
+// → unverändert + Report (unmapped-org-links.json).
+import {
+  rewriteOrgLinks,
+  getOrgRewriteStats,
+  writeUnmappedOrgLinksReport,
+} from './org-link-rewrite.js';
 
 const DEPLOY_DIR = '/home/nginx/domains/mojobus.co/public';
 const PRERENDER_DIR = path.join(DEPLOY_DIR, 'prerender');
 const FAR_FUTURE = Math.floor(Date.now() / 1000) + 3600 * 24 * 365;
 
 function writePrerenderFile(filename, html) {
-  fs.writeFileSync(path.join(PRERENDER_DIR, filename), html, 'utf-8');
+  // Choke-Point: JEDE generierte Datei läuft durch den .org→.co-Rewrite —
+  // deckt Artikel-Bodies, Teaser, Plan-Listen und FAQ-JSON-LD ab.
+  fs.writeFileSync(path.join(PRERENDER_DIR, filename), rewriteOrgLinks(html), 'utf-8');
   writtenFiles.add(filename);
 }
 
@@ -306,6 +316,11 @@ async function main() {
     console.error(`[Prerender] ❌ Kollaps-Schutz: Nur ${writtenFiles.size} Dateien geschrieben (bestehend: ${existingHtmlCount}) — vermutlich Relay-Timeout.`);
     console.error('[Prerender]    Bestehende Prerender-Dateien bleiben unverändert. Skript später erneut ausführen.');
     console.log(`[Prerender] ✅ (geschützt) ${rendered.length} Seiten geschrieben — Bestand bleibt erhalten`);
+    // T3: Report auch im Kollaps-Fall schreiben (bereits geschriebene Dateien
+    // wurden mit Rewrite erzeugt — Audittrail darf nicht fehlen).
+    const reportFile = writeUnmappedOrgLinksReport();
+    const orgStats = getOrgRewriteStats();
+    console.log(`[Prerender] org→co Links: ${orgStats.replaced} ersetzt, ${orgStats.unmapped} unmapped${reportFile ? ` (→ ${reportFile})` : ''}`);
     return;
   }
 
@@ -421,6 +436,14 @@ async function main() {
   for (const [type, count] of Object.entries(byType)) {
     console.log(`[Prerender]    ${type}: ${count}`);
   }
+
+  // ── T3 (SEO-Fix 2026-10): org→co-Rewrite-Bilanz + Unmapped-Report ──────
+  // Abnahme: grep -R "mojobus.org" /home/nginx/domains/mojobus.co/public/prerender
+  // → 0 Treffer außer den dokumentierten Unmapped-Cases (Report-Datei liegt
+  // bewusst NICHT im prerender-Dir).
+  const reportFile = writeUnmappedOrgLinksReport();
+  const orgStats = getOrgRewriteStats();
+  console.log(`[Prerender] org→co Links: ${orgStats.replaced} ersetzt, ${orgStats.unmapped} unmapped${reportFile ? ` (→ ${reportFile})` : ''}`);
 }
 
 main().catch(err => {

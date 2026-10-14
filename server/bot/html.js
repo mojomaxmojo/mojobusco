@@ -5,23 +5,39 @@ import {
   SITE_LOGO,
   DEFAULT_OG_IMAGE,
 } from './config.js'
+// T3 (SEO-Fix 2026-10): mojobus.org-Links in Meta-Texten (title/description
+// stammen aus Nostr-Event-Content) auf die .co-Pendants umschreiben —
+// dieselbe Mapping-Tabelle wie die Prerender-Skripte (redirects/wp-redirects.
+// map/json). Modul ist selbst-enthaltend (keine Server-Deps nötig); Pfad
+// funktioniert im Repo UND im Webroot (deploy kopiert scripts/ nach public/).
+import { rewriteOrgLinks } from '../../scripts/org-link-rewrite.js'
 
 /**
  * Generiert vollständiges HTML mit allen Meta-Tags für Bots
  * @param {object} meta - { title, description, image, url, type, publishedAt, keywords }
  * @returns {string} HTML-String
  */
-function buildBotHtml(meta) {
+function buildBotHtml(rawMeta) {
   const {
-    title       = SITE_NAME,
-    description = 'Perpetual Travelers — Unser Leben am Meer. Geschichten, Tipps und Einblicke zwischen Sand und Horizont.',
-    image       = DEFAULT_OG_IMAGE,
-    url         = SITE_URL,
-    type        = 'article',
-    publishedAt = new Date().toISOString(),
-    keywords    = 'vanlife, perpetual travelers, meer, strand, portugal, offgrid, solar, wohnmobil',
-    siteName    = SITE_NAME,
-  } = meta
+    title: rawTitle       = SITE_NAME,
+    description: rawDesc  = 'Perpetual Travelers — Unser Leben am Meer. Geschichten, Tipps und Einblicke zwischen Sand und Horizont.',
+    image: rawImage       = DEFAULT_OG_IMAGE,
+    url: rawUrl           = SITE_URL,
+    type                  = 'article',
+    publishedAt           = new Date().toISOString(),
+    keywords: rawKeywords = 'vanlife, perpetual travelers, meer, strand, portugal, offgrid, solar, wohnmobil',
+    siteName              = SITE_NAME,
+  } = rawMeta
+
+  // .org→.co Rewrite (T3) auf ALLE freien Meta-Werte (Meta-Tags, JSON-LD,
+  // <h1>/<p> Body) — gemappte Links 1:1 ersetzt, unmapped unverändert
+  // (landen im Report unmapped-org-links.json).
+  const orgText = (value) => rewriteOrgLinks(String(value ?? ''))
+  const title       = orgText(rawTitle)
+  const description = orgText(rawDesc)
+  const image       = orgText(rawImage)
+  const url         = orgText(rawUrl)
+  const keywords    = orgText(rawKeywords)
 
   const safeTitle   = escapeHtml(title)
   const safeDesc    = escapeHtml(description)
