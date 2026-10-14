@@ -33,6 +33,42 @@ const PIPELINE_STEPS = [
   'generate-feed.js'
 ]
 
+// ── Publish-Healthcheck (SEO-Fix 2026-10, T5) ──────────────────────────────
+// Nach den Generierungs-Schritten wird die veröffentlichte URL mit
+// Googlebot-UA abgefragt (scripts/publish-healthcheck.js): erwartet 200
+// (Prerender-Datei oder Resolver-Redirect → 200). Bei 404/Shell exitet das
+// Script mit 1 und die Logzeile markiert es — Ziel: kein Artikel wird je
+// als 404/Shell an Google ausgeliefert, bevor der 06:00-Cron läuft.
+// Fehler/Timeouts blockieren die Pipeline NICHT (nur Log).
+function runHealthCheck(url) {
+  if (!url || !/^https?:\/\//i.test(url)) {
+    console.warn('[Pipeline] Healthcheck übersprungen (keine gültige URL)')
+    return Promise.resolve()
+  }
+  return new Promise((resolve) => {
+    console.log(`[Pipeline] Healthcheck (Googlebot-UA): ${url}`)
+    execFile(
+      'node',
+      [join(SCRIPTS_DIR, 'publish-healthcheck.js'), url],
+      {
+        cwd: REPO_ROOT,
+        timeout: 60 * 1000,
+      },
+      (error, stdout, stderr) => {
+        if (stdout) console.log(String(stdout).trim())
+        if (error) {
+          // Exit 1 = FAIL (404/Shell) · sonstiger Fehler = nicht erreichbar
+          console.error(`[Pipeline] ❌ Publish-Healthcheck FAILED (exit ${error.code ?? '?'}): ${url}`)
+          if (stderr) console.error(String(stderr).trim())
+        } else {
+          console.log('[Pipeline] ✅ Publish-Healthcheck grün')
+        }
+        resolve()
+      }
+    )
+  })
+}
+
 /**
  * Führt ein Script aus (execFile, wie Cron es tut).
  * @param {string} script
@@ -149,6 +185,9 @@ async function runPipelineSteps({ dTag, url }) {
     }
 
     console.log('[Pipeline] Alle Generierungsschritte durchlaufen')
+
+    // ── T5: Publish-Healthcheck (Googlebot-UA, erwartet 200 + Prerender) ──
+    await runHealthCheck(url)
 
     if (url) {
       await pingIndexNow([url])

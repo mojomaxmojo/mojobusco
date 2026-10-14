@@ -17,7 +17,8 @@
     "cap:android": "node scripts/patch-android-manifest.js && node scripts/patch-main-activity.js && node scripts/copy-icons.js",
     "apk": "npm install && npm run build && npm run icons:generate && npx cap sync android && npm run cap:android && cd android && ./gradlew assembleDebug",
     "clean": "rm -rf dist .build-cache.json .assets-cache.json",
-    "cache:clear": "npm run clean"
+    "cache:clear": "npm run clean",
+    "healthcheck:publish": "node scripts/publish-healthcheck.js"
   },
   "dependencies": {
     "@capacitor-community/exif": "^8.0.0",
