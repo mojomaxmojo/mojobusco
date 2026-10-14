@@ -73,6 +73,22 @@ export function escapeHtml(str) {
     .replace(/'/g, '&#039;');
 }
 
+/**
+ * R4/F3: Nach einem Zeichen-Cut hängende PARTIELLE URL aus dem Fragment
+ * entfernen (der Cut schneidet sonst mittig DURCH URLs — Live-Befund:
+ * 7 Muster je 14× im Prerender, z. B. „/97960/lifepo4-batteri...").
+ * Muster: absolute http(s)-URLs, nostr:-URIs und www.-Formen am Fragment-
+ * Ende. Ein ggf. VOLLSTÄNDIG vor der Grenze liegender URL-Anfang wird
+ * ebenfalls entfernt (konservativ: nie ein URL-Fragment + „..." im Output).
+ * @param {string} text Bereits geschnittener Text (VOR dem Ellipsis-Anhängen)
+ * @returns {string} Text ohne trailing URL-Fragment (getrimmt)
+ */
+export function stripTrailingPartialUrl(text) {
+  return String(text ?? '')
+    .replace(/(?:https?:\/\/|nostr:|www\.)\S*$/i, '')
+    .trimEnd();
+}
+
 export function stripMarkdown(content, maxLength = 160) {
   const text = (content || '')
     .replace(/!\[.*?\]\(.*?\)/g, '')
@@ -82,7 +98,9 @@ export function stripMarkdown(content, maxLength = 160) {
     .trim();
   if (!text) return '';
   if (text.length <= maxLength) return text;
-  return text.slice(0, maxLength).trimEnd() + '...';
+  // R4/F3: trailing partielle URL VOR der Ellipsis entfernen — sonst
+  // landen abgeschnittene mojobus.org/naddr-URLs als 404-Quellen im Prerender.
+  return stripTrailingPartialUrl(text.slice(0, maxLength)) + '...';
 }
 
 export function parseMetadata(content) {

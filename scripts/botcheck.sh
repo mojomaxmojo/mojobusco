@@ -13,6 +13,7 @@
 #       /artikel|/trip/|/bild/) ohne Scanner-Junk — Verdachtspunkte für
 #       URL-Extraktions-Bugs (z. B. trailing „)" aus Klammern im Fließtext)
 #   [5] mojobus.org-Log: Googlebot-301-vs-404-Verhältnis (Migrations-Monitor)
+#       + Top-404-Liste IMMER (Input für scripts/org-404-list.sh, Phase 2)
 #
 # Feld-Indizes der CentminMod-„combined"-Zeile (awk-Zählweise, Zeitzone
 # „+0100"/„+0000" bildet ein eigenes Feld):
@@ -21,6 +22,8 @@
 #   $9 = Statuscode
 # Implementierung: awk PRIMÄR (Ground-Truth am VPS verifiziert, 2026-10-14 —
 # sed-Vollzeilenmuster waren gegen reale Zeilen fragil), sed-Fallback ohne awk.
+# R4/F1: Extraktions-Selftest gegen die reale Fixturzeile bei jedem Start —
+# schlägt der fehl, Exit 2 statt stiller leerer Sektionen.
 #
 # Aufruf:
 #   bash scripts/botcheck.sh                       # VPS-Defaults
@@ -43,6 +46,27 @@ trap 'rm -f "$TMP_CO" "$TMP_ORG"' EXIT
 line()  { printf '%s\n' "════════════════════════════════════════════════════════════"; }
 hr()    { printf '%s\n' "────────────────────────────────────────────────────────────"; }
 warn()  { printf '  ⚠ %s\n' "$*"; }
+
+# ── Extraktions-Selftest (R4/F1) ───────────────────────────────────────────
+# Reale CentminMod-Zeile (Fixtur; TZ „+0100" ist EIGENES Feld, $4=[12/Oct…,
+# $7=Pfad, $9=Status). Läuft bei jedem Start (awk: `$9`/`$7`-Pfad, sonst
+# sed-Fallback) — bricht mit Exit 2, wenn die Extraktion versagt, statt
+# still LEERE Sektionen [3]/[4]/[5] zu produzieren (F1-Symptom).
+SELFTEST_LINE='104.22.14.130 - - [12/Oct/2026:23:59:53 +0100] "GET /artikel HTTP/2.0" 200 10253 "-" "Mozilla/5.0 (compatible; bingbot/2.0)"'
+selftest_fail() {
+  printf '❌ botcheck.sh Selbsttest FEHLGESCHLAGEN: %s\n' "$*" >&2
+  printf '   Extraktion verträgt die reale Log-Zeilenform nicht — bitte Fixtur\n' >&2
+  printf '   in diesem Skript gegen die aktuellen Logs abgleichen.\n' >&2
+  exit 2
+}
+printf '%s\n' "$SELFTEST_LINE" | field_status | head -1 | grep -q '^200$' \
+  || selftest_fail "Status ≠ 200"
+printf '%s\n' "$SELFTEST_LINE" | field_path | head -1 | grep -q '^/artikel$' \
+  || selftest_fail "Pfad ≠ /artikel"
+printf '%s\n' "$SELFTEST_LINE" | field_status_path | head -1 | grep -q '^200 /artikel$' \
+  || selftest_fail "Status+Pfad-Paar ≠ '200 /artikel'"
+printf '%s\n' "$SELFTEST_LINE" | field_date | iso_date | head -1 | grep -q '^2026-10-12$' \
+  || selftest_fail "ISO-Datum ≠ 2026-10-12"
 
 # ── Logs einsammeln (aktuell + rotiert) ────────────────────────────────────
 collect_logs() {
@@ -193,21 +217,25 @@ else
   org_301=$(grep -i 'googlebot' "$TMP_ORG" | field_status | grep -c '^301$' || true)
   org_404=$(grep -i 'googlebot' "$TMP_ORG" | field_status | grep -c '^404$' || true)
   printf '    Googlebot-Hits: %s   301: %s   404: %s\n' "$org_total" "$org_301" "$org_404"
+  # R4/F1: 404er-Topliste JEDESMMAL (nicht erst ab 20 %) — sie ist der
+  # Input für org-404-list.sh / Phase 2 (unmapped-decisions.csv). Unter 20 %
+  # gilt sie als „beobachten", darüber als „prüfen".
   if [ "${org_total:-0}" -gt 0 ]; then
     pct_404=$(( org_404 * 100 / org_total ))
     printf '    404-Anteil: %s%%\n' "$pct_404"
     if [ "$pct_404" -ge 20 ]; then
       warn "404-Anteil ≥ 20 %% — Alt-URLs ohne Redirect-Mapping prüfen:"
-      grep -i 'googlebot' "$TMP_ORG" | field_path \
-        | grep -Evi -- "$JUNK_RE" \
-        | sort | uniq -c | sort -rn | head -n 10 \
-        | while read -r count path; do
-            printf '    %6s  %s\n' "$count" "$path"
-          done
-      printf '    → Quelle: grep Googlebot access.log* | awk '"'"'$9==404 {print $7}'"'"'\n'
     else
-      printf '    Ratio OK (404 < 20 %% der Googlebot-Hits)\n'
+      printf '    Ratio OK (404 < 20 %%) — Top-404-Liste trotzdem (Phase-2-Input):\n'
     fi
+    grep -i 'googlebot' "$TMP_ORG" | field_status_path \
+      | grep '^404 ' | cut -d' ' -f2- \
+      | grep -Evi -- "$JUNK_RE" \
+      | sort | uniq -c | sort -rn | head -n "$TOP_N_404" \
+      | while read -r count path; do
+          printf '    %6s  %s\n' "$count" "$path"
+        done
+    printf '    → Voll-Liste (Phase 2): bash scripts/org-404-list.sh\n'
   fi
 fi
 

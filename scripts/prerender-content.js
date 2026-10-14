@@ -29,9 +29,14 @@
  *   6. Struktur            — #-Headings → h2/h3, **fett** → <strong>,
  *                            Leerzeilen → Absätze
  *
- * Selbst-enthaltend (kein prerender-helpers-Import → ohne authors.json-
- * Abhängigkeit auch für server/bot/html.js sicher importierbar). Escape/
- * Regex-Logik wird per Browser-Selftest gespiegelt verifiziert.
+ * Selbst-enthaltend bzgl. authors.json: Der einzige Import aus
+ * prerender-helpers.js ist stripTrailingPartialUrl (R4/F3, reine Regex-
+ * Funktion, kein authors.json-Dateizugriff) — prerender-helpers liest
+ * authors.json auf Modulebene, daher MUSS der Importpfad dort laufen, wo
+ * authors.json erreichbar ist (Repo/ai-api: beide ok, verifiziert über den
+ * bestehenden helpers-Import in prerender-nav.js, der vom selben Bot-Pfad
+ * geladen wird). Escape/Regex-Logik wird per Browser-Selftest gespiegelt
+ * verifiziert.
  *
  * Einblend-Reihenfolge im Gesamt-Renderpfad (T-B3): org→co-Rewrite (hier,
  * Schritt 1; Choke-Point in prerender-static bleibt als Sicherheitsnetz —
@@ -40,6 +45,7 @@
  */
 
 import { rewriteOrgLinks } from './org-link-rewrite.js';
+import { stripTrailingPartialUrl } from './prerender-helpers.js';
 
 /** Identische Semantik zu prerender-helpers.escapeHtml (Mirror, server-safe). */
 export function escapeHtml(str) {
@@ -129,7 +135,14 @@ export function renderRichText(content, opts = {}) {
 
   // 1) org→co (Single Source org-link-rewrite.js; Choke-Point bleibt als Netz)
   // 2) HTML-Tags raus, Zeilenstruktur normalisieren
-  const raw = stripHtmlTags(rewriteOrgLinks(String(content ?? ''))).slice(0, maxChars);
+  // R4/F3: Nach dem Cap-Schnitt hängende PARTIELLE URLs (https?://…, nostr:…,
+  // www.…) aus dem Fragment entfernen — der Cut schneidet sonst mittig durch
+  // URLs (Live-Befund: 7 Muster je 14× im Prerender). Es werden auch URLs,
+  // die EXAKT am Cap enden, entfernt (konservativ: nie URL-Fragment im
+  // Output; vollständige URLs im Textkörper vor der Grenze bleiben).
+  const raw = stripTrailingPartialUrl(
+    stripHtmlTags(rewriteOrgLinks(String(content ?? ''))).slice(0, maxChars)
+  );
 
   // 3) Escape-first: Sicherheit vor Struktur — alle Regex-Schritte unten
   //    arbeiten auf ESCAPETEM Text (md-Syntax ]( und URLs bleiben intakt).

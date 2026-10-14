@@ -16,8 +16,10 @@
 #   REPO_DIR=… PRERENDER_DIR=… DATA_DIR=… (Defaults siehe unten)
 #
 # Prüfungen:
-#   [V1] Canonical-Signatur (T1, T-F3-2 geschärft): UA Mozilla/5.0 →
-#        0 canonical-Tags (Shell, legitim) ODER genau 1× self-canonical
+#   [V1] Canonical-Signatur (T1, T-F3-2 + R4/F2 geschärft): HTML-Kommentare
+#        werden zuerst gestrippt (T1-Kommentarzeilen mit dem Wort „canonical"
+#        erzeugten FALSE POSITIVE), dann exakte <link rel=canonical>-Tags:
+#        UA Mozilla/5.0 → 0 Tags (Shell, legitim) ODER genau 1× self-canonical
 #        (Prerender/CF-Cache — legitim); FAIL bei >1 oder canonical ≠ self
 #   [V2] Punct-URL → 301 auf clean (T2)    — reale Googlebot-Klammer-URL,
 #                                            Location == clean, kein Hop auf /
@@ -70,10 +72,36 @@ filter_out_unmapped() {
 # Kommentaren zählen NICHT; beide Quote-Stile tolerated)
 extract_canonical_tags() { grep -oiE '<link[^>]*rel=.canonical.[^>]*>'; }
 
+# HTML-Kommentare strippen (R4/F2): T1 hinterlässt Kommentar-Zeilen, die das
+# Wort „canonical" enthalten („KEIN hardcodiertes Canonical…"). Das alte
+# grep -oiE zählte DIREKT im Roh-HTML — Kommentarzeilen ohne <link…>-Syntax
+# treffen das Tag-Muster eigentlich nicht, aber sicher ist sicher: Der
+# Input wird vor ALLEN Canonical-Betrachtungen de-kommentiert.
+# Robust gegen „--" in Inhalten: Loop-Strip bis kein Kommentar mehr übrig
+# ist (im Gegensatz zum klassischen /<!--.*-->/Einzelschlag bei geschachtelten
+# Resten). Kommentar-Form aus dem Generator: einzeilig.
+strip_html_comments() {
+  local html="$1" prev=""
+  # Kommentare zeilenweise entfernen; mehrzeilige Kommentare via Loop:
+  while printf '%s\n' "$html" | grep -q '<!--'; do
+    html=$(printf '%s\n' "$html" | sed -E 's/<!--[^>]*-->//g')
+    # Falls ein <!-- ohne --> übrig bleibt (abgeschnittenes HTML): Zeile killen
+    if printf '%s\n' "$html" | grep -q '<!--'; then
+      html=$(printf '%s\n' "$html" | grep -v '<!--')
+    fi
+    # Endlosschleifen-Schutz: Strip änderte nichts → Abbruch
+    if [ "$html" = "$prev" ]; then break; fi
+    prev="$html"
+    if [ -z "$html" ]; then break; fi
+  done
+  printf '%s\n' "$html"
+}
+
 # Canonical aus HTML extrahieren (erster <link rel="canonical">, href immer
 # doppelt-quotiert in buildHead — Generator-Output)
 extract_canonical() {
-  extract_canonical_tags \
+  # R4/F2: Kommentare zuerst strippen, DANN exakte Tags zählen
+  strip_html_comments "$(cat)" | extract_canonical_tags \
     | grep -oiE 'href="[^"]*"' \
     | head -1 \
     | sed -E 's/^[Hh][Rr][Ee][Ff]="(.*)"$/\1/'
@@ -119,21 +147,27 @@ printf 'Ziel-Naddr: %s\n' "$NADDR"
 printf 'Clean-URL:  %s/%s\n' "$BASE" "$NADDR"
 line
 
-# ── [V1] Canonical-Signatur (T1) — GESCHÄRFT (T-F3-2, Live 19:27/20:04) ─────
+# ── [V1] Canonical-Signatur (T1) — GESCHÄRFT (T-F3-2 + R4/F2) ──────────────
 # Live-Befund: Browser-UA auf naddr erhält teils das PRERENDER (CF-Cache ist
 # UA-agnostisch!) mit EXAKT EINEM self-canonical — beides LEGITIM:
 #   0 canonical-Tags = SPA-Shell (post-T1 korrekt)
 #   1× rel="canonical" mit href = self = Prerender-Auslieferung (korrekt)
+# R4/F2-Beweis: Der frühere FAIL „3 canonical-Tags gefunden" war FALSE
+# POSITIVE — die 3 Treffer sind die T1-Kommentarzeilen 13–15 in index.html.
+# Abhilfe: strip_html_comments() VOR der Tag-Extraktion.
 # FAIL nur bei: >1 Tags, canonical ≠ self (alte Shell: canonical=/) oder
-# falschem Ziel. Das alte „0 canonical-Zeilen"-Kriterium (grep -ci canonical)
-# zählte zudem jedes Wort „canonical" — ersetzt durch das präzise Tag-Muster.
+# falschem Ziel.
 printf '[V1] Canonical-Signatur (T1) — UA Mozilla/5.0: 0 (Shell) ODER 1×self (Prerender)\n'
 v1_html=$(curl_base -A "$UA_BROWSER" "$BASE/$NADDR")
-v1_tags=$(printf '%s\n' "$v1_html" | extract_canonical_tags | wc -l | tr -d ' ')
-v1_href=$(printf '%s\n' "$v1_html" | extract_canonical_tags | grep -oiE 'href="[^"]*"' | head -1 | sed -E 's/^[Hh][Rr][Ee][Ff]="(.*)"$/\1/')
+# R4/F2: HTML-Kommentare strippen (T1-Kommentarzeilen enthalten das Wort
+# „canonical" und erzeugten einen FALSE POSITIVE: „3 canonical-Tags").
+v1_html_stripped=$(strip_html_comments "$v1_html")
+v1_bytes=$(printf '%s\n' "$v1_html_stripped" | wc -c | tr -d ' ')
+v1_tags=$(printf '%s\n' "$v1_html_stripped" | extract_canonical_tags | wc -l | tr -d ' ')
+v1_href=$(printf '%s\n' "$v1_html_stripped" | extract_canonical_tags | grep -oiE 'href="[^"]*"' | head -1 | sed -E 's/^[Hh][Rr][Ee][Ff]="(.*)"$/\1/')
 v1_expected_self="$BASE/$NADDR"
 if [ "$v1_tags" = "0" ]; then
-  check_pass "V1" "0 canonical-Tags (SPA-Shell-Signatur — legitim, post-T1)"
+  check_pass "V1" "0 canonical-Tags nach Kommentar-Strip ($v1_bytes Bytes — SPA-Shell-Signatur, legitim, post-T1)"
 elif [ "$v1_tags" = "1" ] && [ "$v1_href" = "$v1_expected_self" ]; then
   check_pass "V1" "1× rel=canonical, self-canonical (Prerender-Auslieferung — legitim)"
 elif [ "$v1_tags" = "1" ] && [ "$v1_href" = "$BASE/" ]; then
