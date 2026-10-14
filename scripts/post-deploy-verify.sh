@@ -111,16 +111,28 @@ extract_canonical() {
 }
 
 # Unmapped-URLs aus Report-JSON (jq bevorzugt, node-Fallback, grep letzter Versuch)
+# R4.3-Bugfix: Die Pipeline schreibt die Reports in das VERZEICHNIS DER
+# GELADENEN MAP (writeUnmappedOrgLinksReport → reportFilePath()): auf dem
+# VPS ist das die LEBENDE conf.d/mojobus.org.redirects.map → Reports liegen
+# in /usr/local/nginx/conf/conf.d/unmapped-org-links*.json (Live-Beweis
+# 23:10-Log: „→ /usr/local/nginx/conf/conf.d/unmapped-org-links.json").
+# Vorher suchte V6/V8/V9 nur im Repo-Checkout → Filter leer → FALSE FAIL.
 unmapped_urls() {
-  local file="$1"
-  [ -f "$file" ] || { echo ""; return 0; }
-  if command -v jq >/dev/null 2>&1; then
-    jq -r '.unmapped[].url' "$file" 2>/dev/null
-  elif command -v node >/dev/null 2>&1; then
-    node -e 'try{const j=require(process.argv[1]);for(const u of (j.unmapped||[]))console.log(u.url)}catch(e){}' "$file" 2>/dev/null
-  else
-    grep -o '"url": *"[^"]*"' "$file" 2>/dev/null | sed -E 's/^"url": *"(.*)"$/\1/'
-  fi
+  local base="$1" file=""
+  for file in \
+    "/usr/local/nginx/conf/conf.d/${base}" \
+    "$REPO_DIR/redirects/${base}"; do
+    [ -f "$file" ] || continue
+    if command -v jq >/dev/null 2>&1; then
+      jq -r '.unmapped[].url' "$file" 2>/dev/null && return 0
+    elif command -v node >/dev/null 2>&1; then
+      node -e 'try{const j=require(process.argv[1]);for(const u of (j.unmapped||[]))console.log(u.url)}catch(e){}' "$file" 2>/dev/null && return 0
+    else
+      grep -o '"url": *"[^"]*"' "$file" 2>/dev/null | sed -E 's/^"url": *"(.*)"$/\1/'
+      return 0
+    fi
+  done
+  echo ""
 }
 
 line
@@ -267,7 +279,7 @@ fi
 # FAIL nur noch bei echten, sauberen Page-Pfad-Resten.
 printf '[V6] Prerender .org-Reste — echte Page-Pfade (Artefakte separiert, T3/F3/F5)\n'
 UNMAPPED_TMP="/tmp/postdeploy-unmapped-prerender.$$"
-unmapped_urls "$REPO_DIR/redirects/unmapped-org-links.json" > "$UNMAPPED_TMP" 2>/dev/null || true
+unmapped_urls "unmapped-org-links.json" > "$UNMAPPED_TMP" 2>/dev/null || true
 # T-F3-2: escaped JSON-LD-Formen (https:\/\/mojobus.org/…) zusätzlich in den
 # Filter — sonst bleiben solche Treffer als „verbleibend“ stehen
 if [ -s "$UNMAPPED_TMP" ]; then
@@ -308,7 +320,7 @@ fi
 # ── [V8] feed.xml frei von mojobus.org (TA) ────────────────────────────────
 printf '[V8] feed.xml → mojobus.org-Count, abzüglich Unmapped (TA)\n'
 UNMAPPED_FEED_TMP="/tmp/postdeploy-unmapped-feed.$$"
-{ unmapped_urls "$REPO_DIR/redirects/unmapped-org-links.feed.json"; unmapped_urls "$REPO_DIR/redirects/unmapped-org-links.json"; } > "$UNMAPPED_FEED_TMP" 2>/dev/null || true
+{ unmapped_urls "unmapped-org-links.feed.json"; unmapped_urls "unmapped-org-links.json"; } > "$UNMAPPED_FEED_TMP" 2>/dev/null || true
 v8_total=$(curl_base "$BASE/feed.xml" | grep -o 'https\?://[a-z.]*mojobus\.org[^"<]*' | wc -l | tr -d ' ')
 v8_hits=$(curl_base "$BASE/feed.xml" | grep -o 'https\?://[a-z.]*mojobus\.org[^"<]*' | filter_out_unmapped "$UNMAPPED_FEED_TMP" | wc -l | tr -d ' ')
 if [ "${v8_hits:-1}" -eq 0 ]; then
@@ -320,7 +332,7 @@ fi
 # ── [V9] llms.txt frei von mojobus.org (TA) ─────────────────────────────────
 printf '[V9] llms.txt → mojobus.org-Count, abzüglich Unmapped (TA)\n'
 UNMAPPED_LLMS_TMP="/tmp/postdeploy-unmapped-llms.$$"
-{ unmapped_urls "$REPO_DIR/redirects/unmapped-org-links.llms.json"; unmapped_urls "$REPO_DIR/redirects/unmapped-org-links.json"; } > "$UNMAPPED_LLMS_TMP" 2>/dev/null || true
+{ unmapped_urls "unmapped-org-links.llms.json"; unmapped_urls "unmapped-org-links.json"; } > "$UNMAPPED_LLMS_TMP" 2>/dev/null || true
 v9_total=$(curl_base "$BASE/llms.txt" | grep -o 'https\?://[a-z.]*mojobus\.org[^) "<]*' | wc -l | tr -d ' ')
 v9_hits=$(curl_base "$BASE/llms.txt" | grep -o 'https\?://[a-z.]*mojobus\.org[^) "<]*' | filter_out_unmapped "$UNMAPPED_LLMS_TMP" | wc -l | tr -d ' ')
 if [ "${v9_hits:-1}" -eq 0 ]; then
