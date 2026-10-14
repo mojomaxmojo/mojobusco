@@ -15,8 +15,15 @@ Allow: /about
 Allow: /feed.xml
 Allow: /feed-en.xml
 
-# Prerendered statische Seiten für Crawler (ohne JS)
-Allow: /prerender/
+# Prerender-Artefakte crawlen bots NICHT direkt: Die Bots erhalten ihr
+# Prerender-HTML bereits AN den Canonical-URLs (/naddr1…, /video/…, /en/…)
+# über die nginx-Bot-Umleitung (end-to-end verifiziert: Googlebot/Bingbot/
+# OAI-SearchBot → 200 + self-canonical; siehe scripts/post-deploy-verify.sh
+# V3). VORAUSSETZUNG für diese Disallow-Regel: post-deploy-verify V3 war
+# GRÜN (nach dem Runde-2/3-Deploy). /prerender/ ist ein interner Cache-Pfad
+# mit Meta-Refresh auf die Canonical-URL — indexieren möchten wir nur die
+# Canonicals, nicht den Cache.
+Disallow: /prerender/
 
 # Crawler-spezifische Optimierung
 # Google Bilder-Suche
