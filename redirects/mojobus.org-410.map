@@ -1,0 +1,5 @@
+# mojobus.org-410.map — GENERIERT von scripts/unmapped-decision.js
+# Stand: Initial-Skeleton (2026-10-14, TC-Commit) | gone-Entscheidungen: 0
+# Quelle: unmapped-decisions.json (human_decision=gone) — NIEMALS handeditieren,
+#         nächster Tool-Lauf wischt Änderungen.
+# INSTALLATION (Phase 2): cp redirects/mojobus.org-410.map /usr/local/nginx/conf/conf.d/mojobus.org.410.map

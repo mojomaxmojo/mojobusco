@@ -33,6 +33,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { parseCsv } from './csv-utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -42,6 +43,7 @@ const ARTICLES_FILE = process.env.WP_ARTICLES_FILE
   || '/home/nginx/domains/mojobus.co/public/data/sitemap.json';
 const BASE_URL = (process.env.WP_TARGET_BASE || 'https://mojobus.co').replace(/\/$/, '');
 const OUT_DIR = process.env.WP_REDIRECTS_DIR || path.join(__dirname, '..', 'redirects');
+const MANUAL_ENTRIES_FILE = path.join(OUT_DIR, 'manual-entries.json');
 const PER_PAGE = 100;
 const MAX_PAGES = 100; // REST-Guard
 const MAX_SITEMAPS = 50; // Guard: Sub-Sitemaps im Index
@@ -49,6 +51,135 @@ const FUZZY_THRESHOLD = Number(process.env.WP_FUZZY_THRESHOLD || 0.55);
 const INCLUDE_FUZZY_IN_MAP = process.env.WP_INCLUDE_FUZZY === '1';
 // d-tag-Schemata der Migration: wp-<id>-… und article-<id>-… (IDs = WP-Post-IDs)
 const WPID_TAG_RE = /^(?:wp|article)-(\d+)-/;
+
+// ── Manuelle Entscheidungen (SEO-Nachlauf TC, 2026-10) ─────────────────────
+//
+// redirects/manual-entries.json ist die SOURCE OF TRUTH für human-decided
+// Map-Erweiterungen: befüllt NUR über
+//   node scripts/generate-wp-redirects.js --apply-decisions <unmapped-decisions.csv>
+// (liest human_decision=map-Zeilen). Die generierte wp-redirects.map wird
+// NIEMALS handeditiert — der nächste Generierungs-Lauf würde das wischen.
+// main() mergt die Manual-Entries in `results`, bevor Map/JSON/Report
+// geschrieben werden (Match-Label „manual“, confidence 1).
+
+/** Modus --apply-decisions <csv>: offline, ohne WP-Netz-Zugriff. */
+function applyDecisions(csvPath) {
+  let rows;
+  try {
+    rows = parseCsv(fs.readFileSync(csvPath, 'utf-8'));
+  } catch (e) {
+    console.error(`[WP-Redirect] ❌ CSV unlesbar (${csvPath}): ${e.message}`);
+    process.exit(1);
+  }
+  if (rows.length === 0) {
+    console.error(`[WP-Redirect] ❌ CSV leer: ${csvPath}`);
+    process.exit(1);
+  }
+  const header = rows[0].map(h => h.trim().toLowerCase());
+  const idx = {
+    source_url: header.indexOf('source_url'),
+    type: header.indexOf('proposed_type'),
+    target: header.indexOf('proposed_target'),
+    confidence: header.indexOf('confidence'),
+    evidence: header.indexOf('evidence'),
+    decision: header.indexOf('human_decision'),
+  };
+  if (idx.source_url < 0 || idx.type < 0 || idx.target < 0 || idx.decision < 0) {
+    console.error('[WP-Redirect] ❌ CSV-Header unvollständig — erwartet Spalten:');
+    console.error('    source_url, proposed_type, proposed_target, human_decision');
+    console.error(`    Gefunden: ${header.join(' | ')}`);
+    process.exit(1);
+  }
+
+  let manual = { generatedAt: null, note: null, entries: [] };
+  try {
+    const prev = JSON.parse(fs.readFileSync(MANUAL_ENTRIES_FILE, 'utf-8'));
+    if (Array.isArray(prev.entries)) manual.entries = prev.entries;
+  } catch { /* Erstlauf */ }
+  const existingSources = new Set(manual.entries.map(e => e.source));
+
+  let applied = 0;
+  let skipped = 0;
+  let invalid = 0;
+  for (const row of rows.slice(1)) {
+    const decision = (row[idx.decision] || '').trim().toLowerCase();
+    if (decision !== 'map') { skipped++; continue; } // gone/leer/andere → ignorieren
+    const sourceUrl = (row[idx.source_url] || '').trim();
+    const proposedType = (row[idx.type] || '').trim().toLowerCase();
+    const target = (row[idx.target] || '').trim();
+    if (proposedType !== 'map' || !target.startsWith(BASE_URL)) { invalid++; continue; }
+    let source;
+    try {
+      const u = new URL(sourceUrl, BASE_URL);
+      source = u.pathname + u.search;
+    } catch {
+      source = sourceUrl.startsWith('/') ? sourceUrl : '';
+    }
+    if (!source || source === '/' || source === '') { invalid++; continue; }
+    const hasQuery = source.includes('?');
+    // Pfad-Form auf Trailing-Slash normalisieren (Map bekommt beide Varianten
+    // über source/sourceNoSlash); Query-Form (/ ?p=…) bleibt exakt.
+    const normalized = hasQuery ? source : (source.endsWith('/') ? source : source + '/');
+    if (existingSources.has(normalized)) { skipped++; continue; }
+    manual.entries.push({
+      source: normalized,
+      target,
+      match: 'manual',
+      confidence: Number((row[idx.confidence] || '1').replace(',', '.')) || 1,
+      evidence: row[idx.evidence] || '',
+      addedAt: new Date().toISOString(),
+    });
+    existingSources.add(normalized);
+    applied++;
+  }
+
+  fs.writeFileSync(MANUAL_ENTRIES_FILE, JSON.stringify({
+    generatedAt: new Date().toISOString(),
+    note: 'SOURCE OF TRUTH für manuelle 301-Map-Einträge (human_decision=map aus unmapped-decisions.csv). NIEMALS die generierte wp-redirects.map editieren — hier ergänzen + Regenerierung: node scripts/generate-wp-redirects.js',
+    entries: manual.entries,
+  }, null, 2), 'utf-8');
+  console.log(`[WP-Redirect] --apply-decisions: ${applied} neue „map“-Entries → ${MANUAL_ENTRIES_FILE}`);
+  console.log(`[WP-Redirect]   (${skipped} übersprungen [gone/leer/duplikat], ${invalid} invalid)`);
+  console.log('[WP-Redirect] Nächster Schritt (Regenerierung): node scripts/generate-wp-redirects.js');
+  process.exit(0);
+}
+
+/** Merge der Manual-Entries in die Generator-Results (vor allen Outputs). */
+function mergeManualEntries(results) {
+  let manual;
+  try {
+    manual = JSON.parse(fs.readFileSync(MANUAL_ENTRIES_FILE, 'utf-8'));
+  } catch {
+    return 0; // Datei fehlt (noch keine Entscheidungen) — normaler Lauf
+  }
+  const entries = Array.isArray(manual.entries) ? manual.entries : [];
+  if (entries.length === 0) return 0;
+  const existing = new Set(results.map(r => r.source));
+  let added = 0;
+  for (const e of entries) {
+    if (typeof e.source !== 'string' || !e.source.startsWith('/')) continue;
+    if (typeof e.target !== 'string' || !e.target.startsWith(BASE_URL)) continue;
+    if (existing.has(e.source)) continue;
+    const hasQuery = e.source.includes('?');
+    results.push({
+      source: e.source,
+      // Query-Formen haben keine sinnvolle No-Slash-Variante (bewusst leer —
+      // mapEntries-Schleife pusht sie nur, wenn nicht-leer, sonst Duplicate-Key)
+      sourceNoSlash: hasQuery ? '' : (e.source.endsWith('/') ? e.source.replace(/\/$/, '') : e.source),
+      sourceIdOnly: null,
+      sourceQuery: hasQuery ? e.source : null,
+      target: e.target,
+      match: 'manual',
+      confidence: 1,
+      wpTitle: e.evidence || '(manuelle Entscheidung)',
+      wpLink: '',
+    });
+    existing.add(e.source);
+    added++;
+  }
+  console.log(`[WP-Redirect] Manuelle Entries gemerged: ${added}/${entries.length} (${MANUAL_ENTRIES_FILE})`);
+  return added;
+}
 
 // ── HTTP ───────────────────────────────────────────────────────────────────
 
@@ -179,6 +310,18 @@ function diceTokens(a, b) {
 
 // ── Main ───────────────────────────────────────────────────────────────────
 
+// Modus-Schalter: --apply-decisions <csv> läuft OFFLINE (kein WP-Netz-Zugriff)
+const argv = process.argv.slice(2);
+const applyIdx = argv.indexOf('--apply-decisions');
+if (applyIdx !== -1) {
+  const csvPath = argv[applyIdx + 1];
+  if (!csvPath) {
+    console.error('[WP-Redirect] Usage: node scripts/generate-wp-redirects.js --apply-decisions redirects/unmapped-decisions.csv');
+    process.exit(2);
+  }
+  applyDecisions(csvPath);
+}
+
 async function main() {
   const startTime = Date.now();
   console.log(`[WP-Redirect] Quelle: ${WP_SOURCE}`);
@@ -304,11 +447,17 @@ const entries = JSON.parse(fs.readFileSync(ARTICLES_FILE, 'utf-8'));
   for (const p of wp.posts) processItem(p, 'post');
   for (const p of wp.pages) processItem(p, 'page');
 
+  // TC: manuelle Entscheidungen (manual-entries.json) in results mergen —
+  // NUR über die Quelle, niemals per Hand-Edit der generierten Map.
+  mergeManualEntries(results);
+
   // ── Outputs ────────────────────────────────────────────────────────────
   const mapEntries = [];
   for (const r of results) {
-    mapEntries.push(`"${r.source}" ${r.target};`);
-    mapEntries.push(`"${r.sourceNoSlash}" ${r.target};`);
+    if (r.source) mapEntries.push(`"${r.source}" ${r.target};`);
+    // Guard (TC): sourceNoSlash nur wenn nicht-leer UND von source verschieden
+    // (Manual-Query-Entries haben keine No-Slash-Variante → nginx-Duplicate-Key)
+    if (r.sourceNoSlash && r.sourceNoSlash !== r.source) mapEntries.push(`"${r.sourceNoSlash}" ${r.target};`);
     if (r.sourceIdOnly) mapEntries.push(`"${r.sourceIdOnly}" ${r.target};`);
     if (r.sourceQuery) mapEntries.push(`"${r.sourceQuery}" ${r.target};`);
   }
