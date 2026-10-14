@@ -43,6 +43,9 @@
  *   --from-snapshot [pfad]    wp-redirects.json aus wp-sitemap-snapshot.xml
  *   --snapshot                (normaler Lauf) rohes WP-Sitemap-XML persistieren
  *   --apply-decisions <csv>   human_decision=map → manual-entries.json (TC)
+ *                             (mergeManualEntries() wird AUCH von --from-map
+ *                              aufgerufen — R4: ohne das würde der Merge in
+ *                              der WP-losen Welt nie in die Map gelangen)
  *
  * FAIL-SAFE (TD3-3): mojobus.org liefert seit ~2026-09-16 301+HTML (Catch-All)
  * statt XML → no-args-Läufe aborten VOR jedem Write mit Offline-Optionen
@@ -341,6 +344,8 @@ function diceTokens(a, b) {
 //   --apply-decisions <csv>   offline: human_decision=map → manual-entries.json
 //   --from-map [mapPfad]      offline: wp-redirects.json aus der LEBENDEN
 //                             nginx-Map rekonstruieren (Stage 1 der Runtime)
+//                             + mergeManualEntries (R4: sonst wäre der
+//                             Merge-Pfad in der WP-losen Welt tot)
 //   --from-snapshot [pfad]    offline: wp-redirects.json aus dem XML-Snapshot
 //   --snapshot                (normaler Lauf) rohes WP-Sitemap-XML persistieren
 const argv = process.argv.slice(2);
@@ -408,6 +413,17 @@ function runFromMap(mapPath) {
     seen.add(base);
     entries.push({ source: base, target, match: 'from-map', confidence: 1 });
   }
+  // R4-Phase-2 (2026-10): Manual-Entries (human-decided, via --apply-decisions)
+  // NACH dem Map-Parse mergen — in der WP-losen Welt (mojobus.org liefert
+  // seit 2026-09-16 301+HTML) ist --from-map der EINZIGE Generierungspfad,
+  // ohne diesen Merge würden die 44 map-Entscheidungen nie in die Map
+  // gelangen (Live-Beweis 23:44: apply-decisions schrieb manual-entries.json,
+  // --from-map ignorierte sie). mergeManualEntries() validiert + dedupliziert
+  // selbst (existing-Check gegen die soeben aus der Map gebauten Sources).
+  const addedManual = mergeManualEntries(entries);
+  if (addedManual > 0) {
+    console.log(`[WP-Redirect] --from-map + manual-entries: ${addedManual} human-decided Sources zusätzlich`);
+  }
   const outPath = path.join(OUT_DIR, 'wp-redirects.json');
   try {
     if (fs.existsSync(outPath)) {
@@ -418,7 +434,7 @@ function runFromMap(mapPath) {
   } catch { /* Backup best-effort */ }
   fs.writeFileSync(outPath, JSON.stringify({
     generatedAt: new Date().toISOString(),
-    via: 'from-map',
+    via: addedManual > 0 ? 'from-map+manual' : 'from-map',
     source,
     targetBase: BASE_URL,
     count: entries.length,
