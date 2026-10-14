@@ -32,6 +32,23 @@ const SITE_URL = (process.env.SITE_URL || 'https://mojobus.co').replace(/\/$/, '
 const NIP19_TOKEN_RE = /^(naddr1|nevent1|note1|npub1|nprofile1)[0-9a-z]+$/
 
 /**
+ * Trailing-Punctuation-Normalisierung (SEO-Fix 2026-10, T2).
+ *
+ * Google extrahiert URLs aus Klammern im Fließtext — Artikeltexte enthalten
+ * Links wie „(https://mojobus.co/naddr1…)" und der Crawler greift sich den
+ * naddr MIT schließender Klammer: /naddr1…qhfd) landet im access.log als
+ * 404 (114× Googlebot-404 auf mojobus.co, Stand 2026-10). Der Bech32-Decode
+ * scheitert an der Interpunktion → bisher harter 404 statt Redirect.
+ *
+ * Regex-Deckung: Pfad-Präfixe wie im Resolver (/en/, /trip/, /video/, /bild/)
+ * + alle NIP-19-Token-Typen; case-insensitive; läuft NACH dem URL-Decode
+ * (%29 → ') davor. Mögliche Sonderfälle:  ) ] } . , ; ' " ! ?
+ * → 1:1-301 auf die clean-URL (NIEMALS auf die Startseite, keine Kette),
+ * danach läuft der Follow-up-Request normal durch Prerender-/Resolver-Pfad.
+ */
+const TRAILING_PUNCT_RE = /^((?:\/en)?(?:\/(?:trip|video|bild))?\/(?:naddr|nevent|note|npub|nprofile)[0-9a-z]+)[)\]}\.,;'"!?]+$/i
+
+/**
  * Löst einen NIP-19-String zu seiner kanonischen (hint-freien) Form auf.
  * @param {string} token - Bech32-String (naddr1…, nevent1…, note1…, npub1…)
  * @param {'bare'|'trip'|'video'|'bild'} kind_prefix - Pfad-Präfix der Anfrage
@@ -77,6 +94,17 @@ router.get('/api/prerender-resolve', (req, res) => {
   try {
     const url = new URL(rawUri, SITE_URL)
     let pathname = decodeURIComponent(url.pathname)
+
+    // ── Trailing-Punctuation → 301 (SEO-Fix 2026-10, T2) ─────────────────
+    // VOR dem Decode-Normalisieren: /naddr1…qhfd) scheitert sonst am
+    // Bech32-Decode und liefert 404 an Google. 1:1 auf die clean-URL
+    // weiterleiten (Query-String bleibt erhalten) — der Follow-up-Request
+    // wird dann normal verarbeitet (Prerender-Datei bzw. Resolver).
+    const punctMatch = TRAILING_PUNCT_RE.exec(pathname)
+    if (punctMatch) {
+      const location = `${SITE_URL}${punctMatch[1]}${url.search}`
+      return res.redirect(301, location)
+    }
 
     // /en/-Präfix (hreflang-Variante) erkennen und erhalten
     let langPrefix = ''
