@@ -27,6 +27,12 @@ function buildBotHtml(rawMeta) {
     publishedAt           = new Date().toISOString(),
     keywords: rawKeywords = 'vanlife, perpetual travelers, meer, strand, portugal, offgrid, solar, wohnmobil',
     siteName              = SITE_NAME,
+    // T-A3: On-demand-Extras (Bot-Middleware, prerender-nav.js) — vorgebaute,
+    // sichere HTML-Fragmente (Breadcrumb/Volltext-Body/Related). Ohne Extras
+    // (statische Seiten/Fallback) bleibt der Output unverändert.
+    breadcrumbHtml        = '',
+    bodyHtml              = '',
+    relatedHtml           = '',
   } = rawMeta
 
   // .org→.co Rewrite (T3) auf ALLE freien Meta-Werte (Meta-Tags, JSON-LD,
@@ -130,11 +136,13 @@ function buildBotHtml(rawMeta) {
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 </head>
 <body>
-  <!-- Bot-Seite: Meta-Tags für Crawler -->
-  <!-- Echte Inhalte werden durch React + Nostr geladen -->
+  <!-- Bot-Seite: Meta-Tags + Volltext (T-A3) — echte Inhalte sind im HTML -->
+  ${breadcrumbHtml}
   <h1>${safeTitle}</h1>
   <p>${safeDesc}</p>
   ${image ? `<img src="${safeImage}" alt="${safeTitle}" style="max-width:100%">` : ''}
+  ${bodyHtml}
+  ${relatedHtml}
   <p><a href="${SITE_URL}">← ${escapeHtml(siteName)}</a></p>
 </body>
 </html>`

@@ -26,6 +26,7 @@ import {
   buildProfileLd,
   buildVideoLd,
   buildImageLd,
+  buildBreadcrumbLd,
 } from './prerender-meta.js';
 import { withFaqLd } from './prerender-faq.js';
 // SEO-Runde 3 (T-B3): Rich-Text-Pfad — Event-Content wird zu Bot-HTML mit
@@ -33,6 +34,16 @@ import { withFaqLd } from './prerender-faq.js';
 // Markdown-Links erhalten, externe URLs bleiben Text). Single Source für
 // org→co-Rewrite bleibt org-link-rewrite.js (in renderRichText vorgeschaltet).
 import { renderRichText } from './prerender-content.js';
+// SEO-Runde 3 (T-A3): Breadcrumb + „Verwandte Artikel" + Kategorie — kein
+// Artikel-Prerender mehr als Waisenseite. classifyArticle spiegelt die
+// Unterkategorien-Templates (server-safe, siehe prerender-nav.js Kopf).
+import {
+  classifyArticle,
+  breadcrumbHtml,
+  breadcrumbLdItems,
+  relatedHtml,
+  buildRelatedCandidates,
+} from './prerender-nav.js';
 
 /**
  * Optimiertes <img> für Prerender-HTML.
@@ -97,18 +108,29 @@ export function renderArticleHtml(event, allEventsOfType = []) {
   const datePublished = formatDate(publishedAtSeconds);
   const dateModified = formatDate(event.created_at);
 
-  const jsonLd = withFaqLd(buildArticleLd({
-    headline: headTitle,
-    description,
-    image,
-    url: canonicalUrl,
-    datePublished,
-    dateModified,
-    authorName,
-    authorUrl: getAuthorUrl(event.pubkey),
-    keywords: [...new Set(['vanlife', 'wohnmobil', 'reisen', 'camping', ...tags])],
-    inLanguage: lang,
-  }), event.content, canonicalUrl);
+  // ── T-A3: Kategorie-Zuordnung (Spiegel der Unterkategorien-Templates) ──
+  const category = classifyArticle(event, lang);
+
+  const jsonLd = [
+    withFaqLd(buildArticleLd({
+      headline: headTitle,
+      description,
+      image,
+      url: canonicalUrl,
+      datePublished,
+      dateModified,
+      authorName,
+      authorUrl: getAuthorUrl(event.pubkey),
+      keywords: [...new Set(['vanlife', 'wohnmobil', 'reisen', 'camping', ...tags])],
+      inLanguage: lang,
+    }), event.content, canonicalUrl),
+    // T-A3: Breadcrumb-JSON-LD (Start › Kategorie › Artikel)
+    buildBreadcrumbLd(breadcrumbLdItems([
+      { name: lang === 'en' ? 'Home' : 'Startseite', url: buildLocalizedUrl('/', lang) },
+      { name: category.short, url: buildLocalizedUrl(category.path, lang) },
+      { name: title, url: null },
+    ], canonicalUrl)),
+  ];
 
   const head = buildHead({
     title: `${headTitle} — MojoBus`,
@@ -147,14 +169,25 @@ ${planList.items.map(i => `      <li><a href="${escapeHtml(i.url)}">${escapeHtml
     <p><a href="${escapeHtml(buildLocalizedUrl('/reiseziele', planList.lang))}">${planList.lang === 'en' ? 'All destinations →' : 'Alle Reiseziele →'}</a></p>
   </section>` : '';
 
+  // ── T-A3: Breadcrumb + Related + Volltext — keine Waisenseiten mehr ────
+  const crumbHtml = breadcrumbHtml([
+    { name: lang === 'en' ? 'Home' : 'Startseite', url: buildLocalizedUrl('/', lang) },
+    { name: category.short, url: buildLocalizedUrl(category.path, lang) },
+    { name: title, url: null },
+  ], lang);
+  const relatedItems = buildRelatedCandidates(event, allEventsOfType, lang, { max: 4 });
+  const relatedSection = relatedHtml(relatedItems, lang);
+
   return `${head}
+  ${crumbHtml}
   <h1>${escapeHtml(title)}</h1>
   <p>${escapeHtml(description)}</p>
   ${imageTag(image, title, { eager: true })}
-  <!-- T-B3: Body über renderRichText (interne URLs → Anchors, trailing
-       punct abgetrennt; Cap hier Teaser-Niveau, Volltext folgt in T-A3) -->
-  ${renderRichText(event.content, { maxChars: 600 })}
+  <!-- T-A3: VOLler Event-Content (Cap 60000 Zeichen ≪ 300-KB-Grenze),
+       interne URLs linkified (T-B3) -->
+  ${renderRichText(event.content, { maxChars: 60000 })}
   ${planListHtml}
+  ${relatedSection}
   <p><a href="${escapeHtml(canonicalUrl)}">Weiterlesen auf MojoBus →</a></p>
 </body>
 </html>`;
@@ -182,18 +215,26 @@ export function renderNoteHtml(event, allEventsOfType = []) {
   const datePublished = formatDate(event.created_at);
   const dateModified = datePublished;
 
-  const jsonLd = buildArticleLd({
-    headline: title,
-    description: stripMarkdown(event.content, 200),
-    image: mainImage,
-    url: canonicalUrl,
-    datePublished,
-    dateModified,
-    authorName,
-    authorUrl: getAuthorUrl(event.pubkey),
-    keywords: [...new Set(['vanlife', 'notes', 'microblog', 'reisen', ...tags])],
-    inLanguage: lang,
-  });
+  const jsonLd = [
+    buildArticleLd({
+      headline: title,
+      description: stripMarkdown(event.content, 200),
+      image: mainImage,
+      url: canonicalUrl,
+      datePublished,
+      dateModified,
+      authorName,
+      authorUrl: getAuthorUrl(event.pubkey),
+      keywords: [...new Set(['vanlife', 'notes', 'microblog', 'reisen', ...tags])],
+      inLanguage: lang,
+    }),
+    // T-A3: Breadcrumb-JSON-LD (Start › Notes › Note)
+    buildBreadcrumbLd(breadcrumbLdItems([
+      { name: lang === 'en' ? 'Home' : 'Startseite', url: buildLocalizedUrl('/', lang) },
+      { name: lang === 'en' ? 'Notes' : 'Notes', url: buildLocalizedUrl('/notes', lang) },
+      { name: title, url: null },
+    ], canonicalUrl)),
+  ];
 
   const head = buildHead({
     title: `${title} — MojoBus`,
@@ -214,10 +255,15 @@ export function renderNoteHtml(event, allEventsOfType = []) {
   });
 
   return `${head}
+  ${breadcrumbHtml([
+    { name: lang === 'en' ? 'Home' : 'Startseite', url: buildLocalizedUrl('/', lang) },
+    { name: lang === 'en' ? 'Notes' : 'Notes', url: buildLocalizedUrl('/notes', lang) },
+    { name: title, url: null },
+  ], lang)}
   <h1>${escapeHtml(title)}</h1>
   <p>${escapeHtml(description)}</p>
   ${images.slice(0, 1).map(url => imageTag(url, title, { eager: true })).join('')}
-  ${renderRichText(event.content, { maxChars: 800 })}
+  ${renderRichText(event.content, { maxChars: 8000 })}
   <p><a href="${escapeHtml(canonicalUrl)}">Auf MojoBus ansehen →</a></p>
 </body>
 </html>`;
@@ -307,15 +353,23 @@ export function renderPlaceHtml(event, allEventsOfType = []) {
   }
   const alternateLang = pairLang;
 
-  const jsonLd = withFaqLd(buildPlaceLd({
-    name: headTitle,
-    description,
-    image,
-    url: canonicalUrl,
-    lat,
-    lon,
-    inLanguage: lang,
-  }), event.content, canonicalUrl);
+  const jsonLd = [
+    withFaqLd(buildPlaceLd({
+      name: headTitle,
+      description,
+      image,
+      url: canonicalUrl,
+      lat,
+      lon,
+      inLanguage: lang,
+    }), event.content, canonicalUrl),
+    // T-A3: Breadcrumb-JSON-LD (Start › Plätze › Ort)
+    buildBreadcrumbLd(breadcrumbLdItems([
+      { name: lang === 'en' ? 'Home' : 'Startseite', url: buildLocalizedUrl('/', lang) },
+      { name: lang === 'en' ? 'Places' : 'Plätze', url: buildLocalizedUrl('/plaetze', lang) },
+      { name: name, url: null },
+    ], canonicalUrl)),
+  ];
 
   const head = buildHead({
     title: `${headTitle} — MojoBus`,
@@ -333,9 +387,14 @@ export function renderPlaceHtml(event, allEventsOfType = []) {
   });
 
   return `${head}
+  ${breadcrumbHtml([
+    { name: lang === 'en' ? 'Home' : 'Startseite', url: buildLocalizedUrl('/', lang) },
+    { name: lang === 'en' ? 'Places' : 'Plätze', url: buildLocalizedUrl('/plaetze', lang) },
+    { name: name, url: null },
+  ], lang)}
   <h1>${escapeHtml(name)}</h1>
   ${location ? `<p>📍 ${escapeHtml(location)}</p>` : ''}
-  ${renderRichText(desc, { maxChars: 600 })}
+  ${renderRichText(desc, { maxChars: 20000 })}
   ${imageTag(image, name, { eager: true })}
   <p><a href="${escapeHtml(canonicalUrl)}">Auf MojoBus ansehen →</a></p>
 </body>
@@ -363,15 +422,23 @@ export function renderTripHtml(event, allEventsOfType = []) {
   const photos = extractTripPhotos(event);
   const { distance, distanceUnit } = extractTripDistance(event);
 
-  const jsonLd = withFaqLd(buildArticleLd({
-    headline: title,
-    description: cleanDesc.substring(0, 200),
-    image,
-    url: canonicalUrl,
-    datePublished,
-    dateModified: datePublished,
-    inLanguage: lang,
-  }), event.content, canonicalUrl);
+  const jsonLd = [
+    withFaqLd(buildArticleLd({
+      headline: title,
+      description: cleanDesc.substring(0, 200),
+      image,
+      url: canonicalUrl,
+      datePublished,
+      dateModified: datePublished,
+      inLanguage: lang,
+    }), event.content, canonicalUrl),
+    // T-A3: Breadcrumb-JSON-LD (Start › Trips › Reisebericht)
+    buildBreadcrumbLd(breadcrumbLdItems([
+      { name: lang === 'en' ? 'Home' : 'Startseite', url: buildLocalizedUrl('/', lang) },
+      { name: lang === 'en' ? 'Trips' : 'Trips', url: buildLocalizedUrl('/map/trips', lang) },
+      { name: title, url: null },
+    ], canonicalUrl)),
+  ];
 
   const head = buildHead({
     title: `${title} — MojoBus Reisen`,
@@ -404,6 +471,11 @@ export function renderTripHtml(event, allEventsOfType = []) {
     : '';
 
   return `${head}
+  ${breadcrumbHtml([
+    { name: lang === 'en' ? 'Home' : 'Startseite', url: buildLocalizedUrl('/', lang) },
+    { name: lang === 'en' ? 'Trips' : 'Trips', url: buildLocalizedUrl('/map/trips', lang) },
+    { name: title, url: null },
+  ], lang)}
   <h1>${escapeHtml(title)}</h1>
   <p>${escapeHtml(cleanDesc)}</p>
   ${imageTag(image, title, { eager: waypoints.length === 0 })}
@@ -416,6 +488,7 @@ export function renderTripHtml(event, allEventsOfType = []) {
 
 export function renderVideoHtml(event) {
   const title = event.tags?.find(t => t[0] === 'title')?.[1] || 'MojoBus Video';
+  const lang = getEventLangFromTags(event); // T-A3: Breadcrumb-Sprache
   const imetaTag = event.tags?.find(t => t[0] === 'imeta');
   const videoUrl = imetaTag?.find(v => typeof v === 'string' && v.startsWith('url '))?.replace('url ', '') || '';
   const videoMimeTypeRaw = imetaTag?.find(v => typeof v === 'string' && v.startsWith('m '))?.replace('m ', '') || 'video/mp4';
@@ -431,14 +504,22 @@ export function renderVideoHtml(event) {
   const canonicalUrl = naddr ? `${BASE_URL}/video/${naddr}` : `${BASE_URL}/videos`;
   const videosListUrl = `${BASE_URL}/videos`;
 
-  const jsonLd = buildVideoLd({
-    name: title,
-    description: cleanDesc.substring(0, 300),
-    thumbnailUrl,
-    contentUrl: videoUrl,
-    uploadDate: datePublished,
-    duration,
-  });
+  const jsonLd = [
+    buildVideoLd({
+      name: title,
+      description: cleanDesc.substring(0, 300),
+      thumbnailUrl,
+      contentUrl: videoUrl,
+      uploadDate: datePublished,
+      duration,
+    }),
+    // T-A3: Breadcrumb-JSON-LD (Start › Videos › Video)
+    buildBreadcrumbLd(breadcrumbLdItems([
+      { name: lang === 'en' ? 'Home' : 'Startseite', url: `${BASE_URL}${lang === 'en' ? '/en' : ''}/` },
+      { name: lang === 'en' ? 'Videos' : 'Videos', url: `${BASE_URL}${lang === 'en' ? '/en' : ''}/videos` },
+      { name: title, url: null },
+    ], canonicalUrl)),
+  ];
 
   const head = buildHead({
     title: `${title} — MojoBus Video`,
@@ -458,8 +539,13 @@ export function renderVideoHtml(event) {
   });
 
   return `${head}
+  ${breadcrumbHtml([
+    { name: lang === 'en' ? 'Home' : 'Startseite', url: `${BASE_URL}${lang === 'en' ? '/en' : ''}/` },
+    { name: lang === 'en' ? 'Videos' : 'Videos', url: `${BASE_URL}${lang === 'en' ? '/en' : ''}/videos` },
+    { name: title, url: null },
+  ], lang)}
   <h1>${escapeHtml(title)}</h1>
-  ${renderRichText(description, { maxChars: 400 })}
+  ${renderRichText(description, { maxChars: 2000 })}
   ${thumbnailUrl !== DEFAULT_IMAGE ? imageTag(thumbnailUrl, title, { eager: true }) : ''}
   ${videoUrl ? `<video src="${escapeHtml(videoUrl)}" poster="${escapeHtml(thumbnailUrl)}" controls style="max-width:400px"></video>` : ''}
   <p><a href="${escapeHtml(videosListUrl)}">Alle Videos auf MojoBus ansehen →</a></p>
@@ -469,6 +555,7 @@ export function renderVideoHtml(event) {
 
 export function renderMediaHtml(event, fileId = null) {
   const title = event.tags?.find(t => t[0] === 'title')?.[1] || 'Bildergalerie';
+  const lang = getEventLangFromTags(event); // T-A3: Breadcrumb-Sprache
   const desc = event.content || '';
   const images = event.tags?.filter(t => t[0] === 'image').map(t => t[1]) || [];
   const mainImage = images[0] || DEFAULT_IMAGE;
@@ -480,12 +567,20 @@ export function renderMediaHtml(event, fileId = null) {
   const canonicalUrl = `${BASE_URL}/bild/${noteId}`;
   const fileNameId = fileId || noteId;
 
-  const jsonLd = buildImageLd({
-    name: title,
-    description: cleanDesc.substring(0, 200),
-    contentUrl: mainImage,
-    url: canonicalUrl,
-  });
+  const jsonLd = [
+    buildImageLd({
+      name: title,
+      description: cleanDesc.substring(0, 200),
+      contentUrl: mainImage,
+      url: canonicalUrl,
+    }),
+    // T-A3: Breadcrumb-JSON-LD (Start › Bilder › Galerie)
+    buildBreadcrumbLd(breadcrumbLdItems([
+      { name: lang === 'en' ? 'Home' : 'Startseite', url: `${BASE_URL}${lang === 'en' ? '/en' : ''}/` },
+      { name: lang === 'en' ? 'Images' : 'Bilder', url: `${BASE_URL}${lang === 'en' ? '/en' : ''}/bilder` },
+      { name: title, url: null },
+    ], canonicalUrl)),
+  ];
 
   const head = buildHead({
     title: `${title} — MojoBus Bilder`,
@@ -500,8 +595,13 @@ export function renderMediaHtml(event, fileId = null) {
   });
 
   return `${head}
+  ${breadcrumbHtml([
+    { name: lang === 'en' ? 'Home' : 'Startseite', url: `${BASE_URL}${lang === 'en' ? '/en' : ''}/` },
+    { name: lang === 'en' ? 'Images' : 'Bilder', url: `${BASE_URL}${lang === 'en' ? '/en' : ''}/bilder` },
+    { name: title, url: null },
+  ], lang)}
   <h1>${escapeHtml(title)}</h1>
-  <p>${escapeHtml(cleanDesc)}</p>
+  ${renderRichText(desc, { maxChars: 8000 })}
   ${images.slice(0, 3).map((url, i) => imageTag(url, title, { eager: i === 0 })).join('')}
   <p><a href="${escapeHtml(canonicalUrl)}">Galerie auf MojoBus ansehen →</a></p>
 </body>

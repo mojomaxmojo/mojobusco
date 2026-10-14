@@ -12,6 +12,11 @@ import {
 } from './utils.js'
 import { fetchNostrEvent } from './relay.js'
 import { buildBotHtml } from './html.js'
+// SEO-Runde 3 (T-A3): On-demand-Bot-HTML bekommt Breadcrumb + Volltext-Body +
+// „Verwandte Artikel" (aus data/articles.json, kein Relay-Call) — identische
+// Struktur wie die Prerender-Templates (Single Source: prerender-nav.js,
+// server-safe Spiegel der Pipeline-Logik).
+import { buildBotNavExtras } from '../../scripts/prerender-nav.js'
 
 // ============================================================
 // HAUPT-MIDDLEWARE
@@ -106,6 +111,9 @@ export async function botMiddleware(req, res, next) {
 
           console.log(`[BotMiddleware] ✅ Event gefunden: "${meta.title?.substring(0, 50)}"`)
 
+          // T-A3: Breadcrumb + Volltext-Body + Related (server-safe Helpers)
+          const navExtras = buildBotNavExtras(event, pathname)
+
           html = buildBotHtml({
             title:       meta.title || SITE_NAME,
             description: meta.summary || '',
@@ -114,6 +122,7 @@ export async function botMiddleware(req, res, next) {
             type:        'article',
             publishedAt: meta.publishedAt,
             keywords,
+            ...navExtras,
           })
         } else {
           console.warn(`[BotMiddleware] ⚠️ Kein Event gefunden für ${parsed.raw?.substring(0, 20)}`)

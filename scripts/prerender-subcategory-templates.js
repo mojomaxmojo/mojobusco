@@ -14,7 +14,9 @@
 //   RVLife.tsx     → RV_LIFE_CONFIG.autoTags (src/config/rvlife.ts)
 //   StrandOrt.tsx  → STRANDORT_CONFIG categories primary (src/config/strandort.ts)
 // Die TS-Configs sind in Node nicht importierbar → bei Änderung dort auch
-// hier anpassen.
+// hier anpassen. HINWEIS (Runde 3, T-A3): ARTIKEL_SUBCATEGORIES ist zusätzlich
+// in scripts/prerender-nav.js gespiegelt (server-safe Kopie für den on-demand-
+// Bot-Pfad + Related/Breadcrumb) — bei Änderung ALLE DREI Stellen pflegen.
 
 import {
   BASE_URL,
