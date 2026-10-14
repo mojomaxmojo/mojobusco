@@ -291,22 +291,25 @@ fi
 v6_all=$(grep -R "mojobus.org" "$PRERENDER_DIR" 2>/dev/null || true)
 v6_total=$(printf '%s\n' "$v6_all" | grep -c . || true)
 # R4.2: V6 zählt nur ECHTE CRAWLBARE URLs (https://(www.)mojobus.org/<pfad>)
-# statt Zeilen — Live-Beweis 23:20: die „11 echten Reste" waren sämtlich
-# Artefakte (weserv-Proxy mit URL-ENCODED %2Fwp-content, E-Mail julia@…,
-# Fließtext-Mentions ohne Pfad, Markdown-Rest „[mojobus.org](" ohne URL).
-# Diese Formen matchen auf mojobus.org/<pfad> NICHT bzw. werden explizit
-# ausgeschlossen (wp-content = F5-Phase B, dokumentiert).
+# statt Zeilen; R4.4: Filter aus ALLEN drei Report-Scopes (prerender/feed/
+# llms) + Diagnose (Filter-Datei + Eintraganzahl), damit ein leerer Filter
+# sofort sichtbar ist statt als FAIL der URL-Liste missdeutet zu werden.
+{ unmapped_urls "unmapped-org-links.json"; unmapped_urls "unmapped-org-links.feed.json"; unmapped_urls "unmapped-org-links.llms.json"; } > "$UNMAPPED_TMP" 2>/dev/null || true
+sort -u -o "$UNMAPPED_TMP" "$UNMAPPED_TMP" 2>/dev/null || true
+v6_filter_n=$(grep -c . "$UNMAPPED_TMP" 2>/dev/null || echo 0)
+v6_filter_file=$( [ -f "/usr/local/nginx/conf/conf.d/unmapped-org-links.json" ] && echo "conf.d" || echo "repo/fehlt" )
+printf '     Filter: %s Einträge (Quelle: %s)\n' "$v6_filter_n" "$v6_filter_file"
 v6_real_urls=$(printf '%s\n' "$v6_all" \
   | grep -oE 'https://(www\.)?mojobus\.org/[^"'"'"' <>)&]+' 2>/dev/null \
   | grep -v '/wp-content/' \
   | sort -u || true)
-v6_real=$(printf '%s\n' "$v6_real_urls" | grep -c . || true)
+v6_real=$(printf '%s\n' "$v6_real_urls" | filter_out_unmapped "$UNMAPPED_TMP" | grep -c . || true)
 v6_artifacts=$(( v6_total - v6_real ))
 if [ "${v6_real:-1}" -eq 0 ]; then
-  check_pass "V6" "0 echte crawlbare .org-URLs (rohe Treffer-Zeilen: ${v6_total:-0}, darunter Prose-Mentions/E-Mails/weserv-encoded/wp-content = Artefakte bzw. F5-Phase B)"
+  check_pass "V6" "0 echte crawlbare .org-URLs (rohe Zeilen: ${v6_total:-0}, Filter: ${v6_filter_n} Unmapped — alles dokumentiert oder Artefakte)"
 else
-  check_fail "V6" "$v6_real ECHTE crawlbare .org-URLs (rohe Zeilen: ${v6_total:-0}) — Liste:"
-  printf '%s\n' "$v6_real_urls" | head -n 12 | sed 's/^/       /'
+  check_fail "V6" "$v6_real ECHTE crawlbare .org-URLs (rohe Zeilen: ${v6_total:-0}, Filter: ${v6_filter_n}) — Phase-2-Arbeitsliste:"
+  printf '%s\n' "$v6_real_urls" | filter_out_unmapped "$UNMAPPED_TMP" | head -n 12 | sed 's/^/       /'
 fi
 
 # ── [V7] botcheck.sh (T4) ────────────────────────────────────────────────────
