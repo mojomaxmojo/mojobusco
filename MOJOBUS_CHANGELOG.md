@@ -5,6 +5,58 @@
 
 ---
 
+## SEO-Nachlauf TA/TB/TC: Feed/LLMS-Rewrite, Deploy-Abnahme-Kit, Unmapped-Decision-Tooling (2026-10-14)
+
+**Auslöser**: Verifizierte Lücken aus der T1–T5-Welle — (1) generate-feed.js/
+generate-llms.js waren NICHT Teil des T3-Rewrites → .org-Links wanderten in
+RSS (content:encoded) und llms.txt; (2) kein strukturiertes Abnahme-Verfahren
+für den Deploy der Fixes; (3) 65 unmatched WP-Posts + 33 Pages + zukünftige
+Unmapped-Cases waren nicht entscheidbar organisiert.
+
+**TA — Feed/LLMS-Rewrite**: `rewriteOrgLinks()` (Single Source:
+scripts/org-link-rewrite.js) an den Write-Points von generate-feed.js
+(title/description/content VOR escapeXml/CDATA; <link>/<guid>/<enclosure>
+bewusst NICHT — Upload-/Image-URLs sind nicht Teil der Migration-Map) und
+generate-llms.js (Choke-Point an beiden writeFileSync; deckt entryLine +
+body ab). `writeUnmappedOrgLinksReport(scope)` erweitert: Scope-Reports
+unmapped-org-links.feed.json / .llms.json (Task-Nomenklatur) neben der T3-
+Baseline — je Cron-Stufe eigener Prozess, kein Überschreiben.
+
+**TB — Abnahme-Kit**: `scripts/post-deploy-verify.sh` (VPS-only): V1 Shell-
+Canonical weg · V2 Punct-URL→301 clean (reale Test-URL, Catch-all als eigene
+Fail-Bedingung) · V3 clean-URL × Googlebot/bingbot/OAI-SearchBot → 200 +
+self-canonical · V4 /artikel/diy → 200, self-canonical, >1000 Wörter ·
+V5 publish-healthcheck · V6 prerender-Dir .org-frei abzüglich Unmapped
+(jq→node→grep-Fallback, Empty-Pattern-Pass-Through) · V7 botcheck ·
+V8/V9 feed.xml/llms.txt .org-frei abzüglich Unmapped. Gesamtbilanz +
+Exit 1 bei FAIL. naddr via $1 oder frischeste data/sitemap.json.
+Optional CF-Purge via API (CF_API_TOKEN/CF_ZONE_ID), sonst Manuell-Hinweis;
+`CURL_RESOLVE` für Origin-Bypass. Neu: `docs/deploy-runbook.md` (Phase 1
+Deploy-Sequenz mit nginx -t-Gate + Rollback, Phase 2 Unmapped-Merge,
+Acceptance-Tabelle).
+
+**TC — Unmapped-Decision-Tooling**: `scripts/unmapped-decision.js` klassifiziert
+vor (STRICT, „ähnlich ≠ identisch“): WP-ID↔d-tag 1.0 · Slug==d-tag-Suffix
+0.95 · normalisierter Slug==Titel 0.9 · Muster-Tabelle (/impressum/,
+/hier-starten/, /kaufen-2/, /ressourcen/, /category/x/ → .co-Kategorien)
+0.6 · sonst gone 0.8. Quellen: unmapped-org-links*.json + ORG_404_LIST
+(env) + report.json unmatched − bereits gemappte. Outputs:
+unmapped-decisions.csv (human_decision LEER) + .json + mojobus.org-410.map
++ -410.conf (map $mojobus_wp_410; CentminMod lädt conf.d/*.conf auto).
+Merge NUR über die Source of Truth: generate-wp-redirects.js --apply-decisions
+<csv> (offline) → redirects/manual-entries.json → Regenerierung; die
+generierte .map bleibt tabu. Vhost mojobus.org.ssl.conf: if($mojobus_wp_410)
+return 410 in 4 Location-Blöcken vor dem 301-Check (Installationsreihenfolge
+410.conf+410.map VOR reload — nginx -t-Gate).
+
+**Verifikation**: Browser-Selftests — TA 7/7 (CDATA-Kontext, Scope-Namen,
+.co/org.au unangetastet), TB 18/18 (Evaluator gegen synthetische curl-
+Ausgaben, grep-Fallback, Bilanz-Mathe), TC 22/22 (Heuristiken inkl.
+Grenzfälle ähnlicher Slug/leere Inputs, CSV-Roundtrip, apply-Mirror,
+410-Syntax). Live-Abnahme = Runbook + post-deploy-verify.sh.
+
+---
+
 ## SEO-Indexierungs-Fixes T1–T5: Shell-Canonical, Trailing-Punct-Redirects, .org-Link-Rewrite, Botcheck, Publish-Healthcheck (2026-10-14)
 
 **Auslöser**: Verifizierte Befunde (curl + access.log, Stand 14.10.2026):

@@ -243,6 +243,29 @@ Treffer außer den dokumentierten Unmapped-Cases.
   `[PublishHealthcheck] ❌ FAIL` bei 404/Shell/Redirect-auf-/).
   Manuell: `node scripts/publish-healthcheck.js https://mojobus.co/<naddr>`.
 
+**SEO-Nachlauf (2026-10-14, TA/TB/TC)**:
+- **TA**: rewriteOrgLinks() jetzt auch in generate-feed.js (Item-Felder
+  vor escapeXml/CDATA; <link>/<guid>/<enclosure> ausgenommen) und
+  generate-llms.js (Write-Point beider Dateien). Scope-Reports:
+  `unmapped-org-links.feed.json` / `.llms.json` neben der T3-Baseline.
+  Abnahme: `curl -s https://mojobus.co/feed.xml | grep -c mojobus.org` → 0
+  (abzügl. Unmapped), ebenso `llms.txt`.
+- **TB**: Abnahme-Kit `bash scripts/post-deploy-verify.sh <naddr>` (V1–V9,
+  PASS/FAIL, Gesamtbilanz, Exit 1 bei FAILs; naddr-Fallback aus
+  data/sitemap.json; optional CF-Purge via CF_API_TOKEN/CF_ZONE_ID,
+  `CURL_RESOLVE=mojobus.co:443:127.0.0.1` für Origin-Bypass) +
+  `docs/deploy-runbook.md` (Phase 1 Deploy + Phase 2 Unmapped-Merge,
+  nginx -t-Gate, Rollback).
+- **TC**: `node scripts/unmapped-decision.js` klassifiziert Unmapped-Cases
+  (WP-ID↔d-tag · Slug==d-Suffix · Slug==Titel · Muster · gone) →
+  `redirects/unmapped-decisions.csv` (human_decision füllen!) + 410-
+  Artefakte. Merge NUR über Source of Truth:
+  `node scripts/generate-wp-redirects.js --apply-decisions redirects/unmapped-decisions.csv`
+  → manual-entries.json → Regenerierung. Vhost .org hat
+  `if($mojobus_wp_410) return 410` — Installationsreihenfolge 410.conf +
+  410.map VOR dem reload (nginx -t-Gate). Details: Migrations-Doku §2 +
+  Runbook Phase 2.
+
 Wichtig: Nach Nginx-Änderungen ggf. **Cloudflare-Cache purgen** — die Edge
 kann alte Homepage-Shells für Bot-UA-Anfragen zwischengespeichert haben.
 

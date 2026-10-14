@@ -130,13 +130,22 @@ nginx -t && systemctl reload nginx
 
 ## Phase 2 — Unmapped-Merge (NACH TC, sobald human_decision gefüllt ist)
 
-Voraussetzung: `scripts/unmapped-decision.js` hat gelaufen, der Mensch hat
-`redirects/unmapped-decisions.csv` Spalte `human_decision` gefüllt
+Voraussetzung: Prerender-Läufe haben `redirects/unmapped-org-links*.json`
+erzeugt (Phase 1) und der Mensch hat in
+`redirects/unmapped-decisions.csv` die Spalte `human_decision` gefüllt
 (`map` / `gone` / leer = unentschieden).
 
 ```bash
 set -euo pipefail
 cd /root/deploy-git/mojobusco
+
+# 0) Entscheidungsliste erzeugen + 404-Liste einspeisen (VPS)
+#    .org-Log-404s ziehen (awk-Variante, wie Migrations-Doku §5):
+grep Googlebot /home/nginx/domains/mojobus.org/log/access.log* \
+  | awk '$9==404 {print $7}' | sort | uniq -c | sort -rn > /tmp/org-404-list.txt
+ORG_404_LIST=/tmp/org-404-list.txt node scripts/unmapped-decision.js
+#   → redirects/unmapped-decisions.csv (+ .json, mojobus.org-410.map/-410.conf)
+# 1) CSV human_decision füllen (Editor/Tabellenkalkulation): map|gone|leer
 
 # 0) Backup der Redirect-Quellen
 cp -r redirects redirects.bak.$(date +%Y%m%d-%H%M)

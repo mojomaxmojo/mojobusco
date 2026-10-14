@@ -50,18 +50,24 @@ Besucher/Googlebot → https://mojobus.org/98632/oldtimer-reparatur-…/
 
 | Pfad | Art | Zweck |
 |------|-----|-------|
-| `scripts/generate-wp-redirects.js` | Repo | Match-Skript: WP-URLs → nginx-Map + JSON + Report |
+| `scripts/generate-wp-redirects.js` | Repo | Match-Skript: WP-URLs → nginx-Map + JSON + Report. **TC 2026-10:** Modus `--apply-decisions <csv>` (offline: human_decision=map-Zeilen → manual-entries.json) + `mergeManualEntries()` vor allen Outputs |
+| `redirects/manual-entries.json` | generiert (VPS) | **TC 2026-10:** SOURCE OF TRUTH für manuelle Map-Erweiterungen (human_decision=map) — wird bei jedem Generierungs-Lauf in Map/JSON/Report gemerged. NIEMALS die generierte .map handeditieren |
 | `redirects/wp-redirects.map` | generiert (VPS) | nginx-Map (include im Vhost) |
 | `redirects/wp-redirects.json` | generiert (VPS) | strukturierte Tabelle (Resolver liest sie) |
 | `redirects/report.json` | generiert (VPS) | Trefferquoten + Review-/Unmatch-Liste |
-| `redirects/unmapped-org-links.json` | generiert (VPS) | SEO-Fix T3 (2026-10): .org-Links in Event-Texten, die KEINEN Map-Eintrag haben (Prerender-Rewrite-Report, Link bleibt unverändert) |
-| `scripts/org-link-rewrite.js` | Repo | SEO-Fix T3 (2026-10): liest wp-redirects.map + .json (nur lesen!) und ersetzt beim Prerender-Rendern gemappte mojobus.org-Links 1:1 durch die .co-Ziele; Prerender-Output → 0 .org-Treffer außer den dokumentierten Unmapped-Cases |
+| `redirects/unmapped-org-links.json` | generiert (VPS) | SEO-Fix T3 (2026-10): .org-Links in Event-Texten, die KEINEN Map-Eintrag haben (Prerender-Rewrite-Report, Link bleibt unverändert); daneben `.feed.json`/`.llms.json` (Scope-Reports, TA) |
+| `redirects/unmapped-decisions.csv/.json` | generiert (VPS) | **TC 2026-10:** Entscheidungsliste (source_url, log_hits, proposed_type map/gone, proposed_target, confidence, evidence, human_decision LEER) — erzeugt von `scripts/unmapped-decision.js` |
+| `redirects/mojobus.org-410.map` + `-410.conf` | generiert (VPS) | **TC 2026-10:** 410-Gone-Artefakte (gone-Entscheidungen) — .conf definiert `map $mojobus_wp_410` + Include, conf.d/*.conf wird von CentminMod auto-geladen; Vhost hat die `if($mojobus_wp_410)`-Checks ab TC |
+| `scripts/unmapped-decision.js` | Repo | **TC 2026-10:** Klassifiziert Unmapped-Cases vor (STRICT: WP-ID↔d-tag 1.0 · Slug==d-Suffix 0.95 · Slug==Titel 0.9 · Muster 0.6 · sonst gone) → CSV/JSON/410-Artefakte. KEINE Live-Änderung |
+| `scripts/org-link-rewrite.js` | Repo | SEO-Fix T3 (2026-10): liest wp-redirects.map + .json (nur lesen!) und ersetzt beim Prerender-Rendern gemappte mojobus.org-Links 1:1 durch die .co-Ziele; Prerender-Output → 0 .org-Treffer außer den dokumentierten Unmapped-Cases. **TA:** auch feed.xml/llms.txt (Scope-Reports) |
 | `server/routes/wp-redirect.js` | Repo (ai-api) | Resolver-Endpoint `GET /api/wp-redirect` |
 | `server/server.js` | Repo (ai-api) | Import + `app.use(wpRedirectRouter)` — **die einzigen 2 geänderten Zeilen im server/** |
-| `mojobus.org.ssl.conf` | Repo | Vhost-Vorlage (map + Proxy + Systempfade) |
+| `mojobus.org.ssl.conf` | Repo | Vhost-Vorlage (map + Proxy + Systempfade). **TC 2026-10:** `if($mojobus_wp_410) return 410` in location = / und location / (beide Server) VOR dem 301-Check — Installationsreihenfolge: 410.conf + 410.map VOR dem reload (sonst nginx -t „unknown variable“) |
 | `/usr/local/nginx/conf/conf.d/mojobus.org.ssl.conf` | VPS | installierter Vhost |
 | `/usr/local/nginx/conf/conf.d/mojobus.org.redirects.map` | VPS | installierte Map |
+| `/usr/local/nginx/conf/conf.d/mojobus.org.410.conf` + `.410.map` | VPS | **TC 2026-10:** installierte 410-Artefakte (Phase 2) |
 | `docs/CONTEXT_DEPLOY.md` | Repo | Kurzverweis auf dieses Doc |
+| `docs/deploy-runbook.md` | Repo | **TB 2026-10:** Deploy-Runbook Phase 1 (SEO-Fixes) + Phase 2 (Unmapped-Merge) mit Abnahme (`scripts/post-deploy-verify.sh`) |
 
 **Achtung:** `redirects/` liegt untracked im VPS-Checkout und überlebt
 deploy-main.sh (Stash + Reset löschen untracked Dateien nicht) — **niemals
