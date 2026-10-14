@@ -233,3 +233,68 @@ nginx -t && systemctl reload nginx
 https://mojobus.co/naddr1qvzqqqr4gupzqn2cfk4hezq2nqy70hcywmt5t0lf50lfrgwqv27plmqzfc94u8clqyt8wumn8ghj7un9d3shjtndda4x7cn4wvhxxmcqz4shyarfvdkx2tf3xuurvv3kxcenjwf5xves67qhfd)
 → nach Deploy: 301 auf dieselbe URL ohne das ")"
 ```
+
+---
+
+## Phase 3 — Abnahme T-A3/T-B3/T-C3 (Artikel-Nav, Linkify, robots.txt)
+
+Voraussetzung: Phase 1-Deploy MIT Runde-3-Commits (9f974e1 T-A3, 6994186
+T-B3, 78b60f6 T-C3) + Prerender-Neulauf + CF-Purge.
+
+```bash
+set -euo pipefail
+cd /root/deploy-git/mojobusco
+
+# 0) Naddr rezent wählen
+NADDR_REZENT=$(node -e 'const j=require("/home/nginx/domains/mojobus.co/public/data/sitemap.json");console.log([...j].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0))[0].naddr)')
+
+# 1) Artikel-Prerender: Linkdichte + Navigation + Volltext (T-A3/T-B3)
+curl -s -A "Mozilla/5.0 (compatible; Googlebot/2.1)" "https://mojobus.co/$NADDR_REZENT" | grep -c '<a href'
+#   Erwartung: ≥ 6 (vorher: 1) — Breadcrumb(2) + Related(4) + Weiterlesen(1) + Content-Anchors
+curl -s -A "Mozilla/5.0 (compatible; Googlebot/2.1)" "https://mojobus.co/$NADDR_REZENT" | grep -c 'Verwandte Artikel'
+#   Erwartung: ≥ 1
+curl -s -A "Mozilla/5.0 (compatible; Googlebot/2.1)" "https://mojobus.co/$NADDR_REZENT" | grep -c 'BreadcrumbList'
+#   Erwartung: ≥ 1 (JSON-LD, 3 Stufen)
+curl -s -A "Mozilla/5.0 (compatible; Googlebot/2.1)" "https://mojobus.co/$NADDR_REZENT" | wc -w
+#   Erwartung: ≫ 300 (vorher ~152 — Volltext statt Teaser)
+curl -s -A "Mozilla/5.0 (compatible; Googlebot/2.1)" "https://mojobus.co/$NADDR_REZENT" | grep -c '<a href="<a href'
+#   Erwartung: 0 (kein doppeltes Wrapping)
+curl -s -A "Mozilla/5.0 (compatible; Googlebot/2.1)" "https://mojobus.co/$NADDR_REZENT" | grep -oE 'canonical[^>]*' | head -1
+#   Erwartung: UNVERÄNDERT self-canonical (Meta-Kette unangetastet)
+
+# 2) Quellenfix: Klammer-URLs aus Artikeltexten künftig clean (T-B3):
+curl -s -A "Mozilla/5.0 (compatible; Googlebot/2.1)" "https://mojobus.co/$NADDR_REZENT" \
+  | grep -oE '\(https://mojobus\.co/[a-z0-9]+\)' | head -3
+#   Erwartung: leer — Klammern stehen AUSSERHALB der Anchors; Anchors enden auf der clean-URL
+#   (kontrollieren: Anchor-HREFs haben kein ')' am Ende):
+curl -s -A "Mozilla/5.0 (compatible; Googlebot/2.1)" "https://mojobus.co/$NADDR_REZENT" \
+  | grep -oE 'href="[^"]*\)[^"]*"' | wc -l   # Erwartung: 0
+
+# 3) robots.txt (T-C3, nach CF-Purge):
+curl -s https://mojobus.co/robots.txt | grep -c "Allow: /prerender/"
+#   Erwartung: 0
+curl -s https://mojobus.co/robots.txt | grep -c "Disallow: /prerender/"
+#   Erwartung: 1 — VORAUSSETZUNG dokumentiert in der Datei: post-deploy-verify V3 grün
+curl -s -A "Mozilla/5.0 (compatible; Googlebot/2.1)" "https://mojobus.co/$NADDR_REZENT" -o /dev/null -w '%{http_code}\n'
+#   Erwartung: 200 (Disallow: /prerender/ ändert nichts an Canonical-URLs)
+
+# 4) On-demand-Pfad (ai-api-Fallback) — Thumbnail-Check (T-A3, Serveranteil):
+#    Funktionstest: Temporär eine Prerender-Datei wegbewegen → Googlebot-Request
+#    → Resolver → Prerender-resolve liefert HTML MIT Breadcrumb/Body/Related
+mv /home/nginx/domains/mojobus.co/public/prerender/$NADDR_REZENT.html /tmp/
+curl -s -A "Mozilla/5.0 (compatible; Googlebot/2.1)" "https://mojobus.co/$NADDR_REZENT" | grep -c 'Verwandte Artikel'
+mv /tmp/$NADDR_REZENT.html /home/nginx/domains/mojobus.co/public/prerender/
+#   Erwartung (beide greps): ≥ 1 — dann Datei zurück; alternativ Exit-Check oben
+
+# 5) Bilanz-Log der Prerender-/Feed-/LLMS-Läufe:
+#    [Prerender] org→co Links: N ersetzt, M unmapped
+#    [Feed] org→co Links: … / [LLMS] org→co Links: …
+#    Unmapped-Scope-Reports: redirects/unmapped-org-links{,.feed,.llms}.json
+
+# 6) Generator-Rest (T-D3) — Offline-Modi prüfen (kein WP nötig):
+node scripts/generate-wp-redirects.js            # Erwartung: FAIL-SAFE-Abort (mojobus.org 301+HTML), KEIN Write
+node scripts/generate-wp-redirects.js --from-map # wp-redirects.json aus der lebenden Map (Stage 1 wieder aktiv)
+curl -sI "https://mojobus.org/?p=98632" | head -3 # Stage-1-Check: 301 → naddr (aus der JSON statt nur Stage 2)
+```
+
+---

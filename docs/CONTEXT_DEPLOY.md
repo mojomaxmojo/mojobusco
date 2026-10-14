@@ -266,6 +266,37 @@ Treffer außer den dokumentierten Unmapped-Cases.
   410.map VOR dem reload (nginx -t-Gate). Details: Migrations-Doku §2 +
   Runbook Phase 2.
 
+**SEO-Runde 3 (2026-10-14, T-A3/T-B3/T-C3/T-D3/T-E3)**:
+- **T-A3/T-B3**: Artikel-Prerender = keine Waisenseiten mehr — Breadcrumb
+  (Body + BreadcrumbList-JSON-LD, alle Entity-Renderer), „Verwandte Artikel"
+  (deterministisch: Kategorie > Tags > Jahr, aus articles.json/in-memory
+  Inventar, kein Relay-Call; Titel-Links ohne Bilder), Kategorie-Link,
+  VOLler Content statt Teaser (renderRichText, Caps: Artikel 60000/Orte
+  20000/Notes 8000/Medien 8000/Videos 2000 ≪ 300 KB). Neues Modul
+  `scripts/prerender-content.js` (renderRichText: org→co vorgeschaltet →
+  HTML-Strip → escape-first → md-Links internal/external → Linkify roher
+  interner URLs + nostr:-URIs MIT Trailing-Punct-Trennung (T2a-Klasse) →
+  h2/h3/strong/Absätze) + `scripts/prerender-nav.js` (server-safe Spiegel:
+  classifyArticle/isPlaceLite/Related/Breadcrumb + buildBotNavExtras für
+  den ai-api-On-demand-Pfad — bot/html.js nimmt breadcrumbHtml/bodyHtml/
+  relatedHtml-Extras). Mirror-Pflicht: ARTIKEL_SUBCATEGORIES jetzt in
+  DREI Stellen (subcategory-templates, prerender-nav, src-Configs).
+- **T-C3**: robots.txt `Disallow: /prerender/` (Bots kriegen Prerender an
+  den Canonical-URLs; Voraussetzung V3-grün als Kommentar in der Datei).
+- **T-D3**: Generator-Fail-safe (no-args bricht bei 301+HTML-Catch-All VOR
+  Write ab; WP_ALLOW_DEGRADED=1 explizit; WP_MIN_URLS=500), Offline-Modi
+  `--from-map` (wp-redirects.json aus der LEBENDEN
+  conf.d/mojobus.org.redirects.map → Stage 1 von /api/wp-redirect wieder
+  aktiv; Validation ≥1000 Zeilen, JSON-Backup) + `--from-snapshot` +
+  `--snapshot` (rohes WP-XML mit Herkunfts-Markern →
+  redirects/wp-sitemap-snapshot.xml). Sync-Kanonisierung: EIN Ziel
+  (`cp redirects/wp-redirects.map conf.d/mojobus.org.redirects.map`) —
+  conf.d/wp-redirects.map ist redundant (md5-gleich, nicht inkludiert).
+  410-Naming: Repo = Install (mojobus.org.410.conf/.map, gerader cp).
+- **T-E3**: `bash scripts/sync-maps.sh` (Backup → cp → Verlust-Diff →
+  nginx -t && reload); Edge-Klasse ohne `"` dokumentiert (Resolver deckt ab).
+- Abnahme: Runbook **Phase 3**.
+
 Wichtig: Nach Nginx-Änderungen ggf. **Cloudflare-Cache purgen** — die Edge
 kann alte Homepage-Shells für Bot-UA-Anfragen zwischengespeichert haben.
 

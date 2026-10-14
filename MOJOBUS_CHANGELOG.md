@@ -5,6 +5,64 @@
 
 ---
 
+## SEO-Runde 3: Artikel-Prerender-Verlinkung, Linkify, robots.txt, Generator-Rest (2026-10-14)
+
+**Auslöser**: Verifizierte VPS-Fakten — Artikel-Prerender = Waisenseite
+(1 interner Link, ~152 Wörter, Teaser statt Volltext), rohe URLs unklickbar
+im Fließtext (Extraktionsquelle der T2-404s), robots.txt erlaubte das
+interne /prerender/-Cache-Verzeichnis, WP-Redirect-Generator ohne Offline-Weg
+bei toter WP-Quelle (mojobus.org liefert seit ~28 Tagen 301+HTML), Sync-
+Inkonsistenz (lebende Map = conf.d/mojobus.org.redirects.map, Zweitkopie
+conf.d/wp-redirects.map dokumentiert) und 410-Naming-Mismatch
+(Repo Bindestrich vs. Install Punkt).
+
+**T-A3 — Artikel-Prerender**: Breadcrumb (Body + BreadcrumbList-JSON-LD)
+in ALLEN Entity-Renderern; „Verwandte Artikel" 3–5 Titel-Links
+deterministisch (Kategorie ×1000 > Tags ×10 > Jahr ×2, Tiebreak neueste/id,
+Sprache folgt Artikel, Orte/Selbst raus; naddr-Encoding nur für Picks);
+Kategorie-Link; VOLler Content (Caps 60000/20000/8000/2000 ≪ 300 KB).
+Neu `scripts/prerender-nav.js` (server-safe: classifyArticle- und
+isPlaceLite-Spiegel, buildBotNavExtras aus data/articles.json — kein
+Relay-Call) — Mirror-Pflicht ARTIKEL_SUBCATEGORIES jetzt 3 Stellen.
+
+**T-B3 — Linkify (Quellenfix)**: Neu `scripts/prerender-content.js`
+(renderRichText: org→co vorgeschaltet → HTML-Strip → escape-first →
+md-Links internal/external → Linkify interner URLs + nostr:-URIs MIT
+Trailing-Punct-Trennung → h2/h3/strong/Absätze; maxChars-Cap). Rohe interne
+URLs werden zu Anchors, deren href IMMER die clean-URL ist → Google
+extrahiert künftig keine „URL-mit-Klammer" mehr an der Quelle. Externe
+URLs bleiben Text; Lookbehinds verhindern Doppel-Wrapping.
+
+**T-C3 — robots.txt**: `Disallow: /prerender/` (Voraussetzung V3-grün als
+Kommentar in der Datei); sonstige Regeln unangetastet.
+
+**T-D3 — Generator-Rest**: Fail-safe (no-args abortiert bei 301+HTML-Catch-
+All VOR jedem Write; WP_ALLOW_DEGRADED=1; WP_MIN_URLS=500) + Offline-Modi
+`--from-map` (wp-redirects.json aus der LEBENDEN conf.d-Map → Runtime Stage 1
+wieder aktiv; ≥1000-Zeilen-Validation, JSON-Backup; die 1863-Map bleibt
+unangetastet) + `--from-snapshot` + `--snapshot` (WP-XML mit Herkunfts-
+Markern). Sync-Kanonisierung auf EIN Ziel (lebende Map) + 410-Naming-Fix
+(Repo = Install: mojobus.org.410.conf/.map, gerader cp).
+
+**T-E3**: `scripts/sync-maps.sh` (Backup → cp → Verlust-Diff-Abort →
+nginx -t && reload); Edge-Klasse ohne `"` bewusst dokumentiert (Resolver
+deckt ab).
+
+**Verifikation**: Browser-Selftests T-B3 12/12 (Klammer-Kontext → clean-
+Anchor, md internal/external, Doppel-Wrap-Guards, nostr:-URIs, Struktur,
+Caps, org→co-Ordnung) · T-A3 9/9 (classifyArticle/isPlaceLite inkl.
+Announce-/Media-Kriterien, Related deterministisch + Cap-Clamps, Breadcrumb
+HTML+LD, buildBotNavExtras Artikel/Ort/Note, Linkdichte 7≥6) · T-D3:
+Shell-Pipeline-Verifikation der Parser (12 Map-Zeilen → 5 Basis-Sources mit
+Post-/Page-/Query-Basis-Regeln; Snapshot-Marker-Split → 2 Posts/1 Page/
+Sub-Loc ausgeschlossen; Fail-safe-Fälle HTML/301/Timeout → Abort VOR Write;
+Stage-1-loadRedirects-Mirror liest --from-map-JSON) — Browser-Selftest
+Runde 9 vorbereitet, Preview-SW lieferte aber gecachetes index.html
+(staler Bundle), daher Shell-Verifikation als verbindlicher Nachweis +
+VPS-Abnahme (Runbook Phase 3).
+
+---
+
 ## SEO-Nachlauf TA/TB/TC: Feed/LLMS-Rewrite, Deploy-Abnahme-Kit, Unmapped-Decision-Tooling (2026-10-14)
 
 **Auslöser**: Verifizierte Lücken aus der T1–T5-Welle — (1) generate-feed.js/
