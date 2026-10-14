@@ -144,7 +144,7 @@ cd /root/deploy-git/mojobusco
 grep Googlebot /home/nginx/domains/mojobus.org/log/access.log* \
   | awk '$9==404 {print $7}' | sort | uniq -c | sort -rn > /tmp/org-404-list.txt
 ORG_404_LIST=/tmp/org-404-list.txt node scripts/unmapped-decision.js
-#   → redirects/unmapped-decisions.csv (+ .json, mojobus.org-410.map/-410.conf)
+#   → redirects/unmapped-decisions.csv (+ .json, mojobus.org.410.map/-410.conf)
 # 1) CSV human_decision füllen (Editor/Tabellenkalkulation): map|gone|leer
 
 # 0) Backup der Redirect-Quellen
@@ -159,12 +159,27 @@ node scripts/generate-wp-redirects.js --apply-decisions redirects/unmapped-decis
 node scripts/generate-wp-redirects.js
 #   → wp-redirects.map/.json/report.json enthalten jetzt die gemappten Alt-URLs
 
+# 2b) Alternativ/Helfer: Map-Sync über das Script (T-E3) — Backup → cp →
+#     Verlust-Diff (Abort bei fehlenden Keys) → nginx -t && reload:
+#   bash scripts/sync-maps.sh
+#   (Default-Quelle: /root/deploy-git/mojobusco/redirects/wp-redirects.map)
+# ACHTUNG TD3-Fail-safe: Ein normaler no-args-Generator-Lauf bricht JETZT ab,
+# wenn mojobus.org keine plausible Sitemap liefert (301+HTML-Catch-All) —
+# Offline-Wiederherstellung der Runtime-Tabelle:
+#   node scripts/generate-wp-redirects.js --from-map
+#     (liest die LEBENDE conf.d/mojobus.org.redirects.map → wp-redirects.json,
+#      Stage 1 von /api/wp-redirect aktiv wieder; Validation ≥ 1000 Zeilen,
+#      Backup der bestehenden .json; die 1863-Map selbst bleibt unangetastet)
+#   node scripts/generate-wp-redirects.js --from-snapshot
+#     (aus redirects/wp-sitemap-snapshot.xml — entsteht mit --snapshot bei
+#      erfolgreichem WP-Fetch)
+
 # 3) Map installieren
 cp redirects/wp-redirects.map /usr/local/nginx/conf/conf.d/mojobus.org.redirects.map
 
 # 4) 410-Snippet installieren (gone-Entscheidungen)
-cp redirects/mojobus.org-410.conf /usr/local/nginx/conf/conf.d/mojobus.org.410.conf
-cp redirects/mojobus.org-410.map  /usr/local/nginx/conf/conf.d/mojobus.org.410.map
+cp redirects/mojobus.org.410.conf /usr/local/nginx/conf/conf.d/mojobus.org.410.conf
+cp redirects/mojobus.org.410.map  /usr/local/nginx/conf/conf.d/mojobus.org.410.map
 #   (Vhost mojobus.org.ssl.conf enthält bereits die if($mojobus_wp_410)-Checks
 #    vor dem 301-Map-Check — mit dieser Welle deployed.)
 
@@ -191,7 +206,7 @@ curl -s https://mojobus.co/feed.xml | grep -c "mojobus.org"   # Erwartung: 0
 ```bash
 cp redirects.bak.<ts>/wp-redirects.map /usr/local/nginx/conf/conf.d/mojobus.org.redirects.map
 cp redirects.bak.<ts>/manual-entries.json redirects/manual-entries.json   # falls vorhanden
-cp redirects.bak.<ts>/mojobus.org-410.map /usr/local/nginx/conf/conf.d/mojobus.org.410.map
+cp redirects.bak.<ts>/mojobus.org.410.map /usr/local/nginx/conf/conf.d/mojobus.org.410.map
 nginx -t && systemctl reload nginx
 ```
 

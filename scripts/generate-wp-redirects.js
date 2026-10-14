@@ -28,6 +28,25 @@
  *   report.json        – Trefferquoten + Review-/Unmatch-Liste
  *
  * Läuft auf dem VPS:  node scripts/generate-wp-redirects.js
+ *
+ * INSTALLATION (TD3-Sync-Kanonisierung 2026-10 — EIN kanonisches Ziel):
+ *   cp redirects/wp-redirects.map /usr/local/nginx/conf/conf.d/mojobus.org.redirects.map
+ * (die LEBENDE Include-Datei, include in mojobus.org.ssl.conf). Helfer:
+ * scripts/sync-maps.sh (Backup → cp → Verlust-Diff → nginx -t && reload).
+ * conf.d/wp-redirects.map ist eine REDUNDANTE md5-identische Zweitkopie
+ * (historisch, NICHT inkludiert) — Löschen entscheidet der Mensch.
+ *
+ * OFFLINE-Modi (TD3, 2026-10):
+ *   --from-map [mapPfad]      wp-redirects.json aus der LEBENDEN Map
+ *                             (Default conf.d/mojobus.org.redirects.map) —
+ *                             Stage 1 der Runtime (wp-redirect.js) wieder aktiv
+ *   --from-snapshot [pfad]    wp-redirects.json aus wp-sitemap-snapshot.xml
+ *   --snapshot                (normaler Lauf) rohes WP-Sitemap-XML persistieren
+ *   --apply-decisions <csv>   human_decision=map → manual-entries.json (TC)
+ *
+ * FAIL-SAFE (TD3-3): mojobus.org liefert seit ~2026-09-16 301+HTML (Catch-All)
+ * statt XML → no-args-Läufe aborten VOR jedem Write mit Offline-Optionen
+ * (WP_ALLOW_DEGRADED=1 zum expliziten Übersteuern, WP_MIN_URLS-Schwellwert).
  */
 
 import fs from 'fs';
@@ -218,6 +237,11 @@ function locs(xml) {
 
 // ── Quelle 1: WP-Core-Sitemap ──────────────────────────────────────────────
 
+// Snapshot-Kommentar-Marke (TD3): Der Snapshot konserviert index + sub-
+// sitemaps MIT Herkunfts-Markern, damit --from-snapshot posts/pages wieder
+// zuordnen kann (posts-post-N vs. posts-page-N).
+const SNAPSHOT_MARKER_RE = /<!-- wp-snapshot-source:\s*([^>]+?)\s*-->/;
+
 async function fetchWpSitemapUrls() {
   const indexXml = await fetchText(`${WP_SOURCE}/wp-sitemap.xml`);
   if (!indexXml) return null;
@@ -228,10 +252,13 @@ async function fetchWpSitemapUrls() {
 
   const posts = [];
   const pages = [];
+  // TD3 --snapshot: rohes XML (index + subs) mit Herkunfts-Markern sammeln
+  const rawParts = [`<!-- wp-snapshot-source: ${WP_SOURCE}/wp-sitemap.xml (index) -->`, indexXml];
   for (const sm of subSitemaps) {
     const isPosts = /posts-post-\d+\.xml$/.test(sm);
     const xml = await fetchText(sm);
     if (!xml) continue;
+    rawParts.push(`<!-- wp-snapshot-source: ${sm} -->`, xml);
     for (const u of locs(xml)) {
       let p;
       try { p = new URL(u).pathname; } catch { continue; }
@@ -246,7 +273,7 @@ async function fetchWpSitemapUrls() {
     }
   }
   if (posts.length === 0 && pages.length === 0) return null;
-  return { posts, pages, via: 'wp-sitemap.xml' };
+  return { posts, pages, via: 'wp-sitemap.xml', rawXml: rawParts.join('\n') };
 }
 
 // ── Quelle 2 (Fallback): REST-API ──────────────────────────────────────────
@@ -310,8 +337,14 @@ function diceTokens(a, b) {
 
 // ── Main ───────────────────────────────────────────────────────────────────
 
-// Modus-Schalter: --apply-decisions <csv> läuft OFFLINE (kein WP-Netz-Zugriff)
+// Modus-Schalter (Reihenfolge der Prüfung = Priorität):
+//   --apply-decisions <csv>   offline: human_decision=map → manual-entries.json
+//   --from-map [mapPfad]      offline: wp-redirects.json aus der LEBENDEN
+//                             nginx-Map rekonstruieren (Stage 1 der Runtime)
+//   --from-snapshot [pfad]    offline: wp-redirects.json aus dem XML-Snapshot
+//   --snapshot                (normaler Lauf) rohes WP-Sitemap-XML persistieren
 const argv = process.argv.slice(2);
+
 const applyIdx = argv.indexOf('--apply-decisions');
 if (applyIdx !== -1) {
   const csvPath = argv[applyIdx + 1];
@@ -322,7 +355,140 @@ if (applyIdx !== -1) {
   applyDecisions(csvPath);
 }
 
-async function main() {
+const LIVE_MAP_PATH = '/usr/local/nginx/conf/conf.d/mojobus.org.redirects.map';
+const SNAPSHOT_PATH = 'wp-sitemap-snapshot.xml';
+
+/**
+ * TD3-1: wp-redirects.json aus der LEBENDEN nginx-Map rekonstruieren.
+ * Format: "key" target;-Zeilen + #-Kommentare. Varianten-Zeilen
+ * (source/sourceNoSlash/sourceIdOnly/?p=) werden je TARGET zur Basis-Source
+ * normalisiert (Post-Form /<id>/<slug>/ > längste Slash-Form > erste Nicht-
+ * Query-Form). Runtime Stage 1 (server/routes/wp-redirect.js liest
+ * wp-redirects.json mit entries[].source→target) funktioniert danach wieder.
+ * Validation: ≥ 1000 Map-Zeilen (env WP_MIN_MAP_ENTRIES), sonst Abort —
+ * die 1863-Map selbst wird NIE angetastet.
+ */
+function runFromMap(mapPath) {
+  const source = mapPath || LIVE_MAP_PATH;
+  console.log(`[WP-Redirect] --from-map: ${source}`);
+  let text;
+  try {
+    text = fs.readFileSync(source, 'utf-8');
+  } catch (e) {
+    console.error(`[WP-Redirect] ❌ Map unlesbar (${source}): ${e.message}`);
+    console.error('[WP-Redirect]    Default ist die lebende Include-Datei; Alternativ: redirects/wp-redirects.map oder Backup unter /root/backup-redirects/.');
+    process.exit(1);
+  }
+  const rows = [];
+  for (const line of text.split('\n')) {
+    const t = line.trim();
+    if (!t || t.startsWith('#')) continue;
+    const m = /^"([^"]+)"\s+(\S+);$/.exec(t);
+    if (m && m[2].startsWith(BASE_URL)) rows.push({ key: m[1], target: m[2] });
+  }
+  const minEntries = Number(process.env.WP_MIN_MAP_ENTRIES || 1000);
+  if (rows.length < minEntries) {
+    console.error(`[WP-Redirect] ❌ FAIL-SAFE: Nur ${rows.length} gültige Map-Zeilen (< ${minEntries}, env WP_MIN_MAP_ENTRIES) — Abort, KEINE Datei geschrieben.`);
+    process.exit(1);
+  }
+  const byTarget = new Map();
+  for (const r of rows) {
+    if (!byTarget.has(r.target)) byTarget.set(r.target, []);
+    byTarget.get(r.target).push(r.key);
+  }
+  const entries = [];
+  const seen = new Set();
+  for (const [target, keys] of byTarget) {
+    const postForm = keys.find(k => /^\/\d+\/[^/]+\/$/.test(k));
+    const slashForm = keys
+      .filter(k => k.endsWith('/') && !k.startsWith('/?'))
+      .sort((a, b) => b.length - a.length)[0];
+    const base = postForm || slashForm || keys.find(k => !k.startsWith('/?')) || keys[0];
+    if (seen.has(base)) continue;
+    seen.add(base);
+    entries.push({ source: base, target, match: 'from-map', confidence: 1 });
+  }
+  const outPath = path.join(OUT_DIR, 'wp-redirects.json');
+  try {
+    if (fs.existsSync(outPath)) {
+      const bak = `${outPath}.bak-${new Date().toISOString().replace(/[:.]/g, '-')}`;
+      fs.copyFileSync(outPath, bak);
+      console.log(`[WP-Redirect] Backup: ${bak}`);
+    }
+  } catch { /* Backup best-effort */ }
+  fs.writeFileSync(outPath, JSON.stringify({
+    generatedAt: new Date().toISOString(),
+    via: 'from-map',
+    source,
+    targetBase: BASE_URL,
+    count: entries.length,
+    entries,
+  }, null, 2), 'utf-8');
+  console.log(`[WP-Redirect] ✅ ${entries.length} Basis-Sources aus ${rows.length} Map-Zeilen → ${outPath}`);
+  console.log('[WP-Redirect]    Runtime Stage 1 (wp-redirect.js) liest wp-redirects.json wieder; ai-api braucht KEINEN Neustart (mtime-Cache).');
+  process.exit(0);
+}
+
+/**
+ * TD3-5: wp-redirects.json aus dem XML-Snapshot (wp-sitemap-snapshot.xml)
+ * rekonstruieren — Offline-Grundlage, wenn mojobus.org endgültig dicht ist.
+ */
+function runFromSnapshot(snapPath) {
+  const source = snapPath || path.join(OUT_DIR, SNAPSHOT_PATH);
+  console.log(`[WP-Redirect] --from-snapshot: ${source}`);
+  let text;
+  try {
+    text = fs.readFileSync(source, 'utf-8');
+  } catch (e) {
+    console.error(`[WP-Redirect] ❌ Snapshot unlesbar (${source}): ${e.message}`);
+    console.error('[WP-Redirect]    Snapshot entsteht mit --snapshot bei einem erfolgreichen WP-Fetch.');
+    process.exit(1);
+  }
+  const parts = text.split(SNAPSHOT_MARKER_RE).slice(1); // [url, xml, url, xml, …]
+  if (parts.length < 2) {
+    console.error('[WP-Redirect] ❌ Snapshot ohne Herkunfts-Marker (zu alt/anders formatiert) — Abort.');
+    process.exit(1);
+  }
+  const posts = [];
+  const pages = [];
+  for (let i = 0; i < parts.length; i += 2) {
+    const subUrl = parts[i];
+    const xml = parts[i + 1] || '';
+    const isPosts = /posts-post-\d+\.xml$/.test(subUrl);
+    for (const u of locs(xml)) {
+      let p;
+      try { p = new URL(u).pathname; } catch { continue; }
+      const m = /^\/(\d+)\/([^/]+)\/?$/.exec(p);
+      if (isPosts && m) {
+        posts.push({ id: m[1], slug: m[2], link: u, title: '' });
+      } else if (!isPosts) {
+        const slug = p.replace(/^\/|\/$/g, '');
+        if (slug) pages.push({ id: null, slug, link: u, title: '' });
+      }
+    }
+  }
+  if (posts.length === 0 && pages.length === 0) {
+    console.error('[WP-Redirect] ❌ Snapshot enthält keine Post/Page-URLs — Abort.');
+    process.exit(1);
+  }
+  return { posts, pages, via: 'wp-sitemap-snapshot.xml', source };
+}
+
+const fromMapIdx = argv.indexOf('--from-map');
+if (fromMapIdx !== -1) {
+  const maybePath = argv[fromMapIdx + 1];
+  runFromMap(maybePath && !maybePath.startsWith('--') ? maybePath : undefined);
+}
+
+const fromSnapshotIdx = argv.indexOf('--from-snapshot');
+if (fromSnapshotIdx !== -1) {
+  const maybePath = argv[fromSnapshotIdx + 1];
+  main(runFromSnapshot(maybePath && !maybePath.startsWith('--') ? maybePath : undefined));
+} else {
+  main();
+}
+
+async function main(presetWp = null) {
   const startTime = Date.now();
   console.log(`[WP-Redirect] Quelle: ${WP_SOURCE}`);
   console.log(`[WP-Redirect] Artikel-Index: ${ARTICLES_FILE}`);
@@ -360,17 +526,59 @@ const entries = JSON.parse(fs.readFileSync(ARTICLES_FILE, 'utf-8'));
   }
   console.log(`[WP-Redirect] Index: ${byWpId.size} IDs, ${byTagSuffix.size} d-Tag-Slugs, ${byTitleKey.size} Titel.`);
 
-  // WP-URLs enumerieren
-  let wp = await fetchWpSitemapUrls();
-  if (!wp) {
-    console.log('[WP-Redirect] wp-sitemap.xml nicht verfügbar — REST-Fallback …');
-    wp = await fetchWpRestUrls();
+  // WP-URLs enumerieren — preset (--from-snapshot) überspringt das Netz
+  let wp = presetWp;
+  if (wp) {
+    console.log(`[WP-Redirect] Quelle: Preset (--from-snapshot) → ${wp.posts.length} Posts, ${wp.pages.length} Pages`);
+  } else {
+    try {
+      wp = await fetchWpSitemapUrls();
+      if (!wp) {
+        console.log('[WP-Redirect] wp-sitemap.xml nicht verfügbar — REST-Fallback …');
+        wp = await fetchWpRestUrls();
+      }
+    } catch (e) {
+      console.error(`[WP-Redirect] ⚠ WP-Quelle-Exception: ${e.message}`);
+      wp = null;
+    }
   }
-  if (!wp) {
-    console.error('[WP-Redirect] ❌ Weder wp-sitemap.xml noch REST liefern URLs.');
-    process.exit(1);
+
+  // ── Fail-safe (TD3-3): VOR irgendeinem Write validieren ─────────────────
+  // Bekannter Zustand (Stand 2026-10-14): mojobus.org liefert seit ~28 Tagen
+  // 301+HTML (Catch-All → mojobus.co/artikel) statt XML — jeder no-args-Lauf
+  // endete bisher mit „❌ Weder wp-sitemap.xml noch REST liefern URLs“.
+  // Jetzt: klarer Abort OHNE Write + Offline-Alternativen (--from-map /
+  // --from-snapshot). Explizit übersteuerbar mit WP_ALLOW_DEGRADED=1.
+  const WP_MIN_URLS = Number(process.env.WP_MIN_URLS || 500);
+  const totalUrls = wp ? wp.posts.length + wp.pages.length : 0;
+  if (!wp || totalUrls < WP_MIN_URLS) {
+    if (process.env.WP_ALLOW_DEGRADED === '1') {
+      console.warn(`[WP-Redirect] ⚠ WP_ALLOW_DEGRADED=1 — degradierter Lauf mit ${totalUrls} URLs (${wp ? wp.via : 'keine Quelle'}). Die generierte Map wird DÜNN — Regenerierung überschreibt die 1863-Map mit wenigen Zeilen!`);
+    } else {
+      console.error('[WP-Redirect] ❌ FAIL-SAFE: WP-Quelle liefert keine plausible URL-Liste.');
+      console.error(`[WP-Redirect]    Gefunden: ${wp ? `${wp.posts.length} Posts, ${wp.pages.length} Pages (${wp.via})` : 'keine'} — Schwellwert ${WP_MIN_URLS} (env WP_MIN_URLS).`);
+      console.error('[WP-Redirect]    KEINE Datei wurde angefasst. Optionen:');
+      console.error('[WP-Redirect]      node scripts/generate-wp-redirects.js --from-map                       # wp-redirects.json aus der LEBENDEN Map (Stage 1 der Runtime)');
+      console.error('[WP-Redirect]      node scripts/generate-wp-redirects.js --from-snapshot                 # aus redirects/wp-sitemap-snapshot.xml');
+      console.error('[WP-Redirect]      WP_ALLOW_DEGRADED=1 node scripts/generate-wp-redirects.js             # explizit degradiert laufen lassen (Map wird dünn!)');
+      process.exit(1);
+    }
   }
   console.log(`[WP-Redirect] Quelle: ${wp.via} → ${wp.posts.length} Posts, ${wp.pages.length} Pages.`);
+
+  // ── Snapshot (TD3-5, optional --snapshot): rohes XML persistieren ──────
+  const snapshotFlag = argv.includes('--snapshot');
+  if (snapshotFlag && wp.rawXml) {
+    const snapPath = path.join(OUT_DIR, SNAPSHOT_PATH);
+    try {
+      fs.writeFileSync(snapPath, wp.rawXml, 'utf-8');
+      console.log(`[WP-Redirect] 📸 Snapshot: ${snapPath} (${(wp.rawXml.length / 1024).toFixed(0)} KB) — Offline-Grundlage für --from-snapshot.`);
+    } catch (e) {
+      console.warn(`[WP-Redirect] ⚠ Snapshot nicht schreibbar: ${e.message}`);
+    }
+  } else if (snapshotFlag) {
+    console.warn('[WP-Redirect] ⚠ --snapshot ohne XML-Quelle (via=' + wp.via + ') — übersprungen (REST liefert kein Sitemap-XML).');
+  }
 
   const results = [];
   const review = [];

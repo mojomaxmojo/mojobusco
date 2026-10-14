@@ -32,9 +32,9 @@
  *   unmapped-decisions.csv   source_url,log_hits,proposed_type,proposed_target,
  *                            confidence,evidence,human_decision(LEER)
  *   unmapped-decisions.json  identischer Inhalt, maschinenlesbar
- *   mojobus.org-410.map      nginx-map-Daten für gone-Entscheidungen
+ *   mojobus.org.410.map      nginx-map-Daten für gone-Entscheidungen
  *                            („/pfad/“ 1; je Pfadvariante — REGENERIERBAR)
- *   mojobus.org-410.conf     nginx-Snippet: map $mojobus_wp_410 + Include
+ *   mojobus.org.410.conf     nginx-Snippet: map $mojobus_wp_410 + Include
  *                            (Installation: siehe docs/deploy-runbook.md Phase 2)
  *
  * Merge-Weg NUR über die Source of Truth: „map“-Entscheidungen wandern per
@@ -356,7 +356,7 @@ function write410Artifacts(decisions) {
     }
   }
   const mapLines = [
-    `# mojobus.org-410.map — GENERIERT von scripts/unmapped-decision.js`,
+    `# mojobus.org.410.map — GENERIERT von scripts/unmapped-decision.js`,
     `# Stand: ${new Date().toISOString()} | gone-Entscheidungen: ${gone.length}`,
     `# Quelle: unmapped-decisions.json (human_decision=gone) — NIEMALS handeditieren,`,
     `#         nächster Tool-Lauf wischt Änderungen.`,
@@ -365,17 +365,18 @@ function write410Artifacts(decisions) {
   ].join('\n');
   const confLines = [
     `# ============================================================================`,
-    `# mojobus.org-410.conf — GENERIERT von scripts/unmapped-decision.js`,
+    `# mojobus.org.410.conf — GENERIERT von scripts/unmapped-decision.js`,
     `# Stand: ${new Date().toISOString()} | gone-Entscheidungen: ${gone.length}`,
     `#`,
     `# INSTALLATION (docs/deploy-runbook.md Phase 2 — VOR dem reload!):`,
-    `#   cp redirects/mojobus.org-410.conf /usr/local/nginx/conf/conf.d/mojobus.org.410.conf`,
-    `#   cp redirects/mojobus.org-410.map  /usr/local/nginx/conf/conf.d/mojobus.org.410.map`,
+    `#   cp redirects/mojobus.org.410.conf /usr/local/nginx/conf/conf.d/mojobus.org.410.conf`,
+    `#   cp redirects/mojobus.org.410.map  /usr/local/nginx/conf/conf.d/mojobus.org.410.map`,
     `#   nginx -t && systemctl reload nginx`,
+    `# (TD3-Naming-Fix: Repo-Namen = Install-Namen — gerader cp ohne Rename.)`,
     `# Die if($mojobus_wp_410)-Checks stehen in mojobus.org.ssl.conf (location = /`,
     `# und location /, VOR dem 301-Map-Check) — Vhost-Version ab TC-Commit.`,
-    `# CentminMod lädt conf.d/*.conf im http{}-Kontext (Glob) → map ist global`,
-    `# verfügbar, kein weiteres include nötig.`,
+    `# CentminMod lädt conf.d/*.conf im http{}-Kontext (Glob, nginx.conf-Z.222) →`,
+    `# map ist global verfügbar, kein weiteres include nötig.`,
     `# ============================================================================`,
     ``,
     `map $request_uri $mojobus_wp_410 {`,
@@ -384,8 +385,8 @@ function write410Artifacts(decisions) {
     `}`,
     ``,
   ].join('\n');
-  fs.writeFileSync(path.join(OUT_DIR, 'mojobus.org-410.map'), mapLines, 'utf-8');
-  fs.writeFileSync(path.join(OUT_DIR, 'mojobus.org-410.conf'), confLines, 'utf-8');
+  fs.writeFileSync(path.join(OUT_DIR, 'mojobus.org.410.map'), mapLines, 'utf-8');
+  fs.writeFileSync(path.join(OUT_DIR, 'mojobus.org.410.conf'), confLines, 'utf-8');
   return { gone: gone.length, keys: keys.size };
 }
 
@@ -422,7 +423,7 @@ function main() {
   console.log(`[UnmappedDecision] ✅ ${counts.total} Entscheidungen (${counts.map} map · ${counts.gone} gone · ${counts.withLogHits} mit Log-Hits)`);
   console.log(`[UnmappedDecision]    → ${csvPath}`);
   console.log(`[UnmappedDecision]    → ${jsonPath}`);
-  console.log(`[UnmappedDecision]    → mojobus.org-410.map (${f410.keys} 410-Keys) + mojobus.org-410.conf`);
+  console.log(`[UnmappedDecision]    → mojobus.org.410.map (${f410.keys} 410-Keys) + mojobus.org.410.conf`);
   console.log('[UnmappedDecision] NÄCHSTER SCHRITT: CSV human_decision füllen (map|gone|leer), dann');
   console.log('[UnmappedDecision]   node scripts/generate-wp-redirects.js --apply-decisions redirects/unmapped-decisions.csv');
   console.log('[UnmappedDecision]   node scripts/generate-wp-redirects.js   # Regenerierung inkl. Manual-Entries');
