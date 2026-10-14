@@ -15,12 +15,12 @@
 #   [5] mojobus.org-Log: Googlebot-301-vs-404-Verhältnis (Migrations-Monitor)
 #
 # Feld-Indizes der CentminMod-„combined"-Zeile (awk-Zählweise, Zeitzone
-# „+0000" bildet ein eigenes Feld):
+# „+0100"/„+0000" bildet ein eigenes Feld):
 #   $4 = [14/Oct/2026:06:00:00   → Tag = substr($4,2,11)
 #   $7 = Request-Pfad
 #   $9 = Statuscode
-# Implementierung ohne awk (sed/cut/sort/uniq) → läuft identisch im Repo-
-# Checkout (Tests) und auf dem VPS.
+# Implementierung: awk PRIMÄR (Ground-Truth am VPS verifiziert, 2026-10-14 —
+# sed-Vollzeilenmuster waren gegen reale Zeilen fragil), sed-Fallback ohne awk.
 #
 # Aufruf:
 #   bash scripts/botcheck.sh                       # VPS-Defaults
@@ -73,17 +73,32 @@ collect_logs() {
 }
 
 # ── Feld-Extraktion (combined-Format, CentminMod) ──────────────────────────
-# Tag:      1.2.3.4 - - [12/Oct/2026:06:11:22 +0000] …  → 12/Oct/2026
-# Pfad:     … "GET /pfad HTTP/1.1" 200 …                → /pfad
-# Status:   … "GET /pfad HTTP/1.1" 404 232 …            → 404
-# Status+Pfad: … "GET /pfad HTTP/1.1" 404 232 …         → 404 /pfad
-#           (für [4]: 404-Zeilen erst filtern, DANN Pfad extrahieren)
-field_date()   { sed -nE 's/^[^ ]+ [^ ]+ [^ ]+ \[([^:]+):.*/\1/p'; }
-field_path()   { sed -nE 's/^[^ ]+ [^ ]+ [^ ]+ \[[^\]]*\] "[^ ]* ([^ ]*) .*/\1/p'; }
-field_status() { sed -nE 's/^[^ ]+ [^ ]+ [^ ]+ \[[^\]]*\] "[^"]*" ([0-9]+) .*/\1/p'; }
-field_status_path() {
-  sed -nE 's/^[^ ]+ [^ ]+ [^ ]+ \[[^\]]*\] "[^ ]* ([^ ]*) [^"]*" ([0-9]+) .*/\2 \1/p'
-}
+# PRIMÄR: awk mit den CentminMod-„combined"-Indizes ($4-Tag inkl. führender
+# Klammer → substr($4,2,11), $7-Request-Pfad, $9-Status; die Zeitzone
+# „+0100" bildet ein eigenes awk-Feld).
+# GROUND TRUTH (Live-Deploy 2026-10-14, 19:27/20:04): awk '{print $9}' liefert
+# auf den REALEN Logs 316×200/94×404 (.co) und 1033×301/83×404 (.org) — die
+# sed-Vollzeilen-Muster waren gegen die realen Zeilen fragil (Format-Drift,
+# Sandbox-fixture passte, Live-Zeilen nicht). awk ist der verifizierte Weg;
+# sed-Fallback nur für Umgebungen OHNE awk (Sandbox-Tests).
+# Tag:      1.2.3.4 - - [12/Oct/2026:06:11:22 +0100] …  → 12/Oct/2026
+# Pfad:     … "GET /pfad HTTP/2.0" 200 …                → $7 = /pfad
+# Status:   … "GET /pfad HTTP/2.0" 200 10253 …          → $9 = 200
+if command -v awk >/dev/null 2>&1; then
+  field_date()        { awk '{print substr($4, 2, 11)}'; }
+  field_path()        { awk '{print $7}'; }
+  field_status()      { awk '{print $9}'; }
+  field_status_path() { awk '{print $9, $7}'; }
+else
+  # Fallback (Sandbox/ohne awk): struktur-anchored sed-ERE (gegen kanonische
+  # Fixture verifiziert; gegen Format-Drift weniger robust als awk)
+  field_date()   { sed -nE 's/^[^ ]+ [^ ]+ [^ ]+ \[([^:]+):.*/\1/p'; }
+  field_path()   { sed -nE 's/^[^ ]+ [^ ]+ [^ ]+ \[[^\]]*\] "[^ ]* ([^ ]*) .*/\1/p'; }
+  field_status() { sed -nE 's/^[^ ]+ [^ ]+ [^ ]+ \[[^\]]*\] "[^"]*" ([0-9]+) .*/\1/p'; }
+  field_status_path() {
+    sed -nE 's/^[^ ]+ [^ ]+ [^ ]+ \[[^\]]*\] "[^ ]* ([^ ]*) [^"]*" ([0-9]+) .*/\2 \1/p'
+  }
+fi
 
 # Tag normalisieren: 12/Oct/2026 → 2026-10-12 (sortierbar, ISO-Anzeige)
 iso_date() {
@@ -139,10 +154,18 @@ else
 
   # [3] Googlebot-Statuscodes
   printf '[3] Googlebot-Statuscode-Verteilung\n'
-  grep -i 'googlebot' "$TMP_CO" | field_status | sort | uniq -c | sort -rn \
-    | while read -r count status; do
+  googlebot_lines=$(grep -ci 'googlebot' "$TMP_CO" || true)
+  dist=$(grep -i 'googlebot' "$TMP_CO" | field_status | sort | uniq -c | sort -rn)
+  if [ -n "$dist" ]; then
+    printf '%s\n' "$dist" | while read -r count status; do
       printf '    %-6s %8s\n' "$status" "$count"
     done
+  else
+    # T-F3-Diagnose: Verteilung leer, obwohl Googlebot-Zeilen existieren
+    # → erste Rohzeile ausgeben (Format-Drift sichtbar machen)
+    warn "Status-Verteilung leer (${googlebot_lines} Googlebot-Zeilen) — Probezeile:"
+    grep -i 'googlebot' "$TMP_CO" | head -1 | cut -c1-220 | sed 's/^/      /'
+  fi
   hr
 
   # [4] Googlebot-404er auf Content-Pfaden (ohne Scanner-Junk)

@@ -16,7 +16,9 @@
 #   REPO_DIR=… PRERENDER_DIR=… DATA_DIR=… (Defaults siehe unten)
 #
 # Prüfungen:
-#   [V1] Shell-Canonical weg (T1)          — UA Mozilla/5.0, count canonical == 0
+#   [V1] Canonical-Signatur (T1, T-F3-2 geschärft): UA Mozilla/5.0 →
+#        0 canonical-Tags (Shell, legitim) ODER genau 1× self-canonical
+#        (Prerender/CF-Cache — legitim); FAIL bei >1 oder canonical ≠ self
 #   [V2] Punct-URL → 301 auf clean (T2)    — reale Googlebot-Klammer-URL,
 #                                            Location == clean, kein Hop auf /
 #   [V3] clean-URL × 3 UAs → 200 + self-canonical (T2/T1; UAs wie nginx-Map:
@@ -24,6 +26,7 @@
 #   [V4] /artikel/diy als Googlebot → 200, self-canonical, Wortsanität > 1000
 #   [V5] publish-healthcheck (T5) → grün
 #   [V6] Prerender-Output frei von mojobus.org (T3), abzüglich Unmapped-Report
+#        (inkl. escaped JSON-LD-Formen https:\/\/mojobus.org — T-F3-2)
 #   [V7] botcheck.sh (T4) läuft, Exit 0
 #   [V8] feed.xml frei von mojobus.org (TA), abzüglich Unmapped (Feed+Prerender)
 #   [V9] llms.txt frei von mojobus.org (TA), abzüglich Unmapped (LLMS+Prerender)
@@ -63,13 +66,17 @@ filter_out_unmapped() {
   if [ -s "$1" ]; then grep -vFf "$1"; else cat; fi
 }
 
-# Canonical aus HTML extrahieren (erster <link rel="canonical">)
+# Canonical-Tags (präzises Tag-Muster — Wörter wie „canonical" in JSON-LD/
+# Kommentaren zählen NICHT; beide Quote-Stile tolerated)
+extract_canonical_tags() { grep -oiE '<link[^>]*rel=.canonical.[^>]*>'; }
+
+# Canonical aus HTML extrahieren (erster <link rel="canonical">, href immer
+# doppelt-quotiert in buildHead — Generator-Output)
 extract_canonical() {
-  # $1 = HTML-String über stdin
-  grep -oi '<link[^>]*rel="canonical"[^>]*>' \
-    | grep -oi 'href="[^"]*"' \
+  extract_canonical_tags \
+    | grep -oiE 'href="[^"]*"' \
     | head -1 \
-    | sed -E 's/^href="(.*)"$/\1/I'
+    | sed -E 's/^[Hh][Rr][Ee][Ff]="(.*)"$/\1/'
 }
 
 # Unmapped-URLs aus Report-JSON (jq bevorzugt, node-Fallback, grep letzter Versuch)
@@ -112,13 +119,27 @@ printf 'Ziel-Naddr: %s\n' "$NADDR"
 printf 'Clean-URL:  %s/%s\n' "$BASE" "$NADDR"
 line
 
-# ── [V1] Shell-Canonical weg (T1) ───────────────────────────────────────────
-printf '[V1] Shell-Canonical weg (T1) — UA Mozilla/5.0\n'
-canon_count=$(curl_base -A "$UA_BROWSER" "$BASE/$NADDR" | grep -ci canonical || true)
-if [ "${canon_count:-1}" -eq 0 ]; then
-  check_pass "V1" "0 canonical-Tags in der Shell-Auslieferung für /$NADDR (Vorher: 1 × canonical=/)"
+# ── [V1] Canonical-Signatur (T1) — GESCHÄRFT (T-F3-2, Live 19:27/20:04) ─────
+# Live-Befund: Browser-UA auf naddr erhält teils das PRERENDER (CF-Cache ist
+# UA-agnostisch!) mit EXAKT EINEM self-canonical — beides LEGITIM:
+#   0 canonical-Tags = SPA-Shell (post-T1 korrekt)
+#   1× rel="canonical" mit href = self = Prerender-Auslieferung (korrekt)
+# FAIL nur bei: >1 Tags, canonical ≠ self (alte Shell: canonical=/) oder
+# falschem Ziel. Das alte „0 canonical-Zeilen"-Kriterium (grep -ci canonical)
+# zählte zudem jedes Wort „canonical" — ersetzt durch das präzise Tag-Muster.
+printf '[V1] Canonical-Signatur (T1) — UA Mozilla/5.0: 0 (Shell) ODER 1×self (Prerender)\n'
+v1_html=$(curl_base -A "$UA_BROWSER" "$BASE/$NADDR")
+v1_tags=$(printf '%s\n' "$v1_html" | extract_canonical_tags | wc -l | tr -d ' ')
+v1_href=$(printf '%s\n' "$v1_html" | extract_canonical_tags | grep -oiE 'href="[^"]*"' | head -1 | sed -E 's/^[Hh][Rr][Ee][Ff]="(.*)"$/\1/')
+v1_expected_self="$BASE/$NADDR"
+if [ "$v1_tags" = "0" ]; then
+  check_pass "V1" "0 canonical-Tags (SPA-Shell-Signatur — legitim, post-T1)"
+elif [ "$v1_tags" = "1" ] && [ "$v1_href" = "$v1_expected_self" ]; then
+  check_pass "V1" "1× rel=canonical, self-canonical (Prerender-Auslieferung — legitim)"
+elif [ "$v1_tags" = "1" ] && [ "$v1_href" = "$BASE/" ]; then
+  check_fail "V1" "canonical=/ (ALTE Shell-Signatur — T1 nicht aktiv oder CF-Cache)"
 else
-  check_fail "V1" "canonical-Tags gefunden ($canon_count) — T1 nicht aktiv oder CF-Cache"
+  check_fail "V1" "$v1_tags canonical-Tag(s), href='$v1_href' (erlaubt: 0 oder 1×self=$v1_expected_self)"
 fi
 
 # ── [V2] Punct-URL → 301 auf clean (T2) ─────────────────────────────────────
@@ -176,6 +197,14 @@ fi
 printf '[V6] grep -R mojobus.org im Prerender-Output, abzüglich Unmapped (T3)\n'
 UNMAPPED_TMP="/tmp/postdeploy-unmapped-prerender.$$"
 unmapped_urls "$REPO_DIR/redirects/unmapped-org-links.json" > "$UNMAPPED_TMP" 2>/dev/null || true
+# T-F3-2: escaped JSON-LD-Formen (https:\/\/mojobus.org/…) zusätzlich in den
+# Filter — sonst bleiben solche Treffer als „verbleibend“ stehen
+if [ -s "$UNMAPPED_TMP" ]; then
+  sed -E 's@/@\\/@g' "$UNMAPPED_TMP" >> "${UNMAPPED_TMP}.esc" 2>/dev/null || true
+  cat "${UNMAPPED_TMP}.esc" >> "$UNMAPPED_TMP" 2>/dev/null || true
+  rm -f "${UNMAPPED_TMP}.esc"
+  sort -u -o "$UNMAPPED_TMP" "$UNMAPPED_TMP" 2>/dev/null || true
+fi
 v6_hits=$(grep -R "mojobus.org" "$PRERENDER_DIR" 2>/dev/null | filter_out_unmapped "$UNMAPPED_TMP" | wc -l | tr -d ' ')
 v6_total=$(grep -R "mojobus.org" "$PRERENDER_DIR" 2>/dev/null | wc -l | tr -d ' ')
 if [ "${v6_hits:-1}" -eq 0 ]; then

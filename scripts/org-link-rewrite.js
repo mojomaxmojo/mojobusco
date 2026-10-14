@@ -39,14 +39,19 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // validiert, damit niemals ein Fremd-Ziel ins HTML gerät.
 const SITE_URL = (process.env.SITE_URL || 'https://mojobus.co').replace(/\/$/, '');
 
-// Kandidaten in dieser Reihenfolge:
+// Kandidaten in dieser Reihenfolge (TD-F3-3, 2026-10):
 //  1. env WP_REDIRECTS_FILE (gleicher Schalter wie wp-redirect.js)
-//  2. <repo>/redirects/wp-redirects.map (Repo-Checkout / VPS-Repo-Läufe)
-//  3. VPS-Default des ai-api-Resolvers (Webroot-Läufe: public/scripts hat
-//     kein ../redirects → derselbe File wie der Vhost einbindet)
+//  2. <repo>/redirects/wp-redirects.map — **committeter Snapshot** (Runde 3;
+//     redirects/ ist seit dem Live-Deploy versioniert)
+//  3. /usr/local/nginx/conf/conf.d/mojobus.org.redirects.map — LEBENDE
+//     Include-Datei (include in mojobus.org.ssl.conf) — Live-Fallback, wenn
+//     der Repo-Snapshot fehlt/stale ist; READ-ONLY (niemals überschreiben —
+//     Schreiben nur via generate-wp-redirects.js + scripts/sync-maps.sh)
+//  4. VPS-Repo-Checkout (historisch, = Kandidat 2 auf dem VPS)
 const MAP_CANDIDATES = [
   process.env.WP_REDIRECTS_FILE || null,
   path.join(__dirname, '..', 'redirects', 'wp-redirects.map'),
+  '/usr/local/nginx/conf/conf.d/mojobus.org.redirects.map',
   '/root/deploy-git/mojobusco/redirects/wp-redirects.map',
 ].filter(Boolean);
 
