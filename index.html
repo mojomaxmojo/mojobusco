@@ -10,7 +10,10 @@
     <link rel="icon" href="/favicon.ico" sizes="32x32">
     <link rel="icon" href="/icon-192x192.png" sizes="192x192" type="image/png">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-    <link rel="canonical" href="https://mojobus.co/" />
+    <!-- WICHTIG (SEO-Fix 2026-10): KEIN hardcodiertes Canonical hier. -->
+    <!-- Die SPA setzt routenabhängige Canonicals via @unhead/react (useHead) —  -->
+    <!-- ein Shell-Canonical auf / hätte alle Artikel-URLs als Startseite       -->
+    <!-- ausgewiesen, sobald ein Crawler das statische HTML ohne JS liest.      -->
 
     <!-- Preconnect für wichtige Drittanbieter-Domains -->
     <link rel="preconnect" href="https://relay.mojobus.co" />
