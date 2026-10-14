@@ -5,6 +5,31 @@
 
 ---
 
+## SEO-Runde 3 T-F3: Live-Deploy-Bugfixes — botcheck-Extraktion, V1-Signatur, Map-Kandidaten (2026-10-14, 19:27/20:04)
+
+**Auslöser**: Live-Verifikation nach dem Deploy — (1) botcheck [3]/[4]/[5]
+leer/0 gegen reale CentminMod-Logs (Ground Truth awk $9: 316×200/94×404 .co,
+1033×301/83×404 .org — sed-Vollzeilenmuster gegen reale Zeilen fragil), (2)
+V1 verlangte „0 canonical-Zeilen", während Browser-UA auf naddr teils das
+PRERENDER liefert (CF-Cache ist UA-agnostisch!) mit 1× self-canonical —
+beides legitim, (3) conf.d-Map fehlte als org-link-rewrite-Kandidat (redirects/
+ist jetzt committeter Snapshot).
+
+**Fixes**: botcheck.sh awk-PRIMÄR ($4/$7/$9-Indizes, TZ „+0100" = eigenes
+Feld) mit sed-Fallback + [3]-Diagnose (Probe-Rohzeile bei leerer Verteilung);
+post-deploy-verify.sh V1 auf präzises Tag-Muster (<link…rel=.canonical.…>)
+mit Signatur-Kaskade (0=Shell-OK / 1×self=Prerender-OK / canonical=/ =FAIL /
+>1 =FAIL) + V6 escaped-JSON-LD-Filter-Varianten (https:\/\/mojobus.org);
+org-link-rewrite.js Kandidaten env > Snapshot > conf.d-Live-Fallback
+(READ-ONLY) > VPS-Checkout.
+
+**Verifikation**: Browser-Selftest Runde 10, 8/8 grün (awk-Mirror reale
+Fixture + IPv6/+0000/HTTP1.1/301-Varianten, Status-Distribution,
+sed-Fallback-Regression, V1-Evaluator 5 Cases, Tag-Muster vs. JSON-LD/
+Kommentar, V6 escaped+roh, Kandidaten-Ordnung).
+
+---
+
 ## SEO-Runde 3: Artikel-Prerender-Verlinkung, Linkify, robots.txt, Generator-Rest (2026-10-14)
 
 **Auslöser**: Verifizierte VPS-Fakten — Artikel-Prerender = Waisenseite

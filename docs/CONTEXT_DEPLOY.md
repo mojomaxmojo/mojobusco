@@ -297,6 +297,24 @@ Treffer außer den dokumentierten Unmapped-Cases.
   nginx -t && reload); Edge-Klasse ohne `"` dokumentiert (Resolver deckt ab).
 - Abnahme: Runbook **Phase 3**.
 
+**T-F3 — Live-Deploy-Bugfixes (2026-10-14, 19:27/20:04)**:
+- **WICHTIGES Live-Fakt (verifiziert)**: Cloudflare-Cache ist **UA-agnostisch**
+  — Browser-UAs erhalten teils das gecachte Bot-PRERENDER (mit 1× self-
+  canonical). Legitime Canonical-Signaturen auf naddr-URLs sind damit:
+  **0 Tags (SPA-Shell) ODER 1× self (Prerender)**. FAIL nur bei
+  canonical=/ (alte Shell) / fremdem Ziel / >1 Tags.
+- botcheck.sh: Feld-Extraktion awk-PRIMÄR ($4-Tag substr($4,2,11), $7-Pfad,
+  $9-Status — Ground Truth am VPS verifiziert: 316×200/94×404 .co,
+  1033×301/83×404 .org); sed-Vollzeilen-Muster nur noch Fallback (Format-Drift
+  gegenüber Sandbox-Fixture). [3] zeigt bei leerer Verteilung eine
+  Probe-Rohzeile (Format-Drift-Diagnose).
+- post-deploy-verify.sh V6: escaped JSON-LD-Formen (https:\/\/mojobus.org)
+  im Unmapped-Filter.
+- org-link-rewrite.js Map-Kandidaten: env > committeter redirects/-Snapshot >
+  **conf.d/mojobus.org.redirects.map (lebende Include-Datei, READ-ONLY-
+  Fallback)** > /root/deploy-git. Schreiben der conf.d-Map NUR via
+  Generator + sync-maps.sh.
+
 Wichtig: Nach Nginx-Änderungen ggf. **Cloudflare-Cache purgen** — die Edge
 kann alte Homepage-Shells für Bot-UA-Anfragen zwischengespeichert haben.
 
