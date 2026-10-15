@@ -55,15 +55,43 @@ printf ' Extrahiere .org/wp-content-URLs aus Prerender (%s)…\n' "$PRERENDER_DI
 LIST="/tmp/copy-wp-media-urls.$$"
 trap 'rm -f "$LIST"' EXIT
 
-grep -rhoE 'https://mojobus\.org/wp-content/[^"'"'"' <>)\]]+' "$PRERENDER_DIR" 2>/dev/null \
-  | sort -u > "$LIST" || true
+# R4-Bugfix (Live-Beweis 20:28: „0 URLs" fälschlich): Die Medien-URLs stehen
+# im Prerender DOPPELT kodiert als weserv-Proxy-Parameter
+# (images.weserv.nl/?url=https%3A%2F%2Fmojobus.org%2Fwp-content%2F…).
+# Der alte Regex matchte nur die rohe Form → Extraktion leer. Jetzt: node
+# extrahiert BEIDE Formen aus allen Dateien und dekodiert sauber per
+# decodeURIComponent (Umlaute wie %C3%9C korrekt aufgelöst), dedupliziert.
+node -e '
+const fs = require("fs");
+const path = require("path");
+const dir = process.argv[1];
+const out = new Set();
+function walk(d) {
+  for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+    const p = path.join(d, e.name);
+    if (e.isDirectory()) { walk(p); continue; }
+    if (!e.name.endsWith(".html")) continue;
+    const html = fs.readFileSync(p, "utf8");
+    // Rohe Formen
+    for (const m of html.matchAll(/https:\/\/mojobus\.org\/wp-content\/[^"'"'"' <>)\]]+/g)) {
+      out.add(m[0]);
+    }
+    // Weserv-kodierte Formen → dekodieren
+    for (const m of html.matchAll(/(?:https?%3A%2F%2F)mojobus\.org%2Fwp-content%2F[^"'"'"' <>&)]+/gi)) {
+      try { out.add(decodeURIComponent(m[0])); } catch { /* defektes Encoding → skip */ }
+    }
+  }
+}
+walk(dir);
+fs.writeFileSync(process.argv[2], [...out].sort().join("\n") + "\n");
+' "$PRERENDER_DIR" "$LIST"
 
 if [ ! -s "$LIST" ]; then
   printf '✅ 0 .org/wp-content-URLs im Prerender — nichts zu tun.\n'
   exit 0
 fi
 n_urls=$(wc -l < "$LIST" | tr -d ' ')
-printf '  Referenzierte URLs: %s (unique)\n' "$n_urls"
+printf '  Referenzierte URLs: %s (unique, roh + weserv-kodiert dekodiert)\n' "$n_urls"
 
 # ── 2) Upload-Quelle lokalisieren ──────────────────────────────────────────
 if [ ! -d "$ORG_UPLOADS" ]; then
