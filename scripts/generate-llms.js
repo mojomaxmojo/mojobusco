@@ -37,6 +37,7 @@ import {
   dedupeReplaceables,
   loadSiteDataEventsDump,
   BASE_URL,
+  stripTrailingPartialUrl,
 } from './prerender-helpers.js';
 // SEO-Nachlauf TA (2026-10): mojobus.org-Links aus Event-Texten auch aus
 // llms.txt/llms-full.txt fernhalten — dieselbe Rewrite-Logik wie
@@ -132,7 +133,10 @@ function extractSummary(event) {
     .map(p => p.trim())
     .find(p => p.length >= 40);
   if (!paragraph) return text.slice(0, 220);
-  return paragraph.length > 220 ? `${paragraph.slice(0, 217)}…` : paragraph;
+  // R5/F2-Nachbarschafts-Fix: Der Cut bei 217 kann mittig durch URLs gehen
+  // (F3-Klasse, gleiche Wurzel wie site-data/feed) — Fragment VOR der
+  // Ellipsis entfernen, damit kein URL-Anfang plus „…" im Output landet.
+  return paragraph.length > 220 ? `${stripTrailingPartialUrl(paragraph.slice(0, 217))}…` : paragraph;
 }
 
 function extractFirstImage(event) {
@@ -318,7 +322,8 @@ async function main() {
   fullLines.push('');
   fullLines.push(`## Artikel (${articleEntries.length})`);
   for (const e of articleEntries) {
-    const body = stripMarkup(e.event.content || '').slice(0, FULL_CONTENT_CHARS);
+    // R5/F2: Body-Cut kann mittig durch URLs gehen — Fragment entfernen.
+    const body = stripTrailingPartialUrl(stripMarkup(e.event.content || '').slice(0, FULL_CONTENT_CHARS));
     fullLines.push('');
     fullLines.push(`### ${e.title}`);
     fullLines.push(`URL: ${e.url}`);
@@ -330,7 +335,8 @@ async function main() {
   fullLines.push('');
   fullLines.push(`## Orte / Places (${placeEntries.length})`);
   for (const e of placeEntries) {
-    const body = stripMarkup(e.event.content || '').slice(0, FULL_CONTENT_CHARS);
+    // R5/F2: Body-Cut kann mittig durch URLs gehen — Fragment entfernen.
+    const body = stripTrailingPartialUrl(stripMarkup(e.event.content || '').slice(0, FULL_CONTENT_CHARS));
     fullLines.push('');
     fullLines.push(`### ${e.title}`);
     fullLines.push(`URL: ${e.url}`);

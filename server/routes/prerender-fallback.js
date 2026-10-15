@@ -56,17 +56,42 @@ const TRAILING_PUNCT_RE = /^((?:\/en)?(?:\/(?:trip|video|bild))?\/(?:naddr|neven
  */
 function canonicalizeToken(token, kind_prefix) {
   let decoded
+  let hadSuffix = false // R5/F2: Buchstaben-Suffix wurde abgetrennt → 301-Zwang
   try {
     decoded = nip19.decode(token)
   } catch {
-    return null
+    // R5/F2 (2026-10-15): bech32-legale Buchstaben-Suffixe (Live-Befund:
+    // 3× 404 auf „…ynsv0cd" — „cd" ist trailing Müll, aber buchstabig, daher
+    // greift weder T2a-Interpunktion-Klasse noch T2b-Edge-If). Verallgemeinerung
+    // der T2a-Logik: bei Decode-Fehler maximal 4 BUCHSTABEN-Suffix-Iterationen
+    // abschneiden und neu dekodieren; gültiges Prefix → 301 auf clean-URL.
+    // Zahlen-Suffixe werden bewusst NICHT abgeschnitten (konservativ).
+    let stripped = token
+    if (stripped.length > 20) {
+      for (let i = 0; i < 4; i++) {
+        if (!/[a-z]$/.test(stripped)) return null // Suffix endet nicht auf Buchstabe → kein Strip-Kandidat
+        stripped = stripped.slice(0, -1)
+        try {
+          decoded = nip19.decode(stripped)
+          token = stripped // clean-Base — 301-Ziel ist die Rest-URL OHNE Suffix
+          hadSuffix = true
+          break
+        } catch {
+          decoded = undefined
+        }
+      }
+    }
+    if (!decoded) return null
+    // hadSuffix → IMMER als Varianten-Fall behandeln (301 auf clean), auch
+    // wenn das gestrippte Token bereits kanonisch ist — sonst würde der
+    // ynsv0cd-Fall (clean-URL existiert!) weiterhin 404 liefern.
   }
 
   if (decoded.type === 'naddr') {
     const { kind, pubkey, identifier } = decoded.data || {}
     if (!pubkey) return null
     const canonical = nip19.naddrEncode({ kind, pubkey, identifier: identifier || '' })
-    return { canonical, changed: canonical !== token }
+    return { canonical, changed: hadSuffix || canonical !== token }
   }
 
   // nevent → kanonische Bild-URL ist die note1-Variante (siehe imageUrl())
@@ -75,11 +100,12 @@ function canonicalizeToken(token, kind_prefix) {
     const eventId = decoded.data?.id
     if (!eventId) return null
     const canonical = nip19.noteEncode(eventId)
-    return { canonical, changed: canonical !== token }
+    return { canonical, changed: hadSuffix || canonical !== token }
   }
 
-  // note1/npub1/nprofile1 enthalten keine Hints — nichts aufzulösen
-  return { canonical: token, changed: false }
+  // note1/npub1/nprofile1 enthalten keine Hints — nichts aufzulösen;
+  // hadSuffix → trotzdem 301 auf die clean-Form (Suffix-Müll abgetrennt)
+  return { canonical: token, changed: hadSuffix ? true : false }
 }
 
 const router = Router()

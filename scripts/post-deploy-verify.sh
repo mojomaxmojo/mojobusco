@@ -321,15 +321,20 @@ else
 fi
 
 # ── [V8] feed.xml frei von mojobus.org (TA) ────────────────────────────────
-printf '[V8] feed.xml → mojobus.org-Count, abzüglich Unmapped (TA)\n'
+# R5/F3-Klärung (Live-Beweis 21:43): Die „17 roh vs. 12 im Report"-Differenz
+# war KEIN Bug — v8_total zählt VORKOMMEN (1 URL kann in N Items stehen),
+# der Report listet UNIQUE-URLs. Jetzt: beide Zähler dedupliziert (sort -u)
+# → Zahlen direkt vergleichbar; Pass/Fail-Logik unverändert (hits nach
+# Unmapped-Filter).
+printf '[V8] feed.xml → mojobus.org-Count (unique), abzüglich Unmapped (TA)\n'
 UNMAPPED_FEED_TMP="/tmp/postdeploy-unmapped-feed.$$"
 { unmapped_urls "unmapped-org-links.feed.json"; unmapped_urls "unmapped-org-links.json"; } > "$UNMAPPED_FEED_TMP" 2>/dev/null || true
-v8_total=$(curl_base "$BASE/feed.xml" | grep -o 'https\?://[a-z.]*mojobus\.org[^"<]*' | wc -l | tr -d ' ')
-v8_hits=$(curl_base "$BASE/feed.xml" | grep -o 'https\?://[a-z.]*mojobus\.org[^"<]*' | filter_out_unmapped "$UNMAPPED_FEED_TMP" | wc -l | tr -d ' ')
+v8_total=$(curl_base "$BASE/feed.xml" | grep -o 'https\?://[a-z.]*mojobus\.org[^"<]*' | sort -u | wc -l | tr -d ' ')
+v8_hits=$(curl_base "$BASE/feed.xml" | grep -o 'https\?://[a-z.]*mojobus\.org[^"<]*' | sort -u | filter_out_unmapped "$UNMAPPED_FEED_TMP" | wc -l | tr -d ' ')
 if [ "${v8_hits:-1}" -eq 0 ]; then
-  check_pass "V8" "0 verbleibende .org-Links im Feed (roh: ${v8_total:-0} — Unmapped oder leer)"
+  check_pass "V8" "0 verbleibende .org-URLs im Feed (unique: ${v8_total:-0} — Unmapped oder leer)"
 else
-  check_fail "V8" "$v8_hits verbleibende .org-Links im Feed (roh: ${v8_total:-0})"
+  check_fail "V8" "$v8_hits verbleibende .org-URLs im Feed (unique: ${v8_total:-0})"
 fi
 
 # ── [V9] llms.txt frei von mojobus.org (TA) ─────────────────────────────────
