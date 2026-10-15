@@ -24,7 +24,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { nip19 } from 'nostr-tools';
-import { getEventLangFromTags, isPlace, queryRelay, loadSiteDataEventsDump, dedupeReplaceables, RELAYS } from './prerender-helpers.js';
+import { getEventLangFromTags, isPlace, queryRelay, loadSiteDataEventsDump, dedupeReplaceables, RELAYS, stripTrailingPartialUrl } from './prerender-helpers.js';
 // SEO-Nachlauf TA (2026-10): mojobus.org-Links in Event-Texten beim
 // Feed-Rendern auf die .co-Pendants umschreiben — dieselbe Rewrite-Logik wie
 // Prerender/Bot-HTML (Single Source: org-link-rewrite.js, NIE kopieren).
@@ -104,12 +104,16 @@ function escapeXml(str) {
 // ── Content bereinigen für RSS-Beschreibung ──────────────────────────────
 function cleanContent(content) {
   if (!content) return '';
-  return content
-    .replace(/!\[.*?\]\(.*?\)/g, '[Bild]')
-    .replace(/[#*_~`>|]/g, '')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim()
-    .substring(0, 500);
+  // R4-F3-Nachtrag: substring(0,500) schnitt mittig durch URLs —
+  // stripTrailingPartialUrl entfernt hängende URL-Fragmente nach dem Cut.
+  return stripTrailingPartialUrl(
+    content
+      .replace(/!\[.*?\]\(.*?\)/g, '[Bild]')
+      .replace(/[#*_~`>|]/g, '')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim()
+      .substring(0, 500)
+  );
 }
 
 // ── RSS 2.0 Feed XML generieren ──────────────────────────────────────────
@@ -152,7 +156,11 @@ async function generateFeedXml(articles, lang = 'de') {
     const seoTitle = event.tags?.find(t => t[0] === 'seo_title')?.[1] || '';
     const title = seoTitle || event.tags?.find(t => t[0] === 'title')?.[1] || (isEn ? 'Article' : 'Artikel');
     const summary = event.tags?.find(t => t[0] === 'summary')?.[1] || '';
-    const image = event.tags?.find(t => t[0] === 'image')?.[1] || '';
+    // R4-PhaseB (Live-Beweis 21:43): Auch das IMAGE-Feld durch den Rewrite —
+    // das rohe wp-content .org-webp im Feed war der eine echte V8-Rest (die
+    // Enclosure/„image"-Felder waren bewusst ausgeschlossen, als wp-content
+    // noch nicht Teil der Migration war; mit dem Flag-Gate ist es das jetzt).
+    const image = rewriteOrgLinks(event.tags?.find(t => t[0] === 'image')?.[1] || '');
     const publishedAt = event.tags?.find(t => t[0] === 'published_at')?.[1];
     const identifier = event.tags?.find(t => t[0] === 'd')?.[1] || event.id;
     const pubDate = publishedAt
@@ -182,7 +190,11 @@ async function generateFeedXml(articles, lang = 'de') {
     // <enclosure> sind bewusst NICHT Teil des Rewrites (Image-/Upload-URLs
     // sind nicht Teil der Migration-Map).
     const itemTitle = rewriteOrgLinks(title);
-    const description = escapeXml(rewriteOrgLinks(summary || cleanContent(event.content).substring(0, 200)));
+    // R4-F3-Nachtrag (Live-Beweis 21:43): description mit substring(0,200)
+    // schnitt mittig durch URLs → truncated-Fragmente im Feed (die
+    // „/97109/lifep..."-Klasse). Trailing-Partiell-URL entfernen (derselbe
+    // Helper wie im Prerender), DANN Rewrite.
+    const description = escapeXml(rewriteOrgLinks(stripTrailingPartialUrl(summary || cleanContent(event.content).substring(0, 200))));
     const content = escapeXml(rewriteOrgLinks(cleanContent(event.content)));
 
     xml += `    <item>\n`;

@@ -38,6 +38,7 @@ import {
   dedupeReplaceables,
   RELAYS,
 } from './prerender-helpers.js';
+import { stripTrailingPartialUrl } from './prerender-helpers.js';
 
 // ── Autoren aus zentraler JSON-Config (Single Source of Truth) ────────────
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -135,7 +136,11 @@ function extractSummary(content) {
     .replace(/^## .+$/gm, '')
     .trim();
   const first = cleaned.split('\n\n')[0]?.trim() || cleaned;
-  return first.length > 200 ? first.substring(0, 197) + '...' : first;
+  // R4-F3-Nachtrag (Live-Beweis 21:43): substring(0,197)+'...' schnitt
+  // mittig durch URLs → truncated-Fragmente (/97109/lifep...-Klasse)
+  // wanderten in site-data → feed.xml/llms.txt. Fragment vor der Ellipsis
+  // entfernen (derselbe Helper wie im Prerender-Renderpfad).
+  return first.length > 200 ? stripTrailingPartialUrl(first.substring(0, 197)) + '...' : first;
 }
 
 // Klassifizierung (isPlace/isNote/classifyKind1) kommt aus
