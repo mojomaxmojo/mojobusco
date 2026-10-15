@@ -1,0 +1,14 @@
+# org-404-list.txt — GENERIERT von scripts/org-404-list.sh
+# Stand: 2026-10-14T22:10:42Z
+# Quelle: /home/nginx/domains/mojobus.org/log (cat+gzcat aller access.log*)
+# Filter: Googlebot + Status 404 + JUNK_RE-Freeze (botcheck-Klasse)
+# Format: '<count> <pfad>' — Input für ORG_404_LIST von
+#         scripts/unmapped-decision.js (Phase 2)
+#
+      8 /read-document
+      7 /functionRouter
+      3 /feast/read-document
+      2 /webhook-test/
+      2 /inngest
+      2 /form/
+      1 /webhook/

@@ -1,0 +1,951 @@
+{
+  "generatedAt": "2026-10-15T17:05:03.989Z",
+  "scope": "prerender",
+  "mapFile": "/root/deploy-git/mojobusco/redirects/wp-redirects.map",
+  "replacedOccurrences": 1908,
+  "wpMediaReplaced": 0,
+  "wpMediaFlag": false,
+  "unmappedCount": 235,
+  "unmapped": [
+    {
+      "url": "https://mojobus.org/7464/solar-photovoltaikled-ausruestungsempfehlungen/",
+      "occurrences": 18
+    },
+    {
+      "url": "https://mojobus.org/kaufen-2/lifepo4/",
+      "occurrences": 14
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/LiFePo4vsBlei-Saeure-Batterien-e1710251162342.webp",
+      "occurrences": 13
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2012/11/bol4.jpg",
+      "occurrences": 12
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2012/12/artikelschaal.jpg",
+      "occurrences": 12
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2016/06/hund-hoya-20160616T174820-1-e1467233612966.jpg",
+      "occurrences": 12
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2014/12/54a3ef4f6a891-Womomobil-Luna-Koblenz-Überführung-3-15-e1420029223122.jpg",
+      "occurrences": 9
+    },
+    {
+      "url": "https://mojobus.org/96479/schutz-und-sicherheit-im-wohnmobil-und-auf-reisen/",
+      "occurrences": 8
+    },
+    {
+      "url": "https://mojobus.org/category/wohnmobil-reiseberichte/portugal/",
+      "occurrences": 8
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/06/gottingen-1269450_12801.jpg",
+      "occurrences": 8
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/01/leon4.jpg",
+      "occurrences": 8
+    },
+    {
+      "url": "https://mojobus.org/212/abenteuer-wohnmobil-lebe-es-liebe-es/",
+      "occurrences": 7
+    },
+    {
+      "url": "https://mojobus.org/tag/wohnmobil-elekronik/",
+      "occurrences": 7
+    },
+    {
+      "url": "https://mojobus.org/tag/solaranlage/",
+      "occurrences": 7
+    },
+    {
+      "url": "https://mojobus.org/product/3899537734/DE/",
+      "occurrences": 7
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/02/weserle.jpg",
+      "occurrences": 7
+    },
+    {
+      "url": "https://mojobus.org/tag/ein-leben-im-wohnmobil/",
+      "occurrences": 6
+    },
+    {
+      "url": "https://mojobus.org/tag/dauerhaft-leben-im-wohnmobil/",
+      "occurrences": 6
+    },
+    {
+      "url": "https://mojobus.org/kaufen-2trashed/lifepo4/",
+      "occurrences": 6
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2013/01/1002027.jpg",
+      "occurrences": 6
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2013/01/10019811.jpg",
+      "occurrences": 6
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2013/01/10019803.jpg",
+      "occurrences": 6
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2012/12/00001321.jpg",
+      "occurrences": 6
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2016/09/Arrifana-Beach.jpg",
+      "occurrences": 6
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2012/10/ma.jpg",
+      "occurrences": 6
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2018/01/img9162.jpg",
+      "occurrences": 6
+    },
+    {
+      "url": "https://mojobus.org/solar-photovoltaikled-ausruestungsempfehlungen/",
+      "occurrences": 6
+    },
+    {
+      "url": "https://mojobus.org/tag/wohnmobildach-solaranlage/",
+      "occurrences": 5
+    },
+    {
+      "url": "https://mojobus.org/ressourcen/solaranlage-stromversorgung-wohnmobil/",
+      "occurrences": 5
+    },
+    {
+      "url": "https://mojobus.org/tag/solarpanel/",
+      "occurrences": 4
+    },
+    {
+      "url": "https://mojobus.org/hier-starten/leben-im-wohnmobil/",
+      "occurrences": 4
+    },
+    {
+      "url": "https://mojobus.org/womo/stellplatz-uebernachtungsplatz-pampliega/",
+      "occurrences": 4
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2015/01/54a7baddbbb14-Womomobil-Luna-16-20150102T141002.jpg",
+      "occurrences": 4
+    },
+    {
+      "url": "https://mojobus.org/tag/arbeit-am-wohnmobil/",
+      "occurrences": 3
+    },
+    {
+      "url": "https://mojobus.org/tag/elekronik-wohnmobil/",
+      "occurrences": 3
+    },
+    {
+      "url": "https://mojobus.org/category/leben-im-wohnmobil/",
+      "occurrences": 3
+    },
+    {
+      "url": "https://mojobus.org/wohnmobil-ueberwintern-in/",
+      "occurrences": 3
+    },
+    {
+      "url": "https://mojobus.org/85222/wie-man-sein-leben-im-wohnmobil-bunt-und-liebevoll-gestaltet/",
+      "occurrences": 3
+    },
+    {
+      "url": "https://mojobus.org/tag/wohnmobil-campingplatz/",
+      "occurrences": 3
+    },
+    {
+      "url": "https://mojobus.org/tag/lifepo4/",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/tag/wohnmobil-ausbauen/",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/tag/sicherheit-im-wohnmobil/",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/hier-starten/wohnmobil-tipps/",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/tag/wohnmobil-leben/",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/tag/wohlfuehlen-im-wohnmobil-leben/",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/category/lifepo4/",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/hier-starten/selbstausbau/",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/womo-stellplaetze/mecklenburg-vorpommern/heiligendamm-kinderstrand-ostseekueste/",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2016/09/resized_Hinten_0790.jpg",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/tag/algarve-entdecken-mit-dem-wohnmobil/",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/tag/portugal-mit-dem-wohnmobil-erleben/",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/tag/wohnmobil-algarve/",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/tag/algarve-mit-dem-wohnmobil/",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/tag/wohnmobiltour-albufeira/",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/tag/portugal-mit-dem-wohnmobil-bereisen/",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/tag/portugaltour-wohnmobil/",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/tag/gratis-wohnmobil-plaetze/",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/tag/wohnmobil-stellplatzsuche/",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/tag/mit-dem-wohnmobil-durch-portugal/",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/tag/familienurlaub-im-wohnmobil-portugal/",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/84859/portugal-trip-mit-dem-wohnmobil-14-orte-die-du-sehen-musst/",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/tag/wohnmobilreise-portugal/",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/tag/wohnmobilstellplaetze/",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/tag/wohnmobil-stellplatz/",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/loves/ama",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/womo/stellplatz-l-roche/",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/boca-do-rio-portugal-algarve/",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/06/IMG_20190309_122620_9.jpg",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/06/IMG_20190217_115602_2.jpg",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/06/IMG_20190314_162505_9.jpg",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/06/IMG_20190530_153642_7.jpg",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/06/IMG_20190426_174224_899.jpg",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/06/burg10.jpg",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/06/burg1.jpg",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/06/burg2.jpg",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/06/burg3.jpg",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/06/IMG_20190316_100250_5.jpg",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/06/burg6.jpg",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/06/burg4.jpg",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/06/burg5.jpg",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/01/leon6.jpg",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/01/leonbr-1.jpg",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/86651/",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2014/12/Womomobil-Balu-Koblenz-Überführung-3-2.jpg",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2014/12/Womomobil-Balu-Koblenz-Überführung-3-8.jpg",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2014/12/Womomobil-Balu-Koblenz-Überführung-3-13.jpg",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2014/12/Womomobil-Balu-Koblenz-Überführung-3-14.jpg",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2014/12/Womomobil-Balu-Koblenz-Überführung-3-18.jpg",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/geburtstagstour-an-die-nordseekueste-duhnen/",
+      "occurrences": 2
+    },
+    {
+      "url": "https://mojobus.org/shop/solaranlage-stromversorgung-wohnmobil/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/tag/wohnmobil-stromgenerator/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/19819/schillig-sonne-wohnmobil/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/kaufen-2__trashed/lifepo4/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/v2-4wol2-kknx9.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/loves/Becker-transit-navi",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2015/01/cucugnan-207380_1280.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2015/01/colourful-houses-77515_1280.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2015/01/alhambra-97229_1280.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/product/3765453684/DE/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2014/05/web-hooksiel22-1.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/max-unschuld-ostseestrand/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wohnmobil-reisebericht/mecklenburg-vorpommern/lebensfreude-insel-ruegen/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/lebensfreude-insel-ruegen/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/?attachment_id=2903",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2016/06/Route.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2016/07/Usedom-Karlshagen-4-1.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2016/07/stellplatz-karlshagen-usedom-1.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2016/07/strand-usedom-karlshagen-1.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2014/03/Cabo-de-Sao-Vicente6.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/Usedom-Karlshagen-Sonne-20160621T161257-1-1.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2017/06/lüneburger-heide2017-10-e1509192105124.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2017/06/lüneburger-heide2017-154.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/usedom-karlshagen-strand-20160621T101502-e1466673216908-1.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/Usedom-Karlshagen-Sonne-20160621T161257-2.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/usedom-karlshagen-strand-20160621T102435-e1466673783516-1.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/usedom-karlshagen-strand-20160621T101938-e1466674040778-1.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/Usedom-Karlshagen-Sonne-20160621T162452-1.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/Usedom-Karlshagen-Sonne-20160621T155423-e1466679809402-1.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/Usedom-Karlshagen-Sonne-20160621T162314-1.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2018/09/hitch.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/Usedom-Karlshagen-Sonne-20160621T153133-1.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/1000010070.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/1000004723.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/1000011683.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/?attachment_id=95816",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/?attachment_id=95519",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/usedom-karlshagen-strand-20160621t102435/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/?attachment_id=95817",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/223/fotogallerie-leon-am-stausee-bei-elvas/img_8424/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/usedom-karlshagen-sonne-20160621t155423/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/?attachment_id=95819",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/usedom-karlshagen-sonne-20160621t162144/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/?attachment_id=95818",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/tag/im-wohnmobil-leben/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/tag/im-wohnmobil-dauerhaft-leben/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/tag/wohnmobilleben/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/tag/wohnmobilw%c3%a4nde/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/tag/gemuetlich-im-wohnmobil/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/tag/wohnmobilreisen/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/tag/wohnmobilt%c3%bcr/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/tag/leben-im-wohnmobil/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/tag/umzug-ins-wohnmobil/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/category/wohnmobil-tipps-tricks/digitale-nomaden/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/tag/fruehling-im-wohnmobil/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/tag/reisen-im-wohnmobil/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/tag/urlaub-im-wohnmobil/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/tag/einrichtung-wohnmobil/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/tag/kreativ-im-wohnmobil/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/tag/wohnmobilreise/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/tag/free-living-im-wohnmobil/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/96805/96805/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/instagram",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/facebook",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/twitter",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/pinterest",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2020/06/IMG_20200411_132458_4.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2020/06/IMG_20200311_155237_3.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2020/06/IMG_20200314_100336_6.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2020/06/IMG_20200428_120256_2.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2020/06/IMG_20200423_113737_2.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2020/06/IMG_20190314_162501_8.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2020/06/IMG_20200428_104103_0.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/86780/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/81240/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/IMG_20190815_174453_5.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/08/moorsee.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/08/IMG_20190809_164717_0.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/08/IMG_20190810_152651_8.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/ressourcen/campingwaschmaschine-schleuder/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/08/IMG_20190530_150006_6.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/08/IMG_20190406_104246_3.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/08/lun2.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/08/bullensee8.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/212/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/01/frost20122.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/01/rollo6.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/01/frost8.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/01/dunst7.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/01/dunst8.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/01/frost6.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/01/kartoffeln.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/01/rollo3.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/01/regenwetter6.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/01/rollo1.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/01/frost7.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/01/kartoffeln4.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/01/wabenplisses-im-wohnmobil.jpeg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/winter-3914681_1280.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/gletscher1.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/01/flies.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/01/frost1.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/01/winter-2854179_1280-1.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wohnmobil-reiseberichte/portugal/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/01/zimmer.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2019/01/fog-3196953_1280.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2018/10/womo.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2018/10/santasusanna.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2018/10/IMG_8244.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/81742/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2016/09/web_IMG_0802-e1472995436155.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/11329/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2015/09/Womomobil-Balu-Koblenz-Überführung-3-8.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/?redirectAmzASIN=B00SHBQ8VO",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/beitraege/wohnmobil-reise-fotobuch/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/tagebuch/waschbecken-im-wohnmobil-was-verbauen/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wohnmobil-reisebericht/mecklenburg-vorpommern/max-traumfrau-frei/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2018/11/100_27901-480x640.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/tagebuch/wohnmobil-zwischenw%c3%a4nde-multiplex/attachment/wohnmobil-selbstausbau-12/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/tagebuch/wohnmobil-zwischenw%c3%a4nde-multiplex/attachment/wohnmobil-selbstausbau-21/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/tagebuch/wohnmobil-zwischenw%c3%a4nde-multiplex/attachment/womomobil-balu-julia5/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/tagebuch/wohnmobil-zwischenw%c3%a4nde-multiplex/attachment/img_0589/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/tagebuch/wohnmobil-zwischenw%c3%a4nde-multiplex/attachment/img_0591-2/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/tagebuch/wohnmobil-zwischenw%c3%a4nde-multiplex/attachment/img_0598/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/tagebuch/wohnmobil-zwischenw%c3%a4nde-multiplex/attachment/womomobil-balu-elektrik4/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/kontakt/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/tagebuch/wer-in-ein-wohnmobil-ziehen-will-muss-entruempeln/attachment/womomobil-balu-freeliving-3/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/tagebuch/wer-in-ein-wohnmobil-ziehen-will-muss-entruempeln/attachment/womomobil-balu-freeliving-10/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/tagebuch/wer-in-ein-wohnmobil-ziehen-will-muss-entruempeln/attachment/womomobil-balu-freeliving-9-2/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/tagebuch/wer-in-ein-wohnmobil-ziehen-will-muss-entruempeln/attachment/womomobil-balu-freeliving-14/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/tagebuch/liebes-tagebuch-2/attachment/100_2482-4/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/loves/Promat",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/aufbau/epdm-folie-reparatur-wohnmobil-dach/attachment/womomobil-dach-klebe-reperatur-16/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/aufbau/epdm-folie-reparatur-wohnmobil-dach/attachment/womomobil-dach-klebe-reperatur-14/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/aufbau/epdm-folie-wohnmobil-dach/attachment/womomobil-balu-feutigkeit-dach-8/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/strom/womomobil-leer-geraeumt-nun-kommt-der-schlimme-teil/attachment/womomobil-balu-elektronic-8/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/strom/womomobil-leer-geraeumt-nun-kommt-der-schlimme-teil/attachment/womomobil-balu-elektronic-9/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/steilkueste-waldpfade-ostseecampingplatz/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/horror-stellplatz-steinbeck/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/lebe-rastlos-wie-ein-rumtreiber/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/sandstedt-bericht/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2014/04/100_2414.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/neu-hier/",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/?slide=auch-dein-traum-strand-boca-do-rio",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/wp-content/uploads/2014/03/algarve1.jpg",
+      "occurrences": 1
+    },
+    {
+      "url": "https://mojobus.org/96933/algarve-motorhome-park-falesia-strand-urlaub/",
+      "occurrences": 1
+    }
+  ]
+}
