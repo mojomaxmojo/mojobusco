@@ -40,3 +40,4 @@ backup-old-template/
 *.tmp
 *.bak
 *~
+redirects/*.bak-*

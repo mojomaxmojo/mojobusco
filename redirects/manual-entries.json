@@ -1,0 +1,326 @@
+{
+  "generatedAt": "2026-10-14T22:57:08.332Z",
+  "note": "SOURCE OF TRUTH für manuelle 301-Map-Einträge (human_decision=map aus unmapped-decisions.csv). NIEMALS die generierte wp-redirects.map editieren — hier ergänzen + Regenerierung: node scripts/generate-wp-redirects.js",
+  "entries": [
+    {
+      "source": "/97114/lifepo4-batterie-im-wohnmobil-optimales-laden-lagern/",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzqn2cfk4hezq2nqy70hcywmt5t0lf50lfrgwqv27plmqzfc94u8clqqahwupd8ymnzvf594kxjen9wphngttzv968getjd9jj66td94mk76rwd4hky6tv94hhqarfd4skcetn94kxzer9dckh2mny95q9xkx5",
+      "match": "manual",
+      "confidence": 1,
+      "evidence": "WP-ID 97114 ↔ d-tag „wp-97114-lifepo4-batterie-im-wohnmobil-optimales-laden-und-“ (Heuristik 1)",
+      "addedAt": "2026-10-14T22:56:22.509Z"
+    },
+    {
+      "source": "/pakete-posta-restante-portugal/",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzp98t68qfgzypmepckleu2v4h8cx56mrtq9sd8lst3f2lujw5w775qqkxzun5d93kcefd8qcrzdfh94cxz6m9w3jj6ur0wd6xzttjv4ehgctww3jj6ur0wf682empdslssluu",
+      "match": "manual",
+      "confidence": 0.95,
+      "evidence": "Slug == d-tag-Suffix „article-80157-pakete-posta-restante-portugal“ (Heuristik 2a)",
+      "addedAt": "2026-10-14T22:56:22.509Z"
+    },
+    {
+      "source": "/97960/lifepo4-batterien-einfuehrung-die-revolution-der-mobilen-ene.../",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzqn2cfk4hezq2nqy70hcywmt5t0lf50lfrgwqv27plmqzfc94u8clqqahwupd8ymnjd3s94kxjen9wphngttzv968getjd9jkutt9d9hxvttgwf6kueedwajkwam9d9ek2u3d0f6hyttdda3xjmr9dcct8fce",
+      "match": "manual",
+      "confidence": 1,
+      "evidence": "WP-ID 97960 ↔ d-tag „wp-97960-lifepo4-batterien-einf-hrung-wegweiser-zur-mobilen“ (Heuristik 1)",
+      "addedAt": "2026-10-14T22:56:22.509Z"
+    },
+    {
+      "source": "/97873/die-roll.../",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzqn2cfk4hezq2nqy70hcywmt5t0lf50lfrgwqv27plmqzfc94u8clqqahwupd8ymnsden94jxjefdwfhkcmr994mx7m3dd35kvetsdu6z6cnpw36x2unfv4hz6cn9dykkgetj94sh2arpwf4k2m3dwvfp26yf",
+      "match": "manual",
+      "confidence": 1,
+      "evidence": "WP-ID 97873 ↔ d-tag „wp-97873-die-rolle-von-lifepo4-batterien-bei-der-autarken-s“ (Heuristik 1)",
+      "addedAt": "2026-10-14T22:56:22.509Z"
+    },
+    {
+      "source": "/97960/lifepo4-batteri.../",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzqn2cfk4hezq2nqy70hcywmt5t0lf50lfrgwqv27plmqzfc94u8clqqahwupd8ymnjd3s94kxjen9wphngttzv968getjd9jkutt9d9hxvttgwf6kueedwajkwam9d9ek2u3d0f6hyttdda3xjmr9dcct8fce",
+      "match": "manual",
+      "confidence": 1,
+      "evidence": "WP-ID 97960 ↔ d-tag „wp-97960-lifepo4-batterien-einf-hrung-wegweiser-zur-mobilen“ (Heuristik 1)",
+      "addedAt": "2026-10-14T22:56:22.509Z"
+    },
+    {
+      "source": "/97107/lifep.../",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzqn2cfk4hezq2nqy70hcywmt5t0lf50lfrgwqv27plmqzfc94u8clqqahwupd8ymnzvph94kxjen9wphngttpdd4h2uedv35k2ttkdae8getfd3jj6atwvskkzmnhv4hxgatwvajkuttkdahz6mrfwsmy6ltn",
+      "match": "manual",
+      "confidence": 1,
+      "evidence": "WP-ID 97107 ↔ d-tag „wp-97107-lifepo4-akkus-die-vorteile-und-anwendungen-von-lit“ (Heuristik 1)",
+      "addedAt": "2026-10-14T22:56:22.509Z"
+    },
+    {
+      "source": "/97107/lifepo4-.../",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzqn2cfk4hezq2nqy70hcywmt5t0lf50lfrgwqv27plmqzfc94u8clqqahwupd8ymnzvph94kxjen9wphngttpdd4h2uedv35k2ttkdae8getfd3jj6atwvskkzmnhv4hxgatwvajkuttkdahz6mrfwsmy6ltn",
+      "match": "manual",
+      "confidence": 1,
+      "evidence": "WP-ID 97107 ↔ d-tag „wp-97107-lifepo4-akkus-die-vorteile-und-anwendungen-von-lit“ (Heuristik 1)",
+      "addedAt": "2026-10-14T22:56:22.510Z"
+    },
+    {
+      "source": "/97107/lifepo4-akku.../",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzqn2cfk4hezq2nqy70hcywmt5t0lf50lfrgwqv27plmqzfc94u8clqqahwupd8ymnzvph94kxjen9wphngttpdd4h2uedv35k2ttkdae8getfd3jj6atwvskkzmnhv4hxgatwvajkuttkdahz6mrfwsmy6ltn",
+      "match": "manual",
+      "confidence": 1,
+      "evidence": "WP-ID 97107 ↔ d-tag „wp-97107-lifepo4-akkus-die-vorteile-und-anwendungen-von-lit“ (Heuristik 1)",
+      "addedAt": "2026-10-14T22:56:22.510Z"
+    },
+    {
+      "source": "/lebe-deinen-traum/",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzp98t68qfgzypmepckleu2v4h8cx56mrtq9sd8lst3f2lujw5w775qq0xzun5d93kcefdxu6nvdpdd3jkyefdv3jkjmn9dckhgunpw4ksyd4827",
+      "match": "manual",
+      "confidence": 0.95,
+      "evidence": "Slug == d-tag-Suffix „article-7564-lebe-deinen-traum“ (Heuristik 2a)",
+      "addedAt": "2026-10-14T22:56:22.510Z"
+    },
+    {
+      "source": "/97873/die-rolle-von-lifepo4-batterien-bei-der-autarken-stromversorgung-im-wohnmo.../",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzqn2cfk4hezq2nqy70hcywmt5t0lf50lfrgwqv27plmqzfc94u8clqqahwupd8ymnsden94jxjefdwfhkcmr994mx7m3dd35kvetsdu6z6cnpw36x2unfv4hz6cn9dykkgetj94sh2arpwf4k2m3dwvfp26yf",
+      "match": "manual",
+      "confidence": 1,
+      "evidence": "WP-ID 97873 ↔ d-tag „wp-97873-die-rolle-von-lifepo4-batterien-bei-der-autarken-s“ (Heuristik 1)",
+      "addedAt": "2026-10-14T22:56:22.510Z"
+    },
+    {
+      "source": "/97114/lifepo4-batterie-wohnmobil-optimales-lade.../",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzqn2cfk4hezq2nqy70hcywmt5t0lf50lfrgwqv27plmqzfc94u8clqqahwupd8ymnzvf594kxjen9wphngttzv968getjd9jj66td94mk76rwd4hky6tv94hhqarfd4skcetn94kxzer9dckh2mny95q9xkx5",
+      "match": "manual",
+      "confidence": 1,
+      "evidence": "WP-ID 97114 ↔ d-tag „wp-97114-lifepo4-batterie-im-wohnmobil-optimales-laden-und-“ (Heuristik 1)",
+      "addedAt": "2026-10-14T22:56:22.510Z"
+    },
+    {
+      "source": "/mit-dem-wohnmobil-nach-san-pedro-de-alcantara/",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzp98t68qfgzypmepckleu2v4h8cx56mrtq9sd8lst3f2lujw5w775qq6hwupd8q6nzvfdd45hgttyv4kj6am0dphx6mmzd9kz6mnpvd5z6umpdckhqetywfhj6er994skccmpde6xzunpr8vual",
+      "match": "manual",
+      "confidence": 0.95,
+      "evidence": "Slug == d-tag-Suffix „wp-8511-mit-dem-wohnmobil-nach-san-pedro-de-alcantara“ (Heuristik 2a)",
+      "addedAt": "2026-10-14T22:56:22.510Z"
+    },
+    {
+      "source": "/womotour-deutschland-nord-ostsee-kanal/",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzp98t68qfgzypmepckleu2v4h8cx56mrtq9sd8lst3f2lujw5w775qqh8wupdxgunqdfdwahk6mm5da6hyttyv46hgumrdpkxzmny94hx7uny94hhxarnv4jj66mpdeskcgwqx0l",
+      "match": "manual",
+      "confidence": 0.95,
+      "evidence": "Slug == d-tag-Suffix „wp-2905-womotour-deutschland-nord-ostsee-kanal“ (Heuristik 2a)",
+      "addedAt": "2026-10-14T22:56:22.510Z"
+    },
+    {
+      "source": "/campingplatz-cappel-neufeld/",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzp98t68qfgzypmepckleu2v4h8cx56mrtq9sd8lst3f2lujw5w775qq3hwupdxvmrxwfdvdsk6urfdenhqmrpw3az6cmpwpcx2mpddejh2en9d3jqzh4aua",
+      "match": "manual",
+      "confidence": 0.95,
+      "evidence": "Slug == d-tag-Suffix „wp-3639-campingplatz-cappel-neufeld“ (Heuristik 2a)",
+      "addedAt": "2026-10-14T22:56:22.510Z"
+    },
+    {
+      "source": "/gewitterzelle-mit-naturgewalt-erwischt-uns-eiskalt/",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzp98t68qfgzypmepckleu2v4h8cx56mrtq9sd8lst3f2lujw5w775qqlkzun5d93kcefd8qun2dpdvajhw6t5w3jhy7n9d3kx2ttdd96z6mnpw36hyem9waskcapdv4e8w6tnvd58gtt4deej6etfwd4kzmr5vt8aj5",
+      "match": "manual",
+      "confidence": 0.95,
+      "evidence": "Slug == d-tag-Suffix „article-8954-gewitterzelle-mit-naturgewalt-erwischt-uns-eiskalt“ (Heuristik 2a)",
+      "addedAt": "2026-10-14T22:56:22.510Z"
+    },
+    {
+      "source": "/lust-auf-postkarte/",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzp98t68qfgzypmepckleu2v4h8cx56mrtq9sd8lst3f2lujw5w775qq0kzun5d93kcefd8qmrjwpdd36hxapdv96kvttsdaehg6mpwf6x26cr88d",
+      "match": "manual",
+      "confidence": 0.95,
+      "evidence": "Slug == d-tag-Suffix „article-8698-lust-auf-postkarte“ (Heuristik 2a)",
+      "addedAt": "2026-10-14T22:56:22.510Z"
+    },
+    {
+      "source": "/20670/fensterrahmen-selbsteinbau-happy-truck-wohnmobil/rr-leon_019/",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzp98t68qfgzypmepckleu2v4h8cx56mrtq9sd8lst3f2lujw5w775qqlxzun5d93kcefdxgcrvdes94nx2mnnw3jhyunpdpkk2m3dwdjkccnnw3jkjmnzv96j66rpwpc8jtt5wf6kx6edwahksmndda3xjmqsld23s",
+      "match": "manual",
+      "confidence": 1,
+      "evidence": "WP-ID 20670 ↔ d-tag „article-20670-fensterrahmen-selbsteinbau-happy-truck-wohnmobil“ (Heuristik 1)",
+      "addedAt": "2026-10-14T22:56:22.510Z"
+    },
+    {
+      "source": "/20256/guenstig-insel-hopsen-mit-dem-wohnmobil/insel-ruegen-20160627t151911/",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzp98t68qfgzypmepckleu2v4h8cx56mrtq9sd8lst3f2lujw5w775qqhhwupdxgcrydfk94nj6mnnw35kwttfdeek2mpddphhqum9dckk66t594jx2mfdwahksmndda3xjmqqsthda",
+      "match": "manual",
+      "confidence": 1,
+      "evidence": "WP-ID 20256 ↔ d-tag „wp-20256-g-nstig-insel-hopsen-mit-dem-wohnmobil“ (Heuristik 1)",
+      "addedAt": "2026-10-14T22:56:22.510Z"
+    },
+    {
+      "source": "/81429/frankreich-spanien-streckenf%c3%bchrung/img_8237-klein-51/",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzp98t68qfgzypmepckleu2v4h8cx56mrtq9sd8lst3f2lujw5w775qqahwupd8qcngv3e94kkzat5veex26fdv36hycmg94n8yctwddex26trdqkkuctrdqkhxurpde5k2m3dwd68yetrddjkue3ddqlm94yx",
+      "match": "manual",
+      "confidence": 1,
+      "evidence": "WP-ID 81429 ↔ d-tag „wp-81429-mautfrei-durch-frankreich-nach-spanien-streckenf-h“ (Heuristik 1)",
+      "addedAt": "2026-10-14T22:56:22.510Z"
+    },
+    {
+      "source": "/wohnmobil-achsreparatur-dana80/",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzp98t68qfgzypmepckleu2v4h8cx56mrtq9sd8lst3f2lujw5w775qqkxzun5d93kcefdxuunqv3j94mk76rwd4hky6tv94skx6rnwfjhqctjv9682u3dv3skucfcxqdhxw2q",
+      "match": "manual",
+      "confidence": 0.95,
+      "evidence": "Slug == d-tag-Suffix „article-79022-wohnmobil-achsreparatur-dana80“ (Heuristik 2a)",
+      "addedAt": "2026-10-14T22:56:22.510Z"
+    },
+    {
+      "source": "/516/epdm-folie-reparatur-wohnmobil-dach/",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzp98t68qfgzypmepckleu2v4h8cx56mrtq9sd8lst3f2lujw5w775qqhxzun5d93kcefdx5cnvtthda5xumt0vf5kcerpvd5z6un9wpshyct5w4ez6etsv3kj6en0d35k24q82y8",
+      "match": "manual",
+      "confidence": 1,
+      "evidence": "WP-ID 516 ↔ d-tag „article-516-wohnmobildach-reparatur-epdm-folie“ (Heuristik 1)",
+      "addedAt": "2026-10-14T22:56:22.510Z"
+    },
+    {
+      "source": "/salzhausen-und-hinter-dem-horizont-geht-es-weiter/",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzp98t68qfgzypmepckleu2v4h8cx56mrtq9sd8lst3f2lujw5w775qqlxzun5d93kcefd8qunzv3dwdskc7ngv96hxetw946kuepddp5kuar9wgkkgetd945x7unf0fhkuapdvajksapdv4ej6am9d96x2us7um4zu",
+      "match": "manual",
+      "confidence": 0.95,
+      "evidence": "Slug == d-tag-Suffix „article-8912-salzhausen-und-hinter-dem-horizont-geht-es-weiter“ (Heuristik 2a)",
+      "addedAt": "2026-10-14T22:56:22.510Z"
+    },
+    {
+      "source": "/es-geht-weiter-zum-wohnmobilstellplatz-horumersiel/",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzp98t68qfgzypmepckleu2v4h8cx56mrtq9sd8lst3f2lujw5w775qqlkzun5d93kcefd8qmnvvpdv4ej6em9dp6z6am9d96x2u3d0f6k6tthda5xumt0vf5kcum5v4kxcurvv9685ttgdae82mt9wfekjetv920way",
+      "match": "manual",
+      "confidence": 0.95,
+      "evidence": "Slug == d-tag-Suffix „article-8760-es-geht-weiter-zum-wohnmobilstellplatz-horumersiel“ (Heuristik 2a)",
+      "addedAt": "2026-10-14T22:56:22.510Z"
+    },
+    {
+      "source": "/sonne-stellplatz-und-zwilligsmuehlen-bei-greetsiel/",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzp98t68qfgzypmepckleu2v4h8cx56mrtq9sd8lst3f2lujw5w775qqlkzun5d93kcefd8qcr2dfdwdhkumn994ehgetvd3cxcct50gkh2mny94a8w6tvd35kwumdw4jksmr9dckkyetf94nhyet9w3ekjetv4mqppc",
+      "match": "manual",
+      "confidence": 0.95,
+      "evidence": "Slug == d-tag-Suffix „article-8055-sonne-stellplatz-und-zwilligsmuehlen-bei-greetsiel“ (Heuristik 2a)",
+      "addedAt": "2026-10-14T22:56:22.510Z"
+    },
+    {
+      "source": "/der-erste-sonnentag-am-nordsee-strand/",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzp98t68qfgzypmepckleu2v4h8cx56mrtq9sd8lst3f2lujw5w775qqexzun5d93kcefd8qmrgvfdv3jhytt9wfehgefdwdhkumn9de6xzeedv9kj6mn0wfj8xet994ehgunpdejqlk32g8",
+      "match": "manual",
+      "confidence": 0.95,
+      "evidence": "Slug == d-tag-Suffix „article-8641-der-erste-sonnentag-am-nordsee-strand“ (Heuristik 2a)",
+      "addedAt": "2026-10-14T22:56:22.510Z"
+    },
+    {
+      "source": "/guten-morgen-liebe-sorgen-auch-schon-wach/",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzp98t68qfgzypmepckleu2v4h8cx56mrtq9sd8lst3f2lujw5w775qqmxzun5d93kcefd8qenzdedva6hgetw94kk7un8v4hz6mrfv43x2ttndaexwetw94sh2cmg94ekx6r0dckhwctrdqputrs7",
+      "match": "manual",
+      "confidence": 0.95,
+      "evidence": "Slug == d-tag-Suffix „article-8317-guten-morgen-liebe-sorgen-auch-schon-wach“ (Heuristik 2a)",
+      "addedAt": "2026-10-14T22:56:22.510Z"
+    },
+    {
+      "source": "/kostenloser-stellplatz-marienhafe-tjuecher-moortun/",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzp98t68qfgzypmepckleu2v4h8cx56mrtq9sd8lst3f2lujw5w775qqlkzun5d93kcefd8qcrjdfdddhhxar9dekx7um9wgkhxar9d3k8qmrpw3az6mtpwf5k2mngv9nx2tt5df6k2cmgv4ez6mt0dae8gatwmyh85u",
+      "match": "manual",
+      "confidence": 0.95,
+      "evidence": "Slug == d-tag-Suffix „article-8095-kostenloser-stellplatz-marienhafe-tjuecher-moortun“ (Heuristik 2a)",
+      "addedAt": "2026-10-14T22:56:22.510Z"
+    },
+    {
+      "source": "/es-geht-wieder-zurueck-nach-deutschland/",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzp98t68qfgzypmepckleu2v4h8cx56mrtq9sd8lst3f2lujw5w775qq6xzun5d93kcefdxumrzvfdv4ej6em9dp6z6amfv4jx2u3d0f6hyat9vd4j6mnpvd5z6er9w468xcmgd3skueqjk5p34",
+      "match": "manual",
+      "confidence": 0.95,
+      "evidence": "Slug == d-tag-Suffix „article-7611-es-geht-wieder-zurueck-nach-deutschland“ (Heuristik 2a)",
+      "addedAt": "2026-10-14T22:56:22.510Z"
+    },
+    {
+      "source": "/kostenlos-frei-stehen-dangast/",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzp98t68qfgzypmepckleu2v4h8cx56mrtq9sd8lst3f2lujw5w775qq4xzun5d93kcefd8qenwd3dddhhxar9dekx7uedveex26fdwd6x26r9dckkgctwvashxaqzy9x8a",
+      "match": "manual",
+      "confidence": 0.95,
+      "evidence": "Slug == d-tag-Suffix „article-8376-kostenlos-frei-stehen-dangast“ (Heuristik 2a)",
+      "addedAt": "2026-10-14T22:56:22.510Z"
+    },
+    {
+      "source": "/stellplatz-harlesiel-ostern-2014/",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzp98t68qfgzypmepckleu2v4h8cx56mrtq9sd8lst3f2lujw5w775qqkkzun5d93kcefd8qcnjvedwd6x2mrvwpkxzar6945xzunvv4ekjetv94hhxar9wfhz6v3sxy6qnmxczt",
+      "match": "manual",
+      "confidence": 0.95,
+      "evidence": "Slug == d-tag-Suffix „article-8193-stellplatz-harlesiel-ostern-2014“ (Heuristik 2a)",
+      "addedAt": "2026-10-14T22:56:22.510Z"
+    },
+    {
+      "source": "/spontane-hilfsbereitschaft-am-wohnmobil-stellplatz-dedesdorf/",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzp98t68qfgzypmepckleu2v4h8cx56mrtq9sd8lst3f2lujw5w775qpykzun5d93kcefd8q6nsvpdwdcx7mn5v9hx2ttgd9kxvumzv4ex26t5wd3ksctxwskkzmfdwahksmndda3xjmpdwd6x2mrvwpkxzar694jx2er9wdjx7unxerwcr7",
+      "match": "manual",
+      "confidence": 0.95,
+      "evidence": "Slug == d-tag-Suffix „article-8580-spontane-hilfsbereitschaft-am-wohnmobil-stellplatz-dedesdorf“ (Heuristik 2a)",
+      "addedAt": "2026-10-14T22:56:22.510Z"
+    },
+    {
+      "source": "/stoertebeker-marienhafe-und-ostern2014/",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzp98t68qfgzypmepckleu2v4h8cx56mrtq9sd8lst3f2lujw5w775qqekzun5d93kcefd8qcn2vfdwd6x7etjw3jkyettv4ez6mtpwf5k2mngv9nx2tt4dejz6mmnw3jhym3jxqcng0as3c4",
+      "match": "manual",
+      "confidence": 0.95,
+      "evidence": "Slug == d-tag-Suffix „article-8151-stoertebeker-marienhafe-und-ostern2014“ (Heuristik 2a)",
+      "addedAt": "2026-10-14T22:56:22.510Z"
+    },
+    {
+      "source": "/ein-nachmittag-im-paradies-nordsee/",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzp98t68qfgzypmepckleu2v4h8cx56mrtq9sd8lst3f2lujw5w775qqhkzun5d93kcefd8qenydfdv45kuttwv93ksmtfw36xzeedd9kj6urpwfskg6t9wvkkummjv3ek2egvv5m0c",
+      "match": "manual",
+      "confidence": 0.95,
+      "evidence": "Slug == d-tag-Suffix „article-8325-ein-nachmittag-im-paradies-nordsee“ (Heuristik 2a)",
+      "addedAt": "2026-10-14T22:56:22.510Z"
+    },
+    {
+      "source": "/einbau-solaranlage-auf-dem-wohnmobil/",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzp98t68qfgzypmepckleu2v4h8cx56mrtq9sd8lst3f2lujw5w775qqckzun5d93kcefdxu6rsdpdv45kucnpw5khxmmvv9exzmnvv9nk2ttpw4nz6er9d5khwmmgdekk7cnfdsav5qyu",
+      "match": "manual",
+      "confidence": 0.95,
+      "evidence": "Slug == d-tag-Suffix „article-7484-einbau-solaranlage-auf-dem-wohnmobil“ (Heuristik 2a)",
+      "addedAt": "2026-10-14T22:56:22.510Z"
+    },
+    {
+      "source": "/liebes-tagebuch/",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzp98t68qfgzypmepckleu2v4h8cx56mrtq9sd8lst3f2lujw5w775qqwxzun5d93kcefdxumngd3dd35k2cn9wvkhgct8v4382cmg2ssgr3",
+      "match": "manual",
+      "confidence": 0.95,
+      "evidence": "Slug == d-tag-Suffix „article-7746-liebes-tagebuch“ (Heuristik 2a)",
+      "addedAt": "2026-10-14T22:56:22.510Z"
+    },
+    {
+      "source": "/stellplatz-spieka-neufeld-am-kutterhafen/",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzp98t68qfgzypmepckleu2v4h8cx56mrtq9sd8lst3f2lujw5w775qqc8wupdxvmrqdfdwd6x2mrvwpkxzar694ehq6t9ddsj6mn9w4nx2mry94sk6tttw468getjdpskvetwez0ykx",
+      "match": "manual",
+      "confidence": 0.95,
+      "evidence": "Slug == d-tag-Suffix „wp-3605-stellplatz-spieka-neufeld-am-kutterhafen“ (Heuristik 2a)",
+      "addedAt": "2026-10-14T22:56:22.510Z"
+    },
+    {
+      "source": "/stellplatz-dedesdorf-weser-27612-niedersachsen/",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzp98t68qfgzypmepckleu2v4h8cx56mrtq9sd8lst3f2lujw5w775qqm8wupdxv6nsvpdwd6x2mrvwpkxzar694jx2er9wdjx7unx94mk2um9wgknydekxyez6mnfv4jx2unnv93ksum9dcl6rv22",
+      "match": "manual",
+      "confidence": 0.95,
+      "evidence": "Slug == d-tag-Suffix „wp-3580-stellplatz-dedesdorf-weser-27612-niedersachsen“ (Heuristik 2a)",
+      "addedAt": "2026-10-14T22:56:22.510Z"
+    },
+    {
+      "source": "/wohnmobilreise-deutschland-neuharlingersiel/",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzp98t68qfgzypmepckleu2v4h8cx56mrtq9sd8lst3f2lujw5w775qqehwupdxgmnzvpdwahksmndda3xjmrjv45hxefdv3jh2arnvd5xcctwvskkuet4dpshymrfdenk2unnd9jkcgr8nst",
+      "match": "manual",
+      "confidence": 0.95,
+      "evidence": "Slug == d-tag-Suffix „wp-2710-wohnmobilreise-deutschland-neuharlingersiel“ (Heuristik 2a)",
+      "addedAt": "2026-10-14T22:56:22.510Z"
+    },
+    {
+      "source": "/cabo-de-sao-vicente-algarve-portugal/",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzp98t68qfgzypmepckleu2v4h8cx56mrtq9sd8lst3f2lujw5w775qqk8wupdxu6nqdfdvdskymedv3jj6umpdukhv6trv4h8gefdv9kxwctjwejj6ur0wf682empdsdmkwmm",
+      "match": "manual",
+      "confidence": 0.95,
+      "evidence": "Slug == d-tag-Suffix „wp-7505-cabo-de-sao-vicente-algarve-portugal“ (Heuristik 2a)",
+      "addedAt": "2026-10-14T22:56:22.510Z"
+    },
+    {
+      "source": "/solar-anlage-im-wohnmobil-campingbus-teil-2/",
+      "target": "https://mojobus.co/naddr1qvzqqqr4gupzp98t68qfgzypmepckleu2v4h8cx56mrtq9sd8lst3f2lujw5w775qquxzun5d93kcefdxc6nxdfdwdhkcctj94skumrpvajj66td94mk76rwd4hky6tv943kzmtsd9hxwcn4wvkhgetfdsknyglsycp",
+      "match": "manual",
+      "confidence": 0.95,
+      "evidence": "Slug == d-tag-Suffix „article-6535-solar-anlage-im-wohnmobil-campingbus-teil-2“ (Heuristik 2a)",
+      "addedAt": "2026-10-14T22:56:22.510Z"
+    }
+  ]
+}

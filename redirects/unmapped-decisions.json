@@ -1,0 +1,3308 @@
+{
+  "generatedAt": "2026-10-15T18:53:50.760Z",
+  "inputs": {
+    "unmappedFile": "/root/deploy-git/mojobusco/redirects/unmapped-org-links.json",
+    "org404List": null,
+    "reportFile": null,
+    "wpRedirectsJson": "/root/deploy-git/mojobusco/redirects/wp-redirects.json",
+    "inventoryFile": "/home/nginx/domains/mojobus.co/public/data/sitemap.json"
+  },
+  "counts": {
+    "total": 235,
+    "map": 4,
+    "gone": 231,
+    "withLogHits": 235
+  },
+  "decisions": [
+    {
+      "source_url": "https://mojobus.org/7464/solar-photovoltaikled-ausruestungsempfehlungen/",
+      "path": "/7464/solar-photovoltaikled-ausruestungsempfehlungen/",
+      "search": "",
+      "log_hits": 18,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/kaufen-2/lifepo4/",
+      "path": "/kaufen-2/lifepo4/",
+      "search": "",
+      "log_hits": 14,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/LiFePo4vsBlei-Saeure-Batterien-e1710251162342.webp",
+      "path": "/wp-content/uploads/LiFePo4vsBlei-Saeure-Batterien-e1710251162342.webp",
+      "search": "",
+      "log_hits": 13,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2012/11/bol4.jpg",
+      "path": "/wp-content/uploads/2012/11/bol4.jpg",
+      "search": "",
+      "log_hits": 12,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2012/12/artikelschaal.jpg",
+      "path": "/wp-content/uploads/2012/12/artikelschaal.jpg",
+      "search": "",
+      "log_hits": 12,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2016/06/hund-hoya-20160616T174820-1-e1467233612966.jpg",
+      "path": "/wp-content/uploads/2016/06/hund-hoya-20160616T174820-1-e1467233612966.jpg",
+      "search": "",
+      "log_hits": 12,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2014/12/54a3ef4f6a891-Womomobil-Luna-Koblenz-Überführung-3-15-e1420029223122.jpg",
+      "path": "/wp-content/uploads/2014/12/54a3ef4f6a891-Womomobil-Luna-Koblenz-%C3%9Cberf%C3%BChrung-3-15-e1420029223122.jpg",
+      "search": "",
+      "log_hits": 9,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/96479/schutz-und-sicherheit-im-wohnmobil-und-auf-reisen/",
+      "path": "/96479/schutz-und-sicherheit-im-wohnmobil-und-auf-reisen/",
+      "search": "",
+      "log_hits": 8,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/category/wohnmobil-reiseberichte/portugal/",
+      "path": "/category/wohnmobil-reiseberichte/portugal/",
+      "search": "",
+      "log_hits": 8,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/06/gottingen-1269450_12801.jpg",
+      "path": "/wp-content/uploads/2019/06/gottingen-1269450_12801.jpg",
+      "search": "",
+      "log_hits": 8,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/01/leon4.jpg",
+      "path": "/wp-content/uploads/2019/01/leon4.jpg",
+      "search": "",
+      "log_hits": 8,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/212/abenteuer-wohnmobil-lebe-es-liebe-es/",
+      "path": "/212/abenteuer-wohnmobil-lebe-es-liebe-es/",
+      "search": "",
+      "log_hits": 7,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/wohnmobil-elekronik/",
+      "path": "/tag/wohnmobil-elekronik/",
+      "search": "",
+      "log_hits": 7,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/solaranlage/",
+      "path": "/tag/solaranlage/",
+      "search": "",
+      "log_hits": 7,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/product/3899537734/DE/",
+      "path": "/product/3899537734/DE/",
+      "search": "",
+      "log_hits": 7,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/02/weserle.jpg",
+      "path": "/wp-content/uploads/2019/02/weserle.jpg",
+      "search": "",
+      "log_hits": 7,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/ein-leben-im-wohnmobil/",
+      "path": "/tag/ein-leben-im-wohnmobil/",
+      "search": "",
+      "log_hits": 6,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/dauerhaft-leben-im-wohnmobil/",
+      "path": "/tag/dauerhaft-leben-im-wohnmobil/",
+      "search": "",
+      "log_hits": 6,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/kaufen-2trashed/lifepo4/",
+      "path": "/kaufen-2trashed/lifepo4/",
+      "search": "",
+      "log_hits": 6,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2013/01/1002027.jpg",
+      "path": "/wp-content/uploads/2013/01/1002027.jpg",
+      "search": "",
+      "log_hits": 6,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2013/01/10019811.jpg",
+      "path": "/wp-content/uploads/2013/01/10019811.jpg",
+      "search": "",
+      "log_hits": 6,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2013/01/10019803.jpg",
+      "path": "/wp-content/uploads/2013/01/10019803.jpg",
+      "search": "",
+      "log_hits": 6,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2012/12/00001321.jpg",
+      "path": "/wp-content/uploads/2012/12/00001321.jpg",
+      "search": "",
+      "log_hits": 6,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2016/09/Arrifana-Beach.jpg",
+      "path": "/wp-content/uploads/2016/09/Arrifana-Beach.jpg",
+      "search": "",
+      "log_hits": 6,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2012/10/ma.jpg",
+      "path": "/wp-content/uploads/2012/10/ma.jpg",
+      "search": "",
+      "log_hits": 6,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2018/01/img9162.jpg",
+      "path": "/wp-content/uploads/2018/01/img9162.jpg",
+      "search": "",
+      "log_hits": 6,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/solar-photovoltaikled-ausruestungsempfehlungen/",
+      "path": "/solar-photovoltaikled-ausruestungsempfehlungen/",
+      "search": "",
+      "log_hits": 6,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/wohnmobildach-solaranlage/",
+      "path": "/tag/wohnmobildach-solaranlage/",
+      "search": "",
+      "log_hits": 5,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/ressourcen/solaranlage-stromversorgung-wohnmobil/",
+      "path": "/ressourcen/solaranlage-stromversorgung-wohnmobil/",
+      "search": "",
+      "log_hits": 5,
+      "proposed_type": "map",
+      "proposed_target": "https://mojobus.co/artikel",
+      "confidence": 0.6,
+      "evidence": "Muster: /ressourcen/ → .co/artikel",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/solarpanel/",
+      "path": "/tag/solarpanel/",
+      "search": "",
+      "log_hits": 4,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/hier-starten/leben-im-wohnmobil/",
+      "path": "/hier-starten/leben-im-wohnmobil/",
+      "search": "",
+      "log_hits": 4,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/womo/stellplatz-uebernachtungsplatz-pampliega/",
+      "path": "/womo/stellplatz-uebernachtungsplatz-pampliega/",
+      "search": "",
+      "log_hits": 4,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2015/01/54a7baddbbb14-Womomobil-Luna-16-20150102T141002.jpg",
+      "path": "/wp-content/uploads/2015/01/54a7baddbbb14-Womomobil-Luna-16-20150102T141002.jpg",
+      "search": "",
+      "log_hits": 4,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/arbeit-am-wohnmobil/",
+      "path": "/tag/arbeit-am-wohnmobil/",
+      "search": "",
+      "log_hits": 3,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/elekronik-wohnmobil/",
+      "path": "/tag/elekronik-wohnmobil/",
+      "search": "",
+      "log_hits": 3,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/category/leben-im-wohnmobil/",
+      "path": "/category/leben-im-wohnmobil/",
+      "search": "",
+      "log_hits": 3,
+      "proposed_type": "map",
+      "proposed_target": "https://mojobus.co/artikel",
+      "confidence": 0.6,
+      "evidence": "Muster: /category/leben-im-wohnmobil/ → .co/artikel (Default-Kategorie)",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wohnmobil-ueberwintern-in/",
+      "path": "/wohnmobil-ueberwintern-in/",
+      "search": "",
+      "log_hits": 3,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/85222/wie-man-sein-leben-im-wohnmobil-bunt-und-liebevoll-gestaltet/",
+      "path": "/85222/wie-man-sein-leben-im-wohnmobil-bunt-und-liebevoll-gestaltet/",
+      "search": "",
+      "log_hits": 3,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/wohnmobil-campingplatz/",
+      "path": "/tag/wohnmobil-campingplatz/",
+      "search": "",
+      "log_hits": 3,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/lifepo4/",
+      "path": "/tag/lifepo4/",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/wohnmobil-ausbauen/",
+      "path": "/tag/wohnmobil-ausbauen/",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/sicherheit-im-wohnmobil/",
+      "path": "/tag/sicherheit-im-wohnmobil/",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/hier-starten/wohnmobil-tipps/",
+      "path": "/hier-starten/wohnmobil-tipps/",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/wohnmobil-leben/",
+      "path": "/tag/wohnmobil-leben/",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/wohlfuehlen-im-wohnmobil-leben/",
+      "path": "/tag/wohlfuehlen-im-wohnmobil-leben/",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/category/lifepo4/",
+      "path": "/category/lifepo4/",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "map",
+      "proposed_target": "https://mojobus.co/artikel",
+      "confidence": 0.6,
+      "evidence": "Muster: /category/lifepo4/ → .co/artikel (Default-Kategorie)",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/hier-starten/selbstausbau/",
+      "path": "/hier-starten/selbstausbau/",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/womo-stellplaetze/mecklenburg-vorpommern/heiligendamm-kinderstrand-ostseekueste/",
+      "path": "/womo-stellplaetze/mecklenburg-vorpommern/heiligendamm-kinderstrand-ostseekueste/",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2016/09/resized_Hinten_0790.jpg",
+      "path": "/wp-content/uploads/2016/09/resized_Hinten_0790.jpg",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/algarve-entdecken-mit-dem-wohnmobil/",
+      "path": "/tag/algarve-entdecken-mit-dem-wohnmobil/",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/portugal-mit-dem-wohnmobil-erleben/",
+      "path": "/tag/portugal-mit-dem-wohnmobil-erleben/",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/wohnmobil-algarve/",
+      "path": "/tag/wohnmobil-algarve/",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/algarve-mit-dem-wohnmobil/",
+      "path": "/tag/algarve-mit-dem-wohnmobil/",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/wohnmobiltour-albufeira/",
+      "path": "/tag/wohnmobiltour-albufeira/",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/portugal-mit-dem-wohnmobil-bereisen/",
+      "path": "/tag/portugal-mit-dem-wohnmobil-bereisen/",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/portugaltour-wohnmobil/",
+      "path": "/tag/portugaltour-wohnmobil/",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/gratis-wohnmobil-plaetze/",
+      "path": "/tag/gratis-wohnmobil-plaetze/",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/wohnmobil-stellplatzsuche/",
+      "path": "/tag/wohnmobil-stellplatzsuche/",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/mit-dem-wohnmobil-durch-portugal/",
+      "path": "/tag/mit-dem-wohnmobil-durch-portugal/",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/familienurlaub-im-wohnmobil-portugal/",
+      "path": "/tag/familienurlaub-im-wohnmobil-portugal/",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/84859/portugal-trip-mit-dem-wohnmobil-14-orte-die-du-sehen-musst/",
+      "path": "/84859/portugal-trip-mit-dem-wohnmobil-14-orte-die-du-sehen-musst/",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/wohnmobilreise-portugal/",
+      "path": "/tag/wohnmobilreise-portugal/",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/wohnmobilstellplaetze/",
+      "path": "/tag/wohnmobilstellplaetze/",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/wohnmobil-stellplatz/",
+      "path": "/tag/wohnmobil-stellplatz/",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/loves/ama",
+      "path": "/loves/ama",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/womo/stellplatz-l-roche/",
+      "path": "/womo/stellplatz-l-roche/",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/boca-do-rio-portugal-algarve/",
+      "path": "/boca-do-rio-portugal-algarve/",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/06/IMG_20190309_122620_9.jpg",
+      "path": "/wp-content/uploads/2019/06/IMG_20190309_122620_9.jpg",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/06/IMG_20190217_115602_2.jpg",
+      "path": "/wp-content/uploads/2019/06/IMG_20190217_115602_2.jpg",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/06/IMG_20190314_162505_9.jpg",
+      "path": "/wp-content/uploads/2019/06/IMG_20190314_162505_9.jpg",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/06/IMG_20190530_153642_7.jpg",
+      "path": "/wp-content/uploads/2019/06/IMG_20190530_153642_7.jpg",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/06/IMG_20190426_174224_899.jpg",
+      "path": "/wp-content/uploads/2019/06/IMG_20190426_174224_899.jpg",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/06/burg10.jpg",
+      "path": "/wp-content/uploads/2019/06/burg10.jpg",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/06/burg1.jpg",
+      "path": "/wp-content/uploads/2019/06/burg1.jpg",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/06/burg2.jpg",
+      "path": "/wp-content/uploads/2019/06/burg2.jpg",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/06/burg3.jpg",
+      "path": "/wp-content/uploads/2019/06/burg3.jpg",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/06/IMG_20190316_100250_5.jpg",
+      "path": "/wp-content/uploads/2019/06/IMG_20190316_100250_5.jpg",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/06/burg6.jpg",
+      "path": "/wp-content/uploads/2019/06/burg6.jpg",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/06/burg4.jpg",
+      "path": "/wp-content/uploads/2019/06/burg4.jpg",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/06/burg5.jpg",
+      "path": "/wp-content/uploads/2019/06/burg5.jpg",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/01/leon6.jpg",
+      "path": "/wp-content/uploads/2019/01/leon6.jpg",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/01/leonbr-1.jpg",
+      "path": "/wp-content/uploads/2019/01/leonbr-1.jpg",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/86651/",
+      "path": "/86651/",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2014/12/Womomobil-Balu-Koblenz-Überführung-3-2.jpg",
+      "path": "/wp-content/uploads/2014/12/Womomobil-Balu-Koblenz-%C3%9Cberf%C3%BChrung-3-2.jpg",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2014/12/Womomobil-Balu-Koblenz-Überführung-3-8.jpg",
+      "path": "/wp-content/uploads/2014/12/Womomobil-Balu-Koblenz-%C3%9Cberf%C3%BChrung-3-8.jpg",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2014/12/Womomobil-Balu-Koblenz-Überführung-3-13.jpg",
+      "path": "/wp-content/uploads/2014/12/Womomobil-Balu-Koblenz-%C3%9Cberf%C3%BChrung-3-13.jpg",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2014/12/Womomobil-Balu-Koblenz-Überführung-3-14.jpg",
+      "path": "/wp-content/uploads/2014/12/Womomobil-Balu-Koblenz-%C3%9Cberf%C3%BChrung-3-14.jpg",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2014/12/Womomobil-Balu-Koblenz-Überführung-3-18.jpg",
+      "path": "/wp-content/uploads/2014/12/Womomobil-Balu-Koblenz-%C3%9Cberf%C3%BChrung-3-18.jpg",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/geburtstagstour-an-die-nordseekueste-duhnen/",
+      "path": "/geburtstagstour-an-die-nordseekueste-duhnen/",
+      "search": "",
+      "log_hits": 2,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/shop/solaranlage-stromversorgung-wohnmobil/",
+      "path": "/shop/solaranlage-stromversorgung-wohnmobil/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/wohnmobil-stromgenerator/",
+      "path": "/tag/wohnmobil-stromgenerator/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/19819/schillig-sonne-wohnmobil/",
+      "path": "/19819/schillig-sonne-wohnmobil/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/kaufen-2__trashed/lifepo4/",
+      "path": "/kaufen-2__trashed/lifepo4/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/v2-4wol2-kknx9.jpg",
+      "path": "/wp-content/uploads/v2-4wol2-kknx9.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/loves/Becker-transit-navi",
+      "path": "/loves/Becker-transit-navi",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2015/01/cucugnan-207380_1280.jpg",
+      "path": "/wp-content/uploads/2015/01/cucugnan-207380_1280.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2015/01/colourful-houses-77515_1280.jpg",
+      "path": "/wp-content/uploads/2015/01/colourful-houses-77515_1280.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2015/01/alhambra-97229_1280.jpg",
+      "path": "/wp-content/uploads/2015/01/alhambra-97229_1280.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/product/3765453684/DE/",
+      "path": "/product/3765453684/DE/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2014/05/web-hooksiel22-1.jpg",
+      "path": "/wp-content/uploads/2014/05/web-hooksiel22-1.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/max-unschuld-ostseestrand/",
+      "path": "/max-unschuld-ostseestrand/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wohnmobil-reisebericht/mecklenburg-vorpommern/lebensfreude-insel-ruegen/",
+      "path": "/wohnmobil-reisebericht/mecklenburg-vorpommern/lebensfreude-insel-ruegen/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/lebensfreude-insel-ruegen/",
+      "path": "/lebensfreude-insel-ruegen/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/?attachment_id=2903",
+      "path": "/",
+      "search": "?attachment_id=2903",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2016/06/Route.jpg",
+      "path": "/wp-content/uploads/2016/06/Route.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2016/07/Usedom-Karlshagen-4-1.jpg",
+      "path": "/wp-content/uploads/2016/07/Usedom-Karlshagen-4-1.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2016/07/stellplatz-karlshagen-usedom-1.jpg",
+      "path": "/wp-content/uploads/2016/07/stellplatz-karlshagen-usedom-1.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2016/07/strand-usedom-karlshagen-1.jpg",
+      "path": "/wp-content/uploads/2016/07/strand-usedom-karlshagen-1.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2014/03/Cabo-de-Sao-Vicente6.jpg",
+      "path": "/wp-content/uploads/2014/03/Cabo-de-Sao-Vicente6.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/Usedom-Karlshagen-Sonne-20160621T161257-1-1.jpg",
+      "path": "/wp-content/uploads/Usedom-Karlshagen-Sonne-20160621T161257-1-1.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2017/06/lüneburger-heide2017-10-e1509192105124.jpg",
+      "path": "/wp-content/uploads/2017/06/l%C3%BCneburger-heide2017-10-e1509192105124.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2017/06/lüneburger-heide2017-154.jpg",
+      "path": "/wp-content/uploads/2017/06/l%C3%BCneburger-heide2017-154.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/usedom-karlshagen-strand-20160621T101502-e1466673216908-1.jpg",
+      "path": "/wp-content/uploads/usedom-karlshagen-strand-20160621T101502-e1466673216908-1.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/Usedom-Karlshagen-Sonne-20160621T161257-2.jpg",
+      "path": "/wp-content/uploads/Usedom-Karlshagen-Sonne-20160621T161257-2.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/usedom-karlshagen-strand-20160621T102435-e1466673783516-1.jpg",
+      "path": "/wp-content/uploads/usedom-karlshagen-strand-20160621T102435-e1466673783516-1.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/usedom-karlshagen-strand-20160621T101938-e1466674040778-1.jpg",
+      "path": "/wp-content/uploads/usedom-karlshagen-strand-20160621T101938-e1466674040778-1.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/Usedom-Karlshagen-Sonne-20160621T162452-1.jpg",
+      "path": "/wp-content/uploads/Usedom-Karlshagen-Sonne-20160621T162452-1.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/Usedom-Karlshagen-Sonne-20160621T155423-e1466679809402-1.jpg",
+      "path": "/wp-content/uploads/Usedom-Karlshagen-Sonne-20160621T155423-e1466679809402-1.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/Usedom-Karlshagen-Sonne-20160621T162314-1.jpg",
+      "path": "/wp-content/uploads/Usedom-Karlshagen-Sonne-20160621T162314-1.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2018/09/hitch.jpg",
+      "path": "/wp-content/uploads/2018/09/hitch.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/Usedom-Karlshagen-Sonne-20160621T153133-1.jpg",
+      "path": "/wp-content/uploads/Usedom-Karlshagen-Sonne-20160621T153133-1.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/1000010070.jpg",
+      "path": "/wp-content/uploads/1000010070.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/1000004723.jpg",
+      "path": "/wp-content/uploads/1000004723.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/1000011683.jpg",
+      "path": "/wp-content/uploads/1000011683.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/?attachment_id=95816",
+      "path": "/",
+      "search": "?attachment_id=95816",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/?attachment_id=95519",
+      "path": "/",
+      "search": "?attachment_id=95519",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/usedom-karlshagen-strand-20160621t102435/",
+      "path": "/usedom-karlshagen-strand-20160621t102435/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/?attachment_id=95817",
+      "path": "/",
+      "search": "?attachment_id=95817",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/223/fotogallerie-leon-am-stausee-bei-elvas/img_8424/",
+      "path": "/223/fotogallerie-leon-am-stausee-bei-elvas/img_8424/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/usedom-karlshagen-sonne-20160621t155423/",
+      "path": "/usedom-karlshagen-sonne-20160621t155423/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/?attachment_id=95819",
+      "path": "/",
+      "search": "?attachment_id=95819",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/usedom-karlshagen-sonne-20160621t162144/",
+      "path": "/usedom-karlshagen-sonne-20160621t162144/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/?attachment_id=95818",
+      "path": "/",
+      "search": "?attachment_id=95818",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/im-wohnmobil-leben/",
+      "path": "/tag/im-wohnmobil-leben/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/im-wohnmobil-dauerhaft-leben/",
+      "path": "/tag/im-wohnmobil-dauerhaft-leben/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/wohnmobilleben/",
+      "path": "/tag/wohnmobilleben/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/wohnmobilw%c3%a4nde/",
+      "path": "/tag/wohnmobilw%c3%a4nde/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/gemuetlich-im-wohnmobil/",
+      "path": "/tag/gemuetlich-im-wohnmobil/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/wohnmobilreisen/",
+      "path": "/tag/wohnmobilreisen/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/wohnmobilt%c3%bcr/",
+      "path": "/tag/wohnmobilt%c3%bcr/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/leben-im-wohnmobil/",
+      "path": "/tag/leben-im-wohnmobil/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/umzug-ins-wohnmobil/",
+      "path": "/tag/umzug-ins-wohnmobil/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/category/wohnmobil-tipps-tricks/digitale-nomaden/",
+      "path": "/category/wohnmobil-tipps-tricks/digitale-nomaden/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/fruehling-im-wohnmobil/",
+      "path": "/tag/fruehling-im-wohnmobil/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/reisen-im-wohnmobil/",
+      "path": "/tag/reisen-im-wohnmobil/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/urlaub-im-wohnmobil/",
+      "path": "/tag/urlaub-im-wohnmobil/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/einrichtung-wohnmobil/",
+      "path": "/tag/einrichtung-wohnmobil/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/kreativ-im-wohnmobil/",
+      "path": "/tag/kreativ-im-wohnmobil/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/wohnmobilreise/",
+      "path": "/tag/wohnmobilreise/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tag/free-living-im-wohnmobil/",
+      "path": "/tag/free-living-im-wohnmobil/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/96805/96805/",
+      "path": "/96805/96805/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/instagram",
+      "path": "/instagram",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/facebook",
+      "path": "/facebook",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/twitter",
+      "path": "/twitter",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/pinterest",
+      "path": "/pinterest",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2020/06/IMG_20200411_132458_4.jpg",
+      "path": "/wp-content/uploads/2020/06/IMG_20200411_132458_4.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2020/06/IMG_20200311_155237_3.jpg",
+      "path": "/wp-content/uploads/2020/06/IMG_20200311_155237_3.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2020/06/IMG_20200314_100336_6.jpg",
+      "path": "/wp-content/uploads/2020/06/IMG_20200314_100336_6.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2020/06/IMG_20200428_120256_2.jpg",
+      "path": "/wp-content/uploads/2020/06/IMG_20200428_120256_2.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2020/06/IMG_20200423_113737_2.jpg",
+      "path": "/wp-content/uploads/2020/06/IMG_20200423_113737_2.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2020/06/IMG_20190314_162501_8.jpg",
+      "path": "/wp-content/uploads/2020/06/IMG_20190314_162501_8.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2020/06/IMG_20200428_104103_0.jpg",
+      "path": "/wp-content/uploads/2020/06/IMG_20200428_104103_0.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/86780/",
+      "path": "/86780/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/81240/",
+      "path": "/81240/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/IMG_20190815_174453_5.jpg",
+      "path": "/wp-content/uploads/IMG_20190815_174453_5.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/08/moorsee.jpg",
+      "path": "/wp-content/uploads/2019/08/moorsee.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/08/IMG_20190809_164717_0.jpg",
+      "path": "/wp-content/uploads/2019/08/IMG_20190809_164717_0.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/08/IMG_20190810_152651_8.jpg",
+      "path": "/wp-content/uploads/2019/08/IMG_20190810_152651_8.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/ressourcen/campingwaschmaschine-schleuder/",
+      "path": "/ressourcen/campingwaschmaschine-schleuder/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "map",
+      "proposed_target": "https://mojobus.co/artikel",
+      "confidence": 0.6,
+      "evidence": "Muster: /ressourcen/ → .co/artikel",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/08/IMG_20190530_150006_6.jpg",
+      "path": "/wp-content/uploads/2019/08/IMG_20190530_150006_6.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/08/IMG_20190406_104246_3.jpg",
+      "path": "/wp-content/uploads/2019/08/IMG_20190406_104246_3.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/08/lun2.jpg",
+      "path": "/wp-content/uploads/2019/08/lun2.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/08/bullensee8.jpg",
+      "path": "/wp-content/uploads/2019/08/bullensee8.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/212/",
+      "path": "/212/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/01/frost20122.jpg",
+      "path": "/wp-content/uploads/2019/01/frost20122.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/01/rollo6.jpg",
+      "path": "/wp-content/uploads/2019/01/rollo6.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/01/frost8.jpg",
+      "path": "/wp-content/uploads/2019/01/frost8.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/01/dunst7.jpg",
+      "path": "/wp-content/uploads/2019/01/dunst7.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/01/dunst8.jpg",
+      "path": "/wp-content/uploads/2019/01/dunst8.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/01/frost6.jpg",
+      "path": "/wp-content/uploads/2019/01/frost6.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/01/kartoffeln.jpg",
+      "path": "/wp-content/uploads/2019/01/kartoffeln.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/01/rollo3.jpg",
+      "path": "/wp-content/uploads/2019/01/rollo3.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/01/regenwetter6.jpg",
+      "path": "/wp-content/uploads/2019/01/regenwetter6.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/01/rollo1.jpg",
+      "path": "/wp-content/uploads/2019/01/rollo1.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/01/frost7.jpg",
+      "path": "/wp-content/uploads/2019/01/frost7.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/01/kartoffeln4.jpg",
+      "path": "/wp-content/uploads/2019/01/kartoffeln4.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/01/wabenplisses-im-wohnmobil.jpeg",
+      "path": "/wp-content/uploads/2019/01/wabenplisses-im-wohnmobil.jpeg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/winter-3914681_1280.jpg",
+      "path": "/wp-content/uploads/winter-3914681_1280.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/gletscher1.jpg",
+      "path": "/wp-content/uploads/gletscher1.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/01/flies.jpg",
+      "path": "/wp-content/uploads/2019/01/flies.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/01/frost1.jpg",
+      "path": "/wp-content/uploads/2019/01/frost1.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/01/winter-2854179_1280-1.jpg",
+      "path": "/wp-content/uploads/2019/01/winter-2854179_1280-1.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wohnmobil-reiseberichte/portugal/",
+      "path": "/wohnmobil-reiseberichte/portugal/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/01/zimmer.jpg",
+      "path": "/wp-content/uploads/2019/01/zimmer.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2019/01/fog-3196953_1280.jpg",
+      "path": "/wp-content/uploads/2019/01/fog-3196953_1280.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2018/10/womo.jpg",
+      "path": "/wp-content/uploads/2018/10/womo.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2018/10/santasusanna.jpg",
+      "path": "/wp-content/uploads/2018/10/santasusanna.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2018/10/IMG_8244.jpg",
+      "path": "/wp-content/uploads/2018/10/IMG_8244.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/81742/",
+      "path": "/81742/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2016/09/web_IMG_0802-e1472995436155.jpg",
+      "path": "/wp-content/uploads/2016/09/web_IMG_0802-e1472995436155.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/11329/",
+      "path": "/11329/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2015/09/Womomobil-Balu-Koblenz-Überführung-3-8.jpg",
+      "path": "/wp-content/uploads/2015/09/Womomobil-Balu-Koblenz-%C3%9Cberf%C3%BChrung-3-8.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/?redirectAmzASIN=B00SHBQ8VO",
+      "path": "/",
+      "search": "?redirectAmzASIN=B00SHBQ8VO",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/beitraege/wohnmobil-reise-fotobuch/",
+      "path": "/beitraege/wohnmobil-reise-fotobuch/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tagebuch/waschbecken-im-wohnmobil-was-verbauen/",
+      "path": "/tagebuch/waschbecken-im-wohnmobil-was-verbauen/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wohnmobil-reisebericht/mecklenburg-vorpommern/max-traumfrau-frei/",
+      "path": "/wohnmobil-reisebericht/mecklenburg-vorpommern/max-traumfrau-frei/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2018/11/100_27901-480x640.jpg",
+      "path": "/wp-content/uploads/2018/11/100_27901-480x640.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tagebuch/wohnmobil-zwischenw%c3%a4nde-multiplex/attachment/wohnmobil-selbstausbau-12/",
+      "path": "/tagebuch/wohnmobil-zwischenw%c3%a4nde-multiplex/attachment/wohnmobil-selbstausbau-12/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tagebuch/wohnmobil-zwischenw%c3%a4nde-multiplex/attachment/wohnmobil-selbstausbau-21/",
+      "path": "/tagebuch/wohnmobil-zwischenw%c3%a4nde-multiplex/attachment/wohnmobil-selbstausbau-21/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tagebuch/wohnmobil-zwischenw%c3%a4nde-multiplex/attachment/womomobil-balu-julia5/",
+      "path": "/tagebuch/wohnmobil-zwischenw%c3%a4nde-multiplex/attachment/womomobil-balu-julia5/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tagebuch/wohnmobil-zwischenw%c3%a4nde-multiplex/attachment/img_0589/",
+      "path": "/tagebuch/wohnmobil-zwischenw%c3%a4nde-multiplex/attachment/img_0589/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tagebuch/wohnmobil-zwischenw%c3%a4nde-multiplex/attachment/img_0591-2/",
+      "path": "/tagebuch/wohnmobil-zwischenw%c3%a4nde-multiplex/attachment/img_0591-2/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tagebuch/wohnmobil-zwischenw%c3%a4nde-multiplex/attachment/img_0598/",
+      "path": "/tagebuch/wohnmobil-zwischenw%c3%a4nde-multiplex/attachment/img_0598/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tagebuch/wohnmobil-zwischenw%c3%a4nde-multiplex/attachment/womomobil-balu-elektrik4/",
+      "path": "/tagebuch/wohnmobil-zwischenw%c3%a4nde-multiplex/attachment/womomobil-balu-elektrik4/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/kontakt/",
+      "path": "/kontakt/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tagebuch/wer-in-ein-wohnmobil-ziehen-will-muss-entruempeln/attachment/womomobil-balu-freeliving-3/",
+      "path": "/tagebuch/wer-in-ein-wohnmobil-ziehen-will-muss-entruempeln/attachment/womomobil-balu-freeliving-3/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tagebuch/wer-in-ein-wohnmobil-ziehen-will-muss-entruempeln/attachment/womomobil-balu-freeliving-10/",
+      "path": "/tagebuch/wer-in-ein-wohnmobil-ziehen-will-muss-entruempeln/attachment/womomobil-balu-freeliving-10/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tagebuch/wer-in-ein-wohnmobil-ziehen-will-muss-entruempeln/attachment/womomobil-balu-freeliving-9-2/",
+      "path": "/tagebuch/wer-in-ein-wohnmobil-ziehen-will-muss-entruempeln/attachment/womomobil-balu-freeliving-9-2/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tagebuch/wer-in-ein-wohnmobil-ziehen-will-muss-entruempeln/attachment/womomobil-balu-freeliving-14/",
+      "path": "/tagebuch/wer-in-ein-wohnmobil-ziehen-will-muss-entruempeln/attachment/womomobil-balu-freeliving-14/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/tagebuch/liebes-tagebuch-2/attachment/100_2482-4/",
+      "path": "/tagebuch/liebes-tagebuch-2/attachment/100_2482-4/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/loves/Promat",
+      "path": "/loves/Promat",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/aufbau/epdm-folie-reparatur-wohnmobil-dach/attachment/womomobil-dach-klebe-reperatur-16/",
+      "path": "/aufbau/epdm-folie-reparatur-wohnmobil-dach/attachment/womomobil-dach-klebe-reperatur-16/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/aufbau/epdm-folie-reparatur-wohnmobil-dach/attachment/womomobil-dach-klebe-reperatur-14/",
+      "path": "/aufbau/epdm-folie-reparatur-wohnmobil-dach/attachment/womomobil-dach-klebe-reperatur-14/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/aufbau/epdm-folie-wohnmobil-dach/attachment/womomobil-balu-feutigkeit-dach-8/",
+      "path": "/aufbau/epdm-folie-wohnmobil-dach/attachment/womomobil-balu-feutigkeit-dach-8/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/strom/womomobil-leer-geraeumt-nun-kommt-der-schlimme-teil/attachment/womomobil-balu-elektronic-8/",
+      "path": "/strom/womomobil-leer-geraeumt-nun-kommt-der-schlimme-teil/attachment/womomobil-balu-elektronic-8/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/strom/womomobil-leer-geraeumt-nun-kommt-der-schlimme-teil/attachment/womomobil-balu-elektronic-9/",
+      "path": "/strom/womomobil-leer-geraeumt-nun-kommt-der-schlimme-teil/attachment/womomobil-balu-elektronic-9/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/steilkueste-waldpfade-ostseecampingplatz/",
+      "path": "/steilkueste-waldpfade-ostseecampingplatz/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/horror-stellplatz-steinbeck/",
+      "path": "/horror-stellplatz-steinbeck/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/lebe-rastlos-wie-ein-rumtreiber/",
+      "path": "/lebe-rastlos-wie-ein-rumtreiber/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/sandstedt-bericht/",
+      "path": "/sandstedt-bericht/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2014/04/100_2414.jpg",
+      "path": "/wp-content/uploads/2014/04/100_2414.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/neu-hier/",
+      "path": "/neu-hier/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/?slide=auch-dein-traum-strand-boca-do-rio",
+      "path": "/",
+      "search": "?slide=auch-dein-traum-strand-boca-do-rio",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/wp-content/uploads/2014/03/algarve1.jpg",
+      "path": "/wp-content/uploads/2014/03/algarve1.jpg",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    },
+    {
+      "source_url": "https://mojobus.org/96933/algarve-motorhome-park-falesia-strand-urlaub/",
+      "path": "/96933/algarve-motorhome-park-falesia-strand-urlaub/",
+      "search": "",
+      "log_hits": 1,
+      "proposed_type": "gone",
+      "proposed_target": "",
+      "confidence": 0.8,
+      "evidence": "Kein Inventar-/Muster-Treffer (Heuristik 4) — Vorschlag 410",
+      "origins": [
+        "unmapped-org-links.json"
+      ],
+      "human_decision": ""
+    }
+  ]
+}
