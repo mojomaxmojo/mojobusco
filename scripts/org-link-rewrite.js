@@ -162,6 +162,12 @@ function lookupTarget(byPath, key) {
  * behandelt).
  */
 const WP_MEDIA_RE = /https?:\/\/(?:www\.)?mojobus\.org\/wp-content\/[^\s)<>"']*/gi;
+// R4-Bugfix (Live-Beweis 21:26): Die Medien-URLs stehen im HTML zusätzlich
+// DOPPELT kodiert als weserv-Proxy-Parameter (url=https%3A%2F%2Fmojobus.
+// org%2Fwp-content%2F…) — weder ORG_URL_RE noch WP_MEDIA_RE matchen ohne
+// echtes „://". Dritte Variante (gleicher Flag): kodierten Domain-Anteil
+// direkt ersetzen. Betrifft NUR wp-content-Pfade, nie andere Texte.
+const WP_MEDIA_ENC_RE = /mojobus\.org%2Fwp-content/gi;
 function wpMediaEnabled() {
   return process.env.MOJOBUS_REWRITE_WP_MEDIA === '1';
 }
@@ -187,6 +193,10 @@ export function rewriteOrgLinks(text) {
     working = working.replace(WP_MEDIA_RE, (raw) => {
       state.wpMediaReplaced++;
       return raw.replace(/^https?:\/\/(?:www\.)?mojobus\.org/i, 'https://mojobus.co');
+    });
+    working = working.replace(WP_MEDIA_ENC_RE, () => {
+      state.wpMediaReplaced++;
+      return 'mojobus.co%2Fwp-content';
     });
   }
 
