@@ -4,8 +4,19 @@
 #
 # Kanonisiert den Sync der Redirect-Artefakte auf EIN Ziel: die LEBENDEN
 # Include-Dateien in /usr/local/nginx/conf/conf.d/. Ablauf je Datei:
-# Backup-Snapshot → cp → Verlust-Diff (Keys, die vorher da waren und jetzt
-# fehlen → Abort + Restore-Hinweis) → am Ende EINMAL nginx -t && reload.
+# Backup-Snapshot → STAGE (neue Datei neben dem Ziel) → Verlust-Diff gegen
+# das Backup (Keys, die vorher da waren und jetzt fehlen → Abort, Live-Datei
+# bleibt UNANGETASTET) → atomare Installation → am Ende EINMAL nginx -t &&
+# reload.
+#
+# ⚠ RICHTUNG: sync-maps geht Repo → Live. Die umgekehrte Richtung
+# (Live → Repo, z. B. nach gemergten Manual-Entries) ist MANUELL:
+#   cp /usr/local/nginx/conf/conf.d/mojobus.org.redirects.map redirects/wp-redirects.map
+#   cp /usr/local/nginx/conf/conf.d/mojobus.org.410.map  redirects/mojobus.org.410.map
+#   cp /usr/local/nginx/conf/conf.d/mojobus.org.410.conf redirects/mojobus.org.410.conf
+#   git add + commit  ← SONST wirft ein späteres `git reset --hard` den
+#                        gemergten Stand weg (Live-Beweis 20:09: 80/342
+#                        „verlorene" Keys durch stale Repo-Copies).
 #
 # Dateien (R4-Erweiterung: 410-Artefakte im gleichen Muster):
 #   1. wp-redirects.map      → conf.d/mojobus.org.redirects.map  (301-Map,
@@ -38,25 +49,34 @@ TS="$(date +%Y%m%d-%H%M%S)"
 
 mkdir -p "$BAK_DIR"
 
-# ── Generischer Sync: Backup → cp → Key-Verlust-Diff ───────────────────────
+# ── Generischer Sync: Backup → STAGE → Diff → Install ──────────────────────
 # $1 Quelle, $2 Live-Ziel, $3 Backup-Präfix, $4 Key-Extraktion (sed-Programm)
+# R4-Bugfix (Live-Beweis 20:09): Vorher wurde cp AUSGEFÜHRT und DANACH
+# differenziert — der Abort ließ die überschriebene Live-Datei auf Disk
+# (nur nginx-Speicher hatte noch den guten Stand). Jetzt: Neue Datei in
+# Staging-Datei neben dem Ziel schreiben, DORT diffen, erst bei 0-Verlust
+# atomar installieren (mv). Bei Verlust bleibt die Live-Datei UNANGETASTET.
 # Return-Code 1 = Verlust erkannt (Caller entscheidet Abort/Restore).
 sync_keyed_file() {
   local src="$1" live="$2" prefix="$3" keyprog="$4"
   local bak="$BAK_DIR/${prefix}.${TS}"
+  local stage="${live}.sync-new.$$"
   cp "$live" "$bak"
   echo "[sync-maps] Backup: $bak"
-  cp "$src" "$live"
+  cp "$src" "$stage"
   local lost
   lost=$(comm -23 \
     <(sed -n "$keyprog" "$bak" | sort -u) \
-    <(sed -n "$keyprog" "$live" | sort -u) | wc -l | tr -d ' ')
+    <(sed -n "$keyprog" "$stage" | sort -u) | wc -l | tr -d ' ')
   if [ "${lost:-0}" -gt 0 ]; then
+    rm -f "$stage"
     echo "[sync-maps] ❌ FAIL-SAFE: $lost Keys gingen verloren ($prefix, Backup → neu)."
-    echo "[sync-maps]    Restore:  cp $bak $live && nginx -t && systemctl reload nginx"
-    echo "[sync-maps]    Prüfen:   grep -F -f <(comm -23 <(sed -n 's/^\"\([^\"]*\)\" .*$/\1/p' \"$bak\" | sort -u)) $live"
+    echo "[sync-maps]    Live-Datei UNVERÄNDERT gelassen — kein Restore nötig."
+    echo "[sync-maps]    Ursache meist: Repo-Copy STALE nach git reset (Live→Repo-Rücksync fehlt)."
+    echo "[sync-maps]    Lösung:    cp $live $src && git add $src && git commit -m 'Live→Repo-Rücksync'"
     return 1
   fi
+  mv "$stage" "$live"
   echo "[sync-maps] Verlust-Diff: 0 Keys verloren ($prefix) ✔"
   return 0
 }
@@ -100,14 +120,19 @@ fi
 
 # ── 3) 410-Conf-Snippet (mojobus.org.410.conf) — Byte-Diff statt Key-Diff ──
 # Enthält nur den map-Block + Include (keine Daten-Keys) → Identitäts-Check.
+# Gleiche Staging-Logik wie sync_keyed_file (niemals Live vor dem Check
+# überschreiben).
 if [ -f "$MAP_DIR/mojobus.org.410.conf" ]; then
   bakconf="$BAK_DIR/mojobus.org.410.conf.$TS"
+  stageconf="${CONF_DIR}/mojobus.org.410.conf.sync-new.$$"
   cp "$CONF_DIR/mojobus.org.410.conf" "$bakconf"
   echo "[sync-maps] Backup: $bakconf"
-  cp "$MAP_DIR/mojobus.org.410.conf" "$CONF_DIR/mojobus.org.410.conf"
-  if ! cmp -s "$bakconf" "$CONF_DIR/mojobus.org.410.conf"; then
+  cp "$MAP_DIR/mojobus.org.410.conf" "$stageconf"
+  if ! cmp -s "$bakconf" "$stageconf"; then
+    mv "$stageconf" "$CONF_DIR/mojobus.org.410.conf"
     echo "[sync-maps] 410-Conf aktualisiert (Inhalt geändert)"
   else
+    rm -f "$stageconf"
     echo "[sync-maps] 410-Conf unverändert (identisch)"
   fi
 else
@@ -117,7 +142,8 @@ fi
 # ── 4) Reload NUR bei vollständigem Erfolg ─────────────────────────────────
 if [ "$FAILED" = "1" ]; then
   echo "[sync-maps] ❌ Abbruch OHNE reload — mindestens eine Datei mit Verlust."
-  echo "[sync-maps]    Backups liegen in $BAK_DIR (Suffix .$TS) — Restore-Hinweise oben."
+  echo "[sync-maps]    Live-Dateien blieben UNVERÄNDERT (Staging-Modus) — kein Restore nötig."
+  echo "[sync-maps]    Backups liegen in $BAK_DIR (Suffix .$TS)."
   exit 1
 fi
 
