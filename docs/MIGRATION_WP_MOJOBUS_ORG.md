@@ -206,3 +206,26 @@ Env-Schalter: `WP_SOURCE_URL`, `WP_ARTICLES_FILE`, `WP_REDIRECTS_DIR`,
 **Bonus (offen):** Die WP-GUIDs zeigen die Vorgänger-Domain **rvlove.co**
 (`?p=<id>`-Links). Derselbe Resolver kann später über einen Mini-Vhost
 bedient werden — eigene Map, gleiche Logik, kein neuer Code.
+
+## Nachtrag R4 (2026-10-15) — WP-lose Welt: MERGE-Modus + Phase-2-Endstand
+
+Die WP-Quelle liefert seit 2026-09-16 301+HTML → der Generator läuft
+offline über **`--from-map`** (liest die LEBENDE conf.d-Map).
+
+**Kanonischer Pfad für neue Redirect-Entscheidungen:**
+```bash
+node scripts/generate-wp-redirects.js --apply-decisions redirects/unmapped-decisions.csv
+node scripts/generate-wp-redirects.js --from-map   # MERGE-Modus
+bash scripts/sync-maps.sh
+# RICHTUNG WICHTIG: danach Live→Repo-Rücksync + git commit
+#   (sonst wirft git reset --hard den Merge weg — Live-Beweis 20:09)
+cp /usr/local/nginx/conf/conf.d/mojobus.org.redirects.map redirects/wp-redirects.map
+cp /usr/local/nginx/conf/conf.d/mojobus.org.410.map  redirects/mojobus.org.410.map
+cp /usr/local/nginx/conf/conf.d/mojobus.org.410.conf redirects/mojobus.org.410.conf
+git add redirects/ && git commit -m "Live→Repo-Rücksync"
+```
+
+**Endstand (verifiziert):** Map 1943 Keys (+40 human-decided 301s,
+0 Verluste) · 410-Map 342 Keys live · Prerender 1908 ersetzt / 130
+unmapped · Verify 11/11 PASS. Details/Lektionen: docs/deploy-runbook.md
+(Phase-2-Ergebnis + Phase-B-Abschluss).

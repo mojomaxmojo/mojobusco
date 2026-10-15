@@ -327,3 +327,50 @@ werden nicht angewendet); wp-content-Medien: copy-wp-media.sh (DRY-RUN)
 + Flag MOJOBUS_REWRITE_WP_MEDIA=1 NACH --apply.
 
 ---
+
+## Phase-B-Abschluss (R4, 2026-10-15 21:59) — wp-content-Medien + Feed-Sanierung
+
+**Verifizierter Endstand:**
+- 6 Medien kopiert (`.org/public/wp-content/uploads` → `.co/public/wp-content/uploads`,
+  rsync --files-from --relative): ma.jpg, bol4.jpg, artikelschaal.jpg,
+  hund-hoya-….jpg, Arrifana-Beach.jpg, LiFePo4vsBlei-…webp → alle `.co` 200
+- Flag `MOJOBUS_REWRITE_WP_MEDIA=1` **fest in der Crontab** (Env-Zeile oben,
+  gilt für alle Pipeline-Jobs) + in den 3 Regens-Läufen
+- Prerender unmapped: 235 → **130** · Feed: **1 raw** (dokumentiert) · LLMS 16
+- post-deploy-verify: **11/11 PASS**
+
+**Drei Lektionen (je Live-Beweis):**
+1. *weserv-Kodierung (20:28):* Die Medien-URLs stehen im HTML doppelt kodiert
+   als Proxy-Parameter (`url=https%3A%2F%2Fmojobus.org%2Fwp-content%2F…`) —
+   ein roher Regex sieht sie nicht. copy-wp-media.sh UND org-link-rewrite.js
+   behandeln jetzt beide Formen (node + decodeURIComponent / ENC-Regex).
+2. *Image-Felder im Feed (21:43):* `<enclosure>`/image-URLs waren bewusst
+   vom Rewrite ausgeschlossen, als wp-content nicht migriert war → rohes
+   .org-webp war der letzte echte V8-Rest. Image läuft jetzt AUCH durch
+   rewriteOrgLinks (Flag-Gate).
+3. *Truncation-Wurzel (21:43):* Die `/97109/lifep...`-Fragmente im Feed
+   stammten NICHT aus renderRichText, sondern aus dem **site-data-Dump**
+   (`summary = substring(0,197)+'...'`) und den Feed-eigenen Cuts — F3
+   gilt jetzt an allen drei Stellen (site-data, feed cleanContent/description,
+   prerender renderRichText/stripMarkdown).
+
+**⚠ sync-maps Staging-Modus + RICHTUNG (20:09–20:22, kritisch):**
+- sync-maps.sh stage-diff-installiert JETZT: bei Verlust bleibt die
+  Live-Datei UNANGETASTET (vorher cp-then-diff → Abort ließ überschriebene
+  Live-Datei auf Disk, nur nginx-Speicher hatte den guten Stand).
+- sync-maps geht Repo→Live. **Nach jedem Merge MUSS der Rückweg Live→Repo +
+  git commit laufen** — sonst wirft der nächste `git reset --hard` den
+  gemergten Stand weg (Live-Beweis: 80/342 „verlorene" Keys durch stale
+  Repo-Copies; Endstand 15169e05 im Git).
+- 410-Map darf legitimsch schrumpfen (neue gone-Entscheidungen) →
+  `SYNC_410_ALLOW_SHRINK=1 bash scripts/sync-maps.sh`.
+
+**Wiederherstellungs-Backlog (~10 Medien, .co 404):**
+2015/01/54a7baddbbb14-Womomobil-Luna-16-…, 2019/01/leon4.jpg,
+2019/02/weserle.jpg, 2019/06/gottingen-1269450_12801.jpg,
+2014/12/54a3ef4f6a891-…Überführung…jpg + 5 weitere (DRY-RUN „Fehlend: 10").
+Quelle: WP-Backup/Archiv → nach
+`/home/nginx/domains/mojobus.co/public/wp-content/uploads/` (Pfadstruktur
+beachten). KEIN Regens nötig — die HTML-URLs zeigen bereits korrekt.
+
+---

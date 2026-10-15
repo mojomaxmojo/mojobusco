@@ -1,7 +1,40 @@
 # MojoBus – Changelog-Archiv
 
-> Alle abgeschlossenen Änderungen. Wird von der KI nicht automatisch geladen.
-> Bei Debugging oder Nachvollziehen von Änderungen hier nachlesen.
+## R4 Autonome Schlussrunde: Phase 2 gemappt, wp-content-Medien, Verify-Kit 11/11 (2026-10-14/15)
+
+**Endstand (live verifiziert 21:59):** 1943-Key-301-Map (+40 human-decided,
+0 Verluste) · 410-Map 342 Keys · Prerender 1908 ersetzt/130 unmapped ·
+Feed 1 raw · Verify **11/11 PASS** · 6 Medien auf .co (200), ~10 im
+Wiederherstellungs-Backlog · Flag `MOJOBUS_REWRITE_WP_MEDIA=1` fest in
+der Crontab.
+
+**Fix-Kette (mit Live-Beweisen):**
+- **Verify-Kit 4× nachgeschärft**: V1 HTML-Kommentar-Strip (FALSE POSITIVE
+  „3 canonical-Tags" = T1-Kommentarzeilen), V3 EN-Canonical-Erwartung aus
+  lokalem Prerender, V6 echte-crawlbare-URLs statt Zeilen, unmapped-Reports
+  aus **conf.d** lesen (Pipeline schreibt neben die GELADENE Map!),
+  botcheck-Extraktions-Selftest (VOR iso_date-Definition = Exit-2-Bug).
+- **F3 Truncation an 3 Stellen**: renderRichText/stripMarkdown (Prerender),
+  cleanContent/description (feed), summary-Slice (site-data) —
+  `stripTrailingPartialUrl` entfernt nach jedem Cut hängende URL-Fragmente.
+- **Phase 2**: unmapped-decision (291 Vorschläge) → CSV → 40 map →
+  `--from-map` **MERGE-Modus** (Fix2-Rekonstruktion verlor 541 Varianten-
+  Keys → Verlust-Diff-Fail-Safe rettete es; unmapped 267→297 kurzzeitig).
+  Merge-Modus 8d26b26 ist kanonisch; Live→Repo-Rücksync + Commit PFLICHT
+  (sonst wirft `git reset --hard` den Merge weg — 20:09-Inzidenz).
+- **sync-maps.sh**: Staging-Modus (Diff VOR Installation, Live bleibt bei
+  Abort unangetastet) + 410-Map/-Conf im gleichen Muster
+  (`SYNC_410_ALLOW_SHRINK=1` für legitimes Schrumpfen).
+- **Phase B Medien**: copy-wp-media.sh (DRY-RUN-Default, weserv-kodierte
+  Formen erfasst + dekodiert), Flag-Gate in org-link-rewrite.js erweitert
+  auf KODIERTE Formen (`mojobus.org%2Fwp-content`) und Feed-Image-Felder.
+- **neue Tools**: org-404-list.sh (Googlebot-404er → Phase-2-Input),
+  copy-wp-media.sh, devlop-Check über alle dist-Chunks (falsche WARN).
+
+**Mensch-only-Reste:** CF Purge Everything (beide Zonen) · GSC
+Adressänderung + Ablehnungsgrund .co · Bing WMT Site Move · botcheck
+wöchentlich (KPI .co-404 < 5 %) · ~10 Medien aus WP-Backup · 247
+gone-Kandidaten in Portionen.
 
 ---
 
