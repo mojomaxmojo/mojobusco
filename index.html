@@ -26,8 +26,27 @@
     <link rel="dns-prefetch" href="wss://relay.mojobus.co" />
 
     <!-- Preload kritischer Fonts (LCP-Optimierung) -->
+    <!-- Perf-Fix 2026-10-18: Playfair 700 ergänzt – H1 ("Perpetual Travelers") -->
+    <!-- rendert mit font-weight 700, bisher wurde nur regular vorgeladen.      -->
     <link rel="preload" href="/fonts/inter.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/playfair-display-regular.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/playfair-display-700.woff2" as="font" type="font/woff2" crossorigin />
+
+    <!-- ─────────────────────────────────────────────────────────────── -->
+    <!-- Preload JSON-Dumps (Perf-Fix 2026-10-18, nur Startseite)        -->
+    <!-- Problem: Die Home-Cards rendern erst NACH JS-Parse + erst dann  -->
+    <!-- starteten die /data/*.json-Fetches (Wasserfall-Kette). Die      -->
+    <!-- Preloads starten die Downloads parallel zum JS → spart je nach  -->
+    <!-- Verbindung 0,5–1,5 s FCP/LCP. URLs identisch zu                 -->
+    <!-- usePreloadedData.ts / useHomeNotes.ts / useHomeMedia.ts         -->
+    <!-- (Browser: relative /data/..., via getDataBaseUrl()).            -->
+    <!-- crossorigin nötig, damit der Browser-Cache-Match mit fetch()    -->
+    <!-- stimmt (sonst Doppeldownload).                                  -->
+    <!-- ─────────────────────────────────────────────────────────────── -->
+    <link rel="preload" href="/data/articles.json" as="fetch" crossorigin />
+    <link rel="preload" href="/data/places.json" as="fetch" crossorigin />
+    <link rel="preload" href="/data/notes.json" as="fetch" crossorigin />
+    <link rel="preload" href="/data/bilder.json" as="fetch" crossorigin />
 
     <!-- Preload Logo (LCP-Element) -->
     <link rel="preload" href="/mojobuslogo.png" as="image" fetchpriority="high" />
