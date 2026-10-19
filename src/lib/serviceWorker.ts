@@ -57,12 +57,31 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
           if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
             console.log('✨ Neuer Service Worker verfügbar - Bitte Seite neu laden');
           }
-          // Fix #9: Update-Toast. sw.js ruft self.skipWaiting() beim Install
-          // auf → der neue Worker wird sofort 'activated'. Wir feuern dann ein
-          // globales Event, auf das <ServiceWorkerUpdateToast /> hört.
-          // Erste Installation (controller === null) löst KEINEN Toast aus.
+          // AUTO-UPDATE: sw.js ruft self.skipWaiting() beim Install auf →
+          // der neue Worker wird sofort 'activated' (plus clients.claim()).
+          // Statt einem "Neue Version verfügbar"-Dialog (nervte in jedem
+          // Sitespeed/Lighthouse-Run und forderte Nutzer zur Interaktion auf)
+          // reloaden wir automatisch – aber:
+          // 1. mit kleinem Delay, damit der First Paint (LCP!) nicht abrupt
+          //    abgebrochen wird,
+          // 2. mit Reload-Loop-Schutz via sessionStorage (60s Fenster). Läuft
+          //    etwas schief, feuern wir stattdessen das alte 'sw-update-ready'
+          //    Event als Fallback (ehem. Toast-Listener, z.B. SW-Settings).
+          // Erste Installation (controller === null) löst KEINEN Reload aus.
           if (newWorker.state === 'activated' && navigator.serviceWorker.controller) {
-            window.dispatchEvent(new CustomEvent('sw-update-ready'));
+            const RELOAD_KEY = 'sw:auto-reload-at';
+            const lastReload = Number(sessionStorage.getItem(RELOAD_KEY) || 0);
+            const RELOAD_GUARD_MS = 60_000;
+
+            if (Date.now() - lastReload > RELOAD_GUARD_MS) {
+              console.log('✨ Neuer Service Worker aktiviert – Auto-Reload in 1.5s');
+              sessionStorage.setItem(RELOAD_KEY, String(Date.now()));
+              setTimeout(() => window.location.reload(), 1500);
+            } else {
+              // Loop-Schutz gegriffen: kein weiterer Reload, nur Event feuern
+              console.warn('⚠️ SW Auto-Reload-Loop-Schutz gegriffen – kein Reload');
+              window.dispatchEvent(new CustomEvent('sw-update-ready'));
+            }
           }
         });
       }
