@@ -8,6 +8,7 @@ import { Suspense } from 'react';
 import NostrProvider from '@/components/NostrProvider';
 import ApiAuthBridge from '@/components/ApiAuthBridge';
 import { Toaster } from "@/components/ui/toaster";
+import { ServiceWorkerUpdateToast } from "@/components/ServiceWorkerUpdateToast";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { NostrLoginProvider } from '@nostrify/react/login';
 import { AppProvider } from '@/components/AppProvider';
@@ -60,8 +61,7 @@ export function App() {
                   <ApiAuthBridge />
                   <Toaster />
                   <ServiceWorkerStatus />
-                  {/* Update-Toast entfernt: SW-Updates werden jetzt automatisch
-                      aktiviert + reloadet (siehe lib/serviceWorker.ts → AUTO-UPDATE) */}
+                  <ServiceWorkerUpdateToast />
                   <Suspense>
                     <AppRouter />
                   </Suspense>
