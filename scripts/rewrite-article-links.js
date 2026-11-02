@@ -190,7 +190,7 @@ async function fetchLatestArticles() {
 
 // ── Schritt 2: Content umschreiben + Report ─────────────────────────────────
 
-function buildPlan(perRelay, globalLatest, now) {
+function buildPlan(perRelay, globalLatest) {
   const plan = [];
   let cleanEverywhere = 0;
 
@@ -525,7 +525,7 @@ async function main() {
   const { perRelay, globalLatest, totalSeen } = await fetchLatestArticles();
   console.log(`[Rewrite] Events gesamt: ${totalSeen}, d-tags: ${perRelay.size}`);
 
-  const { plan, cleanEverywhere, now } = buildPlan(perRelay, globalLatest, now);
+  const { plan, cleanEverywhere } = buildPlan(perRelay, globalLatest);
   const full = plan.filter((p) => p.stillUnmapped.length === 0);
   const partial = plan.filter((p) => p.stillUnmapped.length > 0);
 
