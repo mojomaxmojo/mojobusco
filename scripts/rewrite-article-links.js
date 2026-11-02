@@ -26,19 +26,25 @@
  *   2. Pro (pubkey, d-tag) die NEUESTE Version behalten.
  *   3. Content via rewriteOrgLinks() umschreiben; Statistik je Artikel.
  *   4. DRY-RUN (default): Report schreiben, NICHTS veröffentlichen.
- *   5. --publish: neue Version(en) signieren (NOSTR_NSEC, finalizeEvent)
- *      und auf die Pipeline-Relays verteilen (SimplePool).
+ *   5. --publish: neue Version(en) signieren und auf die Pipeline-Relays
+ *      verteilen (SimplePool). MEHRERE AUTOREN (Max + Susanne):
+ *      Jeder Artikel wird mit dem Key SEINES Original-Autors signiert —
+ *      die Nostr-Adresse ist kind+pubkey+d-tag, ein Artikel von Susanne
+ *      mit Max' Key republished würde NICHT die alte Version ersetzen.
+ *      Keys als ENV: NOSTR_NSEC (Autoren-Autodetect), beliebig viele:
+ *      NOSTR_NSEC2, NOSTR_NSEC3, … — jedes wird dekodiert und seinem
+ *      pubkey zugeordnet (Reihenfolge egal).
  *
  * AUSFÜHRUNG (VPS):
  *   cd /root/deploy-git/mojobusco && git pull
  *   npm run rewrite:articles                 # Dry-Run + Report
- *   NOSTR_NSEC=nsec1… npm run rewrite:articles -- --publish
+ *   NOSTR_NSEC=nsec1… NOSTR_NSEC2=nsec1… npm run rewrite:articles -- --publish
  *   npm run rewrite:articles -- --publish --only wp-97264
  *   # Filter akzeptiert d-tag-Teilstring ODER naddr
  *
  * SICHERHEIT:
  *   - Ohne --publish wird NIEMALS signiert oder gesendet (trockenlauf).
- *   - NOSTR_NSEC nur als ENV übergeben (niemals in Dateien/Logs).
+ *   - NOSTR_NSEC* nur als ENV übergeben (niemals in Dateien/Logs).
  *   - Events mit FEHLENDEN oder GEÄNDERTEN Feldern werden nicht blind
  *     republished: Tags werden 1:1 vom Original übernommen (inkl.
  *     published_at/title/image/summary/alt), nur content wird ersetzt.
@@ -55,7 +61,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { nip19, SimplePool, finalizeEvent } from 'nostr-tools';
+import { nip19, SimplePool, finalizeEvent, getPublicKey } from 'nostr-tools';
 import {
   AUTHOR_PUBKEYS,
   RELAYS,
@@ -238,36 +244,79 @@ function buildPublishEvent(p, now) {
   };
 }
 
-async function publishAll(plan, only) {
-  if (PUBLISH && !process.env.NOSTR_NSEC) {
-    console.error('[Rewrite] --publish erfordert NOSTR_NSEC (ENV) — Abbruch, NICHTS gesendet.');
-    process.exit(1);
-  }
+// ── Signer (MEHRERE Autoren: pubkey → secret key) ───────────────────────────
 
-  let sk;
-  try {
-    const decoded = nip19.decode(process.env.NOSTR_NSEC);
-    sk = decoded.type === 'nsec' ? decoded.data : null;
-  } catch {
-    sk = null;
+/**
+ * Sammelt ALLE ENV-Variablen NOSTR_NSEC, NOSTR_NSEC2, NOSTR_NSEC3, …
+ * (Reihenfolge egal), dekodiert jedes nsec und bildet pubkey → sk.
+ * So kann --publish beliebig viele Autoren-Keys bekommen; jeder Artikel
+ * wird mit dem Key seines Original-Autors signiert.
+ */
+function loadSigners() {
+  const signers = new Map(); // pubkey(hex) → { sk, sourceEnv, npub }
+  for (const [env, value] of Object.entries(process.env)) {
+    if (!/^NOSTR_NSEC\d*$/.test(env) || !value) continue;
+    try {
+      const decoded = nip19.decode(value);
+      if (decoded.type !== 'nsec') {
+        console.warn(`[Rewrite] ${env}: kein nsec (${decoded.type}) — ignoriert.`);
+        continue;
+      }
+      const sk = decoded.data;
+      const pk = getPublicKey(sk);
+      if (signers.has(pk)) {
+        console.warn(`[Rewrite] ${env}: Key für ${nip19.npubEncode(pk)} doppelt — ignoriert.`);
+        continue;
+      }
+      signers.set(pk, { sk, sourceEnv: env, npub: nip19.npubEncode(pk) });
+    } catch (e) {
+      console.error(`[Rewrite] ${env}: ungültiger Key — Abbruch (Tippfehler wäre fatal).`);
+      process.exit(1);
+    }
   }
-  if (!sk) {
-    console.error('[Rewrite] NOSTR_NSEC ist kein gültiger nsec — Abbruch, NICHTS gesendet.');
+  return signers;
+}
+
+async function publishAll(plan, only) {
+  if (PUBLISH && loadSigners().size === 0) {
+    console.error('[Rewrite] --publish erfordert mindestens einen NOSTR_NSEC* (ENV) — Abbruch, NICHTS gesendet.');
     process.exit(1);
   }
+  const signers = loadSigners();
 
   const selected = plan.filter((p) => matchesOnly(p.event, only));
-  if (selected.length === 0) {
-    console.log('[Rewrite] Nichts zum Veröffentlichen (Filter leer).');
+
+  // Autoren-Abdeckung prüfen BEVOR irgendetwas signiert wird:
+  const missingByAuthor = new Map();
+  for (const p of selected) {
+    if (!signers.has(p.event.pubkey)) {
+      const npub = nip19.npubEncode(p.event.pubkey);
+      if (!missingByAuthor.has(npub)) missingByAuthor.set(npub, 0);
+      missingByAuthor.set(npub, missingByAuthor.get(npub) + 1);
+    }
+  }
+  if (missingByAuthor.size > 0) {
+    console.warn('[Rewrite] Fehlende Keys — folgende Artikel werden ÜBERSPRUNGEN (Altautor ohne nsec):');
+    for (const [npub, n] of missingByAuthor) console.warn(`    ${npub}: ${n} Artikel`);
+    console.warn('[Rewrite] Übergib zusätzliche Keys: NOSTR_NSEC2=nsec1… (usw.).');
+  }
+  const publishable = selected.filter((p) => signers.has(p.event.pubkey));
+  if (publishable.length === 0) {
+    console.log('[Rewrite] Nichts zum Veröffentlichen (Filter leer oder alle Keys fehlen).');
     return [];
   }
 
-  console.log(`\n[Rewrite] VERÖFFENTLICHEN: ${selected.length} Artikel auf ${RELAYS.length} Relays …`);
+  console.log(`\n[Rewrite] VERÖFFENTLICHEN: ${publishable.length} Artikel auf ${RELAYS.length} Relays …`);
+  for (const [pk, s] of signers) {
+    const count = publishable.filter((p) => p.event.pubkey === pk).length;
+    console.log(`    ${s.npub} (${s.sourceEnv}): ${count} Artikel`);
+  }
   const pool = new SimplePool();
   const results = [];
 
-  for (const p of selected) {
-    const signed = finalizeEvent(buildPublishEvent(p, Math.floor(Date.now() / 1000)), sk);
+  for (const p of publishable) {
+    const signer = signers.get(p.event.pubkey);
+    const signed = finalizeEvent(buildPublishEvent(p, Math.floor(Date.now() / 1000)), signer.sk);
     const pub = await Promise.all(
       RELAYS.map((relay) =>
         pool.publish(relay, signed).then(
@@ -277,7 +326,7 @@ async function publishAll(plan, only) {
       )
     );
     const okCount = pub.filter((r) => r.ok).length;
-    console.log(`  ${okCount}/${RELAYS.length}  ${p.dTag}  (${p.title || '(ohne Titel)'})`);
+    console.log(`  ${okCount}/${RELAYS.length}  [${signer.npub.slice(0, 12)}…]  ${p.dTag}  (${p.title || '(ohne Titel)'})`);
     results.push({ dTag: p.dTag, naddr: p.naddr, eventId: signed.id, relays: pub });
     if (PUBLISH_DELAY_MS > 0) {
       await new Promise((r) => setTimeout(r, PUBLISH_DELAY_MS));
@@ -322,7 +371,8 @@ async function main() {
     console.log(`\n[Rewrite] Fertig: ${ok}/${results.length} Artikel auf mind. einem Relay bestätigt.`);
   } else {
     console.log('\n[Rewrite] Dry-Run fertig — nichts veröffentlicht.');
-    console.log('[Rewrite] Freigabe? Dann: NOSTR_NSEC=nsec1… npm run rewrite:articles -- --publish');
+    console.log('[Rewrite] Freigabe? Dann (Key je Autoren-NSEC):');
+    console.log('[Rewrite]   NOSTR_NSEC=nsec1… NOSTR_NSEC2=nsec1… npm run rewrite:articles -- --publish');
   }
 }
 
