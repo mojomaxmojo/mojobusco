@@ -61,7 +61,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { nip19, SimplePool, finalizeEvent, getPublicKey } from 'nostr-tools';
+import { nip19, finalizeEvent, getPublicKey } from 'nostr-tools';
 import {
   AUTHOR_PUBKEYS,
   RELAYS,
@@ -234,6 +234,89 @@ function writeReport(plan, meta, publishedResults) {
 
 // ── Schritt 3: Republish ────────────────────────────────────────────────────
 
+// Publish über RAW WebSocket statt SimplePool — Grund: relay.mojobus.co
+// (Haven) erlaubt Schreiben nur für die Autoren-Whitelist und prüft das per
+// NIP-42 AUTH (Signatur-Challenge). SimplePool macht dieses Handshake nicht
+// automatisch → 0/2. Flow pro Relay:
+//   1. ["EVENT", event] senden
+//   2. Relay antwortet ["AUTH", {challenge}] → kind:22242-Auth-Event mit
+//      ["relay", url] + ["challenge", challenge] signieren (derselbe Key wie
+//      das Event), ["AUTH", authEvent] senden
+//   3. ["OK", authEventId] → ["EVENT", event] wiederholen
+//   4. ["OK", eventId, true] → fertig
+// Relays ohne AUTH-Anforderung antworten direkt mit OK — bleibt kompatibel.
+
+const WS_PUBLISH_TIMEOUT_MS = Number(process.env.ARTICLE_REWRITE_WS_TIMEOUT_MS || 20000);
+
+function publishOnRelay(relayUrl, event, sk) {
+  return new Promise((resolve) => {
+    let ws;
+    try { ws = new WebSocket(relayUrl); } catch {
+      resolve({ ok: false, error: 'WebSocket-Ctor-Fehler' }); return;
+    }
+
+    let settled = false;
+    const done = (result) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      try { ws.close(); } catch { /* ignore */ }
+      resolve(result);
+    };
+    const timer = setTimeout(
+      () => done({ ok: false, error: `Timeout nach ${WS_PUBLISH_TIMEOUT_MS / 1000}s` }),
+      WS_PUBLISH_TIMEOUT_MS
+    );
+
+    let authEventId = null;
+
+    const sendEvent = () => {
+      try { ws.send(JSON.stringify(['EVENT', event])); } catch (e) {
+        done({ ok: false, error: `Send-Fehler: ${e.message}` });
+      }
+    };
+
+    ws.onopen = () => sendEvent();
+    ws.onerror = () => { if (!settled) done({ ok: false, error: 'WebSocket-Fehler' }); };
+    ws.onclose = () => done({ ok: false, error: 'Verbindung zu früh geschlossen' });
+
+    ws.onmessage = (msg) => {
+      let data;
+      try { data = JSON.parse(typeof msg.data === 'string' ? msg.data : String(msg.data)); }
+      catch { return; }
+      const [type] = data;
+
+      if (type === 'AUTH') {
+        const challenge = data[1]?.challenge;
+        if (!challenge || authEventId) return;
+        const authEvent = finalizeEvent({
+          kind: 22242,
+          created_at: Math.floor(Date.now() / 1000),
+          tags: [['relay', relayUrl], ['challenge', challenge]],
+          content: '',
+        }, sk);
+        authEventId = authEvent.id;
+        try { ws.send(JSON.stringify(['AUTH', authEvent])); } catch (e) {
+          done({ ok: false, error: `AUTH-Send-Fehler: ${e.message}` });
+        }
+        return;
+      }
+
+      if (type === 'OK') {
+        const [id, ok, message] = [data[1], data[2], data[3]];
+        if (id === authEventId) {
+          // AUTH bestätigt → Event (erneut) senden
+          sendEvent();
+          return;
+        }
+        done(ok
+          ? { ok: true }
+          : { ok: false, error: message || 'OK=false ohne Meldung' });
+      }
+    };
+  });
+}
+
 function buildPublishEvent(p, now) {
   return {
     kind: KIND_ARTICLE,
@@ -311,20 +394,14 @@ async function publishAll(plan, only) {
     const count = publishable.filter((p) => p.event.pubkey === pk).length;
     console.log(`    ${s.npub} (${s.sourceEnv}): ${count} Artikel`);
   }
-  const pool = new SimplePool();
   const results = [];
 
   for (const p of publishable) {
     const signer = signers.get(p.event.pubkey);
     const signed = finalizeEvent(buildPublishEvent(p, Math.floor(Date.now() / 1000)), signer.sk);
-    // nostr-tools v2: pool.publish(RELAYS-Array, event) → { relayUrl: Promise }
-    const promises = pool.publish(RELAYS, signed);
     const pub = await Promise.all(
       RELAYS.map((relay) =>
-        (promises[relay] || Promise.reject(new Error('kein Publish-Promise'))).then(
-          () => ({ relay, ok: true }),
-          (e) => ({ relay, ok: false, error: String(e?.message || e) })
-        )
+        publishOnRelay(relay, signed, signer.sk).then((r) => ({ relay, ...r }))
       )
     );
     const okCount = pub.filter((r) => r.ok).length;
@@ -338,7 +415,6 @@ async function publishAll(plan, only) {
     }
   }
 
-  pool.close(RELAYS);
   return results;
 }
 
