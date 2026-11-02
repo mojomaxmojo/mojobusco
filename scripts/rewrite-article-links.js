@@ -317,9 +317,11 @@ async function publishAll(plan, only) {
   for (const p of publishable) {
     const signer = signers.get(p.event.pubkey);
     const signed = finalizeEvent(buildPublishEvent(p, Math.floor(Date.now() / 1000)), signer.sk);
+    // nostr-tools v2: pool.publish(RELAYS-Array, event) → { relayUrl: Promise }
+    const promises = pool.publish(RELAYS, signed);
     const pub = await Promise.all(
       RELAYS.map((relay) =>
-        pool.publish(relay, signed).then(
+        (promises[relay] || Promise.reject(new Error('kein Publish-Promise'))).then(
           () => ({ relay, ok: true }),
           (e) => ({ relay, ok: false, error: String(e?.message || e) })
         )
