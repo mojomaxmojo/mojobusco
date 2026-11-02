@@ -513,6 +513,22 @@ async function main() {
   writeUnmappedOrgLinksReport('articles');
 
   if (PUBLISH && results) {
+    // Ehrliche Relay-Bilanz: "mind. ein Relay" reicht nicht — primal.net
+    // nimmt an, beantwortet aber keine Queries (0 Events beim Fetch), d. h.
+    // nur relay.mojobus.co ist die verifizierbare Source of Truth.
+    const relayOk = new Map(RELAYS.map((r) => [r, 0]));
+    for (const res of results) {
+      for (const rr of res.relays) {
+        if (rr.ok && relayOk.has(rr.relay)) relayOk.set(rr.relay, relayOk.get(rr.relay) + 1);
+      }
+    }
+    console.log('\n[Rewrite] Relay-Bilanz (bestätigt / published):');
+    for (const [relay, ok] of relayOk) console.log(`    ${relay}: ${ok}/${results.length}`);
+    const weak = [...relayOk.entries()].filter(([r, ok]) => ok < results.length);
+    if (weak.length > 0) {
+      console.warn(`[Rewrite] ⚠ ACHTUNG: Auf ${weak.map(([r]) => r).join(', ')} sind NICHT alle bestätigt —`);
+      console.warn('[Rewrite]   diese Events sind dort evtl. NICHT gespeichert (prüfen/wiederholen)!');
+    }
     const ok = results.filter((r) => r.relays.some((x) => x.ok)).length;
     console.log(`\n[Rewrite] Fertig: ${ok}/${results.length} Artikel auf mind. einem Relay bestätigt.`);
   } else {
