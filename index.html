@@ -32,21 +32,117 @@
     <!-- Preload Logo (LCP-Element) -->
     <link rel="preload" href="/mojobuslogo.png" as="image" fetchpriority="high" />
 
-    <!-- Critical CSS für Hero-Bereich (LCP-Optimierung: kein Warten auf CSS-Bundle) -->
+    <!-- ═════════════════════════════════════════════════════════════ -->
+    <!-- STATIC HERO (Variante A) – LCP-Fix: Der Hero rendert sofort   -->
+    <!-- mit dem HTML, BEFORE irgendein JS lädt. Sitespeed zeigte      -->
+    <!-- 2.0s "Element render delay" für das H1 (JS-gated Render).     -->
+    <!-- Das Markup unten ist 1:1 identisch mit dem React-Hero in      -->
+    <!-- src/pages/Home.tsx – createRoot() ersetzt es beim Mount       -->
+    <!-- durch das identische React-DOM → kein sichtbarer Sprung.      -->
+    <!-- ═════════════════════════════════════════════════════════════ -->
+
+    <!-- Theme-Bootstrap: Setzt light/dark Klasse VOR dem First Paint  -->
+    <!-- (gleiche Logik wie AppProvider.useApplyTheme, gleiche Storage- -->
+    <!-- Key wie AppProvider storageKey="nostr:app-config")             -->
+    <script>
+      (function () {
+        try {
+          var cfg = JSON.parse(localStorage.getItem('nostr:app-config') || '{}');
+          var t = cfg && ['dark', 'light', 'system'].includes(cfg.theme) ? cfg.theme : 'light';
+          if (t === 'system') {
+            t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          }
+          document.documentElement.classList.add(t);
+        } catch (e) {
+          document.documentElement.classList.add('light');
+        }
+      })();
+    </script>
+
     <style>
+      /* Theme-Variablen (Werte 1:1 aus src/index.css) */
+      :root {
+        --sh-bg: hsl(200 60% 98%);
+        --sh-fg: hsl(210 30% 15%);
+        --sh-muted-fg: hsl(215 20% 50%);
+        --sh-primary: hsl(188 88% 42%);
+        --sh-primary-fg: hsl(0 0% 100%);
+        --sh-border: hsl(200 30% 90%);
+      }
+      html.dark {
+        --sh-bg: hsl(215 40% 7%);
+        --sh-fg: hsl(210 20% 98%);
+        --sh-muted-fg: hsl(215 15% 65%);
+        --sh-primary: hsl(188 88% 55%);
+        --sh-primary-fg: hsl(215 40% 7%);
+        --sh-border: hsl(215 40% 18%);
+      }
+      html, body {
+        margin: 0;
+        background: var(--sh-bg);
+        color: var(--sh-fg);
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
       .gradient-text {
         background: linear-gradient(135deg, hsl(188 88% 42%), hsl(349 83% 51%));
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
       }
-      .hero-title {
-        font-size: clamp(2.5rem, 8vw, 6rem);
-        font-weight: 700;
-        letter-spacing: -0.02em;
-        line-height: 1.1;
+      html.dark .gradient-text {
+        background: linear-gradient(135deg, hsl(188 88% 55%), hsl(349 83% 60%));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
       }
+      /* Hero-Layout (entspricht section/px-4/container/max-w-5xl/space-y) */
+      .sh-hero { position: relative; padding: 1.5rem 0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+      .sh-hero-bg1 { position: absolute; inset: 0; background: linear-gradient(to bottom right, hsl(188 88% 42% / .3), hsl(349 83% 51% / .2), var(--sh-bg)); }
+      .sh-hero-bg2 { position: absolute; inset: 0; background: linear-gradient(to bottom, transparent, hsl(200 60% 98% / .4), var(--sh-bg)); }
+      html.dark .sh-hero-bg1 { background: linear-gradient(to bottom right, hsl(188 88% 55% / .3), hsl(349 83% 60% / .2), var(--sh-bg)); }
+      html.dark .sh-hero-bg2 { background: linear-gradient(to bottom, transparent, hsl(215 40% 7% / .4), var(--sh-bg)); }
+      .sh-container { position: relative; z-index: 10; width: 100%; margin: 0 auto; padding: 0 1rem; box-sizing: border-box; }
+      .sh-inner { max-width: 64rem; margin: 0 auto; text-align: center; }
+      .sh-inner > * + * { margin-top: 1.25rem; }
+      .sh-text > * + * { margin-top: 1rem; }
+      .sh-h1 { margin: 0; font-size: 3.75rem; font-weight: 700; letter-spacing: -0.025em; line-height: 1.25; }
+      .sh-h2 { margin: 0; font-size: 1.875rem; font-weight: 400; font-family: 'Playfair Display', serif; color: var(--sh-muted-fg); line-height: 1.625; }
+      .sh-tagline { margin: 0 auto; max-width: 42rem; font-size: 1.25rem; line-height: 1.75rem; color: var(--sh-muted-fg); }
+      .sh-ctas { padding-top: 1.5rem; display: flex; flex-wrap: wrap; justify-content: center; gap: 1.25rem; }
+      .sh-btn {
+        display: inline-flex; align-items: center; gap: 0.75rem;
+        font-size: 1rem; font-weight: 500; line-height: 1.5rem;
+        padding: 1.5rem 2rem; border-radius: 0.75rem; cursor: pointer;
+      }
+      .sh-btn svg { width: 1.5rem; height: 1.5rem; flex-shrink: 0; }
+      .sh-btn-primary { background: var(--sh-primary); color: var(--sh-primary-fg); border: none; text-decoration: none; box-shadow: 0 10px 15px -3px rgb(0 0 0 / .1), 0 4px 6px -4px rgb(0 0 0 / .1); }
+      .sh-btn-outline { background: transparent; color: var(--sh-fg); border: 1px solid var(--sh-border); }
+      @media (min-width: 768px) {
+        .sh-h1 { font-size: 6rem; }
+        .sh-h2 { font-size: 3rem; }
+        .sh-tagline { font-size: 1.5rem; line-height: 2rem; }
+        .sh-container { max-width: 768px; }
+      }
+      @media (min-width: 640px) { .sh-container { max-width: 640px; } }
+      @media (min-width: 1024px) { .sh-container { max-width: 1024px; } }
+      @media (min-width: 1280px) { .sh-container { max-width: 1280px; } }
     </style>
+
+    <!-- EN-Shell: Hero-Texte für /en/ tauschen (i18n: src/config/i18n/home.ts) -->
+    <script>
+      (function () {
+        if (!location.pathname.startsWith('/en')) return;
+        document.addEventListener('DOMContentLoaded', function () {
+          var h2 = document.querySelector('.sh-h2');
+          var p = document.querySelector('.sh-tagline');
+          var a = document.querySelector('.sh-btn-primary');
+          if (h2) h2.textContent = 'Our Life by the Ocean';
+          if (p) p.textContent = 'Stories, tips and insights into our life between sand and horizon';
+          if (a) a.lastChild.textContent = ' Discover Our Stories';
+        });
+      })();
+    </script>
 
     <!-- ═══════════════════════════════════════════════ -->
     <!-- PINTEREST RICH PIN META TAGS -->
@@ -81,7 +177,34 @@
     <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Startseite","item":"https://mojobus.co/"}]}</script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- STATIC HERO: 1:1 identisch mit src/pages/Home.tsx (Variante A).
+           createRoot().render() ersetzt diesen Block beim Mount durch das
+           identische React-DOM → kein CLS, kein sichtbarer Sprung. -->
+      <section class="sh-hero">
+        <div class="sh-hero-bg1" aria-hidden="true"></div>
+        <div class="sh-hero-bg2" aria-hidden="true"></div>
+        <div class="sh-container">
+          <div class="sh-inner">
+            <div class="sh-text">
+              <h1 class="sh-h1"><span class="gradient-text">Perpetual Travelers</span></h1>
+              <h2 class="sh-h2">Unser Leben am Meer</h2>
+              <p class="sh-tagline">Geschichten, Tipps und Einblicke in unser Leben zwischen Sand und Horizont</p>
+            </div>
+            <div class="sh-ctas">
+              <a class="sh-btn sh-btn-primary" href="/artikel">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+                <span>Entdecke unsere Geschichten</span>
+              </a>
+              <div class="sh-btn sh-btn-outline" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                <span>Aktualisieren</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
