@@ -30,8 +30,13 @@
  *   amz         ?redirectAmzASIN=<ASIN> → https://www.amazon.de/dp/<ASIN>
  *               (der alte Redirect ist exakt ableitbar)
  *   special     /shop/…, /loves/…, /product/…, /instagram, /kontakt/,
- *               /neu-hier/ → https://mojobus.co/ (HOME; /kontakt → /about)
- *               Vorschläge — je URL über human_decision entscheidbar.
+ *               /neu-hier/, /hier-starten/…, /tagebuch/…, /beitraege/…,
+ *               /womo-stellplaetze/…, /wohnmobil-reisebericht/…, /womo/…
+ *               → HOME, /about bzw. Taxonomie-Ziel — je URL entscheidbar.
+ *   gone-Fallback (env ARTICLE_GONE_FALLBACK_TARGET): was sonst als gone
+ *               landet, wird stattdessen map → Ziel. Empfohlen für
+ *               ARTIKEL-Links (Klick bleibt lebendig nach Domain-Tod); die
+ *               nginx-410-Regeln werden dadurch NICHT geändert.
  *
  * AUSFÜHRUNG (VPS):
  *   node scripts/build-article-decisions.js
@@ -186,6 +191,9 @@ function classifyAndPropose(url, articles, logHits) {
   }
 
   // 7. Sonderseiten (Shop/Loves/Product/Kontakt/Neu-hier/Instagram/…)
+  //    + Kategorie-artige Alt-Strukturen, die der erste Lauf verpasst hat:
+  //    /hier-starten/, /tagebuch/, /beitraege/, /womo-stellplaetze/,
+  //    /wohnmobil-reisebericht/, /womo/
   const specialTargets = {
     '/kontakt': `${BASE_URL}/about`,
     '/neu-hier': `${BASE_URL}/about`,
@@ -193,16 +201,29 @@ function classifyAndPropose(url, articles, logHits) {
     '/shop': `${BASE_URL}/`,
     '/loves': `${BASE_URL}/`,
     '/product': `${BASE_URL}/`,
-    '/ressourcen': `${BASE_URL}/artikel`,
+    '/ressourcen': TAXONOMY_TARGET,
+    '/hier-starten': TAXONOMY_TARGET,
+    '/tagebuch': TAXONOMY_TARGET,
+    '/beitraege': TAXONOMY_TARGET,
+    '/womo-stellplaetze': TAXONOMY_TARGET,
+    '/wohnmobil-reisebericht': TAXONOMY_TARGET,
+    '/womo': TAXONOMY_TARGET,
   };
   for (const [prefix, target] of Object.entries(specialTargets)) {
     if (p === prefix || p.startsWith(prefix + '/') || p.startsWith(prefix + '.')) {
       return { type: 'map', target, conf: 0.75,
-        evidence: `Sonderseite (${prefix}…) → ${target} — Vorschlag, prüfen!` };
+        evidence: `Sonderseite/Kategorie-Altstruktur (${prefix}…) → ${target} — Vorschlag, prüfen!` };
     }
   }
 
-  // 8. Rest → gone-Vorschlag (bewusst konservativ, kein Raten)
+  // 8. Rest → normal gone-Vorschlag; mit ARTICLE_GONE_FALLBACK_TARGET wird
+  //    daraus map → Ziel (Klick bleibt lebendig, auch nach Domain-Tod —
+  //    bewusst nur auf der ARTIKEL-Ebene; die nginx-410-Regeln bleiben unangetastet).
+  const goneFallback = (process.env.ARTICLE_GONE_FALLBACK_TARGET || '').replace(/\/$/, '');
+  if (goneFallback) {
+    return { type: 'map', target: goneFallback, conf: 0.5,
+      evidence: `Kein Match (Slug-Fuzzy unter Threshold) — ARTICLE_GONE_FALLBACK_TARGET: Klick → ${goneFallback} statt tot` };
+  }
   return { type: 'gone', target: '', conf: 0.5,
     evidence: 'Kein Match (Slug-Fuzzy unter Threshold) — Vorschlag 410/gone, manuell prüfen' };
 }
