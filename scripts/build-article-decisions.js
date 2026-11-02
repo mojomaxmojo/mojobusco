@@ -207,9 +207,56 @@ function classifyAndPropose(url, articles, logHits) {
     evidence: 'Kein Match (Slug-Fuzzy unter Threshold) — Vorschlag 410/gone, manuell prüfen' };
 }
 
+// ── --approve-suggestions: alle Vorschläge übernehmen ───────────────────────
+
+function approveSuggestions() {
+  if (!fs.existsSync(OUT_FILE)) {
+    console.error('[Decisions] CSV fehlt — erst ohne Flag laufen lassen.');
+    process.exit(1);
+  }
+  const lines = fs.readFileSync(OUT_FILE, 'utf8').trim().split('\n');
+  const out = [lines[0]];
+  let approved = 0;
+  for (const l of lines.slice(1)) {
+    const cols = parseCsvLine(l);
+    if (cols.length < 7) { out.push(l); continue; }
+    const proposal = cols[2];
+    if (proposal === 'map' || proposal === 'gone') {
+      cols[6] = proposal; // human_decision = Vorschlag
+      approved++;
+      out.push(cols.map(csvEscape).join(','));
+    } else {
+      out.push(l); // wp-media & Co: human_decision leer lassen
+    }
+  }
+  fs.writeFileSync(OUT_FILE, out.join('\n') + '\n', 'utf-8');
+  console.log(`[Decisions] --approve-suggestions: ${approved} Zeilen übernommen (human_decision = Vorschlag).`);
+  console.log('[Decisions] wp-media-Zeilen bleiben leer (erledigt das MOJOBUS_REWRITE_WP_MEDIA-Flag).');
+}
+
+function parseCsvLine(l) {
+  const out = [];
+  let cur = '', q = false;
+  for (let i = 0; i < l.length; i++) {
+    const ch = l[i];
+    if (q) {
+      if (ch === '"') { if (l[i + 1] === '"') { cur += '"'; i++; } else q = false; }
+      else cur += ch;
+    } else {
+      if (ch === '"') q = true;
+      else if (ch === ',') { out.push(cur); cur = ''; }
+      else cur += ch;
+    }
+  }
+  out.push(cur);
+  return out;
+}
+
 // ── Main ────────────────────────────────────────────────────────────────────
 
 function main() {
+  if (process.argv.includes('--approve-suggestions')) { approveSuggestions(); return; }
+
   const inputFile = resolveExisting(INPUT_CANDIDATES);
   if (!inputFile) {
     console.error('[Decisions] Input fehlt: redirects/unmapped-org-links.articles.json');

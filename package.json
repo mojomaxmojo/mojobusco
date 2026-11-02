@@ -21,7 +21,8 @@
     "healthcheck:publish": "node scripts/publish-healthcheck.js",
     "rewrite:articles": "node scripts/rewrite-article-links.js",
     "rewrite:articles:publish": "node scripts/rewrite-article-links.js --publish",
-    "decisions:build": "node scripts/build-article-decisions.js"
+    "decisions:build": "node scripts/build-article-decisions.js",
+    "decisions:approve": "node scripts/build-article-decisions.js --approve-suggestions"
   },
   "dependencies": {
     "@capacitor-community/exif": "^8.0.0",
