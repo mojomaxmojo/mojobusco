@@ -187,6 +187,7 @@ function buildPlan(articles) {
       dTag: getDTag(ev),
       title: getTitle(ev),
       naddr: toNaddr(ev),
+      authorNpub: nip19.npubEncode(ev.pubkey),
       lang: getEventLangFromTags(ev) || '?',
       orgLinksFound: [...new Set([...content.matchAll(ORG_URL_RE)].map((m) => m[0]))],
       newContent: rewritten,
@@ -214,6 +215,7 @@ function writeReport(plan, meta, publishedResults) {
     articles: plan.map((p) => ({
       dTag: p.dTag,
       title: p.title,
+      author: p.authorNpub,
       naddr: p.naddr,
       lang: p.lang,
       createdAt: p.createdAt,
