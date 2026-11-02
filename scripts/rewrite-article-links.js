@@ -236,10 +236,15 @@ function writeReport(plan, meta, publishedResults) {
 
 // ── Schritt 3: Republish ────────────────────────────────────────────────────
 
-// Publish über RAW WebSocket statt SimplePool — Grund: relay.mojobus.co
-// (Haven) erlaubt Schreiben nur für die Autoren-Whitelist und prüft das per
-// NIP-42 AUTH (Signatur-Challenge). SimplePool macht dieses Handshake nicht
-// automatisch → 0/2. Flow pro Relay:
+// Publish über persistente RAW-WebSocket-Verbindungen (RelayPublisher) statt
+// SimplePool — zwei Gründe:
+//   1. relay.mojobus.co (Haven) erlaubt Schreiben nur für die Autoren-
+//      Whitelist und prüft das per NIP-42 AUTH (Signatur-Challenge) —
+//      SimplePool macht dieses Handshake nicht automatisch.
+//   2. Haven drosselt Verbindungs-Rate: ein frisches WS je Artikel (~130+
+//      in 2 min) endet ab ~Dutzend in "WebSocket-Fehler". Eine persistente
+//      Verbindung je Relay + 3 Versuche mit Backoff löst beides.
+// Flow pro Event:
 //   1. ["EVENT", event] senden
 //   2. Relay antwortet ["AUTH", {challenge}] → kind:22242-Auth-Event mit
 //      ["relay", url] + ["challenge", challenge] signieren (derselbe Key wie
@@ -249,74 +254,130 @@ function writeReport(plan, meta, publishedResults) {
 // Relays ohne AUTH-Anforderung antworten direkt mit OK — bleibt kompatibel.
 
 const WS_PUBLISH_TIMEOUT_MS = Number(process.env.ARTICLE_REWRITE_WS_TIMEOUT_MS || 20000);
+const WS_CONNECT_TIMEOUT_MS = Number(process.env.ARTICLE_REWRITE_CONNECT_TIMEOUT_MS || 10000);
+const PUBLISH_RETRIES = Number(process.env.ARTICLE_REWRITE_RETRIES || 3);
 
-function publishOnRelay(relayUrl, event, sk) {
-  return new Promise((resolve) => {
-    let ws;
-    try { ws = new WebSocket(relayUrl); } catch {
-      resolve({ ok: false, error: 'WebSocket-Ctor-Fehler' }); return;
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+/**
+ * Persistente WebSocket-Verbindung je Relay — GRUND: Haven drosselt
+ * Verbindungs-Rate; ein frisches WS je Artikel (130+ in 2 min) führte zu
+ * "WebSocket-Fehler" ab Artikel ~Dutzend. Einmal verbinden, alle Events
+ * darüber, NIP-42-AUTH je Event (Challenge wird mit dem Key des
+ * JEWELIGEN Artikels signiert — mehrere Autoren), 3 Versuche mit Backoff.
+ */
+class RelayPublisher {
+  constructor(relayUrl) {
+    this.relayUrl = relayUrl;
+    this.ws = null;
+    this.connecting = null;
+    this.pending = null; // { event, sk, resolve, authEventId }
+  }
+
+  _connect() {
+    if (this.ws && this.ws.readyState === 1) return Promise.resolve();
+    if (this.connecting) return this.connecting;
+    this.connecting = new Promise((resolve, reject) => {
+      let sock;
+      try { sock = new WebSocket(this.relayUrl); } catch (e) {
+        this.connecting = null; return reject(new Error(`WS-Ctor: ${e.message}`));
+      }
+      const failTimer = setTimeout(() => {
+        if (this.connecting === p) { this.connecting = null; }
+        try { sock.close(); } catch { /* ignore */ }
+        reject(new Error('Connect-Timeout'));
+      }, WS_CONNECT_TIMEOUT_MS);
+      const p = this.connecting;
+      sock.onopen = () => { clearTimeout(failTimer); this.ws = sock; this.connecting = null; resolve(); };
+      sock.onerror = () => {
+        clearTimeout(failTimer);
+        if (this.ws !== sock) { this.connecting = null; reject(new Error('WebSocket-Fehler')); }
+      };
+      sock.onclose = () => {
+        if (this.ws === sock) this.ws = null;
+        if (this.pending) {
+          const pend = this.pending; this.pending = null;
+          pend.resolve({ ok: false, error: 'Verbindung während Publish geschlossen' });
+        }
+      };
+      sock.onmessage = (msg) => this._onMessage(msg);
+    });
+    return this.connecting;
+  }
+
+  _onMessage(msg) {
+    let data;
+    try { data = JSON.parse(typeof msg.data === 'string' ? msg.data : String(msg.data)); }
+    catch { return; }
+    const pend = this.pending;
+    if (!pend) return;
+    const [type] = data;
+
+    if (type === 'AUTH' && !pend.authEventId) {
+      const challenge = data[1]?.challenge;
+      if (!challenge) return;
+      const authEvent = finalizeEvent({
+        kind: 22242,
+        created_at: Math.floor(Date.now() / 1000),
+        tags: [['relay', this.relayUrl], ['challenge', challenge]],
+        content: '',
+      }, pend.sk);
+      pend.authEventId = authEvent.id;
+      try { this.ws.send(JSON.stringify(['AUTH', authEvent])); } catch { /* close-Handler übernimmt */ }
+      return;
     }
 
-    let settled = false;
-    const done = (result) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      try { ws.close(); } catch { /* ignore */ }
-      resolve(result);
-    };
-    const timer = setTimeout(
-      () => done({ ok: false, error: `Timeout nach ${WS_PUBLISH_TIMEOUT_MS / 1000}s` }),
-      WS_PUBLISH_TIMEOUT_MS
-    );
-
-    let authEventId = null;
-
-    const sendEvent = () => {
-      try { ws.send(JSON.stringify(['EVENT', event])); } catch (e) {
-        done({ ok: false, error: `Send-Fehler: ${e.message}` });
-      }
-    };
-
-    ws.onopen = () => sendEvent();
-    ws.onerror = () => { if (!settled) done({ ok: false, error: 'WebSocket-Fehler' }); };
-    ws.onclose = () => done({ ok: false, error: 'Verbindung zu früh geschlossen' });
-
-    ws.onmessage = (msg) => {
-      let data;
-      try { data = JSON.parse(typeof msg.data === 'string' ? msg.data : String(msg.data)); }
-      catch { return; }
-      const [type] = data;
-
-      if (type === 'AUTH') {
-        const challenge = data[1]?.challenge;
-        if (!challenge || authEventId) return;
-        const authEvent = finalizeEvent({
-          kind: 22242,
-          created_at: Math.floor(Date.now() / 1000),
-          tags: [['relay', relayUrl], ['challenge', challenge]],
-          content: '',
-        }, sk);
-        authEventId = authEvent.id;
-        try { ws.send(JSON.stringify(['AUTH', authEvent])); } catch (e) {
-          done({ ok: false, error: `AUTH-Send-Fehler: ${e.message}` });
-        }
+    if (type === 'OK') {
+      const [id, ok, message] = [data[1], data[2], data[3]];
+      if (pend.authEventId && id === pend.authEventId) {
+        // AUTH bestätigt → Artikel-Event (erneut) senden
+        try { this.ws.send(JSON.stringify(['EVENT', pend.event])); } catch { /* close-Handler übernimmt */ }
         return;
       }
+      if (id !== pend.event.id) return;
+      this.pending = null;
+      pend.resolve(ok ? { ok: true } : { ok: false, error: message || 'OK=false ohne Meldung' });
+    }
+  }
 
-      if (type === 'OK') {
-        const [id, ok, message] = [data[1], data[2], data[3]];
-        if (id === authEventId) {
-          // AUTH bestätigt → Event (erneut) senden
-          sendEvent();
-          return;
-        }
-        done(ok
-          ? { ok: true }
-          : { ok: false, error: message || 'OK=false ohne Meldung' });
+  async publish(event, sk) {
+    for (let attempt = 1; attempt <= PUBLISH_RETRIES; attempt++) {
+      try {
+        await this._connect();
+      } catch (e) {
+        if (attempt === PUBLISH_RETRIES) return { ok: false, error: `Connect: ${e.message}` };
+        await sleep(2000 * attempt);
+        continue;
       }
-    };
-  });
+      if (!this.ws || this.ws.readyState !== 1) {
+        if (attempt === PUBLISH_RETRIES) return { ok: false, error: 'Verbindung nicht offen' };
+        await sleep(1500);
+        continue;
+      }
+
+      const result = await new Promise((resolve) => {
+        this.pending = { event, sk, resolve, authEventId: null };
+        try { this.ws.send(JSON.stringify(['EVENT', event])); }
+        catch (e) { this.pending = null; resolve({ ok: false, error: `Send: ${e.message}` }); }
+        setTimeout(() => {
+          if (this.pending && this.pending.event.id === event.id) {
+            const pend = this.pending; this.pending = null;
+            pend.resolve({ ok: false, error: `Timeout nach ${WS_PUBLISH_TIMEOUT_MS / 1000}s` });
+          }
+        }, WS_PUBLISH_TIMEOUT_MS);
+      });
+      if (result.ok) return result;
+
+      // Fehlversuch: Verbindung verwerfen, im nächsten Versuch neu aufbauen
+      try { this.ws && this.ws.close(); } catch { /* ignore */ }
+      this.ws = null;
+      if (attempt < PUBLISH_RETRIES) await sleep(2000 * attempt);
+      else return result;
+    }
+    return { ok: false, error: 'Alle Versuche fehlgeschlagen' };
+  }
 }
 
 function buildPublishEvent(p, now) {
@@ -397,14 +458,16 @@ async function publishAll(plan, only) {
     console.log(`    ${s.npub} (${s.sourceEnv}): ${count} Artikel`);
   }
   const results = [];
+  const publishers = RELAYS.map((relay) => new RelayPublisher(relay));
 
   for (const p of publishable) {
     const signer = signers.get(p.event.pubkey);
     const signed = finalizeEvent(buildPublishEvent(p, Math.floor(Date.now() / 1000)), signer.sk);
     const pub = await Promise.all(
-      RELAYS.map((relay) =>
-        publishOnRelay(relay, signed, signer.sk).then((r) => ({ relay, ...r }))
-      )
+      publishers.map(async (rp, i) => {
+        const r = await rp.publish(signed, signer.sk);
+        return { relay: RELAYS[i], ...r };
+      })
     );
     const okCount = pub.filter((r) => r.ok).length;
     console.log(`  ${okCount}/${RELAYS.length}  [${signer.npub.slice(0, 12)}…]  ${p.dTag}  (${p.title || '(ohne Titel)'})`);
