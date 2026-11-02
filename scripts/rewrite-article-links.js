@@ -227,7 +227,7 @@ function buildPlan(perRelay, globalLatest) {
   }
 
   plan.sort((a, b) => b.createdAt - a.createdAt);
-  return { plan, cleanEverywhere, now };
+  return { plan, cleanEverywhere };
 }
 
 function writeReport(plan, meta, publishedResults) {
