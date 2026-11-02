@@ -88,8 +88,11 @@ if [ ! -d "$ORG_UPLOADS" ]; then
 fi
 printf '  Upload-Quelle: %s\n' "$ORG_UPLOADS"
 
-FOUND=0; MISSING=0; TOTAL_BYTES=0
+FOUND=0; MISSING=0; TOTAL_BYTES=0; VARIANT_RECOVERED=0
 : > "$FILELIST"
+VARIANT_LIST="/tmp/copy-article-wp-media-variants.$$"
+trap 'rm -f "$LIST" "$FILELIST" "$VARIANT_LIST"' EXIT
+: > "$VARIANT_LIST"
 while IFS= read -r rel; do
   [ -z "$rel" ] && continue
   # rel = /wp-content/uploads/<pfad> → Pfad UNTER uploads/
@@ -101,18 +104,35 @@ while IFS= read -r rel; do
     TOTAL_BYTES=$((TOTAL_BYTES + sz))
     printf '%s\n' "$sub" >> "$FILELIST"
   else
-    MISSING=$((MISSING + 1))
-    printf '%s\n' "FEHLT: $src" >> "$LIST.missing.$$" 2>/dev/null || true
+    # WP-Größenvarianten-Fallback: „bild-480x640.jpg" fehlt, aber das
+    # Original „bild.jpg" existiert? (WP-resized-Varianten wurden oft
+    # gelöscht, Originale nicht.) Wir kopieren das Original UNTER dem
+    # Varianten-Namen aufs Ziel (cp statt Symlink — nginx-sicher).
+    variant=$(printf '%s' "$sub" | sed -E 's/-[0-9]+x[0-9]+(\.[a-zA-Z0-9]+)$/\1/')
+    orig="$ORG_UPLOADS/$variant"
+    if [ "$variant" != "$sub" ] && [ -f "$orig" ]; then
+      VARIANT_RECOVERED=$((VARIANT_RECOVERED + 1))
+      sz=$(wc -c < "$orig" | tr -d ' ')
+      TOTAL_BYTES=$((TOTAL_BYTES + sz))
+      printf '%s\t%s\n' "$sub" "$variant" >> "$VARIANT_LIST"
+    else
+      MISSING=$((MISSING + 1))
+    fi
   fi
 done < "$LIST"
 
-printf '  Gefunden auf Quelle: %s  Fehlend: %s\n' "$FOUND" "$MISSING"
-printf '  Gesamtgröße gefunden: %s Bytes (%s MB)\n' "$TOTAL_BYTES" "$(( TOTAL_BYTES / 1048576 ))"
+printf '  Gefunden auf Quelle: %s  Als Variante rekonstruierbar: %s  Endgültig fehlend: %s\n' \
+  "$FOUND" "$VARIANT_RECOVERED" "$MISSING"
+printf '  Gesamtgröße: %s Bytes (%s MB)\n' "$TOTAL_BYTES" "$(( TOTAL_BYTES / 1048576 ))"
 
-if [ "$MISSING" -gt 0 ] && [ -f "$LIST.missing.$$" ]; then
-  printf '  Fehlende Dateien (Top 10):\n'
-  head -n 10 "$LIST.missing.$$" | sed 's/^/    /'
-  rm -f "$LIST.missing.$$"
+if [ "$MISSING" -gt 0 ]; then
+  printf '  Endgültig fehlend: %s (auch ohne Größen-Suffix nicht auf der Quelle —\n' "$MISSING"
+  printf '    diese Bilder sind heute schon tot, auch auf mojobus.org → Decisions-Tabelle: gone)\n'
+fi
+if [ "$VARIANT_RECOVERED" -gt 0 ]; then
+  printf '  Varianten-Rekonstruktion (Top 10): <artikel-URL> ← kopiert aus <Original>\n'
+  head -n 10 "$VARIANT_LIST" | awk -F'\t' '{ printf "    %s ← %s\n", $1, $2 }'
+  [ "$VARIANT_RECOVERED" -gt 10 ] && printf '    … (%s weitere)\n' "$((VARIANT_RECOVERED - 10))"
 fi
 
 if [ "$FOUND" = 0 ]; then
@@ -152,7 +172,24 @@ if [ "$rc" != 0 ]; then
   printf '❌ rsync Exit %s — prüfen.\n' "$rc"
   exit 1
 fi
-printf '✅ Kopiert: %s Dateien (%s MB) nach %s\n' "$FOUND" "$(( TOTAL_BYTES / 1048576 ))" "$TARGET_UPLOADS"
+
+# Varianten: Original unter dem Varianten-Namen zusätzlich ablegen
+VARIANTS_DONE=0
+if [ -s "$VARIANT_LIST" ]; then
+  while IFS=$'\t' read -r var orig; do
+    [ -z "$var" ] && continue
+    mkdir -p "$TARGET_UPLOADS/$(dirname "$var")"
+    if cp -f "$TARGET_UPLOADS/$orig" "$TARGET_UPLOADS/$var"; then
+      VARIANTS_DONE=$((VARIANTS_DONE + 1))
+    else
+      printf '⚠️ Variante fehlgeschlagen: %s\n' "$var"
+    fi
+  done < "$VARIANT_LIST"
+  printf '✅ Varianten rekonstruiert: %s (Original unter Varianten-Namen kopiert)\n' "$VARIANTS_DONE"
+fi
+
+printf '✅ Kopiert: %s Dateien + %s Varianten (%s MB) nach %s\n' \
+  "$FOUND" "$VARIANTS_DONE" "$(( TOTAL_BYTES / 1048576 ))" "$TARGET_UPLOADS"
 printf ' PHASE B: Spotcheck (curl -sI https://mojobus.co/wp-content/uploads/<eine>/),\n'
 printf '   dann Flag MOJOBUS_REWRITE_WP_MEDIA=1 beim finalen Republish setzen.\n'
 exit 0
