@@ -329,6 +329,9 @@ async function publishAll(plan, only) {
     );
     const okCount = pub.filter((r) => r.ok).length;
     console.log(`  ${okCount}/${RELAYS.length}  [${signer.npub.slice(0, 12)}…]  ${p.dTag}  (${p.title || '(ohne Titel)'})`);
+    for (const r of pub) {
+      if (!r.ok) console.warn(`      ✗ ${r.relay}: ${r.error || '(keine Fehlermeldung — Relay lehnte still ab)'}`);
+    }
     results.push({ dTag: p.dTag, naddr: p.naddr, eventId: signed.id, relays: pub });
     if (PUBLISH_DELAY_MS > 0) {
       await new Promise((r) => setTimeout(r, PUBLISH_DELAY_MS));
