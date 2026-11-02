@@ -23,8 +23,14 @@
  * ABLAUF:
  *   1. Alle kind:30023-Events der Autoren (AUTHOR_PUBKEYS) von den
  *      PIPELINE_RELAYS laden (paginiert, wie backfill-continuity.js).
- *   2. Pro (pubkey, d-tag) die NEUESTE Version behalten.
- *   3. Content via rewriteOrgLinks() umschreiben; Statistik je Artikel.
+ *   2. Pro (pubkey, d-tag) die neueste Version JEDES Relays merken
+ *      (STALE-Erkennung: primal.net nimmt Publishes an, beantwortet aber
+ *      teils keine Queries — nur der Relay-Vergleich zeigt, ob relay.
+ *      mojobus.co — die Source of Truth der Site — die clean Version hat).
+ *   3. Republish, sobald MIND. EIN Relay noch eine .org-Version hat: der
+ *      clean Content (falls vorhanden, z. B. von primal) oder die via
+ *      rewriteOrgLinks() umgeschriebene alte Version wird an ALLE Relays
+ *      gesendet; Statistik je Artikel. --force: ALLE d-tags republishen.
  *   4. DRY-RUN (default): Report schreiben, NICHTS veröffentlichen.
  *   5. --publish: neue Version(en) signieren und auf die Pipeline-Relays
  *      verteilen (SimplePool). MEHRERE AUTOREN (Max + Susanne):
@@ -45,6 +51,8 @@
  * SICHERHEIT:
  *   - Ohne --publish wird NIEMALS signiert oder gesendet (trockenlauf).
  *   - NOSTR_NSEC* nur als ENV übergeben (niemals in Dateien/Logs).
+ *   - --force veröffentlicht ALLE d-tags neu (auch bereits clean synchronisierte)
+ *     — nur für Ausnahmefälle, belastet die Relays spürbar.
  *   - Events mit FEHLENDEN oder GEÄNDERTEN Feldern werden nicht blind
  *     republished: Tags werden 1:1 vom Original übernommen (inkl.
  *     published_at/title/image/summary/alt), nur content wird ersetzt.
@@ -89,6 +97,7 @@ const ORG_URL_RE = /https?:\/\/(?:www\.)?mojobus\.org(?:\/[^)\]}\s<>"']*)?/gi;
 
 const args = process.argv.slice(2);
 const PUBLISH = args.includes('--publish');
+const FORCE = args.includes('--force');
 const ONLY = (() => {
   const i = args.indexOf('--only');
   return i >= 0 ? args[i + 1] : null;
@@ -144,7 +153,13 @@ function matchesOnly(event, needle) {
 
 async function fetchLatestArticles() {
   const filter = { kinds: [KIND_ARTICLE], authors: AUTHOR_PUBKEYS, limit: QUERY_LIMIT };
-  const byKey = new Map(); // "pubkey:dTag" → latest event
+  // STALE-ERKENNUNG JE RELAY: pro d-tag die neueste Version JEDES Relays
+  // merken. Warum: primal.net nimmt Publishes an, beantwortet aber teils
+  // keine Queries — und umgekehrt kann eine clean Version auf primal
+  // liegen, während relay.mojobus.co (Source of Truth der Site!) noch die
+  // alte .org-Version hat. Nur ein Relay-Vergleich zeigt die Wahrheit.
+  const perRelay = new Map();   // "pubkey:dTag" → Map(relayUrl → latest event)
+  const globalLatest = new Map(); // "pubkey:dTag" → event (created_at max)
   let totalSeen = 0;
 
   for (const relay of RELAYS) {
@@ -156,61 +171,78 @@ async function fetchLatestArticles() {
       continue;
     }
     totalSeen += events.length;
+    console.log(`[Rewrite] ${relay}: ${events.length} Artikel-Events`);
     for (const ev of events) {
       const dTag = getDTag(ev);
       if (!dTag) continue;
       const key = `${ev.pubkey}:${dTag}`;
-      const prev = byKey.get(key);
-      if (!prev || ev.created_at > prev.created_at) byKey.set(key, ev);
+      if (!perRelay.has(key)) perRelay.set(key, new Map());
+      const byRelay = perRelay.get(key);
+      const prev = byRelay.get(relay);
+      if (!prev || ev.created_at > prev.created_at) byRelay.set(relay, ev);
+      const gPrev = globalLatest.get(key);
+      if (!gPrev || ev.created_at > gPrev.created_at) globalLatest.set(key, ev);
     }
-    console.log(`[Rewrite] ${relay}: ${events.length} Artikel-Events`);
   }
 
-  return { articles: [...byKey.values()], totalSeen };
+  return { perRelay, globalLatest, totalSeen };
 }
 
 // ── Schritt 2: Content umschreiben + Report ─────────────────────────────────
 
-function buildPlan(articles) {
-  const now = Math.floor(Date.now() / 1000);
+function buildPlan(perRelay, globalLatest, now) {
   const plan = [];
+  let cleanEverywhere = 0;
 
-  for (const ev of articles) {
-    const content = String(ev.content ?? '');
-    if (!content.includes('mojobus.org')) continue;
+  for (const [key, byRelay] of perRelay) {
+    const latest = globalLatest.get(key);
+    const content = String(latest.content ?? '');
 
-    const rewritten = rewriteOrgLinks(content);
-    if (rewritten === content) continue; // nur unmapped → kein Republish nötig
+    // Welche Relays haben NOCH eine .org-Version des d-tags?
+    const staleRelays = [...byRelay.entries()]
+      .filter(([, ev]) => String(ev.content ?? '').includes('mojobus.org'))
+      .map(([relay]) => relay);
+    const latestHasOrg = content.includes('mojobus.org');
+
+    if (staleRelays.length === 0 && !latestHasOrg) { cleanEverywhere++; continue; }
+    if (!FORCE && staleRelays.length === 0) continue; // clean, überall sync
+
+    // Content: clean-Version nehmen, wenn vorhanden (z. B. von primal);
+    // sonst alte Version via Map umschreiben (identische Regeln wie immer).
+    const rewritten = latestHasOrg ? rewriteOrgLinks(content) : content;
 
     plan.push({
-      event: ev,
-      dTag: getDTag(ev),
-      title: getTitle(ev),
-      naddr: toNaddr(ev),
-      authorNpub: nip19.npubEncode(ev.pubkey),
-      lang: getEventLangFromTags(ev) || '?',
+      event: latest,
+      dTag: getDTag(latest),
+      title: getTitle(latest),
+      naddr: toNaddr(latest),
+      authorNpub: nip19.npubEncode(latest.pubkey),
+      lang: getEventLangFromTags(latest) || '?',
+      staleRelays,
       orgLinksFound: [...new Set([...content.matchAll(ORG_URL_RE)].map((m) => m[0]))],
       newContent: rewritten,
       stillUnmapped: remainingOrgUrls(rewritten),
-      createdAt: ev.created_at,
+      createdAt: latest.created_at,
     });
   }
 
   plan.sort((a, b) => b.createdAt - a.createdAt);
-  return { plan, now };
+  return { plan, cleanEverywhere, now };
 }
 
 function writeReport(plan, meta, publishedResults) {
   const payload = {
     generatedAt: new Date().toISOString(),
     published: PUBLISH,
+    force: FORCE,
     publishResults: publishedResults || null,
     relays: RELAYS,
     authorsChecked: AUTHOR_PUBKEYS.length,
     eventsSeenTotal: meta.totalSeen,
-    latestVersionsChecked: meta.articles.length,
-    articlesWithOrgLinks: plan.length,
-    articlesToRepublish: plan.filter((p) => p.stillUnmapped.length === 0).length,
+    dTagsChecked: meta.keys,
+    cleanEverywhere: meta.cleanEverywhere,
+    republishNeeded: plan.length,
+    articlesFullyFixable: plan.filter((p) => p.stillUnmapped.length === 0).length,
     articlesPartiallyFixed: plan.filter((p) => p.stillUnmapped.length > 0).length,
     articles: plan.map((p) => ({
       dTag: p.dTag,
@@ -219,6 +251,7 @@ function writeReport(plan, meta, publishedResults) {
       naddr: p.naddr,
       lang: p.lang,
       createdAt: p.createdAt,
+      staleRelays: p.staleRelays,
       orgLinkCount: p.orgLinksFound.length,
       unmappedLeft: p.stillUnmapped,
       status: p.stillUnmapped.length === 0 ? 'republish' : 'partial',
@@ -487,16 +520,17 @@ async function publishAll(plan, only) {
 
 async function main() {
   console.log(`[Rewrite] Relays: ${RELAYS.join(', ')}`);
-  console.log(`[Rewrite] Modus: ${PUBLISH ? 'PUBLISH (schreibt Events!)' : 'DRY-RUN (nur Report)'}`);
+  console.log(`[Rewrite] Modus: ${PUBLISH ? 'PUBLISH (schreibt Events!)' : 'DRY-RUN (nur Report)'}${FORCE ? ' + FORCE' : ''}`);
 
-  const { articles, totalSeen } = await fetchLatestArticles();
-  console.log(`[Rewrite] Events gesamt: ${totalSeen}, neueste Versionen: ${articles.length}`);
+  const { perRelay, globalLatest, totalSeen } = await fetchLatestArticles();
+  console.log(`[Rewrite] Events gesamt: ${totalSeen}, d-tags: ${perRelay.size}`);
 
-  const { plan, now } = buildPlan(articles);
+  const { plan, cleanEverywhere, now } = buildPlan(perRelay, globalLatest, now);
   const full = plan.filter((p) => p.stillUnmapped.length === 0);
   const partial = plan.filter((p) => p.stillUnmapped.length > 0);
 
-  console.log(`\n[Rewrite] Artikel mit .org-Links: ${plan.length}`);
+  console.log(`\n[Rewrite] d-tags überall clean: ${cleanEverywhere}`);
+  console.log(`[Rewrite] Republish nötig (stale auf mind. 1 Relay): ${plan.length}`);
   console.log(`[Rewrite]   → vollständig umschreibbar: ${full.length}`);
   console.log(`[Rewrite]   → teilweise (unmapped Rest): ${partial.length}`);
   if (partial.length > 0) {
@@ -505,9 +539,16 @@ async function main() {
       console.log(`    ${p.dTag}: ${p.stillUnmapped.length} unmapped, z. B. ${p.stillUnmapped[0]}`);
     }
   }
+  if (!PUBLISH && plan.length > 0) {
+    // Stale-Verteilung zeigen, damit klar ist, WEN es betrifft:
+    const perRelayCount = new Map(RELAYS.map((r) => [r, 0]));
+    for (const p of plan) for (const r of p.staleRelays) perRelayCount.set(r, (perRelayCount.get(r) || 0) + 1);
+    console.log('[Rewrite] Stale je Relay:');
+    for (const [r, c] of perRelayCount) console.log(`    ${r}: ${c} Artikel veraltet`);
+  }
 
   const results = PUBLISH ? await publishAll(plan, ONLY) : null;
-  writeReport(plan, { totalSeen, articles: articles.length }, results);
+  writeReport(plan, { totalSeen, keys: perRelay.size, cleanEverywhere }, results);
 
   // Unmapped-Sammlung in das etablierte Report-Schema (Scope 'articles')
   writeUnmappedOrgLinksReport('articles');
