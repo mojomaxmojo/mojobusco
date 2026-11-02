@@ -172,6 +172,11 @@ function classifyAndPropose(url, articles, logHits) {
       return { type: 'map', target: hit.naddr, conf: 0.95,
         evidence: `WP-ID ${id} ↔ d-tag „${hit.dTag}“ (articles.json)` };
     }
+    const goneFallbackId = (process.env.ARTICLE_GONE_FALLBACK_TARGET || '').replace(/\/$/, '');
+    if (goneFallbackId) {
+      return { type: 'map', target: goneFallbackId, conf: 0.5,
+        evidence: `WP-ID ${id} ohne Artikel-Match in articles.json — ARTICLE_GONE_FALLBACK_TARGET: Klick → ${goneFallbackId} statt tot` };
+    }
     return { type: 'gone', target: '', conf: 0.8,
       evidence: `WP-ID ${id} ohne Artikel-Match in articles.json — Vorschlag 410 (wie unmapped-decisions.csv)` };
   }
