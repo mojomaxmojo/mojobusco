@@ -26,6 +26,7 @@ auf dem Server). Phase 2 hat deshalb den **Content selbst** umgeschrieben:
 | Sauber migriert | **768** |
 | Bewusste Reste | **2** — `?redirectAmzASIN=…` (Affiliate-Roulette) + `/instagram` (externe Ziele, `apply-decisions` nimmt nur eigene Domain an) |
 | Artikel-Bilder | 33 Dateien (2 MB) nach `.co/wp-content/uploads/` kopiert; 61 waren auch auf .org schon tot → Gone-Fallback-Ziel |
+| Bildarchiv Komplett-Kopie | **5,6 GB Uploads komplett** nach `.co/wp-content/uploads/` rsynced (2026-11-03, du-/rsync-Diff verifiziert, HTTP-Spotchecks 200+image); Archiv-Sicherung vor Domain-Kündigung |
 | nginx-Map | 2190 Entries (1943 Original + ~247 human-decided aus Phase 2b) |
 
 ## 3. Architektur — drei Ebenen
@@ -158,6 +159,8 @@ curl -sI https://mojobus.org/97264/lifepo4-zellen-spannung/ | grep -i location
 4. **Domain-Abschaltung mojobus.org (~6 Monate):** jetzt risikofrei.
    Vorher: Map/Resolver/410 dürfen gekündigt werden; ai-api-Route
    `wp-redirect.js` + mojobus.org-Vhost dann abschalten.
+   **Bildarchiv:** 5,6 GB komplett auf `.co` gesichert — keine
+   Medien-Rettung mehr nötig, `.org`-Webroot kann mit der Domain gehen.
 5. **wp-content-Medien-Regel (Prerender):** Flag `MOJOBUS_REWRITE_WP_MEDIA=1`
    auch für die Prerender-Pipeline freischalten (siehe copy-wp-media.sh-Doku),
    falls dort noch .org-Bild-URLs auftauchen.
