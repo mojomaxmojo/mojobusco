@@ -267,6 +267,36 @@ else
   check_fail "V5" "node nicht gefunden — manuell: cd $REPO_DIR && node scripts/publish-healthcheck.js $BASE/$NADDR"
 fi
 
+# ── [V5b] Bundle-Budget (P6, 2026-11-24) — Entry-Chunk < 300 KB gzip ────────
+# Ziel: ein Deploy, der den First-Load explodieren lässt, muss sichtbar FAILen.
+# Gemessen wird der Entry-Chunk (index-*.js, größter) + brotli-Header.
+printf '[V5b] Bundle-Budget: Entry-Chunk < 300 KB gzip, brotli aktiv\n'
+if [ -d "$DEPLOY_DIR/assets" ]; then
+  ENTRY=$(ls -S "$DEPLOY_DIR"/assets/index-*.js 2>/dev/null | head -1)
+  if [ -n "$ENTRY" ]; then
+    ENTRY_GZ=$(gzip -c "$ENTRY" 2>/dev/null | wc -c)
+    ENTRY_KB=$((ENTRY_GZ / 1024))
+    if [ "$ENTRY_GZ" -gt 307200 ]; then
+      check_fail "V5b" "Entry-Chunk ${ENTRY_KB} KB gzip > Budget 300 KB ($(basename "$ENTRY"))"
+    else
+      check_pass "V5b" "Entry-Chunk ${ENTRY_KB} KB gzip ≤ 300 KB ($(basename "$ENTRY"))"
+    fi
+  else
+    check_skip "V5b" "kein index-*.js in $DEPLOY_DIR/assets gefunden"
+  fi
+  # brotli am größten Chunk (nur Hinweis-Level: gzip-Fallback ist akzeptabel)
+  TOP=$(ls -S "$DEPLOY_DIR"/assets/*.js 2>/dev/null | head -1)
+  TOP_NAME=$(basename "$TOP")
+  CE=$(curl_base -sI -H "Accept-Encoding: br" "$BASE/assets/$TOP_NAME" | grep -io 'content-encoding: [a-z]*' | head -1 | awk '{print $2}')
+  case "$CE" in
+    br)   check_pass "V5b" "brotli aktiv am größten Chunk ($TOP_NAME)" ;;
+    gzip) check_pass "V5b" "gzip aktiv am größten Chunk ($TOP_NAME) — brotli wäre ~15 % kleiner (optional)" ;;
+    *)    check_fail "V5b" "keine Kompression am größten Chunk ($TOP_NAME, encoding='$CE')" ;;
+  esac
+else
+  check_skip "V5b" "$DEPLOY_DIR/assets nicht vorhanden"
+fi
+
 # ── [V6] Prerender-Output frei von mojobus.org (T3) — R4.1 geschärft ───────
 # Filter trennt ECHTE saubere .org-URLs (Phase-2-Arbeitsliste) von Artefakten:
 #   NON-ISSUE 1: Teaser-Cut-Fragmente (F3-Altlasten im gecachten/generierten
