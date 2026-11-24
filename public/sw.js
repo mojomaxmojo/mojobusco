@@ -6,7 +6,7 @@
 // ============================================================================
 // CACHE-KONFIGURATION
 // ============================================================================
-const CACHE_VERSION = 20; // auto-bumped by deploy // Cache Version erhöhen (war 18, jetzt 19) - staleWhileRevalidate NetworkError Fix
+const CACHE_VERSION = 21; // auto-bumped by deploy // auto-bumped by deploy // Cache Version erhöhen (war 18, jetzt 19) - staleWhileRevalidate NetworkError Fix
 const CACHE_NAME = `mojobus-v${CACHE_VERSION}`; // Version aus Konfiguration
 
 // Cache-Zeiten (in Sekunden)
