@@ -1,5 +1,12 @@
 # robots.txt für MojoBus – Perpetual Travelers
 # https://mojobus.co
+#
+# STRUKTUR (2026-11-24): Jede `User-agent:`-Gruppe enthält VOLLSTÄNDIG ihre eigenen
+# Regeln (RFC 9309: ein Crawler befolgt NUR die erste zu ihm passende Gruppe).
+# Die Disallow-Liste steht bewusst in JEDER Gruppe, damit künftige Bearbeitungen
+# keine Sperren versehentlich aufheben.
+# ACHTUNG: /prerender/ darf NUR gesperrt bleiben, wenn post-deploy-verify.sh V3
+# grün ist (Bots bekommen Prerender-HTML an den Canonical-URLs via nginx-Bot-Umleitung).
 
 User-agent: *
 Allow: /
@@ -15,24 +22,8 @@ Allow: /about
 Allow: /feed.xml
 Allow: /feed-en.xml
 
-# Prerender-Artefakte crawlen bots NICHT direkt: Die Bots erhalten ihr
-# Prerender-HTML bereits AN den Canonical-URLs (/naddr1…, /video/…, /en/…)
-# über die nginx-Bot-Umleitung (end-to-end verifiziert: Googlebot/Bingbot/
-# OAI-SearchBot → 200 + self-canonical; siehe scripts/post-deploy-verify.sh
-# V3). VORAUSSETZUNG für diese Disallow-Regel: post-deploy-verify V3 war
-# GRÜN (nach dem Runde-2/3-Deploy). /prerender/ ist ein interner Cache-Pfad
-# mit Meta-Refresh auf die Canonical-URL — indexieren möchten wir nur die
-# Canonicals, nicht den Cache.
+# Interner Prerender-Cache (Meta-Refresh auf die Canonical-URL) – nicht indexieren.
 Disallow: /prerender/
-
-# Crawler-spezifische Optimierung
-# Google Bilder-Suche
-User-agent: Googlebot-Image
-Allow: /
-
-# Bing
-User-agent: Bingbot
-Allow: /
 
 # Keine internen/auth-pages
 Disallow: /profile
@@ -43,6 +34,34 @@ Disallow: /promotion
 Disallow: /admin
 
 # Keine Maschinen-Routen (JSON-Dumps + API nur für die App)
+Disallow: /api/
+Disallow: /data/
+
+# ── Google Bilder-Suche ─────────────────────────────────────────────────────
+User-agent: Googlebot-Image
+Allow: /
+
+Disallow: /prerender/
+Disallow: /profile
+Disallow: /settings
+Disallow: /veroeffentlichen
+Disallow: /budget
+Disallow: /promotion
+Disallow: /admin
+Disallow: /api/
+Disallow: /data/
+
+# ── Bing ────────────────────────────────────────────────────────────────────
+User-agent: Bingbot
+Allow: /
+
+Disallow: /prerender/
+Disallow: /profile
+Disallow: /settings
+Disallow: /veroeffentlichen
+Disallow: /budget
+Disallow: /promotion
+Disallow: /admin
 Disallow: /api/
 Disallow: /data/
 
