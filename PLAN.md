@@ -19,23 +19,29 @@ mitgenommen. Historie konnte hier nicht geprüft werden.
 **Fertig, wenn:** `rg "gsk_" .` → 0 Treffer; KI-Generierung auf dem VPS läuft mit neuem Key.
 
 ────────────────────────────────────────────────────────────────────
-## P2 🔴 robots.txt: Bingbot-Sperren reparieren (F-13) — S
-**Problem:** `User-agent: Bingbot / Allow: /` ist eine eigene Gruppe ohne `Disallow`.
-In robots.txt gilt nur die eigene Gruppe → Bingbot darf `/profile`, `/settings`,
-`/api/`, `/data/`, `/admin`, `/budget`, `/promotion` crawlen.
+## P2 🟡 robots.txt: verwirrende Struktur klären (Korrektur von F-13) — S
+**Korrektur 2026-11-24:** Meine ursprüngliche Annahme war FALSCH. Laut robots-Standard
+(RFC 9309) gehört jeder Block bis zur NÄCHSTEN `User-agent:`-Zeile zur Gruppe darüber.
+D.h. die `Disallow: /profile … /api/ /data/`-Blöcke (Zeilen 38–47) gehören zur
+**Bingbot-Gruppe** → Bing ist korrekt gesperrt ✔. Googlebot fällt unter `*` → ebenfalls
+korrekt ✔. Kein echtes Sicherheitsproblem.
 
-**Schritte**
-1. In `public/robots.txt` die Disallow-Liste in jede Gruppe kopieren (oder Googlebot-Image/
-   Bingbot-Gruppen entfernen, da `*` bereits `Allow: /` hat).
-2. Deploy, dann in der Search Console / Bing Webmaster die robots.txt neu einlesen lassen.
+**Restpunkt (Klarheit statt Bug):**
+1. Die Disallow-Liste DIREKT unter `User-agent: *` ziehen (vor `Googlebot-Image`),
+   damit die Absicht lesbar ist und künftige Bearbeitungen keine Gruppe aufheben.
+2. `Googlebot-Image` hat nur `Allow: /` ohne Disallows → der Bilder-Crawler darf
+   `/api/` und `/data/` anfragen. Images-only, harmlos, aber für Sauberkeit die
+   Disallow-Liste auch dort duplizieren.
 
-**Fertig, wenn:** `curl https://mojobus.co/robots.txt` zeigt die Disallows unter Bingbot.
+**Fertig, wenn:** robots.txt per Parse-Test (z. B. `robotstxt`-Parser) zeigt:
+Googlebot=Bingbot mit vollen Disallows, Googlebot-Image ebenfalls.
 
 ────────────────────────────────────────────────────────────────────
 ## P3 🔴 KI-Auth-Gate fail-fast machen (F-02) — S
-**Problem:** Ohne `AI_AUTH_REQUIRED=1` laufen alle KI-Endpunkte offen; der Server loggt
-nur eine Warnung. Live ist es aktuell korrekt geschützt (401 verifiziert), aber ein
-vergessener Env-Wert nach Deploy öffnet teure Endpunkte.
+**Problem (im Code verifiziert):** `server/server.js:156-159` — ohne
+`AI_AUTH_REQUIRED=1` nur `console.warn('KI-Routen UNgeschützt …')`. Live ist es
+aktuell korrekt geschützt (401 verifiziert), aber ein vergessener Env-Wert nach
+Deploy öffnet teure Endpunkte.
 
 **Schritte**
 1. `server/server.js`: bei `NODE_ENV=production` und `AI_AUTH_REQUIRED !== '1'` → `process.exit(1)`.
@@ -119,14 +125,18 @@ React 19 (v5 nötig); `react-router-dom@6` ist Alt-Linie (v7 aktuell).
 4. Auf VPS: `npm audit`, `npm outdated` — Ergebnis in `mojo.log` nachtragen.
 
 ────────────────────────────────────────────────────────────────────
-## P9 🟡 NIP-98-Replay-Schutz prüfen/ergänzen (F-06) — M
-**Problem:** Auth ist implementiert und aktiv (live verifiziert), aber ein Replay-Cache
-für bereits gesehene kind-27235-Events war nicht auffindbar.
+## P9 🟡 NIP-98-Replay-Schutz ergänzen (F-06) — M
+**Problem (im Code bestätigt):** `server/middleware/nostr-auth.js` prüft kind/created_at/
+u-Tag/method/Signatur/Pubkey korrekt, aber es gibt **keinen Replay-Cache** (kein Set von
+bereits gesehenen Event-IDs). Das Zeitfenster ist ±300 s (`NIP98_MAX_AGE_SECONDS`) –
+ein abgefangener `Authorization`-Header ist bis zu 5 Minuten wiederverwendbar.
 
 **Schritte**
-1. `server/middleware/nostr-auth.js` auf Event-ID-Speicherung prüfen.
-2. Falls fehlt: In-Memory-Set mit TTL 60 s (Event-ID), plus `created_at`-Fenster ±60 s.
+1. In-Memory-Set mit TTL 300 s (Event-ID → timestamp) in `nostr-auth.js`.
+2. Bei erneut gesehener Event-ID → 401 `REPLAY`.
 3. Test: gleichen Auth-Header zweimal senden → zweiter Request 401.
+4. Zusätzlich kleinere designede Anpassung möglich: `NIP98_MAX_AGE_SECONDS` von 300 auf
+   120 senken (Frontend-Cache des Events auf 240 s – mit dem Wert abstimmen).
 
 ────────────────────────────────────────────────────────────────────
 ## P10 🟢 Aufräumen: imgproxy-Reste, Service Worker, console.log (F-16/F-20/F-22) — S/M
@@ -160,7 +170,7 @@ für bereits gesehene kind-27235-Events war nicht auffindbar.
 | # | Was | Prio | Aufwand |
 |---|-----|------|---------|
 | 1 | Groq-Key rotieren | 🔴 | S |
-| 2 | robots.txt Bingbot | 🔴 | S |
+| 2 | robots.txt-Struktur klären (Korrektur, kein Bug) | 🟡 | S |
 | 3 | Auth fail-fast | 🔴 | S |
 | 4 | Rate-Limit/Port 3002 | 🟠 | S/M |
 | 5 | Prerender je Route | 🟠 | L |
