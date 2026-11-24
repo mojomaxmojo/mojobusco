@@ -121,7 +121,12 @@ function buildBreadcrumb(name, url, lang = 'de') {
  */
 export function renderHomePage(lang = 'en') {
   const isEn = lang === 'en';
-  const title = 'MojoBus – Perpetual Travelers Blog';
+  // SEO-Fix (2026-11-24): Titel war hartcodiert deutsch → Bots bekamen unter
+  // /en/ deutsche Meta-Tags (F-11). EN braucht einen EIGENEN, differenzierenden
+  // Titel (kein 1:1-Duplikat des DE-Titels, hreflang-Trennung sichtbar).
+  const title = isEn
+    ? 'MojoBus Travel Blog – Our Life by the Ocean (Vanlife & RV Life)'
+    : 'MojoBus – Perpetual Travelers Blog';
   const description = isEn
     ? 'Vanlife, travel and adventure with the MojoBus. Perpetual travelers blog – our life by the sea, offgrid, solar & stories from the beach.'
     : 'Vanlife, Reisen und Abenteuer mit dem MojoBus. Perpetual Travelers Blog – Unser Leben am Meer, offgrid, Solar & Geschichten vom Strand.';
@@ -165,7 +170,8 @@ export function renderHomePage(lang = 'en') {
     </li>`).join('');
 
   return `${head}
-  <h1>MojoBus</h1>
+  <h1>${isEn ? 'Perpetual Travelers' : 'MojoBus'}</h1>
+  <h2>${isEn ? 'Our Life by the Ocean' : 'Unser Leben am Meer'}</h2>
   <p>${escapeHtml(description)}</p>
   <ul>${sectionsHtml}</ul>
 </body>
