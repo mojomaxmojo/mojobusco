@@ -26,9 +26,12 @@ const sanitizeInput = (input) => {
 }
 
 // Hilfsfunktion: API-Key validieren
+// HINWEIS 2026-11-24: prüfte früher GROQ_API_KEY – Groq ist seit der
+// OpenRouter-Umstellung unbenutzt (alle Modelle in ai-models.js laufen
+// über OpenRouter). Der Check prüft jetzt den wirklich genutzten Key.
 const validateApiKey = () => {
-  if (!process.env.GROQ_API_KEY) {
-    console.error('[KI] GROQ_API_KEY fehlt in Umgebungsvariablen')
+  if (!process.env.OPENROUTER_API_KEY) {
+    console.error('[KI] OPENROUTER_API_KEY fehlt in Umgebungsvariablen')
     return false
   }
   return true

@@ -8,9 +8,11 @@ const sanitizeInput = (input) => {
   return input.trim().substring(0, 500)
 }
 
+// HINWEIS 2026-11-24: prüfte früher GROQ_API_KEY – Groq ist unbenutzt
+// (alle Calls unten gehen über OpenRouter). Check auf den echten Key umgestellt.
 const validateApiKey = () => {
-  if (!process.env.GROQ_API_KEY) {
-    console.error('[Promotion] GROQ_API_KEY fehlt in Umgebungsvariablen')
+  if (!process.env.OPENROUTER_API_KEY) {
+    console.error('[Promotion] OPENROUTER_API_KEY fehlt in Umgebungsvariablen')
     return false
   }
   return true

@@ -228,7 +228,6 @@ app.get('/api/health', (req, res) => {
   if (!requireSharedSecret(req, res)) return
   res.json({
     status: 'ok',
-    groqApiKey: process.env.GROQ_API_KEY ? 'configured' : 'missing',
     anthropicApiKey: process.env.ANTHROPIC_API_KEY ? 'configured' : 'missing',
     openrouterApiKey: process.env.OPENROUTER_API_KEY ? 'configured' : 'missing',
     xaiApiKey: process.env.XAI_API_KEY ? 'configured' : 'missing',
@@ -264,7 +263,6 @@ const server = app.listen(PORT, '127.0.0.1', () => {
 
   console.log(`[Server] Backend läuft auf Port ${PORT}`)
   console.log(`[Server] Node.js Heap: ${Math.round(process.memoryUsage().heapTotal / 1024 / 1024)}MB benutzt`)
-  console.log(`[Server] GROQ_API_KEY: ${process.env.GROQ_API_KEY ? '✓ Konfiguriert' : '✗ Fehlt!'}`)
   console.log(`[Server] ANTHROPIC_API_KEY: ${process.env.ANTHROPIC_API_KEY ? '✓ Konfiguriert' : '✗ Fehlt!'}`)
   console.log(`[Server] OPENROUTER_API_KEY: ${process.env.OPENROUTER_API_KEY ? '✓ Konfiguriert (für Video-Analyse)' : '✗ Fehlt (Video-Analyse nicht verfügbar)'}`)
   console.log(`[Server] XAI_API_KEY: ${process.env.XAI_API_KEY ? '✓ Konfiguriert (Grok Imagine Video 720p)' : '✗ Fehlt (Video-Generierung nicht verfügbar)'}`)
