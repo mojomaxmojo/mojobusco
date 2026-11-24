@@ -213,6 +213,8 @@ export function getImageDimensions(imageUrl: string): { width: number; height: n
     }
 
     // imgproxy Format: /rs:fill:200:200:0
+    // LEGACY: imgproxy.mojobus.co ist seit 2026-11-24 abgeschaltet. Die Erkennung
+    // bleibt, damit alte gespeicherte URLs nicht erneut durch den Proxy laufen.
     const imgproxyMatch = url.pathname.match(/rs:fill:(\d+):(\d+):/);
     if (imgproxyMatch) {
       return {

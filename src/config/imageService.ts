@@ -4,12 +4,14 @@
  * Konfiguration für den externen Bild-Optimierungs-Service
  *
  * Mögliche Services:
- * - images.weserv.nl (kostenlos, empfohlen)
- * - https://images.weserv.nl/?url={ENCODED_URL}&w={WIDTH}&h={HEIGHT}&q={QUALITY}&output=webp
+ * - images.weserv.nl (Standard, aktiv)
+ * - Cloudflare Images (optional, über VITE_IMAGE_SERVICE_TYPE=cloudflare)
  *
- * Alternative Services:
- * - imgproxy (self-hosted): https://imgproxy.mojobus.co/insecure/{BASE64_URL}/rs:fill:{WIDTH}:{HEIGHT}:0/q:{QUALITY}
- * - Cloudflare Images: https://your-cloudflare-images.cloudflare.com/cdn-cgi/image/{OPTIONS}/{URL}
+ * HINWEIS: Der frühere self-hosted imgproxy (imgproxy.mojobus.co/insecure/…)
+ * wurde entfernt (2026-11-24). Der Dienst war nie in Betrieb, der Code ein
+ * toter Pfad. In imageUtils.ts bleibt die imgproxy-URL-Erkennung als
+ * Legacy-Schutz bestehen, damit alte gespeicherte URLs nicht erneut
+ * durch den Proxy geschickt werden.
  */
 
 // ============================================================================
@@ -22,7 +24,6 @@
  *
  * Beispiele:
  * - images.weserv.nl: 'https://images.weserv.nl'
- * - imgproxy (self-hosted): 'https://imgproxy.mojobus.co'
  * - Cloudflare Images: 'https://your-cloudflare-images.cloudflare.com'
  */
 export const IMAGE_SERVICE_URL = import.meta.env.VITE_IMAGE_SERVICE_URL || 'https://images.weserv.nl';
@@ -33,10 +34,9 @@ export const IMAGE_SERVICE_URL = import.meta.env.VITE_IMAGE_SERVICE_URL || 'http
  *
  * Mögliche Werte:
  * - 'weserv' (Standard): images.weserv.nl Format
- * - 'imgproxy': imgproxy Format (self-hosted)
  * - 'cloudflare': Cloudflare Images Format
  */
-export const IMAGE_SERVICE_TYPE: 'weserv' | 'imgproxy' | 'cloudflare' =
+export const IMAGE_SERVICE_TYPE: 'weserv' | 'cloudflare' =
   (import.meta.env.VITE_IMAGE_SERVICE_TYPE as any) || 'weserv';
 
 /**
@@ -98,7 +98,7 @@ export function generateImageUrl(
 
     // Wenn die URL bereits eine Image-Service URL ist, direkt zurückgeben
     if (url.hostname.includes('images.weserv.nl') ||
-        url.hostname.includes('imgproxy.mojobus.co') ||
+        url.hostname.includes('imgproxy.mojobus.co') || // Legacy-Content (Dienst abgeschaltet)
         url.hostname.includes('cloudflareimages.cloudflare.com')) {
       console.log('[imageService] URL already optimized:', imageUrl.substring(0, 80) + '...');
       return imageUrl;
@@ -106,15 +106,6 @@ export function generateImageUrl(
     
     // Alle anderen (relay.mojobus.co, relays.mojobus.co, blossom.primal.net etc.)
     // werden durch images.weserv.nl optimiert
-    
-    // Blossom-Server:relay.mojobus.co, relays.mojobus.co, 24242.io
-    // Diese werden durch den imgproxy optimiert (nicht ausgenommen!)
-    if (url.hostname.includes('relay.mojobus.co') ||
-        url.hostname.includes('relays.mojobus.co') ||
-        url.hostname.includes('24242.io') ||
-        url.hostname.includes('blossom.primal.net')) {
-      // Fallthrough zur Optimierung
-    }
   } catch (error) {
     // Bei Parse-Fehlern einfach weitermachen
   }
@@ -122,8 +113,6 @@ export function generateImageUrl(
   switch (IMAGE_SERVICE_TYPE) {
     case 'weserv':
       return generateWeservUrl(imageUrl, width, height, quality);
-    case 'imgproxy':
-      return generateImgproxyUrl(imageUrl, width, height, quality);
     case 'cloudflare':
       return generateCloudflareUrl(imageUrl, width, height, quality);
     default:
@@ -165,43 +154,6 @@ function generateWeservUrl(
     return `${IMAGE_SERVICE_URL}/?${params.toString()}`;
   } catch (error) {
     console.error('Failed to generate weserv.nl URL:', error);
-    return imageUrl;
-  }
-}
-
-// ============================================================================
-// IMGPROXY (SELF-HOSTED)
-// ============================================================================
-
-/**
- * Generiert eine imgproxy URL (self-hosted)
- *
- * Format: https://imgproxy.mojobus.co/insecure/{BASE64_URL}/rs:fill:{WIDTH}:{HEIGHT}:0/q:{QUALITY}
- *
- * Dokumentation: https://github.com/imgproxy/imgproxy
- */
-function generateImgproxyUrl(
-  imageUrl: string,
-  width: number,
-  height?: number,
-  quality = DEFAULT_IMAGE_QUALITY
-): string {
-  if (!IMAGE_SERVICE_URL) return imageUrl;
-
-  try {
-    // Base64 Encode URL (URL-safe)
-    const utf8Bytes = new TextEncoder().encode(imageUrl);
-    const base64 = btoa(String.fromCharCode(...utf8Bytes));
-    const encodedUrl = base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-
-    if (!encodedUrl) return imageUrl;
-
-    const h = height || width;
-    const options = `rs:fill:${width}:${h}:0/q:${quality}`;
-
-    return `${IMAGE_SERVICE_URL}/insecure/${encodedUrl}/${options}`;
-  } catch (error) {
-    console.error('Failed to generate imgproxy URL:', error);
     return imageUrl;
   }
 }
