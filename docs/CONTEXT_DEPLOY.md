@@ -405,8 +405,8 @@ Abschnitt „Berichte-Assistent") braucht folgende Variablen in
 
 | Variable | Zweck |
 |----------|-------|
-| `AI_AUTH_REQUIRED` | **NIP-98-Author-Schutz** für alle KI-Routen (siehe Abschnitt „KI-Routen-Schutz NIP-98"): `1` = nur Autoren-Pubkeys aus `src/config/authors.json` (Max/Susanne) kommen durch; `0`/leer = alles offen (Rollout). Prefix-Liste: `src/config/api-auth.js` |
-| `OPENROUTER_API_KEY`, `XAI_API_KEY`, `GROQ_API_KEY` | vorhanden — aus der alten Unit-Config übernehmen |
+| `AI_AUTH_REQUIRED` | **NIP-98-Author-Schutz** für alle KI-Routen (siehe Abschnitt „KI-Routen-Schutz NIP-98"): `1` = nur Autoren-Pubkeys aus `src/config/authors.json` (Max/Susanne) kommen durch; `0` = alles offen (bewusster Rollout). **⚠ Fail-Fast (2026-11-24):** unset/Tippfehler = Server-Abbruch (`process.exit(1)` in `server/server.js`) — nur `'1'` oder explizit `'0'` sind gültige Werte. Prefix-Liste: `src/config/api-auth.js` |
+| `OPENROUTER_API_KEY`, `XAI_API_KEY` | vorhanden — aus der alten Unit-Config übernehmen. ~~`GROQ_API_KEY`~~ **entfernt (2026-11-24):** Groq ist unbenutzt (alle Modelle laufen über OpenRouter, `ai-models.js`); Key bei console.groq.com löschen und ggf. Zeile aus ai-api.env entfernen |
 | `GSC_CLIENT_EMAIL` + `GSC_PRIVATE_KEY` + `GSC_SITE_URL` | Search Console Service-Account (read-only). Fehlen sie: Assistent läuft weiter, nur ohne GSC-Daten (`gsc: false`) |
 | `INDEXNOW_KEY` | IndexNow-Ping nach Publish; Verifikationsdatei `public/<INDEXNOW_KEY>.txt` wird mit dem Deploy ausgeliefert |
 | ~~`ASSISTANT_API_TOKEN`~~ | **DEPRECATED** (NIP-98-Umbau): Schreib-Routen (Drafts/Upload/Published) nutzen jetzt denselben NIP-98-Schutz wie alle KI-Routen (`server/routes/assistant/auth.js` → `requireAuthor`). Eintrag kann aus ai-api.env entfernt werden |
