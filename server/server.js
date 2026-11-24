@@ -147,16 +147,24 @@ app.use('/api/promotion', rateLimit('light'))
 
 // ===== NIP-98 AUTHOR-SCHUTZ — nur Max & Susanne (authors.json) =====
 // Prefix-Liste: src/config/api-auth.js (Single Source of Truth, auch vom
-// Frontend genutzt). Enforcen NUR mit AI_AUTH_REQUIRED=1 in ai-api.env —
-// ohne Flag läuft alles offen (Rollout-Modus, siehe .env.example).
-// Steht NACH den Rate-Limits (billige Drossel zuerst), VOR allen Routen.
+// Frontend genutzt). Steht NACH den Rate-Limits (billige Drossel zuerst),
+// VOR allen Routen.
 for (const prefix of PROTECTED_API_PREFIXES) {
   app.use(prefix, requireAuthor)
 }
-if (process.env.AI_AUTH_REQUIRED === '1') {
+// Fail-Fast (Fix Nr. 3, 2026-11-24): Nur '1' = aktiv, nur '0' = bewusster
+// Rollout-Modus (offen, mit Warnung). JEDER andere Wert (unset, Tippfehler)
+// beendet den Server – in Produktion wären sonst alle KI-/Credit-Routen offen.
+// Dev-Hinweis: .env.example setzt AI_AUTH_REQUIRED=0 explizit → Dev läuft weiter.
+const aiAuthMode = process.env.AI_AUTH_REQUIRED
+if (aiAuthMode === '1') {
   console.log(`[Server] NIP-98 Author-Schutz AKTIV für ${PROTECTED_API_PREFIXES.length} API-Prefixe (nur authors.json-Pubkeys)`)
+} else if (aiAuthMode === '0') {
+  console.warn('[Server] AI_AUTH_REQUIRED=0 → KI-Routen UNgeschützt (bewusster Rollout-Modus)!')
 } else {
-  console.warn('[Server] AI_AUTH_REQUIRED != 1 → KI-Routen UNgeschützt (Rollout-Modus)!')
+  console.error('[Server] FATAL: AI_AUTH_REQUIRED ist weder "1" noch "0" (unset/Tippfehler). KI-Routen wären offen – Server wird beendet.')
+  console.error('[Server] Fix: AI_AUTH_REQUIRED=1 in ai-api.env (Prod) oder =0 (bewusster Rollout), dann systemctl restart ai-api')
+  process.exit(1)
 }
 
 // ===== CONTENT GENERIERUNG ROUTEN =====
