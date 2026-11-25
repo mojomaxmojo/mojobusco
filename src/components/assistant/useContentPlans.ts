@@ -35,6 +35,10 @@ export interface PlanProgressEntry {
   done: boolean;
   /** Unix-ms des letzten Toggles (Merge-Schlüssel über Devices) */
   at: number;
+  /** „→ ins Formular übernehmen“ wurde geklickt (vom Sheet gesetzt) */
+  picked?: boolean;
+  /** Naddr des veröffentlichten Artikels (B2 Auto-Abhaken, hook-los gesetzt) */
+  naddr?: string;
 }
 
 /** pro Plan: itemKey (a1, p3, t2 …) → Eintrag */
@@ -44,7 +48,8 @@ export type SyncStatus = 'unknown' | 'local' | 'synced';
 
 const PROGRESS_KEY = 'contentplan:progress:v1';
 const LAST_PLAN_KEY = 'contentplan:last';
-const PROGRESS_EVENT = 'contentplan:progress';
+export const PROGRESS_EVENT = 'contentplan:progress';
+export { loadAllProgress as readAllPlanProgress };
 const SYNC_DEBOUNCE_MS = 2500;
 
 function loadAllProgress(): Record<string, PlanProgress> {
@@ -75,11 +80,74 @@ function mergeProgress(a: PlanProgress, b: PlanProgress): PlanProgress {
   return out;
 }
 
+/** Debounce-Timer pro Plan für den Server-Push (auch für die
+ *  hook-freien Helfer unten — markPicked/markPlanItemPublished). */
+const pushTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+/** Aktualisierte Felder eines Items lokal setzen + Event + Server-Push.
+ *  Genutz vom Hook (toggleItem/pick) und von markPlanItemPublished. */
+function updatePlanItem(
+  planId: string,
+  itemKey: string,
+  fields: Partial<PlanProgressEntry> & { at?: number }
+): void {
+  const all = loadAllProgress();
+  const planProgress = { ...(all[planId] || {}) };
+  const current = planProgress[itemKey];
+  planProgress[itemKey] = { ...current, at: Date.now(), ...fields };
+  const next = { ...all, [planId]: planProgress };
+  persistAllProgress(next);
+  dispatchProgressEvent(planId);
+  pushPlanStateDebounced(planId);
+}
+
+/** Server-Push mit Debounce (gleicher Rhythmus wie im Hook). */
+function pushPlanStateDebounced(planId: string): void {
+  if (pushTimers.has(planId)) clearTimeout(pushTimers.get(planId));
+  pushTimers.set(
+    planId,
+    setTimeout(async () => {
+      pushTimers.delete(planId);
+      try {
+        const state = loadAllProgress()[planId] || {};
+        const res = await authedFetch(
+          `${getApiBaseUrl()}/api/assistant/contentplan-state`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ planId, state }),
+          }
+        );
+        lastSyncStatus = res.ok ? 'synced' : 'local';
+      } catch {
+        lastSyncStatus = 'local';
+      }
+    }, SYNC_DEBOUNCE_MS)
+  );
+}
+
+/** Letzter Sync-Status der hook-freien Helfer — nur informativ
+ *  (das Sheet liest seinen eigenen Status über den Hook). */
+let lastSyncStatus: SyncStatus = 'unknown';
+
 function dispatchProgressEvent(planId: string): void {
   try {
     window.dispatchEvent(new CustomEvent(PROGRESS_EVENT, { detail: { planId } }));
   } catch {
     /* best-effort */
+  }
+}
+
+// ── Hook-freie Helfer (für Publish-Flow, ohne Sheet-Mount) ─────────────────
+
+/** B2 Auto-Abhaken: setzt done + naddr eines Plan-Items nach dem Publish.
+ *  Läuft ohne Sheet/Provider (localStorage + Event + Server-Push) —
+ *  ArtikelForm ruft es im Publish-Erfolg. */
+export function markPlanItemPublished(planId: string, itemKey: string, naddr: string): void {
+  try {
+    updatePlanItem(planId, itemKey, { done: true, picked: true, naddr });
+  } catch (err) {
+    console.warn('[ContentPlan] Publish-Abhak fehlgeschlagen:', err);
   }
 }
 
@@ -96,6 +164,8 @@ export interface UseContentPlansResult {
   closePlan: () => void;
   progress: PlanProgress;
   toggleItem: (planId: string, itemKey: string) => void;
+  /** „→ ins Formular übernehmen“-Status setzen (B1) */
+  markPicked: (planId: string, itemKey: string, picked: boolean) => void;
   /** items abhakbar insgesamt im aktiven Plan */
   activePlanItemCount: number;
 }
@@ -210,6 +280,28 @@ export function useContentPlans(): UseContentPlansResult {
     [pushPlanState]
   );
 
+  /** B1: „→ ins Formular übernehmen“ merken (Toggle). */
+  const markPicked = useCallback(
+    (planId: string, itemKey: string, picked: boolean) => {
+      setProgressAll(prev => {
+        const planProgress = { ...(prev[planId] || {}) };
+        const current = planProgress[itemKey];
+        planProgress[itemKey] = {
+          ...current,
+          done: current?.done ?? false,
+          picked,
+          at: Date.now(),
+        };
+        const next = { ...prev, [planId]: planProgress };
+        persistAllProgress(next);
+        dispatchProgressEvent(planId);
+        pushPlanState(planId);
+        return next;
+      });
+    },
+    [pushPlanState]
+  );
+
   const openPlan = useCallback(async (id: string) => {
     setIsLoadingPlan(true);
     setError(null);
@@ -248,6 +340,7 @@ export function useContentPlans(): UseContentPlansResult {
     closePlan,
     progress: activePlan ? progressAll[activePlan.id] || {} : {},
     toggleItem,
+    markPicked,
     activePlanItemCount,
   };
 }

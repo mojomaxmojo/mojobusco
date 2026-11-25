@@ -1,6 +1,7 @@
 # PLAN: Contentplan-Verbesserungen (Manta Rota) + Plan-Sheet-Feature
 
-> Status: **Entwurf — wartet auf Freigabe.** Kein Code geändert.
+> Status: **UMGESETZT** (A1–A5, B1–B4; Armação de Pêra benötigte keine
+> Dedup-Änderung — alle Keywords sind regionenspezifische Long-Tails).
 > Kontext: Review von `public/data/contentplans/manta-rota.json`,
 > `useContentPlans.ts`, `ContentPlanSheet.tsx`, `contentplan-store.js`.
 

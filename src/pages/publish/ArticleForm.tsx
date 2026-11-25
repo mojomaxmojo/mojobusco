@@ -49,6 +49,9 @@ import { useAssistantApi } from "@/components/assistant/useAssistantApi";
 import { AssistantSection } from "@/components/assistant/AssistantSection";
 import { AssistantHelpSheet } from "@/components/assistant/AssistantHelpSheet";
 import { ContentPlanSheet } from "@/components/assistant/ContentPlanSheet";
+import { markPlanItemPublished } from "@/components/assistant/useContentPlans";
+import { nip19 } from "nostr-tools";
+import { articleKey } from "@/config/contentplanSchema";
 import { SeoPublishPanel } from "@/components/assistant/SeoPublishPanel";
 import { DraftsOverview } from "@/components/assistant/DraftsOverview";
 import { MediaLibraryPanel } from "@/components/assistant/MediaLibraryPanel";
@@ -113,6 +116,9 @@ export function ArticleForm({ editEvent, onSendToTab }: {
   // Artikel mit Zuordnung; isDestinationHub → zusätzlich t=hub am Haupt-Pillar
   const [isDestinationHub, setIsDestinationHub] = useState(false);
   const [hubPlanId, setHubPlanId] = useState('');
+  // B2 Auto-Abhaken: zuletzt aus dem Contentplan übernommenes Artikel-Item —
+  // nach erfolgreichem Publish setzt der Publish-Hook es auf done + naddr
+  const [appliedPlanItem, setAppliedPlanItem] = useState<{ planId: string; num: number } | null>(null);
 
   // Auto-Übersetzung (DE→EN) State
   const [autoTranslateEn, setAutoTranslateEn] = useState(() => {
@@ -418,6 +424,17 @@ export function ArticleForm({ editEvent, onSendToTab }: {
     setIsPublishing,
     // Route
     navigate,
+    // B2: übernommenes Plan-Item nach Publish automatisch abhaken
+    onPlanItemPublished: (dTag) => {
+      if (!appliedPlanItem || !currentUser?.pubkey) return;
+      const naddr = nip19.naddrEncode({
+        kind: 30023,
+        pubkey: currentUser.pubkey,
+        identifier: dTag,
+      });
+      markPlanItemPublished(appliedPlanItem.planId, articleKey(appliedPlanItem.num), naddr);
+    },
+    onPlanItemReset: () => setAppliedPlanItem(null),
     // Entwurf
     setCurrentDraftId, setCurrentDraftStatus,
   });
@@ -502,6 +519,7 @@ export function ArticleForm({ editEvent, onSendToTab }: {
               setTags([...tags, article.keyword]);
             }
             if (planId) setHubPlanId(planId);
+            setAppliedPlanItem({ planId, num: article.num });
             toast({
               title: 'Aus dem Contentplan übernommen',
               description: `Titel + Keyword${article.keyword ? ` „${article.keyword}"` : ''} + Reiseziel-Zuordnung gesetzt — Artikellänge und Input folgen dem Plan.`,
@@ -527,6 +545,7 @@ export function ArticleForm({ editEvent, onSendToTab }: {
               setExperienceNotes((prev) => (prev.trim() ? `${prev.trimEnd()}\n${szenenToExperiences(brief.szenen ?? [])}` : szenenToExperiences(brief.szenen ?? [])));
             }
             if (planId) setHubPlanId(planId);
+            setAppliedPlanItem({ planId, num: brief.articleNum });
           }}
           onApplyPlace={(place, planId) => {
             setPlansOpen(false);

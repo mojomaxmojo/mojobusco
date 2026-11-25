@@ -123,6 +123,11 @@ interface UseArticlePublishParams {
   // Publish-Guard (Fix #3): ab Validierung bis Flow-Ende true → Button disabled,
   // verhindert Doppelklick-Duplikate während des 30023-Publish (bis 15s)
   setIsPublishing: (v: boolean) => void;
+  // B2 Auto-Abhaken: nach erfolgreichem 30023-Publish aufgerufen (dTag) —
+  // ArticleForm markiert damit das übernommene Contentplan-Item (done + naddr)
+  onPlanItemPublished?: (dTag: string) => void;
+  // B2: Reset des übernommenen Plan-Items im Formular-State (Fix #11-Muster)
+  onPlanItemReset?: () => void;
   // Route (navigate aus useNavigate in ArticleForm)
   navigate: (path: string) => void;
   // Entwurf
@@ -196,6 +201,8 @@ export function useArticlePublish({
   setHubPlanId,
   setIsPublishingTeaser,
   setIsPublishing,
+  onPlanItemPublished,
+  onPlanItemReset,
   navigate,
   setCurrentDraftId,
   setCurrentDraftStatus,
@@ -455,6 +462,13 @@ export function useArticlePublish({
       // Assistent: Pipeline + IndexNow nach JEDEM Bericht-Publish (non-blocking)
       notifyAssistantPublished(dTag);
 
+      // B2: übernommenes Contentplan-Item automatisch abhaken (done + naddr)
+      try {
+        onPlanItemPublished?.(dTag);
+      } catch (planErr) {
+        console.warn('[Article] Plan-Auto-Abhak fehlgeschlagen:', planErr);
+      }
+
       // Nr. 13: Autosave leeren — der veröffentlichte Inhalt ist gesichert
       localStorage.removeItem(AUTOSAVE_KEY);
 
@@ -569,6 +583,7 @@ export function useArticlePublish({
       setExperienceNotes('');
       setIsDestinationHub(false);
       setHubPlanId('');
+      onPlanItemReset?.();
 
       setTimeout(() => {
         navigate('/artikel');

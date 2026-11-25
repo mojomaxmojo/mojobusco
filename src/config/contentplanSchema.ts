@@ -37,6 +37,20 @@ export interface ContentPlanArticle {
   meta?: string | null;
   /** Refresh-Stempel: „Update <Monat/Jahr> — was aktualisieren" (Saison-/Jahres-Artikel) */
   refresh?: string | null;
+  /** Fallback-Thema für dynamische Slots (z. B. #29 aus GSC) — der Slot
+   *  bleibt so auch ohne GSC-Queries belegbar */
+  fallback?: PlanFallback | null;
+  /** A3 Cross-Plan-Dedup: warum das Thema bewusst ohne Keyword läuft
+   *  (SEO-Brief liegt in einem anderen Plan) */
+  dedupNote?: string | null;
+}
+
+/** Dynamischer Slot mit Ersatzthema (Plan-Verbesserung A1/A4). */
+export interface PlanFallback {
+  title: string;
+  keyword?: string | null;
+  slug?: string | null;
+  meta?: string | null;
 }
 
 export interface ContentPlanBrief {
@@ -50,6 +64,9 @@ export interface ContentPlanBrief {
   meta: string;
   /** Suchanfrage für den Recherche-Block (FAKTEN) */
   factsSeed: string;
+  /** A5: Verlässlichkeit der factsSeed-Zahlen — „checkOnSite" markiert
+   *  den Seed im Recherche-Block als PRÜFEN-VOR-ORT */
+  confidence?: 'verified' | 'checkOnSite';
   szenen?: string[];
   /** „People also ask"-Fragen — FAQ-Basis für Pillars/Listicles */
   paa?: string[];
@@ -60,11 +77,15 @@ export interface ContentPlanBrief {
 export interface ContentPlanSimple {
   name: string;
   hint?: string;
+  /** A2: geplante Woche (1-basiert) — W1-Places vor/auf dem Pillar befüllen */
+  week?: number | null;
 }
 
 export interface ContentPlanFact {
   fact: string;
   sourceUrl?: string | null;
+  /** A5: „checkOnSite" = Zahl erst vor Ort verifizieren (Recherche-Block) */
+  confidence?: 'verified' | 'checkOnSite';
 }
 
 export interface ContentPlanFile {
@@ -181,6 +202,21 @@ function parseArticle(raw: unknown): ContentPlanArticle | null {
     seoTitle: asStringOrNull(r.seoTitle),
     meta: asStringOrNull(r.meta),
     refresh: asStringOrNull(r.refresh),
+    fallback: parseFallback(r.fallback),
+    dedupNote: asStringOrNull(r.dedupNote),
+  };
+}
+
+function parseFallback(raw: unknown): PlanFallback | null {
+  if (typeof raw !== 'object' || raw === null) return null;
+  const r = raw as Record<string, unknown>;
+  const title = asString(r.title);
+  if (!title) return null;
+  return {
+    title,
+    keyword: asStringOrNull(r.keyword),
+    slug: asStringOrNull(r.slug),
+    meta: asStringOrNull(r.meta),
   };
 }
 
@@ -198,6 +234,10 @@ function parseBrief(raw: unknown): ContentPlanBrief | null {
     slug: asString(r.slug),
     meta: asString(r.meta),
     factsSeed: asString(r.factsSeed),
+    confidence:
+      r.confidence === 'verified' || r.confidence === 'checkOnSite'
+        ? r.confidence
+        : undefined,
     szenen: asStringArray(r.szenen),
     paa: asStringArray(r.paa),
     verlinkung: asStringArray(r.verlinkung),
@@ -243,7 +283,11 @@ export function parseContentPlan(raw: unknown): ContentPlanFile | null {
     places: Array.isArray(r.places)
       ? r.places
           .filter((p): p is Record<string, unknown> => typeof p === 'object' && p !== null)
-          .map((p) => ({ name: asString(p.name), hint: asStringOrNull(p.hint) ?? undefined }))
+          .map((p) => ({
+            name: asString(p.name),
+            hint: asStringOrNull(p.hint) ?? undefined,
+            week: typeof p.week === 'number' && p.week > 0 ? p.week : null,
+          }))
           .filter((p) => p.name)
       : [],
     trips: Array.isArray(r.trips)
@@ -255,7 +299,14 @@ export function parseContentPlan(raw: unknown): ContentPlanFile | null {
     facts: Array.isArray(r.facts)
       ? r.facts
           .filter((f): f is Record<string, unknown> => typeof f === 'object' && f !== null)
-          .map((f) => ({ fact: asString(f.fact), sourceUrl: asStringOrNull(f.sourceUrl) }))
+          .map((f) => ({
+            fact: asString(f.fact),
+            sourceUrl: asStringOrNull(f.sourceUrl),
+            confidence:
+              f.confidence === 'verified' || f.confidence === 'checkOnSite'
+                ? (f.confidence as 'verified' | 'checkOnSite')
+                : undefined,
+          }))
           .filter((f) => f.fact)
       : [],
     seoRules: asStringArray(r.seoRules),

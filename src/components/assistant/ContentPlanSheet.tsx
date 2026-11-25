@@ -13,7 +13,7 @@
  * siehe useContentPlans.ts. Nur in /veroeffentlichen gemountet → Auth.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle,
 } from '@/components/ui/sheet';
@@ -21,16 +21,23 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/useToast';
-import { ArrowLeft, ChevronDown, CloudOff, Copy, ListChecks, MapPin, Route, Sparkles, Star } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { getDataBaseUrl } from '@/lib/apiBase';
+import {
+  ArrowLeft, ChevronDown, CloudOff, Copy, ListChecks, MapPin, Route, Sparkles, Star,
+} from 'lucide-react';
 import { CheckCircle, Info, Loader2, Cloud } from '@/lib/icons';
 import {
   useContentPlans,
   usePlanCardProgress,
+  readAllPlanProgress,
+  PROGRESS_EVENT,
   type PlanProgress,
   type SyncStatus,
 } from './useContentPlans';
 import {
   articleKey,
+  parseContentPlan,
   placeKey,
   tripKey,
   planItemCount,
@@ -79,6 +86,16 @@ function ProgressBar({ done, total }: { done: number; total: number }) {
   );
 }
 
+/** Aktuelle Plan-Woche (1-basiert) aus Index-Eintrag — null vor Start/nach Ende. */
+function indexCurrentWeek(startDate: string, weeks: number): number | null {
+  const start = new Date(startDate);
+  if (Number.isNaN(start.getTime())) return null;
+  const week = Math.floor((Date.now() - start.getTime()) / (7 * 24 * 3600 * 1000)) + 1;
+  if (week < 1) return 0; // startet noch
+  if (week > weeks) return null; // abgeschlossen
+  return week;
+}
+
 /** Aktuelle Plan-Woche (1-basiert) aus Startdatum — null vor Start/nach Ende. */
 function currentWeek(plan: ContentPlanFile): number | null {
   const start = new Date(plan.startDate);
@@ -115,7 +132,7 @@ interface ContentPlanSheetProps {
 export function ContentPlanSheet({ open, onOpenChange, onApplyArticle, onApplyBrief, onApplyPlace, onApplyTrip, onOpenHelp }: ContentPlanSheetProps) {
   const {
     index, isLoadingIndex, activePlan, isLoadingPlan, error, syncStatus,
-    openPlan, closePlan, progress, toggleItem, activePlanItemCount,
+    openPlan, closePlan, progress, toggleItem, markPicked, activePlanItemCount,
   } = useContentPlans();
   const { toast } = useToast();
   const [showBriefs, setShowBriefs] = useState(false);
@@ -187,6 +204,7 @@ export function ContentPlanSheet({ open, onOpenChange, onApplyArticle, onApplyBr
               onOpenHelp={onOpenHelp}
               onBack={closePlan}
               onToggle={(key) => toggleItem(activePlan.id, key)}
+              onPickToggle={(key, picked) => markPicked(activePlan.id, key, picked)}
               onApplyArticle={onApplyArticle}
               onApplyBrief={onApplyBrief}
               onApplyPlace={onApplyPlace}
@@ -219,6 +237,42 @@ interface PlanCardProps {
 function PlanCard(props: PlanCardProps) {
   // Fortschritt der Karte: eigener Mini-Lese-Zugriff (localStorage + Events)
   const { done, total } = usePlanCardProgress(props.planId, props.articleCount);
+  // B3: Wochen-Bezug — aktuelle Woche + „diese Woche fällig" aus der Plan-Datei
+  const [due, setDue] = useState<{ week: number | null; items: string[]; open: number }>({
+    week: null,
+    items: [],
+    open: 0,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = async (): Promise<void> => {
+      try {
+        const res = await fetch(`${getDataBaseUrl()}/data/contentplans/${props.planId}.json`);
+        if (!res.ok) return;
+        const parsed = parseContentPlan(await res.json());
+        if (!parsed || cancelled) return;
+        const week = indexCurrentWeek(props.startDate, props.weeks);
+        const progress = readAllPlanProgress()[props.planId] || {};
+        const openDue = parsed.articles.filter(
+          a => week !== null && week > 0 && a.week === week && !progress[articleKey(a.num)]?.done
+        );
+        const items = openDue.slice(0, 3).map(a => `${a.num}. ${a.title}`);
+        if (!cancelled) setDue({ week, items, open: openDue.length });
+      } catch {
+        /* Karte ohne Plan-Datei — nur Fortschritt */
+      }
+    };
+    void refresh();
+    const onProgress = (): void => { void refresh(); };
+    window.addEventListener(PROGRESS_EVENT, onProgress);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(PROGRESS_EVENT, onProgress);
+    };
+  }, [props.planId, props.startDate, props.weeks]);
+
+  const week = due.week;
 
   return (
     <button
@@ -235,12 +289,31 @@ function PlanCard(props: PlanCardProps) {
           </p>
         </div>
         <Badge variant="secondary" className="text-xs shrink-0">
-          {props.weeks} Wo.
+          {week !== null
+            ? week === 0
+              ? 'startet bald'
+              : `Woche ${week} von ${props.weeks}`
+            : `${props.weeks} Wo.`}
         </Badge>
       </div>
       {total !== null && total > 0 && (
         <div className="mt-3">
           <ProgressBar done={done} total={total} />
+        </div>
+      )}
+      {week !== null && week > 0 && due.open > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1">
+          <span className="text-[11px] text-muted-foreground mr-1">Diese Woche fällig ({due.open}):</span>
+          {due.items.map((t) => (
+            <Badge key={t} variant="outline" className="text-[10px] px-1.5 py-0 font-normal">
+              {t}
+            </Badge>
+          ))}
+          {due.open > due.items.length && (
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-normal">
+              +{due.open - due.items.length} weitere
+            </Badge>
+          )}
         </div>
       )}
     </button>
@@ -259,6 +332,8 @@ interface PlanDetailProps {
   onOpenHelp?: () => void;
   onBack: () => void;
   onToggle: (itemKey: string) => void;
+  /** B1: picked-Status setzen/togglen („→ ins Formular übernehmen") */
+  onPickToggle?: (itemKey: string, picked: boolean) => void;
   /** planId des aktiven Plans → plan-Tag am Artikel (WP0, PLAN_PILLAR_LINKS.md) */
   onApplyArticle?: (article: ContentPlanArticle, planId: string) => void;
   /** WP5: Brief → Roh-Skizze + ERLEBNISSE ins Formular */
@@ -289,9 +364,10 @@ function PlanDetail(props: PlanDetailProps) {
     });
   };
 
-  /** „→ ins Formular": übernehmen + Schritt-für-Schritt-Panel öffnen */
+  /** „→ ins Formular": übernehmen + picked-Status (B1) + Schritt-Panel öffnen */
   const handleApply = (a: ContentPlanArticle) => {
     props.onApplyArticle?.(a, plan.id);
+    props.onPickToggle?.(articleKey(a.num), true);
     setStepsFor(a.num);
   };
 
@@ -414,6 +490,16 @@ function PlanDetail(props: PlanDetailProps) {
                             {a.refresh && (
                               <p className="text-amber-600 dark:text-amber-400">♻️ {a.refresh}</p>
                             )}
+                            {a.fallback && (
+                              <p>
+                                <span className="font-medium">Fallback (ohne GSC-Queries):</span>{' '}
+                                {a.fallback.title}
+                                {a.fallback.keyword ? ` · Keyword „${a.fallback.keyword}"` : ''}
+                              </p>
+                            )}
+                            {a.dedupNote && (
+                              <p className="text-amber-600 dark:text-amber-400">⚖️ {a.dedupNote}</p>
+                            )}
                           </div>
                         )}
 
@@ -484,6 +570,27 @@ function PlanDetail(props: PlanDetailProps) {
                           → Formular
                         </Button>
                       )}
+                      {/* B1: picked-Status — Badge zum Zurücksetzen */}
+                      {entry?.picked && !checked && props.onPickToggle && (
+                        <button
+                          type="button"
+                          onClick={() => props.onPickToggle?.(articleKey(a.num), false)}
+                          className="shrink-0 text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary"
+                          title="Im Berichte-Formular übernommen — klicken zum Zurücksetzen"
+                        >
+                          im Formular
+                        </button>
+                      )}
+                      {/* B2: automatisch nach Publish abgehakt — Link zum Artikel */}
+                      {entry?.naddr && (
+                        <Link
+                          to={`/${entry.naddr}`}
+                          className="shrink-0 text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                          title="Veröffentlichter Artikel — ansehen"
+                        >
+                          ✓ live
+                        </Link>
+                      )}
                     </div>
                   </li>
                 );
@@ -511,13 +618,21 @@ function PlanDetail(props: PlanDetailProps) {
                     aria-label={`Place ${p.name} abhaken`}
                   />
                   <span className={`text-xs flex-1 ${checked ? 'line-through text-muted-foreground' : ''}`}>
+                    {p.week && p.week === 1 && (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 mr-1 align-middle">
+                        W1 — vor/auf L1
+                      </Badge>
+                    )}
                     {p.name}
                     {p.hint ? <span className="text-muted-foreground"> — {p.hint}</span> : null}
                   </span>
                   {props.onApplyPlace && (
                     <button
                       type="button"
-                      onClick={() => props.onApplyPlace?.(p, plan.id)}
+                      onClick={() => {
+                        props.onApplyPlace?.(p, plan.id);
+                        props.onPickToggle?.(key, true);
+                      }}
                       disabled={checked}
                       className="shrink-0 text-xs px-2 py-1 rounded border border-ocean-200 dark:border-ocean-800 text-ocean-700 dark:text-ocean-300 hover:bg-ocean-50 dark:hover:bg-ocean-950 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                       title="Name + Hinweis ins Plätze-Formular übernehmen"
@@ -556,7 +671,10 @@ function PlanDetail(props: PlanDetailProps) {
                   {props.onApplyTrip && (
                     <button
                       type="button"
-                      onClick={() => props.onApplyTrip?.(t, plan.id)}
+                      onClick={() => {
+                        props.onApplyTrip?.(t, plan.id);
+                        props.onPickToggle?.(key, true);
+                      }}
                       disabled={checked}
                       className="shrink-0 text-xs px-2 py-1 rounded border border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-950 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                       title="Name + Hinweis ins Trips-Formular übernehmen"
@@ -588,6 +706,11 @@ function PlanDetail(props: PlanDetailProps) {
                 <li key={b.articleNum} className="px-3 py-3 text-xs space-y-1.5">
                   <p className="text-sm font-medium">{b.title}</p>
                   <p><span className="text-muted-foreground">Keyword:</span> {b.keyword}</p>
+                  {b.confidence === 'checkOnSite' && (
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                      ⚠ FAKTEN-Seed: PRÜFEN VOR ORT
+                    </Badge>
+                  )}
                   {b.intent && <p className="text-muted-foreground">{b.intent}</p>}
                   <p><span className="text-muted-foreground">seo_title:</span> {b.seoTitle} <span className="text-muted-foreground">({b.seoTitle.length} Z.)</span></p>
                   <p><span className="text-muted-foreground">Slug:</span> <code>{b.slug}</code></p>
@@ -629,10 +752,10 @@ function PlanDetail(props: PlanDetailProps) {
               size="sm" variant="outline" className="h-7 text-xs"
               onClick={(e) => {
                 e.preventDefault();
-                const text = plan.facts
-                  .map((f) => `- ${f.fact}${f.sourceUrl ? ` (${f.sourceUrl})` : ''}`)
+                const copyText = plan.facts
+                  .map((f) => `- ${f.fact}${f.sourceUrl ? ` (${f.sourceUrl})` : ''}${f.confidence === 'checkOnSite' ? ' [PRÜFEN VOR ORT]' : ''}`)
                   .join('\n');
-                void props.copyText(text, 'Alle FAKTEN kopiert — in den Recherche-Block übernehmen');
+                void props.copyText(copyText, 'Alle FAKTEN kopiert — in den Recherche-Block übernehmen');
               }}
             >
               <Copy className="h-3 w-3 mr-1" /> Alle kopieren
@@ -642,6 +765,9 @@ function PlanDetail(props: PlanDetailProps) {
             {plan.facts.map((f, i) => (
               <li key={i} className="text-xs text-muted-foreground">
                 • {f.fact}
+                {f.confidence === 'checkOnSite' && (
+                  <span className="text-amber-600 dark:text-amber-400"> [PRÜFEN VOR ORT]</span>
+                )}
                 {f.sourceUrl && (
                   <>
                     {' '}
