@@ -111,3 +111,14 @@ cd /home/nginx/domains/mojobus.co/public
 node -e "import('./server/services/report-assistant.js').then(()=>{console.log('LINK OK');process.exit(0)}).catch(e=>{console.error('LINK FAIL:',e.message);process.exit(1)})"
 ```
 Weitere Fehlerklassen + Prozesse: `docs/CONTEXT_DEPLOY.md` (Debug-Kommandos, Bekannte Einschränkungen).
+
+# Contentplan-Formular-Flow (Stand 2026)
+7 Schritte vom Plan zum Artikel — gerendert im ⓘ-Sheet (AssistantHelpSheet)
+vor den 10 Feldschritten. Quelle: `CONTENTPLAN_FORM_STEPS` in
+`src/config/assistantHelp.ts`. Kernpunkte: Woche-fällig-Chips in „Alle
+Pläne" → „→ Formular" (Titel/Keyword/plan-Tag + picked-Sync) → Work-Card
+als Checkliste (Länge · Kategorie · Verlinkung · Fallback/Dedup) →
+⭐ Brief → FAKTEN-Seed (checkOnSite beachten) → Places/Trips passend zur
+Woche (W1-Places vor/auf dem Pillar) → Publish (auto-Abhak „✓ live") →
+Ranking-Block füttert den dynamischen Slot #29/#30 (Fallback aus der
+Work-Card, falls keine GSC-Queries).

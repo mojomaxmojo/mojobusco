@@ -261,6 +261,88 @@ export const ASSISTANT_HELP_STEPS: HelpStep[] = [
   },
 ];
 
+/**
+ * Contentplan-Formular-Flow (CONTENTPLAN_FORM_STEPS).
+ *
+ * Step-by-step: wie ein Artikel aus dem Contentplan (📋-Sheet) optimal
+ * durchs Berichte-Formular läuft — von der Wochen-Auswahl über Work-Card,
+ * Brief und FAKTEN-Seed bis Auto-Abhak und GSC-Nachleger (#29/#30).
+ * Ergänzt ASSISTANT_HELP_STEPS (die Detail-Anleitungen je Feld).
+ */
+export interface ContentPlanFormStep {
+  num: number;
+  title: string;
+  duration: string;
+  text: string;
+  detail?: string[];
+  tip?: string;
+}
+
+export const CONTENTPLAN_FORM_STEPS: ContentPlanFormStep[] = [
+  {
+    num: 1,
+    title: '📋 Plan öffnen — Woche zuerst',
+    duration: '1 min',
+    text:
+      'Im Assistenten-Header auf 📋 Contentpläne → „Alle Pläne". Die Plan-Karte zeigt „Woche X von 8", den Fortschritt und „Diese Woche fällig"-Chips mit den offenen Artikeln. Plan öffnen — die aktuelle Woche ist markiert („du bist hier").',
+    detail: [
+      'Chips zeigen nur OFFENE Artikel der Woche — abgehakte tauchen nicht mehr auf.',
+      'Vor Saisonstart/Startdatum steht „startet bald"; abgeschlossene Pläne zeigen nur den Fortschritt.',
+    ],
+  },
+  {
+    num: 2,
+    title: 'Artikel wählen → „→ Formular"',
+    duration: '1 min',
+    text:
+      'Der Button übernimmt Titel + Keyword + Reiseziel-Zuordnung (plan-Tag) automatisch und setzt das Badge „im Formular" — das wird über Geräte synchronisiert. Wichtig: der Klick ersetzt NICHT die Arbeit — er füllt nur die Basis, der Rest folgt der Work-Card.',
+  },
+  {
+    num: 3,
+    title: 'Work-Card aufklappen — die Karte ist die Checkliste',
+    duration: '2 min',
+    text:
+      'Aufgeklappt steht alles, was das Formular sonst raten muss — die Zeilen abarbeiten, dann ist der Artikel plan-konform.',
+    detail: [
+      'Länge: K/M/L mit Wort- und Bildvorgabe (Listicles: Wörter in die Items).',
+      'Formular-Werte: Kategorie · Art der Reise · Perspektive — genau so einstellen.',
+      'Verlinkt auf Nr. …: 2–4 interne Links einpassen, sobald die Ziele veröffentlicht sind.',
+      'Fallback (ohne GSC-Queries) und ⚖️ Dedup-Hinweis (Thema liegt in einem anderen Plan) stehen hier auch.',
+    ],
+  },
+  {
+    num: 4,
+    title: '⭐ Top-Artikel: „Brief übernehmen"',
+    duration: '2 min',
+    text:
+      'Bei den Stern-Artikeln zuerst den Brief holen: Roh-Skizze in den Editor + ERLEBNISSE-Szenen in den Autor-Input. Erst danach recherchieren und generieren — der Brief schreibt NICHT den Artikel.',
+    tip: 'Steht „⚠ FAKTEN-Seed: PRÜFEN VOR ORT" am Brief, gehören die Zahlen extra auf die Vor-Ort-Checkliste.',
+  },
+  {
+    num: 5,
+    title: 'FAKTEN: Seed nicht überspringen',
+    duration: '5 min',
+    text:
+      '📋-Button am Artikel kopiert den FAKTEN-Seed → in den Recherche-Block einfügen → Recherche starten → „in Autor-Input übernehmen" klicken (Pflicht — der häufigste Fehler überhaupt). FAKTEN mit [PRÜFEN VOR ORT] (📚-Abschnitt im Plan) zuerst vor Ort verifizieren.',
+  },
+  {
+    num: 6,
+    title: 'Places & Trips passend zur Woche',
+    duration: '5 min',
+    text:
+      'Im Plan: „Places — vor Ort befüllen". W1-Places (z. B. ASA, Hauptstrand, Kern-Ort) VOR oder MIT dem Pillar veröffentlichen — sonst verlinkt der Pillar in Woche 1 ins Leere. „→ Plätze" / „→ Trips" übernimmt Name + Hinweis + plan-Tag.',
+    detail: ['Places mit Badge „W1 — vor/auf L1" sind die kritischen.'],
+  },
+  {
+    num: 7,
+    title: 'Publish, Abhak, Nachleger',
+    duration: '5 min · danach 1×/Monat',
+    text:
+      'Publish hakt das Plan-Item automatisch ab — „✓ live" verlinkt den Artikel. Manuell nur nachbessern. Nach 7–28 Tagen: Ranking-Block auswerten, Queries auf Position 5–20 werden das Thema für den dynamischen Slot #29/#30. Liegt keine GSC-Query vor? Das Fallback-Thema aus der Work-Card nutzen — der Slot bleibt nie leer.',
+    tip: 'Offene Chips in der Plan-Karte zeigen, wo du gerade stehst — am Anfang jeder Arbeitssession kurz reinsehen.',
+  },
+];
+
 export const ASSISTANT_HELP_MISTAKES: string[] = [
   'FAKTEN recherchiert, aber nicht „in Autor-Input übernommen" — die KI kennt die Zahlen dann nicht.',
   'EXIF vom Titelbild entfernt — kein echtes Wetter, keine Karte, kein Aufnahmezeit-Kontext.',
@@ -269,4 +351,7 @@ export const ASSISTANT_HELP_MISTAKES: string[] = [
   'DataForSEO-Checkbox aus Versehen aktiv gelassen — verbraucht Credits bei jedem Refresh.',
   'seo_title über 60 Zeichen — Google kürzt mit „…" und der Ort fällt weg.',
   'Kein interner Link gesetzt — der Cluster wächst nicht, die Linkkraft bleibt beim Einzelartikel.',
+  '„→ ins Formular“ geklickt, aber Work-Card ignoriert — Länge und Art der Reise passen dann nicht zum Plan.',
+  'Places erst Wochen nach dem Pillar befüllt — der Pillar verlinkt in Woche 1 ins Leere.',
+  'FAKTEN-Seed übersprungen, weil „→ Formular“ schon alles gefüllt scheint — ohne Recherche fehlen alle belegbaren Zahlen.',
 ];

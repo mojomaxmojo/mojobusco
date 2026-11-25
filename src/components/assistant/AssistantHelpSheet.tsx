@@ -18,8 +18,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/useToast';
 import { CheckCircle, AlertTriangle, Info } from '@/lib/icons';
-import { BookOpen, Copy, FileText } from 'lucide-react';
-import { ASSISTANT_HELP_STEPS, ASSISTANT_HELP_MISTAKES } from '@/config/assistantHelp';
+import { BookOpen, Copy, FileText, ListChecks } from 'lucide-react';
+import { ASSISTANT_HELP_STEPS, ASSISTANT_HELP_MISTAKES, CONTENTPLAN_FORM_STEPS } from '@/config/assistantHelp';
 import { CONTENTPLAN_PROMPT_TEMPLATE } from '@/config/contentplanPromptTemplate';
 
 interface AssistantHelpSheetProps {
@@ -84,6 +84,48 @@ export function AssistantHelpSheet({ open, onOpenChange }: AssistantHelpSheetPro
             </ol>
           </div>
 
+          {/* Contentplan-Formular-Flow (7 Schritte, PLAN_CONTENTPLAN_IMPROVEMENTS.md) */}
+          <details className="rounded-lg border border-ocean-300 dark:border-ocean-800 bg-ocean-50/50 dark:bg-ocean-950/30 group" open>
+            <summary className="flex cursor-pointer list-none items-center gap-3 p-3 hover:bg-accent/50 transition-colors">
+              <ListChecks className="h-4 w-4 shrink-0 text-ocean-600 dark:text-ocean-300" />
+              <span className="flex-1 text-sm font-medium">
+                Contentplan optimal nutzen — 7 Schritte vom Plan zum Artikel
+              </span>
+              <ChevronHint />
+            </summary>
+            <div className="space-y-3 px-3 pb-4 pt-1 text-sm">
+              <p className="text-xs text-muted-foreground">
+                Der Contentplan (📋-Sheet im Assistenten-Header) gibt die Reihenfolge vor —
+                Woche für Woche. So läuft ein Artikel aus dem Plan optimal durchs Formular:
+              </p>
+              <ol className="space-y-2">
+                {CONTENTPLAN_FORM_STEPS.map((s) => (
+                  <li key={s.num} className="rounded-md border bg-background/50 p-2.5">
+                    <p className="text-xs font-medium">
+                      <span className="font-mono text-[10px] text-muted-foreground mr-1.5">{s.num}.</span>
+                      {s.title}
+                      <span className="ml-2 text-[10px] text-muted-foreground font-normal">{s.duration}</span>
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">{s.text}</p>
+                    {s.detail && (
+                      <ul className="mt-1.5 ml-4 space-y-0.5 list-disc">
+                        {s.detail.map((d, j) => (
+                          <li key={j} className="text-[11px] text-muted-foreground">{d}</li>
+                        ))}
+                      </ul>
+                    )}
+                    {s.tip && (
+                      <p className="mt-1.5 flex items-start gap-1 text-[11px] text-muted-foreground">
+                        <span aria-hidden>💡</span>
+                        <span>{s.tip}</span>
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </details>
+
           {/* 10 Schritte als native Accordions */}
           {ASSISTANT_HELP_STEPS.map((step) => (
             <details key={step.num} className="rounded-lg border group">
@@ -134,7 +176,9 @@ export function AssistantHelpSheet({ open, onOpenChange }: AssistantHelpSheetPro
 
           {/* Häufigste Fehler */}
           <div className="rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-3">
-            <p className="text-sm font-medium mb-2">Die 7 häufigsten Fehler</p>
+            <p className="text-sm font-medium mb-2">
+              Die häufigsten Fehler ({ASSISTANT_HELP_MISTAKES.length})
+            </p>
             <ul className="space-y-1.5">
               {ASSISTANT_HELP_MISTAKES.map((m, i) => (
                 <li key={i} className="flex items-start gap-2 text-xs">
