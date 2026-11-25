@@ -2,6 +2,12 @@
 
 > Status: **UMGESETZT** (A1–A5, B1–B4; Armação de Pêra benötigte keine
 > Dedup-Änderung — alle Keywords sind regionenspezifische Long-Tails).
+> Übertragen auf die anderen Pläne (Zentralalgarve + Westalgarve):
+> - `figueira-budens.json`: alle 30 Artikel mit `slug` + `meta` versehen,
+>   #30-Fallback „Wandern mit Hund an der Costa Vicentina", Places mit
+>   `week`, Brief #23 + Forte-FAKT `checkOnSite`, JSON-Fehler repariert.
+> - `armacao-de-pera.json`: #29-Fallback „Praia da Marinha", Places mit
+>   `week`, Briefs #4/#12/#16 + alle PRÜFEN-FAKTEN `checkOnSite`.
 > Kontext: Review von `public/data/contentplans/manta-rota.json`,
 > `useContentPlans.ts`, `ContentPlanSheet.tsx`, `contentplan-store.js`.
 
