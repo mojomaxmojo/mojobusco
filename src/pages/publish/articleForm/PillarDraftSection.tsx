@@ -9,7 +9,7 @@
  *
  * WP3c: Button „✨ KI-Anker" ruft POST /api/assistant/pillar-anchors —
  * Modell = aktueller ModelSelect-Tier (Switcher, GLM 5.3 flash = Tier
- * 'test'). Die AI liefert NUR Link-Positionen als JSON (Stil-Garantie:
+ * 'medium'). Die AI liefert NUR Link-Positionen als JSON (Stil-Garantie:
  * kein Text, read-only für den Artikel); ungültige Anker validiert
  * suggestAnchorsFromAi() weg — Fallback bleibt der deterministische
  * WP3a-Vorschlag. Schlägt der Endpoint fehl (z. B. ai-api noch nicht

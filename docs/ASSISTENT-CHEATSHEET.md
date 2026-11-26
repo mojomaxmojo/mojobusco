@@ -151,3 +151,9 @@ identische Bedingungen (kein Modell-Unterschied mehr).
   Verifizierung der neuen Tiers entfernt werden
 TextModelTier-Union: 'mini' | 'medium' | 'maxi' | 'top' | 'test'
 (src/components/ModelSelect.tsx, src/lib/kiGeneration.ts).
+
+# Test-Tier entfernt (Stand Nov 2026)
+Der Tier 'test' ist aus beiden ai-models.js und der TextModelTier-Union
+gelöscht. BAND_MODEL_TIER-Default: 'medium' (server/config/band-estimate.js).
+Persistierte 'test'-Werte (z. B. localStorage) fallen über
+normalizeTextModel() automatisch auf 'medium' zurück — kein Fehlerfall.

@@ -12,8 +12,8 @@
  * Autor-Klick den Markdown-Link ein.
  *
  * Modell via Switcher-Tier (möglichst nicht hardcodieren — User-Vorgabe):
- * deriveModel() akzeptiert 'mini' | 'medium' | 'maxi' | 'top' | 'test'
- * (GLM 5.3 flash = 'test'). Token-Budget: useCase 'anchors' aus
+ * deriveModel() akzeptiert 'mini' | 'medium' | 'maxi' | 'top'
+ * (GLM 5.3 flash = 'medium'). Token-Budget: useCase 'anchors' aus
  * ai-models.js (beide Kopien synchron).
  */
 

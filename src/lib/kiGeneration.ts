@@ -23,7 +23,7 @@ const API_BASE = import.meta.env.VITE_API_URL || '';
 // Re-export für einfachen Import
 export type { GenderType };
 
-export type TextModelTier = 'mini' | 'medium' | 'maxi' | 'top' | 'test';
+export type TextModelTier = 'mini' | 'medium' | 'maxi' | 'top';
 
 interface GenerateOptions {
   lifestyle: LifestyleType;

@@ -86,9 +86,9 @@ export const BAND_TOKEN_MATCH_THRESHOLD = envFloat('BAND_TOKEN_MATCH_THRESHOLD',
 /** Env-gestützte Laufzeit-Konfiguration. */
 export const BAND_CONFIG = {
   enabled: process.env.BAND_ESTIMATE_ENABLED !== '0',
-  modelTier: VALID_TEXT_MODELS.includes(envValue('BAND_MODEL_TIER', 'test'))
-    ? envValue('BAND_MODEL_TIER', 'test')
-    : 'test', // „test" = GLM 5.3 Flash (ai-models.js)
+  modelTier: VALID_TEXT_MODELS.includes(envValue('BAND_MODEL_TIER', 'medium'))
+    ? envValue('BAND_MODEL_TIER', 'medium')
+    : 'medium', // 'medium' = GLM 5.3 Flash (ai-models.js)
   promptVersion: 'band-v1',
   cacheTtlMs: envInt('BAND_CACHE_TTL_DAYS', 7, { min: 1, max: 90 }) * DAY_MS,
   maxRunsPerDay: envInt('BAND_MAX_RUNS_PER_DAY', 5, { min: 1, max: 100 }),

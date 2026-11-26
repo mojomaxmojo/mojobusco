@@ -28,7 +28,7 @@ function getOpenRouterHeaders() {
  *
  * @param {string} prompt
  * @param {string} systemPrompt
- * @param {string} model - 'mini' | 'medium' | 'maxi' | 'top' | 'test'
+ * @param {string} model - 'mini' | 'medium' | 'maxi' | 'top'
  * @param {number} maxTokens
  * @param {number} temperature
  * @returns {Promise<{content: string|null, finishReason: string|null}>}
