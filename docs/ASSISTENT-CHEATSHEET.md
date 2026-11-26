@@ -138,3 +138,16 @@ halten!): mini = z-ai/glm-5.3-flash, reasoning effort 'low' (ersetzt
 deepseek-v4-pro-0813 ohne Reasoning). HINWEIS: Der Test-Tier ist damit
 gleiches Modell + gleiches reasoning — der A/B-Vergleich misst aktuell
 identische Bedingungen (kein Modell-Unterschied mehr).
+
+# Tier-Neuaufteilung (Stand Nov 2026)
+`src/config/ai-models.js` + `server/config/ai-models.js` (identisch halten):
+- mini = z-ai/glm-5.3-flash (effort low) — SEO-Titel/Meta/FAKTEN/Ideen
+- medium = z-ai/glm-5.3-flash, Settings wie der bisherige Test-Tier —
+  DEFAULT für Artikelgenerierung (DEFAULT_TEXT_MODEL bleibt 'medium',
+  pro Artikel manuell änderbar)
+- maxi = anthropic/claude-sonnet-5.5 (effort low, Thinking immer an)
+- top (NEU) = anthropic/claude-opus-5.5 — für Top-Pillars
+- test = exakt wie bisher (z-ai/glm-5.3-flash, effort low) — kann nach
+  Verifizierung der neuen Tiers entfernt werden
+TextModelTier-Union: 'mini' | 'medium' | 'maxi' | 'top' | 'test'
+(src/components/ModelSelect.tsx, src/lib/kiGeneration.ts).

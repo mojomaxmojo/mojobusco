@@ -11,7 +11,7 @@
 
 /** @typedef {{ id: string, provider: 'openrouter' | 'groq', label: string, supportsReasoning?: boolean, reasoning?: object | false | null, tokenBudgets?: Record<string, number | Record<string, number>> }} ModelConfig */
 
-/** @type {Record<'mini'|'medium'|'maxi'|'test', ModelConfig>} */
+/** @type {Record<'mini'|'medium'|'maxi'|'top'|'test', ModelConfig>} */
 export const TEXT_MODELS = {
   mini: {
     id: 'z-ai/glm-5.3-flash',
@@ -33,9 +33,28 @@ export const TEXT_MODELS = {
     }
   },
   medium: {
-    id: 'anthropic/claude-sonnet-5',
+    id: 'z-ai/glm-5.3-flash',
     provider: 'openrouter',
-    label: 'Claude Sonnet 5 (Medium)',
+    label: 'GLM 5.3 Flash (Medium)',
+    supportsReasoning: true,
+    reasoning: { effort: 'low' }, // Settings wie der bisherige Test-Tier (Artikel-Generierung)
+    tokenBudgets: {
+      article: { short: 2500, medium: 5000, long: 7500 },
+      trip: { short: 500, medium: 1400, long: 2800 },
+      caption: 150,
+      summary: 400,
+      titles: 400,
+      note: 150,
+      place: 300,
+      media: 350,
+      anchors: 800,
+      default: 1000
+    }
+  },
+  maxi: {
+    id: 'anthropic/claude-sonnet-5.5',
+    provider: 'openrouter',
+    label: 'Claude Sonnet 5.5 (Maxi)',
     supportsReasoning: true,
     reasoning: { effort: 'low' },
     tokenBudgets: {
@@ -51,10 +70,10 @@ export const TEXT_MODELS = {
       default: 1000
     }
   },
-  maxi: {
-    id: 'anthropic/claude-opus-5',
+  top: {
+    id: 'anthropic/claude-opus-5.5',
     provider: 'openrouter',
-    label: 'Claude Opus 5 (Maxi)',
+    label: 'Claude Opus 5.5 (Top)',
     supportsReasoning: true,
     reasoning: { effort: 'low' },
     tokenBudgets: {
@@ -132,14 +151,14 @@ export const VALID_TEXT_MODELS = Object.keys(TEXT_MODELS)
  */
 export function normalizeTextModel(model) {
   if (VALID_TEXT_MODELS.includes(model)) {
-    return /** @type {'mini'|'medium'|'maxi'|'test'} */ (model)
+    return /** @type {'mini'|'medium'|'maxi'|'top'|'test'} */ (model)
   }
   return DEFAULT_TEXT_MODEL
 }
 
 /**
  * Liefert die OpenRouter- oder Groq-Modell-ID für eine gewählte Stufe.
- * @param {'mini'|'medium'|'maxi'|'test'} tier
+ * @param {'mini'|'medium'|'maxi'|'top'|'test'} tier
  * @returns {ModelConfig}
  */
 export function getTextModel(tier) {
@@ -150,7 +169,7 @@ export function getTextModel(tier) {
  * Liefert das Token-Budget fuer einen bestimmten Use-Case.
  * Unterstuetzt sowohl einfache Zahlen als auch Objekte mit articleLength.
  *
- * @param {'mini'|'medium'|'maxi'|'test'} tier
+ * @param {'mini'|'medium'|'maxi'|'top'|'test'} tier
  * @param {string} useCase - z.B. 'article', 'summary', 'titles', 'note', 'place', 'media'
  * @param {'short'|'medium'|'long'} [articleLength='medium'] - Nur relevant fuer 'article'
  * @param {number} [fallback] - Fallback wenn kein Budget definiert
