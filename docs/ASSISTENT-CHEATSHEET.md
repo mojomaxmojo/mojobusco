@@ -166,9 +166,9 @@ normalizeTextModel() automatisch auf 'medium' zurück — kein Fehlerfall.
 3 Editor-Bilder-Cap 5 → 12 (content/article.js).
 4 Ein Retry (2s Backoff) bei 429/500/502/503/529 in ai-content.js.
 5 Bild-Markdown wird aus dem Autor-Text gestrippt (Doppelgewicht weg).
-6 Marker-Semantik (FAKTEN/ERLEBNISSE) als serverseitiger Addendum am
-  Prompt — src/config/prompts/articles.js UNANGETASTET (kein Verhalten
-  geändert, Browser+Node identisch).
+6 Marker-Semantik (FAKTEN/ERLEBNISSE) jetzt IM Prompt erklärt — Fix in
+  src/config/prompts/articles.js (nur 6 Zeilen statischer Text, sonst
+  unverändert); serverseitiger Addendum entfernt.
 7 Vision-Kette: GLM 5.3 Flash primary, DeepSeek v4.1 Fallback, Rest
   (GPT-4o mini, Gemini 3/2.5 Flash) unverändert.
 Alle Änderungen serverseitig → aktiv erst mit ai-api-Deploy.

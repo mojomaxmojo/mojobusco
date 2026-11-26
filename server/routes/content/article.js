@@ -194,19 +194,10 @@ router.post('/api/generate-article', (req, res, next) => {
     // useCase: 'article' + articleLength bezieht die passenden maxTokens
     console.log(`[KI] Generiere Artikel (${articleLength}, Budget aus ai-models.js)...`)
 
-    // Bericht-Verbesserung 6: Marker-Semantik serverseitig anhängen
-    // (kein Verhalten geändert — reine Erklärungstext-Ergänzung am fertigen
-    // Prompt-String; die Tabu-Datei src/config/prompts/articles.js bleibt
-    // unangetastet, funktioniert in Browser + Node identisch weiter).
-    const promptWithMarkers = `${prompt}
-
-    MARKIERTE BLOCKE IM AUTOR-INPUT:
-    Der Autor-Input kann zwei markierte Bloecke enthalten:
-    - "FAKTEN (belegbar):" — belegbare Zahlen, Regeln, Zeiten. Übernimm sie EXAKT als Fakten, erfinde nichts dazu (auch keine "eine runde" Zahlen).
-    - "ERLEBNISSE (Author/Continuity):" — wirklich Erlebtes (Szenen, Details, offene Fäden). Forme daraus Szenen in der 1. Person, deute nichts um, erfinde keine Zusatzerlebnisse.
-    Wird ein Marker nicht gefunden: ganz normal aus dem Autor-Text schreiben.`
-
-    const article = await generateWithModel(promptWithMarkers, model, lifestyle, {
+    // Bericht-Verbesserung 6: Marker-Semantik ist jetzt IM Prompt erklärt
+    // (Fix in src/config/prompts/articles.js — Single Source of Truth für
+    // Browser + Node). Kein serverseitiger Addendum mehr nötig.
+    const article = await generateWithModel(prompt, model, lifestyle, {
       useCase: 'article',
       articleLength,
       temperature: 0.8

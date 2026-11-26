@@ -439,6 +439,12 @@ ${activeZones.length > 0 ? `
     ${text ? `WAS DER AUTOR SAGT (HÖCHSTE PRIORITÄT – das ist passiert, bau den Artikel darauf):\n"${text}"` : ''}
     ${inputGuidance}
 
+    MARKIERTE BLÖCKE IM AUTOR-INPUT:
+    Der Autor-Input kann zwei markierte Blöcke enthalten:
+    - "FAKTEN (belegbar):" — belegbare Zahlen, Regeln, Zeiten. Übernimm sie EXAKT als Fakten, erfinde nichts dazu (auch keine gerundeten Zahlen).
+    - "ERLEBNISSE (Author/Continuity):" — wirklich Erlebtes (Szenen, Details, offene Fäden). Forme daraus Szenen in der 1. Person, deute nichts um, erfinde keine Zusatzerlebnisse.
+    Wird ein Marker nicht gefunden: ganz normal aus dem Autor-Text schreiben.
+
     REGELN:
     - Verwende NUR Infos die aus dem Input ableitbar sind
     - Erfinde KEINE konkreten Zahlen (Kosten, Temperaturen, Kilometer) – außer der User hat sie genannt
