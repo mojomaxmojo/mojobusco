@@ -72,44 +72,6 @@ export function Home() {
   //   reichen die ersten Relay-Events, da Relays neueste zuerst liefern
   // Die dedizierten Seiten (/artikel, /plaetze) nutzen ihre eigenen Hooks/Limits.
 
-  // Refresh-Funktion: Invalidiere und hole alle Daten neu
-  const handleRefresh = async () => {
-    try {
-      toast({
-        title: th('toast_refreshing_title'),
-        description: th('toast_refreshing_desc'),
-      });
-
-      // Invalidiere alle relevanten Queries
-      await queryClient.invalidateQueries({
-        queryKey: ['preloaded', 'articles'],
-      });
-      await queryClient.invalidateQueries({
-        queryKey: ['preloaded', 'places'],
-      });
-      await queryClient.invalidateQueries({
-        queryKey: ['preloaded', 'notes'],
-      });
-      await queryClient.invalidateQueries({
-        queryKey: ['preloaded', 'bilder'],
-      });
-      await queryClient.invalidateQueries({
-        queryKey: ['trips'],
-      });
-
-      toast({
-        title: th('toast_success_title'),
-        description: th('toast_success_desc'),
-      });
-    } catch (error) {
-      toast({
-        title: th('toast_error_title'),
-        description: th('toast_error_desc'),
-        variant: 'destructive',
-      });
-    }
-  };
-
   // Hybrid-Hook: /data/articles.json sofort, Relay nur für neue Events (siehe usePreloadedData)
   const { data: articles, isLoading: articlesLoading } = usePreloadedArticles();
 
@@ -232,28 +194,6 @@ export function Home() {
               </p>
             </div>
 
-            <div className="pt-6 flex flex-wrap justify-center gap-5">
-              <Button
-                asChild
-                size="lg"
-                className="gap-3 shadow-lg text-base px-8 py-6 rounded-xl"
-              >
-                <Link to={localizePath('/artikel')}>
-                  <Compass className="h-6 w-6" />
-                  {th('cta_discover')}
-                </Link>
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                onClick={handleRefresh}
-                className="gap-3 hover:bg-primary/10 hover:border-primary transition-all duration-300 text-base px-8 py-6 rounded-xl"
-                title={th('refresh_tooltip')}
-              >
-                <RefreshCw className="h-6 w-6" />
-                {th('refresh_button')}
-              </Button>
-            </div>
           </div>
         </div>
       </section>
