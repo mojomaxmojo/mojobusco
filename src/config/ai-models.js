@@ -14,11 +14,11 @@
 /** @type {Record<'mini'|'medium'|'maxi'|'test', ModelConfig>} */
 export const TEXT_MODELS = {
   mini: {
-    id: 'deepseek/deepseek-v4-pro-0813',
+    id: 'z-ai/glm-5.3-flash',
     provider: 'openrouter',
-    label: 'DeepSeek V4 Pro 0813 (Mini)',
+    label: 'GLM 5.3 Flash (Mini)',
     supportsReasoning: true,
-    reasoning: { effort: 'none' }, // Reasoning komplett aus
+    reasoning: { effort: 'low' }, // Thinking AN (ersetzt DeepSeek ohne Reasoning)
     tokenBudgets: {
       article: { short: 2500, medium: 5000, long: 7500 },
       trip: { short: 500, medium: 1400, long: 2800 },

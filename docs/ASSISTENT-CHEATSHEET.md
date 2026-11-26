@@ -122,3 +122,19 @@ als Checkliste (Länge · Kategorie · Verlinkung · Fallback/Dedup) →
 Woche (W1-Places vor/auf dem Pillar) → Publish (auto-Abhak „✓ live") →
 Ranking-Block füttert den dynamischen Slot #29/#30 (Fallback aus der
 Work-Card, falls keine GSC-Queries).
+
+# SEO-Panel: Meta-Description-Vorschlag (Stand Nov 2026)
+Button „Vorschlag" neben dem Meta-Feld → POST /api/assistant/seo-meta
+{ title, articleText, seoTitle? } → suggestSeoMeta (server/services/
+report-assistant.js) mit buildSeoMetaPrompt. Regeln: 120–160 Zeichen,
+Haupt-Fakt aus dem Artikelanfang, keine erfundenen Zahlen. Graceful
+Fallback: Endpunkt nicht deployt → Summary-Vorbefüllung + Toast. Live-
+Zeichenzähler n/160 (grün 120–160, amber ≤200, rot >200). Deploy des
+ai-api-Service (Port 3002) nötig, damit die KI-Variante aktiv wird.
+
+# Mini-Tier: GLM 5.3 Flash mit Thinking (Stand Nov 2026)
+`src/config/ai-models.js` + `server/config/ai-models.js` (identisch
+halten!): mini = z-ai/glm-5.3-flash, reasoning effort 'low' (ersetzt
+deepseek-v4-pro-0813 ohne Reasoning). HINWEIS: Der Test-Tier ist damit
+gleiches Modell + gleiches reasoning — der A/B-Vergleich misst aktuell
+identische Bedingungen (kein Modell-Unterschied mehr).

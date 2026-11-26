@@ -15,6 +15,7 @@ import {
   buildResearchPrompt,
   buildIdeasPrompt,
   buildSeoTitlePrompt,
+  buildSeoMetaPrompt,
   buildTopicSuggestionsPrompt
 } from '../prompts/assistant-prompts.js'
 import { getCached, setCached } from './assistant-store.js'
@@ -336,6 +337,37 @@ export async function suggestSeoTitle({ title, articleText } = {}) {
     .slice(0, 70)
 
   return { title: t, seoTitle }
+}
+
+/**
+ * Meta-Description-Vorschlag (SEO-Panel) — analog suggestSeoTitle.
+ * Modell mini (GLM 5.3 Flash mit Thinking), Temperatur 0.4. Keine
+ * erfundenen Zahlen — der Prompt verbietet es, der Artikelanfang ist
+ * der Kontext.
+ * @param {{ title: string, articleText?: string, seoTitle?: string }} p
+ * @returns {Promise<{ title: string, metaDescription: string }>}
+ */
+export async function suggestSeoMeta({ title, articleText, seoTitle } = {}) {
+  const t = (title || '').trim()
+  if (!t) throw new Error('Titel fehlt')
+
+  const raw = await generateWithModel(
+    buildSeoMetaPrompt({ title: t, articleText, seoTitle }),
+    'mini',
+    'mojobus',
+    {
+      temperature: 0.4,
+      maxTokens: 120
+    }
+  )
+
+  const metaDescription = (raw || '')
+    .split('\n')[0]
+    .trim()
+    .replace(/^["'„“]+|["'“”]+$/g, '')
+    .slice(0, 200)
+
+  return { title: t, metaDescription }
 }
 
 // ============================================================

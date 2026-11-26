@@ -86,6 +86,30 @@ Regeln:
 }
 
 /**
+ * Prompt für „Meta-Description vorschlagen" (SEO-Panel, Button neben dem
+ * Meta-Feld). Gleicher Stil wie buildSeoTitlePrompt: hart, kurz, keine
+ * erfundenen Zahlen (nur was im Artikeltext steht).
+ * @param {{ title: string, articleText?: string, seoTitle?: string }} p
+ * @returns {string}
+ */
+export function buildSeoMetaPrompt({ title, articleText, seoTitle }) {
+  const excerpt = (articleText || '').slice(0, 1500)
+
+  return `Du bist ein SEO-Redakteur.
+
+Artikel-Titel: "${title}"
+${seoTitle ? `SEO-Titel: "${seoTitle}"\n` : ''}${excerpt ? `Artikel-Anfang:\n${excerpt}\n` : ''}
+Erzeuge EINE Meta-Description (Google-Suche) für diesen Artikel.
+
+Regeln:
+- 120–160 Zeichen.
+- Konkret: ein Haupt-Fakt oder Kernversprechen aus dem Artikelanfang.
+- Keine Zahlen erfinden — nur was im Text steht.
+- Kein Clickbait, kein Ausrufezeichen, keine Anführungszeichen, kein "| MojoBus".
+- Antworte NUR mit der Description, ohne Anführungszeichen, ohne Erklärung.`
+}
+
+/**
  * Themen-Vorschläge mit Suchintention („Themen mit Nachfrage“): aus einem
  * Seed-Thema + echten GSC-Anfragen werden deutsche Artikel-Themen im
  * Format „Titel | target-keyword“ erzeugt (maschinen-lesbar fürs Parsing).

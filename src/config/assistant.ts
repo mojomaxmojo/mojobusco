@@ -41,6 +41,7 @@ export const ASSISTANT_CONFIG = {
     weather: '/api/assistant/weather',
     threadsResolve: '/api/assistant/threads/resolve',
     seoTitle: '/api/assistant/seo-title',
+    seoMeta: '/api/assistant/seo-meta',
     drafts: '/api/assistant/drafts',
     article: '/api/assistant/article',
     published: '/api/assistant/published',

@@ -7,6 +7,7 @@
  *   GET  /api/assistant/continuity-suggestions?location=&date=
  *   GET  /api/assistant/link-suggestions?topic=&location=&tags=
  *   POST /api/assistant/seo-title          { title, articleText }
+ *   POST /api/assistant/seo-meta           { title, articleText?, seoTitle? }
  *
  * Teil 2 (Schritt 3) — token-geschützte Schreib-Routen: Drafts-CRUD,
  * PUT /article/:id, POST /published (Pipeline-Trigger).
@@ -21,6 +22,7 @@ import {
   getContinuitySuggestions,
   getLinkSuggestions,
   suggestSeoTitle,
+  suggestSeoMeta,
   getPagePerformance,
   getTopicSuggestions
 } from '../../services/report-assistant.js'
@@ -124,6 +126,25 @@ router.post('/api/assistant/seo-title', async (req, res) => {
   } catch (error) {
     console.error('[Assistant] seo-title fehlgeschlagen:', error.response?.data || error.message)
     res.status(500).json({ error: 'SEO-Titel-Vorschlag fehlgeschlagen', details: error.message })
+  }
+})
+
+// POST /api/assistant/seo-meta { title, articleText?, seoTitle? }
+router.post('/api/assistant/seo-meta', async (req, res) => {
+  try {
+    const { title, articleText, seoTitle } = req.body || {}
+    if (!title || typeof title !== 'string' || title.trim() === '') {
+      return res.status(400).json({ error: 'Titel fehlt' })
+    }
+    const result = await suggestSeoMeta({
+      title,
+      articleText: typeof articleText === 'string' ? articleText : '',
+      seoTitle: typeof seoTitle === 'string' ? seoTitle : ''
+    })
+    res.json(result)
+  } catch (error) {
+    console.error('[Assistant] seo-meta fehlgeschlagen:', error.response?.data || error.message)
+    res.status(500).json({ error: 'Meta-Description-Vorschlag fehlgeschlagen', details: error.message })
   }
 })
 
