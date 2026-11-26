@@ -83,18 +83,24 @@ zentral: `src/config/api-auth.js`. Middleware: `server/middleware/nostr-auth.js`
 
 ---
 
-## KI-Modelle (zentral: `src/config/ai-models.js`)
+## KI-Modelle (zentral: `src/config/ai-models.js` + `server/config/ai-models.js` — identisch halten)
 
-| Stufe | Text-Modell | Vision-Modell | Provider |
-|-------|-------------|---------------|----------|
-| mini  | `anthropic/claude-sonnet-5` (OpenRouter) | `qwen/qwen2.5-vl-72b-instruct` | OpenRouter |
-| medium | `anthropic/claude-sonnet-5` (OpenRouter) | `qwen/qwen2.5-vl-72b-instruct` | OpenRouter |
-| maxi  | `anthropic/claude-sonnet-5` (OpenRouter) | `qwen/qwen2.5-vl-72b-instruct` | OpenRouter |
+Stand Nov 2026 (Tier 'test' entfernt, 'top' neu):
 
-**Vision-Fallback**: konfigurierbar in `src/config/ai-models.js` (`VISION_FALLBACK_MODEL`).
+| Stufe | Text-Modell | Reasoning | Verwendung |
+|-------|-------------|-----------|------------|
+| mini  | `z-ai/glm-5.3-flash` | effort low | SEO-Titel/Meta, FAKTEN, Ideen, Continuity-Extraktion |
+| medium | `z-ai/glm-5.3-flash` | effort low | **DEFAULT Artikelgenerierung** (DEFAULT_TEXT_MODEL = 'medium') |
+| maxi | `anthropic/claude-sonnet-5.5` | effort low (Thinking immer an) | qualitativ anspruchsvolle Artikel |
+| top | `anthropic/claude-opus-5.5` | effort low | Top-Pillars |
 
-**Claude-Config**: `max_tokens: 16384`, `reasoning: { effort: 'low' }`, `timeout: 90s`
-(claude-sonnet-5 → Reasoning-Modell, braucht großes Token-Budget). Kein Groq-Fallback mehr.
+**Vision-Kette** (Bild-Analyse): `z-ai/glm-5.3-flash` (primary) →
+`deepseek/deepseek-v4.1-flash` → `openai/gpt-4o-mini-2024-07-18` →
+`google/gemini-3-flash-preview` → `google/gemini-2.5-flash` (alle OpenRouter,
+konfigurierbar in ai-models.js: VISION_PRIMARY_MODEL + Fallbacks).
+
+Persistierte 'test'-Werte (z. B. localStorage) fallen über
+`normalizeTextModel()` automatisch auf 'medium' zurück.
 
 ---
 

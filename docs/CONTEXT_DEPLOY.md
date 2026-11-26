@@ -162,6 +162,7 @@ node scripts/generate-site-data.js
 | `server/server.js` | `deploy --force` + `systemctl restart ai-api` |
 | `server/routes/prerender-fallback.js` | `deploy --force` + `systemctl restart ai-api` |
 | `server/bot/html.js` (T3 org→co-Rewrite) | `deploy --force` + `systemctl restart ai-api` (Bot-Cache wird mit geleert) |
+| **Offen seit Nov 2026** | `server/services/ai-content.js` (Timeout + 429/5xx-Retry + System-Message), `server/routes/content/article.js` (Bilder-Cap 12, Bild-Strip), `server/routes/assistant/index.js` (+ seo-meta-Route), `server/prompts/assistant-prompts.js` (+ buildSeoMetaPrompt), `server/services/report-assistant.js` (+ suggestSeoMeta), **beide `ai-models.js`** (Tiers mini/medium/maxi/top, Vision GLM-primary), `server/config/band-estimate.js` (Default medium) → `deploy --force` + `systemctl restart ai-api` |
 | `scripts/` (Pipeline/Prerender/botcheck/healthcheck) | `deploy-main.sh --force` (kopiert scripts/ in den Webroot) |
 | Nginx-Config | Backup + `cp mojobus.co.ssl.conf /usr/local/nginx/conf/conf.d/` + `nginx -t && systemctl reload nginx` (T2-Edge-If; ggf. Cloudflare-Cache purgen) |
 | HTML-Caching (Fix #9) | HTML-Location liefert `Cache-Control: public, max-age=0, must-revalidate` (vorher: expires 5m + no-cache-Widerspruch). Assets bleiben 1y immutable (content-hash). `public/_redirects` (Netlify-Fallback) ebenso angepasst. SW-Update zeigt Toast mit Reload-Button (`ServiceWorkerUpdateToast.tsx`), Auto-Reload bewusst vermieden (Formular-Schutz). |

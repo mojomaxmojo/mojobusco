@@ -208,7 +208,8 @@ Mobile), i18n `nav_destinations` (de „Reiseziele" / en „Destinations").
   (pillarLinkDraft.ts: heading → paragraph → „## Weiterlesen im
   Reiseziel"). Einfügen NUR per Klick; AI-Anker (WP3c) via
   POST /api/assistant/pillar-anchors liefert NUR JSON-Positionen
-  (Stil-Garantie), Modell = Switcher-Tier (GLM 5.3 flash = 'test').
+  (Stil-Garantie), Modell = Switcher-Tier (Standard medium = GLM 5.3
+  Flash, Tier 'test' wurde Nov 2026 entfernt).
 - **Pflege-Workflow**: Pillar mit hub-Schalter publishen, Cluster-Artikel
   mit Plan-Select → fertig. Neue Regionen/Destinations: im Editor. Live
   jeweils ≤ 3 h (Cron-Rhythmus).
@@ -409,7 +410,8 @@ und haben einen ✓-erledigt-Klick → 🔒 `POST /api/assistant/threads/resolve
 **Backfill (Bestandsdaten nachtragen):** `scripts/backfill-continuity.js` holt
 alle veröffentlichten Events (30023/30025/1, Autor-Filter + isMojobusKind1 +
 Teaser/EN-Filter) von den Relays und schreibt sie per DIREKTEM DB-Zugriff +
-Mini-LLM-Extraktion (deepseek-v4-pro, native fetch — gleiche Parameter wie
+Mini-LLM-Extraktion (Tier 'mini' — seit Nov 2026 z-ai/glm-5.3-flash, vorher
+deepseek-v4-pro; native fetch — gleiche Parameter wie
 die Track-Route) in die Live-continuity.db. better-sqlite3: Repo-Import mit
 Automatik-Fallback auf die funktionierende Webroot-Kopie
 (public/server/node_modules) — umgeht npm allow-scripts-Blockaden.
@@ -430,6 +432,11 @@ gelöscht — die Historie der Altartikel fehlte.
 **Interne Links — automatisches Einstreuen (Stufe 1, nur Berichte):**
 `server/services/internal-links.js` + `server/config/internal-links.js`.
 Nach der Artikel-Generierung (`/api/generate-article`: NACH dem
+  Details Nov 2026 (Fixes 1–7, Cheatsheet-Abschnitt): System-Message ohne
+  Überschriften-/Listen-Verbot, Timeout skaliert mit maxTokens (long ≈155s),
+  Editor-Bilder-Cap 12, 429/5xx-Retry (2s Backoff), Bild-Markdown-Strip aus
+  dem Autor-Text, FAKTEN/ERLEBNISSE-Marker im Prompt erklärt (articles.js, 6
+  Zeilen statisch), Vision-Kette GLM 5.3 Flash primary + DeepSeek-Fallback.
 generateWithModel-Call, VOR Summary/Titel-Generierung) scannt
 `insertInternalLinks(article, {title, location, tags})` den fertigen
 Markdown und streut bis zu 3 interne Links an thematisch passenden
@@ -465,10 +472,10 @@ kein Server-Key).
 | Datei | Zweck |
 |-------|-------|
 | `services/assistant-store.js` | SQLite `server/data/assistant.db` (WAL): `assistant_articles` (status `draft\|published`), `media`, `seo_cache` (24h-TTL). CRUD: saveArticle/getArticle/listArticles/deleteArticle/updateArticleFields/markPublished; Cache: getCached/setCached/**deleteCachedByPrefix** (Ideas-Invalidierung nach Publish); Media: saveMediaItem/getMediaItem/listMediaItems/updateMediaItem |
-| `services/report-assistant.js` | ideas (GSC + LLM-Long-Tails), researchTopic (OpenRouter Web-Plugin), continuity-suggestions (NUR-Lese-Zugriff continuity.db), link-suggestions (sitemap.json + articles.json → canonical `https://mojobus.co/{naddr}`), seo-title, `getPagePerformance({url})` (GSC-Ranking pro URL, 24h-Cache seo_cache — nur Erfolge werden gecacht). 24h-Cache in seo_cache || `services/gsc-client.js` | Search Console Service-Account-JWT (RS256, node:crypto, Scope webmasters.readonly); striking-distance-Queries (Impressionen > 0, Ø-Position 5–20) + `getPageMetrics({url})` (Klicks/Impressionen/Ø-Position + Top-Queries für EINE URL via page-Filter) + `getQueriesContaining({seed})` (contains-Filter: ALLE Queries mit dem Seed — Quelle für „Themen mit Nachfrage"). Ohne GSC-Env: `{ available: false }` |
+| `services/report-assistant.js` | ideas (GSC + LLM-Long-Tails), researchTopic (OpenRouter Web-Plugin), continuity-suggestions (NUR-Lese-Zugriff continuity.db), link-suggestions (sitemap.json + articles.json → canonical `https://mojobus.co/{naddr}`), seo-title, seo-meta (Meta-Description-Vorschlag, suggestSeoMeta), `getPagePerformance({url})` (GSC-Ranking pro URL, 24h-Cache seo_cache — nur Erfolge werden gecacht). 24h-Cache in seo_cache || `services/gsc-client.js` | Search Console Service-Account-JWT (RS256, node:crypto, Scope webmasters.readonly); striking-distance-Queries (Impressionen > 0, Ø-Position 5–20) + `getPageMetrics({url})` (Klicks/Impressionen/Ø-Position + Top-Queries für EINE URL via page-Filter) + `getQueriesContaining({seed})` (contains-Filter: ALLE Queries mit dem Seed — Quelle für „Themen mit Nachfrage"). Ohne GSC-Env: `{ available: false }` |
 | `services/dataforseo-client.js` | **DataForSEO** (Stufe 2): `getKeywordData(keywords)` — Google-Ads-Search-Volume (Live, Basic-Auth), bis 700 Keywords/Task (~$0,075/Task), liefert volume/competition/cpc + 12-Monats-Historie → Peak-Monat (Saisonalität). **Scharf erst mit `DATAFORSEO_LOGIN`+`DATAFORSEO_PASSWORD`** (ai-api.env), sonst degradiert die Topics-Route auf GSC-Daten. Location: 2276 Germany (env: DATAFORSEO_LOCATION_CODE) |
 | `services/publish-pipeline.js` | `runPublishPipeline({ dTag, url })`: generate-site-data → prerender-static → generate-sitemap → generate-feed (execFile, Logs `[Pipeline]`), danach `pingIndexNow(urls)` (Fehler nur geloggt). Läuft NACH `res.json()` im Hintergrund. **Wichtig (Deploy)**: Führt die Skripte aus dem WEBROOT aus (`public/scripts/`) — `deploy-main.sh` kopiert `scripts/` + setzt Symlink `public/node_modules → server/node_modules` (nostr-tools-Resolution); Nginx blockt `/scripts/` + `/node_modules/` über HTTP. |
-| `routes/assistant/index.js` | Offen: `GET /api/assistant/ideas`, `GET /api/assistant/topic-ideas?seed=` („Themen mit Nachfrage" — GSC contains + LLM + optional DataForSEO, 30-Tage-Cache (env: ASSISTANT_TOPICS_CACHE_DAYS, deploy-sicher via assistant.db-Backup)), `POST /api/assistant/research`, `GET /api/assistant/continuity-suggestions`, `GET /api/assistant/link-suggestions`, `POST /api/assistant/seo-title`, `GET /api/assistant/page-metrics?url=` (GSC-Ranking pro URL, windowDays 1–90, Default 28), `GET /api/assistant/weather?location=&country=&date=` (Nr. 9 — getGenerationContext, gleiche Quelle wie die Generierung). POST /published invalidiert den Ideas-Cache (Nr. 6). 🔒 (Bearer ASSISTANT_API_TOKEN, timing-safe): `POST/GET /api/assistant/drafts`, `GET/DELETE /api/assistant/drafts/:id`, `PUT /api/assistant/article/:id`, `POST /api/assistant/threads/resolve`, `POST /api/assistant/published` |
+| `routes/assistant/index.js` | Offen: `GET /api/assistant/ideas`, `GET /api/assistant/topic-ideas?seed=` („Themen mit Nachfrage" — GSC contains + LLM + optional DataForSEO, 30-Tage-Cache (env: ASSISTANT_TOPICS_CACHE_DAYS, deploy-sicher via assistant.db-Backup)), `POST /api/assistant/research`, `GET /api/assistant/continuity-suggestions`, `GET /api/assistant/link-suggestions`, `POST /api/assistant/seo-title`, `POST /api/assistant/seo-meta` {title, articleText?, seoTitle?} — suggestSeoMeta (GLM mini), Graceful 404-Fallback clientseitig, `GET /api/assistant/page-metrics?url=` (GSC-Ranking pro URL, windowDays 1–90, Default 28), `GET /api/assistant/weather?location=&country=&date=` (Nr. 9 — getGenerationContext, gleiche Quelle wie die Generierung). POST /published invalidiert den Ideas-Cache (Nr. 6). 🔒 (Bearer ASSISTANT_API_TOKEN, timing-safe): `POST/GET /api/assistant/drafts`, `GET/DELETE /api/assistant/drafts/:id`, `PUT /api/assistant/article/:id`, `POST /api/assistant/threads/resolve`, `POST /api/assistant/published` |
 | `routes/assistant/auth.js` | `requireAssistantToken`-Middleware (timing-safe Bearer-Check). Eigene Datei — index.js und media.js importieren sie beide; ein direkter Import von media.js aus index.js heraus wäre ein ESM-Circular-Import und crasht beim Node-Start |
 | `routes/assistant/media.js` | 🔒: `POST /api/media/upload` (multer → MEDIA_DIR, `artikel-<datum>-<hash>.<ext>`), `PUT /api/media/:id` (alt/tags). Offen: `GET /api/media`, `GET /api/media/file/:id` (Fallback-Auslieferung), `POST /api/media/analyze-alt` (Vision-KI via bestehendem getArticleImageAnalysisPrompt) |
 | `prompts/assistant-prompts.js` | buildResearchPrompt / buildIdeasPrompt (keine „10 Gründe"-Formate) / buildSeoTitlePrompt — KEINE Artikel-Prompts (die bleiben in `src/config/prompts/`, TABU) |
