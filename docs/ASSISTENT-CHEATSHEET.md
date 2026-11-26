@@ -157,3 +157,18 @@ Der Tier 'test' ist aus beiden ai-models.js und der TextModelTier-Union
 gelöscht. BAND_MODEL_TIER-Default: 'medium' (server/config/band-estimate.js).
 Persistierte 'test'-Werte (z. B. localStorage) fallen über
 normalizeTextModel() automatisch auf 'medium' zurück — kein Fehlerfall.
+
+# Artikel-Generierung: Fixes 1–7 (Stand Nov 2026)
+1 System-Message ohne "keine Ueberschriften/Listen" (Widerspruch zu
+  long/hub-Modus beseitigt; Format-Regeln stehen im Prompt).
+2 callTimeout skaliert mit maxTokens (min 60s, sonst budget/60 tok/s+30s)
+  — Langform-Timeouts behoben.
+3 Editor-Bilder-Cap 5 → 12 (content/article.js).
+4 Ein Retry (2s Backoff) bei 429/500/502/503/529 in ai-content.js.
+5 Bild-Markdown wird aus dem Autor-Text gestrippt (Doppelgewicht weg).
+6 Marker-Semantik (FAKTEN/ERLEBNISSE) als serverseitiger Addendum am
+  Prompt — src/config/prompts/articles.js UNANGETASTET (kein Verhalten
+  geändert, Browser+Node identisch).
+7 Vision-Kette: GLM 5.3 Flash primary, DeepSeek v4.1 Fallback, Rest
+  (GPT-4o mini, Gemini 3/2.5 Flash) unverändert.
+Alle Änderungen serverseitig → aktiv erst mit ai-api-Deploy.

@@ -29,7 +29,11 @@ const generateWithModel = async (prompt, model = 'medium', lifestyle = 'mojobus'
   const articleLength = options.articleLength || options.variant || 'medium'
   const baseMaxTokens = options.maxTokens || getMaxTokens(tier, useCase, articleLength, 700)
   const temperature = options.temperature || 0.8
-  const callTimeout = options.timeout || 60000
+  // Bericht-Verbesserung 2: Timeout skaliert mit dem Output-Budget —
+  // 7500 Tokens (article long) bei ~60–150 tok/s brauchen 50–150 s; ein
+  // fester 60-s-Timeout kappte erfolgreiche Langform-Generierungen.
+  // Formel: Budget/60 tok/s + 30 s Puffer, nie unter 60 s.
+  const callTimeout = options.timeout || Math.max(60000, Math.round((baseMaxTokens / 60) * 1000) + 30000)
 
   // Reasoning-Steuerung:
   // 1. Option aus dem Aufruf hat hoechste Prioritaet
@@ -53,7 +57,7 @@ const generateWithModel = async (prompt, model = 'medium', lifestyle = 'mojobus'
       messages: [
         {
           role: 'system',
-          content: `Du schreibst wie Foster Huntington. Erste Person. Kurze Saetze. Keine Ueberschriften, kein Fettdruck, keine Listen. Keine Leseransprache, keine Tipps, keine Ausrufezeichen.`
+          content: `Du schreibst wie Foster Huntington. Erste Person. Kurze Saetze. Keine Leseransprache, keine Tipps, keine Ausrufezeichen. Alle Format- und Struktur-Regeln (Ueberschriften, Listen, Laenge) stehen im Prompt — folge dort dem jeweiligen Modus.`
         },
         { role: 'user', content: prompt }
       ]
@@ -90,6 +94,25 @@ const generateWithModel = async (prompt, model = 'medium', lifestyle = 'mojobus'
   // Mindest-Budget fuer Modelle mit aktivem Reasoning: Reasoning verbraucht
   // Tokens vor dem eigentlichen Content, ein zu kleines max_tokens fuehrt zu
   // content: null (alles geht fuer Thinking drauf).
+  // Bericht-Verbesserung 4: Ein Retry bei transienten OpenRouter/Provider-
+  // Fehlern (429 Rate-Limit, 5xx, 529 overloaded). Trigger-hungrige
+  // Content-Kaskade (Abschnitt/Reasoning-Cap) bleibt unverändert darunter.
+  const TRANSIENT_STATUS = new Set([429, 500, 502, 503, 529])
+
+  const attemptWithTransientRetry = async (maxTokens, reasoningOverride) => {
+    try {
+      return await attempt(maxTokens, reasoningOverride)
+    } catch (err) {
+      const status = err?.response?.status
+      if (status && TRANSIENT_STATUS.has(status)) {
+        console.warn(`[KI] Transienter Provider-Fehler (HTTP ${status}) — Retry nach 2s Backoff...`)
+        await new Promise(resolve => setTimeout(resolve, 2000))
+        return await attempt(maxTokens, reasoningOverride)
+      }
+      throw err
+    }
+  }
+
   const REASONING_MIN_TOKENS = 1500
 
   // Hartes Limit fuer Reasoning-Tokens im Fallback: Damit bleibt auch bei
@@ -107,7 +130,7 @@ const generateWithModel = async (prompt, model = 'medium', lifestyle = 'mojobus'
       ? Math.max(baseMaxTokens, REASONING_MIN_TOKENS)
       : baseMaxTokens
 
-    let result = await attempt(effectiveBaseTokens)
+    let result = await attemptWithTransientRetry(effectiveBaseTokens)
 
     // Hat das Reasoning das komplette Budget verschlungen? Dann hilft eine
     // Budget-Erhoehung nicht (das Thinking skaliert mit dem Budget) und wir
@@ -120,14 +143,14 @@ const generateWithModel = async (prompt, model = 'medium', lifestyle = 'mojobus'
     if (reasoningAteBudget) {
       console.warn(`[KI] Reasoning hat komplettes Budget verbraucht (${result.reasoningTokens} Tokens), direkt Retry mit gedeckeltem Reasoning (reasoning.max_tokens: ${REASONING_CAP})...`)
       try {
-        result = await attempt(effectiveBaseTokens, { max_tokens: REASONING_CAP })
+        result = await attemptWithTransientRetry(effectiveBaseTokens, { max_tokens: REASONING_CAP })
       } catch (capError) {
         // Manche Endpoints erlauben kein reasoning.max_tokens -> Versuch mit
         // komplett deaktiviertem Reasoning. Scheitert auch das (z.B. "Reasoning
         // is mandatory"), brechen wir sauber mit dem Original-Fehler ab.
         console.warn(`[KI] reasoning.max_tokens nicht unterstuetzt, Retry mit deaktiviertem Reasoning...`)
         try {
-          result = await attempt(effectiveBaseTokens, { enabled: false })
+          result = await attemptWithTransientRetry(effectiveBaseTokens, { enabled: false })
         } catch (disableError) {
           throw capError
         }
@@ -140,7 +163,7 @@ const generateWithModel = async (prompt, model = 'medium', lifestyle = 'mojobus'
     if ((result.finishReason === 'length' || !result.content) && !reasoningAteBudget) {
       const retryMaxTokens = Math.round(effectiveBaseTokens * MAX_RETRY_MULTIPLIER)
       console.warn(`[KI] Retry mit erhoehtem Token-Budget (maxTokens: ${effectiveBaseTokens} -> ${retryMaxTokens})...`)
-      result = await attempt(retryMaxTokens)
+      result = await attemptWithTransientRetry(retryMaxTokens)
     }
 
     // Letzter Fallback (falls der erste Direkt-Fallback nicht griff): Reasoning
@@ -151,11 +174,11 @@ const generateWithModel = async (prompt, model = 'medium', lifestyle = 'mojobus'
     if (!result.content && reasoning) {
       console.warn(`[KI] Finaler Retry mit gedeckeltem Reasoning (maxTokens: ${effectiveBaseTokens}, reasoning.max_tokens: ${REASONING_CAP})...`)
       try {
-        result = await attempt(effectiveBaseTokens, { max_tokens: REASONING_CAP })
+        result = await attemptWithTransientRetry(effectiveBaseTokens, { max_tokens: REASONING_CAP })
       } catch (capError) {
         console.warn(`[KI] reasoning.max_tokens nicht unterstuetzt, Retry mit deaktiviertem Reasoning...`)
         try {
-          result = await attempt(effectiveBaseTokens, { enabled: false })
+          result = await attemptWithTransientRetry(effectiveBaseTokens, { enabled: false })
         } catch (disableError) {
           throw capError
         }

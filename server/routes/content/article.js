@@ -41,6 +41,11 @@ router.post('/api/generate-article', (req, res, next) => {
   const location = sanitizeInput(req.body.location) || 'Unbekannt'
   // text NICHT durch sanitizeInput kürzen – der User-Text kann länger als 500 Zeichen sein
   const text = (req.body.text || '').trim()
+  // Bericht-Verbesserung 5: Bild-Markdown aus dem Autor-Text strippen —
+  // die Editor-Bilder laufen separat als markdownImageUrls (+Vision-Beschrei-
+  // bung + Zonen). Im Autor-Text wären sie doppelt im Prompt (Bild-Block +
+  // „WAS DER AUTOR SAGT“) und verzerren Reihenfolge/Platzhalter-Gewichtung.
+  const textWithoutImages = text.replace(/!\[[^\]]*\]\([^)]*\)\s*/g, '').replace(/\n{3,}/g, '\n\n').trim()
   const model = req.body.model || 'medium'
   const lifestyle = sanitizeInput(req.body.lifestyle) || 'mojobus'
   const gender = sanitizeInput(req.body.gender) || 'couple' // Gender: neutral/male/female/couple
@@ -95,8 +100,10 @@ router.post('/api/generate-article', (req, res, next) => {
       : []
 
     // ===== MARKDOWN-BILDER analysieren (URLs von Blossom) =====
-    // Max 5 Bilder aus dem Editor analysieren – mehr bringt wenig, kostet aber Zeit
-    const markdownUrlsToAnalyze = markdownImageUrls.slice(0, 5)
+    // Max 12 Bilder aus dem Editor analysieren (Bericht-Verbesserung 3) —
+    // die Longform-Vorgabe erlaubt 8–12 Bilder; der alte Cap von 5
+    // verworfen Bilder 6..n komplett (nicht analysiert, nicht platziert).
+    const markdownUrlsToAnalyze = markdownImageUrls.slice(0, 12)
     const markdownImageDescriptions = markdownUrlsToAnalyze.length > 0
       ? await Promise.allSettled(markdownUrlsToAnalyze.map(async (url, index) => {
           console.log(`[KI] Lade Markdown-Bild ${index + 1}/${markdownUrlsToAnalyze.length}: ${url.substring(0, 60)}...`)
@@ -169,7 +176,7 @@ router.post('/api/generate-article', (req, res, next) => {
       title,
       description,
       location,
-      text,
+      text: textWithoutImages,
       imageObjects,  // neu: [{url, description}] statt imageDescriptions[]
       placementZones,
       lifestyleConfig,
@@ -186,7 +193,20 @@ router.post('/api/generate-article', (req, res, next) => {
     // Berichte: Token-Budget wird zentral in ai-models.js verwaltet
     // useCase: 'article' + articleLength bezieht die passenden maxTokens
     console.log(`[KI] Generiere Artikel (${articleLength}, Budget aus ai-models.js)...`)
-    const article = await generateWithModel(prompt, model, lifestyle, {
+
+    // Bericht-Verbesserung 6: Marker-Semantik serverseitig anhängen
+    // (kein Verhalten geändert — reine Erklärungstext-Ergänzung am fertigen
+    // Prompt-String; die Tabu-Datei src/config/prompts/articles.js bleibt
+    // unangetastet, funktioniert in Browser + Node identisch weiter).
+    const promptWithMarkers = `${prompt}
+
+    MARKIERTE BLOCKE IM AUTOR-INPUT:
+    Der Autor-Input kann zwei markierte Bloecke enthalten:
+    - "FAKTEN (belegbar):" — belegbare Zahlen, Regeln, Zeiten. Übernimm sie EXAKT als Fakten, erfinde nichts dazu (auch keine "eine runde" Zahlen).
+    - "ERLEBNISSE (Author/Continuity):" — wirklich Erlebtes (Szenen, Details, offene Fäden). Forme daraus Szenen in der 1. Person, deute nichts um, erfinde keine Zusatzerlebnisse.
+    Wird ein Marker nicht gefunden: ganz normal aus dem Autor-Text schreiben.`
+
+    const article = await generateWithModel(promptWithMarkers, model, lifestyle, {
       useCase: 'article',
       articleLength,
       temperature: 0.8

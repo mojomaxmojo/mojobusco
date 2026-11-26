@@ -93,16 +93,16 @@ export const TEXT_MODELS = {
 
 /** @type {ModelConfig} */
 export const VISION_PRIMARY_MODEL = {
-  id: 'deepseek/deepseek-v4.1-flash',
+  id: 'z-ai/glm-5.3-flash',
   provider: 'openrouter',
-  label: 'DeepSeek V4.1 Flash'
+  label: 'GLM 5.3 Flash'
 }
 
 /** @type {ModelConfig | null} */
 export const VISION_FALLBACK_MODEL = {
-  id: 'openai/gpt-4o-mini-2024-07-18',
+  id: 'deepseek/deepseek-v4.1-flash',
   provider: 'openrouter',
-  label: 'GPT-4o mini (2024-07-18)'
+  label: 'DeepSeek V4.1 Flash'
 }
 
 /** @type {ModelConfig | null} */
